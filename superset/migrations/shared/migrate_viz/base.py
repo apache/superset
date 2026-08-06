@@ -171,16 +171,22 @@ class MigrateViz:
             query_context = try_load_json(slc.query_context)
             queries_bak = None
 
-            if query_context:
-                # A stored query_context is expected to carry "queries", but
-                # an atypical/malformed one (e.g. hand-edited via the API)
-                # missing it must not raise here: viz_type was already
+            if isinstance(query_context, dict) and query_context:
+                # A stored query_context is expected to be an object carrying
+                # a non-null "queries" list, but an atypical/malformed one
+                # (e.g. hand-edited via the API) missing that key, or with
+                # "queries": null, must not raise here: viz_type was already
                 # flipped above, so an uncaught exception at this point
                 # would leave the slice half-migrated (new viz_type, but
                 # stale params/query_context in the old shape). Back up the
                 # whole context in that case so downgrade can restore it
                 # verbatim instead of losing it (see FULL_CONTEXT_BAK_KEY).
-                if "queries" in query_context:
+                # Both cases must share this sentinel path rather than
+                # backing up a bare `None` -- that value is indistinguishable
+                # from "no context was ever stored", which would make
+                # downgrade discard the slice's original datasource/form_data
+                # instead of restoring this context.
+                if "queries" in query_context and query_context["queries"] is not None:
                     queries_bak = copy.deepcopy(query_context["queries"])
                 else:
                     queries_bak = {FULL_CONTEXT_BAK_KEY: copy.deepcopy(query_context)}
@@ -190,6 +196,15 @@ class MigrateViz:
 
                 queries = clz._build_query()["queries"]
                 query_context["queries"] = queries
+            elif query_context:
+                # A parseable but non-object query_context (e.g. a bare
+                # number or a JSON list -- both accepted by the schema
+                # validator) can't carry "queries"/"form_data" keys; back it
+                # up wholesale like the cases above and rebuild a fresh one,
+                # rather than raising on membership-testing a non-dict (which
+                # would leave the slice half-migrated, per the note above).
+                queries_bak = {FULL_CONTEXT_BAK_KEY: copy.deepcopy(query_context)}
+                query_context = clz._build_query()
             else:
                 query_context = clz._build_query()
 

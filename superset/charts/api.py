@@ -489,11 +489,18 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not deck_slice_ids:
             return self.response(200, result=[])
 
-        # The container's own access has already been checked above; the
-        # layers it declares are resolved without the base filter (they
-        # sit on no dashboard of their own), same as the legacy explore_json
-        # pipeline resolved them server-side under the container's access.
-        layers = ChartDAO.find_by_ids(deck_slice_ids, skip_base_filter=True)
+        # The container's own access has already been checked above. Layer
+        # charts sit on no dashboard of their own, so for an embedded guest
+        # (the intended use case, mirroring what the legacy explore_json
+        # pipeline granted server-side) they are resolved without the base
+        # filter. An ordinary logged-in principal is not entitled to read an
+        # arbitrary chart's params/datasource just by naming it in a
+        # container they can edit, so the base filter still applies to them:
+        # a referenced layer they can't otherwise read is silently omitted
+        # below rather than leaked.
+        layers = ChartDAO.find_by_ids(
+            deck_slice_ids, skip_base_filter=security_manager.is_guest_user()
+        )
         layers_by_id = {layer.id: layer for layer in layers}
         result = [
             {

@@ -636,3 +636,87 @@ test('does not include parent_slice_id when parent has no slice_id', async () =>
     expect(formData.parent_slice_id).toBeUndefined();
   });
 });
+
+test('falls back to a per-chart read for a layer missing from the persisted deck_slices', async () => {
+  // A saved container's `deck_slices` on the server can lag the in-memory
+  // Explore selection (e.g. layer 3 was just added but not saved yet), so
+  // the bulk deck_layers response only resolves layers 1 and 2. Layer 3
+  // must still be fetched (and previewed) via a per-chart read rather than
+  // silently dropped until the chart is saved.
+  jest.clearAllMocks();
+  featuresByVizType = {};
+  const parentSliceId = 50;
+
+  (SupersetClient.get as jest.Mock).mockImplementation(
+    ({ endpoint }: { endpoint: string }) => {
+      if (endpoint === `/api/v1/chart/${parentSliceId}/deck_layers/`) {
+        return Promise.resolve({
+          json: {
+            result: [1, 2].map(sliceId => ({
+              slice_id: sliceId,
+              viz_type: SUBSLICES[sliceId].vizType,
+              datasource_id: 1,
+              datasource_type: 'table',
+              params: JSON.stringify({
+                viz_type: SUBSLICES[sliceId].vizType,
+                datasource: 'test_datasource',
+              }),
+            })),
+          },
+        });
+      }
+      const subslice = { vizType: 'deck_scatter' };
+      return Promise.resolve({
+        json: {
+          result: {
+            viz_type: subslice.vizType,
+            datasource_id: 1,
+            datasource_type: 'table',
+            params: JSON.stringify({
+              viz_type: subslice.vizType,
+              datasource: 'test_datasource',
+            }),
+          },
+        },
+      });
+    },
+  );
+  (SupersetClient.post as jest.Mock).mockImplementation(
+    ({ jsonPayload }: { jsonPayload: { form_data: { viz_type: string } } }) =>
+      Promise.resolve({
+        json: {
+          result: [
+            { data: featuresByVizType[jsonPayload.form_data.viz_type] || [] },
+          ],
+        },
+      }),
+  );
+
+  const props = {
+    ...baseMockProps,
+    formData: {
+      ...baseMockProps.formData,
+      slice_id: parentSliceId,
+      deck_slices: [1, 2, 3],
+    },
+  };
+
+  renderWithProviders(<DeckMulti {...props} />);
+
+  await waitFor(() =>
+    expect(SupersetClient.get).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/api/v1/chart/3' }),
+    ),
+  );
+  expect(SupersetClient.get).toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: `/api/v1/chart/${parentSliceId}/deck_layers/`,
+    }),
+  );
+  expect(SupersetClient.get).not.toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: '/api/v1/chart/1' }),
+  );
+  expect(SupersetClient.get).not.toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: '/api/v1/chart/2' }),
+  );
+});

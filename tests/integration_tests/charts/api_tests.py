@@ -1223,6 +1223,56 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(container)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_deck_layers_omits_inaccessible_layer_for_ordinary_user(self):
+        """
+        Chart API: An ordinary (non-guest) user with access to the deck_multi
+        container must not have an inaccessible layer's params/datasource
+        leaked just because it's named in the container's `deck_slices` --
+        that layer is silently omitted from the result instead.
+        """
+        admin = self.get_user("admin")
+        gamma = self.get_user("gamma")
+        layer_visible = self.insert_chart(
+            "layer visible",
+            [gamma.id],
+            1,
+            viz_type="deck_scatter",
+            params=json.dumps({"viz_type": "deck_scatter"}),
+        )
+        layer_hidden = self.insert_chart(
+            "layer hidden from gamma",
+            [admin.id],
+            1,
+            viz_type="deck_scatter",
+            params=json.dumps({"viz_type": "deck_scatter"}),
+        )
+        container = self.insert_chart(
+            "deck multi container for gamma",
+            [gamma.id],
+            1,
+            viz_type="deck_multi",
+            params=json.dumps(
+                {
+                    "viz_type": "deck_multi",
+                    "deck_slices": [layer_visible.id, layer_hidden.id],
+                }
+            ),
+        )
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/chart/{container.id}/deck_layers/"
+        rv = self.get_assert_metric(uri, "deck_layers")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert [layer["slice_id"] for layer in data["result"]] == [
+            layer_visible.id,
+        ]
+
+        db.session.delete(layer_visible)
+        db.session.delete(layer_hidden)
+        db.session.delete(container)
+        db.session.commit()
+
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice",
         "load_birth_names_dashboard_with_slices",

@@ -606,12 +606,26 @@ const DeckMulti = (props: DeckMultiProps) => {
       })
         .then(({ json }) => {
           const layers = ((json as JsonObject).result || []) as JsonObject[];
-          return layers
+          const resolved = layers
             .map(layer => toLayerFormData(layer.slice_id, layer))
             .filter(
               (slice): slice is { slice_id: number } & JsonObject =>
                 slice !== null && sliceIds.includes(slice.slice_id),
             );
+          // The container's persisted deck_slices can lag the in-memory
+          // Explore selection (e.g. a layer just added but not yet saved),
+          // so it won't be in the bulk response above. Fall back to
+          // per-chart reads for whichever requested ids weren't resolved,
+          // so newly selected layers still preview before saving.
+          const resolvedIds = new Set(resolved.map(slice => slice.slice_id));
+          const missingIds = sliceIds.filter(id => !resolvedIds.has(id));
+          if (missingIds.length === 0) {
+            return resolved;
+          }
+          return fetchSubslicesPerChart(missingIds).then(extra => [
+            ...resolved,
+            ...extra,
+          ]);
         })
         .catch(() => fetchSubslicesPerChart(sliceIds));
     },
