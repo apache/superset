@@ -38,21 +38,21 @@ from superset.utils.core import get_user_id, LoggerLevel, to_int
 logger = logging.getLogger(__name__)
 
 
-def collect_request_payload() -> dict[str, Any]:
+def collect_request_payload(include_request_data: bool = True) -> dict[str, Any]:
     """Collect log payload identifiable from request context"""
     if not request:
         return {}
 
-    payload: dict[str, Any] = {
-        "path": request.path,
-        **request.form.to_dict(),
-        # url search params can overwrite POST body
-        **request.args.to_dict(),
-    }
+    payload: dict[str, Any] = {"path": request.path}
 
-    if request.is_json:
-        json_payload = request.get_json(cache=True, silent=True) or {}
-        payload.update(json_payload)
+    if include_request_data:
+        payload.update(request.form.to_dict())
+        # URL search params can overwrite POST body.
+        payload.update(request.args.to_dict())
+
+        if request.is_json:
+            json_payload = request.get_json(cache=True, silent=True) or {}
+            payload.update(json_payload)
 
     # save URL match pattern in addition to the request path
     url_rule = str(request.url_rule)
@@ -120,7 +120,7 @@ class AbstractEventLogger(ABC):
         object_ref: str | None = None,
         log_to_statsd: bool = True,
         duration: timedelta | None = None,
-        **payload_override: dict[str, Any],
+        **payload_override: Any,
     ) -> object:
         # pylint: disable=W0201
         self.action = action
@@ -176,13 +176,18 @@ class AbstractEventLogger(ABC):
         object_ref: str | None = None,
         log_to_statsd: bool = True,
         database: Any | None = None,
-        **payload_override: dict[str, Any] | None,
+        include_request_data: bool = True,
+        **payload_override: Any,
     ) -> None:
         # pylint: disable=import-outside-toplevel
         from superset import db
         from superset.views.core import get_form_data
 
-        referrer = request.referrer[:1000] if request and request.referrer else None
+        referrer = (
+            request.referrer[:1000]
+            if include_request_data and request and request.referrer
+            else None
+        )
 
         duration_ms = int(duration.total_seconds() * 1000) if duration else None
 
@@ -203,7 +208,7 @@ class AbstractEventLogger(ABC):
             except Exception as ex:
                 logger.debug("Failed to add user to db session: %s", ex)
                 user_id = None
-        payload = collect_request_payload()
+        payload = collect_request_payload(include_request_data)
         if object_ref:
             payload["object_ref"] = object_ref
         if payload_override:
@@ -258,6 +263,7 @@ class AbstractEventLogger(ABC):
         action: str,
         object_ref: str | None = None,
         log_to_statsd: bool = True,
+        include_request_data: bool = True,
         **kwargs: Any,
     ) -> Iterator[Callable[..., None]]:
         """
@@ -265,6 +271,8 @@ class AbstractEventLogger(ABC):
         :param action: a name to identify the event
         :param object_ref: reference to the Python object that triggered this action
         :param log_to_statsd: whether to update statsd counter for the action
+        :param include_request_data: whether to include form, query, JSON, and referrer
+            data
         """
         payload_override = kwargs.copy()
         start = datetime.now()
@@ -275,7 +283,12 @@ class AbstractEventLogger(ABC):
         # take the action from payload_override else take the function param action
         action_str = payload_override.pop("action", action)
         self.log_with_context(
-            action_str, duration, object_ref, log_to_statsd, **payload_override
+            action_str,
+            duration,
+            object_ref,
+            log_to_statsd,
+            include_request_data=include_request_data,
+            **payload_override,
         )
 
     def _wrapper(

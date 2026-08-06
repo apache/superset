@@ -385,16 +385,20 @@ class OAuth2TokenRefreshError(OAuth2RedirectError):
 
     Subclasses OAuth2RedirectError so that existing oauth2_exception checks
     match it automatically, triggering start_oauth2_dance() via check_for_oauth2.
+    The optional provider response is accepted for compatibility but discarded so
+    provider payloads cannot reach logs or API responses through the exception.
     """
 
-    def __init__(self, response_text: str) -> None:
+    def __init__(  # pylint: disable=unused-argument
+        self,
+        response_text: str | None = None,
+    ) -> None:
         SupersetErrorException.__init__(
             self,
             SupersetError(
                 message="OAuth2 token refresh failed, re-authentication required.",
                 error_type=SupersetErrorType.OAUTH2_REDIRECT,
                 level=ErrorLevel.WARNING,
-                extra={"error": response_text},
             ),
         )
 

@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+### OAuth2 database callback metrics include their outcome
+
+The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with
+`DatabaseRestApi.oauth2.success`, `DatabaseRestApi.oauth2.warning`, and
+`DatabaseRestApi.oauth2.error`. Update monitoring rules and dashboards that consume
+the old counter to use the outcome-specific replacements.
+
 ### Scheduled report execution now enforces one application deadline
 
 Scheduled report (not alert) executions are now governed by a single
