@@ -36,6 +36,34 @@ for downstream analysis but is a visible change for anyone who relied on the
 formatted text in those files. The rendered email body (the only place the
 formatting is intended for) is unaffected.
 
+### Soft delete is on by default, and purging is live
+
+`SOFT_DELETE` now ships **on** (`DEFAULT_FEATURE_FLAGS`), so deleting a
+dashboard, chart, or dataset archives it rather than removing it. Archived
+objects are hidden from normal listings, recoverable from **Recently Archived**,
+and permanently removed once the retention window elapses.
+`SOFT_DELETE_PURGE_DRY_RUN` also flips to `False`, so the nightly
+`deletion_retention.purge_soft_deleted` task deletes for real instead of only
+logging `would_purge` counts.
+
+**What operators should do before upgrading:**
+
+- **Size the first live purge.** The first real run removes every entity that
+  aged past `SOFT_DELETE_RETENTION_DAYS` (default 30) since soft delete began
+  capturing, which on a busy deployment can be a large batch in one window. To
+  see the size first, set `SOFT_DELETE_PURGE_DRY_RUN = True`, read the
+  `would_purge` counts from one nightly run, then set it back.
+- **Check a replaced `CELERY_CONFIG`.** A deployment that redefines it rather
+  than inheriting must carry both `superset.tasks.deletion_retention` in
+  `imports` and the `deletion_retention.purge_soft_deleted` beat entry;
+  a startup warning now names whichever is absent.
+
+**Both switches are retained.** `SOFT_DELETE = False` restores hard-delete
+behaviour and `SOFT_DELETE_PURGE_DRY_RUN = True` suspends purging, at any time.
+One caveat on turning soft delete back off: objects archived while it was on are
+**resurrected** into normal listings, since the rows were never removed — an
+emergency stop rather than a clean rollback.
+
 ### Scheduled report execution now enforces one application deadline
 
 Scheduled report (not alert) executions are now governed by a single
@@ -466,7 +494,7 @@ The task ships in the default `CeleryConfig` (both the `superset.tasks.version_h
 
 Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
 
-The introducing release **defaults to dry-run** (`SOFT_DELETE_PURGE_DRY_RUN=True`): the task logs `would_purge` counts but deletes nothing, so operators can validate against production before activating real purging by setting it to `False`. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the temporary `SOFT_DELETE` rollout flag is on.
+Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the retention promise above is real on a stock deployment. Set it to `True` to have the task log `would_purge` counts and delete nothing — the lever is retained, so an operator can return to dry-run at any time. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the `SOFT_DELETE` rollout flag is on; it now ships on by default.
 
 Deployments that replace the default `CELERY_CONFIG` must ensure workers register `superset.tasks.deletion_retention` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config uses `imports` and includes both entries. While `SOFT_DELETE` is statically enabled, a missing beat entry logs a startup warning; when the override explicitly defines `imports`, a missing purge module is also reported.
 
