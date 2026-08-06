@@ -166,6 +166,7 @@ const PREFERRED_SLICES: Record<string, string> = {
   gauge_chart: 'Rural Population Gauge',
   heatmap_v2: 'Sales Grid Heatmap',
   histogram_v2: 'Life Expectancy Histogram',
+  horizon: 'Population Growth Horizon',
   mixed_timeseries: 'Sales Mixed Chart',
   paired_ttest: 'Population Paired t-Test',
   partition: 'Population Partition',
@@ -177,8 +178,9 @@ const PREFERRED_SLICES: Record<string, string> = {
   table: 'Sales Summary Table',
   time_pivot: 'Sales Period Pivot',
   time_table: 'Product Line Time Table',
+  tree_chart: 'Sales Territory Tree',
   treemap_v2: 'Population Treemap',
-  waterfall: 'Monthly Sales Waterfall',
+  waterfall: 'Quarterly Sales Waterfall',
 };
 
 /** Gallery example images use a wide aspect, matching the existing art. */

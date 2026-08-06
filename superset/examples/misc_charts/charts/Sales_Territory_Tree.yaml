@@ -17,26 +17,36 @@
 cache_timeout: null
 certification_details: null
 certified_by: null
-dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
-description: Month-over-month sales movement with increases and decreases.
+dataset_uuid: 9a679ff3-021d-4c10-ad7d-2e0fba37768e
+description: Sales orders broken down by Territory, then Country, then City.
 params:
+  adhoc_filters: []
+  annotation_layers: []
+  child_label_position: bottom
+  dashboards: []
+  emphasis: descendant
+  extra_form_data: {}
+  id: id
+  initialTreeDepth: -1
+  layout: radial
   metric:
     aggregate: SUM
     column:
-      column_name: sales
+      column_name: count
     expressionType: SIMPLE
-    label: SUM(sales)
-    optionName: metric_sales_wf
-  show_legend: true
-  show_total: true
-  time_grain_sqla: P3M
-  time_range: No filter
-  viz_type: waterfall
-  x_axis: order_date
-  x_axis_time_format: smart_date
-  y_axis_format: SMART_NUMBER
+    label: SUM(count)
+    optionName: metric_sales_territory_tree
+  name: name
+  node_label_position: top
+  parent: parent
+  roam: false
+  root_node_id: '1'
+  row_limit: 1000
+  symbol: circle
+  symbolSize: 9
+  viz_type: tree_chart
 query_context: null
-slice_name: Monthly Sales Waterfall
-uuid: b8075180-6ec9-412a-a3c9-2d4079d44f5d
+slice_name: Sales Territory Tree
+uuid: 1a48df88-fbab-4a09-a439-c5741c4ba2ba
 version: 1.0.0
-viz_type: waterfall
+viz_type: tree_chart

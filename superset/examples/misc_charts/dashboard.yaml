@@ -65,6 +65,8 @@ metadata:
     - b8075180-6ec9-412a-a3c9-2d4079d44f5d
     - 4c3deb29-8057-4111-9f36-33a03c332d21
     - b71548cd-6209-4713-99a8-569167cd8f42
+    - 1a48df88-fbab-4a09-a439-c5741c4ba2ba
+    - 11c9b341-7bb0-4340-be49-9d9889a7152a
     scope:
       excluded: []
       rootPath:
@@ -599,7 +601,7 @@ position:
     meta:
       chartId: 90036
       height: 69
-      sliceName: Monthly Sales Waterfall
+      sliceName: Quarterly Sales Waterfall
       uuid: b8075180-6ec9-412a-a3c9-2d4079d44f5d
       width: 6
     parents:
@@ -658,6 +660,7 @@ position:
     - ROW-misc-thumbs-8
     - ROW-misc-thumbs-9
     - ROW-misc-thumbs-10
+    - ROW-misc-thumbs-11
     id: GRID_ID
     parents:
     - ROOT_ID
@@ -672,6 +675,34 @@ position:
     - GRID_ID
     id: ROOT_ID
     type: ROOT
+  CHART-misc-tree:
+    children: []
+    id: CHART-misc-tree
+    meta:
+      chartId: 90039
+      height: 69
+      sliceName: Sales Territory Tree
+      uuid: 1a48df88-fbab-4a09-a439-c5741c4ba2ba
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-11
+    type: CHART
+  CHART-misc-horizon:
+    children: []
+    id: CHART-misc-horizon
+    meta:
+      chartId: 90040
+      height: 69
+      sliceName: Population Growth Horizon
+      uuid: 11c9b341-7bb0-4340-be49-9d9889a7152a
+      width: 6
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-misc-thumbs-11
+    type: CHART
   ROW-SytNzNA4X:
     children:
     - CHART-rkgF4G4A4X
@@ -883,6 +914,17 @@ position:
     children:
     - CHART-misc-pivot2
     id: ROW-misc-thumbs-10
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    type: ROW
+  ROW-misc-thumbs-11:
+    children:
+    - CHART-misc-tree
+    - CHART-misc-horizon
+    id: ROW-misc-thumbs-11
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:
