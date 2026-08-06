@@ -19,6 +19,7 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -1547,3 +1548,399 @@ def test_validate_child_in_parent_multilayer_null_params(
     assert not sm._validate_child_in_parent_multilayer(
         child_slice_id=1, parent_slice=parent_slice
     )
+
+
+def test_query_context_modified_stored_groupby(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a chart storing only `groupby`.
+
+    A request always sends its columns under `columns`, while a chart with a group-by
+    stores them under `groupby`, so the two control names must compare as equivalent.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["deal_size"],
+    }
+    query_context.queries = [QueryObject(metrics=["count"], columns=["deal_size"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_stored_metric(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a big number chart.
+
+    Big number stores its single metric under `metric`, but requests it as `metrics`.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {"metric": "count"}
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metric": "count",
+        "metrics": ["count"],
+    }
+    query_context.queries = [QueryObject(metrics=["count"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_stored_all_columns(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a table chart in raw mode.
+
+    A raw mode table stores its columns under `all_columns`.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "query_mode": "raw",
+        "all_columns": ["product_line", "status"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "query_mode": "raw",
+        "all_columns": ["product_line", "status"],
+        "columns": ["product_line", "status"],
+    }
+    query_context.queries = [QueryObject(columns=["product_line", "status"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a time series chart.
+
+    The frontend replaces the chart's saved `x_axis` with a synthesized `BASE_AXIS`
+    column reference, which must compare equal to the stored physical column name.
+    """
+    base_axis: dict[str, Any] = {
+        "columnType": "BASE_AXIS",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "timeGrain": "P1M",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+        "x_axis": "order_date",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "x_axis": "order_date",
+        "columns": [base_axis, "deal_size"],
+    }
+    query_context.queries = [
+        QueryObject(metrics=["count"], columns=[base_axis, "deal_size"])  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_tampered(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function when a `BASE_AXIS` is forged.
+
+    Tagging a column the chart does not read as `BASE_AXIS` must not grant access to it.
+    """
+    forged_axis: dict[str, Any] = {
+        "columnType": "BASE_AXIS",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+        "label": "credit_limit",
+        "sqlExpression": "credit_limit",
+        "timeGrain": "P1M",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+        "x_axis": "order_date",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "x_axis": "order_date",
+        "columns": [forged_axis, "deal_size"],
+    }
+    query_context.queries = [
+        QueryObject(metrics=["count"], columns=[forged_axis, "deal_size"])  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_metric_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `query_context_modified` function when `BASE_AXIS` markers are smuggled
+    onto a metric, to disguise free-form SQL as a column reference.
+    """
+    smuggled_metric: dict[str, Any] = {
+        "columnType": "BASE_AXIS",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+        "label": "MAX(credit_limit)",
+        "sqlExpression": "MAX(credit_limit)",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "x_axis": "order_date",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": [smuggled_metric],
+        "x_axis": "order_date",
+    }
+    query_context.queries = [QueryObject(metrics=[smuggled_metric])]  # type: ignore
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_own_metric(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function when sorting by the chart's own metric.
+
+    Charts legitimately order by a metric or column they already read, neither of which
+    is stored under `orderby`.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["deal_size"],
+        "orderby": [["count", False]],
+    }
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            columns=["deal_size"],
+            orderby=[("count", False)],
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_unrelated_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `query_context_modified` function when ordering by an unrelated column.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["deal_size"],
+        "orderby": [["credit_limit", False]],
+    }
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            columns=["deal_size"],
+            orderby=[("credit_limit", False)],
+        )
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_scalar_groupby(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a scalar-valued `groupby`.
+
+    Heatmap stores its group-by as a bare string rather than a list; it must not be
+    compared character by character.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metric": "count",
+        "x_axis": "product_line",
+        "groupby": "deal_size",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metric": "count",
+        "x_axis": "product_line",
+        "groupby": "deal_size",
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(metrics=["count"], columns=["product_line", "deal_size"])
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_column_reference(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for an adhoc column reference.
+
+    Box plot sends its saved temporal column as an adhoc column whose `sqlExpression` is
+    its own label, which stands for the physical column stored in `params`.
+    """
+    column_reference: dict[str, Any] = {
+        "expressionType": "SQL",
+        "label": "order_date",
+        "sqlExpression": "order_date",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "columns": ["order_date"],
+        "groupby": ["product_line"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["order_date"],
+        "groupby": ["product_line"],
+    }
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            columns=[column_reference, "product_line"],  # type: ignore
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_column_reference_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `query_context_modified` function when an adhoc column wraps free-form SQL.
+
+    A column reference only collapses to the name it points at, so SQL disguised as a
+    label must still be rejected.
+    """
+    disguised: dict[str, Any] = {
+        "expressionType": "SQL",
+        "label": "UPPER(secret)",
+        "sqlExpression": "UPPER(secret)",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "columns": ["order_date"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["order_date"],
+    }
+    query_context.queries = [
+        QueryObject(metrics=["count"], columns=[disguised])  # type: ignore  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_pivot_table_groupby(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a pivot table.
+
+    Pivot table splits its group-bys across `groupbyColumns` and `groupbyRows`.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupbyColumns": ["product_line"],
+        "groupbyRows": ["country", "city"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "groupbyColumns": ["product_line"],
+        "groupbyRows": ["country", "city"],
+    }
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            columns=["product_line", "country", "city"],
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_order_by_cols(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for `order_by_cols`.
+
+    Entries are JSON-encoded `[column, is_ascending]` pairs, and the column they sort on
+    is read by the query.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "series": "priority",
+        "order_by_cols": ['["status",false]'],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "series": "priority",
+        "order_by_cols": ['["status",false]'],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=["start_time", "end_time", "priority", "status"],
+        )
+    ]
+    assert not query_context_modified(query_context)

@@ -60,6 +60,13 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     SupersetSecurityException,
 )
+from superset.security.guest_payload import (
+    freeze_value,  # noqa: F401  (re-exported for backwards compatibility)
+    requested_values,
+    STORED_COLUMN_PARAMS,
+    STORED_METRIC_PARAMS,
+    stored_param_values,
+)
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -191,13 +198,6 @@ PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 
 
-def freeze_value(value: Any) -> str:
-    """
-    Used to compare column and metric sets.
-    """
-    return json.dumps(value, sort_keys=True)
-
-
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -222,32 +222,31 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         else None
     )
 
+    # A request carries its metrics under `metrics` and its columns under
+    # `columns`/`groupby`, but a chart stores them under whichever control names its viz
+    # type uses, so each request key is compared against every equivalent stored key.
+    # An `orderby` may sort on any metric or column the chart already reads.
+    order_by_params = STORED_METRIC_PARAMS + STORED_COLUMN_PARAMS + ("orderby",)
+
     # compare columns and metrics in form_data with stored values
     for key, equivalent in [
-        ("metrics", ["metrics"]),
-        ("columns", ["columns", "groupby"]),
-        ("groupby", ["columns", "groupby"]),
-        ("orderby", ["orderby"]),
+        ("metrics", STORED_METRIC_PARAMS),
+        ("columns", STORED_COLUMN_PARAMS),
+        ("groupby", STORED_COLUMN_PARAMS),
+        ("orderby", order_by_params),
     ]:
-        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
-        stored_values = {
-            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
-        }
-        if not requested_values.issubset(stored_values):
+        stored_values = stored_param_values(stored_chart.params_dict, equivalent)
+        if not requested_values(form_data.get(key)).issubset(stored_values):
             return True
 
         # compare queries in query_context
-        queries_values = {
-            freeze_value(value)
-            for query in query_context.queries
-            for value in getattr(query, key, []) or []
-        }
+        queries_values = set()
+        for query in query_context.queries:
+            queries_values |= requested_values(getattr(query, key, []))
+
         if stored_query_context:
-            for query in stored_query_context.get("queries") or []:
-                for key in equivalent:
-                    stored_values.update(
-                        {freeze_value(value) for value in query.get(key) or []}
-                    )
+            for stored_query in stored_query_context.get("queries") or []:
+                stored_values |= stored_param_values(stored_query, equivalent)
 
         if not queries_values.issubset(stored_values):
             return True
