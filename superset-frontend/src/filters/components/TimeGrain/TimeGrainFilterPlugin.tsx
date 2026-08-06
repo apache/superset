@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   ExtraFormData,
   TimeGranularity,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
-import React, { useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactReduxContext } from 'react-redux';
 import {
   FormItem,
@@ -57,6 +56,7 @@ export default function PluginFilterTimegrain(
     reduxContext?.store?.getState?.()?.dashboardInfo?.metadata
       ?.time_grain_allowlist;
 
+  const [value, setValue] = useState<string[]>(defaultValue ?? []);
   const durationMap = useMemo(
     () =>
       data.reduce(
@@ -69,16 +69,50 @@ export default function PluginFilterTimegrain(
     [JSON.stringify(data)],
   );
 
+  const handleChange = useCallback(
+    (values: string[] | string | undefined | null) => {
+      const resultValue: string[] = ensureIsArray<string>(values);
+      const [timeGrain] = resultValue;
+      const label = timeGrain ? durationMap[timeGrain] : undefined;
+
+      const extraFormData: ExtraFormData = {};
+      if (timeGrain) {
+        extraFormData.time_grain_sqla = timeGrain as TimeGranularity;
+      }
+      setValue(resultValue);
+      setDataMask({
+        extraFormData,
+        filterState: {
+          label,
+          value: resultValue.length ? resultValue : null,
+        },
+      });
+    },
+    [durationMap, setDataMask],
+  );
+
+  useEffect(() => {
+    handleChange(filterState.value ?? []);
+  }, [JSON.stringify(filterState.value)]);
+
+  const formItemData: FormItemProps = {};
+  if (filterState.validateMessage) {
+    formItemData.extra = (
+      <StatusMessage status={filterState.validateStatus}>
+        {filterState.validateMessage}
+      </StatusMessage>
+    );
+  }
+
   const options = useMemo(() => {
-    const allOptions = (data || []).map(
-      (row: { name: string; duration: string }) => {
+    const allOptions = (data || [])
+      .map((row: { name: string; duration: string }) => {
         const { name, duration } = row;
         return {
           label: name,
           value: duration,
         };
-      },
-    );
+      });
 
     const allowlist =
       dashboardTimeGrainAllowlist?.length > 0
@@ -93,33 +127,11 @@ export default function PluginFilterTimegrain(
     return allOptions.filter(option => allowedSet.has(option.value));
   }, [data, dashboardTimeGrainAllowlist, formData.timeGrains]);
 
-  const rawValue = ensureIsArray<string>(filterState.value);
   const validValue = useMemo(() => {
     if (options.length === 0) return [];
     const optionValues = new Set(options.map(o => o.value));
-    return rawValue.filter(v => optionValues.has(v));
-  }, [rawValue, options]);
-
-  const handleChange = useCallback(
-    (values: string[] | string | undefined | null) => {
-      const resultValue: string[] = ensureIsArray<string>(values);
-      const [timeGrain] = resultValue;
-      const label = timeGrain ? durationMap[timeGrain] : undefined;
-
-      const extraFormData: ExtraFormData = {};
-      if (timeGrain) {
-        extraFormData.time_grain_sqla = timeGrain as TimeGranularity;
-      }
-      setDataMask({
-        extraFormData,
-        filterState: {
-          label,
-          value: resultValue.length ? resultValue : null,
-        },
-      });
-    },
-    [durationMap, setDataMask],
-  );
+    return value.filter(v => optionValues.has(v));
+  }, [value, options]);
 
   const hasInitRef = useRef(false);
   useEffect(() => {
@@ -137,15 +149,6 @@ export default function PluginFilterTimegrain(
       handleChange(target);
     }
   }, [options, defaultValue, handleChange]);
-
-  const formItemData: FormItemProps = {};
-  if (filterState.validateMessage) {
-    formItemData.extra = (
-      <StatusMessage status={filterState.validateStatus}>
-        {filterState.validateMessage}
-      </StatusMessage>
-    );
-  }
 
   const placeholderText =
     options.length === 0
