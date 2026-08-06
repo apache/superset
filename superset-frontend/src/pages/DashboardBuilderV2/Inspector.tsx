@@ -30,6 +30,8 @@ import {
   Switch,
   Tabs,
 } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import copyTextToClipboard from 'src/utils/copy';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import { resolveLayoutMode } from 'src/core/dashboard/layoutStyle';
 import DashboardProperties from './DashboardProperties';
@@ -358,6 +360,9 @@ const StackingControls = ({ nodeId }: { nodeId: string }): ReactElement => {
 const format = (props: Record<string, unknown> | undefined): string =>
   JSON.stringify(props ?? {}, null, 2);
 
+/** Long enough to be read, short enough not to outlast the glance at it. */
+const COPIED_FOR_MS = 1500;
+
 /**
  * Everything a block renders from, offered whole and as text.
  *
@@ -391,6 +396,17 @@ const PropsJsonEditor = ({
   const accepted = format(props);
   const [draft, setDraft] = useState(accepted);
   useEffect(() => setDraft(accepted), [accepted, nodeId]);
+
+  // Reverts on its own so the control goes back to offering the copy rather
+  // than reporting one indefinitely, and on any edit, because a tick beside
+  // text that has since changed is a tick about the wrong text.
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timer = setTimeout(() => setCopied(false), COPIED_FOR_MS);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  useEffect(() => setCopied(false), [draft]);
 
   let parsed: Record<string, unknown> | undefined;
   let error: string | undefined;
@@ -466,6 +482,32 @@ const PropsJsonEditor = ({
         >
           {t('Revert')}
         </Button>
+        {/* Set apart from the two beside it, because it is not one of them:
+            those commit what is in the box and this only takes a copy of it.
+            The draft rather than what the block holds, so what is copied is
+            what is on screen — including an edit not applied yet.
+            Confirmed in place: a panel this narrow has nowhere to put a
+            message, and a copy that says nothing leaves you pressing it
+            again to be sure. */}
+        <Button
+          size="small"
+          buttonStyle="link"
+          data-test="inspector-props-copy"
+          aria-label={t('Copy properties as JSON')}
+          tooltip={copied ? t('Copied') : t('Copy properties as JSON')}
+          placement="bottom"
+          style={{ ...minor(theme), marginLeft: 'auto' }}
+          onClick={() => {
+            copyTextToClipboard(() => Promise.resolve(draft));
+            setCopied(true);
+          }}
+        >
+          {copied ? (
+            <Icons.CheckOutlined iconSize="s" />
+          ) : (
+            <Icons.CopyOutlined iconSize="s" />
+          )}
+        </Button>
       </div>
     </>
   );
@@ -482,9 +524,12 @@ const PropsJsonEditor = ({
  * actually filled in, with a control that suits its type instead of quoting
  * and escaping inside a string.
  *
- * JSON is what the panel opens on. It is the half that works on a block
- * placed a moment ago, which has no properties yet and so no fields; landing
- * on a form with nothing in it would read as a tab that does not work.
+ * The form comes first and is what the panel opens on: it is the half that
+ * asks a question rather than handing over a record to edit, and most of what
+ * an author does here is change a value that already exists. The one case it
+ * cannot serve — a block placed a moment ago, with no properties and so no
+ * fields — says so and names the tab that can, rather than leaving a blank
+ * pane that reads as broken.
  *
  * Only the JSON half is wrapped in an antd `Form`, and the asymmetry is load
  * bearing rather than an oversight. The generated controls render their own
@@ -513,9 +558,18 @@ const PropsEditor = ({
   return (
     <Tabs
       size="small"
-      defaultActiveKey="json"
+      defaultActiveKey="form"
       data-test="inspector-props-tabs"
       items={[
+        {
+          key: 'form',
+          label: t('Form'),
+          children: (
+            <div style={inset}>
+              <PropsForm nodeId={nodeId} props={props} />
+            </div>
+          ),
+        },
         {
           key: 'json',
           label: t('JSON'),
@@ -528,15 +582,6 @@ const PropsEditor = ({
             >
               <PropsJsonEditor nodeId={nodeId} props={props} />
             </Form>
-          ),
-        },
-        {
-          key: 'form',
-          label: t('Form'),
-          children: (
-            <div style={inset}>
-              <PropsForm nodeId={nodeId} props={props} />
-            </div>
           ),
         },
       ]}

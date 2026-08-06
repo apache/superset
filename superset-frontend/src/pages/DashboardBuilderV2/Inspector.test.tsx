@@ -33,6 +33,16 @@ beforeEach(() => {
   provider.reset();
 });
 
+/**
+ * Brings the JSON half forward. The panel opens on the form, so every test
+ * that reads the raw record has to say so — which is also the assertion that
+ * the form is what comes first.
+ */
+const openJson = async () => {
+  await userEvent.click(screen.getByRole('tab', { name: 'JSON' }));
+  return screen.findByTestId('inspector-props');
+};
+
 const select = (type: string, props?: Record<string, unknown>) => {
   const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
     type,
@@ -64,17 +74,18 @@ test('content a block already has is what the field shows', () => {
   expect(screen.getByTestId('inspector-content')).toHaveValue('Welcome');
 });
 
-test('a block with no prose field is still authorable through its properties', () => {
+test('a block with no prose field is still authorable through its properties', async () => {
   select('echarts');
 
   // A chart's dataBinding and echartsOptions have never had a hand-editing
   // path. They are just keys, and the general editor reaches every one.
   expect(screen.queryByTestId('inspector-content')).not.toBeInTheDocument();
-  expect(screen.getByTestId('inspector-props')).toBeInTheDocument();
+  expect(await openJson()).toBeInTheDocument();
 });
 
 test('applying properties writes them to the block', async () => {
   const id = select('echarts');
+  await openJson();
 
   fireEvent.change(screen.getByTestId('inspector-props'), {
     target: { value: '{"dataBinding":{"datasetId":3,"metrics":["count"]}}' },
@@ -89,6 +100,7 @@ test('applying properties writes them to the block', async () => {
 
 test('a key deleted from the properties stops reaching the block', async () => {
   const id = select('echarts', { keep: 1, drop: 2 });
+  await openJson();
 
   fireEvent.change(screen.getByTestId('inspector-props'), {
     target: { value: '{"keep":1}' },
@@ -107,8 +119,9 @@ test('a key deleted from the properties stops reaching the block', async () => {
   );
 });
 
-test('malformed properties cannot be applied, and stay on screen to be fixed', () => {
+test('malformed properties cannot be applied, and stay on screen to be fixed', async () => {
   const id = select('echarts', { kept: true });
+  await openJson();
 
   fireEvent.change(screen.getByTestId('inspector-props'), {
     target: { value: '{ "broken": ' },
@@ -121,8 +134,9 @@ test('malformed properties cannot be applied, and stay on screen to be fixed', (
   expect(provider.getNode(id)?.props?.kept).toBe(true);
 });
 
-test('properties that are not an object are refused', () => {
+test('properties that are not an object are refused', async () => {
   select('echarts');
+  await openJson();
 
   fireEvent.change(screen.getByTestId('inspector-props'), {
     target: { value: '[1, 2, 3]' },
@@ -131,31 +145,22 @@ test('properties that are not an object are refused', () => {
   expect(screen.getByTestId('inspector-props-apply')).toBeDisabled();
 });
 
-/** Brings the generated form forward; the panel opens on the JSON half. */
-const openForm = async () => {
-  await userEvent.click(screen.getByRole('tab', { name: 'Form' }));
-  return screen.findByTestId('inspector-props-form');
-};
+/** The form is what the panel opens on, so this only has to find it. */
+const openForm = async () => screen.findByTestId('inspector-props-form');
 
 test('properties can be edited as a form or as JSON, whichever suits', async () => {
   select('echarts', { title: 'Revenue' });
 
-  // Two views of one set of values, not two places a value can live. JSON is
-  // where the shape is changed — a key added or dropped — and the form is
-  // where the values in that shape are filled in. JSON is what it opens on:
-  // a block placed a moment ago has no properties, and so no fields.
-  expect(screen.getByRole('tab', { name: 'JSON' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
-  expect(screen.getByTestId('inspector-props')).toBeInTheDocument();
-
-  await openForm();
-
+  // Two views of one set of values, not two places a value can live. The
+  // form is where the values are filled in and is what the panel opens on;
+  // JSON is where the shape is changed, since it alone can add or drop a key.
   expect(screen.getByRole('tab', { name: 'Form' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+  await openForm();
+
+  expect(await openJson()).toBeInTheDocument();
 });
 
 test('the form is built from the properties the block is actually holding', async () => {
@@ -192,10 +197,53 @@ test('each half of the properties editor is set down from the tabs above it', as
   // Flush against the tab bar, whichever label comes first reads as a caption
   // on the tabs rather than as the head of the field under it — the same set
   // down the panel and the palette already take from theirs.
+  expect((await openForm()).parentElement).toHaveStyle('padding-top: 12px');
+  await openJson();
   expect(screen.getByTestId('inspector-props-json')).toHaveStyle(
     'padding-top: 12px',
   );
-  expect((await openForm()).parentElement).toHaveStyle('padding-top: 12px');
+});
+
+test('the properties on screen can be taken away as JSON', async () => {
+  const writeText = jest.fn();
+  const original = global.navigator.clipboard;
+  // @ts-expect-error jsdom ships no clipboard to spy on
+  global.navigator.clipboard = { write: writeText, writeText };
+  select('echarts', { title: 'Revenue' });
+  await openJson();
+
+  // What is copied is what is on screen, not what the block holds — an edit
+  // typed but not applied yet is the state most worth being able to take
+  // somewhere else.
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{"title":"Quarterly"}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-copy'));
+
+  expect(writeText).toHaveBeenCalledWith('{"title":"Quarterly"}');
+  // @ts-expect-error restoring what jsdom did not have
+  global.navigator.clipboard = original;
+});
+
+test("the dashboard-wide properties are the dashboard's alone", async () => {
+  select('echarts', { title: 'Revenue' });
+
+  // What a dashboard is called, who may see it and how often it refreshes are
+  // properties of the dashboard, not of anything placed on it — a block asked
+  // for a URL slug would be asking for something it has no such thing as.
+  expect(screen.queryByTestId('dashboard-properties')).not.toBeInTheDocument();
+  [
+    'General information',
+    'Access & ownership',
+    'Styling',
+    'Refresh settings',
+    'Certification',
+    'Advanced settings',
+  ].forEach(section =>
+    expect(screen.queryByText(section)).not.toBeInTheDocument(),
+  );
+  // And what a block does have stays where it is.
+  expect(await openForm()).toBeInTheDocument();
 });
 
 test('a block with no properties yet says where they are added', async () => {
@@ -210,6 +258,7 @@ test('a block with no properties yet says where they are added', async () => {
 
 test('reverting restores what the block still has', async () => {
   select('echarts', { kept: true });
+  await openJson();
 
   fireEvent.change(screen.getByTestId('inspector-props'), {
     target: { value: '{}' },
