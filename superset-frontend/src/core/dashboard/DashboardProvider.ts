@@ -156,6 +156,19 @@ class DashboardProvider {
 
   public getNode = (id: string): DashboardNode | undefined => this.toNode(id);
 
+  /**
+   * The canvas a node sits in, or `undefined` for the root and for a node
+   * that is not in the tree.
+   *
+   * {@link moveBuildingBlock} takes the destination parent as an argument, so
+   * every caller that moves a node already has to know which parent it is in
+   * — a caller reordering a node within its own container most of all. The
+   * walk itself is one line, and leaving it out meant each caller wrote that
+   * line again over a `nodes` map only this class is supposed to hold.
+   */
+  public getParentId = (id: string): string | undefined =>
+    this.findParentId(id, this.nodes);
+
   /** True if `targetId` is `nodeId` itself or nested somewhere in its subtree. */
   private isNodeOrDescendant(nodeId: string, targetId: string): boolean {
     if (nodeId === targetId) return true;
@@ -299,6 +312,8 @@ class DashboardProvider {
       );
     }
 
+    const oldParentId = this.findParentId(id, this.nodes);
+
     const nodes = { ...this.nodes };
     Object.entries(nodes).forEach(([parentId, parent]) => {
       if (parent.children?.includes(id)) {
@@ -322,23 +337,67 @@ class DashboardProvider {
     // drag-based reparenting (see `CanvasBlock`'s `handleDragStop`) already
     // resets exactly these two things on drop; this is that same reset,
     // applied here so the programmatic path gives the same guarantee.
-    const node = nodes[id];
-    const destColumns = targetParent.layout?.columns ?? DEFAULT_COLUMNS;
-    nodes[id] = {
-      ...node,
-      layout: {
-        ...node.layout,
-        col: undefined,
-        row: undefined,
-        colSpan:
-          node.layout?.colSpan != null
-            ? Math.min(node.layout.colSpan, destColumns)
-            : undefined,
-      },
-    };
+    //
+    // None of which is true when the parent has not changed. A move within
+    // one container is a reorder — how a free canvas says "put this in
+    // front", since paint order there is child order — and the position it
+    // keeps is the one the author placed it at. Resetting it would teleport
+    // the block to auto-placement as the price of raising it.
+    if (oldParentId !== newParentId) {
+      const node = nodes[id];
+      const destColumns = targetParent.layout?.columns ?? DEFAULT_COLUMNS;
+      nodes[id] = {
+        ...node,
+        layout: {
+          ...node.layout,
+          col: undefined,
+          row: undefined,
+          colSpan:
+            node.layout?.colSpan != null
+              ? Math.min(node.layout.colSpan, destColumns)
+              : undefined,
+        },
+      };
+    }
 
     this.commit(nodes);
   }
+
+  /**
+   * Which of its siblings a node is drawn over.
+   *
+   * Where children overlap — a `free` canvas — the container's child order is
+   * the paint order, because `react-grid-layout` gives an overlapping item no
+   * `z-index` of its own and the browser falls back to tree order. So "in
+   * front" is "last", and raising a block is reordering it.
+   *
+   * Named for what an author means rather than left to callers to express as
+   * an index, because the index is a trap: {@link moveBuildingBlock} detaches
+   * before it inserts, so the array a node lands in is one shorter than the
+   * one that was counted. Every caller getting that arithmetic right
+   * separately is a bug waiting for the second caller.
+   *
+   * Doing nothing when there is nothing to do is part of the contract, not an
+   * optimisation. A drag ends on the block already in front more often than
+   * not, and a revision tick there re-renders every subscriber to produce the
+   * array it already had.
+   */
+  private restack(id: string, edge: 'front' | 'back'): void {
+    const parentId = this.findParentId(id, this.nodes);
+    if (parentId === undefined) return;
+    const children = this.nodes[parentId]?.children ?? [];
+    const settled = edge === 'front' ? children.at(-1) : children[0];
+    if (settled === id) return;
+    this.moveBuildingBlock(
+      id,
+      parentId,
+      edge === 'front' ? children.length : 0,
+    );
+  }
+
+  public bringToFront = (id: string): void => this.restack(id, 'front');
+
+  public sendToBack = (id: string): void => this.restack(id, 'back');
 
   public updateLayout(id: string, layout: Partial<LayoutProps>): void {
     const node = this.nodes[id];

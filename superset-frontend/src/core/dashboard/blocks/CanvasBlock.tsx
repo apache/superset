@@ -199,8 +199,22 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
       }
 
       commitLayout(rglLayout);
+
+      // A block dragged over its siblings is a block meant to be in front of
+      // them, and on a free canvas that has to be said in the document.
+      // `react-grid-layout` floats the dragged item with a `z-index: 3` it
+      // carries on a class while the pointer is down and loses on release —
+      // so the gesture shows the block on top the whole way, then drops it
+      // behind whatever it was dragged over. The lift was only ever CSS.
+      //
+      // Only where children overlap. Every other mode arranges them so they
+      // cannot, and reordering there would rewrite reading order, tab order
+      // and the Outline to change nothing anyone can see.
+      if (newItem && resolveLayoutMode(node?.layout) === 'free') {
+        provider.bringToFront(newItem.i);
+      }
     },
-    [nodeId, commitLayout],
+    [nodeId, node?.layout, commitLayout],
   );
 
   if (!node) return null;
