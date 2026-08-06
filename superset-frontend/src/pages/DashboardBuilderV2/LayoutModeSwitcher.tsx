@@ -19,8 +19,8 @@
 import type { ReactElement } from 'react';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
-import { Radio, Tooltip } from '@superset-ui/core/components';
+import { css, styled } from '@apache-superset/core/theme';
+import { Form, Radio, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import { resolveLayoutMode } from 'src/core/dashboard/layoutStyle';
@@ -61,6 +61,21 @@ const MODES: readonly {
   },
 ];
 
+/** Spaced like the number fields it sits above, so the section reads evenly. */
+const ModeField = styled(Form.Item)`
+  ${({ theme }) => css`
+    margin-bottom: ${theme.sizeUnit * 2}px;
+  `}
+`;
+
+const ModeLabel = styled.span`
+  ${({ theme }) => css`
+    display: inline-flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+  `}
+`;
+
 /**
  * How one container arranges its children.
  *
@@ -80,7 +95,6 @@ export default function LayoutModeSwitcher({
   nodeId: string;
 }): ReactElement | null {
   useDashboardRevision();
-  const theme = useTheme();
   const node = provider.getNode(nodeId);
   if (!node?.children) {
     return null;
@@ -88,27 +102,18 @@ export default function LayoutModeSwitcher({
   const mode = resolveLayoutMode(node.layout);
 
   return (
-    <div
-      data-test="layout-mode-switcher"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.sizeUnit * 2,
-      }}
-    >
-      <span
-        id={`layout-mode-label-${nodeId}`}
-        style={{
-          fontSize: theme.fontSizeSM,
-          color: theme.colorTextTertiary,
-        }}
-      >
-        {t('Layout')}
-      </span>
+    // Asked the way every other field in this section is asked — label above,
+    // control beneath. Beside its control it was the one question in the
+    // Arrangement section reading left to right, which made a setting that
+    // belongs with the columns and the gap look like chrome sitting over them.
+    <ModeField label={t('Layout')} data-test="layout-mode-switcher">
       <Radio.Group
         size="small"
         value={mode}
-        aria-labelledby={`layout-mode-label-${nodeId}`}
+        // The `Form.Item` label has no control id to point at without a
+        // `name`, so the group carries its own name rather than going
+        // unannounced.
+        aria-label={t('Layout')}
         onChange={event =>
           provider.updateLayout(nodeId, {
             mode: event.target.value as LayoutMode,
@@ -120,21 +125,17 @@ export default function LayoutModeSwitcher({
             <Radio.Button
               value={option.key}
               data-test={`layout-mode-${option.key}`}
-              // Sized with the rest of the header rather than left at antd's
-              // small step: a control that stands taller than everything
-              // beside it reads as a different kind of thing.
-              style={{
-                height: theme.controlHeightSM,
-                paddingInline: theme.sizeUnit * 2,
-                fontSize: theme.fontSizeSM,
-                lineHeight: `${theme.controlHeightSM - 2}px`,
-              }}
             >
-              {option.icon} {option.label}
+              {/* The icon and the name are one label, spaced by the layout
+                  rather than by a text node holding a space. */}
+              <ModeLabel>
+                {option.icon}
+                {option.label}
+              </ModeLabel>
             </Radio.Button>
           </Tooltip>
         ))}
       </Radio.Group>
-    </div>
+    </ModeField>
   );
 }

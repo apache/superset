@@ -18,36 +18,27 @@
  */
 import type { ReactElement, ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
 import { Button, type ButtonProps } from '@superset-ui/core/components';
 
 const NOT_AVAILABLE = t('Not available yet');
 
 /**
- * This prototype's controls, at two sizes.
+ * This prototype's controls, at two of the shared Button's own sizes.
  *
- * Nothing here is drawn at full size: these bars are chrome around the work
- * rather than the work itself, and every pixel they take is one the canvas
- * does not get. But the two kinds of control on them are not read the same
- * way. A word is read, and one squeezed to the smallest step the theme has is
+ * Nothing here is drawn at full size: the bars and rails are chrome around the
+ * work rather than the work itself, and every pixel they take is one the
+ * canvas does not get. But the two kinds of control on them are not read the
+ * same way. A word is read, and one squeezed to the smallest step there is is
  * read slowly; an icon is recognised by its shape, and loses nothing there.
  *
- * Both are driven off the theme's own control scale rather than literals, so
- * they track the size the rest of the app is built on instead of drifting.
+ * Said in `buttonSize`, which is the prop the shared `Button` actually reads.
+ * `size` is antd's, and the wrapper writes its own height over whatever antd
+ * does with it — so every control here asked for `size="small"`, got the full
+ * 32px default, and was then pushed back down by a hand-written height,
+ * padding and font size at each site. Those helpers were a copy of this scale
+ * maintained beside it, free to drift from it and answering to no theme
+ * override; `buttonSize` is the scale itself.
  */
-export const named = (theme: ReturnType<typeof useTheme>) => ({
-  height: theme.controlHeightSM,
-  paddingInline: theme.sizeUnit * 2.5,
-  fontSize: theme.fontSize,
-  lineHeight: 1,
-});
-
-export const compact = (theme: ReturnType<typeof useTheme>) => ({
-  height: theme.controlHeightXS,
-  paddingInline: theme.sizeUnit * 1.5,
-  fontSize: theme.fontSizeSM,
-  lineHeight: 1,
-});
 
 /**
  * An affordance that is present, named and honest about not working.
@@ -81,17 +72,16 @@ export default function Inert({
   style?: ButtonProps['style'];
   children: ReactNode;
 }): ReactElement {
-  const theme = useTheme();
   return (
     <Button
-      size="small"
+      buttonSize={reads ? 'small' : 'xsmall'}
       buttonStyle={buttonStyle}
       disabled
       aria-label={label}
       data-test={test}
       tooltip={`${label} — ${NOT_AVAILABLE}`}
       placement="bottom"
-      style={{ ...(reads ? named(theme) : compact(theme)), ...style }}
+      style={style}
     >
       {children}
     </Button>

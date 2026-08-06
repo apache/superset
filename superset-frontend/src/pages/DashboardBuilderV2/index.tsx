@@ -19,8 +19,7 @@
 import { useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { Flex, Typography } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { EmptyState, Flex } from '@superset-ui/core/components';
 import { dashboard, useDashboardRevision } from 'src/core/dashboard';
 import { provider } from 'src/core/dashboard/store';
 import { placeBlock } from 'src/core/dashboard/placement';
@@ -71,13 +70,36 @@ const EmptyCanvasWrapper = styled.div`
   `}
 `;
 
+/**
+ * The dashboard with nothing on it, as something to aim at.
+ *
+ * A dashed frame is what the rest of the app draws around a place a thing can
+ * be dropped, and this is one — the palette drags land here. It is also the
+ * only way to select the root on a blank canvas, so it answers a pointer and a
+ * Tab the way anything clickable does: the frame firms up and the surface
+ * lifts, rather than a dashed box that never reacts to being pressed.
+ */
 const CanvasPlaceholder = styled(Flex)`
   ${({ theme }) => css`
     width: 100%;
     height: 100%;
-    border: 2px dashed ${theme.colorBorderSecondary};
+    border: 2px dashed ${theme.colorBorder};
     border-radius: ${theme.borderRadiusLG}px;
     color: ${theme.colorTextTertiary};
+    cursor: pointer;
+    transition:
+      border-color ${theme.motionDurationMid},
+      background-color ${theme.motionDurationMid};
+
+    &:hover {
+      border-color: ${theme.colorPrimaryBorderHover};
+      background-color: ${theme.colorFillQuaternary};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimaryBorder};
+      outline-offset: 2px;
+    }
   `}
 `;
 
@@ -169,7 +191,6 @@ export default function DashboardBuilderV2() {
                 vertical
                 align="center"
                 justify="center"
-                gap="small"
                 // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
                 role="button"
                 tabIndex={0}
@@ -183,10 +204,13 @@ export default function DashboardBuilderV2() {
                   }
                 }}
               >
-                <Icons.AppstoreOutlined iconSize="xl" />
-                <Typography.Text type="secondary">
-                  {t('Add a building block, or ask the assistant to start')}
-                </Typography.Text>
+                <EmptyState
+                  image="empty-dashboard.svg"
+                  title={t('Start building')}
+                  description={t(
+                    'Drag a building block from the panel, or ask the assistant for one.',
+                  )}
+                />
               </CanvasPlaceholder>
             </EmptyCanvasWrapper>
           ) : (

@@ -19,7 +19,7 @@
 import { forwardRef, type HTMLAttributes } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
-import { Flex, Typography } from '@superset-ui/core/components';
+import { ActionButton, Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ErrorBoundary } from 'src/components';
 import { provider, useDashboardRevision } from './store';
@@ -53,44 +53,46 @@ function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
 }
 
 /**
- * The control that takes a block off the dashboard.
+ * A block's name, and what can be done to the block.
  *
- * Written as a styled component rather than inlined with the rest of the
- * header because what it needs is a hover state, and an inline style cannot
- * express one.
- *
- * It sits quiet until pointed at: a bin on every block, all of them lit,
- * would make a canvas read as a row of things about to be deleted. Under the
- * pointer the icon takes the colour the app gives a destructive action
- * everywhere else, so what it does is answered before the click rather than
- * after it. `:focus-visible` gets the same treatment, because someone
- * arriving by Tab is owed the same warning as someone arriving by mouse.
- *
- * The icon and nothing else. The button is a 24px square only so there is
- * enough of it to hit, and filling that square would light a shape the eye
- * reads as a new control appearing in the header rather than as the one
- * already there answering.
+ * Carries no surface of its own and no rule under it. The card behind this is
+ * opaque and unbroken, so a second background here would only draw a seam
+ * across it a hand's width below the top edge — the block would read as a
+ * strip and a box rather than as one card with a name on it.
  */
-const RemoveButton = styled.button`
+const BlockHeader = styled.div`
   ${({ theme }) => css`
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: ${theme.controlHeightSM}px;
+    gap: ${theme.sizeUnit}px;
     height: ${theme.controlHeightSM}px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: ${theme.colorTextTertiary};
-    cursor: pointer;
-    transition: color ${theme.motionDurationMid} ease-in-out;
-
-    &:hover,
-    &:focus-visible {
-      color: ${theme.colorError};
-    }
+    /* Aligned with the inset every block's own content sits at, so a block's
+       name reads as the head of the box beneath it rather than as something
+       floating loose to its left. The right side stays tight: the remove
+       button is a square target of its own and centres its icon, which is the
+       inset it needs. */
+    padding-left: ${theme.padding}px;
+    padding-right: ${theme.sizeUnit}px;
   `}
+`;
+
+/**
+ * What the remove control is wrapped in, and why it is wrapped at all.
+ *
+ * The control itself is `ActionButton` — the shared component for an icon
+ * action carried on a surface that is already something else, and the one the
+ * dashboard list uses for its own Delete. It takes an `onClick` with no event,
+ * so the two gestures this sits inside are stopped here instead: a click on
+ * the bin must remove rather than select the block it is drawn on, and a
+ * pointer down on it must not start a react-grid-layout drag.
+ *
+ * `data-block-remove` is the other half of that second one — `CanvasBlock`
+ * names it in `draggableCancel`, and react-grid-layout matches the selector up
+ * the ancestors, so carrying it here covers the button inside.
+ */
+const RemoveSlot = styled.span`
+  display: flex;
+  flex: 0 0 auto;
 `;
 
 interface BuildingBlockViewProps extends HTMLAttributes<HTMLDivElement> {
@@ -141,6 +143,8 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
     // ever raises an error.
     const chrome = nodeId !== provider.getRoot().id;
     const isRoot = !chrome;
+    // The same token `BlockHeader` is drawn at: the content box below is this
+    // element's height minus the band, so the two have to be one number.
     const headerHeight = theme.controlHeightSM;
 
     return (
@@ -244,27 +248,7 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
             is not this button: the Outline selects any block with proper tree
             semantics and Properties carries the same Delete. */}
         {chrome && (
-          <div
-            data-test={`block-header-${nodeId}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.sizeUnit,
-              height: headerHeight,
-              // Aligned with the inset every block's own content sits at, so
-              // a block's name reads as the head of the box beneath it rather
-              // than as something floating loose to its left. The right side
-              // stays tight: the remove button is a square target of its own
-              // and centres its icon, which is the inset it needs.
-              paddingLeft: theme.padding,
-              paddingRight: theme.sizeUnit,
-              // No surface of its own, and no rule under it. The card behind
-              // this is opaque and unbroken, so a second background here
-              // would only draw a seam across it a hand's width below the
-              // top edge — the block would read as a strip and a box rather
-              // than as one card with a name on it.
-            }}
-          >
+          <BlockHeader data-test={`block-header-${nodeId}`}>
             <Typography.Text
               ellipsis
               data-test={`block-title-${nodeId}`}
@@ -282,27 +266,33 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
             >
               {blockLabel(node.type, node.props)}
             </Typography.Text>
-            <RemoveButton
-              type="button"
+            <RemoveSlot
               data-block-remove
-              data-test={`block-remove-${nodeId}`}
-              aria-label={t('Remove block')}
-              title={t('Remove block')}
               onMouseDown={event => event.stopPropagation()}
               onPointerDown={event => event.stopPropagation()}
-              onClick={event => {
-                event.stopPropagation();
-                provider.removeBuildingBlock(nodeId);
-              }}
+              onClick={event => event.stopPropagation()}
             >
-              {/* A bin rather than a cross. A cross on a card is the gesture
-                  for dismissing the card — closing it, putting it away — and
-                  this does not put the block away, it takes it off the
-                  dashboard. The bin is what the rest of the app uses to say
-                  so, and it is the same act the panel offers as Delete. */}
-              <Icons.DeleteOutlined iconSize="s" />
-            </RemoveButton>
-          </div>
+              <ActionButton
+                label={t('Remove block')}
+                tooltip={t('Remove block')}
+                placement="bottom"
+                dataTest={`block-remove-${nodeId}`}
+                onClick={() => provider.removeBuildingBlock(nodeId)}
+                // A bin rather than a cross. A cross on a card is the gesture
+                // for dismissing the card — closing it, putting it away — and
+                // this does not put the block away, it takes it off the
+                // dashboard. The bin is what the rest of the app uses to say
+                // so, and it is the same act the panel offers as Delete.
+                //
+                // Quiet at rest and primary under the pointer, which is
+                // `ActionButton`'s own behaviour and the same answer the
+                // dashboard list gives for its Delete: a bin on every block,
+                // all of them lit red, would make a canvas read as a row of
+                // things about to be deleted.
+                icon={<Icons.DeleteOutlined iconSize="s" />}
+              />
+            </RemoveSlot>
+          </BlockHeader>
         )}
         {/* The block's own box, which is the whole of this element's minus
             the band above it. Subtracted in pixels off a percentage rather

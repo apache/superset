@@ -22,7 +22,7 @@ import { useTheme } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { provider } from 'src/core/dashboard/store';
-import Inert, { compact } from './InertControl';
+import Inert from './InertControl';
 
 /**
  * What acts on the canvas as a whole, in the canvas's own corner.
@@ -74,13 +74,12 @@ export default function CanvasControls(): ReactElement {
       }}
     >
       <Button
-        size="small"
+        buttonSize="xsmall"
         buttonStyle="link"
         aria-label={t('Arrange dashboard')}
         data-test="canvas-arrange"
         tooltip={t('Arrange dashboard — choose how the canvas lays blocks out')}
         placement="bottom"
-        style={{ ...compact(theme), paddingInline: theme.sizeUnit }}
         onClick={() => provider.setSelection(provider.getRoot().id)}
       >
         <Icons.LayoutOutlined iconSize="s" />
@@ -94,7 +93,7 @@ export default function CanvasControls(): ReactElement {
         // styles give a wrapped button a left margin meant for a row of them
         // — so this one sat further from its neighbour than the neighbour sat
         // from anything, and the pair's spacing stopped being the `gap` above.
-        style={{ paddingInline: theme.sizeUnit, marginLeft: 0 }}
+        style={{ marginLeft: 0 }}
       >
         <Icons.ReloadOutlined iconSize="s" />
       </Inert>

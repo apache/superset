@@ -19,12 +19,151 @@
 import { useMemo } from 'react';
 import type { ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { JsonForms } from '@jsonforms/react';
 import { cellRegistryEntries } from '@great-expectations/jsonforms-antd-renderers';
 import { renderers } from 'src/features/semanticLayers/jsonFormsHelpers';
 import { provider } from 'src/core/dashboard/store';
 import inferPropsSchema, { untypedKeys } from './inferPropsSchema';
+
+/**
+ * What the generated form is made to agree with.
+ *
+ * The controls come from a third-party renderer set, and it lays a form out
+ * for a page of its own rather than for a rail beside a canvas. Four things
+ * came out of it not matching the panel around them, and none of them can be
+ * fixed at the call site because nothing here renders the controls:
+ *
+ * - a group's name arrives as a bare `b` with no size, weight or space of its
+ *   own, so it read as the run-on end of the field above rather than as the
+ *   head of the group below. It is given `Section`'s heading, which is what a
+ *   group of fields is titled with everywhere else in this panel.
+ * - controls are sized by what they hold: some carry `width: 100%`, some sit
+ *   in an auto-width column. A column of fields that steps in and out down the
+ *   panel reads as broken before it reads as compact, so they are all told to
+ *   fill the column.
+ * - what adds a row to an array sits in a list footer, which antd centres,
+ *   while what deletes one is pushed right — so two controls doing the same
+ *   kind of job to the same array sat at opposite ends of it. Both go left,
+ *   where every other control in this rail starts.
+ * - the buttons are antd's own default, which is `tertiary` in this app's
+ *   terms and the right style for them; what they are not is the height the
+ *   rest of the rail is at, and a form of full-height buttons inside a panel
+ *   of small ones is the join showing.
+ *
+ * Scoped to this element rather than fixed in the renderers, which the
+ * semantic-layer modal also draws from and which are not this change's to move
+ * — the same reason `DashboardProperties` scopes its own input fix.
+ */
+const FormShell = styled.div`
+  ${({ theme }) => css`
+    /* A group's name, at the weight Section titles a group with. */
+    > form > b,
+    fieldset > b {
+      display: block;
+      margin: ${theme.sizeUnit * 4}px 0 ${theme.sizeUnit * 2}px;
+      font-size: ${theme.fontSize}px;
+      font-weight: ${theme.fontWeightStrong};
+      color: ${theme.colorText};
+    }
+
+    /* One column, one width.
+
+       An array's entries are handed to a grid meant for a page — two to a
+       line, so a dimension came out half the width of the field above it. In a
+       rail there is no second column to put anything in, so the grid is turned
+       down its own axis and every cell given the width. The form item's own
+       label/control row is left alone: it is already a column in this layout,
+       and it is not a grid of entries. */
+    .ant-form-item-control-input-content .ant-row:not(.ant-form-item-row) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .ant-form-item-control-input-content > .ant-col,
+    .ant-form-item-control-input-content
+      .ant-row:not(.ant-form-item-row)
+      > .ant-col {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .ant-input,
+    .ant-input-number,
+    .ant-picker,
+    .ant-select {
+      width: 100%;
+    }
+
+    /* One entry of an array: its fields down the column, and what removes it
+       beneath them.
+
+       antd lays a list item as a row and pushes its actions to the far end, so
+       the fields of an entry shared the width with a Delete button and came
+       out a hundred pixels narrower than the fields around them — the only
+       reason "Column Name" sat short of "Dataset Id". Stacked, the fields get
+       the column and the button falls under them at the start, which is where
+       the other thing that acts on this array already is. */
+    .ant-list-item {
+      flex-direction: column;
+      align-items: stretch;
+      gap: ${theme.sizeUnit}px;
+      padding-inline: 0;
+    }
+
+    /* Written at antd's own depth, and doubled.
+
+       Two things have to be beaten here. antd indents the actions with
+       margin-inline-start, which a physical margin-left does not compete with;
+       and it says so through a selector wrapped in :where(), which counts for
+       nothing and leaves three classes — more than this element plus its own
+       class, until the rule is written out this long. The indent is meant for
+       a list of actions on a page-wide row; on one Delete under a field it is
+       a step with nothing to line up against. */
+    && .ant-list .ant-list-item .ant-list-item-action {
+      margin-inline-start: 0;
+      padding-inline: 0;
+      text-align: left;
+    }
+
+    && .ant-list .ant-list-item .ant-list-item-action > li {
+      padding-inline: 0;
+    }
+
+    /* Whatever acts on an array, at the start of it. What adds an entry is
+       handed to a centred flex row and what removes one to a list action, so
+       the two controls doing the same kind of job to the same array sat at
+       opposite ends of it. */
+    .ant-list-footer,
+    .ant-list-header {
+      padding-inline: 0;
+      text-align: left;
+    }
+
+    .ant-flex-justify-center,
+    .ant-form-item-control-input-content > .ant-row {
+      justify-content: flex-start;
+    }
+
+    /* At the rail's own control height, like every button beside it. */
+    .ant-btn {
+      height: ${theme.controlHeightSM}px;
+      font-size: ${theme.fontSizeSM}px;
+    }
+
+    /* One rhythm down the column: the renderers space their own items and
+       their dividers, and the two scales did not agree. */
+    .ant-form-item {
+      margin-bottom: ${theme.sizeUnit * 2}px;
+    }
+
+    .ant-divider-horizontal {
+      margin: ${theme.sizeUnit * 3}px 0;
+    }
+  `}
+`;
 
 /**
  * A block's properties as fields, generated from the values it holds.
@@ -77,7 +216,7 @@ export default function PropsForm({
   );
 
   return (
-    <div
+    <FormShell
       data-test="inspector-props-form"
       // Labels above their fields, as everywhere else in this rail — beside
       // them halves the width left for the control, in the panel that most
@@ -128,6 +267,6 @@ export default function PropsForm({
             untyped.join(', '),
           ),
         )}
-    </div>
+    </FormShell>
   );
 }

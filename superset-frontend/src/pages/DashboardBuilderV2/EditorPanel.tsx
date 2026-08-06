@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { Button, Tabs } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
@@ -47,6 +47,84 @@ const clampWidth = (width: number): number =>
   Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
 
 /**
+ * The rail, open or shut.
+ *
+ * Separated from the canvas with `colorSplit`, the same hairline the header
+ * rules itself off with, so the three edges of the authoring shell are one
+ * line and not three weights of one.
+ */
+const Rail = styled.aside`
+  ${({ theme }) => css`
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    /* The panel is a fixed-height column and the scrolling happens inside the
+       tab body, so the tab bar stays put however long a form gets. */
+    overflow: hidden;
+    padding: ${theme.sizeUnit * 2}px;
+    border-right: 1px solid ${theme.colorSplit};
+    background-color: ${theme.colorBgContainer};
+  `}
+`;
+
+const ClosedRail = styled.aside`
+  ${({ theme }) => css`
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    padding: ${theme.sizeUnit}px;
+    border-right: 1px solid ${theme.colorSplit};
+    background-color: ${theme.colorBgContainer};
+  `}
+`;
+
+/**
+ * The edge, as something to take hold of.
+ *
+ * The hit area is wide enough to aim at and the line inside it is not: a band
+ * of colour the width of the target announced itself as a bar being added to
+ * the layout rather than as the edge answering. What lights is a rule down the
+ * middle, which is the edge the pointer is already on.
+ *
+ * Coloured on focus as well as on hover, because focus is the state with no
+ * cursor to read — and the width of the authoring surface must be reachable
+ * without a pointer at all.
+ */
+const Grip = styled.div<{ $active: boolean }>`
+  ${({ theme, $active }) => css`
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    /* Wide enough to be worth aiming at, sitting over the panel's own border
+       so the edge is the target rather than a strip beside it. */
+    width: ${theme.sizeUnit * 2}px;
+    z-index: 1;
+    cursor: col-resize;
+    touch-action: none;
+
+    /* Sat at the edge itself rather than a few pixels inside it: what lights
+       has to be the line the panel already ends on, or it reads as a second
+       rule appearing beside the first. */
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 2px;
+      background-color: ${$active ? theme.colorPrimary : 'transparent'};
+      transition: background-color ${theme.motionDurationMid};
+    }
+
+    &:focus-visible {
+      outline: none;
+    }
+  `}
+`;
+
+/**
  * The authoring panel: one rail, three ways of working on a dashboard.
  *
  * Placing a block, editing one and finding one are the same activity at
@@ -60,7 +138,6 @@ export default function EditorPanel({
   onAdd: (type: string) => void;
 }): ReactElement {
   useDashboardRevision();
-  const theme = useTheme();
   const [tab, setTab] = useState<PanelTab>('blocks');
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   /** Whether the rail is out of the way. The width it had is kept either way. */
@@ -164,20 +241,9 @@ export default function EditorPanel({
    */
   if (closed) {
     return (
-      <aside
-        data-test="editor-panel"
-        aria-label={t('Editor panel')}
-        style={{
-          flexShrink: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          padding: theme.sizeUnit,
-          borderRight: `1px solid ${theme.colorBorder}`,
-          background: theme.colorBgContainer,
-        }}
-      >
+      <ClosedRail data-test="editor-panel" aria-label={t('Editor panel')}>
         <Button
-          size="small"
+          buttonSize="xsmall"
           buttonStyle="link"
           data-test="panel-expand"
           aria-label={t('Show the editor panel')}
@@ -185,35 +251,21 @@ export default function EditorPanel({
           tooltip={t('Show the editor panel')}
           placement="right"
           onClick={() => setClosed(false)}
-          style={{
-            height: theme.controlHeightSM,
-            paddingInline: theme.sizeUnit,
-          }}
         >
           <Icons.MenuUnfoldOutlined iconSize="m" />
         </Button>
-      </aside>
+      </ClosedRail>
     );
   }
 
   return (
-    <aside
+    <Rail
       ref={panel}
       data-test="editor-panel"
       aria-label={t('Editor panel')}
-      style={{
-        width,
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        // The panel is a fixed-height column and the scrolling happens inside
-        // the tab body, so the tab bar stays put however long a form gets.
-        overflow: 'hidden',
-        padding: theme.sizeUnit * 2,
-        borderRight: `1px solid ${theme.colorBorder}`,
-        background: theme.colorBgContainer,
-      }}
+      // The one thing that cannot be a class: it is a value the author sets by
+      // dragging, and a class per pixel is a stylesheet per drag.
+      style={{ width }}
     >
       <Tabs
         activeKey={tab}
@@ -226,7 +278,7 @@ export default function EditorPanel({
         tabBarExtraContent={{
           right: (
             <Button
-              size="small"
+              buttonSize="xsmall"
               buttonStyle="link"
               data-test="panel-collapse"
               aria-label={t('Hide the editor panel')}
@@ -234,10 +286,6 @@ export default function EditorPanel({
               tooltip={t('Hide the editor panel')}
               placement="bottom"
               onClick={() => setClosed(true)}
-              style={{
-                height: theme.controlHeightSM,
-                paddingInline: theme.sizeUnit,
-              }}
             >
               <Icons.MenuFoldOutlined iconSize="m" />
             </Button>
@@ -264,7 +312,7 @@ export default function EditorPanel({
       {/* The rule's suggested `hr` is the static kind of separator: it takes
           neither focus nor a value, and both are what make this one a
           splitter an author can reach without a pointer. */}
-      <div
+      <Grip
         // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="separator"
         tabIndex={0}
@@ -274,6 +322,7 @@ export default function EditorPanel({
         aria-valuenow={width}
         aria-valuemin={MIN_WIDTH}
         aria-valuemax={MAX_WIDTH}
+        $active={gripped}
         onPointerDown={startDrag}
         onPointerMove={drag}
         onPointerUp={endDrag}
@@ -282,24 +331,7 @@ export default function EditorPanel({
         onPointerLeave={() => setGripped(from.current !== null)}
         onFocus={() => setGripped(true)}
         onBlur={() => setGripped(false)}
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          // Wide enough to be worth aiming at, sitting over the panel's own
-          // border so the edge is the target rather than a strip beside it.
-          width: theme.sizeUnit * 2,
-          zIndex: 1,
-          cursor: 'col-resize',
-          // The cursor alone only answers an author who already suspected the
-          // edge could move. Colouring it under the pointer — and on focus,
-          // where there is no cursor to read — is what says so first.
-          background: gripped ? theme.colorPrimaryBorder : 'transparent',
-          transition: `background ${theme.motionDurationMid}`,
-          touchAction: 'none',
-        }}
       />
-    </aside>
+    </Rail>
   );
 }

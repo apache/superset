@@ -20,8 +20,8 @@ import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
-import { Input, PublishedLabel } from '@superset-ui/core/components';
+import { css, styled } from '@apache-superset/core/theme';
+import { Divider, Input, PublishedLabel } from '@superset-ui/core/components';
 import MetadataBar, {
   MetadataType,
 } from '@superset-ui/core/components/MetadataBar';
@@ -90,6 +90,39 @@ const Metadata = (): ReactElement => {
 };
 
 /**
+ * The name, drawn as a name rather than as a field.
+ *
+ * A bordered box on a bar of small controls read as one more control, and the
+ * one thing on the bar that says what you are looking at was the hardest thing
+ * on it to find. Borderless at the heading weight, it reads as the title it
+ * is; the surface arriving under the pointer and on focus is what still says
+ * it can be typed into, which is the same trade the editable titles elsewhere
+ * in the app make.
+ */
+const TitleInput = styled(Input)`
+  ${({ theme }) => css`
+    max-width: ${theme.sizeUnit * 60}px;
+    height: ${theme.controlHeightSM}px;
+    padding-inline: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colorText};
+    background-color: transparent;
+    transition: background-color ${theme.motionDurationMid};
+
+    &:hover,
+    &:focus {
+      background-color: ${theme.colorFillQuaternary};
+    }
+
+    &::placeholder {
+      font-weight: ${theme.fontWeightNormal};
+      color: ${theme.colorTextTertiary};
+    }
+  `}
+`;
+
+/**
  * The dashboard's name, edited where it is read.
  *
  * It is stored on the root node rather than in this component, because a name
@@ -108,16 +141,15 @@ const Metadata = (): ReactElement => {
  * tick per character for everything subscribed to the store.
  */
 const Title = ({ nodeId, title }: { nodeId: string; title: string }) => {
-  const theme = useTheme();
   const [draft, setDraft] = useState(title);
   // What was accepted replaces the draft, because the draft was a view of it:
   // a rename the assistant makes while this is on screen has to show.
   useEffect(() => setDraft(title), [title]);
 
   return (
-    <Input
+    <TitleInput
       size="small"
-      style={{ maxWidth: 220, height: theme.controlHeightSM }}
+      variant="borderless"
       value={draft}
       aria-label={t('Dashboard title')}
       placeholder={t('Untitled dashboard')}
@@ -139,6 +171,37 @@ const Title = ({ nodeId, title }: { nodeId: string; title: string }) => {
 };
 
 /**
+ * The bar itself.
+ *
+ * Inset horizontally the way the rest of the app insets a page header, so the
+ * left edge of the bar and the left edge of the work below it are one line
+ * rather than two a few pixels apart. The rule beneath is `colorSplit` — what
+ * this app draws a separator with — rather than the heavier border it shares
+ * with the boxes that hold things.
+ */
+const Bar = styled.header`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit * 2}px;
+    flex: 0 0 auto;
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+    border-bottom: 1px solid ${theme.colorSplit};
+    background-color: ${theme.colorBgContainer};
+  `}
+`;
+
+/** What an author does to the whole dashboard, at the end they read last. */
+const Actions = styled.span`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit * 2}px;
+    margin-left: auto;
+  `}
+`;
+
+/**
  * The dashboard's header: what this dashboard is, and what can be done to it.
  *
  * Two kinds of thing share the bar. On the left is the dashboard as the
@@ -156,22 +219,10 @@ const Title = ({ nodeId, title }: { nodeId: string; title: string }) => {
  */
 export default function DashboardHeader(): ReactElement {
   useDashboardRevision();
-  const theme = useTheme();
   const root = provider.getRoot();
 
   return (
-    <header
-      data-test="dashboard-header"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.sizeUnit * 2,
-        flex: '0 0 auto',
-        padding: theme.sizeUnit * 2,
-        borderBottom: `1px solid ${theme.colorBorder}`,
-        background: theme.colorBgContainer,
-      }}
-    >
+    <Bar data-test="dashboard-header">
       {/* Where this dashboard came from: a starting point to build on, asked
           before the work rather than during it, which is why it leads the
           bar. History used to sit beside it on that reasoning and has gone to
@@ -196,14 +247,7 @@ export default function DashboardHeader(): ReactElement {
           one question — what state is this in — and they are read together. */}
       <Metadata />
 
-      <span
-        style={{
-          marginLeft: 'auto',
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.sizeUnit * 2,
-        }}
-      >
+      <Actions>
         {/* Icons, not words, because these two are reached by muscle memory
             far more often than they are read. The name stays on them for
             anyone not reading with their eyes. */}
@@ -213,6 +257,11 @@ export default function DashboardHeader(): ReactElement {
         <Inert label={t('Redo')} test="header-redo">
           <Icons.RedoOutlined iconSize="s" />
         </Inert>
+        {/* Stepping back through the work and writing it down are two
+            different acts on the bar's one crowded end, and at an even gap
+            the four of them read as one run of controls. The rule is what
+            says where one pair stops and the other starts. */}
+        <Divider type="vertical" />
         {/* Saving commits a version; History is the versions already
             committed. One concern, read in one place — so the record sits
             immediately before the button that produces what it lists, rather
@@ -223,7 +272,7 @@ export default function DashboardHeader(): ReactElement {
         <Inert label={t('Save')} test="header-save" reads>
           {t('Save')}
         </Inert>
-      </span>
-    </header>
+      </Actions>
+    </Bar>
   );
 }

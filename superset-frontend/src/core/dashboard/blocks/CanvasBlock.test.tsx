@@ -290,15 +290,20 @@ test('the grid is told not to start a drag from the remove control', () => {
   // react-grid-layout begins a drag on a press anywhere in the block it is
   // positioning, and the button sits inside that block. `draggableCancel` is
   // what it reads to exclude a region, so the selector and the attribute the
-  // button carries have to agree — aiming at the X would otherwise drag the
+  // control carries have to agree — aiming at the bin would otherwise drag the
   // block it is attached to.
   const cancel = screen
     .getByTestId('rgl')
     .getAttribute('data-draggable-cancel');
   expect(cancel).toContain('[data-block-remove]');
-  expect(screen.getByTestId(`block-remove-${first}`)).toHaveAttribute(
-    'data-block-remove',
-  );
+  // On the control or above it: react-draggable matches the selector against
+  // the pressed element and then walks its ancestors up to the grid item, so
+  // the attribute excludes the whole region it is set on. The bin is the
+  // shared `ActionButton`, which renders its own element and forwards no
+  // arbitrary attributes to it — the region is what carries this.
+  expect(
+    screen.getByTestId(`block-remove-${first}`).closest('[data-block-remove]'),
+  ).not.toBeNull();
 });
 
 test('clicking the remove control removes rather than selects', () => {

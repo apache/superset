@@ -20,9 +20,10 @@ import { useEffect, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
+  EmptyState,
   Form,
   Input,
   InputNumber,
@@ -33,6 +34,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
+import { blockLabel } from 'src/core/dashboard/blockLabel';
 import { resolveLayoutMode } from 'src/core/dashboard/layoutStyle';
 import DashboardProperties from './DashboardProperties';
 import LayoutModeSwitcher from './LayoutModeSwitcher';
@@ -194,20 +196,68 @@ const FlexFields = ({
 };
 
 /**
- * The panel's own buttons, sized down.
+ * A group of fields, and where one stops.
  *
- * Everything here acts on one block, in a rail whose width is spent on the
- * fields rather than on the controls that commit them — and a panel of
- * full-height buttons reads as a row of decisions before you have read what
- * any of them apply to. Driven off the theme's smallest control step, the
- * same one the header's icon controls sit at, so the two rails agree.
+ * The panel is a single column that can run several screens deep, and the
+ * headings alone were doing all the work of dividing it — set at the same
+ * weight as the field labels beneath them, they read as one more label rather
+ * than as the top of a group. The rule above each section is what actually
+ * separates them; the heading is bolder so a scan finds it first.
  */
-const minor = (theme: ReturnType<typeof useTheme>) => ({
-  height: theme.controlHeightXS,
-  paddingInline: theme.sizeUnit * 2,
-  fontSize: theme.fontSizeSM,
-  lineHeight: 1,
-});
+const Group = styled.section`
+  ${({ theme }) => css`
+    margin-top: ${theme.sizeUnit * 4}px;
+    padding-top: ${theme.sizeUnit * 4}px;
+    border-top: 1px solid ${theme.colorSplit};
+  `}
+`;
+
+/**
+ * At the size the fields under it are labelled, and heavier.
+ *
+ * Smaller and greyer than the labels it introduces, a section heading reads as
+ * a caption belonging to the field above rather than as the top of the group
+ * below — the hierarchy inverted, with "Content" the section set in less than
+ * "Content" the field. Weight carries the difference instead, with the rule
+ * above doing the separating.
+ */
+const GroupTitle = styled.h4`
+  ${({ theme }) => css`
+    margin: 0 0 ${theme.sizeUnit * 2}px;
+    font-size: ${theme.fontSize}px;
+    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colorText};
+  `}
+`;
+
+/** Where the panel ends, and the one control that ends the block with it. */
+const Footer = styled.div`
+  ${({ theme }) => css`
+    margin-top: ${theme.sizeUnit * 4}px;
+    padding-top: ${theme.sizeUnit * 4}px;
+    border-top: 1px solid ${theme.colorSplit};
+  `}
+`;
+
+/** What is selected, named the way the canvas and the Outline name it. */
+const IdentityName = styled.h3`
+  ${({ theme }) => css`
+    margin: 0;
+    font-size: ${theme.fontSize}px;
+    font-weight: ${theme.fontWeightStrong};
+    color: ${theme.colorText};
+    overflow-wrap: anywhere;
+  `}
+`;
+
+const IdentityMeta = styled.p`
+  ${({ theme }) => css`
+    margin: ${theme.sizeUnit}px 0 0;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextTertiary};
+    word-break: break-all;
+  `}
+`;
 
 const Section = ({
   title,
@@ -217,23 +267,12 @@ const Section = ({
   title: string;
   test: string;
   children: ReactNode;
-}): ReactElement => {
-  const theme = useTheme();
-  return (
-    <section data-test={test} style={{ marginTop: theme.sizeUnit * 4 }}>
-      <h4
-        style={{
-          margin: `0 0 ${theme.sizeUnit * 2}px`,
-          fontSize: theme.fontSizeSM,
-          color: theme.colorTextSecondary,
-        }}
-      >
-        {title}
-      </h4>
-      {children}
-    </section>
-  );
-};
+}): ReactElement => (
+  <Group data-test={test}>
+    <GroupTitle>{title}</GroupTitle>
+    {children}
+  </Group>
+);
 
 /**
  * A number that may be absent, and stays absent when cleared.
@@ -294,10 +333,10 @@ const ContentField = ({
   useEffect(() => setDraft(content), [content, nodeId]);
 
   return (
-    <Form.Item
-      label={t('Content')}
-      style={{ marginBottom: theme.sizeUnit * 2 }}
-    >
+    // "Text", not "Content": the section this sits in is already called
+    // Content, and the two stacked read as the same word said twice. What the
+    // box holds is prose, which is what the label should say.
+    <Form.Item label={t('Text')} style={{ marginBottom: theme.sizeUnit * 2 }}>
       <Input.TextArea
         size="small"
         rows={4}
@@ -337,18 +376,23 @@ const StackingControls = ({ nodeId }: { nodeId: string }): ReactElement => {
   const theme = useTheme();
   return (
     <div style={{ display: 'flex', gap: theme.sizeUnit }}>
+      {/* `secondary`, which is what this app calls a button that is not the
+          headline action — the style Cancel takes beside Save. Left unsaid the
+          shared Button draws every one of them `primary`, which is two filled
+          headline buttons for what is a pair of nudges. Neither of these
+          commits anything, and neither leads. */}
       <Button
-        size="small"
+        buttonSize="xsmall"
+        buttonStyle="secondary"
         data-test="inspector-bring-to-front"
-        style={minor(theme)}
         onClick={() => provider.bringToFront(nodeId)}
       >
         {t('Bring to front')}
       </Button>
       <Button
-        size="small"
+        buttonSize="xsmall"
+        buttonStyle="secondary"
         data-test="inspector-send-to-back"
-        style={minor(theme)}
         onClick={() => provider.sendToBack(nodeId)}
       >
         {t('Send to back')}
@@ -453,10 +497,9 @@ const PropsJsonEditor = ({
       )}
       <div style={{ display: 'flex', gap: theme.sizeUnit }}>
         <Button
-          size="small"
+          buttonSize="xsmall"
           buttonStyle="primary"
           data-test="inspector-props-apply"
-          style={minor(theme)}
           disabled={parsed === undefined || !dirty}
           onClick={() => {
             if (parsed === undefined) {
@@ -473,10 +516,13 @@ const PropsJsonEditor = ({
         >
           {t('Apply')}
         </Button>
+        {/* `secondary` beside the primary Apply — the pairing this app uses
+            wherever one button commits and the one next to it does not. Two
+            `primary` buttons side by side say both are the thing to press. */}
         <Button
-          size="small"
+          buttonSize="xsmall"
+          buttonStyle="secondary"
           data-test="inspector-props-revert"
-          style={minor(theme)}
           disabled={!dirty}
           onClick={() => setDraft(accepted)}
         >
@@ -490,13 +536,13 @@ const PropsJsonEditor = ({
             message, and a copy that says nothing leaves you pressing it
             again to be sure. */}
         <Button
-          size="small"
+          buttonSize="xsmall"
           buttonStyle="link"
           data-test="inspector-props-copy"
           aria-label={t('Copy properties as JSON')}
           tooltip={copied ? t('Copied') : t('Copy properties as JSON')}
           placement="bottom"
-          style={{ ...minor(theme), marginLeft: 'auto' }}
+          style={{ marginLeft: 'auto' }}
           onClick={() => {
             copyTextToClipboard(() => Promise.resolve(draft));
             setCopied(true);
@@ -614,17 +660,16 @@ export default function Inspector(): ReactElement {
 
   if (!node) {
     return (
-      <p
-        data-test="inspector-empty"
-        style={{
-          ...inset,
-          margin: 0,
-          color: theme.colorTextTertiary,
-          fontSize: theme.fontSizeSM,
-        }}
-      >
-        {t('Select a block to edit its properties.')}
-      </p>
+      <div data-test="inspector-empty" style={inset}>
+        <EmptyState
+          size="small"
+          image="empty.svg"
+          title={t('Nothing selected')}
+          description={t(
+            'Pick a block on the canvas, or a row in the Outline, to edit it here.',
+          )}
+        />
+      </div>
     );
   }
 
@@ -653,16 +698,18 @@ export default function Inspector(): ReactElement {
       {isRoot ? (
         <DashboardProperties />
       ) : (
-        <p
-          data-test="inspector-identity"
-          style={{
-            margin: 0,
-            color: theme.colorTextSecondary,
-            wordBreak: 'break-all',
-          }}
-        >
-          {node.type} · {node.id}
-        </p>
+        // The same shape the dashboard's own panel opens with: what this is,
+        // then the smaller print about it. The name is `blockLabel`'s — the
+        // one the canvas header and the Outline row already use — so a block
+        // is called one thing in all three places, and the type and id sit
+        // under it as what they are, a fact about the block rather than its
+        // name.
+        <div data-test="inspector-identity">
+          <IdentityName>{blockLabel(node.type, node.props)}</IdentityName>
+          <IdentityMeta>
+            {node.type} · {node.id}
+          </IdentityMeta>
+        </div>
       )}
 
       {/* Outside the `Form` below, and each half of it wrapping its own —
@@ -690,23 +737,24 @@ export default function Inspector(): ReactElement {
             title={t('Arrangement')}
             test="inspector-section-arrangement"
           >
+            {/* One run of fields: the mode is asked as a field now, so it
+                spaces itself against the rest rather than needing a gap put
+                between it and them. */}
             <LayoutModeSwitcher nodeId={node.id} />
-            <div style={{ marginTop: theme.sizeUnit * 3 }}>
-              {CONTAINER_FIELDS.map(field => (
-                <NumberField
-                  key={field.key}
-                  label={field.label}
-                  test={`inspector-${field.key}`}
-                  value={node.layout?.[field.key] as number | undefined}
-                  onChange={next =>
-                    provider.updateLayout(node.id, { [field.key]: next })
-                  }
-                />
-              ))}
-              {resolveLayoutMode(node.layout) === 'flex' && (
-                <FlexFields nodeId={node.id} layout={node.layout} />
-              )}
-            </div>
+            {CONTAINER_FIELDS.map(field => (
+              <NumberField
+                key={field.key}
+                label={field.label}
+                test={`inspector-${field.key}`}
+                value={node.layout?.[field.key] as number | undefined}
+                onChange={next =>
+                  provider.updateLayout(node.id, { [field.key]: next })
+                }
+              />
+            ))}
+            {resolveLayoutMode(node.layout) === 'flex' && (
+              <FlexFields nodeId={node.id} layout={node.layout} />
+            )}
           </Section>
         )}
 
@@ -738,17 +786,30 @@ export default function Inspector(): ReactElement {
       </Form>
 
       {/* `removeBuildingBlock` refuses the root, so offering it here would be
-          a button that only ever raises. */}
+          a button that only ever raises.
+
+          Ruled off from the fields above it rather than following them at a
+          gap: everything else in this column changes the block, and this is
+          the one control that ends it. The rule is the same one that divides
+          the sections, so the panel reads as ending here rather than as
+          having one more field. */}
       {!isRoot && (
-        <Button
-          size="small"
-          danger
-          data-test="inspector-delete"
-          style={{ ...minor(theme), marginTop: theme.sizeUnit * 3 }}
-          onClick={() => provider.removeBuildingBlock(node.id)}
-        >
-          {t('Delete')}
-        </Button>
+        <Footer>
+          <Button
+            buttonSize="xsmall"
+            // `buttonStyle`, not antd's own `danger`: the shared Button reads
+            // the former and derives the latter from it, so a bare `danger`
+            // is dropped and the control falls back to `primary` — which drew
+            // the one destructive thing in this panel as its filled headline
+            // action.
+            buttonStyle="danger"
+            icon={<Icons.DeleteOutlined iconSize="s" />}
+            data-test="inspector-delete"
+            onClick={() => provider.removeBuildingBlock(node.id)}
+          >
+            {t('Delete block')}
+          </Button>
+        </Footer>
       )}
     </div>
   );

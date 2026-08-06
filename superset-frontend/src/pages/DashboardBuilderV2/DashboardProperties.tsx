@@ -77,15 +77,23 @@ const asString = (value: unknown): string =>
  *
  * So the sections are kept and their wrapper is not: this matches `Section`
  * in the Inspector, which is what a group of fields is called everywhere else
- * in this panel. The ticks go with it — they report on a save that this page
- * cannot do, and each section still says what is wrong with it where the
- * wrong thing is.
+ * in this panel — the same size as the labels it introduces, carrying the
+ * difference in weight rather than in size, so a heading is not set in less
+ * than the fields beneath it. The ticks go with the wrapper — they report on a
+ * save that this page cannot do, and each section still says what is wrong
+ * with it where the wrong thing is.
  */
 const sectionLabel = (
   theme: ReturnType<typeof useTheme>,
   title: string,
 ): ReactElement => (
-  <span style={{ fontSize: theme.fontSizeSM, color: theme.colorTextSecondary }}>
+  <span
+    style={{
+      fontSize: theme.fontSize,
+      fontWeight: theme.fontWeightStrong,
+      color: theme.colorText,
+    }}
+  >
     {title}
   </span>
 );

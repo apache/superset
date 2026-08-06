@@ -39,7 +39,9 @@ test('a blank dashboard can still be reached, and so can the layout it arranges 
   // The canvas is no longer chat-only: a palette sits beside it, so the
   // empty state names both ways in.
   expect(
-    screen.getByText('Add a building block, or ask the assistant to start'),
+    screen.getByText(
+      'Drag a building block from the panel, or ask the assistant for one.',
+    ),
   ).toBeInTheDocument();
 
   // A `/dashboard/v2/new/` load lands on nothing, and that is exactly when
