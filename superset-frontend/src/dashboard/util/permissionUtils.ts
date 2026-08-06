@@ -27,8 +27,7 @@ import { findPermission } from 'src/utils/findPermission';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 const bootstrapData = getBootstrapData();
-const ADMIN_ROLE_NAME =
-  bootstrapData.common?.conf?.AUTH_ROLE_ADMIN || 'Admin';
+const ADMIN_ROLE_NAME = bootstrapData.common?.conf?.AUTH_ROLE_ADMIN || 'Admin';
 
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,

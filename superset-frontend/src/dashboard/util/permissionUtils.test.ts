@@ -161,9 +161,8 @@ describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
       '<div id="app" data-bootstrap=\'{"common":{"conf":{"AUTH_ROLE_ADMIN":"SuperAdmin"}}}\'></div>';
 
     jest.resetModules();
-    const { isUserAdmin: isUserAdminWithCustomRole } = await import(
-      './permissionUtils'
-    );
+    const { isUserAdmin: isUserAdminWithCustomRole } =
+      await import('./permissionUtils');
 
     expect(
       isUserAdminWithCustomRole({
@@ -175,12 +174,12 @@ describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
   });
 
   test('does not throw and falls back to the default role when bootstrap data has no conf', async () => {
-    document.body.innerHTML = '<div id="app" data-bootstrap=\'{"common":{}}\'></div>';
+    document.body.innerHTML =
+      '<div id="app" data-bootstrap=\'{"common":{}}\'></div>';
 
     jest.resetModules();
-    const { isUserAdmin: isUserAdminWithoutConf } = await import(
-      './permissionUtils'
-    );
+    const { isUserAdmin: isUserAdminWithoutConf } =
+      await import('./permissionUtils');
 
     expect(isUserAdminWithoutConf(adminUser)).toEqual(true);
   });
