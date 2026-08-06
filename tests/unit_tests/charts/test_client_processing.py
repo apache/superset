@@ -2150,6 +2150,23 @@ def test_format_column_is_noop_without_format():
     assert df["amount"].tolist() == [1234.5]
 
 
+def test_format_column_preserves_numeric_format_when_currency_is_invalid():
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(
+        df,
+        "amount",
+        ",.2f",
+        {"symbol": {"invalid": True}, "symbolPosition": "prefix"},
+    )
+    assert df["amount"].tolist() == ["1,234.50"]
+
+
+def test_format_column_preserves_raw_value_for_invalid_number_format():
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(df, "amount", "not-a-format", {})
+    assert df["amount"].tolist() == ["1234.5"]
+
+
 def test_apply_pivot_number_formats_resolves_metric_level():
     df = pd.DataFrame({("sales",): [1234.5], ("qty",): [10.0]})
     df.columns = pd.MultiIndex.from_tuples([("sales",), ("qty",)])
@@ -2169,6 +2186,35 @@ def test_apply_pivot_number_formats_metric_at_last_level_when_combined():
     )
     assert df[("x", "sales")].tolist() == ["100.00"]
     assert df[("x", "qty")].tolist() == ["1,111"]
+
+
+def test_apply_pivot_number_formats_falls_back_to_global_format():
+    df = pd.DataFrame({("sales",): [1234.5]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",)])
+    apply_pivot_number_formats(
+        df, {"valueFormat": ",.2f", "columnFormats": {"sales": ""}}
+    )
+    assert df[("sales",)].tolist() == ["1,234.50"]
+
+
+def test_apply_pivot_number_formats_preserves_raw_value_on_format_error():
+    df = pd.DataFrame({("sales",): [1234.5]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",)])
+    apply_pivot_number_formats(df, {"valueFormat": "not-a-format"})
+    assert df[("sales",)].tolist() == ["1234.5"]
+
+
+def test_apply_pivot_number_formats_auto_currency_without_detection():
+    df = pd.DataFrame({("sales",): [1234.5]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",)])
+    apply_pivot_number_formats(
+        df,
+        {
+            "valueFormat": ",.2f",
+            "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+        },
+    )
+    assert df[("sales",)].tolist() == ["1,234.50"]
 
 
 def test_apply_client_processing_no_form_invalid_viz_type():

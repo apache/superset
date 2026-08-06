@@ -15,15 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import current_app
 
 from superset.utils.number_format import (
     format_d3,
+    format_default,
     format_number_with_config,
     format_numeric,
+    get_currency_locale,
+    resolve_auto_currency,
+    resolve_symbol_position,
 )
 
 # --- Helper behaviour the d3 parity matrix below cannot cover ----------------
@@ -77,6 +81,17 @@ def test_auto_currency_formats_without_symbol():
     )
 
 
+def test_resolve_auto_currency_uses_detected_single_currency():
+    currency = {"symbol": "AUTO", "symbolPosition": "prefix"}
+    assert resolve_auto_currency(currency, "USD") == {
+        "symbol": "USD",
+        "symbolPosition": "prefix",
+    }
+    assert resolve_auto_currency(currency, None) is currency
+    explicit = {"symbol": "EUR", "symbolPosition": "suffix"}
+    assert resolve_auto_currency(explicit, "USD") is explicit
+
+
 @pytest.mark.parametrize(
     "value,expected",
     [
@@ -115,6 +130,32 @@ def test_currency_position_uses_configured_locale_without_request():
             )
             == "1,234.50 €"
         )
+
+
+@pytest.mark.parametrize(
+    "code,locale,expected",
+    [
+        ("USD", "en_US", "prefix"),
+        ("EUR", "fr_FR", "suffix"),
+        ("ZZZ", "not_a_locale", "prefix"),
+    ],
+)
+def test_resolve_symbol_position(code, locale, expected):
+    resolve_symbol_position.cache_clear()
+    assert resolve_symbol_position(code, locale) == expected
+
+
+def test_get_currency_locale_handles_missing_babel_and_app_context():
+    app = MagicMock()
+    with (
+        patch("superset.utils.number_format.get_locale", side_effect=RuntimeError),
+        patch("superset.utils.number_format.current_app", app),
+    ):
+        app.config.get.return_value = "de_DE"
+        assert get_currency_locale() == "de_DE"
+
+        app.config.get.side_effect = RuntimeError
+        assert get_currency_locale() == "en"
 
 
 def test_non_numeric_value_is_returned_as_is():
@@ -366,6 +407,27 @@ def test_rounding_matches_d3_binary_half_up(d3_format, value, expected):
 )
 def test_additional_d3_parity_cases(d3_format, value, expected):
     assert format_number_with_config(d3_format, None, value) == expected
+
+
+@pytest.mark.parametrize(
+    "d3_format,value,expected",
+    [
+        ("SMART_NUMBER", 12.345, "12.35"),
+        ("SMART_NUMBER", 0.12345, "0.1235"),
+        ("SMART_NUMBER", 0.00005, "50µ"),
+        ("SMART_NUMBER", 5e-7, "500n"),
+        ("SMART_NUMBER_SIGNED", 12.345, "+12.35"),
+        ("n", 1234.5, "1,234.50"),
+        ("x", 12, "12"),
+    ],
+)
+def test_number_format_branch_coverage(d3_format, value, expected):
+    assert format_number_with_config(d3_format, None, value) == expected
+
+
+def test_default_helper_and_whole_float_fallback():
+    assert format_default(1000, ",") == "1,000"
+    assert format_number_with_config(None, None, 42.0) == "42"
 
 
 @pytest.mark.parametrize(
