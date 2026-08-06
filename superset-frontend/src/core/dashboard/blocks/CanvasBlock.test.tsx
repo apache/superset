@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from 'spec/helpers/testing-library';
 import DashboardProvider from '../DashboardProvider';
 import CanvasBlock from './CanvasBlock';
 
@@ -110,6 +115,47 @@ test('a flex container is not a grid at all', () => {
   // differently.
   expect(screen.getByTestId('flex-canvas')).toBeInTheDocument();
   expect(screen.queryByTestId('rgl')).not.toBeInTheDocument();
+});
+
+test('a flex child hands its block a definite box', () => {
+  const rootId = provider.getRoot().id;
+  provider.updateLayout(rootId, { mode: 'flex' });
+  const id = provider.addBuildingBlock(rootId, 0, {
+    type: 'markdown',
+    layout: { rowSpan: 4 },
+  });
+  render(<CanvasBlock nodeId={rootId} />);
+
+  // Every leaf block fills the box its placement wrapper gives it — a chart
+  // measures that box to size its canvas, and markdown scrolls inside it. In
+  // a grid, react-grid-layout supplies the box by cloning the block with an
+  // explicit pixel width and height. A flex container positions its own
+  // children, so it has to hand the same box down itself; without it the
+  // block is content-height, the chart's measured height collapses, and
+  // markdown taller than its share paints over the row beneath it.
+  const block = within(screen.getByTestId(`flex-child-${id}`)).getByRole(
+    'button',
+    { name: 'markdown' },
+  );
+  expect(block).toHaveStyle({ width: '100%', height: '100%' });
+});
+
+test('a flex child is as tall as the same block in a grid', () => {
+  const rootId = provider.getRoot().id;
+  provider.updateLayout(rootId, { mode: 'flex' });
+  const id = provider.addBuildingBlock(rootId, 0, {
+    type: 'markdown',
+    layout: { rowSpan: 4 },
+  });
+  render(<CanvasBlock nodeId={rootId} />);
+
+  // react-grid-layout reserves the rows *and the gaps between them*
+  // (`rowUnit * rowSpan + (rowSpan - 1) * gap`), so 4 rows of 32 with a gap
+  // of 16 is 176px, not 128. Counting only the rows would make every block on
+  // the canvas shrink the moment the mode changed.
+  expect(screen.getByTestId(`flex-child-${id}`)).toHaveStyle({
+    height: '176px',
+  });
 });
 
 test('dragging one flex child onto another reorders them', () => {

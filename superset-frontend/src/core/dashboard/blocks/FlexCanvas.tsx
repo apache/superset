@@ -23,6 +23,7 @@ import { useTheme } from '@apache-superset/core/theme';
 import { provider } from '../store';
 import {
   DEFAULT_COLUMNS,
+  resolveBlockHeightPx,
   resolveFlexBasis,
   resolveFlexMetrics,
 } from '../layoutStyle';
@@ -153,7 +154,7 @@ export default function FlexCanvas({
                 metrics.flexDirection === 'row'
                   ? `calc(${basis} - ${metrics.gap}px)`
                   : undefined,
-              height: (child?.layout?.rowSpan ?? 1) * metrics.rowUnitPx,
+              height: resolveBlockHeightPx(child?.layout?.rowSpan, metrics),
               outline:
                 over === childId
                   ? `2px solid ${theme.colorPrimary}`
@@ -161,7 +162,19 @@ export default function FlexCanvas({
               cursor: 'grab',
             }}
           >
-            <BuildingBlockView nodeId={childId} />
+            {/* The box, handed down. Every leaf block fills the one its
+                placement wrapper gives it — a chart measures it to size its
+                canvas, markdown scrolls inside it — and in a grid that box
+                arrives as the explicit pixel width and height
+                react-grid-layout injects when it clones the block. A flex
+                container positions its children itself, so it owes them the
+                same thing: without it the block is content-height, a chart's
+                measured height collapses to its loading indicator, and
+                markdown taller than its share paints over the row below. */}
+            <BuildingBlockView
+              nodeId={childId}
+              style={{ width: '100%', height: '100%' }}
+            />
           </div>
         );
       })}

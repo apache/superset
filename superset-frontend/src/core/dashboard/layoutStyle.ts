@@ -63,6 +63,29 @@ export function resolveGridMetrics(
   };
 }
 
+/**
+ * The pixel height a container reserves for a child spanning `rowSpan` rows.
+ *
+ * The gaps *between* those rows belong to the block, not to the space around
+ * it: this is `react-grid-layout`'s own `calcGridItemWHPx`, which already
+ * sizes every grid-mode block. A container that positions its own children
+ * has to apply the same formula rather than multiplying rows by row height,
+ * or the identical block is drawn shorter than the grid drew it and changing
+ * a container's mode silently resizes everything in it.
+ *
+ * A child that never declared a span occupies one row, matching the same
+ * default `packChildLayout` gives it.
+ */
+export function resolveBlockHeightPx(
+  rowSpan: number | undefined,
+  metrics: Pick<GridMetrics, 'gap' | 'rowUnitPx'>,
+): number {
+  const rows = rowSpan ?? 1;
+  return Math.round(
+    rows * metrics.rowUnitPx + Math.max(0, rows - 1) * metrics.gap,
+  );
+}
+
 /** The CSS a `flex` container lays its own children out with. */
 export interface FlexMetrics {
   flexDirection: 'row' | 'column';
