@@ -18,12 +18,23 @@
  */
 import getScrollBarSize, {
   CUSTOM_SCROLLBAR_SIZE,
+  getCustomScrollBarSize,
 } from '../../../src/DataTable/utils/getScrollBarSize';
 
-test('measures the scrollbar probe using the shared custom scrollbar size', () => {
+test('getScrollBarSize measures the native scrollbar without any custom styling probe', () => {
   const appendSpy = jest.spyOn(document.head, 'append');
 
   getScrollBarSize(true);
+
+  expect(appendSpy).not.toHaveBeenCalled();
+
+  appendSpy.mockRestore();
+});
+
+test('getCustomScrollBarSize measures the probe using the shared custom scrollbar size', () => {
+  const appendSpy = jest.spyOn(document.head, 'append');
+
+  getCustomScrollBarSize(true);
 
   const styleEl = appendSpy.mock.calls
     .map(args => args[0])
