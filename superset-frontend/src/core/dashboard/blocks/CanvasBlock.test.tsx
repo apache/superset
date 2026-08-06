@@ -36,15 +36,18 @@ jest.mock('react-grid-layout/legacy', () => ({
     children,
     compactType,
     allowOverlap,
+    draggableCancel,
   }: {
     children: React.ReactNode;
     compactType: string | null;
     allowOverlap?: boolean;
+    draggableCancel?: string;
   }) => (
     <div
       data-test="rgl"
       data-compact-type={String(compactType)}
       data-allow-overlap={String(!!allowOverlap)}
+      data-draggable-cancel={draggableCancel ?? ''}
     >
       {children}
     </div>
@@ -144,4 +147,105 @@ test('a flex child dropped on itself changes nothing', () => {
   fireEvent.drop(screen.getByTestId(`flex-child-${first}`), { dataTransfer });
 
   expect(provider.getNode(rootId)?.children).toEqual([first, second]);
+});
+
+/** A drag payload jsdom's synthetic events do not carry on their own. */
+const paletteTransfer = (type: string) => {
+  const data = new Map([['application/x-dashboard-building-block', type]]);
+  return {
+    types: [...data.keys()],
+    getData: (key: string) => data.get(key) ?? '',
+    setData: (key: string, value: string) => data.set(key, value),
+    dropEffect: '',
+    effectAllowed: '',
+  };
+};
+
+test('dropping a palette block on a container places it there', () => {
+  const { rootId } = withMode('grid');
+
+  fireEvent.drop(screen.getByTestId('canvas-container'), {
+    dataTransfer: paletteTransfer('markdown'),
+  });
+
+  const children = provider.getNode(rootId)?.children ?? [];
+  expect(children).toHaveLength(3);
+  expect(provider.getNode(children[2])?.type).toBe('markdown');
+});
+
+test('a drop into a flex container lands there too', () => {
+  const { rootId } = withMode('flex');
+
+  fireEvent.drop(screen.getByTestId('flex-canvas'), {
+    dataTransfer: paletteTransfer('echarts'),
+  });
+
+  const children = provider.getNode(rootId)?.children ?? [];
+  expect(provider.getNode(children[children.length - 1])?.type).toBe('echarts');
+});
+
+test('a drop carrying something else is not read as a block', () => {
+  const { rootId } = withMode('grid');
+  const before = provider.getNode(rootId)?.children?.length;
+
+  fireEvent.drop(screen.getByTestId('canvas-container'), {
+    dataTransfer: {
+      types: ['text/plain'],
+      getData: () => '',
+      dropEffect: '',
+      effectAllowed: '',
+    },
+  });
+
+  // A private type rather than text/plain is what keeps a dragged file, or a
+  // selection of text from another window, from placing a block.
+  expect(provider.getNode(rootId)?.children?.length).toBe(before);
+});
+
+test('a placed block offers a way to remove it, and the root does not', () => {
+  const { rootId, first } = withMode('grid');
+
+  expect(screen.getByTestId(`block-remove-${first}`)).toBeInTheDocument();
+  // Removing the root is refused by the provider, so offering the button
+  // would be offering an error.
+  expect(
+    screen.queryByTestId(`block-remove-${rootId}`),
+  ).not.toBeInTheDocument();
+});
+
+test('the remove control removes that block and nothing else', () => {
+  const { rootId, first, second } = withMode('grid');
+
+  fireEvent.click(screen.getByTestId(`block-remove-${first}`));
+
+  expect(provider.getNode(rootId)?.children).toEqual([second]);
+});
+
+test('the grid is told not to start a drag from the remove control', () => {
+  const { first } = withMode('grid');
+
+  // react-grid-layout begins a drag on a press anywhere in the block it is
+  // positioning, and the button sits inside that block. `draggableCancel` is
+  // what it reads to exclude a region, so the selector and the attribute the
+  // button carries have to agree — aiming at the X would otherwise drag the
+  // block it is attached to.
+  const cancel = screen
+    .getByTestId('rgl')
+    .getAttribute('data-draggable-cancel');
+  expect(cancel).toContain('[data-block-remove]');
+  expect(screen.getByTestId(`block-remove-${first}`)).toHaveAttribute(
+    'data-block-remove',
+  );
+});
+
+test('clicking the remove control removes rather than selects', () => {
+  const { first, second } = withMode('grid');
+
+  fireEvent.click(screen.getByTestId(`block-remove-${second}`));
+
+  // The wrapper selects on click and the button sits inside it. Without the
+  // stop, removing a block would also try to select the thing just removed.
+  expect(provider.getSelection()).toBeUndefined();
+  expect(provider.getNode(second)).toBeUndefined();
+  expect(provider.getNode(first)).toBeDefined();
 });

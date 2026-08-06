@@ -26,6 +26,7 @@ import {
   resolveFlexBasis,
   resolveFlexMetrics,
 } from '../layoutStyle';
+import { PALETTE_MIME, placeBlock } from '../placement';
 import BuildingBlockView from '../BuildingBlockView';
 
 type LayoutProps = dashboardApi.LayoutProps;
@@ -91,6 +92,23 @@ export default function FlexCanvas({
     <div
       data-container-id={nodeId}
       data-test="flex-canvas"
+      // A flex container takes a palette drop like every other container. Its
+      // own children carry a different payload, so a reorder within the line
+      // and a placement from the palette never read as each other.
+      onDragOver={event => {
+        if (event.dataTransfer.types.includes(PALETTE_MIME)) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+        }
+      }}
+      onDrop={event => {
+        const type = event.dataTransfer.getData(PALETTE_MIME);
+        if (type !== '') {
+          event.preventDefault();
+          event.stopPropagation();
+          placeBlock(nodeId, type);
+        }
+      }}
       style={{
         display: 'flex',
         width: '100%',

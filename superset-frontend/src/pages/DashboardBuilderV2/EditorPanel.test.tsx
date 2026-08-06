@@ -191,3 +191,30 @@ test('the handle reports the width it actually has', () => {
     '500',
   );
 });
+
+test('the search field is set in from the panel edge and down from the tabs', () => {
+  mount();
+
+  // Flush against both, it reads as chrome around the list rather than the
+  // way into it.
+  expect(screen.getByTestId('palette')).toHaveStyle('padding-top: 12px');
+});
+
+test('a palette row can actually be dragged, as its grip promises', () => {
+  mount();
+  const row = screen.getByTestId('palette-markdown');
+  const setData = jest.fn();
+
+  // The grip beside the label promised a drag the row did not carry.
+  expect(row).toHaveAttribute('draggable', 'true');
+  row.dispatchEvent(
+    Object.assign(new Event('dragstart', { bubbles: true }), {
+      dataTransfer: { setData, effectAllowed: '' },
+    }),
+  );
+
+  expect(setData).toHaveBeenCalledWith(
+    'application/x-dashboard-building-block',
+    'markdown',
+  );
+});

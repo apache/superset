@@ -29,6 +29,7 @@ import { useTheme } from '@apache-superset/core/theme';
 import { provider, useDashboardRevision } from '../store';
 import { resolveGridMetrics, resolveLayoutMode } from '../layoutStyle';
 import { packChildLayout } from '../gridPacking';
+import { PALETTE_MIME, placeBlock } from '../placement';
 import BuildingBlockView from '../BuildingBlockView';
 import FlexCanvas from './FlexCanvas';
 
@@ -239,6 +240,26 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
   return (
     <div
       data-container-id={nodeId}
+      data-test="canvas-container"
+      // Every container is a drop target, not just the root: a nested
+      // section is exactly where an author means to put something when they
+      // drag it there, and the stop is what makes the innermost container
+      // under the pointer the one that takes it rather than every ancestor
+      // claiming the same drop.
+      onDragOver={event => {
+        if (event.dataTransfer.types.includes(PALETTE_MIME)) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+        }
+      }}
+      onDrop={event => {
+        const type = event.dataTransfer.getData(PALETTE_MIME);
+        if (type !== '') {
+          event.preventDefault();
+          event.stopPropagation();
+          placeBlock(nodeId, type);
+        }
+      }}
       style={{ width: '100%', height: '100%', overflow: 'auto' }}
     >
       <ResizableGridLayout
@@ -286,7 +307,7 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
         // `data-container-id` itself, so this never affects dragging a
         // leaf — only a nested canvas becomes un-draggable as a whole via
         // a body click (it's still resizable via its own corner handles).
-        draggableCancel="[data-container-id]"
+        draggableCancel="[data-container-id],[data-block-remove]"
         onDragStart={handleDragStart}
         onDragStop={handleDragStop}
         onResizeStart={handleResizeStart}

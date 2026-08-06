@@ -25,6 +25,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { views } from 'src/core/views';
 import { DASHBOARD_BUILDING_BLOCKS_LOCATION } from 'src/core/dashboard/resolveBuildingBlockView';
 import { isContainerType } from 'src/core/dashboard/DashboardProvider';
+import { PALETTE_MIME } from 'src/core/dashboard/placement';
 
 /**
  * Which shelf a block sits on.
@@ -160,7 +161,15 @@ export default function Palette({
   return (
     <div
       data-test="palette"
-      style={{ display: 'flex', flexDirection: 'column', gap: theme.sizeUnit }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.sizeUnit,
+        // Set down from the tab bar and in from the panel edge: a search
+        // field flush against both reads as part of the chrome around the
+        // list rather than the way into it.
+        padding: `${theme.sizeUnit * 3}px ${theme.sizeUnit}px 0`,
+      }}
     >
       <Input
         size="small"
@@ -170,6 +179,7 @@ export default function Palette({
         placeholder={t('Search components…')}
         data-test="palette-search"
         prefix={<Icons.SearchOutlined iconSize="s" />}
+        style={{ marginBottom: theme.sizeUnit }}
         onChange={event => setQuery(event.target.value)}
       />
       {found.length === 0 ? (
@@ -202,9 +212,18 @@ export default function Palette({
                 <button
                   key={entry.type}
                   type="button"
+                  draggable
                   title={entry.description}
                   data-test={`palette-${entry.type}`}
                   onClick={() => onAdd(entry.type)}
+                  // The grip beside the label promised this and did not
+                  // deliver it: the rows carried the affordance of a drag
+                  // without the drag. Clicking still appends to whatever is
+                  // selected; dragging is how an author says *where*.
+                  onDragStart={event => {
+                    event.dataTransfer.setData(PALETTE_MIME, entry.type);
+                    event.dataTransfer.effectAllowed = 'copy';
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -219,7 +238,7 @@ export default function Palette({
                     background: theme.colorBgContainer,
                     color: theme.colorText,
                     fontSize: theme.fontSizeSM,
-                    cursor: 'pointer',
+                    cursor: 'grab',
                   }}
                 >
                   {entry.label}

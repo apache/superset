@@ -20,6 +20,7 @@ import { forwardRef, type HTMLAttributes } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { Flex, Typography } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { ErrorBoundary } from 'src/components';
 import { provider, useDashboardRevision } from './store';
 import { resolveBuildingBlockView } from './resolveBuildingBlockView';
@@ -92,6 +93,9 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
 
     const resolved = resolveBuildingBlockView(node.type, nodeId);
     const selected = provider.getSelection() === nodeId;
+    // The root holds the dashboard; removing it is refused by the provider,
+    // so offering the button would be offering a error.
+    const removable = nodeId !== provider.getRoot().id;
 
     return (
       <div
@@ -128,12 +132,78 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
         }}
         style={{
           ...rest.style,
+          // The remove control anchors to this element. react-grid-layout
+          // positions its children itself, so its own value is kept wherever
+          // it set one and `relative` only fills the gap when it did not.
+          position: rest.style?.position ?? 'relative',
           // Drawn over the block rather than around it: an outline takes no
           // space, so nothing on screen shifts when a selection moves.
           outline: selected ? `2px solid ${theme.colorPrimary}` : undefined,
           outlineOffset: selected ? -2 : undefined,
         }}
       >
+        {/* Removing a block, where the block is.
+            Nested inside a control, which is not ideal and is the price of
+            the wrapper itself being selectable — the alternative was a block
+            you can delete only from the panel. The keyboard path is not this
+            button: the Outline selects any block with proper tree semantics
+            and Properties carries the same Delete.
+
+            `data-block-remove` is what keeps a press on it from starting a
+            react-grid-layout drag; see CanvasBlock's `draggableCancel`. The
+            propagation stops are the same idea for the two gestures this
+            element sits inside: a click here removes rather than selects,
+            and a pointer down here grabs nothing. */}
+        {removable && (
+          <button
+            type="button"
+            data-block-remove
+            data-test={`block-remove-${nodeId}`}
+            aria-label={t('Remove block')}
+            title={t('Remove block')}
+            onMouseDown={event => event.stopPropagation()}
+            onPointerDown={event => event.stopPropagation()}
+            onClick={event => {
+              event.stopPropagation();
+              provider.removeBuildingBlock(nodeId);
+            }}
+            style={{
+              position: 'absolute',
+              top: theme.sizeUnit,
+              right: theme.sizeUnit,
+              zIndex: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: theme.sizeUnit * 5,
+              height: theme.sizeUnit * 5,
+              padding: 0,
+              border: `1px solid ${theme.colorBorder}`,
+              borderRadius: theme.borderRadius,
+              background: theme.colorBgContainer,
+              color: theme.colorTextTertiary,
+              cursor: 'pointer',
+              // Shown once the block is in hand — hovered or selected — rather
+              // than permanently: a delete on every block at all times is a
+              // row of delete buttons where a dashboard should be.
+              opacity: selected ? 1 : 0,
+            }}
+            onFocus={event => {
+              event.currentTarget.style.opacity = '1';
+            }}
+            onBlur={event => {
+              event.currentTarget.style.opacity = selected ? '1' : '0';
+            }}
+            onMouseEnter={event => {
+              event.currentTarget.style.opacity = '1';
+            }}
+            onMouseLeave={event => {
+              event.currentTarget.style.opacity = selected ? '1' : '0';
+            }}
+          >
+            <Icons.CloseOutlined iconSize="s" />
+          </button>
+        )}
         <div style={{ width: '100%', height: '100%' }}>
           <ErrorBoundary>
             {resolved ?? <UnsupportedBlockPlaceholder nodeId={nodeId} />}

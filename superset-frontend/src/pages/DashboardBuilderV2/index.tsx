@@ -23,7 +23,7 @@ import { Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { dashboard, useDashboardRevision } from 'src/core/dashboard';
 import { provider } from 'src/core/dashboard/store';
-import { isContainerType } from 'src/core/dashboard/DashboardProvider';
+import { placeBlock } from 'src/core/dashboard/placement';
 import { chat } from 'src/core/chat';
 import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
 import { dashboardClientTools } from './clientTools';
@@ -109,29 +109,22 @@ export default function DashboardBuilderV2() {
    *
    * Into whatever is selected when that can hold children, and into the root
    * otherwise. An author who has just selected a section and reaches for a
-   * chart means to put it in that section; one who has selected a chart
-   * means to put the next thing beside it, not inside it.
+   * chart means to put it in that section; one who has selected a chart means
+   * to put the next thing beside it, not inside it.
    *
-   * The new block is then selected, because placing something is the moment
-   * you want to configure it — which is also what brings Properties forward.
+   * A drag from the palette says where for itself — the container it was
+   * dropped on takes it — so only the click needs a target chosen for it.
+   * Both then go through the same `placeBlock`, because two copies of what a
+   * freshly placed block looks like is how the two paths quietly diverge.
    */
   const addBlock = (type: string): void => {
     const selected = provider.getSelection();
     const selectedNode =
       selected === undefined ? undefined : provider.getNode(selected);
-    const parentId =
-      selectedNode?.children !== undefined ? selectedNode.id : root.id;
-    const index = provider.getNode(parentId)?.children?.length ?? 0;
-    const id = dashboard.addBuildingBlock(parentId, index, {
+    placeBlock(
+      selectedNode?.children !== undefined ? selectedNode.id : root.id,
       type,
-      // A container arrives with the grid every other container defaults to,
-      // so a nested canvas is usable the moment it is placed rather than
-      // needing its columns set before anything can go in it.
-      ...(isContainerType(type)
-        ? { layout: { columns: 24, gap: 16, colSpan: 24, rowSpan: 4 } }
-        : {}),
-    });
-    provider.setSelection(id);
+    );
   };
 
   return (
