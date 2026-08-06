@@ -468,8 +468,8 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
             "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
             return_value=True,
         ),
-        patch.object(
-            get_dashboard_info_module,
+        patch(
+            "superset.mcp_service.dashboard.permalink."
             "user_can_view_data_model_metadata",
             return_value=True,
         ),
@@ -551,8 +551,8 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
             "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
             return_value=True,
         ),
-        patch.object(
-            get_dashboard_info_module,
+        patch(
+            "superset.mcp_service.dashboard.permalink."
             "user_can_view_data_model_metadata",
             return_value=True,
         ),
@@ -636,6 +636,7 @@ async def test_get_dashboard_info_identifier_takes_precedence_over_permalink(
 
     assert result.data["id"] == 10
     assert result.data["is_permalink_state"] is False
+    assert "filter_state" not in result.data
     mock_run_tool.assert_called_once_with(10)
 
 
@@ -873,8 +874,8 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
             "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
             return_value=False,
         ),
-        patch.object(
-            get_dashboard_info_module,
+        patch(
+            "superset.mcp_service.dashboard.permalink."
             "user_can_view_data_model_metadata",
             return_value=False,
         ),

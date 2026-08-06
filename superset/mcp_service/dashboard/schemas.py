@@ -315,7 +315,11 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 
 class GetDashboardLayoutRequest(BaseModel):
-    """Request schema for get_dashboard_layout."""
+    """Request a dashboard layout by its identifier or shared permalink.
+
+    Permalink requests resolve the dashboard while preserving shared active-tab
+    and filter state in the response.
+    """
 
     identifier: Annotated[
         int | str | None,
