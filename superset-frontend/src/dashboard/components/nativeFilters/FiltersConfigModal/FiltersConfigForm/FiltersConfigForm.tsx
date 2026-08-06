@@ -767,16 +767,16 @@ const FiltersConfigForm = (
         fetchSemanticViewStructure(datasetId)
           .then(({ name: svName, dimensions, metrics: svMetrics }) => {
             const columns = semanticViewDimensionsToColumns(dimensions);
-            // verbose_name stays null at runtime (pre-refactor value —
-            // consumers only falsy-check it); Metric types it as an
-            // optional string, hence the cast.
+            // The /structure wire carries no metric uuid, and this state's
+            // consumers key on metric_name/verbose_name without reading
+            // uuid — so the cast is narrowed to exactly that one absent
+            // property; every other field stays compiler-checked.
             const mappedMetrics = svMetrics.map(
               (m: { name: string; definition: string }) => ({
                 metric_name: m.name,
                 expression: m.definition,
-                verbose_name: null,
               }),
-            ) as unknown as Metric[];
+            ) as Omit<Metric, 'uuid'>[] as Metric[];
             setMetrics(mappedMetrics);
             setDatasetDetails({
               columns,

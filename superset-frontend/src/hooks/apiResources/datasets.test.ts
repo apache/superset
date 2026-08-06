@@ -455,12 +455,15 @@ test('useDatasetDrillInfo falls back to REST API when extension exists but formD
  * regular dataset id), including when a drillby extension is registered.
  */
 
-test('getDatasourceTypeFromId parses the semantic_view suffix and falls back to table', () => {
-  const { getDatasourceTypeFromId } = jest.requireActual('./datasets');
-  expect(getDatasourceTypeFromId('3__semantic_view')).toBe('semantic_view');
-  expect(getDatasourceTypeFromId('3__table')).toBe('table');
-  expect(getDatasourceTypeFromId('3__bogus')).toBe('table');
-  expect(getDatasourceTypeFromId(3)).toBe('table');
+test('getDatasourceTypeFromDatasourceId parses the semantic_view suffix and falls back to table', () => {
+  const { getDatasourceTypeFromDatasourceId } =
+    jest.requireActual('./datasets');
+  expect(getDatasourceTypeFromDatasourceId('3__semantic_view')).toBe(
+    'semantic_view',
+  );
+  expect(getDatasourceTypeFromDatasourceId('3__table')).toBe('table');
+  expect(getDatasourceTypeFromDatasourceId('3__bogus')).toBe('table');
+  expect(getDatasourceTypeFromDatasourceId(3)).toBe('table');
 });
 
 test('useDatasetDrillInfo resolves a semantic view from its structure with zero drill_info calls', async () => {
