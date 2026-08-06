@@ -57,6 +57,8 @@ interface SemanticMetric {
 }
 
 interface SemanticViewStructure {
+  description: string | null;
+  cache_timeout: number | null;
   dimensions: SemanticDimension[];
   metrics: SemanticMetric[];
 }
@@ -115,6 +117,8 @@ export default function SemanticViewEditModal({
   );
   const [structureLoading, setStructureLoading] = useState(false);
 
+  // Seeds the form so it is populated while /structure is in flight, and is
+  // what the form falls back to if that request fails.
   useEffect(() => {
     if (semanticView) {
       setDescription(semanticView.description || '');
@@ -123,27 +127,39 @@ export default function SemanticViewEditModal({
   }, [semanticView]);
 
   useEffect(() => {
-    if (show && semanticView) {
-      setStructureLoading(true);
-      SupersetClient.get({
-        endpoint: `/api/v1/semantic_view/${semanticView.id}/structure`,
-      })
-        .then(({ json }) => {
-          setStructure(json.result);
-        })
-        .catch(async error => {
-          const clientError = await getClientErrorObject(error);
-          addDangerToast?.(
-            clientError.error ||
-              t('An error occurred while fetching the semantic view structure'),
-          );
-        })
-        .finally(() => {
-          setStructureLoading(false);
-        });
-    } else {
+    if (!show || !semanticView) {
       setStructure(null);
+      return undefined;
     }
+
+    let cancelled = false;
+    setStructureLoading(true);
+    SupersetClient.get({
+      endpoint: `/api/v1/semantic_view/${semanticView.id}/structure`,
+    })
+      .then(({ json }) => {
+        if (cancelled) return;
+        setStructure(json.result);
+        // The caller's copy of these fields goes stale the moment this modal
+        // saves, so re-open hydrates from the server rather than the prop.
+        setDescription(json.result.description || '');
+        setCacheTimeout(json.result.cache_timeout ?? null);
+      })
+      .catch(async error => {
+        if (cancelled) return;
+        const clientError = await getClientErrorObject(error);
+        addDangerToast?.(
+          clientError.error ||
+            t('An error occurred while fetching the semantic view structure'),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setStructureLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [show, semanticView]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
