@@ -310,6 +310,10 @@ async def query_dataset(  # noqa: C901
                 custom_cache_timeout=request.cache_timeout,
             )
 
+            from superset.charts.data.form_data import set_query_context_form_data
+
+            set_query_context_form_data(query_context, dataset.id, "table")
+
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()

@@ -663,6 +663,14 @@ async def get_chart_data(  # noqa: C901
             if guest_dashboard_id is not None:
                 guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
 
+            from superset.charts.data.form_data import set_query_context_form_data
+
+            set_query_context_form_data(
+                query_context,
+                chart.datasource_id,
+                chart.datasource_type,
+            )
+
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
                 command = ChartDataCommand(query_context)
