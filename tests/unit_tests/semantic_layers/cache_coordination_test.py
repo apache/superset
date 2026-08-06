@@ -111,6 +111,71 @@ def test_coordinator_renews_lease_during_long_mutation() -> None:
     )
 
 
+def test_renewal_backend_error_fails_the_mutation_after_release() -> None:
+    # A RedisError during background lease renewal must stop the renewal
+    # thread, still release the lease, and surface as the typed coordination
+    # failure once the operation completes.
+    backend: MagicMock = MagicMock()
+    backend.acquire_owner_token.return_value = True
+    backend.release_owner_token.return_value = True
+    refresh_attempted: Event = Event()
+
+    def refresh(*_: object) -> bool:
+        refresh_attempted.set()
+        raise RedisConnectionError("connection dropped mid-lease")
+
+    backend.refresh_owner_token.side_effect = refresh
+    metric: MagicMock = MagicMock()
+    coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
+        backend,
+        SemanticCacheCoordinationSettings(0.0, 1),
+        token_factory=lambda: "owner-a",
+        failure_metric=metric,
+    )
+
+    def wait_for_failed_renewal() -> None:
+        assert refresh_attempted.wait(timeout=5.0)
+
+    with pytest.raises(SemanticCacheCoordinationError, match="renewal failed"):
+        coordinator.mutate("bucket", wait_for_failed_renewal)
+    backend.release_owner_token.assert_called_once_with(
+        "semantic-cache-lock:bucket",
+        "owner-a",
+    )
+    metric.assert_called_once_with(SEMANTIC_CACHE_COORDINATION_FAILURE_METRIC)
+
+
+def test_lost_renewal_ownership_fails_the_mutation_after_release() -> None:
+    # refresh_owner_token returning False means another owner holds the lease:
+    # the renewal thread must stop and the mutation must fail loudly rather
+    # than complete under a lease it no longer holds.
+    backend: MagicMock = MagicMock()
+    backend.acquire_owner_token.return_value = True
+    backend.release_owner_token.return_value = True
+    refresh_attempted: Event = Event()
+
+    def refresh(*_: object) -> bool:
+        refresh_attempted.set()
+        return False
+
+    backend.refresh_owner_token.side_effect = refresh
+    coordinator: SemanticCacheCoordinator = SemanticCacheCoordinator(
+        backend,
+        SemanticCacheCoordinationSettings(0.0, 1),
+        token_factory=lambda: "owner-a",
+    )
+
+    def wait_for_failed_renewal() -> None:
+        assert refresh_attempted.wait(timeout=5.0)
+
+    with pytest.raises(SemanticCacheCoordinationError, match="renewal failed"):
+        coordinator.mutate("bucket", wait_for_failed_renewal)
+    backend.release_owner_token.assert_called_once_with(
+        "semantic-cache-lock:bucket",
+        "owner-a",
+    )
+
+
 def test_coordinator_wait_is_bounded_when_lease_is_busy() -> None:
     backend: MagicMock = MagicMock()
     backend.acquire_owner_token.return_value = False
