@@ -1150,9 +1150,9 @@ class TestQueryDatasetBracketShorthandNormalization:
             "Current week",
             "previous calendar year",
         ]:
-            assert (
-                f"'{example}'" in description
-            ), f"{example!r} missing from time_range field description"
+            assert f"'{example}'" in description, (
+                f"{example!r} missing from time_range field description"
+            )
             since, until = get_since_until(time_range=example)
             assert since is not None, f"{example!r} did not resolve to a bounded range"
             assert until is not None
