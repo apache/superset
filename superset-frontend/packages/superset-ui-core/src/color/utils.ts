@@ -124,13 +124,17 @@ export function rgbToHex(red: number, green: number, blue: number) {
 
 export function rgbaToHex(rgb: RGBColor): string {
   const { r, g, b, a = 1 } = rgb;
+  const clampChannel = (value: number) =>
+    Math.min(255, Math.max(0, Math.round(value)));
+  const clampAlpha = (value: number) => Math.min(1, Math.max(0, value));
   const toHex = (value: number) => {
-    const hex = Math.round(value).toString(16);
+    const hex = value.toString(16);
     return hex.length === 1 ? `0${hex}` : hex;
   };
-  const hexColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-  if (a !== 1) {
-    return `${hexColor}${toHex(Math.round(a * 255))}`;
+  const hexColor = `#${toHex(clampChannel(r))}${toHex(clampChannel(g))}${toHex(clampChannel(b))}`;
+  const clampedAlpha = clampAlpha(a);
+  if (clampedAlpha !== 1) {
+    return `${hexColor}${toHex(Math.round(clampedAlpha * 255))}`;
   }
   return hexColor;
 }
@@ -140,7 +144,18 @@ export const forceHexAlpha = (color: string | RGBColor): string => {
     return rgbaToHex({ ...color, a: 0.6 });
   }
 
-  const hex = color.startsWith('#') ? color : `#${color}`;
+  let hex = color.startsWith('#') ? color : `#${color}`;
+
+  // Expand shorthand hex (#rgb, #rgba) to full length before appending or
+  // replacing the alpha channel, otherwise the result is not a valid 6- or
+  // 8-digit CSS hex color.
+  if (hex.length === 4 || hex.length === 5) {
+    hex = `#${hex
+      .slice(1)
+      .split('')
+      .map(char => char + char)
+      .join('')}`;
+  }
 
   if (hex.length === 9) {
     return `${hex.slice(0, -2)}99`;

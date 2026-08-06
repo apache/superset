@@ -126,6 +126,11 @@ describe('color utils', () => {
     test('rounds fractional channel values', () => {
       expect(rgbaToHex({ r: 254.6, g: 0.4, b: 0 })).toBe('#ff0000');
     });
+    test('clamps out-of-range channel and alpha values', () => {
+      expect(rgbaToHex({ r: 300, g: -10, b: 0 })).toBe('#ff0000');
+      expect(rgbaToHex({ r: 0, g: 0, b: 0, a: 1.5 })).toBe('#000000');
+      expect(rgbaToHex({ r: 0, g: 0, b: 0, a: -0.5 })).toBe('#00000000');
+    });
   });
   describe('forceHexAlpha', () => {
     test('appends 60% alpha to a 6-digit hex string', () => {
@@ -142,6 +147,12 @@ describe('color utils', () => {
     });
     test('overrides the alpha of a translucent RGBColor object', () => {
       expect(forceHexAlpha({ r: 0, g: 150, b: 0, a: 0.2 })).toBe('#00960099');
+    });
+    test('expands a shorthand 3-digit hex string before adding alpha', () => {
+      expect(forceHexAlpha('#fff')).toBe('#ffffff99');
+    });
+    test('expands a shorthand 4-digit hex string before replacing alpha', () => {
+      expect(forceHexAlpha('#ff03')).toBe('#ffff0099');
     });
   });
 });
