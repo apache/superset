@@ -182,7 +182,6 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     assert data["data"][0]["category"] == "Electronics"
 
 
-
 @pytest.mark.asyncio
 async def test_query_dataset_exposes_filters_to_jinja_macros(
     mcp_server: FastMCP,
@@ -1151,9 +1150,9 @@ class TestQueryDatasetBracketShorthandNormalization:
             "Current week",
             "previous calendar year",
         ]:
-            assert f"'{example}'" in description, (
-                f"{example!r} missing from time_range field description"
-            )
+            assert (
+                f"'{example}'" in description
+            ), f"{example!r} missing from time_range field description"
             since, until = get_since_until(time_range=example)
             assert since is not None, f"{example!r} did not resolve to a bounded range"
             assert until is not None
