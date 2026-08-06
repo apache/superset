@@ -85,7 +85,17 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
+  /**
+   * Where the data label sits relative to its data point on query A, applied
+   * when `showValue` is on.
+   *
+   * `'auto'` keeps the orientation-aware default the chart used before this
+   * control existed: `Right` for a horizontal chart, `Top` otherwise. It is
+   * also the value every chart saved before then resolves to, so the default
+   * must stay `'auto'` for those to keep rendering as they did.
+   */
   labelPosition?: LabelPositionEnum | 'auto';
+  /** The same, for query B. Resolved independently of {@link labelPosition}. */
   labelPositionB?: LabelPositionEnum | 'auto';
   stack: StackType;
   stackB: StackType;

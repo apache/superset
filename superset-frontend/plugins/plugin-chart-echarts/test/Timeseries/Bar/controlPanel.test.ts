@@ -308,6 +308,9 @@ test('should have visibility function for label_position', () => {
     } as unknown as ControlPanelsContainerProps),
   ).toBe(true);
 
+  // Visibility follows `show_value` alone. No Timeseries panel defines
+  // `show_valueB` — Mixed declares its own suffixed controls — so it must not
+  // reveal the control on its own.
   expect(
     labelPositionCtrl.config.visibility({
       controls: {
@@ -315,7 +318,7 @@ test('should have visibility function for label_position', () => {
         show_valueB: { value: true },
       },
     } as unknown as ControlPanelsContainerProps),
-  ).toBe(true);
+  ).toBe(false);
 
   expect(
     labelPositionCtrl.config.visibility({
