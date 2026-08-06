@@ -638,13 +638,19 @@ def test_report_recipient_schema_slack_empty_target_invalid() -> None:
     assert "target" in excinfo.value.messages
 
 
-def test_report_recipient_schema_legacy_slack_channel_name_invalid() -> None:
-    """The legacy Slack type is validated the same way."""
+def test_report_recipient_schema_legacy_slack_channel_name_allowed() -> None:
+    """The deprecated Slack v1 type still accepts a channel name.
+
+    v1 sends with files_upload/chat_postMessage, both of which resolve a name,
+    and existing v1 recipients are auto-upgraded to SlackV2 on first send by
+    update_report_schedule_slack_v2. Validating names away here would break that
+    upgrade path.
+    """
     schema = ReportRecipientSchema()
-    with pytest.raises(ValidationError):
-        schema.load(
-            {
-                "type": "Slack",
-                "recipient_config_json": {"target": "data-alerts"},
-            }
-        )
+    result = schema.load(
+        {
+            "type": "Slack",
+            "recipient_config_json": {"target": "data-alerts"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "data-alerts"
