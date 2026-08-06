@@ -52,6 +52,13 @@ class PurgeAuditLog(Model):
         # Backs reconcile_pending()'s stale-pending scan; mirrors the
         # index created by migration e7d93a524ff6.
         sa.Index("ix_purge_audit_log_status_created_on", "status", "created_on"),
+        sa.Index(
+            "ix_purge_audit_log_retention_predecessor",
+            "entity_uuid",
+            "entity_type",
+            "trigger",
+            "created_on",
+        ),
     )
 
     id = Column(UUIDType(binary=True), primary_key=True, default=uuid4)
