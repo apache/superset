@@ -24,6 +24,7 @@ import pandas as pd
 import pytest
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.utils.core import GenericDataType
@@ -36,6 +37,16 @@ def mock_query_context():
         "superset.common.query_context_processor.QueryContextProcessor"
     ) as mock_query_context_processor:
         yield mock_query_context_processor
+
+
+def _query_timing() -> QueryTiming:
+    return QueryTiming(
+        query_planning_ns=0,
+        cache_resolution_ns=0,
+        data_acquisition_ns=None,
+        payload_assembly_ns=0,
+        total_ns=0,
+    )
 
 
 @pytest.fixture
@@ -1426,8 +1437,8 @@ def test_ensure_totals_available_updates_cache_values():
 
         # Now call get_payload which should update cache_values
         with patch(
-            "superset.common.query_context_processor.get_query_results"
-        ) as mock_get_query_results:
+            "superset.common.query_context_processor.get_query_results_with_timing"
+        ) as mock_get_query_results_with_timing:
             # Mock the query results
             mock_query_results_response = [
                 {
@@ -1435,7 +1446,10 @@ def test_ensure_totals_available_updates_cache_values():
                     "query": "SELECT ...",
                 }
             ]
-            mock_get_query_results.return_value = mock_query_results_response
+            mock_get_query_results_with_timing.return_value = QueryDataResult(
+                payload=mock_query_results_response[0],
+                timing=_query_timing(),
+            )
 
             # Mock cache manager to avoid actual caching
             with patch(
@@ -1650,15 +1664,18 @@ def test_cache_values_sync_after_ensure_totals_available():
 
             # Mock the query results
             with patch(
-                "superset.common.query_context_processor.get_query_results"
-            ) as mock_get_query_results:
+                "superset.common.query_context_processor.get_query_results_with_timing"
+            ) as mock_get_query_results_with_timing:
                 mock_query_results_response = [
                     {
                         "data": [{"region": "North", "sales": 100}],
                         "query": "SELECT region, SUM(sales) FROM table GROUP BY region",
                     }
                 ]
-                mock_get_query_results.return_value = mock_query_results_response
+                mock_get_query_results_with_timing.return_value = QueryDataResult(
+                    payload=mock_query_results_response[0],
+                    timing=_query_timing(),
+                )
 
                 # Call get_payload - this internally calls ensure_totals_available()
                 # and then should update cache_values
@@ -1896,6 +1913,7 @@ def test_force_cached_normalizes_totals_query_row_limit():
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource
     mock_query_context.get_df_payload = processor.get_df_payload
+    mock_query_context.get_df_payload_result = processor.get_df_payload_result
     mock_query_context.get_data = processor.get_data
 
     with patch(

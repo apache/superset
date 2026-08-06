@@ -147,6 +147,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_type",
         "working_timeout",
         "email_subject",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     show_select_columns = show_columns + [
         "chart.datasource_id",
@@ -179,6 +184,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.type",
         "timezone",
         "type",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     add_columns = [
         "active",
@@ -204,6 +214,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_config_json",
         "validator_type",
         "working_timeout",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     edit_columns = add_columns
     add_model_schema = ReportSchedulePostSchema()

@@ -315,7 +315,8 @@ export default function ExplorePage() {
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
-        SaveActionType | undefined;
+        | SaveActionType
+        | undefined;
       const chartState = getChartStateFromHistoryState(loc.state);
       if (chartState) {
         if (action === 'PUSH') {

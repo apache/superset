@@ -916,40 +916,38 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
 
-  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
-    const narrowLegendData = [
-      createTestQueryData(
-        createTestData(
-          [
-            {
-              Alpha: 1,
-              Beta: 2,
-              Gamma: 3,
-            },
-          ],
-          { intervalMs: 300000000 },
-        ),
+test('honors an explicit List selection for zoomable top legends even when toolbox space reduces available width', () => {
+  const narrowLegendData = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            Alpha: 1,
+            Beta: 2,
+            Gamma: 3,
+          },
+        ],
+        { intervalMs: 300000000 },
       ),
-    ];
-    const chartProps = createTestChartProps({
-      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
-      formData: {
-        ...formData,
-        legendType: LegendType.Plain,
-        legendOrientation: LegendOrientation.Top,
-        showLegend: true,
-        zoomable: true,
-      },
-      queriesData: narrowLegendData,
-    });
-
-    const transformed = transformProps(chartProps);
-
-    expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
-    );
+    ),
+  ];
+  const chartProps = createTestChartProps({
+    width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      zoomable: true,
+    },
+    queriesData: narrowLegendData,
   });
+
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
 });
 
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
@@ -1022,9 +1020,11 @@ test('should apply dashed line style to time comparison series with single metri
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1065,11 +1065,13 @@ test('should apply dashed line style to time comparison series with metric__offs
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
   const comparisonSeries = series.find(
     s => s.name === 'sum__num__1 week ago',
   ) as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1101,7 +1103,8 @@ test('should apply connectNulls to time comparison series', () => {
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    (SeriesOption & { connectNulls?: boolean }) | undefined;
+    | (SeriesOption & { connectNulls?: boolean })
+    | undefined;
 
   expect(comparisonSeries).toBeDefined();
   expect(comparisonSeries?.connectNulls).toBe(true);

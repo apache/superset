@@ -7,19 +7,19 @@ keywords: [sql templating, jinja, sql lab, virtual datasets, dynamic queries]
 
 {/*
 Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
+or more contributor license agreements. See the NOTICE file
 distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
+regarding copyright ownership. The ASF licenses this file
 to you under the Apache License, Version 2.0 (the
 "License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
+with the License. You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing,
 software distributed under the License is distributed on an
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
+KIND, either express or implied. See the License for the
 specific language governing permissions and limitations
 under the License.
 */}
@@ -101,12 +101,12 @@ Superset provides built-in macros for common use cases.
 
 ### User Context
 
-| Macro | Description |
-|-------|-------------|
-| `{{ current_username() }}` | Returns the logged-in user's username |
-| `{{ current_user_id() }}` | Returns the logged-in user's account ID |
-| `{{ current_user_email() }}` | Returns the logged-in user's email |
-| `{{ current_user_roles() }}` | Returns an array of the user's roles |
+| Macro                        | Description                             |
+| ---------------------------- | --------------------------------------- |
+| `{{ current_username() }}`   | Returns the logged-in user's username   |
+| `{{ current_user_id() }}`    | Returns the logged-in user's account ID |
+| `{{ current_user_email() }}` | Returns the logged-in user's email      |
+| `{{ current_user_roles() }}` | Returns an array of the user's roles    |
 
 **Example: Row-level filtering by user**
 
@@ -128,10 +128,10 @@ WHERE role IN {{ current_user_roles()|where_in }}
 
 Access dashboard and chart filter values in your queries:
 
-| Macro | Description |
-|-------|-------------|
+| Macro                           | Description                     |
+| ------------------------------- | ------------------------------- |
 | `{{ filter_values('column') }}` | Returns filter values as a list |
-| `{{ get_filters('column') }}` | Returns filters with operators |
+| `{{ get_filters('column') }}`   | Returns filters with operators  |
 
 **Example: Using filter values**
 
@@ -150,8 +150,8 @@ The `where_in` filter converts the list to SQL format: `('value1', 'value2', 'va
 It returns a `TimeFilter` object with `from_expr` and `to_expr` — fully-formatted SQL expressions
 that should be used directly in `WHERE` clauses without quoting.
 
-| Macro | Description |
-|-------|-------------|
+| Macro                             | Description                                        |
+| --------------------------------- | -------------------------------------------------- |
 | `{{ get_time_filter('column') }}` | Returns time filter with `from_expr` and `to_expr` |
 
 **Example: Time-filtered virtual dataset**
@@ -208,9 +208,7 @@ Add to the Parameters menu:
 
 ```json
 {
-  "_filters": [
-    {"col": "region", "op": "IN", "val": ["US", "EU"]}
-  ]
+  "_filters": [{ "col": "region", "op": "IN", "val": ["US", "EU"] }]
 }
 ```
 
@@ -263,6 +261,7 @@ Using `remove_filter=True` applies the filter in the inner query for better perf
 - **Format SQL is Jinja-aware**: The "Format SQL" button in SQL Lab correctly preserves `{{ }}` and `{% %}` template syntax and applies your selected database's SQL dialect when formatting.
 
 :::resources
+
 - [Admin Guide: SQL Templating Configuration](/admin-docs/configuration/sql-templating)
 - [Blog: Intro to Jinja Templating in Apache Superset](https://preset.io/blog/intro-jinja-templating-apache-superset/)
-:::
+  :::

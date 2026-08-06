@@ -15,10 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import ANY, call, MagicMock, patch, PropertyMock
+from uuid import UUID
 
 import pytest
 
+from superset.utils.report_execution import (
+    ReportExecutionContext,
+    ReportExecutionDeadline,
+)
 from superset.utils.webdriver import (
     check_playwright_availability,
     PLAYWRIGHT_AVAILABLE,
@@ -27,6 +32,31 @@ from superset.utils.webdriver import (
     WebDriverPlaywright,
     WebDriverSelenium,
 )
+
+
+def _report_context(
+    *,
+    dashboard_id: int | None = 805,
+    chart_id: int | None = None,
+    expected_chart_count: int = 52,
+) -> ReportExecutionContext:
+    """Return a deterministic scheduled-report context."""
+
+    return ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=11,
+        dashboard_id=dashboard_id,
+        chart_id=chart_id,
+        expected_chart_count=expected_chart_count,
+        deadline=ReportExecutionDeadline(
+            total_seconds=900,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+        capture_reserve_seconds=60,
+        delivery_reserve_seconds=120,
+        cleanup_reserve_seconds=30,
+    )
 
 
 @pytest.fixture()
@@ -302,6 +332,121 @@ class TestWebDriverSelenium:
         with patch.object(driver, "_create", return_value=mock_driver):
             assert driver.driver is mock_driver
         mock_driver.set_page_load_timeout.assert_not_called()
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.app")
+    def test_report_chart_uses_chart_readiness_not_dashboard_holders(
+        self,
+        mock_app_patch: MagicMock,
+        mock_wait: MagicMock,
+    ) -> None:
+        """Selenium chart reports require their chart terminal marker."""
+        from selenium.common.exceptions import TimeoutException
+
+        mock_app_patch.config = {
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 60,
+            "SCREENSHOT_PAGE_LOAD_WAIT": 120,
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+        }
+        mock_driver = MagicMock()
+        element = MagicMock()
+        mount_wait = MagicMock()
+        mount_wait.until.return_value = element
+        readiness_wait = MagicMock()
+        readiness_wait.until.side_effect = TimeoutException()
+        mock_wait.side_effect = [mount_wait, readiness_wait]
+        screenshot = WebDriverSelenium(driver_type="chrome")
+        screenshot._driver = mock_driver
+
+        with (
+            patch("superset.utils.webdriver.sleep"),
+            pytest.raises(TimeoutException),
+        ):
+            screenshot.get_screenshot(
+                "http://example.com/chart/7",
+                "chart-container",
+                report_execution_context=_report_context(
+                    dashboard_id=None,
+                    chart_id=7,
+                    expected_chart_count=1,
+                ),
+            )
+
+        predicate = readiness_wait.until.call_args.args[0]
+        predicate(mock_driver)
+        readiness_js = mock_driver.execute_script.call_args.args[0]
+        assert "document.querySelector('.chart-container')" in readiness_js
+        assert "dashboard-component-chart-holder" not in readiness_js
+        assert element.screenshot_as_png.call_count == 0
+
+    @patch("superset.utils.webdriver.sleep")
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.app")
+    def test_report_dashboard_budget_wires_selenium_timeouts_in_seconds(
+        self,
+        mock_app_patch: MagicMock,
+        mock_wait: MagicMock,
+        mock_sleep: MagicMock,
+    ) -> None:
+        """Selenium navigation, readiness, animation, and capture share one clock."""
+
+        mock_app_patch.config = {
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 60,
+            "SCREENSHOT_PAGE_LOAD_WAIT": 120,
+            "SCREENSHOT_SELENIUM_HEADSTART": 700,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 700,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+        }
+        mock_driver = MagicMock()
+        mock_driver.execute_script.return_value = [
+            {"chartId": "7", "state": "rendered"}
+        ]
+        element = MagicMock()
+        element.screenshot_as_png = b"screenshot"
+        mount_wait = MagicMock()
+        mount_wait.until.return_value = element
+        readiness_wait = MagicMock()
+        readiness_wait.until.return_value = True
+        mock_wait.side_effect = [mount_wait, readiness_wait]
+        context = ReportExecutionContext(
+            execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+            report_schedule_id=11,
+            dashboard_id=805,
+            expected_chart_count=52,
+            deadline=ReportExecutionDeadline(
+                total_seconds=900,
+                started_at=0,
+                _clock=lambda: 100,
+            ),
+            capture_reserve_seconds=60,
+            delivery_reserve_seconds=120,
+            cleanup_reserve_seconds=30,
+        )
+        screenshot = WebDriverSelenium(driver_type="chrome")
+        screenshot._driver = mock_driver
+
+        assert (
+            screenshot.get_screenshot(
+                "http://example.com/dashboard/805",
+                "standalone",
+                report_execution_context=context,
+            )
+            == b"screenshot"
+        )
+
+        # 900 total - 100 elapsed - 210 reserved = 590 seconds. Selenium APIs
+        # take seconds (unlike Playwright's millisecond timeouts).
+        mock_driver.set_page_load_timeout.assert_called_once_with(590)
+        assert mock_wait.call_args_list == [
+            call(mock_driver, 10),
+            call(mock_driver, 590),
+        ]
+        assert mock_sleep.call_args_list == [call(590), call(590)]
+        assert element.screenshot_as_png == b"screenshot"
 
 
 class TestPlaywrightAvailabilityCheck:
@@ -627,7 +772,7 @@ class TestWebDriverPlaywrightErrorHandling:
 
         assert result == []
         mock_logger.exception.assert_called_once_with(
-            "Failed to capture unexpected errors"
+            "Failed to capture unexpected errors%s", ""
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -770,16 +915,12 @@ class TestWebDriverPlaywrightErrorHandling:
         assert exc_info.value is timeout
         mock_logger.error.assert_not_called()
         warning_call = mock_logger.warning.call_args
-        # Positional args are (format_string, count, url, load_wait,
-        # context_suffix, unready_chart_holders) -- assert against each
-        # argument's exact position rather than `x in warning_call.args`,
-        # which is tuple-element membership, not substring matching, but
-        # reads ambiguously enough that CodeQL flags it as if it were.
-        assert "Timed out waiting for" in warning_call.args[0]
-        assert warning_call.args[1] == 1
-        assert warning_call.args[2] == "http://example.com"
-        assert warning_call.args[3] == 60
-        assert warning_call.args[6] == [{"chartId": "42", "state": "nothing_mounted"}]
+        assert "terminal_reason=readiness_timeout" in warning_call.args[0]
+        assert warning_call.args[1] == "http://example.com"
+        assert warning_call.args[3] == 1  # mounted holders
+        assert warning_call.args[4] == 0  # ready holders
+        assert warning_call.args[7] == 60
+        assert warning_call.args[9] == [{"chartId": "42", "state": "nothing_mounted"}]
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -838,7 +979,7 @@ class TestWebDriverPlaywrightErrorHandling:
         # not installed) accepting unrelated exceptions.
         assert exc_info.value is timeout
         mock_logger.exception.assert_any_call(
-            "Timed out requesting url %s", "http://example.com"
+            "Timed out requesting url %s%s", "http://example.com", ""
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -923,11 +1064,12 @@ class TestWebDriverPlaywrightErrorHandling:
         # the benign/expected case and must not be logged as a WARNING.
         mock_logger.debug.assert_any_call(
             "Could not determine dashboard height for element %s "
-            "at url %s (%s chart containers found); %s",
+            "at url %s (%s chart containers found); %s%s",
             "dashboard",
             "http://example.com",
             1,
             "falling back to standard screenshot behavior",
+            "",
         )
         assert not any(
             call.args and "Could not determine dashboard height" in call.args[0]
@@ -1013,11 +1155,12 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_take_tiled.assert_called_once()
         mock_logger.warning.assert_any_call(
             "Could not determine dashboard height for element %s "
-            "at url %s (%s chart containers found); %s",
+            "at url %s (%s chart containers found); %s%s",
             "dashboard",
             "http://example.com",
             25,
             "attempting tiled screenshot anyway",
+            "",
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -1091,10 +1234,11 @@ class TestWebDriverPlaywrightErrorHandling:
         assert exc_info.value is timeout
         mock_logger.warning.assert_any_call(
             "Timed out waiting for chart containers to draw at url %s "
-            "(%s of %s chart containers rendered before the timeout)",
+            "(%s of %s chart containers rendered before the timeout)%s",
             "http://example.com",
             1,
             2,
+            "",
             exc_info=True,
         )
         mock_logger.exception.assert_not_called()
@@ -1165,15 +1309,19 @@ class TestWebDriverPlaywrightErrorHandling:
                 with pytest.raises(
                     PlaywrightTimeout, match="Tiled screenshot failed for url"
                 ):
-                    driver.get_screenshot("http://example.com", "standalone", mock_user)
+                    driver.get_screenshot(
+                        "http://example.com",
+                        "standalone",
+                        mock_user,
+                        report_execution_context=_report_context(),
+                    )
 
         mock_take_tiled.assert_called_once()
         mock_page.screenshot.assert_not_called()
         mock_element.screenshot.assert_not_called()
-        mock_logger.warning.assert_any_call(
-            "Tiled screenshot failed for url %s and no safe fallback "
-            "exists; failing the capture",
-            "http://example.com",
+        assert any(
+            "no safe fallback exists" in call.args[0]
+            for call in mock_logger.warning.call_args_list
         )
 
 
@@ -1279,8 +1427,11 @@ class TestWebDriverPlaywrightChartReadiness:
         assert result == b"screenshot"
         # Readiness diagnostics are emitted before polling so a task killed by
         # an outer limit still leaves useful state in the logs.
-        mock_page.evaluate.assert_called_once()
-        assert "state: 'rendered'" in mock_page.evaluate.call_args.args[0]
+        assert mock_page.evaluate.call_count == 2
+        assert all(
+            "state: 'rendered'" in call.args[0]
+            for call in mock_page.evaluate.call_args_list
+        )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1299,7 +1450,14 @@ class TestWebDriverPlaywrightChartReadiness:
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
             with pytest.raises(PlaywrightTimeout):
                 WebDriverPlaywright("chrome").get_screenshot(
-                    "http://example.com", "chart-container", MagicMock()
+                    "http://example.com",
+                    "chart-container",
+                    MagicMock(),
+                    report_execution_context=_report_context(
+                        dashboard_id=None,
+                        chart_id=7,
+                        expected_chart_count=1,
+                    ),
                 )
 
         predicate = mock_page.wait_for_function.call_args.args[0]
@@ -1315,22 +1473,56 @@ class TestWebDriverPlaywrightChartReadiness:
     @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.logger")
     @patch("superset.utils.webdriver.app")
-    def test_standalone_zero_holders_warns_before_polling(
+    def test_standalone_zero_holders_remain_not_ready_and_skip_capture(
         self, mock_app, mock_logger, mock_browser_manager
+    ):
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        mock_app.config = {**self._base_config}
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+        mock_page.evaluate.return_value = []
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("zero holders")
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            with pytest.raises(PlaywrightTimeout):
+                WebDriverPlaywright("chrome").get_screenshot(
+                    "http://example.com",
+                    "standalone",
+                    MagicMock(),
+                    report_execution_context=_report_context(),
+                )
+
+        assert any(
+            "report_readiness_waiting_for_mount" in call.args[0]
+            for call in mock_logger.info.call_args_list
+        )
+        assert (
+            "terminal_reason=readiness_timeout" in mock_logger.warning.call_args.args[0]
+        )
+        mock_page.screenshot.assert_not_called()
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_thumbnail_zero_holders_preserves_existing_capture_behavior(
+        self,
+        mock_app,
+        mock_browser_manager,
     ):
         mock_app.config = {**self._base_config}
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
         mock_page.evaluate.return_value = []
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
-            WebDriverPlaywright("chrome").get_screenshot(
-                "http://example.com", "standalone", MagicMock()
+            result = WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com",
+                "standalone",
+                MagicMock(),
             )
 
-        mock_logger.warning.assert_any_call(
-            "dashboard capture proceeding with zero chart holders — "
-            "readiness gate inactive"
-        )
+        predicate = mock_page.wait_for_function.call_args.args[0]
+        assert "holders.length > 0" not in predicate
+        assert result == mock_page.screenshot.return_value
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1398,9 +1590,7 @@ class TestWebDriverPlaywrightChartReadiness:
                     log_context="execution_id=abc-123",
                 )
 
-        # context_suffix is the 6th positional arg (index 5); assert its
-        # exact value rather than tuple-element membership via `in`.
-        assert mock_logger.warning.call_args.args[5] == " [execution_id=abc-123]"
+        assert mock_logger.warning.call_args.args[8] == " [execution_id=abc-123]"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1434,6 +1624,153 @@ class TestWebDriverPlaywrightChartReadiness:
             )
 
         assert mock_page.wait_for_function.call_args.kwargs["timeout"] == 230_000
+
+    def test_report_readiness_uses_shared_deadline_and_phase_reserves(self):
+        from uuid import UUID
+
+        from superset.utils.report_execution import (
+            ReportExecutionContext,
+            ReportExecutionDeadline,
+        )
+
+        page = MagicMock()
+        page.evaluate.return_value = [{"chartId": "7", "state": "rendered"}]
+        deadline = ReportExecutionDeadline(
+            total_seconds=900,
+            started_at=0,
+            _clock=lambda: 100,
+        )
+        report_context = ReportExecutionContext(
+            execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+            report_schedule_id=11,
+            dashboard_id=805,
+            expected_chart_count=52,
+            deadline=deadline,
+            capture_reserve_seconds=60,
+            delivery_reserve_seconds=120,
+            cleanup_reserve_seconds=30,
+        )
+
+        WebDriverPlaywright._wait_for_charts_ready(
+            page,
+            "http://example.com/dashboard/805",
+            5,
+            "standalone",
+            report_execution_context=report_context,
+        )
+
+        assert page.wait_for_function.call_args.kwargs["timeout"] == 590_000
+
+    def test_report_readiness_budget_exhaustion_skips_poll_and_capture(self):
+        from uuid import UUID
+
+        from superset.utils.report_execution import (
+            ReportExecutionBudgetExceededError,
+            ReportExecutionContext,
+            ReportExecutionDeadline,
+        )
+
+        page = MagicMock()
+        page.evaluate.return_value = []
+        deadline = ReportExecutionDeadline(
+            total_seconds=900,
+            started_at=0,
+            _clock=lambda: 700,
+        )
+        report_context = ReportExecutionContext(
+            execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+            report_schedule_id=11,
+            dashboard_id=805,
+            expected_chart_count=52,
+            deadline=deadline,
+            capture_reserve_seconds=60,
+            delivery_reserve_seconds=120,
+            cleanup_reserve_seconds=30,
+        )
+
+        with pytest.raises(ReportExecutionBudgetExceededError):
+            WebDriverPlaywright._wait_for_charts_ready(
+                page,
+                "http://example.com/dashboard/805",
+                600,
+                "standalone",
+                report_execution_context=report_context,
+            )
+
+        page.wait_for_function.assert_not_called()
+        page.screenshot.assert_not_called()
+
+    @patch("superset.utils.webdriver.logger")
+    def test_chart_capture_ready_logs_container_state_not_holder_counts(
+        self, mock_logger
+    ):
+        """Chart pages have no dashboard grid holders, so the ready line must
+        report the `.chart-container` state instead of vacuous zero counters
+        (which read as "no charts" in customer logs)."""
+        from superset.utils.screenshot_utils import CHART_CONTAINER_STATE_JS
+
+        page = MagicMock()
+        page.wait_for_function.return_value = None
+        page.evaluate.side_effect = lambda script: (
+            "terminal" if script == CHART_CONTAINER_STATE_JS else []
+        )
+
+        with patch(
+            "superset.utils.webdriver.resolve_screenshot_task_budget_seconds",
+            return_value=None,
+        ):
+            WebDriverPlaywright._wait_for_charts_ready(
+                page,
+                "http://example.com",
+                10,
+                "chart-container",
+                log_context="capture_kind=alert execution_id=abc-123",
+            )
+
+        ready_call = next(
+            call
+            for call in mock_logger.info.call_args_list
+            if call.args and call.args[0].startswith("report_readiness_ready")
+        )
+        assert "target=chart-container" in ready_call.args[0]
+        assert "mounted_holders" not in ready_call.args[0]
+        assert "terminal" in ready_call.args
+        assert " [capture_kind=alert execution_id=abc-123]" in ready_call.args
+
+    @patch("superset.utils.webdriver.logger")
+    def test_chart_capture_timeout_logs_container_state(self, mock_logger):
+        from superset.utils.screenshot_utils import CHART_CONTAINER_STATE_JS
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        page = MagicMock()
+        page.wait_for_function.side_effect = PlaywrightTimeout()
+        page.evaluate.side_effect = lambda script: (
+            "loading" if script == CHART_CONTAINER_STATE_JS else []
+        )
+
+        with (
+            patch(
+                "superset.utils.webdriver.resolve_screenshot_task_budget_seconds",
+                return_value=None,
+            ),
+            pytest.raises(PlaywrightTimeout),
+        ):
+            WebDriverPlaywright._wait_for_charts_ready(
+                page,
+                "http://example.com",
+                10,
+                "chart-container",
+            )
+
+        terminal_call = next(
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args and call.args[0].startswith("report_readiness_terminal")
+        )
+        assert "target=chart-container" in terminal_call.args[0]
+        assert "terminal_reason=readiness_timeout" in terminal_call.args[0]
+        assert "mounted_holders" not in terminal_call.args[0]
+        assert "loading" in terminal_call.args
 
     def test_zero_load_wait_without_task_budget_preserves_playwright_no_timeout(self):
         page = MagicMock()
@@ -1515,12 +1852,6 @@ class TestWebDriverPlaywrightChartReadiness:
             with pytest.raises(PlaywrightTimeout):
                 driver.get_screenshot("http://example.com", "test-element", mock_user)
 
-        mock_logger.debug.assert_any_call(
-            "Chart holder states before readiness polling at url %s%s: %s",
-            "http://example.com",
-            "",
-            diagnostics,
-        )
         mock_logger.info.assert_any_call(
             "Chart holders not ready before polling at url %s%s: %s",
             "http://example.com",
@@ -1528,8 +1859,8 @@ class TestWebDriverPlaywrightChartReadiness:
             diagnostics,
         )
         failure_args = mock_logger.warning.call_args.args
-        assert failure_args[6] == diagnostics
-        assert failure_args[7] == diagnostics
+        assert failure_args[9] == diagnostics
+        assert failure_args[10] == diagnostics
         mock_page.locator.return_value.screenshot.assert_not_called()
 
 
@@ -1621,7 +1952,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
         # Small dashboard: 3 charts, 1000px height — below both thresholds
-        mock_page.evaluate.side_effect = [3, 1000, []]
+        mock_page.evaluate.side_effect = [3, 1000, [], []]
 
         call_order: list[str] = []
 
@@ -1643,6 +1974,36 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert "spinner_wait" in call_order
         assert "animation_wait" in call_order
         assert call_order.index("spinner_wait") < call_order.index("animation_wait")
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.take_tiled_screenshot")
+    @patch("superset.utils.webdriver.app")
+    def test_chart_threshold_does_not_tile_short_dashboard(
+        self, mock_app, mock_take_tiled, mock_browser_manager
+    ):
+        """Preserve the historical height guard for reports and thumbnails."""
+
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            **self._base_config,
+            "SCREENSHOT_TILED_ENABLED": True,
+            "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+            "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+            "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
+        }
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+        mock_page.evaluate.side_effect = [25, 500, [], []]
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            result = WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com", "test-element", mock_user
+            )
+
+        assert result == b"screenshot"
+        mock_take_tiled.assert_not_called()
+        mock_page.set_viewport_size.assert_not_called()
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1681,6 +2042,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             load_wait=30,
             animation_wait=2,
             log_context=None,
+            report_execution_context=None,
+            url="http://example.com",
+            screenshot_started_at=ANY,
         )
         # The only wait_for_timeout call should be the 0ms headstart; no global
         # animation wait should be issued (handled per-tile by take_tiled_screenshot)
