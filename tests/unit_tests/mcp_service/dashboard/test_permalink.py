@@ -115,3 +115,25 @@ def test_refresh_request_user_for_permalink_access_skips_unresolvable_user(
         assert g.user is current_user
 
     mock_load.assert_not_called()
+
+
+def test_refresh_request_user_for_permalink_access_keeps_user_when_reload_fails(
+    app,
+) -> None:
+    current_user = type(
+        "CurrentUser",
+        (),
+        {"username": "admin", "email": None, "is_anonymous": False},
+    )()
+    with (
+        patch(
+            "superset.mcp_service.dashboard.permalink.load_user_with_relationships",
+            return_value=None,
+        ) as mock_load,
+        app.test_request_context("/mcp"),
+    ):
+        g.user = current_user
+        refresh_request_user_for_permalink_access()
+        assert g.user is current_user
+
+    mock_load.assert_called_once_with(username="admin")
