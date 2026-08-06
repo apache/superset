@@ -57,8 +57,10 @@ interface SemanticMetric {
 }
 
 interface SemanticViewStructure {
-  description: string | null;
-  cache_timeout: number | null;
+  // Optional because an older backend may not emit them (deploy skew); the
+  // hydration effect only overwrites the form when they are present.
+  description?: string | null;
+  cache_timeout?: number | null;
   dimensions: SemanticDimension[];
   metrics: SemanticMetric[];
 }
@@ -117,8 +119,10 @@ export default function SemanticViewEditModal({
   );
   const [structureLoading, setStructureLoading] = useState(false);
 
-  // Seeds the form so it is populated while /structure is in flight, and is
-  // what the form falls back to if that request fails.
+  // Seeds the form from the caller's copy — what the form falls back to if
+  // /structure fails (a spinner covers the form while that fetch is in
+  // flight). Keyed to open/identity rather than the semanticView object so a
+  // parent re-render cannot clobber in-progress edits.
   useEffect(() => {
     if (semanticView) {
       setDescription(semanticView.description || '');
@@ -129,6 +133,7 @@ export default function SemanticViewEditModal({
   useEffect(() => {
     if (!show || !semanticView) {
       setStructure(null);
+      setStructureLoading(false);
       return undefined;
     }
 
@@ -142,8 +147,15 @@ export default function SemanticViewEditModal({
         setStructure(json.result);
         // The caller's copy of these fields goes stale the moment this modal
         // saves, so re-open hydrates from the server rather than the prop.
-        setDescription(json.result.description || '');
-        setCacheTimeout(json.result.cache_timeout ?? null);
+        // Only overwrite when the response carries the field: an older
+        // backend that omits it (deploy skew) must not blank the form — while
+        // an explicit null still means "cleared on the server".
+        if ('description' in json.result) {
+          setDescription(json.result.description || '');
+        }
+        if ('cache_timeout' in json.result) {
+          setCacheTimeout(json.result.cache_timeout ?? null);
+        }
       })
       .catch(async error => {
         if (cancelled) return;
