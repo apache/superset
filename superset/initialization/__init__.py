@@ -26,7 +26,16 @@ from typing import Any, Callable, TYPE_CHECKING
 import wtforms_json
 from colorama import Fore, Style
 from deprecation import deprecated
-from flask import abort, current_app, Flask, redirect, request, session, url_for
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    has_app_context,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
@@ -147,8 +156,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # pylint: disable=too-few-public-methods
             abstract = True
 
-            # Grab each call into the task and set up an app context
+            # Grab each call into the task and set up an app context, unless
+            # one is already active on this thread (e.g. Celery eager mode
+            # invoked from within an existing request/test context) - Flask-
+            # SQLAlchemy 3.x scopes db.session by the active app context's
+            # object identity rather than by thread, so pushing a redundant
+            # nested context here would silently hand the task a second,
+            # blind session unable to see the caller's uncommitted work.
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
+                if has_app_context():
+                    return task_base.__call__(self, *args, **kwargs)
                 with superset_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
