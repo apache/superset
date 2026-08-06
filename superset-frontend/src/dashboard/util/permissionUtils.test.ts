@@ -167,7 +167,8 @@ describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
 
     expect(
       isUserAdminWithCustomRole({
-        ...ownerUser,
+        username: 'super-admin',
+        permissions: {},
         roles: { SuperAdmin: [['can_write', 'Dashboard']] },
       }),
     ).toEqual(true);
