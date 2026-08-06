@@ -32,6 +32,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -247,7 +248,7 @@ class ListDatasetsRequest(
     """
 
     certified: Annotated[
-        bool | None,
+        StrictBool | None,
         Field(
             default=None,
             description=(

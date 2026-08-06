@@ -36,6 +36,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
     ValidationError,
 )
 from typing_extensions import Self
@@ -2203,7 +2204,7 @@ class ListChartsRequest(
     """Request schema for list_charts with clear, unambiguous types."""
 
     certified: Annotated[
-        bool | None,
+        StrictBool | None,
         Field(
             default=None,
             description=(

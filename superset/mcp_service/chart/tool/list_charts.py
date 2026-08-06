@@ -80,7 +80,7 @@ async def list_charts(
     """List charts with filtering and search.
 
     Returns chart metadata including id, name, viz_type, URL, and last
-    modified time. Set ``request.certified`` to true to prioritize governed
+    modified time. Set ``request.certified`` to true to return only governed
     charts; false returns only uncertified charts, while omitting it preserves
     the unfiltered behavior.
 

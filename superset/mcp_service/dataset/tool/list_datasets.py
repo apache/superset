@@ -94,7 +94,7 @@ async def list_datasets(
     """List datasets with filtering and search.
 
     Returns dataset metadata including table name, schema, and last modified
-    time. Set ``request.certified`` to true to prioritize governed,
+    time. Set ``request.certified`` to true to return only governed,
     semantic-layer datasets; false returns only uncertified datasets, while
     omitting it preserves the unfiltered behavior.
 

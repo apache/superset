@@ -53,6 +53,13 @@ get_dataset_info_module = importlib.import_module(
 )
 
 
+@pytest.mark.parametrize("value", ["true", "false", 0, 1])
+def test_list_datasets_certified_requires_json_boolean(value):
+    """Reject values that Pydantic's non-strict bool would coerce."""
+    with pytest.raises(ValueError, match="valid boolean"):
+        ListDatasetsRequest(certified=value)
+
+
 def _wrapped(value: str) -> str:
     return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 

@@ -148,6 +148,12 @@ class TestListChartsRequestSchema:
         assert request.page == 2
         assert request.page_size == 50
 
+    @pytest.mark.parametrize("value", ["true", "false", 0, 1])
+    def test_certified_requires_json_boolean(self, value):
+        """Reject values that Pydantic's non-strict bool would coerce."""
+        with pytest.raises(ValueError, match="valid boolean"):
+            ListChartsRequest(certified=value)
+
     def test_invalid_order_direction(self):
         """Test that invalid order direction raises validation error."""
         with pytest.raises(ValueError, match="Input should be 'asc' or 'desc'"):
