@@ -44,6 +44,7 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
@@ -257,3 +258,28 @@ class FolderPin(Model):
         if self.dashboard_id is not None:
             return self.dashboard_id
         return self.chart_id
+
+
+class FolderActivity(Model):
+    """Audit log for folder-related events (create, rename, move, etc.)."""
+
+    __tablename__ = "folder_activity"
+    __table_args__ = (
+        Index("ix_folder_activity_folder_id", "folder_id"),
+        Index("ix_folder_activity_created_on", "created_on"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    folder_id = Column(
+        Integer,
+        ForeignKey("folders.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id = Column(Integer, nullable=False)
+    action = Column(String(50), nullable=False)
+    target_type = Column(String(50), nullable=True)
+    target_name = Column(String(250), nullable=True)
+    details = Column(Text, nullable=True)
+    created_on = Column(DateTime, nullable=False, server_default=func.now())
+
+    folder = relationship("Folder")

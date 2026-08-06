@@ -39,6 +39,7 @@ from superset.folders.constants import FOLDER_TYPE_ASSETS
 from superset.daos.folder import FolderDAO
 from superset.folders.models import Folder
 from superset.daos.folder_permissions import FolderPermissionDAO
+from superset.folders.activity import log_folder_activity
 
 
 class CreateFolderCommand(BaseCommand):
@@ -69,6 +70,12 @@ class CreateFolderCommand(BaseCommand):
             FolderPermissionDAO.copy_permissions_to_subfolder(
                 self._parent.id, folder.id
             )
+        log_folder_activity(
+            folder.id,
+            "created",
+            target_type="folder",
+            target_name=folder.name,
+        )
         return folder
 
     def validate(self) -> None:

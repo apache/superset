@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime
 from typing import Any
@@ -50,10 +51,11 @@ from superset.commands.folder.exceptions import (
 )
 from superset.commands.folder.update import UpdateFolderCommand
 from superset.daos.folder import FolderDAO, ResolvedAsset
+from superset.folders.activity import log_folder_activity
 from superset.daos.folder_permissions import FolderPermissionDAO
 from superset.extensions import db, event_logger
 from superset.folders.constants import ASSET_TYPE_CONFIGS, DEFAULT_FOLDER_TYPE
-from superset.folders.models import Folder
+from superset.folders.models import Folder, FolderActivity
 from superset.folders.schemas import (
     FolderAssetSchema,
     FolderAssetsPutSchema,
@@ -114,14 +116,18 @@ def serialize_folder(
     folder: Folder,
     children_count: int | None = None,
     asset_count: int | None = None,
+    include_breakdown: bool = False,
 ) -> dict[str, Any]:
     """Serialize a folder's metadata for API responses.
 
     Accepts optional pre-computed counts to avoid N+1 queries. When not
     provided, falls back to relationship access (acceptable for single-folder
     responses but expensive in list views).
+
+    When ``include_breakdown`` is True, an ``asset_breakdown`` dict with
+    per-type counts (dashboards, charts) is included in the response.
     """
-    return {
+    data: dict[str, Any] = {
         "type": "folder",
         "id": folder.id,
         "uuid": str(folder.uuid),
@@ -147,6 +153,9 @@ def serialize_folder(
             _serialize_user(u) for u in (folder.editors or [])
         ],
     }
+    if include_breakdown:
+        data["asset_breakdown"] = FolderDAO.get_asset_breakdown(folder.id)
+    return data
 
 
 def serialize_row(
@@ -556,7 +565,10 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_access(folder)
         except FolderForbiddenError:
             return self.response_403()
-        return self.response(200, result=serialize_folder(folder))
+        return self.response(
+            200,
+            result=serialize_folder(folder, include_breakdown=True),
+        )
 
     @expose("/<string:folder_uuid>/assets", methods=("GET",))
     @protect()
@@ -1211,6 +1223,13 @@ class FolderRestApi(BaseSupersetApi):
             return self.response(422, message=str(ex))
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
+        log_folder_activity(
+            folder.id,
+            "permission_changed",
+            target_type="user",
+            target_name=str(data["user_id"]),
+            details={"action": "added", "permission": permission},
+        )
         return self.response(201, message="OK")
 
     @expose("/<folder_uuid>/subjects/<int:user_id>", methods=("PUT",))
@@ -1265,6 +1284,13 @@ class FolderRestApi(BaseSupersetApi):
         FolderDAO.update_subject(folder.id, user_id, permission)
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
+        log_folder_activity(
+            folder.id,
+            "permission_changed",
+            target_type="user",
+            target_name=str(user_id),
+            details={"action": "updated", "permission": permission},
+        )
         return self.response(200, message="OK")
 
     @expose("/<folder_uuid>/subjects/<int:user_id>", methods=("DELETE",))
@@ -1305,6 +1331,13 @@ class FolderRestApi(BaseSupersetApi):
         FolderDAO.remove_subject(folder.id, user_id)
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
+        log_folder_activity(
+            folder.id,
+            "permission_changed",
+            target_type="user",
+            target_name=str(user_id),
+            details={"action": "removed"},
+        )
         return self.response(200, message="OK")
 
     @expose("/<folder_uuid>/available-users", methods=("GET",))
@@ -1392,3 +1425,73 @@ class FolderRestApi(BaseSupersetApi):
             ],
             count=total,
         )
+
+    @expose("/<folder_uuid>/activity", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    def get_activity(self, folder_uuid: str) -> Response:
+        """Get activity log for a folder.
+        ---
+        get:
+          summary: Get folder activity log
+          parameters:
+          - in: path
+            name: folder_uuid
+            required: true
+            schema:
+              type: string
+          - in: query
+            name: page
+            schema:
+              type: integer
+              default: 0
+          - in: query
+            name: page_size
+            schema:
+              type: integer
+              default: 25
+          responses:
+            200:
+              description: Paginated activity log
+            404:
+              $ref: '#/components/responses/404'
+        """
+        folder = FolderDAO.get_by_uuid(folder_uuid)
+        if not folder:
+            return self.response_404()
+        try:
+            self._raise_for_folder_access(folder)
+        except FolderForbiddenError:
+            return self.response_403()
+
+        page = _positive_int("page", 0)
+        page_size = _positive_int("page_size", 25)
+
+        query = (
+            db.session.query(FolderActivity, User)
+            .outerjoin(User, User.id == FolderActivity.user_id)
+            .filter(FolderActivity.folder_id == folder.id)
+            .order_by(FolderActivity.created_on.desc())
+        )
+        total = query.count()
+        rows = query.offset(page * page_size).limit(page_size).all()
+
+        result = []
+        for activity, user in rows:
+            result.append({
+                "id": activity.id,
+                "action": activity.action,
+                "target_type": activity.target_type,
+                "target_name": activity.target_name,
+                "details": json.loads(activity.details) if activity.details else None,
+                "created_on": activity.created_on.isoformat() if activity.created_on else None,
+                "user": {
+                    "id": user.id,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                } if user else None,
+            })
+
+        return self.response(200, result=result, count=total)

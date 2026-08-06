@@ -99,6 +99,22 @@ class FolderDAO(BaseDAO[Folder]):
         return cls._load_assets(ids_by_type)
 
     @classmethod
+    def get_asset_breakdown(cls, folder_id: int) -> dict[str, int]:
+        """Count assets in a folder grouped by type (which FK column is set)."""
+        result = (
+            db.session.query(
+                func.count(FolderObject.dashboard_id).label("dashboards"),
+                func.count(FolderObject.chart_id).label("charts"),
+            )
+            .filter(FolderObject.folder_id == folder_id)
+            .one()
+        )
+        return {
+            "dashboards": result.dashboards,
+            "charts": result.charts,
+        }
+
+    @classmethod
     def get_contents(  # noqa: C901
         cls,
         folder: Folder | None,

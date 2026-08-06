@@ -77,6 +77,9 @@ import FolderPermissionsModal from './FolderPermissionsModal';
 import RenameFolderModal from './RenameFolderModal';
 import DeleteFolderModal from './DeleteFolderModal';
 import DashboardCharts from './DashboardCharts';
+import RecentBar from './RecentBar';
+import FolderInfoModal from './FolderInfoModal';
+import FolderActivityModal from './FolderActivityModal';
 import type { ContentItem } from './types';
 
 /** A location in the drill path; the root has a null uuid. */
@@ -213,6 +216,10 @@ function AnalyticsList({
     Record<number, { loading: boolean; charts: ContentItem[] }>
   >({});
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [folderToShowInfo, setFolderToShowInfo] =
+    useState<ContentItem | null>(null);
+  const [folderToShowActivity, setFolderToShowActivity] =
+    useState<ContentItem | null>(null);
   const [folderToManagePerms, setFolderToManagePerms] =
     useState<ContentItem | null>(null);
   const [folderToRename, setFolderToRename] = useState<ContentItem | null>(
@@ -936,6 +943,26 @@ function AnalyticsList({
             const canEdit = original.user_permission === 'editor';
             return (
               <Actions className="actions">
+                <Tooltip title={t('Folder info')} placement="bottom">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={() => setFolderToShowInfo(original)}
+                  >
+                    <Icons.InfoCircleOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
+                <Tooltip title={t('Activity')} placement="bottom">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={() => setFolderToShowActivity(original)}
+                  >
+                    <Icons.HistoryOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
                 {canEdit && (
                   <Tooltip title={t('Manage permissions')} placement="bottom">
                     <span
@@ -1286,6 +1313,21 @@ function AnalyticsList({
   return (
     <>
       {expandedRowStyle}
+      {folderToShowInfo && (
+        <FolderInfoModal
+          folderUuid={folderToShowInfo.uuid ?? ''}
+          show
+          onHide={() => setFolderToShowInfo(null)}
+        />
+      )}
+      {folderToShowActivity && (
+        <FolderActivityModal
+          folderUuid={folderToShowActivity.uuid ?? ''}
+          folderName={folderToShowActivity.name}
+          show
+          onHide={() => setFolderToShowActivity(null)}
+        />
+      )}
       {showCreateFolder && (
         <CreateFolderModal
           show
@@ -1406,7 +1448,9 @@ function AnalyticsList({
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={() => setBulkSelectEnabled(false)}
               headerContent={
-                isAtRoot ? null : (
+                isAtRoot ? (
+                  <RecentBar />
+                ) : (
                   <BreadcrumbWrap>
                     <FolderBreadcrumb items={breadcrumbItems} />
                   </BreadcrumbWrap>

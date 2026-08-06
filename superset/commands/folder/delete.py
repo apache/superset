@@ -31,6 +31,7 @@ from superset.commands.folder.exceptions import (
 from superset.daos.folder import FolderDAO
 from superset.folders.models import Folder
 from superset.daos.folder_permissions import FolderPermissionDAO
+from superset.folders.activity import log_folder_activity
 
 
 class DeleteFolderCommand(BaseCommand):
@@ -43,6 +44,16 @@ class DeleteFolderCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         assert self._model
+        # Log before delete since CASCADE will remove the activity record's
+        # parent folder. We log to the parent folder if one exists so the
+        # activity is preserved; otherwise we accept it will be lost.
+        if self._model.parent_id:
+            log_folder_activity(
+                self._model.parent_id,
+                "deleted",
+                target_type="folder",
+                target_name=self._model.name,
+            )
         FolderDAO.delete_folder(self._model, self._archive_items)
 
     def validate(self) -> None:

@@ -38,6 +38,7 @@ from superset.commands.folder.exceptions import (
 from superset.daos.folder import FolderDAO
 from superset.folders.models import Folder
 from superset.daos.folder_permissions import FolderPermissionDAO
+from superset.folders.activity import log_folder_activity
 
 
 class UpdateFolderCommand(BaseCommand):
@@ -52,6 +53,7 @@ class UpdateFolderCommand(BaseCommand):
     def run(self) -> Folder:
         self.validate()
         assert self._model
+        old_name = self._model.name
 
         attributes: dict[str, Any] = {}
         if "name" in self._properties:
@@ -82,6 +84,30 @@ class UpdateFolderCommand(BaseCommand):
                 folder.parent_id, folder.id
             )
             FolderPermissionDAO.push_down_permissions(folder.id)
+            log_folder_activity(
+                folder.id,
+                "permission_changed",
+                target_type="folder",
+                target_name=folder.name,
+                details={"sync_permissions": True},
+            )
+
+        if "name" in self._properties and self._properties["name"] != old_name:
+            log_folder_activity(
+                folder.id,
+                "renamed",
+                target_type="folder",
+                target_name=folder.name,
+                details={"old_name": old_name},
+            )
+
+        if self._parent_changed:
+            log_folder_activity(
+                folder.id,
+                "moved",
+                target_type="folder",
+                target_name=folder.name,
+            )
 
         return folder
 
