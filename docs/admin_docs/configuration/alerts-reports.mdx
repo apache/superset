@@ -245,6 +245,53 @@ class CeleryConfig:
     }
 CELERY_CONFIG = CeleryConfig
 
+# Scheduled reports share one deadline across browser readiness, capture/PDF
+# generation, delivery, and terminal-state persistence. The effective budget
+# for a schedule is min(this value, the schedule's working_timeout), so the
+# per-schedule field keeps its meaning as a user-facing cap. The default (one
+# hour) matches the historical working_timeout default, so upgrading changes
+# no default behavior; lower it to enforce a tighter report SLA.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = 3600
+
+# These reserves are part of (not additions to) the total budget and their sum
+# must be less than it. Readiness polling stops in time to leave capacity for
+# the later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = 60
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = 120
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = 30
+
+# Celery's hard limit leaves this additional window for terminal cleanup after
+# the soft limit, which equals the resolved execution budget (the configured
+# budget capped by each schedule's working_timeout).
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL controls these Celery limits; disabling
+# it does not disable the application deadline above.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
+
+# Invalid budget/reserve combinations fail application startup instead of
+# allowing every scheduled report to fail later. A report Celery soft timeout
+# records ERROR and increments `reports.execute.celery_soft_timeout`; it does
+# not attempt an in-band customer error notification during the hard-limit
+# grace window. Alert schedules retain their existing timeout notifications.
+#
+# The application deadline is cooperative between synchronous phases. The
+# Celery limits provide the final preemption boundary when the worker pool
+# supports them; PDF construction is checked immediately before and after the
+# synchronous builder but cannot be interrupted inside that call.
+#
+# Sizing the budget against infrastructure limits:
+# - Kubernetes (or similar) pod termination grace must exceed
+#   budget + hard-timeout grace, or in-flight reports are killed mid-run on
+#   every deploy/node drain despite the application deadline.
+# - The web server's per-request timeout (e.g. gunicorn ``timeout``) bounds
+#   each individual chart data request made by the headless browser -- not
+#   the report as a whole. Readiness allowance beyond that per-request
+#   ceiling buys nothing for a single slow chart (its request dies at the
+#   web layer and the chart reaches an error state), but multi-chart and
+#   tiled captures legitimately accumulate total time well past it.
+
+# Screenshot-specific waits continue to apply to thumbnails and other
+# standalone screenshot calls. Scheduled reports derive their waits from the
+# shared execution deadline above.
 SCREENSHOT_LOCATE_WAIT = 100
 SCREENSHOT_LOAD_WAIT = 600
 
