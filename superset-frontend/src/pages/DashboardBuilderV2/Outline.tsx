@@ -46,6 +46,29 @@ const labelOf = (type: string, props: Record<string, unknown> | undefined) => {
   return registered?.name ?? type;
 };
 
+/**
+ * Selects a node and shows it where it lives.
+ *
+ * Marking a block as selected is only half of reaching it: the rows this
+ * panel exists for are the ones for blocks the canvas is currently not
+ * offering, and an outline that selected something off screen would leave an
+ * author looking at a canvas that appears not to have answered. The block's
+ * own element carries `data-node-id` (see `BuildingBlockView`), so the canvas
+ * needs no wiring back to here.
+ *
+ * `nearest` rather than `center`: this fires on every row, and reading down a
+ * list of blocks that are already in view should not move the canvas under
+ * them. Nothing happens at all when the element is absent — a node can be in
+ * the tree without being rendered — and selection has already been set by
+ * then either way.
+ */
+const select = (nodeId: string): void => {
+  provider.setSelection(nodeId);
+  document
+    .querySelector(`[data-node-id="${nodeId}"]`)
+    ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+};
+
 const Row = ({
   nodeId,
   depth,
@@ -69,11 +92,11 @@ const Row = ({
         aria-selected={selected}
         tabIndex={selected ? 0 : -1}
         data-test={`outline-row-${nodeId}`}
-        onClick={() => provider.setSelection(nodeId)}
+        onClick={() => select(nodeId)}
         onKeyDown={event => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            provider.setSelection(nodeId);
+            select(nodeId);
           }
         }}
         style={{
