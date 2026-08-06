@@ -396,6 +396,22 @@ test('does not toast if the fetch is cancelled while formatting its error', asyn
   expect(props.addDangerToast).not.toHaveBeenCalled();
 });
 
+test('clears structure loading when the semantic view is removed', async () => {
+  mockedGet.mockReturnValue(new Promise(() => {}));
+  const props = createProps();
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+  });
+
+  rerender(<SemanticViewEditModal {...props} semanticView={null} />);
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
+  });
+});
+
 test('details tab save still works after viewing structure tabs', async () => {
   mockedPut.mockResolvedValue({});
   const props = createProps();
