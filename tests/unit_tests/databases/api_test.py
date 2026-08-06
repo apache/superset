@@ -1103,9 +1103,14 @@ def test_csv_upload(
         ("", None),
         ("  ", None),
         ("undefined", None),
-        ("NULL", None),
+        ("null", None),
         (None, None),
-        (" public ", "public"),
+        # only the exact JS stringification artifacts are dropped — a quoted
+        # schema actually named ``NULL``/``Undefined`` or an identifier with
+        # surrounding whitespace is preserved verbatim
+        ("NULL", "NULL"),
+        ("Undefined", "Undefined"),
+        (" public ", " public "),
         ("myschema", "myschema"),
     ],
 )
@@ -1114,8 +1119,8 @@ def test_upload_post_schema_normalizes_schema(
     schema_out: str | None,
 ) -> None:
     """
-    Empty/whitespace and stringified-unset schema values are dropped;
-    real values are stripped.
+    Empty/whitespace-only values and the exact stringified-unset artifacts
+    ("undefined"/"null") are dropped; every other value is preserved verbatim.
     """
     from superset.databases.schemas import UploadPostSchema
 

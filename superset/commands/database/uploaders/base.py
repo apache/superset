@@ -281,9 +281,13 @@ class UploadCommand(BaseCommand):
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
             raise DatabaseNotFoundError()
+        engine_resolved = False
         if not self._schema:
             self._schema = self._resolve_default_schema(self._model)
-        if not schema_allows_file_upload(self._model, self._schema):
+            engine_resolved = self._schema is not None
+        if not schema_allows_file_upload(
+            self._model, self._schema, engine_resolved=engine_resolved
+        ):
             raise DatabaseSchemaUploadNotAllowed()
         if not self._model.db_engine_spec.supports_file_upload:
             raise DatabaseUploadNotSupported()

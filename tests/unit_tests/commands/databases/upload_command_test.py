@@ -204,23 +204,37 @@ def test_validate_resolved_schema_checked_against_allowlist(
     )
     command = _command(_file(b"x"), schema=None)
     command.validate()
-    allows.assert_called_once_with(model, "public")
+    allows.assert_called_once_with(model, "public", engine_resolved=True)
+
+
+def test_validate_explicit_schema_checked_exactly(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    model = _stub_passing_checks(mocker)
+    allows = mocker.patch(
+        "superset.commands.database.uploaders.base.schema_allows_file_upload",
+        return_value=True,
+    )
+    command = _command(_file(b"x"), schema="other")
+    command.validate()
+    allows.assert_called_once_with(model, "other", engine_resolved=False)
 
 
 @pytest.mark.parametrize(
     "schema,allowed,expected",
     [
-        # databases may report schema names in uppercase while the allow-list
-        # is inputted manually; the check must be case-insensitive to match
-        # the ``upload_allowed`` filtering of the schemas endpoint
-        ("PUBLIC", {"public"}, True),
-        ("public", {"PUBLIC"}, True),
+        # user-supplied schemas match the allow-list exactly: on engines with
+        # quoted, case-sensitive identifiers (e.g. PostgreSQL), ``PUBLIC`` and
+        # ``public`` are distinct physical schemas, and case-folding here
+        # would widen the allow-list to case-variant siblings
         ("public", {"public"}, True),
+        ("PUBLIC", {"public"}, False),
+        ("public", {"PUBLIC"}, False),
         ("other", {"public"}, False),
         (None, {"public"}, False),
     ],
 )
-def test_schema_allows_file_upload_is_case_insensitive(
+def test_schema_allows_file_upload_explicit_schema_exact_match(
     schema: str | None,
     allowed: set[str],
     expected: bool,
@@ -232,6 +246,33 @@ def test_schema_allows_file_upload_is_case_insensitive(
     database.allow_file_upload = True
     database.get_schema_access_for_file_upload.return_value = allowed
     assert schema_allows_file_upload(database, schema) is expected
+
+
+@pytest.mark.parametrize(
+    "schema,allowed,expected",
+    [
+        # the engine may report its default schema in a different case than
+        # the manually-inputted allow-list; the write uses the engine-reported
+        # name itself, so the case-fold cannot change the physical target
+        ("PUBLIC", {"public"}, True),
+        ("public", {"PUBLIC"}, True),
+        ("public", {"public"}, True),
+        ("other", {"public"}, False),
+        (None, {"public"}, False),
+    ],
+)
+def test_schema_allows_file_upload_engine_resolved_case_insensitive(
+    schema: str | None,
+    allowed: set[str],
+    expected: bool,
+    mocker: MockerFixture,
+) -> None:
+    from superset.views.database.validators import schema_allows_file_upload
+
+    database = mocker.MagicMock()
+    database.allow_file_upload = True
+    database.get_schema_access_for_file_upload.return_value = allowed
+    assert schema_allows_file_upload(database, schema, engine_resolved=True) is expected
 
 
 def _stub_run_environment(mocker: MockerFixture) -> MagicMock:

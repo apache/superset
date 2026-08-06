@@ -1461,17 +1461,16 @@ class UploadPostSchema(BaseUploadFilePostSchemaMixin):
         Treat empty and stringified-unset schema values as no schema.
 
         Broken clients stringify an unset schema into the multipart body as
-        "undefined"/"null"; neither is a plausible real schema name, so both
-        are dropped alongside empty/whitespace values, letting the upload
-        command resolve the database's default schema instead (see #36305).
-        Non-empty values are stripped of surrounding whitespace.
+        the exact strings ``undefined``/``null`` (JS ``String()`` semantics),
+        so only those artifacts and empty/whitespace-only values are dropped,
+        letting the upload command resolve the database's default schema
+        instead (see #36305). Any other value — including a quoted schema
+        actually named ``NULL``/``Undefined`` or an identifier with
+        surrounding whitespace — reaches the upload command verbatim.
         """
         if (schema := data.get("schema")) is not None:
-            schema = schema.strip()
-            if not schema or schema.lower() in ("undefined", "null"):
+            if not schema.strip() or schema in ("undefined", "null"):
                 data.pop("schema", None)
-            else:
-                data["schema"] = schema
         return data
 
 
