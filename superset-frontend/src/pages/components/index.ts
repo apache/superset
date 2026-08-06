@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@apache-superset/core/theme';
-
-export const ModalContent = styled.div`
-  ${({ theme }) => css`
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
-  `}
-`;
+export { FolderBreadcrumb } from './FolderBreadcrumb';
+export { FolderList } from './FolderList';
+export { FolderIcon, FolderOpenIcon, assetTypeIcons } from './assetIcons';
+export type {
+  FolderBreadcrumbItem,
+  FolderBreadcrumbProps,
+  Folder,
+  FolderAsset,
+  FolderAssetType,
+  FolderItemType,
+  FolderListProps,
+} from './types';

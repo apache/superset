@@ -51,13 +51,11 @@ import {
   ConfirmStatusChange,
   Dropdown,
   Flex,
+  InfoTooltip,
   Tooltip,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import {
-  FolderBreadcrumb,
-  type FolderBreadcrumbItem,
-} from '@superset-ui/core/components/Folders';
+import { FolderBreadcrumb, type FolderBreadcrumbItem } from '../components';
 import SubMenu, { type SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
@@ -74,7 +72,7 @@ import { type Slice } from 'src/types/Chart';
 import CreateFolderModal from './CreateFolderModal';
 import TransferModal from './TransferModal';
 import FolderPermissionsModal from './FolderPermissionsModal';
-import RenameFolderModal from './RenameFolderModal';
+import EditFolderModal from './EditFolderModal';
 import DeleteFolderModal from './DeleteFolderModal';
 import DashboardCharts from './DashboardCharts';
 import RecentBar from './RecentBar';
@@ -210,6 +208,7 @@ function AnalyticsList({
   const [refreshKey, setRefreshKey] = useState(0);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasFolders, setHasFolders] = useState(true);
   // Charts per expanded dashboard, owned here so they survive antd remounting
   // the expanded-row subtree (which would otherwise re-flash the loader).
   const [chartsByDashboard, setChartsByDashboard] = useState<
@@ -281,6 +280,15 @@ function AnalyticsList({
   useEffect(() => {
     if (!folderUuid) fetchPins();
   }, [fetchPins, refreshKey, folderUuid]);
+
+  // Check if any folders exist (for disabling "Move assets")
+  useEffect(() => {
+    SupersetClient.get({
+      endpoint: `/api/v1/folders/?folder_type=${FOLDER_TYPE}`,
+    })
+      .then(({ json }) => setHasFolders((json.count ?? 0) > 0))
+      .catch(() => setHasFolders(false));
+  }, [refreshKey]);
 
   const refreshData = useCallback(() => setRefreshKey(key => key + 1), []);
 
@@ -389,10 +397,14 @@ function AnalyticsList({
             filterExps.push({ col: 'owners', opr: 'rel_m_m', value: scalar });
             break;
           case 'changed_on':
-            if (operator === 'gt')
+            if (operator === 'between' && Array.isArray(scalar)) {
+              filterExps.push({ col: 'changed_on', opr: 'gt', value: scalar[0] });
+              filterExps.push({ col: 'changed_on', opr: 'lt', value: scalar[1] });
+            } else if (operator === 'gt') {
               filterExps.push({ col: 'changed_on', opr: 'gt', value: scalar });
-            else if (operator === 'lt')
+            } else if (operator === 'lt') {
               filterExps.push({ col: 'changed_on', opr: 'lt', value: scalar });
+            }
             break;
           case 'viz_type':
             filterExps.push({ col: 'viz_type', opr: 'in', value: scalar });
@@ -484,6 +496,9 @@ function AnalyticsList({
   const drillInto = useCallback(
     (item: ContentItem) => {
       setExpandedKeys([]);
+      // Breadcrumb is resolved by the URL-sync effect from the folder's parent chain,
+      // so we only need to push the URL. This handles both normal navigation and
+      // jumping to deeply nested folders from search results.
       history.push(`/analytics/${item.uuid}/`);
     },
     [history],
@@ -797,6 +812,9 @@ function AnalyticsList({
                   css={{ color: theme.colorErrorBorderHover }}
                 />
                 {highlightName(original.name)}
+                {original.description && (
+                  <InfoTooltip tooltip={original.description} />
+                )}
                 {pinIcon}
               </NameLink>
             ) : (
@@ -806,6 +824,9 @@ function AnalyticsList({
                   css={{ color: theme.colorErrorBorderHover }}
                 />
                 {highlightName(original.name)}
+                {original.description && (
+                  <InfoTooltip tooltip={original.description} />
+                )}
                 {pinIcon}
               </NameRow>
             );
@@ -976,7 +997,7 @@ function AnalyticsList({
                   </Tooltip>
                 )}
                 {canEdit && (
-                  <Tooltip title={t('Rename folder')} placement="bottom">
+                  <Tooltip title={t('Edit folder')} placement="bottom">
                     <span
                       role="button"
                       tabIndex={0}
@@ -1255,6 +1276,10 @@ function AnalyticsList({
         name: t('Move assets'),
         buttonStyle: 'secondary',
         onClick: () => setShowTransferModal(true),
+        disabled: !hasFolders,
+        tooltip: !hasFolders
+          ? t('No folders yet. Create one with "New" to move assets.')
+          : undefined,
       },
       {
         name: t('New'),
@@ -1285,10 +1310,7 @@ function AnalyticsList({
               ],
             }}
           >
-            <Button
-              buttonStyle="primary"
-              css={{ marginLeft: theme.sizeUnit * 2 }}
-            >
+            <Button buttonStyle="primary">
               <Icons.PlusOutlined iconSize="m" /> {t('New')}{' '}
               <Icons.DownOutlined iconSize="m" />
             </Button>
@@ -1339,9 +1361,10 @@ function AnalyticsList({
         />
       )}
       {folderToRename && (
-        <RenameFolderModal
+        <EditFolderModal
           folderUuid={folderToRename.uuid ?? ''}
           currentName={folderToRename.name}
+          currentDescription={folderToRename.description}
           show
           onHide={() => setFolderToRename(null)}
           onSuccess={refreshData}

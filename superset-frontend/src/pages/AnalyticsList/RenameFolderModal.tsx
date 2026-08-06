@@ -32,7 +32,7 @@ interface RenameFolderModalProps {
   addSuccessToast: (msg: string) => void;
 }
 
-import { ModalContent, FormGroup } from './styles';
+import { ModalContent } from './styles';
 
 export default function RenameFolderModal({
   folderUuid,
@@ -95,17 +95,15 @@ export default function RenameFolderModal({
       saveLoading={saving}
     >
       <ModalContent>
-        <FormGroup>
-          <label htmlFor="rename-folder-name">{t('Name')}</label>
-          <Input
-            id="rename-folder-name"
-            placeholder={t('Folder name')}
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onPressEnter={handleSave}
-            autoFocus
-          />
-        </FormGroup>
+        <label htmlFor="rename-folder-name">{t('Name')}</label>
+        <Input
+          id="rename-folder-name"
+          placeholder={t('Folder name')}
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onPressEnter={handleSave}
+          autoFocus
+        />
       </ModalContent>
     </StandardModal>
   );
