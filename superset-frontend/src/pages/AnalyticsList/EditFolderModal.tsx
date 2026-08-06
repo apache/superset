@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Input } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
@@ -25,68 +25,90 @@ import { ModalFormField } from 'src/components/Modal/ModalFormField';
 
 import { ModalContent } from './styles';
 
-interface CreateFolderModalProps {
+interface RenameFolderModalProps {
+  folderUuid: string;
+  currentName: string;
+  currentDescription?: string | null;
   show: boolean;
-  /** UUID of the folder to create this one under, or null for the root. */
-  parentFolderUuid: string | null;
   onHide: () => void;
   onSuccess: () => void;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
 
-export default function CreateFolderModal({
+export default function RenameFolderModal({
+  folderUuid,
+  currentName,
+  currentDescription = '',
   show,
-  parentFolderUuid,
   onHide,
   onSuccess,
   addDangerToast,
   addSuccessToast,
-}: CreateFolderModalProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+}: RenameFolderModalProps) {
+  const [name, setName] = useState(currentName);
+  const [description, setDescription] = useState(currentDescription || '');
   const [nameError, setNameError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (show) {
-      setName('');
-      setDescription('');
+      setName(currentName);
+      setDescription(currentDescription || '');
       setNameError('');
     }
-  }, [show]);
+  }, [show, currentName, currentDescription]);
+
+  const hasChanges =
+    name.trim() !== currentName ||
+    (description.trim() || null) !== (currentDescription || null);
 
   const handleSave = useCallback(async () => {
-    if (!name.trim()) {
+    const trimmed = name.trim();
+    if (!trimmed) {
       setNameError(t('Folder name is required'));
+      return;
+    }
+    if (!hasChanges) {
+      onHide();
       return;
     }
     setNameError('');
     setSaving(true);
     try {
-      await SupersetClient.post({
-        endpoint: '/api/v1/folders/',
+      await SupersetClient.put({
+        endpoint: `/api/v1/folders/${folderUuid}`,
         jsonPayload: {
-          name: name.trim(),
+          name: trimmed,
           description: description.trim() || null,
-          folder_type: 'analytics',
-          ...(parentFolderUuid ? { parent_uuid: parentFolderUuid } : {}),
         },
       });
-      addSuccessToast(t('Folder "%s" created', name.trim()));
+      addSuccessToast(t('Folder updated'));
       onSuccess();
       onHide();
     } catch (err: any) {
-      const { error } = await getClientErrorObject(err);
-      const isDuplicate = error?.toLowerCase().includes('already exists');
-      addDangerToast(isDuplicate ? error : t('Error creating folder'));
+      const message =
+        err?.json?.message?.name?.[0] ||
+        err?.json?.message ||
+        t('Error updating folder');
+      if (
+        typeof message === 'string' &&
+        message.toLowerCase().includes('already exists')
+      ) {
+        setNameError(message);
+      } else {
+        addDangerToast(
+          typeof message === 'string' ? message : t('Error updating folder'),
+        );
+      }
     } finally {
       setSaving(false);
     }
   }, [
     name,
     description,
-    parentFolderUuid,
+    hasChanges,
+    folderUuid,
     addSuccessToast,
     addDangerToast,
     onSuccess,
@@ -95,12 +117,12 @@ export default function CreateFolderModal({
 
   return (
     <StandardModal
-      title={t('Create folder')}
+      title={t('Edit folder')}
       show={show}
       onHide={onHide}
       onSave={handleSave}
-      saveText={t('Create')}
-      saveDisabled={!name.trim()}
+      saveText={t('Save')}
+      saveDisabled={!name.trim() || !hasChanges}
       saveLoading={saving}
     >
       <ModalContent>

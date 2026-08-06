@@ -32,6 +32,7 @@ export interface ContentItem {
   id: number;
   uuid: string | null;
   name: string;
+  description?: string | null;
   url?: string | null;
   viz_type?: string | null;
   datasource_name?: string | null;

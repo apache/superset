@@ -16,10 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@apache-superset/core/theme';
+import type { FC } from 'react';
+import { Icons } from '@superset-ui/core/components/Icons';
+import type { IconType } from '@superset-ui/core/components/Icons/types';
+import type { FolderAssetType } from './types';
 
-export const ModalContent = styled.div`
-  ${({ theme }) => css`
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
-  `}
-`;
+/** Icon for a collapsed folder. */
+export const FolderIcon = Icons.FolderOutlined;
+
+/** Icon for an expanded folder. */
+export const FolderOpenIcon = Icons.FolderOpenOutlined;
+
+/** Maps each asset type to its semantic icon. */
+export const assetTypeIcons: Record<FolderAssetType, FC<IconType>> = {
+  dashboard: Icons.DashboardOutlined,
+  dataset: Icons.TableOutlined,
+  chart: Icons.AreaChartOutlined,
+};
