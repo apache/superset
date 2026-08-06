@@ -242,3 +242,78 @@ def test_get_df_payload_shows_stacktrace_when_show_stacktrace_enabled() -> None:
     assert obj.status == QueryStatus.FAILED
     assert payload["stacktrace"] is not None
     assert "RuntimeError" in payload["stacktrace"]
+
+
+def test_deck_multi_skips_child_layers_without_datasource_access() -> None:
+    """
+    Each deck.gl child layer runs against its own datasource, so a layer whose
+    datasource the current user cannot access must be skipped, not queried.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.errors import ErrorLevel, SupersetError
+    from superset.exceptions import SupersetSecurityException
+
+    database = Database(database_name="d", sqlalchemy_uri="sqlite://")
+    ds_allowed = SqlaTable(
+        table_name="allowed",
+        columns=[],
+        metrics=[],
+        main_dttm_col=None,
+        database=database,
+    )
+    ds_denied = SqlaTable(
+        table_name="denied",
+        columns=[],
+        metrics=[],
+        main_dttm_col=None,
+        database=database,
+    )
+
+    slc_allowed = MagicMock(
+        datasource=ds_allowed, form_data={"viz_type": "deck_scatter"}
+    )
+    slc_denied = MagicMock(datasource=ds_denied, form_data={"viz_type": "deck_scatter"})
+
+    obj = viz.DeckGLMultiLayer(
+        datasource=ds_allowed,
+        form_data={"viz_type": "deck_multi", "deck_slices": [1, 2]},
+        force=True,
+    )
+
+    constructed: list[Any] = []
+
+    class _FakeChildViz:
+        def __init__(self, datasource=None, form_data=None):  # noqa: ANN001
+            constructed.append(datasource)
+
+        def get_payload(self):  # noqa: ANN201
+            return {"data": {}, "applied_filters": [], "rejected_filters": []}
+
+    def _raise(**kwargs: Any) -> None:
+        if kwargs.get("datasource") is ds_denied:
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="denied",
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    with (
+        patch("superset.db.session") as sess,
+        patch("superset.viz.security_manager.raise_for_access", side_effect=_raise),
+        patch.dict("superset.viz.viz_types", {"deck_scatter": _FakeChildViz}),
+    ):
+        sess.query.return_value.filter.return_value.all.return_value = [
+            slc_allowed,
+            slc_denied,
+        ]
+        obj.get_data(_resample_df())
+
+    # Compare by table_name: BaseDatasource equality is uid-based, and both
+    # unpersisted tables share a null-id uid, so identity-style membership is
+    # unreliable here.
+    constructed_names = [d.table_name for d in constructed]
+    assert "allowed" in constructed_names
+    assert "denied" not in constructed_names
