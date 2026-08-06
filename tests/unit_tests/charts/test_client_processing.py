@@ -1887,6 +1887,41 @@ def test_table_applies_si_number_format() -> None:
     assert formatted["amount"].tolist() == ["1.23k"]
 
 
+def test_table_applies_smart_number_default_to_unconfigured_metric() -> None:
+    """
+    A metric with no saved d3 format still renders like Explore. The Table
+    plugin gives every metric column a formatter, and ``getNumberFormatter``
+    defaults to SMART_NUMBER, so the report must not leave the value raw.
+    """
+    df = pd.DataFrame.from_dict({"count": {0: 1234567}})
+    form_data = {"viz_type": "table", "metrics": ["count"], "percent_metrics": []}
+    formatted = table(df, form_data)
+    assert formatted["count"].tolist() == ["1.23M"]
+
+
+def test_table_leaves_unconfigured_numeric_dimension_untouched() -> None:
+    """
+    A numeric non-metric column with no configured format is left raw, matching
+    the browser, which only formats numeric dimensions when a format or currency
+    is set.
+    """
+    df = pd.DataFrame.from_dict({"year": {0: 2024}, "count": {0: 1234567}})
+    form_data = {"viz_type": "table", "metrics": ["count"], "percent_metrics": []}
+    formatted = table(df, form_data)
+    assert formatted["year"].tolist() == [2024]
+    assert formatted["count"].tolist() == ["1.23M"]
+
+
+def test_table_applies_percent_3_point_default_to_percent_metric() -> None:
+    """
+    Percent metric columns default to PERCENT_3_POINT in the Table plugin.
+    """
+    df = pd.DataFrame.from_dict({"%count": {0: 0.1234}})
+    form_data = {"viz_type": "table", "metrics": [], "percent_metrics": ["count"]}
+    formatted = table(df, form_data)
+    assert formatted["%count"].tolist() == ["12.340%"]
+
+
 def test_table_applies_datasource_saved_metric_format_without_chart_override() -> None:
     df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
     datasource = MagicMock()
@@ -1937,6 +1972,24 @@ def test_pivot_table_v2_applies_value_format() -> None:
     formatted = pivot_table_v2(df, form_data)
     assert formatted[("sales",)].tolist() == ["1,234.50", "6,789.00"]
     assert formatted[("qty",)].tolist() == ["10", "20"]
+
+
+def test_pivot_table_v2_applies_smart_number_default_without_value_format() -> None:
+    """
+    Pivot value cells with no ``valueFormat`` and no per-metric format default to
+    SMART_NUMBER, mirroring the frontend's ``getNumberFormatter`` default.
+    """
+    df = pd.DataFrame({"region": ["A", "B"], "sales": [1234567.0, 6789.0]})
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("sales",)].tolist() == ["1.23M", "6.79k"]
 
 
 def test_pivot_table_v2_applies_datasource_saved_metric_format_without_override() -> (
@@ -2175,6 +2228,49 @@ def test_pivot_table_v2_auto_currency_reads_stored_form_data_key() -> None:
     assert formatted[("sales",)].to_dict() == {
         ("EU",): "€ 200.00",
         ("US",): "$ 100.00",
+    }
+
+
+def test_pivot_table_v2_auto_currency_handles_sparse_2d_pivot() -> None:
+    """
+    A pivot with both rows and columns has empty cross-product cells. Pandas
+    fills those with scalar ``NaN`` rather than an empty currency tuple, which
+    must not crash AUTO currency resolution for the whole report.
+    """
+    df = pd.DataFrame(
+        {
+            "region": ["EU", "EU", "US"],
+            "product": ["a", "b", "a"],
+            "sales": [10.0, 20.0, 30.0],
+            "currency": ["EUR", "EUR", "USD"],
+        }
+    )
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": ["product"],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted[("sales", "a")].to_dict() == {
+        ("EU",): "€ 10.00",
+        ("US",): "$ 30.00",
+    }
+    # The missing (US, b) combination stays empty; the present EUR cell formats.
+    assert formatted[("sales", "b")].to_dict() == {
+        ("EU",): "€ 20.00",
+        ("US",): "",
     }
 
 

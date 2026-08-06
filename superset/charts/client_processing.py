@@ -46,6 +46,7 @@ from superset.utils.number_format import (
     AUTO_CURRENCY,
     format_number_with_config,
     resolve_auto_currency,
+    SMART_NUMBER,
 )
 
 if TYPE_CHECKING:
@@ -54,6 +55,11 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+# Default d3 format the Table plugin applies to percent metrics, mirroring
+# ``number-format/NumberFormats.ts::PERCENT_3_POINT`` as used in the frontend's
+# ``transformProps`` formatter selection.
+PERCENT_3_POINT = ",.3%"
 
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
@@ -594,11 +600,19 @@ def apply_pivot_number_formats(
             if currency_context is not None and column in currency_context.columns
             else None
         )
+        column_number_format = column_formats.get(metric) or value_format
+        column_currency = currency_formats.get(metric) or currency_format
+        if not column_number_format and not column_currency.get("symbol"):
+            # The frontend Pivot Table formatter falls back to SMART_NUMBER when
+            # neither a value format nor a currency is configured
+            # (``getNumberFormatter``'s default key), so unconfigured metric
+            # cells must not be left raw.
+            column_number_format = SMART_NUMBER
         format_column(
             df,
             column,
-            column_formats.get(metric) or value_format,
-            currency_formats.get(metric) or currency_format,
+            column_number_format,
+            column_currency,
             detected_currency,
             column_currency_context,
         )
@@ -626,25 +640,63 @@ def table(
         df[currency_column].map(currency_context_value) if currency_column else None
     )
     column_config = form_data.get("column_config") or {}
-    columns = dict.fromkeys([*saved_formats, *saved_currency_formats, *column_config])
-    for original_column in columns:
-        column = (
-            original_column
-            if original_column in df.columns
-            else verbose_map.get(original_column, original_column)
+
+    def label_of(name: str) -> str:
+        """Return the column label as it appears in ``df`` (verbose-renamed)."""
+        return name if name in df.columns else verbose_map.get(name, name)
+
+    # Index the per-column overrides by the label present in ``df`` so numeric
+    # and metric columns can be looked up while iterating the frame.
+    number_format_by_label = {
+        label_of(name): fmt for name, fmt in saved_formats.items()
+    }
+    currency_by_label = {
+        label_of(name): currency for name, currency in saved_currency_formats.items()
+    }
+    config_by_label = {label_of(name): config for name, config in column_config.items()}
+    metric_labels = {
+        label_of(name) for name in get_metric_names(form_data.get("metrics"))
+    }
+    # Percent metric columns are emitted with a leading ``%`` and are not
+    # verbose-renamed, so match them by that prefixed label.
+    percent_metric_labels = {
+        f"%{name}"
+        for name in get_metric_names(form_data.get("percent_metrics"))
+        if f"%{name}" in df.columns
+    }
+
+    # Mirror the Table plugin's per-column formatter selection in
+    # ``plugin-chart-table/src/transformProps.ts``: percent metrics default to
+    # PERCENT_3_POINT, every (numeric) metric gets a formatter that defaults to
+    # SMART_NUMBER, and other numeric columns are only formatted when an explicit
+    # format or currency is configured. Dimension and non-numeric columns are
+    # left untouched, matching the browser.
+    for column in df.columns:
+        config = config_by_label.get(column) or {}
+        configured_currency = config.get("currencyFormat") or {}
+        number_format = config.get("d3NumberFormat") or number_format_by_label.get(
+            column
         )
-        if column in df.columns:
-            config = column_config.get(original_column) or {}
-            configured_currency = config.get("currencyFormat") or {}
+        currency = (
+            configured_currency
+            if configured_currency.get("symbol")
+            else currency_by_label.get(column) or {}
+        )
+
+        is_number = pd.api.types.is_numeric_dtype(df[column])
+
+        if column in percent_metric_labels:
+            format_column(df, column, number_format or PERCENT_3_POINT, {})
+        elif (column in metric_labels and is_number) or (
+            is_number and (number_format or currency.get("symbol"))
+        ):
+            if not number_format and not currency.get("symbol"):
+                number_format = SMART_NUMBER
             format_column(
                 df,
                 column,
-                config.get("d3NumberFormat") or saved_formats.get(original_column),
-                (
-                    configured_currency
-                    if configured_currency.get("symbol")
-                    else saved_currency_formats.get(original_column) or {}
-                ),
+                number_format,
+                currency,
                 detected_currency,
                 row_currency_context,
                 fallback_to_detected=False,
