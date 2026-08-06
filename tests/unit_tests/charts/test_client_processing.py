@@ -3084,10 +3084,14 @@ def test_apply_client_processing_csv_format_empty_string():
     }
 
 
-@pytest.mark.parametrize("data", [None, "", "\n"])
+@pytest.mark.parametrize("data", [None, "", "\n", b"", b"\n"])
 def test_apply_client_processing_csv_format_no_data(data):
     """
-    It should be able to process csv results with no data
+    It should be able to process csv results with no data, including the
+    bytes forms ``QueryContextProcessor.get_data`` actually produces for a
+    columnless frame (e.g. a bare newline), which must be decoded before
+    the empty-data check runs or they'd reach ``pd.read_csv`` and raise
+    ``EmptyDataError``.
     """
 
     result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]}
