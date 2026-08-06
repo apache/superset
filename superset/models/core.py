@@ -32,7 +32,6 @@ from datetime import datetime
 from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
-from urllib.parse import quote
 
 import numpy
 import pandas as pd
@@ -1377,13 +1376,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         else:
             raw_password = self.password
 
-        # Encode the password such that special characters
-        # are preserved when rendering to string and reparsing the URL.
-        if raw_password is not None:
-            encoded_password = quote(raw_password, safe="")
-            conn = conn.set(password=encoded_password)
-        else:
-            conn = conn.set(password=None)
+        # URL.render_as_string() percent-encodes the password itself, so pass
+        # the raw, un-encoded password straight through. Pre-encoding it here
+        # (as this used to do) is safe under SQLAlchemy 1.4, whose
+        # render_as_string() treats URL.password as literal, but SQLAlchemy
+        # 2.0 always encodes on render - double-encoding a pre-escaped
+        # password (e.g. "%" -> "%25") turns it into "%2525" on write, which
+        # then decodes back to the wrong value ("%25" instead of "%") on the
+        # next reparse.
+        conn = conn.set(password=raw_password)
 
         # render_as_string preserves the URL encoding of special
         # characters in passwords
