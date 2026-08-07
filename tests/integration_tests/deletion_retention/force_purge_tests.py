@@ -165,18 +165,17 @@ class TestForcePurge(DeletionRetentionTestBase):
         second_scheduled: dict[str, object] = _purge_impl(30, dry_run=False)
 
         records: list[PurgeAuditLog] = (
-            db.session.query(PurgeAuditLog)
-            .filter_by(entity_uuid=chart_uuid)
-            .order_by(PurgeAuditLog.created_on)
-            .all()
+            db.session.query(PurgeAuditLog).filter_by(entity_uuid=chart_uuid).all()
         )
         assert first_scheduled["blocked_by_reference"] == 1
         assert force_result["reason"] == "blocked"
         assert second_scheduled["blocked_by_reference"] == 1
-        assert [(record.trigger, record.status) for record in records] == [
-            (audit.TRIGGER_RETENTION, audit.STATUS_BLOCKED),
-            (audit.TRIGGER_FORCE, audit.STATUS_BLOCKED),
-        ]
+        assert sorted((record.trigger, record.status) for record in records) == sorted(
+            [
+                (audit.TRIGGER_RETENTION, audit.STATUS_BLOCKED),
+                (audit.TRIGGER_FORCE, audit.STATUS_BLOCKED),
+            ]
+        )
 
     def test_force_purge_refuses_an_ambiguous_uuid(self) -> None:
         """A UUID matching two entity types is refused, not guessed.

@@ -14,13 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Index purge audit predecessor lookups.
+"""Preserve MySQL audit ordering and index predecessor lookups.
 
 Revision ID: b8d2f4a6c901
 Revises: d7cecc48bd55
 Create Date: 2026-08-06 18:00:00.000000
 
 """
+
+from alembic import op
+from sqlalchemy.dialects import mysql
+from sqlalchemy.dialects.mysql.base import MySQLDialect
 
 from superset.migrations.shared.utils import create_index, drop_index
 
@@ -31,7 +35,20 @@ down_revision: str = "d7cecc48bd55"
 _INDEX_NAME: str = "ix_purge_audit_log_retention_predecessor"
 
 
+def _set_mysql_created_on_precision(existing_fsp: int, target_fsp: int) -> None:
+    """Set fractional-second precision where plain DATETIME drops it."""
+    if isinstance(op.get_bind().dialect, MySQLDialect):
+        op.alter_column(
+            "purge_audit_log",
+            "created_on",
+            existing_type=mysql.DATETIME(fsp=existing_fsp),
+            type_=mysql.DATETIME(fsp=target_fsp),
+            existing_nullable=False,
+        )
+
+
 def upgrade() -> None:
+    _set_mysql_created_on_precision(0, 6)
     create_index(
         "purge_audit_log",
         _INDEX_NAME,
@@ -41,3 +58,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     drop_index("purge_audit_log", _INDEX_NAME)
+    _set_mysql_created_on_precision(6, 0)
