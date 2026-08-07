@@ -24,7 +24,7 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
-import { Modal } from '@superset-ui/core/components';
+import { Modal, RawAntdTooltip } from '@superset-ui/core/components';
 import { UnsavedChangesModal } from '.';
 
 test('should render nothing if showModal is false', () => {
@@ -105,18 +105,17 @@ test('should only call handleSave when clicking the Save button', async () => {
 
 // Regression coverage for the underlying bug (#42510): this modal could
 // render BEHIND another already-open modal (e.g. a draggable "View query"
-// modal). Ant Design only assigns a Modal a higher z-index automatically
-// when it's nested inside another *currently open* Modal's React tree --
-// two top-level siblings (this modal's Modal and whatever it's interrupting
-// are always siblings, never nested in each other) both fall back to the
-// same static z-index, tie-broken by DOM order: whichever `.ant-modal-wrap`
-// comes later in the document paints on top. So the invariant this modal
-// actually needs to hold isn't "higher z-index than the other modal" (both
-// are legitimately unset/tied by design) -- it's "always ends up later in
-// the DOM than whatever it's interrupting, no matter what already happened
-// on the page." A modal's wrap node is created once, lazily, on first open,
-// and normally stays in that DOM position forever; `destroyOnHidden` is
-// what makes every open recreate it fresh at the end of the document.
+// modal). Two plain top-level Modal siblings (neither nested inside the
+// other's React tree) fall back to the same static z-index, tie-broken by
+// DOM order: whichever `.ant-modal-wrap` comes later in the document paints
+// on top -- `destroyOnHidden` is what makes every open recreate this
+// modal's wrap fresh at the end of the document, so it wins that tie. But
+// the real #42510 repro isn't actually a tie: "View query" renders as a
+// dropdown menu item's label, and Ant Design's Menu.Item wraps every item's
+// content in a Tooltip (even one that never opens), which hands its
+// children a real elevated z-index via React context. That's why this
+// modal also sets an explicit `zIndex` -- comfortably above what that
+// inherited context can produce -- rather than relying on DOM order alone.
 function dialogWrap(titleText: string) {
   const dialogs = screen.queryAllByRole('dialog');
   // rc-util's `useId` hook always returns the same mocked id ("test-id") in
@@ -127,7 +126,7 @@ function dialogWrap(titleText: string) {
   return dialog?.closest<HTMLElement>('.ant-modal-wrap') ?? null;
 }
 
-test('renders above an already-open modal without a hardcoded z-index', async () => {
+test('renders above an already-open modal that also has no elevated z-index', async () => {
   render(
     <>
       <Modal show title="Other open modal" onHide={() => {}}>
@@ -158,6 +157,52 @@ test('renders above an already-open modal without a hardcoded z-index', async ()
     otherWrap.compareDocumentPosition(unsavedChangesWrap) &
       Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
+});
+
+// This is the actual #42510 repro, not just a tied-sibling stand-in: "View
+// query" is rendered as a dropdown menu item's label, so Ant Design's
+// Menu.Item silently wraps it in a Tooltip (title/open both stay falsy, it
+// never visibly opens) purely for its own ellipsis-title behavior. That
+// Tooltip still supplies a real, elevated z-index to its children via
+// context, so the modal nested inside it doesn't tie with a plain top-level
+// modal the way the previous test's "Other open modal" does -- DOM order
+// can't be the tie-breaker for two z-indexes that were never equal.
+test('renders above a modal nested in a menu item Tooltip wrapper, which gets a real elevated z-index', async () => {
+  render(
+    <>
+      <RawAntdTooltip title={null} open={false}>
+        <Modal show title="View query" onHide={() => {}}>
+          <div>query body</div>
+        </Modal>
+      </RawAntdTooltip>
+      <UnsavedChangesModal
+        showModal
+        onHide={() => {}}
+        handleSave={() => {}}
+        onConfirmNavigation={() => {}}
+      />
+    </>,
+  );
+
+  const viewQueryWrap = await waitFor(() => {
+    const wrap = dialogWrap('View query');
+    expect(wrap).not.toBeNull();
+    return wrap as HTMLElement;
+  });
+  const unsavedChangesWrap = await waitFor(() => {
+    const wrap = dialogWrap('Unsaved Changes');
+    expect(wrap).not.toBeNull();
+    return wrap as HTMLElement;
+  });
+
+  // The Tooltip wrapper does give "View query" a real inline z-index above
+  // the base -- confirming this test actually exercises an elevated,
+  // non-tied sibling rather than accidentally falling back to the tied
+  // case the previous test already covers.
+  expect(Number(viewQueryWrap.style.zIndex)).toBeGreaterThan(0);
+  expect(Number(unsavedChangesWrap.style.zIndex)).toBeGreaterThan(
+    Number(viewQueryWrap.style.zIndex),
+  );
 });
 
 test('still renders on top after being opened, closed, and reopened once the other modal is already open', async () => {
