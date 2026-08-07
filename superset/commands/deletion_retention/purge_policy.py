@@ -72,7 +72,7 @@ class ListenerAction(str, Enum):
 PolicyAction = Callable[[Session, "PurgeEntityPolicy", int], None]
 CountSnapshot = Callable[[Session, "PurgeEntityPolicy", int], int]
 UuidSnapshot = Callable[[Session, "PurgeEntityPolicy", int], list[str]]
-PermissionSnapshot = Callable[[Any, "PurgeEntityPolicy"], "str | None"]
+PermissionSnapshot = Callable[[Session, "PurgeEntityPolicy", int], "str | None"]
 PermissionCleanup = Callable[[Session, "PurgeEntityPolicy", "str | None", int], None]
 
 
@@ -1129,16 +1129,31 @@ def _delete_tagged_objects(
     )
 
 
-def dataset_permission_name(entity: Any, policy: PurgeEntityPolicy) -> str | None:
-    """Capture the dataset permission identifier before root deletion."""
+def dataset_permission_name(
+    session: Session, policy: PurgeEntityPolicy, entity_id: int
+) -> str | None:
+    """Capture the dataset permission identifier under the purge row lock.
+
+    Reads the identity columns from the database rather than the in-memory
+    entity, so a rename or database move committed before the purge claimed
+    the row cannot leave the cleanup targeting a stale permission name.
+    """
     if policy.entity_type != "dataset":
         return None
     from superset import security_manager
 
+    metadata: sa.MetaData = sa.inspect(policy.model).local_table.metadata
+    tables: sa.Table = metadata.tables["tables"]
+    dbs: sa.Table = metadata.tables["dbs"]
+    row = session.execute(
+        sa.select(tables.c.table_name, dbs.c.database_name)
+        .select_from(tables.join(dbs, tables.c.database_id == dbs.c.id))
+        .where(tables.c.id == entity_id)
+    ).one_or_none()
+    if row is None:
+        return None
     return str(
-        security_manager.get_dataset_perm(
-            entity.id, entity.table_name, entity.database.database_name
-        )
+        security_manager.get_dataset_perm(entity_id, row.table_name, row.database_name)
     )
 
 

@@ -211,7 +211,7 @@ def cascade_hard_delete(
     dangling_chart_uuids: list[str] = []
     removed_dashboard_slices = 0
     version_rows = 0
-    permission_name: str | None = policy.capture_permission_name(entity, policy)
+    permission_name: str | None = None
 
     try:
         with session.begin_nested():
@@ -230,6 +230,9 @@ def cascade_hard_delete(
                 raise PurgeRaceLostError
 
             policy.validate(session, policy, entity_id)
+            # Captured under the lock: the row is claimed, so the identity
+            # the permission name is built from can no longer change.
+            permission_name = policy.capture_permission_name(session, policy, entity_id)
             removed_dashboard_slices = policy.count_dashboard_slices(
                 session, policy, entity_id
             )
