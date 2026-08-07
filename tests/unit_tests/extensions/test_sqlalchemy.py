@@ -286,7 +286,7 @@ def test_dml(
         "(shillelagh.exceptions.ProgrammingError) DML not enabled in database "
         '"database2"\n[SQL: INSERT INTO "database2.table2" (a, b) '
         "VALUES (3, 'thirty')]\n(Background on this error at: "
-        "https://sqlalche.me/e/14/f405)"
+        "https://sqlalche.me/e/20/f405)"
     )
 
 
@@ -378,6 +378,6 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
         """
 (shillelagh.exceptions.ProgrammingError) Unsupported table: database2.table2
 [SQL: SELECT * FROM "database2.table2"]
-(Background on this error at: https://sqlalche.me/e/14/f405)
+(Background on this error at: https://sqlalche.me/e/20/f405)
         """.strip()
     )
