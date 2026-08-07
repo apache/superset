@@ -212,7 +212,7 @@ def _retention_predecessor(
     session: Session, current: PurgeAuditLog
 ) -> PurgeAuditLog | None:
     """Return the latest row that could unambiguously precede ``current``."""
-    return session.execute(
+    predecessor: PurgeAuditLog | None = session.execute(
         sa.select(PurgeAuditLog)
         .where(PurgeAuditLog.entity_uuid == current.entity_uuid)
         .where(PurgeAuditLog.entity_type == current.entity_type)
@@ -222,6 +222,23 @@ def _retention_predecessor(
         .order_by(PurgeAuditLog.created_on.desc())
         .limit(1)
     ).scalar_one_or_none()
+    if predecessor is None:
+        return predecessor
+    tied_mixed_status_exists: bool = session.execute(
+        sa.select(
+            sa.exists().where(
+                PurgeAuditLog.entity_uuid == current.entity_uuid,
+                PurgeAuditLog.entity_type == current.entity_type,
+                PurgeAuditLog.trigger == TRIGGER_RETENTION,
+                PurgeAuditLog.created_on == predecessor.created_on,
+                PurgeAuditLog.id != current.id,
+                PurgeAuditLog.status != predecessor.status,
+            )
+        )
+    ).scalar_one()
+    if tied_mixed_status_exists:
+        return None
+    return predecessor
 
 
 def _suppress_redundant_block(

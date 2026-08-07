@@ -233,6 +233,38 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         second: PurgeAuditLog = self._get_audit_record(second_id)
         assert second.status == audit.STATUS_BLOCKED
 
+    def test_tied_mixed_predecessors_are_ambiguous_and_retain_current(self) -> None:
+        timestamp: datetime = datetime.utcnow()
+        blocked_id: UUID = self._write_retention_record(
+            entity_uuid="mixed-tie", created_on=timestamp
+        )
+        audit.finalize(blocked_id, audit.STATUS_BLOCKED)
+        failed_id: UUID = self._write_retention_record(
+            entity_uuid="mixed-tie", created_on=timestamp
+        )
+        audit.finalize(failed_id, audit.STATUS_FAILED)
+        current_id: UUID = self._write_retention_record(
+            entity_uuid="mixed-tie", created_on=timestamp + timedelta(seconds=1)
+        )
+        session: Session = audit._dedicated_session()
+        try:
+            current: PurgeAuditLog | None = session.get(PurgeAuditLog, current_id)
+            assert current is not None
+            predecessor: PurgeAuditLog | None = audit._retention_predecessor(
+                session, current
+            )
+        finally:
+            session.close()
+
+        disposition: audit.RetentionBlockedDisposition = (
+            audit.finalize_retention_blocked(current_id)
+        )
+
+        assert predecessor is None
+        assert disposition == "retained"
+        retained: PurgeAuditLog = self._get_audit_record(current_id)
+        assert retained.status == audit.STATUS_BLOCKED
+
     def test_newer_concurrent_row_does_not_become_a_predecessor(self) -> None:
         current_time: datetime = datetime.utcnow()
         current_id: UUID = self._write_retention_record(
