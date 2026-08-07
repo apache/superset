@@ -17,7 +17,7 @@
 """Index purge audit predecessor lookups.
 
 Revision ID: b8d2f4a6c901
-Revises: c4a1b8e2d739
+Revises: d7cecc48bd55
 Create Date: 2026-08-06 18:00:00.000000
 
 """
@@ -26,7 +26,7 @@ from superset.migrations.shared.utils import create_index, drop_index
 
 # revision identifiers, used by Alembic.
 revision: str = "b8d2f4a6c901"
-down_revision: str = "c4a1b8e2d739"
+down_revision: str = "d7cecc48bd55"
 
 _INDEX_NAME: str = "ix_purge_audit_log_retention_predecessor"
 
