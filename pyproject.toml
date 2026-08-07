@@ -131,7 +131,7 @@ dependencies = [
 
 [project.optional-dependencies]
 
-athena = ["pyathena[pandas]>=3.35.2, <4"]
+athena = ["pyathena[pandas]>=3.35.4, <4"]
 # No SQLAlchemy 2.0 support anywhere in this dialect's ecosystem today: our
 # own preset-io/sqlalchemy-aurora-data-api fork is dead since 2021, and the
 # more active community fork (cloud-utils/sqlalchemy-aurora-data-api) has an
