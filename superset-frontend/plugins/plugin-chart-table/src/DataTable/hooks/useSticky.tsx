@@ -31,7 +31,10 @@ import {
 } from 'react';
 import { TableInstance, Hooks } from 'react-table';
 import { useTheme, css } from '@apache-superset/core/theme';
-import getScrollBarSize from '../utils/getScrollBarSize';
+import {
+  CUSTOM_SCROLLBAR_SIZE,
+  getCustomScrollBarSize,
+} from '../utils/getScrollBarSize';
 import needScrollBar from '../utils/needScrollBar';
 import useMountedMemo from '../utils/useMountedMemo';
 
@@ -165,7 +168,7 @@ function StickyWrap({
   const scrollFooterRef = useRef<HTMLDivElement>(null); // fixed footer
   const scrollBodyRef = useRef<HTMLDivElement>(null); // main body
 
-  const scrollBarSize = getScrollBarSize();
+  const scrollBarSize = getCustomScrollBarSize();
   const { bodyHeight, columnWidths, hasVerticalScroll } = sticky;
   const needSizer =
     !columnWidths ||
@@ -226,8 +229,8 @@ function StickyWrap({
 
   const scrollBarStyles = css`
     &::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: ${CUSTOM_SCROLLBAR_SIZE}px;
+      height: ${CUSTOM_SCROLLBAR_SIZE}px;
     }
     &::-webkit-scrollbar-track {
       background: ${theme.colorFillQuaternary};
