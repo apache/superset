@@ -21,7 +21,7 @@ import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { DatasourceType, SupersetClient } from '@superset-ui/core';
+import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
 import DeckMulti from './Multi';
 
 // Capture the layers handed to the DeckGL container so we can inspect the
@@ -49,8 +49,37 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
     get: jest.fn(),
+    post: jest.fn(),
   },
 }));
+
+// register stub buildQuery/transformProps for the layer types the tests use.
+// The stub transformProps simply echoes the fetched records through as
+// layer features, so `addColorToFeatures` (exercised in Multi.tsx) resolves
+// colors from the same raw records the tests assert against.
+const { getChartBuildQueryRegistry, getChartTransformPropsRegistry } =
+  jest.requireActual('@superset-ui/core');
+['deck_scatter', 'deck_arc'].forEach(vizType => {
+  getChartBuildQueryRegistry().registerValue(
+    vizType,
+    (formData: Record<string, unknown>) => ({
+      datasource: 'test_datasource',
+      queries: [{}],
+      form_data: formData,
+    }),
+  );
+  getChartTransformPropsRegistry().registerValue(
+    vizType,
+    (chartProps: { queriesData: { data: JsonObject[] }[] }) => ({
+      payload: {
+        data: {
+          features: chartProps.queriesData?.[0]?.data || [],
+          mapboxApiKey: 'test-key',
+        },
+      },
+    }),
+  );
+});
 
 const mockStore = configureStore({
   reducer: {
@@ -67,6 +96,27 @@ const renderWithProviders = (component: React.ReactElement) =>
 
 const SCATTER_SLICE_ID = 1;
 
+// Mocks the GET /api/v1/chart/{id} the v1 path uses to resolve each
+// sub-slice's saved form_data, keyed by slice_id -> params.
+const mockSubsliceParams = (paramsBySliceId: Record<number, JsonObject>) => {
+  (SupersetClient.get as jest.Mock).mockImplementation(
+    ({ endpoint }: { endpoint: string }) => {
+      const sliceId = Number(endpoint.match(/\/chart\/(\d+)/)?.[1]);
+      const params = paramsBySliceId[sliceId];
+      return Promise.resolve({
+        json: {
+          result: {
+            viz_type: params?.viz_type,
+            datasource_id: 1,
+            datasource_type: 'table',
+            params: JSON.stringify(params || {}),
+          },
+        },
+      });
+    },
+  );
+};
+
 const props = {
   formData: {
     datasource: '1__table',
@@ -75,28 +125,7 @@ const props = {
     autozoom: false,
     map_style: 'mapbox://styles/mapbox/light-v9',
   },
-  payload: {
-    data: {
-      slices: [
-        {
-          slice_id: SCATTER_SLICE_ID,
-          form_data: {
-            viz_type: 'deck_scatter',
-            datasource: '1__table',
-            slice_id: SCATTER_SLICE_ID,
-            // categorical color configuration coming from the saved scatter chart
-            color_scheme_type: 'categorical_palette',
-            color_scheme: 'supersetColors',
-            dimension: 'category',
-          },
-        },
-      ],
-      features: {
-        deck_scatter: [],
-      },
-      mapboxApiKey: 'test-key',
-    },
-  },
+  payload: undefined,
   setControlValue: jest.fn(),
   viewport: { longitude: 0, latitude: 0, zoom: 1 },
   onAddFilter: jest.fn(),
@@ -118,15 +147,27 @@ const props = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockLayerCapture.layers = [];
+  // categorical color configuration coming from the saved scatter chart
+  mockSubsliceParams({
+    [SCATTER_SLICE_ID]: {
+      viz_type: 'deck_scatter',
+      datasource: '1__table',
+      color_scheme_type: 'categorical_palette',
+      color_scheme: 'supersetColors',
+      dimension: 'category',
+    },
+  });
   // The scatter sublayer query returns features tagged with a category column.
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.post as jest.Mock).mockResolvedValue({
     json: {
-      data: {
-        features: [
-          { position: [0, 0], radius: 1, cat_color: 'A' },
-          { position: [1, 1], radius: 1, cat_color: 'B' },
-        ],
-      },
+      result: [
+        {
+          data: [
+            { position: [0, 0], radius: 1, cat_color: 'A' },
+            { position: [1, 1], radius: 1, cat_color: 'B' },
+          ],
+        },
+      ],
     },
   });
 });
@@ -166,29 +207,16 @@ test('applies categorical colors to scatter subslices saved before the color_sch
   // Charts saved before the color_scheme_type control existed lack the key in
   // stored params; the scatter default (categorical_palette) must be resolved
   // so they keep per-category colors.
-  const legacyProps = {
-    ...props,
-    payload: {
-      ...props.payload,
-      data: {
-        ...props.payload.data,
-        slices: [
-          {
-            slice_id: SCATTER_SLICE_ID,
-            form_data: {
-              viz_type: 'deck_scatter',
-              datasource: '1__table',
-              slice_id: SCATTER_SLICE_ID,
-              color_scheme: 'supersetColors',
-              dimension: 'category',
-            },
-          },
-        ],
-      },
+  mockSubsliceParams({
+    [SCATTER_SLICE_ID]: {
+      viz_type: 'deck_scatter',
+      datasource: '1__table',
+      color_scheme: 'supersetColors',
+      dimension: 'category',
     },
-  };
+  });
 
-  renderWithProviders(<DeckMulti {...legacyProps} />);
+  renderWithProviders(<DeckMulti {...props} />);
 
   await expectDistinctCategoricalColors();
 });
@@ -198,34 +226,21 @@ test('keeps fixed source and target colors for arc subslices saved before the co
   // target pickers directly; resolving the default must not stamp a single
   // per-feature color over the target color.
   const ARC_SLICE_ID = 2;
+  mockSubsliceParams({
+    [ARC_SLICE_ID]: {
+      viz_type: 'deck_arc',
+      datasource: '1__table',
+      color_picker: { r: 10, g: 20, b: 30, a: 1 },
+      target_color_picker: { r: 40, g: 50, b: 60, a: 1 },
+    },
+  });
   const arcProps = {
     ...props,
     formData: { ...props.formData, deck_slices: [ARC_SLICE_ID] },
-    payload: {
-      ...props.payload,
-      data: {
-        ...props.payload.data,
-        slices: [
-          {
-            slice_id: ARC_SLICE_ID,
-            form_data: {
-              viz_type: 'deck_arc',
-              datasource: '1__table',
-              slice_id: ARC_SLICE_ID,
-              color_picker: { r: 10, g: 20, b: 30, a: 1 },
-              target_color_picker: { r: 40, g: 50, b: 60, a: 1 },
-            },
-          },
-        ],
-        features: { deck_arc: [] },
-      },
-    },
   };
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.post as jest.Mock).mockResolvedValue({
     json: {
-      data: {
-        features: [{ sourcePosition: [0, 0], targetPosition: [1, 1] }],
-      },
+      result: [{ data: [{ sourcePosition: [0, 0], targetPosition: [1, 1] }] }],
     },
   });
 
