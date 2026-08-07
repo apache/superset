@@ -28,6 +28,7 @@ from uuid import uuid4
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy.dialects import mysql
 from sqlalchemy_utils import UUIDType
 
 STATUS_PENDING = "pending"
@@ -71,5 +72,10 @@ class PurgeAuditLog(Model):
     # row (force-purge visibility). Free text, content-free.
     affected_referrers = Column(Text, nullable=True)
     removed_dashboard_slices = Column(Integer, nullable=False, default=0)
-    created_on = Column(DateTime, nullable=False)
+    created_on = Column(
+        DateTime()
+        .with_variant(mysql.DATETIME(fsp=6), "mysql")
+        .with_variant(mysql.DATETIME(fsp=6), "mariadb"),
+        nullable=False,
+    )
     confirmed_on = Column(DateTime, nullable=True)

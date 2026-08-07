@@ -35,20 +35,20 @@ down_revision: str = "d7cecc48bd55"
 _INDEX_NAME: str = "ix_purge_audit_log_retention_predecessor"
 
 
-def _set_mysql_created_on_precision(existing_fsp: int, target_fsp: int) -> None:
+def _set_mysql_created_on_precision() -> None:
     """Set fractional-second precision where plain DATETIME drops it."""
     if isinstance(op.get_bind().dialect, MySQLDialect):
         op.alter_column(
             "purge_audit_log",
             "created_on",
-            existing_type=mysql.DATETIME(fsp=existing_fsp),
-            type_=mysql.DATETIME(fsp=target_fsp),
+            existing_type=mysql.DATETIME(fsp=0),
+            type_=mysql.DATETIME(fsp=6),
             existing_nullable=False,
         )
 
 
 def upgrade() -> None:
-    _set_mysql_created_on_precision(0, 6)
+    _set_mysql_created_on_precision()
     create_index(
         "purge_audit_log",
         _INDEX_NAME,
@@ -57,5 +57,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # MySQL DATETIME(6) is backward-compatible with the prior application.
+    # Keep the expanded precision so rollback never truncates audit ordering
+    # evidence written after upgrade.
     drop_index("purge_audit_log", _INDEX_NAME)
-    _set_mysql_created_on_precision(6, 0)
