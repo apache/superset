@@ -4929,9 +4929,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if hasattr(resource, "editors"):
             editor_subject_ids.update(s.id for s in resource.editors)
 
-        # Fallback for models like Query and SavedQuery that use 'user_id'
-        if hasattr(resource, "user_id") and resource.user_id is not None:
-            editor_subject_ids.add(resource.user_id)
+        # Fallback ONLY for Query and SavedQuery models that use 'user_id'
+        from superset.models.sql_lab import Query, SavedQuery
+        from superset.subjects.utils import get_user_subject
+
+        if (
+            isinstance(resource, (Query, SavedQuery))
+            and getattr(resource, "user_id", None) is not None
+        ):
+            if subject := get_user_subject(resource.user_id):
+                editor_subject_ids.add(subject.id)
 
         return bool(subject_ids & editor_subject_ids)
 

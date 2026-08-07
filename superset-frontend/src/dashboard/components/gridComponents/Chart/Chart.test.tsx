@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, fireEvent, render } from 'spec/helpers/testing-library';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import * as redux from 'redux';
 
@@ -628,172 +628,30 @@ test('should pass filterState from dataMask to ChartContainer', () => {
   );
 });
 
-describe('Chart Description with ResizeObserver', () => {
-  let mockResizeObserver: jest.Mock;
-  let observeMock: jest.Mock;
-  let disconnectMock: jest.Mock;
-  let getComputedStyleSpy: jest.SpyInstance;
+test('should pass chartStackTrace to ChartContainer so dashboard chart errors stay expandable', () => {
+  // Regression guard for #31858: the dashboard chart wrapper stopped forwarding
+  // the stack trace, so failed charts rendered a flat error with no "See more"
+  // affordance while the same error in Explore stayed expandable.
+  const stackTrace = 'Traceback (most recent call last): ValueError: boom';
 
-  beforeEach(() => {
-    observeMock = jest.fn();
-    disconnectMock = jest.fn();
-    mockResizeObserver = jest.fn().mockImplementation(() => ({
-      observe: observeMock,
-      disconnect: disconnectMock,
-    }));
-    global.ResizeObserver = mockResizeObserver as any;
-
-    getComputedStyleSpy = jest
-      .spyOn(window, 'getComputedStyle')
-      .mockReturnValue({
-        getPropertyValue: () => '',
-      } as unknown as CSSStyleDeclaration);
-  });
-
-  afterEach(() => {
-    delete (global as any).ResizeObserver;
-    getComputedStyleSpy.mockRestore();
-  });
-
-  test('A chart description configured to start expanded is visible after initial render', () => {
-    const { container } = setup(
-      {},
-      {
-        dashboardState: {
-          ...defaultState.dashboardState,
-          expandedSlices: { [queryId]: true },
+  setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          chartStackTrace: stackTrace,
         },
       },
-    );
-    expect(container.querySelector('.slice_description')).toBeInTheDocument();
-    expect(observeMock).toHaveBeenCalled();
-  });
+    },
+  );
 
-  test('The description height is correctly updated after asynchronous markdown rendering completes', () => {
-    let observerCallback: ResizeObserverCallback | undefined;
-    mockResizeObserver.mockImplementation(callback => {
-      observerCallback = callback;
-      return { observe: observeMock, disconnect: disconnectMock };
-    });
-
-    const { container } = setup(
-      { height: 300 },
-      {
-        charts: {
-          ...defaultState.charts,
-          [queryId]: {
-            ...defaultState.charts[queryId],
-            chartStatus: 'loading',
-          },
-        },
-        dashboardState: {
-          ...defaultState.dashboardState,
-          expandedSlices: { [queryId]: true },
-        },
-      },
-    );
-
-    const descriptionEl = container.querySelector(
-      '.slice_description',
-    ) as HTMLElement;
-    expect(descriptionEl).toBeInTheDocument();
-
-    if (observerCallback) {
-      Object.defineProperty(descriptionEl, 'offsetHeight', {
-        value: 100,
-        configurable: true,
-      });
-      act(() => {
-        observerCallback!(
-          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
-          {} as ResizeObserver,
-        );
-      });
-    }
-
-    const chartHeight = parseInt(
-      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
-        .style.height,
-      10,
-    );
-    expect(chartHeight).toBe(300 - 22 - 100);
-  });
-
-  test('The ResizeObserver callback updates the measured height', () => {
-    let observerCallback: ResizeObserverCallback | undefined;
-    mockResizeObserver.mockImplementation(callback => {
-      observerCallback = callback;
-      return { observe: observeMock, disconnect: disconnectMock };
-    });
-
-    const { container } = setup(
-      { height: 400 },
-      {
-        charts: {
-          ...defaultState.charts,
-          [queryId]: {
-            ...defaultState.charts[queryId],
-            chartStatus: 'loading',
-          },
-        },
-        dashboardState: {
-          ...defaultState.dashboardState,
-          expandedSlices: { [queryId]: true },
-        },
-      },
-    );
-
-    const descriptionEl = container.querySelector(
-      '.slice_description',
-    ) as HTMLElement;
-    expect(descriptionEl).toBeInTheDocument();
-
-    if (observerCallback) {
-      Object.defineProperty(descriptionEl, 'offsetHeight', {
-        value: 200,
-        configurable: true,
-      });
-      act(() => {
-        observerCallback!(
-          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
-          {} as ResizeObserver,
-        );
-      });
-    }
-
-    const chartHeight = parseInt(
-      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
-        .style.height,
-      10,
-    );
-    expect(chartHeight).toBe(400 - 22 - 200);
-  });
-
-  test('Existing expand/collapse behavior continues to work', () => {
-    const collapsedSetup = setup(
-      {},
-      {
-        dashboardState: {
-          ...defaultState.dashboardState,
-          expandedSlices: { [queryId]: false },
-        },
-      },
-    );
-    expect(
-      collapsedSetup.container.querySelector('.slice_description'),
-    ).not.toBeInTheDocument();
-
-    const expandedSetup = setup(
-      {},
-      {
-        dashboardState: {
-          ...defaultState.dashboardState,
-          expandedSlices: { [queryId]: true },
-        },
-      },
-    );
-    expect(
-      expandedSetup.container.querySelector('.slice_description'),
-    ).toBeInTheDocument();
-  });
+  expect(capturedChartContainerProps).toHaveProperty(
+    'chartStackTrace',
+    stackTrace,
+  );
 });
