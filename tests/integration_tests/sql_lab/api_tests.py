@@ -263,7 +263,7 @@ class TestSqlLabApi(SupersetTestCase):
         )
 
         with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
-            mock_superset_db.session.query().get.return_value = db_mock
+            mock_superset_db.session.get.return_value = db_mock
 
             data = {"database_id": 1, "sql": "SELECT 1"}
             rv = self.client.post(
