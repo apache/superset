@@ -1035,22 +1035,38 @@ def _owner_value_select(
     )
     if owner_table_name == root_table.name:
         return sa.select(*selected_columns).where(root_table.c.id == entity_id)
-    ownership_key: DependencyKey = _ownership_edge(policy, owner_table_name)
-    parent_values: Any = _owner_value_select(
-        policy,
-        ownership_key.owner_table,
-        ownership_key.local_columns,
-        entity_id,
-    )
-    owner_link_columns: tuple[sa.Column[Any], ...] = tuple(
-        owner_table.c[column_name] for column_name in ownership_key.remote_columns
-    )
-    predicate: Any = (
-        owner_link_columns[0].in_(parent_values)
-        if len(owner_link_columns) == 1
-        else sa.tuple_(*owner_link_columns).in_(parent_values)
-    )
-    return sa.select(*selected_columns).where(predicate)
+    reverse_path: list[DependencyKey] = []
+    visited: set[str] = set()
+    path_table_name: str = owner_table_name
+    while path_table_name != root_table.name:
+        if path_table_name in visited:
+            raise RuntimeError(f"Cyclic ownership path to {owner_table_name}")
+        visited.add(path_table_name)
+        ownership_key: DependencyKey = _ownership_edge(policy, path_table_name)
+        reverse_path.append(ownership_key)
+        path_table_name = ownership_key.owner_table
+
+    path: list[DependencyKey] = list(reversed(reverse_path))
+    parent_table: sa.Table = root_table
+    parent_predicate: Any = root_table.c.id == entity_id
+    for index, ownership_key in enumerate(path):
+        parent_columns: tuple[sa.Column[Any], ...] = tuple(
+            parent_table.c[column_name] for column_name in ownership_key.local_columns
+        )
+        parent_values: Any = sa.select(*parent_columns).where(parent_predicate)
+        child_table: sa.Table = metadata.tables[ownership_key.related_table]
+        child_link_columns: tuple[sa.Column[Any], ...] = tuple(
+            child_table.c[column_name] for column_name in ownership_key.remote_columns
+        )
+        parent_predicate = (
+            child_link_columns[0].in_(parent_values)
+            if len(child_link_columns) == 1
+            else sa.tuple_(*child_link_columns).in_(parent_values)
+        )
+        parent_table = child_table
+        if index == len(path) - 1:
+            return sa.select(*selected_columns).where(parent_predicate)
+    raise RuntimeError(f"Missing ownership path to {owner_table_name}")
 
 
 def _ownership_edge(policy: PurgeEntityPolicy, owner_table_name: str) -> DependencyKey:
@@ -1077,9 +1093,19 @@ def _dependency_owner_depth(
 ) -> int:
     """Return the number of ownership edges between a dependency and its root."""
     root_table: sa.Table = sa.inspect(policy.model).local_table
-    if key.owner_table == root_table.name:
-        return 0
-    return 1 + _dependency_owner_depth(policy, _ownership_edge(policy, key.owner_table))
+    owner_table_name: str = key.owner_table
+    visited: set[str] = set()
+    depth: int = 0
+    while owner_table_name != root_table.name:
+        if owner_table_name in visited:
+            raise RuntimeError(
+                f"Cyclic ownership path while resolving {key.describe()}"
+            )
+        visited.add(owner_table_name)
+        ownership_key: DependencyKey = _ownership_edge(policy, owner_table_name)
+        owner_table_name = ownership_key.owner_table
+        depth += 1
+    return depth
 
 
 def _execute_listener_effects(

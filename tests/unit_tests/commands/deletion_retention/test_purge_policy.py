@@ -25,10 +25,12 @@ from unittest.mock import MagicMock
 import pytest
 import sqlalchemy as sa
 from sqlalchemy.engine import Dialect
-from sqlalchemy.orm import configure_mappers
+from sqlalchemy.orm import configure_mappers, registry
 from sqlalchemy.sql import Select
 
 from superset.commands.deletion_retention.purge_policy import (
+    _dependency_owner_depth,
+    _dependency_predicates,
     _fk_key,
     compare_policy,
     delete_associations,
@@ -243,6 +245,87 @@ def test_recursive_discovery_stops_at_owned_cycles() -> None:
         and dependency.related_table == "dashboards"
         for dependency in dependencies
     )
+
+
+def test_dependency_owner_depth_handles_deep_paths_without_recursion() -> None:
+    """Ownership ordering and predicates are independent of recursion limits."""
+    path_length: int = 1_100
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "synthetic_root",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+    )
+    mapper_registry: registry = registry()
+
+    class SyntheticRoot:
+        """Temporary mapped root for deep ownership-path construction."""
+
+    mapper_registry.map_imperatively(SyntheticRoot, root_table)
+    for index in range(path_length):
+        sa.Table(
+            f"owned_{index}",
+            metadata,
+            sa.Column("id", sa.Integer, primary_key=True),
+            sa.Column("owner_id", sa.Integer),
+        )
+    sa.Table(
+        "leaf",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("owner_id", sa.Integer),
+    )
+    dependencies: tuple[DependencyPolicy, ...] = tuple(
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key",
+                "synthetic_root" if index == 0 else f"owned_{index - 1}",
+                f"owned_{index}",
+                ("id",),
+                ("owner_id",),
+                "inbound",
+            ),
+            DependencyClassification.OWNED,
+        )
+        for index in range(path_length)
+    )
+    policy: PurgeEntityPolicy = replace(
+        get_purge_policy(Slice), model=SyntheticRoot, dependencies=dependencies
+    )
+    leaf: DependencyKey = DependencyKey(
+        "foreign_key",
+        f"owned_{path_length - 1}",
+        "leaf",
+        ("id",),
+        ("owner_id",),
+        "inbound",
+    )
+
+    assert _dependency_owner_depth(policy, leaf) == path_length
+    predicates: tuple[Any, ...] = _dependency_predicates(
+        policy, leaf, 1, metadata.tables["leaf"]
+    )
+    assert len(predicates) == 1
+    mapper_registry.dispose()
+
+
+def test_dependency_owner_depth_rejects_cycles() -> None:
+    """Malformed ownership declarations fail clearly instead of looping."""
+    first: DependencyPolicy = DependencyPolicy(
+        DependencyKey("foreign_key", "owned_b", "owned_a", direction="inbound"),
+        DependencyClassification.OWNED,
+    )
+    second: DependencyPolicy = DependencyPolicy(
+        DependencyKey("foreign_key", "owned_a", "owned_b", direction="inbound"),
+        DependencyClassification.OWNED,
+    )
+    policy: PurgeEntityPolicy = replace(
+        get_purge_policy(Slice), dependencies=(first, second)
+    )
+    leaf: DependencyKey = DependencyKey("foreign_key", "owned_a", "leaf")
+
+    with pytest.raises(RuntimeError, match="Cyclic ownership path"):
+        _dependency_owner_depth(policy, leaf)
 
 
 @pytest.mark.parametrize(
