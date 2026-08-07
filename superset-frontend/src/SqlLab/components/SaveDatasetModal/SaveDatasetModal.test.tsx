@@ -127,6 +127,28 @@ describe('SaveDatasetModal', () => {
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
 
+  test('disables the save button when the dataset name is empty or whitespace-only', async () => {
+    renderModal();
+
+    const nameInput = screen.getByRole('textbox');
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+
+    // Default name is present, so save starts enabled
+    expect(saveBtn).toBeEnabled();
+
+    // Clearing the name disables save
+    await userEvent.clear(nameInput);
+    await waitFor(() => expect(saveBtn).toBeDisabled());
+
+    // Whitespace-only name keeps save disabled
+    await userEvent.type(nameInput, '   ');
+    await waitFor(() => expect(saveBtn).toBeDisabled());
+
+    // A non-empty name re-enables save
+    await userEvent.type(nameInput, 'My dataset');
+    await waitFor(() => expect(saveBtn).toBeEnabled());
+  });
+
   test('renders an overwrite button when "Overwrite existing" is selected', () => {
     renderModal();
 
@@ -243,6 +265,22 @@ describe('SaveDatasetModal', () => {
       sql: 'SELECT *',
       templateParams: undefined,
     });
+  });
+
+  test('trims surrounding whitespace from the dataset name on save', async () => {
+    renderModal();
+
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: '  my dataset  ' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith(
+      expect.objectContaining({ datasourceName: 'my dataset' }),
+    );
   });
 
   test('sends the catalog when creating the dataset', async () => {

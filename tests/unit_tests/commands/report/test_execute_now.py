@@ -28,14 +28,20 @@ from superset.commands.report.exceptions import (
     ReportScheduleNotFoundError,
 )
 from superset.exceptions import SupersetSecurityException
+from superset.reports.models import ReportScheduleType
 
 
-def _make_mock_schedule(*, working_timeout: int | None = None) -> MagicMock:
+def _make_mock_schedule(
+    *,
+    working_timeout: int | None = None,
+    schedule_type: ReportScheduleType = ReportScheduleType.ALERT,
+) -> MagicMock:
     """Return a minimal mock ReportSchedule."""
     mock_schedule = MagicMock()
     mock_schedule.id = 1
     mock_schedule.name = "Test Report"
     mock_schedule.working_timeout = working_timeout
+    mock_schedule.type = schedule_type
     return mock_schedule
 
 
@@ -55,7 +61,7 @@ def test_execute_now_success() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership"
+                ".raise_for_editorship"
             ),
         ):
             command = ExecuteReportScheduleNowCommand(1)
@@ -88,7 +94,7 @@ def test_execute_now_not_found() -> None:
 
 
 def test_execute_now_forbidden() -> None:
-    """Command raises ReportScheduleForbiddenError when the caller is not an owner."""
+    """Command raises ReportScheduleForbiddenError for a non-editor caller."""
     mock_scheduler = MagicMock()
 
     with patch.dict(sys.modules, {"superset.tasks.scheduler": mock_scheduler}):
@@ -101,7 +107,7 @@ def test_execute_now_forbidden() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership",
+                ".raise_for_editorship",
                 side_effect=SupersetSecurityException(MagicMock(message="Forbidden")),
             ),
         ):
@@ -129,7 +135,7 @@ def test_execute_now_celery_not_configured() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership"
+                ".raise_for_editorship"
             ),
         ):
             command = ExecuteReportScheduleNowCommand(1)
@@ -154,7 +160,7 @@ def test_execute_now_unexpected_failure() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership"
+                ".raise_for_editorship"
             ),
         ):
             command = ExecuteReportScheduleNowCommand(1)
@@ -178,7 +184,7 @@ def test_execute_now_sets_time_limit_when_working_timeout_configured() -> None:
             ),
             patch(
                 "superset.commands.report.execute_now.security_manager"
-                ".raise_for_ownership"
+                ".raise_for_editorship"
             ),
             patch("superset.commands.report.execute_now.current_app") as mock_app,
         ):
@@ -196,3 +202,40 @@ def test_execute_now_sets_time_limit_when_working_timeout_configured() -> None:
     assert keyword_args["time_limit"] == 310  # working_timeout(300) + LAG(10)
     assert "soft_time_limit" in keyword_args
     assert keyword_args["soft_time_limit"] == 305  # working_timeout(300) + SOFT_LAG(5)
+
+
+def test_execute_now_report_uses_end_to_end_budget_time_limits() -> None:
+    mock_task = MagicMock()
+    mock_scheduler = MagicMock()
+    mock_scheduler.execute = mock_task
+
+    with patch.dict(sys.modules, {"superset.tasks.scheduler": mock_scheduler}):
+        from superset.commands.report.execute_now import ExecuteReportScheduleNowCommand
+
+        with (
+            patch(
+                "superset.commands.report.execute_now.ReportScheduleDAO.find_by_id",
+                return_value=_make_mock_schedule(
+                    working_timeout=3600,
+                    schedule_type=ReportScheduleType.REPORT,
+                ),
+            ),
+            patch(
+                "superset.commands.report.execute_now.security_manager"
+                ".raise_for_editorship"
+            ),
+            patch("superset.commands.report.execute_now.current_app") as mock_app,
+        ):
+            mock_app.config = {
+                "ALERT_REPORTS_WORKING_TIME_OUT_KILL": True,
+                "ALERT_REPORTS_EXECUTION_BUDGET_SECONDS": 900,
+                "ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS": 60,
+                "ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS": 120,
+                "ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS": 30,
+                "ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS": 30,
+            }
+            ExecuteReportScheduleNowCommand(1).run()
+
+    _, keyword_args = mock_task.apply_async.call_args
+    assert keyword_args["soft_time_limit"] == 900
+    assert keyword_args["time_limit"] == 930

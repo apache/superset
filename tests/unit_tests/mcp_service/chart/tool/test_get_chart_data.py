@@ -33,6 +33,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _coerce_row_limit,
     _GENERIC_TYPE_MAP,
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
@@ -1262,9 +1263,10 @@ class TestChartLookupEagerLoading:
             )
             assert len(query_options) == 1
             load_path = _extract_metrics_load_path(query_options[0])
-            assert load_path == ["table", "metrics"], (
-                f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
-            )
+            assert load_path == [
+                "table",
+                "metrics",
+            ], f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
 
     @pytest.mark.asyncio
     async def test_uuid_lookup_passes_metrics_eager_load(self, mcp_server, mock_auth):
@@ -1293,9 +1295,10 @@ class TestChartLookupEagerLoading:
                 "UUID chart lookup must pass query_options for eager-loading."
             )
             load_path = _extract_metrics_load_path(query_options[0])
-            assert load_path == ["table", "metrics"], (
-                f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
-            )
+            assert load_path == [
+                "table",
+                "metrics",
+            ], f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
 
     @pytest.mark.asyncio
     async def test_json_format_also_eager_loads_metrics(self, mcp_server, mock_auth):
@@ -1322,6 +1325,219 @@ class TestChartLookupEagerLoading:
             query_options = call.kwargs.get("query_options")
             assert query_options is not None
             assert _extract_metrics_load_path(query_options[0]) == ["table", "metrics"]
+
+
+class TestOAuthErrorRouting:
+    """Query-time OAuth errors must reach the dedicated OAuth handlers.
+
+    OAuth2RedirectError/OAuth2Error subclass SupersetException, so without
+    the explicit re-raise ahead of the generic inner handler they would be
+    swallowed into a generic DataError and the client would never see the
+    OAuth redirect message.
+    """
+
+    def _make_chart(self) -> Any:
+        from unittest.mock import MagicMock
+
+        from superset.utils import json as utils_json
+
+        chart = MagicMock()
+        chart.id = 1
+        chart.slice_name = "My Chart"
+        chart.viz_type = "table"
+        chart.query_context = None
+        chart.params = utils_json.dumps(
+            {"viz_type": "table", "metrics": ["count"], "groupby": ["gender"]}
+        )
+        chart.datasource_id = 1
+        chart.datasource_type = "table"
+        return chart
+
+    def _patch_query_path(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        chart: Any,
+        run_error: Exception,
+    ) -> None:
+        """Route the query-execution path into a command that raises."""
+        from unittest.mock import MagicMock
+
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        validation = MagicMock()
+        validation.is_valid = True
+        validation.warnings = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                return object()
+
+        class RaisingChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                raise run_error
+
+        monkeypatch.setattr(
+            chart_data_module,
+            "find_chart_by_identifier",
+            lambda *args, **kwargs: chart,
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "validate_chart_dataset",
+            lambda *args, **kwargs: validation,
+        )
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            RaisingChartDataCommand,
+        )
+
+    @pytest.mark.asyncio
+    async def test_oauth2_redirect_error_returns_oauth_redirect_type(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from fastmcp import Client
+
+        from superset.exceptions import OAuth2RedirectError
+        from superset.utils import json as utils_json
+
+        self._patch_query_path(
+            monkeypatch,
+            self._make_chart(),
+            OAuth2RedirectError(
+                "https://example.com/oauth",
+                "tab-1",
+                "https://example.com/redirect",
+            ),
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 1}}
+            )
+            data = utils_json.loads(result.content[0].text)
+
+        assert data["error_type"] == "OAUTH2_REDIRECT"
+        assert data["error_type"] != "DataError"
+
+    @pytest.mark.asyncio
+    async def test_oauth2_error_returns_oauth_redirect_error_type(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from fastmcp import Client
+
+        from superset.exceptions import OAuth2Error
+        from superset.utils import json as utils_json
+
+        self._patch_query_path(
+            monkeypatch,
+            self._make_chart(),
+            OAuth2Error("token refresh failed"),
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 1}}
+            )
+            data = utils_json.loads(result.content[0].text)
+
+        assert data["error_type"] == "OAUTH2_REDIRECT_ERROR"
+
+    @pytest.mark.asyncio
+    async def test_oauth2_redirect_on_form_data_key_path(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The unsaved-chart (form_data_key, no identifier) path runs its
+        own command via _query_from_form_data — an OAuth error there must
+        also surface as OAUTH2_REDIRECT, not a generic DataError."""
+        from fastmcp import Client
+
+        from superset.exceptions import OAuth2RedirectError
+        from superset.utils import json as utils_json
+
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class RaisingChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                raise OAuth2RedirectError(
+                    "https://example.com/oauth",
+                    "tab-1",
+                    "https://example.com/redirect",
+                )
+
+        cached_form_data = utils_json.dumps(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+                "metrics": ["count"],
+                "groupby": ["gender"],
+                "row_limit": 10,
+            }
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "get_cached_form_data",
+            lambda *args, **kwargs: cached_form_data,
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "build_query_context_from_form_data",
+            lambda *args, **kwargs: object(),
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            RaisingChartDataCommand,
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+            )
+            data = utils_json.loads(result.content[0].text)
+
+        assert data["error_type"] == "OAUTH2_REDIRECT"
+        assert data["error_type"] != "DataError"
 
 
 # ---------------------------------------------------------------------------
@@ -1452,3 +1668,77 @@ def test_bool_isinstance_check_before_int():
     elif all(isinstance(v, (int, float)) for v in sample_values):
         data_type = "numeric"
     assert data_type == "boolean"
+
+
+@pytest.mark.parametrize(
+    "value,default,expected",
+    [
+        (100, 500, 100),  # int passthrough
+        ("250", 500, 250),  # numeric string from chart.params
+        (None, 500, 500),  # missing -> default
+        ("", 500, 500),  # empty string -> default
+        ("abc", 500, 500),  # non-numeric -> default
+        (0, 500, 0),  # explicit zero preserved
+    ],
+)
+def test_coerce_row_limit(value: Any, default: int, expected: int) -> None:
+    """_coerce_row_limit tolerates str/None row_limits from chart.params."""
+    assert _coerce_row_limit(value, default) == expected
+
+
+def _make_chart_data(**overrides: Any) -> ChartData:
+    """Build a minimal valid ChartData for testing."""
+    from superset.mcp_service.common.cache_schemas import CacheStatus
+
+    defaults: dict[str, Any] = {
+        "chart_id": 1,
+        "chart_name": "Test Chart",
+        "chart_type": "table",
+        "columns": [],
+        "data": [{"metric": 3.5}],
+        "row_count": 1,
+        "total_rows": 1,
+        "data_freshness": None,
+        "summary": "summary",
+        "insights": [],
+        "data_quality": {},
+        "recommended_visualizations": [],
+        "performance": PerformanceMetadata(
+            query_duration_ms=42,
+            cache_status="fresh_query",
+        ),
+        "cache_status": CacheStatus(cache_hit=False),
+    }
+    defaults.update(overrides)
+    return ChartData(**defaults)
+
+
+class TestChartDataTotalRowsCoercion:
+    """Regression tests: float total_rows causes PydanticSerializationError."""
+
+    def test_float_total_rows_is_coerced_to_int(self) -> None:
+        chart_data = _make_chart_data(total_rows=5.0)
+        assert chart_data.total_rows == 5
+        assert isinstance(chart_data.total_rows, int)
+
+    def test_float_total_rows_serializes_without_error(self) -> None:
+        import pydantic_core
+
+        chart_data = _make_chart_data(total_rows=5.0)
+        result = pydantic_core.to_json(chart_data, fallback=str).decode()
+        assert '"total_rows":5' in result
+
+    def test_none_total_rows_passes_through(self) -> None:
+        chart_data = _make_chart_data(total_rows=None)
+        assert chart_data.total_rows is None
+
+    def test_int_total_rows_unchanged(self) -> None:
+        chart_data = _make_chart_data(total_rows=42)
+        assert chart_data.total_rows == 42
+        assert isinstance(chart_data.total_rows, int)
+
+    def test_non_integer_float_total_rows_is_truncated(self) -> None:
+        """A non-integer float (e.g. 5.9) is coerced via int(), truncating."""
+        chart_data = _make_chart_data(total_rows=5.9)
+        assert chart_data.total_rows == 5
+        assert isinstance(chart_data.total_rows, int)

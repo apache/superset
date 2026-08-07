@@ -19,6 +19,7 @@ from unittest import mock
 
 import pytest
 
+from superset import db
 from superset.connectors.sqla.models import TableColumn
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import (
@@ -31,6 +32,7 @@ from superset.db_engine_specs.odps import OdpsBaseEngineSpec, OdpsEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql.parse import Table
+from superset.superset_typing import QueryObjectDict
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
@@ -177,7 +179,7 @@ class SupersetTestCases(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_calculated_column_in_order_by_base_engine_spec(self):
         table = self.get_table(name="birth_names")
-        TableColumn(
+        column = TableColumn(
             column_name="gender_cc",
             type="VARCHAR(255)",
             table=table,
@@ -188,6 +190,7 @@ class SupersetTestCases(SupersetTestCase):
             end
             """,
         )
+        db.session.add(column)
 
         table.database.sqlalchemy_uri = "sqlite://"
         query_obj = {
@@ -201,6 +204,52 @@ class SupersetTestCases(SupersetTestCase):
             "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"  # noqa: E501
             in sql
         )
+
+    @mock.patch("superset.models.core.Database.db_engine_spec", BaseEngineSpec)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_jinja_calculated_column_in_order_by(self) -> None:
+        """
+        A calculated column referenced by a SIMPLE adhoc metric in `orderby`
+        should have its Jinja template rendered, the same way it is for
+        SELECT/WHERE/GROUP BY.
+        """
+        table = self.get_table(name="birth_names")
+        column = TableColumn(
+            column_name="gender_cc_jinja",
+            type="VARCHAR(255)",
+            table=table,
+            expression="""
+            case
+              when gender='boy' then {{ "'male'" }}
+              else {{ "'female'" }}
+            end
+            """,
+        )
+        db.session.add(column)
+
+        table.database.sqlalchemy_uri = "sqlite://"
+        query_obj: QueryObjectDict = {
+            "groupby": ["gender_cc_jinja"],
+            "is_timeseries": False,
+            "filter": [],
+            "orderby": [
+                (
+                    {
+                        "expressionType": "SIMPLE",
+                        "column": {"column_name": "gender_cc_jinja"},
+                        "aggregate": "MAX",
+                        "label": "max_gender_cc_jinja",
+                    },
+                    True,
+                )
+            ],
+        }
+        sql = table.get_query_str(query_obj)
+        orderby_clause = sql.split("ORDER BY")[1]
+        assert "{%" not in orderby_clause
+        assert "{{" not in orderby_clause
+        assert "'male'" in orderby_clause
+        assert "'female'" in orderby_clause
 
 
 def test_time_grain_denylist():

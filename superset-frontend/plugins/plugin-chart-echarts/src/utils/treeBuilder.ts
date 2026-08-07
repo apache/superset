@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
-import { groupBy as _groupBy, transform } from 'lodash';
+import { groupBy as _groupBy, transform } from 'lodash-es';
 
 export type TreeNode = {
   name: DataRecordValue;
@@ -95,8 +95,6 @@ export function treeBuilder(
   // is dropped too: keeping it would leave a zero-value arc that yields a NaN
   // secondaryValue/value ratio for coloring and tooltips.
   return filterNullNames
-    ? nodes.filter(
-        node => node.name !== null && node.children?.length !== 0,
-      )
+    ? nodes.filter(node => node.name !== null && node.children?.length !== 0)
     : nodes;
 }

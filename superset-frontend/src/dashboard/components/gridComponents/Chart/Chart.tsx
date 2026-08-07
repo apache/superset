@@ -31,7 +31,7 @@ import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -170,7 +170,7 @@ const createOwnStateWithChartState = (
 
 const Chart = (props: ChartProps) => {
   const dispatch = useDispatch();
-  const descriptionRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   const boundActionCreators = useMemo(
@@ -208,7 +208,10 @@ const Chart = (props: ChartProps) => {
   );
   const isExpanded = useSelector(
     (state: RootState) =>
-      !!(state.dashboardState as JsonObject).expandedSlices?.[props.id],
+      !!(
+        state.dashboardState.expandedSlices?.[props.id] ??
+        state.dashboardState.expandAllSlices
+      ),
   );
   const supersetCanExplore = useSelector(
     (state: RootState) =>
@@ -218,9 +221,9 @@ const Chart = (props: ChartProps) => {
     (state: RootState) =>
       !!(state.dashboardInfo as JsonObject).superset_can_share,
   );
-  const supersetCanCSV = useSelector(
+  const supersetCanDownload = useSelector(
     (state: RootState) =>
-      !!(state.dashboardInfo as JsonObject).superset_can_csv,
+      !!(state.dashboardInfo as JsonObject).superset_can_download,
   );
   const timeout: number = useSelector(
     (state: RootState) =>
@@ -480,6 +483,26 @@ const Chart = (props: ChartProps) => {
 
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
+  // Memoize ownState so it keeps a stable reference across re-renders that
+  // don't change its logical value. ViewQueryModal depends on ownState; a fresh
+  // object on every render would refetch the query unnecessarily.
+  const ownState = useMemo(
+    () =>
+      createOwnStateWithChartState(
+        (dataMaskOwnState as JsonObject) || EMPTY_OBJECT,
+        {
+          state:
+            getChartStateWithFallback(
+              chartState as { state?: JsonObject } | undefined,
+              formData as JsonObject,
+              sliceVizType,
+            ) ?? undefined,
+        },
+        sliceVizType,
+      ),
+    [dataMaskOwnState, chartState, formData, sliceVizType],
+  );
+
   const exportTable = useCallback(
     async (format: string, isFullCSV: boolean, isPivot = false) => {
       const logAction =
@@ -562,7 +585,6 @@ const Chart = (props: ChartProps) => {
             exportFormData as unknown as import('@superset-ui/core').QueryFormData,
           resultType,
           resultFormat: format,
-          force: true,
           ownState: exportOwnState,
           onStartStreamingExport: shouldUseStreaming
             ? (exportParams: JsonObject) => {
@@ -710,7 +732,7 @@ const Chart = (props: ChartProps) => {
         sliceName={props.sliceName}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
-        supersetCanCSV={supersetCanCSV}
+        supersetCanDownload={supersetCanDownload}
         componentId={props.componentId}
         dashboardId={props.dashboardId}
         filters={getActiveFilters() || EMPTY_OBJECT}
@@ -727,6 +749,7 @@ const Chart = (props: ChartProps) => {
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel as unknown as (arg0: string) => void}
         chartHolderRef={props.chartHolderRef}
+        ownState={ownState}
       />
 
       {/*
@@ -737,14 +760,13 @@ const Chart = (props: ChartProps) => {
              https://github.com/apache/superset/pull/23862
         */}
       {isExpanded && slice.description_markdown && (
-        <div
+        <aside
           className="slice_description bs-callout bs-callout-default"
           ref={descriptionRef}
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
             __html: slice.description_markdown,
           }}
-          role="complementary"
         />
       )}
 
@@ -771,24 +793,14 @@ const Chart = (props: ChartProps) => {
           chartAlert={chart.chartAlert ?? undefined}
           chartId={props.id}
           chartStatus={chartStatus ?? undefined}
+          chartStackTrace={chart.chartStackTrace ?? undefined}
           datasource={datasource}
           dashboardId={props.dashboardId}
           initialValues={EMPTY_OBJECT}
           formData={
             formData as unknown as import('@superset-ui/core').QueryFormData
           }
-          ownState={createOwnStateWithChartState(
-            (dataMask[props.id]?.ownState as JsonObject) || EMPTY_OBJECT,
-            {
-              state:
-                getChartStateWithFallback(
-                  chartState as { state?: JsonObject } | undefined,
-                  formData as JsonObject,
-                  slice.viz_type,
-                ) ?? undefined,
-            },
-            slice.viz_type,
-          )}
+          ownState={ownState}
           queriesResponse={chart.queriesResponse ?? null}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}

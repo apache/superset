@@ -38,8 +38,7 @@ import {
 } from '@superset-ui/core/components';
 import { findPermission } from 'src/utils/findPermission';
 import { safeStringify } from 'src/utils/safeStringify';
-import Role from 'src/types/Role';
-import Owner from 'src/types/Owner';
+import Subject from 'src/types/Subject';
 import { DashboardLayout, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { AlertObject } from 'src/features/alerts/types';
@@ -61,6 +60,7 @@ import {
 } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -105,8 +105,7 @@ type DashboardPropertiesUpdate = {
   jsonMetadata?: string;
   certifiedBy?: string;
   certificationDetails?: string;
-  owners?: Owner[];
-  roles?: Role[];
+  editors?: Subject[];
   tags?: TagType[];
   theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
@@ -127,7 +126,6 @@ type DashboardInfoState = RootState['dashboardInfo'] & {
   last_modified_time?: number;
   certified_by?: string;
   certification_details?: string;
-  roles?: Role[];
   tags?: TagType[];
   metadata: RootState['dashboardInfo']['metadata'] & {
     timed_refresh_immune_slices?: number[];
@@ -180,7 +178,7 @@ const actionButtonsStyle = (theme: SupersetTheme) => css`
 `;
 
 const StyledUndoRedoButton = styled(Button)`
-  // TODO: check if we need this
+  /* TODO: check if we need this */
   padding: 0;
   &:hover {
     background: transparent;
@@ -441,8 +439,7 @@ const Header = (): JSX.Element => {
       css: customCss,
       dashboard_title: dashboardTitle,
       last_modified_time: actualLastModifiedTime,
-      owners: dashboardInfo.owners,
-      roles: dashboardInfo.roles,
+      editors: dashboardInfo.editors,
       slug,
       description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
@@ -468,7 +465,9 @@ const Header = (): JSX.Element => {
     if (positionJSONLength >= limit) {
       boundActionCreators.addDangerToast(
         t(
-          'Your dashboard is too large. Please reduce its size before saving it.',
+          'Your dashboard is too large to save: the serialized layout length is %s but the limit is %s. Reduce the dashboard size (for example, split it into multiple dashboards) or raise the SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting.',
+          positionJSONLength.toLocaleString(),
+          limit.toLocaleString(),
         ),
       );
     } else {
@@ -491,8 +490,7 @@ const Header = (): JSX.Element => {
     dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT,
     dashboardInfo.id,
     dashboardInfo.metadata,
-    dashboardInfo.owners,
-    dashboardInfo.roles,
+    dashboardInfo.editors,
     dashboardInfo.tags,
     dashboardTitle,
     layout,
@@ -545,10 +543,21 @@ const Header = (): JSX.Element => {
 
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
+  );
   const userCanEdit =
-    dashboardInfo.dash_edit_perm && !dashboardInfo.is_managed_externally;
-  const userCanShare = !!dashboardInfo.dash_share_perm;
-  const userCanSaveAs = !!dashboardInfo.dash_save_perm;
+    dashboardInfo.dash_edit_perm &&
+    !dashboardInfo.is_managed_externally &&
+    !isVersionPreviewActive;
+  const userCanShare =
+    !!dashboardInfo.dash_share_perm && !isVersionPreviewActive;
+  // Gated on preview like userCanEdit above: the Save/Discard toolbar acts on
+  // whatever is currently hydrated, and during a preview that is the
+  // snapshot's layout -- so leaving this ungated is a route to writing a
+  // historical version over the live dashboard.
+  const userCanSaveAs =
+    !!dashboardInfo.dash_save_perm && !isVersionPreviewActive;
   const userCanCurate =
     isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
     findPermission('can_set_embedded', 'Dashboard', user.roles);
@@ -563,8 +572,7 @@ const Header = (): JSX.Element => {
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
-        owners: updates.owners,
-        roles: updates.roles,
+        editors: updates.editors,
         tags: updates.tags,
         // Conditional spread: omit `theme` key entirely when undefined
         // to prevent the reducer from overwriting the existing theme.
@@ -729,9 +737,11 @@ const Header = (): JSX.Element => {
                   onClick={discardChanges}
                   buttonStyle="secondary"
                   data-test="discard-changes-button"
-                  aria-label={t('Discard')}
+                  aria-label={
+                    hasUnsavedChanges ? t('Discard') : t('Exit edit mode')
+                  }
                 >
-                  {t('Discard')}
+                  {hasUnsavedChanges ? t('Discard') : t('Exit edit mode')}
                 </Button>
                 <Button
                   css={saveBtnStyle}
@@ -842,6 +852,7 @@ const Header = (): JSX.Element => {
         menuDropdownProps={{
           open: isDropdownVisible,
           onOpenChange: setIsDropdownVisible,
+          disabled: isVersionPreviewActive,
         }}
         additionalActionsMenu={menu}
         showFaveStar={Boolean(user?.userId && dashboardInfo?.id)}
@@ -873,7 +884,6 @@ const Header = (): JSX.Element => {
       )}
 
       <ReportModal
-        userId={user.userId}
         show={showingReportModal}
         onHide={hideReportModal}
         userEmail={user.email}

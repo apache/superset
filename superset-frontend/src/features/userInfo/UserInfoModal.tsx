@@ -48,7 +48,7 @@ function UserInfoModal({
     : {};
   const handleFormSubmit = async (values: FormValues) => {
     try {
-      const { confirm_password, ...payload } = values;
+      const { confirm_password: _confirm_password, ...payload } = values;
       await SupersetClient.put({
         endpoint: `/api/v1/me/`,
         jsonPayload: { ...payload },

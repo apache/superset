@@ -107,15 +107,26 @@ const VizTypeControl = ({
           display: flex;
           justify-content: flex-end;
           margin-top: ${theme.sizeUnit * 2}px;
-          color: ${theme.colorTextSecondary};
           text-decoration: underline;
           font-size: ${theme.fontSizeSM}px;
           color: ${theme.colorTextTertiary};
         `}
       >
-        <span role="button" tabIndex={0} onClick={openModal}>
+        <button
+          type="button"
+          css={css`
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            color: inherit;
+            text-decoration: inherit;
+          `}
+          onClick={openModal}
+        >
           {t('View all charts')}
-        </span>
+        </button>
       </div>
       <UnpaddedModal
         show={showModal}

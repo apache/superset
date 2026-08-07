@@ -119,7 +119,7 @@ export const setupDatasourceEditorMocks = () => {
     count: 0,
     ids: [],
   });
-  fetchMock.get(call => call.url.includes('/api/v1/dataset/related/owners'), {
+  fetchMock.get(call => call.url.includes('/api/v1/dataset/related/editors'), {
     result: [],
     count: 0,
   });

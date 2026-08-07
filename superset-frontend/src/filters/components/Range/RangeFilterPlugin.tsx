@@ -28,7 +28,7 @@ import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 // import Metadata from '@superset-ui/core/components/Metadata';
-import { isNumber } from 'lodash';
+import { isNumber } from 'lodash-es';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import Slider from '@superset-ui/core/components/Slider';
 import { FormItem, Tooltip, Icons } from '@superset-ui/core/components';
@@ -363,8 +363,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
-    // Clear all case
-    if (filterState.value === undefined && !filterState.validateStatus) {
+    // Clear all case. The filter bar stages [null, null] for range filters, so
+    // matching only undefined let a filter still sitting at its default fall
+    // through to the default-restoring branch below.
+    if (
+      (filterState.value === undefined ||
+        isEqualArray(filterState.value, [null, null])) &&
+      !filterState.validateStatus
+    ) {
       setInputValue([null, null]);
       updateDataMaskValue([null, null]);
       return;

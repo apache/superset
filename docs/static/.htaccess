@@ -22,7 +22,15 @@ RewriteRule ^(.*)$ https://superset.apache.org/$1 [R,L]
 RewriteCond %{HTTP_HOST} ^superset.incubator.apache.org$ [NC]
 RewriteRule ^(.*)$ https://superset.apache.org/$1 [R=301,L]
 
-Header set Content-Security-Policy "default-src data: blob: 'self' *.apache.org widget.kapa.ai *.githubusercontent.com *.scarf.sh *.googleapis.com *.google.com *.run.app *.gstatic.com *.github.com *.algolia.net *.algolianet.com 'unsafe-inline' 'unsafe-eval'; frame-src *; frame-ancestors 'self' *.google.com https://sidebar.bugherd.com; form-action 'self'; worker-src blob:; img-src 'self' blob: data: https:; font-src 'self'; object-src 'none'"
+# CSP permissions for superset.apache.org
+# Additional domains required for docs site functionality:
+# - widget.kapa.ai: AI chatbot widget (uses Google reCAPTCHA). Approval here: https://privacy.apache.org/faq/committers.html
+# - *.googleapis.com, *.google.com, *.gstatic.com: Google Calendar embed, kapa.ai reCAPTCHA - all of these loaded with user consent, following policy laid out in https://privacy.apache.org/faq/committers.html
+# - github.com, *.github.com, *.githubusercontent.com: GitHub user-attachment images in docs (apex github.com serves user-attachments/* assets). Discussed/resolved in this thread: https://issues.apache.org/jira/browse/INFRA-25701?filter=-2 (DPA in place with GitHub)
+# - *.algolia.net, *.algolianet.com: Algolia DocSearch. Approved here: https://privacy.apache.org/faq/committers.html
+# - *.run.app: Google-owned domain (Google Cloud Run) used by the kapa.ai widget backend - only reached after explicit user acceptance when opening the widget, allowable per the policy laid out in https://privacy.apache.org/faq/committers.html
+# See: https://infra.apache.org/tools/csp.html
+SetEnv CSP_PROJECT_DOMAINS "widget.kapa.ai https://*.googleapis.com/ https://*.google.com/ https://*.gstatic.com/ https://github.com/ https://*.github.com/ https://*.githubusercontent.com/ https://*.algolia.net/ https://*.algolianet.com/ https://*.run.app/"
 
 # REDIRECTS
 

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-08 12:27-0700\n"
+"POT-Creation-Date: 2026-07-31 11:53+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -160,12 +160,6 @@ msgid " near '%(highlight)s'"
 msgstr " ใกล้ '%(highlight)s'"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
-#, fuzzy
-msgid " source code of Superset's sandboxed parser"
-msgstr " โค้ดต้นฉบับของตัวแยกวิเคราะห์แบบแซนด์บ็อกซ์ของ Superset"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid ""
@@ -260,21 +254,25 @@ msgstr "\"%s\" เป็นธีมเริ่มต้นของระบ�
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "% การคำนวณ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of parent"
 msgstr "% ของรายการแม่"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, es,
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, fuzzy, no-python-format
 msgid "% of total"
 msgstr "% ของทั้งหมด"
+
+#, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -288,6 +286,18 @@ msgstr "%(dialect)s ไม่สามารถใช้เป็นแหล่
 msgid "%(label)s file"
 msgstr "ไฟล์ %(label)s"
 
+#, python-format
+msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s restored successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
@@ -299,6 +309,21 @@ msgstr "%(name)s.csv"
 #, fuzzy, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -312,11 +337,15 @@ msgstr "%(object)s ไม่มีอยู่ในฐานข้อมูล�
 msgid "%(prefix)s %(title)s"
 msgstr "%(prefix)s %(title)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory "
 "constraints."
 msgstr ""
+"%(prefix)sผลลัพธ์ถูกตัดให้เหลือ %(row_count)s แถว "
+"เนื่องจากข้อจำกัดของหน่วยความจำ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
@@ -433,9 +462,11 @@ msgstr "%s รายการที่เลือก (จริง)"
 msgid "%s Selected (Virtual)"
 msgstr "%s รายการที่เลือก (เสมือน)"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s Semantic View"
-msgstr ""
+msgstr "%s มุมมองเชิงความหมาย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -475,7 +506,7 @@ msgstr "%s คอลัมน์"
 #, fuzzy, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "1 วันที่แล้ว"
+msgstr[0] "%s วันที่ผ่านมา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, es, fr,
 # ja, lv, mi, ru, sk, sl, uk]
@@ -519,14 +550,23 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "เมตริกสำหรับเรียง"
+msgstr[0] "%s เมตริก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "1 เดือนที่แล้ว"
+msgstr[0] "%s นาทีที่แล้ว"
+
+#, python-format
+msgid ""
+"%s of the selected items is a semantic view, which cannot be archived: it"
+" will be deleted permanently and cannot be recovered."
+msgid_plural ""
+"%s of the selected items are semantic views, which cannot be archived: "
+"they will be deleted permanently and cannot be recovered."
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -553,7 +593,7 @@ msgstr "%s ตัวเลือก"
 #, fuzzy, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "ปรับขนาดคอลัมน์อัตโนมัติ"
+msgstr[0] "%s จาก %s คอลัมน์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -561,7 +601,7 @@ msgstr[0] "ปรับขนาดคอลัมน์อัตโนมัต
 #, fuzzy, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "เมตริกสำหรับเรียง"
+msgstr[0] "%s จาก %s เมตริก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -574,13 +614,6 @@ msgstr "เลือก %s แท็บแล้ว"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "%s ผู้รับ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
-# ru, sk, uk]
-#, fuzzy, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s ระเบียน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
@@ -601,7 +634,7 @@ msgstr[0] "%s แถว"
 #, fuzzy, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "30 วันที่แล้ว"
+msgstr[0] "%s วินาทีที่แล้ว"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -614,19 +647,25 @@ msgstr "%s เมตริกที่บันทึกแล้ว"
 #, fuzzy, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5 วินาที"
+msgstr[0] "%s วินาที"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s semantic view(s) added"
-msgstr ""
+msgstr "เพิ่ม %s มุมมองเชิงความหมายแล้ว"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s semantic view(s) failed to add"
-msgstr ""
+msgstr "ไม่สามารถเพิ่ม %s มุมมองเชิงความหมายได้"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "%s semantic view(s) failed to add: %s"
-msgstr ""
+msgstr "ไม่สามารถเพิ่ม %s มุมมองเชิงความหมายได้: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -886,11 +925,9 @@ msgstr "10 วินาที"
 msgid "10/90 percentiles"
 msgstr "เปอร์เซ็นไทล์ 10/90"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, pt_BR, sk, uk]
-#, fuzzy
+#. do-not-translate
 msgid "10000"
-msgstr "10000"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -1245,24 +1282,21 @@ msgstr ">= (มากกว่าหรือเท่ากับ)"
 msgid "A Big Number"
 msgstr "ตัวเลขขนาดใหญ่"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# pt_BR, ru, sk, uk]
-#, fuzzy
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "ฟังก์ชัน JavaScript ที่สร้างออบเจกต์การกำหนดค่าป้ายกำกับ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# pt_BR, ru, sk, uk]
-#, fuzzy
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "ฟังก์ชัน JavaScript ที่สร้างออบเจกต์การกำหนดค่าไอคอน"
-
-#, python-brace-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-brace-format
 msgid ""
 "A JavaScript object that adheres to the ECharts options specification, "
 "overriding other control options with higher precedence. (i.e. { title: {"
 " text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Details: "
 "https://echarts.apache.org/en/option.html. "
+msgstr ""
+"ออบเจกต์ JavaScript ที่สอดคล้องกับข้อกำหนดตัวเลือก ECharts "
+"โดยแทนที่ตัวเลือกการควบคุมอื่นๆ ด้วยลำดับความสำคัญที่สูงกว่า (เช่น { "
+"title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }) "
+"รายละเอียด: https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
@@ -1294,6 +1328,11 @@ msgstr "มีฐานข้อมูลที่มีชื่อเดีย
 #, fuzzy
 msgid "A date is required when using custom date shift"
 msgstr "จำเป็นต้องระบุวันที่เมื่อใช้การเลื่อนวันที่แบบกำหนดเอง"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "A description for your dashboard"
+msgstr "คำอธิบายสำหรับแดชบอร์ดของคุณ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
@@ -1338,6 +1377,20 @@ msgstr ""
 "การปล่อยให้ช่องนี้ว่างจะอนุญาตให้ฝังจากโดเมนใดก็ได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+#, fuzzy
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr "รายการผู้ใช้ที่สามารถแก้ไขแผนภูมิได้ ค้นหาได้ด้วยชื่อหรือชื่อผู้ใช้"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+#, fuzzy
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr "รายการผู้ใช้ที่สามารถแก้ไขแผนภูมิได้ ค้นหาได้ด้วยชื่อหรือชื่อผู้ใช้"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
 msgid "A list of tags that have been applied to this chart."
@@ -1348,13 +1401,6 @@ msgstr "รายการแท็กที่นำไปใช้กับแ
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "รายการแท็กที่นำไปใช้กับแดชบอร์ดนี้"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr "รายการผู้ใช้ที่สามารถแก้ไขแผนภูมิได้ ค้นหาได้ด้วยชื่อหรือชื่อผู้ใช้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -1375,6 +1421,13 @@ msgstr "แผนที่ที่แสดงวงกลมด้วยรั
 #, fuzzy
 msgid "A metric to use for color"
 msgstr "เมตริกที่ใช้สำหรับสี"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"A multiplier applied to the point radius. Use this to uniformly scale all"
+" points."
+msgstr "ตัวคูณที่ใช้กับรัศมีจุด ใช้เพื่อปรับขนาดจุดทั้งหมดอย่างสม่ำเสมอ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -1438,6 +1491,28 @@ msgid ""
 "templating syntax"
 msgstr "ชุดพารามิเตอร์ที่พร้อมใช้งานในคิวรีโดยใช้ไวยากรณ์เทมเพลต Jinja"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
+msgstr ""
+"ชุดข้อมูลที่ถูกลบแบบซอฟต์ (uuid %(uuid)s) อ้างอิงตารางนี้อยู่แล้ว "
+"โปรดกู้คืนผ่าน POST /api/v1/dataset/%(uuid)s/restore "
+"ก่อนที่จะสร้างชุดข้อมูลใหม่บนตารางนี้ หรือใช้ชื่อตารางอื่น"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
+msgstr ""
+"ชุดข้อมูลที่ถูกลบแบบซอฟต์ (uuid %(uuid)s) อ้างอิงตารางนี้อยู่แล้ว "
+"โปรดกู้คืนผ่าน POST /api/v1/dataset/%(uuid)s/restore ก่อนอัปโหลด "
+"หรืออัปโหลดไปยังชื่อตารางอื่น"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -1455,6 +1530,9 @@ msgstr "เกิดการหมดเวลาขณะสร้างไฟ
 #, fuzzy
 msgid "A timeout occurred while generating a dataframe."
 msgstr "เกิดการหมดเวลาขณะสร้าง dataframe"
+
+msgid "A timeout occurred while generating an Excel file."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -1520,17 +1598,17 @@ msgstr "สร้างบทบาทเรียบร้อยแล้ว"
 msgid "API key name is required"
 msgstr "ต้องระบุชื่อตาราง"
 
-msgid "API key revoked successfully"
-msgstr ""
-
-msgid "API keys allow scoped programmatic access to Superset."
-msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
 #, fuzzy
-msgid "APPLY"
-msgstr "ใช้งาน"
+msgid "API key revoked successfully"
+msgstr "เพิกถอน API key เรียบร้อยแล้ว"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy
+msgid "API keys allow scoped programmatic access to Superset."
+msgstr "API key ช่วยให้สามารถเข้าถึง Superset ด้วยโปรแกรมในขอบเขตที่กำหนดได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -1568,11 +1646,11 @@ msgstr "กำลังดำเนินการ"
 msgid "About"
 msgstr "เกี่ยวกับ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
-# lv, ru, sk, uk]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
-msgid "Access & ownership"
-msgstr "การเข้าถึงและความเป็นเจ้าของ"
+msgid "Access"
+msgstr "สำเร็จ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -1850,6 +1928,12 @@ msgstr "เพิ่มสีสำหรับการเปลี่ยนแ
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "เพิ่มสีให้กับแถบในเซลล์สำหรับ +/-"
 
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -2001,6 +2085,9 @@ msgstr "เพิ่มค่าตัวควบคุมที่จำเป
 msgid "Add required control values to save chart"
 msgstr "เพิ่มค่าตัวควบคุมที่จำเป็นเพื่อบันทึกแผนภูมิ"
 
+msgid "Add service credentials"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -2120,6 +2207,12 @@ msgid ""
 "Adds color to the chart symbols based on the positive or negative change "
 "from the comparison value."
 msgstr "เพิ่มสีให้กับสัญลักษณ์แผนภูมิตามการเปลี่ยนแปลงเชิงบวกหรือเชิงลบจากค่าที่เปรียบเทียบ"
+
+msgid "Adhoc metric SQL expression is invalid"
+msgstr ""
+
+msgid "Adhoc metric aggregate is invalid"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2248,14 +2341,6 @@ msgid ""
 msgstr "ฟังก์ชันรวมที่ใช้กับรายการจุดในแต่ละคลัสเตอร์เพื่อสร้างป้ายกำกับคลัสเตอร์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr "ฟังก์ชันรวมที่ใช้เมื่อทำการหมุนและคำนวณแถวและคอลัมน์ทั้งหมด"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
 msgid ""
@@ -2274,12 +2359,6 @@ msgstr "การรวม"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "วิธีการรวม"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Aggregation function"
-msgstr "ฟังก์ชันการรวม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -2486,6 +2565,9 @@ msgstr "แผงทั้งหมด"
 msgid "All records"
 msgstr "ระเบียนทั้งหมด"
 
+msgid "All time"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -2628,6 +2710,9 @@ msgstr ""
 "การแสดงผลนี้เปรียบเทียบการกระจายของตัวชี้วัดที่เกี่ยวข้องในหลายกลุ่ม "
 "กล่องตรงกลางเน้นค่าเฉลี่ย ค่ามัธยฐาน และควอร์ไทล์ภายใน 2 ค่า หนวดรอบๆ "
 "กล่องแต่ละกล่องแสดงค่าต่ำสุด ค่าสูงสุด ช่วง และควอร์ไทล์ภายนอก 2 ค่า"
+
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2800,12 +2885,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "เกิดข้อผิดพลาดขณะดึงข้อมูล %s: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "เกิดข้อผิดพลาดขณะดึงค่าเจ้าของ: %s"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 #, fuzzy, python-format
@@ -2851,9 +2930,15 @@ msgstr "เกิดข้อผิดพลาดขณะดึงธีมท
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
-msgid "An error occurred while fetching chart owners values: %s"
-msgstr "เกิดข้อผิดพลาดขณะดึงค่าเจ้าของแผนภูมิ: %s"
+#, python-format
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "เกิดข้อผิดพลาดขณะดึงค่าผู้แก้ไขแผนภูมิ: %s"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
+msgstr "เกิดข้อผิดพลาดขณะดึงค่าผู้ดูแผนภูมิ: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2870,9 +2955,16 @@ msgstr "เกิดข้อผิดพลาดขณะดึงค่าส
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
-#, fuzzy, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "เกิดข้อผิดพลาดขณะดึงค่าเจ้าของแดชบอร์ด: %s"
+#, python-format
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "เกิดข้อผิดพลาดขณะดึงค่าผู้แก้ไขแดชบอร์ด: %s"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
+msgstr "เกิดข้อผิดพลาดขณะดึงค่าผู้ดูแดชบอร์ด: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2911,9 +3003,22 @@ msgstr "เกิดข้อผิดพลาดขณะดึงค่าแ
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
+#, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr "เกิดข้อผิดพลาดขณะดึงค่าผู้แก้ไขชุดข้อมูล: %s"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
 #, fuzzy, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "เกิดข้อผิดพลาดขณะดึงข้อมูลที่เกี่ยวข้องกับชุดข้อมูล: %s"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "เกิดข้อผิดพลาดขณะดึงค่าผู้แก้ไข: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2921,11 +3026,9 @@ msgstr "เกิดข้อผิดพลาดขณะดึงข้อม
 msgid "An error occurred while fetching function names."
 msgstr "เกิดข้อผิดพลาดขณะดึงชื่อฟังก์ชัน."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "เกิดข้อผิดพลาดขณะดึงค่าเจ้าของ: %s"
+#, python-format
+msgid "An error occurred while fetching row level security subject values: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2955,25 +3058,9 @@ msgstr "เกิดข้อผิดพลาดขณะดึงสถาน
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
-#, fuzzy
-msgid "An error occurred while fetching table metadata"
-msgstr "เกิดข้อผิดพลาดขณะดึงเมตาดาต้าตาราง"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "เกิดข้อผิดพลาดขณะดึงเมตาดาต้าตาราง"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid ""
-"An error occurred while fetching table metadata. Please contact your "
-"administrator."
-msgstr "เกิดข้อผิดพลาดขณะดึงเมตาดาต้าตาราง โปรดติดต่อผู้ดูแลระบบของคุณ."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -3025,11 +3112,23 @@ msgstr "เกิดข้อผิดพลาดขณะดึงค่าผ
 msgid "An error occurred while formatting SQL"
 msgstr "เกิดข้อผิดพลาดขณะจัดรูปแบบ SQL"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "เกิดข้อผิดพลาดขณะนำเข้า %s: %s"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr "เกิดข้อผิดพลาดขณะโหลด SQL Lab อาจเกิดจากสถานะคิวรีที่เสียหาย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -3121,6 +3220,9 @@ msgstr ""
 msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "เกิดข้อผิดพลาดขณะซิงค์สิทธิ์สำหรับ %s: %s"
 
+msgid "An error occurred while triggering the report"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -3151,6 +3253,9 @@ msgstr "เกิดข้อผิดพลาดขณะอัปเซิร
 msgid "An error occurred while upserting the value."
 msgstr "เกิดข้อผิดพลาดขณะอัปเซิร์ตค่า"
 
+msgid "An export for this dashboard is already in progress."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -3162,6 +3267,11 @@ msgstr "เกิดข้อผิดพลาดที่ไม่คาดค
 #, fuzzy
 msgid "Anchor to"
 msgstr "ยึดกับ"
+
+msgid ""
+"Angle at which the first slice begins, in degrees. 90° starts at the top,"
+" 0°/360° at the right, 270° at the bottom, and 180° at the left."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -3482,11 +3592,16 @@ msgstr ""
 "ช่วงเวลาเลื่อนที่ใช้งานไม่ส่งคืนข้อมูลใดๆ "
 "โปรดตรวจสอบให้แน่ใจว่าคิวรีต้นทางตรงตามช่วงเวลาขั้นต่ำที่กำหนดในช่วงเวลาเลื่อน"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Applies only when \"Cell bars\" formatting is selected: the background of"
 " the histogram columns is displayed if the \"Show cell bars\" flag is "
 "enabled."
 msgstr ""
+"ใช้เฉพาะเมื่อเลือกการจัดรูปแบบ \"แถบในเซลล์\": "
+"พื้นหลังของคอลัมน์ฮิสโตแกรมจะแสดงหากเปิดใช้งานตัวเลือก \"แสดงแถบในเซลล์\""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -3559,6 +3674,41 @@ msgstr "เมษายน"
 msgid "Arc"
 msgstr "ส่วนโค้ง"
 
+msgid "Archive"
+msgstr ""
+
+#, python-format
+msgid "Archive %(name)s?"
+msgstr ""
+
+#, python-format
+msgid "Archive selected %s?"
+msgstr ""
+
+msgid "Archive selected charts?"
+msgstr ""
+
+msgid "Archive selected dashboards?"
+msgstr ""
+
+msgid "Archived"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s)"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
+msgstr ""
+
+msgid "Archived by"
+msgstr ""
+
+#, python-format
+msgid "Archived: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -3618,6 +3768,9 @@ msgstr "คุณแน่ใจหรือไม่ว่าต้องกา
 #, fuzzy
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "คุณแน่ใจหรือไม่ว่าต้องการลบเลเยอร์ที่เลือกไว้?"
+
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -3810,13 +3963,17 @@ msgstr "อัตโนมัติ"
 msgid "Auto Zoom"
 msgstr "ซูมอัตโนมัติ"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Auto refresh paused (set to %s seconds)"
-msgstr ""
+msgstr "หยุดการรีเฟรชอัตโนมัติชั่วคราว (ตั้งค่าเป็น %s วินาที)"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
-msgstr ""
+msgstr "หยุดการรีเฟรชอัตโนมัติชั่วคราว - แท็บไม่ได้ใช้งาน (ตั้งค่าเป็น %s วินาที)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -4070,8 +4227,11 @@ msgstr "ความสูงฐาน"
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "รูปแบบแผนที่เลเยอร์ฐาน ดูเอกสาร Mapbox: %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...)."
-msgstr ""
+msgstr "สไตล์แผนที่เลเยอร์พื้นฐาน รองรับ URL สไตล์ Mapbox (mapbox://styles/...)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -4452,23 +4612,11 @@ msgstr "ตามคีย์: ใช้ชื่อแถวเป็นคี�
 msgid "By value: use metric values as sorting key"
 msgstr "ตามค่า: ใช้ค่าเมตริกเป็นคีย์เรียงลำดับ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
-#, fuzzy
-msgid "CANCEL"
-msgstr "ยกเลิก"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 #, fuzzy
 msgid "CC recipients"
 msgstr "ผู้รับสำเนา (CC)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
-# ru, uk]
-#, fuzzy
-msgid "COPY QUERY"
-msgstr "คัดลอกคิวรี"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -4528,11 +4676,17 @@ msgstr "แม่แบบ CSS"
 msgid "CSS applied to the chart"
 msgstr "CSS ที่ใช้กับแผนภูมิ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "CSS styles may be removed by server-side HTML sanitization. If styles are"
 " not applying, ask your Superset administrator to adjust the HTML "
 "sanitization configuration."
 msgstr ""
+"สไตล์ CSS อาจถูกลบออกโดยการทำความสะอาด HTML ฝั่งเซิร์ฟเวอร์ "
+"หากสไตล์ไม่ถูกนำไปใช้ ให้ติดต่อผู้ดูแลระบบ Superset "
+"เพื่อปรับการตั้งค่าการทำความสะอาด HTML"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -4597,12 +4751,6 @@ msgstr ""
 "สามารถเรียกใช้ได้เฉพาะกับคำสั่งที่คำสั่งสุดท้ายเป็น SELECT เท่านั้น "
 "โปรดตรวจสอบให้แน่ใจว่าคำสั่งของคุณมี SELECT เป็นคำสั่งสุดท้าย "
 "จากนั้นลองเรียกใช้คำสั่งของคุณอีกครั้ง"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# ja, lv, mi, ru, sk, uk]
-#, fuzzy
-msgid "CUSTOM"
-msgstr "กำหนดเอง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -4754,8 +4902,11 @@ msgstr "ยกเลิก"
 msgid "Cancel query on window unload event"
 msgstr "ยกเลิกคำค้นหาเมื่อเกิดเหตุการณ์ปิดหน้าต่าง"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Cancellation not available due to missing abort handler"
-msgstr ""
+msgstr "ไม่สามารถยกเลิกได้เนื่องจากไม่มี abort handler"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -4768,6 +4919,19 @@ msgstr "ไม่สามารถเข้าถึงคำค้นหาไ
 #, fuzzy
 msgid "Cannot delete a database that has datasets attached"
 msgstr "ไม่สามารถลบฐานข้อมูลที่มีชุดข้อมูลแนบอยู่ได้"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+"ไม่สามารถลบฐานข้อมูลที่ชุดข้อมูลที่เหลืออยู่ทั้งหมดถูกลบแบบซอฟต์ได้ "
+"โปรดกู้คืน (POST /api/v1/dataset/<uuid>/restore) "
+"และลบอย่างถาวรเมื่อมีความสามารถในการล้างข้อมูล "
+"หรือลบแถวพื้นฐานออกนอกระบบก่อนที่จะลบฐานข้อมูล"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -5132,9 +5296,11 @@ msgstr "อักขระที่ใช้แทนจุดทศนิยม
 msgid "Chart"
 msgstr "แผนภูมิ"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Chart %(chart_id)s is not on dashboard %(dashboard_id)s"
-msgstr ""
+msgstr "แผนภูมิ %(chart_id)s ไม่ได้อยู่บนแดชบอร์ด %(dashboard_id)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -5148,6 +5314,13 @@ msgstr "ไม่พบแผนภูมิ %(id)s"
 #, fuzzy, python-format
 msgid "Chart Data: %s"
 msgstr "ข้อมูลแผนภูมิ: %s"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "ผู้แก้ไขแผนภูมิ: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -5167,13 +5340,6 @@ msgstr "ตัวเลือกแผนภูมิ"
 #, fuzzy
 msgid "Chart Orientation"
 msgstr "การวางแนวแผนภูมิ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, es,
-# fr, ja, lv, mi, pl, ru, sl, uk]
-#, fuzzy, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "เจ้าของแผนภูมิ: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
@@ -5235,7 +5401,11 @@ msgstr "ไม่สามารถสร้างแผนภูมิได้
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
+msgid "Chart could not be restored."
+msgstr "ไม่สามารถกู้คืนชาร์ตได้"
+
 msgid "Chart could not be updated."
 msgstr "ไม่สามารถอัปเดตแผนภูมิได้"
 
@@ -5257,6 +5427,11 @@ msgstr "จำเป็นต้องระบุค่าการปรับ
 #, fuzzy
 msgid "Chart does not exist"
 msgstr "ไม่มีแผนภูมินี้"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
+msgid "Chart editors"
+msgstr "ผู้แก้ไขแผนภูมิ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5301,11 +5476,8 @@ msgstr "ไม่พบแผนภูมิ"
 msgid "Chart options"
 msgstr "ตัวเลือกแผนภูมิ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
-#, fuzzy
-msgid "Chart owners"
-msgstr "เจ้าของแผนภูมิ"
+msgid "Chart orientation"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5742,6 +5914,9 @@ msgstr "ล้างแบบฟอร์ม"
 msgid "Clear local theme"
 msgstr "ล้างธีมท้องถิ่น"
 
+msgid "Clear search"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -5953,6 +6128,9 @@ msgstr "ยุบแถว"
 msgid "Collapse All"
 msgstr "ยุบทั้งหมด"
 
+msgid "Collapse Datasource panel"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -6007,6 +6185,12 @@ msgstr "สีตาม"
 msgid "Color Metric"
 msgstr "เมตริกสี"
 
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -6025,11 +6209,17 @@ msgstr "ประเภทรูปแบบสี"
 msgid "Color Steps"
 msgstr "ขั้นตอนสี"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color bars by x-axis"
-msgstr ""
+msgstr "ระบายสีแถบตามแกน X"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color bars by y-axis"
-msgstr ""
+msgstr "ระบายสีแถบตามแกน Y"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -6049,8 +6239,11 @@ msgstr "จุดแบ่งสี"
 msgid "Color by"
 msgstr "สีตาม"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
-msgstr ""
+msgstr "ฟิลด์สีต้องเป็นสีในรูปแบบ hex (#rrggbb) หรือ 'rgb(r, g, b)'"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -6119,12 +6312,6 @@ msgstr "คอลัมน์ \"%(column)s\" ไม่ใช่ตัวเล�
 #, fuzzy
 msgid "Column Configuration"
 msgstr "การกำหนดค่าคอลัมน์"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Column Formatting"
-msgstr "การจัดรูปแบบคอลัมน์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -6269,8 +6456,11 @@ msgstr "คอลัมน์ที่ขาดหายในชุดข้อ
 msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "คอลัมน์ที่ขาดหายในแหล่งข้อมูล: %(invalid_columns)s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Columns should be inside folders"
-msgstr ""
+msgstr "คอลัมน์ควรอยู่ภายในโฟลเดอร์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -6353,6 +6543,11 @@ msgid ""
 msgstr ""
 "ขอบเขตช่วงคั่นด้วยเครื่องหมายจุลภาค เช่น 2,4,5 สำหรับช่วง 0-2, 2-4 และ "
 "4-5 ตัวเลขสุดท้ายควรตรงกับค่าที่ระบุสำหรับ MAX"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Common (unit per pixel at zoom 0)"
+msgstr "ทั่วไป (หน่วยต่อพิกเซลที่ซูม 0)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -6663,15 +6858,20 @@ msgstr "การเชื่อมต่อล้มเหลว โปรด�
 msgid "Connection failed, please check your connection settings."
 msgstr "การเชื่อมต่อล้มเหลว โปรดตรวจสอบการตั้งค่าการเชื่อมต่อของคุณ"
 
+msgid "Connection looks good!"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
 msgid "Contains"
 msgstr "ประกอบด้วย"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Contains text (ILIKE %x%)"
-msgstr ""
+msgstr "มีข้อความ (ILIKE %x%)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
@@ -6807,6 +7007,14 @@ msgstr "คัดลอกคำสั่งพาร์ทิชันไปย
 msgid "Copy permalink to clipboard"
 msgstr "คัดลอกลิงก์ถาวรไปยังคลิปบอร์ด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "คัดลอกคิวรี"
+
+msgid "Copy query URL"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -6900,6 +7108,11 @@ msgstr "ไม่สามารถดึงข้อมูลแผนภูม
 msgid "Could not find viz object"
 msgstr "ไม่พบออบเจ็กต์การแสดงผล"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Could not load SQL Lab"
+msgstr "ไม่สามารถโหลด SQL Lab ได้"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -6912,6 +7125,11 @@ msgstr "ไม่สามารถโหลดไดรเวอร์ฐาน
 #, fuzzy, python-format
 msgid "Could not load database driver for: %(engine)s"
 msgstr "ไม่สามารถโหลดไดรเวอร์ฐานข้อมูลสำหรับ: %(engine)s"
+
+msgid ""
+"Could not load metadata for this configuration; showing the default form."
+" See the server logs for details."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -6930,30 +7148,6 @@ msgstr "ไม่สามารถตรวจสอบผู้ใช้ใน
 #, fuzzy
 msgid "Count"
 msgstr "จำนวน"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Count Unique Values"
-msgstr "นับค่าที่ไม่ซ้ำกัน"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Count as Fraction of Columns"
-msgstr "นับเป็นเศษส่วนของคอลัมน์"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Count as Fraction of Rows"
-msgstr "นับเป็นเศษส่วนของแถว"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Count as Fraction of Total"
-msgstr "นับเป็นเศษส่วนของทั้งหมด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -7033,6 +7227,11 @@ msgstr "สร้างแท็กใหม่"
 #, fuzzy
 msgid "Create a new chart"
 msgstr "สร้างแผนภูมิใหม่"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -7281,8 +7480,11 @@ msgstr "SQL กำหนดเอง"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "เมตริก SQL เฉพาะกิจแบบกำหนดเองไม่ได้เปิดใช้งานสำหรับชุดข้อมูลนี้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
-msgstr ""
+msgstr "ไม่สามารถแยกวิเคราะห์ฟิลด์ SQL แบบกำหนดเองเป็นคำสั่ง SQL เดียวได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -7498,11 +7700,9 @@ msgstr "วันที่รูปแบบ DD/MM รูปแบบสาก�
 msgid "DEC"
 msgstr "ธ.ค."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, tr, uk, zh, zh_TW]
-#, fuzzy
+#. do-not-translate
 msgid "DELETE"
-msgstr "ลบ"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -7584,6 +7784,11 @@ msgstr "ไม่สามารถคัดลอกแดชบอร์ดไ
 msgid "Dashboard cannot be favorited."
 msgstr "ไม่สามารถเพิ่มแดชบอร์ดเป็นรายการโปรดได้"
 
+msgid ""
+"Dashboard cannot be restored because its slug is now used by another "
+"active dashboard. Rename one of the dashboards and retry."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -7612,7 +7817,11 @@ msgstr "ไม่สามารถลบแดชบอร์ดได้"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
+msgid "Dashboard could not be restored."
+msgstr "ไม่สามารถกู้คืนแดชบอร์ดได้"
+
 msgid "Dashboard could not be updated."
 msgstr "ไม่สามารถอัปเดตแดชบอร์ดได้"
 
@@ -8012,8 +8221,10 @@ msgstr "อัปเดตการตั้งค่าฐานข้อมู
 msgid "Database type does not support file uploads."
 msgstr "ประเภทฐานข้อมูลนี้ไม่รองรับการอัปโหลดไฟล์"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
 msgid "Database upload file exceeds the maximum allowed size."
-msgstr ""
+msgstr "ไฟล์ที่อัปโหลดไปยังฐานข้อมูลมีขนาดเกินขีดจำกัดที่อนุญาต"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -8053,6 +8264,18 @@ msgstr "ชุดข้อมูล %(table)s มีอยู่แล้ว"
 msgid "Dataset Name"
 msgstr "ชื่อชุดข้อมูล"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
+msgstr ""
+"ไม่สามารถกู้คืนชุดข้อมูลได้ "
+"เนื่องจากชุดข้อมูลที่ใช้งานอยู่อีกชุดหนึ่งอ้างอิงตารางฟิสิคัลเดียวกัน "
+"(ฐานข้อมูล แคตตาล็อก สคีมา และชื่อตารางเดียวกัน) อยู่แล้ว "
+"โปรดลบชุดข้อมูลที่ซ้ำกันหรือเปลี่ยนชื่อตารางก่อนกู้คืน"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -8081,7 +8304,11 @@ msgstr "ไม่สามารถทำสำเนาชุดข้อมู
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
+msgid "Dataset could not be restored."
+msgstr "ไม่สามารถกู้คืนชุดข้อมูลได้"
+
 msgid "Dataset could not be updated."
 msgstr "ไม่สามารถอัปเดตชุดข้อมูลได้"
 
@@ -8509,34 +8736,6 @@ msgstr ""
 "ค่าเริ่มต้นถูกกำหนดโดยอัตโนมัติเมื่อเลือก "
 "\"เลือกค่าตัวกรองแรกตามค่าเริ่มต้น\""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, cs, de,
-# es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr "กำหนดฟังก์ชันที่รับข้อมูลนำเข้าและส่งออกเนื้อหาสำหรับคำอธิบายเครื่องมือ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr "กำหนดฟังก์ชันที่คืนค่า URL สำหรับนำทางเมื่อผู้ใช้คลิก"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"กำหนดฟังก์ชัน JavaScript ที่รับอาร์เรย์ข้อมูลที่ใช้ในการแสดงผล "
-"และคาดว่าจะคืนค่าอาร์เรย์ที่ปรับเปลี่ยนแล้ว "
-"ฟังก์ชันนี้สามารถใช้เพื่อแก้ไขคุณสมบัติของข้อมูล กรอง "
-"หรือเสริมข้อมูลในอาร์เรย์"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, pt_BR, ru, sk, uk]
 #, fuzzy
@@ -8636,10 +8835,12 @@ msgstr "กำหนดว่าขั้นตอนควรปรากฏท
 msgid "Definition"
 msgstr "ค่าเบี่ยงเบน"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Delayed (missed %s refresh)"
 msgid_plural "Delayed (missed %s refreshes)"
-msgstr[0] ""
+msgstr[0] "ล่าช้า (พลาดการรีเฟรช %s ครั้ง)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -8771,6 +8972,16 @@ msgstr "ลบกลุ่ม"
 #, fuzzy
 msgid "Delete item"
 msgstr "ลบรายการ"
+
+msgid "Delete permanently"
+msgstr ""
+
+#, python-format
+msgid "Delete permanently %(name)s?"
+msgstr ""
+
+msgid "Delete query"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -9050,12 +9261,20 @@ msgstr "รายละเอียด"
 msgid "Details of the certification"
 msgstr "รายละเอียดของการรับรอง"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Determines how the filter matches values. \"Exact match\" uses the IN "
 "operator (default). ILIKE options enable partial text matching with a "
 "free-text input. Warning: ILIKE queries may be slow on large datasets as "
 "they cannot use indexes effectively."
 msgstr ""
+"กำหนดวิธีที่ตัวกรองจับคู่ค่า \"จับคู่แบบตรงทั้งหมด\" ใช้ตัวดำเนินการ IN "
+"(ค่าเริ่มต้น) ตัวเลือก ILIKE "
+"ช่วยให้จับคู่ข้อความบางส่วนด้วยช่องป้อนข้อความอิสระ คำเตือน: คิวรี ILIKE "
+"อาจทำงานช้าในชุดข้อมูลขนาดใหญ่ "
+"เนื่องจากไม่สามารถใช้ดัชนีได้อย่างมีประสิทธิภาพ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -9101,11 +9320,17 @@ msgstr "สีเทาเข้ม"
 msgid "Dimension"
 msgstr "มิติ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Dimension column emitted as a cross-filter when a feature is clicked. "
 "Other charts on the dashboard match against this column. If unset, falls "
 "back to the geometry column (legacy behavior, often unmatchable)."
 msgstr ""
+"คอลัมน์มิติข้อมูลที่ส่งออกเป็นตัวกรองไขว้เมื่อคลิกที่คุณสมบัติ "
+"แผนภูมิอื่นๆ บนแดชบอร์ดจะจับคู่กับคอลัมน์นี้ หากไม่ได้ตั้งค่าไว้ "
+"ระบบจะใช้คอลัมน์เรขาคณิตแทน (พฤติกรรมเดิม ซึ่งมักจับคู่ไม่ได้)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -9240,6 +9465,11 @@ msgstr "ชื่อที่แสดง"
 #, fuzzy
 msgid "Display all"
 msgstr "แสดงทั้งหมด"
+
+msgid ""
+"Display charts on a map. For using this plugin, users first have to "
+"create any other chart that can then be placed on the map."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -9460,6 +9690,9 @@ msgstr "ไม่มี"
 msgid "Donut"
 msgstr "วงแหวน"
 
+msgid "Dot size metric"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -9472,16 +9705,13 @@ msgstr "จุดประ"
 msgid "Download"
 msgstr "ดาวน์โหลด"
 
+msgid "Download Excel file"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk]
 #, fuzzy
 msgid "Download as Image"
-msgstr "ดาวน์โหลดเป็นรูปภาพ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
-#, fuzzy
-msgid "Download as image"
 msgstr "ดาวน์โหลดเป็นรูปภาพ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
@@ -9859,26 +10089,29 @@ msgstr "ค้นหาค่าตัวกรองทั้งหมดแบ
 msgid "Dynamically select grouping columns from a dataset"
 msgstr "เลือกคอลัมน์การจัดกลุ่มจากชุดข้อมูลแบบไดนามิก"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, uk, zh, zh_TW]
-#, fuzzy
+#. do-not-translate
 msgid "ECharts"
-msgstr "ECharts"
-
-msgid "ECharts Options (JS object literals)"
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
 #, fuzzy
+msgid "ECharts Options (JS object literals)"
+msgstr "ตัวเลือก ECharts (JS object literals)"
+
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "EMAIL_REPORTS_CTA"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
 msgid "ERROR"
 msgstr "ข้อผิดพลาด"
+
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -10064,6 +10297,9 @@ msgstr "แก้ไขกลุ่ม"
 msgid "Edit properties"
 msgstr "แก้ไขคุณสมบัติ"
 
+msgid "Edit query"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -10120,6 +10356,12 @@ msgstr "แก้ไขช่วงเวลา"
 msgid "Edit user"
 msgstr "แก้ไขผู้ใช้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
+# ru, uk]
+#, fuzzy
+msgid "Editable"
+msgstr "แก้ไขการแจ้งเตือน"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -10132,6 +10374,34 @@ msgstr "แก้ไขแล้ว"
 #, fuzzy
 msgid "Editing 1 filter:"
 msgstr "กำลังแก้ไข 1 ตัวกรอง:"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+msgid "Editor"
+msgstr "ผู้แก้ไข"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+msgid "Editors"
+msgstr "ผู้แก้ไข"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "ผู้แก้ไขคือรายชื่อผู้ใช้ บทบาท หรือกลุ่มที่สามารถแก้ไขแดชบอร์ดได้"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
+# zh_TW]
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr ""
+"ผู้แก้ไขคือรายชื่อผู้ใช้ บทบาท หรือกลุ่มที่สามารถแก้ไขแดชบอร์ดได้ "
+"ค้นหาได้ตามชื่อ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -10190,6 +10460,9 @@ msgstr "จำเป็นต้องระบุอีเมล"
 #, fuzzy
 msgid "Email link"
 msgstr "ลิงก์อีเมล"
+
+msgid "Email recipients"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -10326,22 +10599,10 @@ msgstr "เปิดใช้งานการพยากรณ์ข้อม
 msgid "Enable graph roaming"
 msgstr "เปิดใช้งานการเลื่อนกราฟ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# pt_BR, ru, sk, uk]
-#, fuzzy
-msgid "Enable icon JavaScript mode"
-msgstr "เปิดใช้งานโหมด JavaScript สำหรับไอคอน"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
 #, fuzzy
 msgid "Enable icons"
 msgstr "เปิดใช้งานไอคอน"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# pt_BR, ru, sk, uk]
-#, fuzzy
-msgid "Enable label JavaScript mode"
-msgstr "เปิดใช้งานโหมด JavaScript สำหรับป้ายกำกับ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
 #, fuzzy
@@ -10377,18 +10638,6 @@ msgstr "เปิดใช้งานการขยายแถวในสค
 #, fuzzy
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "เปิดใช้งานการแบ่งหน้าผลลัพธ์ฝั่งเซิร์ฟเวอร์ (คุณสมบัติทดลอง)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# pt_BR, ru, sk, uk]
-#, fuzzy
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "เปิดใช้งานการกำหนดค่าไอคอนแบบกำหนดเองผ่าน JavaScript"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# pt_BR, ru, sk, uk]
-#, fuzzy
-msgid "Enables custom label configuration via JavaScript"
-msgstr "เปิดใช้งานการกำหนดค่าป้ายกำกับแบบกำหนดเองผ่าน JavaScript"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # pt_BR, ru, sk, uk]
@@ -10526,12 +10775,6 @@ msgstr "ป้อนข้อมูลรับรองหลัก"
 msgid "Enter a name for this sheet"
 msgstr "ป้อนชื่อสำหรับแผ่นงานนี้"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Enter a new title for the tab"
-msgstr "ป้อนชื่อใหม่สำหรับแท็บ"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -10646,6 +10889,9 @@ msgstr "ป้อนข้อมูลเข้าสู่ระบบและ
 msgid "Entity"
 msgstr "เอนทิตี"
 
+msgid "Entries per page"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -10682,9 +10928,11 @@ msgstr "ข้อผิดพลาดในการดึงออบเจ็
 msgid "Error deleting %s"
 msgstr "ข้อผิดพลาดในการลบ %s"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "Error disabling fullscreen: %s"
-msgstr ""
+msgstr "เกิดข้อผิดพลาดในการปิดโหมดเต็มหน้าจอ: %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -10914,8 +11162,11 @@ msgstr "วิวัฒนาการ"
 msgid "Exact"
 msgstr "ตรงทั้งหมด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Exact match (IN)"
-msgstr ""
+msgstr "จับคู่แบบตรงทั้งหมด (IN)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -10941,6 +11192,9 @@ msgstr "ส่งออก Excel"
 msgid "Excel XML Export"
 msgstr "ส่งออก Excel XML"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 #, fuzzy
@@ -10960,10 +11214,10 @@ msgid "Exclude selected values"
 msgstr "ยกเว้นค่าที่เลือก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
-msgid "Excluded roles"
-msgstr "บทบาทที่ยกเว้น"
+msgid "Excluded subjects"
+msgstr "เลือกหัวเรื่อง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -10995,6 +11249,9 @@ msgstr "บันทึกการดำเนินการ"
 #, fuzzy
 msgid "Existing dataset"
 msgstr "ชุดข้อมูลที่มีอยู่"
+
+msgid "Exit edit mode"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -11102,6 +11359,12 @@ msgstr "ส่งออกข้อมูลทั้งหมด"
 msgid "Export Current View"
 msgstr "ส่งออกมุมมองปัจจุบัน"
 
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -11113,6 +11376,9 @@ msgstr "ส่งออก YAML"
 #, fuzzy
 msgid "Export as Example"
 msgstr "ส่งออกเป็นตัวอย่าง"
+
+msgid "Export as PDF"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -11145,11 +11411,17 @@ msgstr "การส่งออกล้มเหลว - กรุณาลอ
 msgid "Export failed: %s"
 msgstr "การส่งออกล้มเหลว: %s"
 
+msgid "Export query"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
 msgid "Export screenshot (jpeg)"
 msgstr "ส่งออกภาพหน้าจอ (jpeg)"
+
+msgid "Export screenshot (png)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -11223,6 +11495,17 @@ msgstr "ส่งออกเป็น .CSV ต้นฉบับ"
 msgid "Export to pivoted .CSV"
 msgstr "ส่งออกเป็น .CSV แบบ Pivot"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -11248,6 +11531,12 @@ msgstr "นิพจน์ SQL"
 msgid "Expression cannot be empty"
 msgstr "นิพจน์ไม่สามารถว่างเปล่าได้"
 
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -11260,8 +11549,11 @@ msgstr "ส่วนขยาย"
 msgid "Extent"
 msgstr "ขอบเขต"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "External link warning"
-msgstr ""
+msgstr "คำเตือนลิงก์ภายนอก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -11281,12 +11573,6 @@ msgstr "ตัวควบคุมเพิ่มเติม"
 #, fuzzy
 msgid "Extra Parameters"
 msgstr "พารามิเตอร์เพิ่มเติม"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Extra data for JS"
-msgstr "ข้อมูลเพิ่มเติมสำหรับ JS"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11335,12 +11621,6 @@ msgstr "ยื่นออก"
 #, fuzzy
 msgid "FEB"
 msgstr "ก.พ."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# lv, mi, ru, sk, uk]
-#, fuzzy
-msgid "FIT DATA"
-msgstr "ปรับพอดีข้อมูล"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -11409,11 +11689,28 @@ msgstr "ไม่สามารถสร้างรายงานได้"
 msgid "Failed to create report"
 msgstr "ไม่สามารถสร้างรายงานได้"
 
+#, python-format
+msgid "Failed to delete %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to delete %(name)s: %(errMsg)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "Failed to execute %(query)s"
 msgstr "ไม่สามารถดำเนินการ %(query)s ได้"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -11474,6 +11771,14 @@ msgstr "ไม่สามารถลบธีมมืดของระบบ
 #, fuzzy, python-format
 msgid "Failed to remove system default theme: %s"
 msgstr "ไม่สามารถลบธีมเริ่มต้นของระบบได้: %s"
+
+#, python-format
+msgid "Failed to restore %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to restore %(name)s: %(errMsg)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -11546,6 +11851,10 @@ msgstr "ไม่สามารถบันทึกผลการสืบค
 #, fuzzy
 msgid "Failed to tag items"
 msgstr "ไม่สามารถแท็กรายการได้"
+
+#, python-format
+msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11933,6 +12242,11 @@ msgstr "ต้องกรอกชื่อ"
 msgid "Fit columns dynamically"
 msgstr "ปรับคอลัมน์แบบไดนามิก"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "ปรับให้พอดีกับข้อมูล"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -12045,19 +12359,9 @@ msgstr "สำหรับคำแนะนำเพิ่มเติม โ�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-"สำหรับข้อมูลเพิ่มเติมเกี่ยวกับออบเจ็กต์ที่อยู่ในบริบทของขอบเขตฟังก์ชันนี้"
-" โปรดดูที่"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "สำหรับตัวกรองทั่วไป คือบทบาทที่ตัวกรองนี้จะถูกใช้กับ สำหรับตัวกรองพื้นฐาน"
 " คือบทบาทที่ตัวกรองไม่ถูกใช้กับ เช่น Admin "
@@ -12081,8 +12385,11 @@ msgstr "บังคับ"
 msgid "Force Time Grain as Max Interval"
 msgstr "บังคับระดับเวลาเป็นช่วงสูงสุด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Force abort (stops task for all subscribers)"
-msgstr ""
+msgstr "บังคับหยุด (หยุดงานสำหรับผู้สมัครสมาชิกทั้งหมด)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -12150,6 +12457,9 @@ msgstr "บังคับระดับเวลาที่เลือกเ
 #, fuzzy
 msgid "Forecast periods"
 msgstr "ช่วงเวลาพยากรณ์"
+
+msgid "Forecast requires at least 2 data points"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -12230,11 +12540,8 @@ msgstr ""
 msgid "Formatted CSV attached in email"
 msgstr "แนบ CSV ที่จัดรูปแบบแล้วในอีเมล"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Formatted date"
-msgstr "วันที่ที่จัดรูปแบบแล้ว"
+msgid "Formatted Excel attached in email"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -12345,11 +12652,9 @@ msgstr "ปรับแต่งเพิ่มเติมสำหรับก
 msgid "Further customize how to display each metric"
 msgstr "ปรับแต่งเพิ่มเติมสำหรับการแสดงผลแต่ละเมตริก"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
-#, fuzzy
+#. do-not-translate
 msgid "GROUP BY"
-msgstr "จัดกลุ่มตาม"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -12865,12 +13170,6 @@ msgstr "รหัส ISO 3166-2"
 msgid "ISO 8601"
 msgstr "ISO 8601"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy
-msgid "Icon JavaScript config generator"
-msgstr "ตัวสร้างการกำหนดค่า JavaScript สำหรับไอคอน"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -12901,22 +13200,14 @@ msgstr "ไอดี"
 msgid "Id of root node of the tree."
 msgstr "ไอดีของโหนดรากของต้นไม้"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
 msgid ""
 "If Presto or Trino, all the queries in SQL Lab are going to be executed "
 "as the currently logged on user who must have permission to run them. If "
 "Hive and hive.server2.enable.doAs is enabled, will run the queries as "
 "service account, but impersonate the currently logged on user via "
-"hive.server2.proxy.user property."
+"hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
+"authenticate as the currently logged on user."
 msgstr ""
-"หากเป็น Presto หรือ Trino คำค้นทั้งหมดใน SQL Lab "
-"จะถูกดำเนินการในชื่อผู้ใช้ที่เข้าสู่ระบบอยู่ในขณะนั้น "
-"ซึ่งต้องมีสิทธิ์ในการเรียกใช้งาน หากเป็น Hive และเปิดใช้งาน "
-"hive.server2.enable.doAs จะเรียกใช้คำค้นในฐานะบัญชีบริการ "
-"แต่แอบอ้างตัวเป็นผู้ใช้ที่เข้าสู่ระบบอยู่ในขณะนั้นผ่านคุณสมบัติ "
-"hive.server2.proxy.user"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -12949,6 +13240,12 @@ msgstr ""
 #, fuzzy
 msgid "If table already exists"
 msgstr "หากตารางมีอยู่แล้ว"
+
+msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -12986,13 +13283,10 @@ msgstr "รูปภาพ (PNG) ที่ฝังในอีเมล"
 msgid "Image download failed, please refresh and try again."
 msgstr "การดาวน์โหลดรูปภาพล้มเหลว โปรดรีเฟรชและลองอีกครั้ง"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, and "
+"Google Sheets)"
 msgstr ""
-"แอบอ้างตัวเป็นผู้ใช้ที่เข้าสู่ระบบ (Presto, Trino, Drill, Hive และ Google"
-" Sheets)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -13790,24 +14084,6 @@ msgid "January"
 msgstr "มกราคม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "JavaScript data interceptor"
-msgstr "ตัวดักจับข้อมูล JavaScript"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "JavaScript onClick href"
-msgstr "JavaScript onClick href"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "JavaScript tooltip generator"
-msgstr "ตัวสร้างทูลทิป JavaScript"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
 msgid "Jinja templating"
@@ -13861,14 +14137,11 @@ msgstr "คำนำหน้า"
 msgid "Keyboard shortcuts"
 msgstr "แป้นพิมพ์ลัด"
 
-msgid "Keys are shown only once at creation. Store them securely."
-msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
 #, fuzzy
-msgid "Keys for table"
-msgstr "คีย์สำหรับตาราง"
+msgid "Keys are shown only once at creation. Store them securely."
+msgstr "คีย์จะแสดงเพียงครั้งเดียวเมื่อสร้าง เก็บรักษาไว้ในที่ปลอดภัย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -13888,12 +14161,6 @@ msgstr "ป้ายกำกับ"
 #, fuzzy
 msgid "Label Contents"
 msgstr "เนื้อหาป้ายกำกับ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy
-msgid "Label JavaScript config generator"
-msgstr "ตัวสร้างการตั้งค่า JavaScript สำหรับป้ายกำกับ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -13948,6 +14215,9 @@ msgstr "ป้ายกำกับสำหรับคอลัมน์ดั
 #, fuzzy
 msgid "Label for your query"
 msgstr "ป้ายกำกับสำหรับคำสั่งค้นหาของคุณ"
+
+msgid "Label must not be empty."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14026,6 +14296,15 @@ msgstr "ใหญ่"
 #, fuzzy
 msgid "Last"
 msgstr "ล่าสุด"
+
+msgid "Last 30 days"
+msgstr ""
+
+msgid "Last 7 days"
+msgstr ""
+
+msgid "Last 90 days"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -14292,6 +14571,15 @@ msgstr "ประเภทคำอธิบายสัญลักษณ์"
 msgid "Legend type"
 msgstr "ประเภทคำอธิบายสัญลักษณ์"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -14316,8 +14604,11 @@ msgstr "น้อยกว่าหรือเท่ากับ (<=)"
 msgid "Less than (<)"
 msgstr "น้อยกว่า (<)"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Liberty (OpenFreeMap)"
-msgstr ""
+msgstr "Liberty (OpenFreeMap)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14367,11 +14658,12 @@ msgstr "จำกัด"
 msgid "Limit type"
 msgstr "ประเภทการจำกัด"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Limits the number of cells that get retrieved."
-msgstr "จำกัดจำนวนเซลล์ที่ดึงข้อมูลมา"
+msgid ""
+"Limits the number of cells that get retrieved. Not applied when non-"
+"additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
+"present, since totals and subtotals are then computed via a database "
+"rollup query that must see every row to stay correct."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14494,6 +14786,9 @@ msgstr "คอลัมน์เส้น"
 msgid "Lines encoding"
 msgstr "การเข้ารหัสเส้น"
 
+msgid "Link Copied!"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -14512,23 +14807,11 @@ msgstr "รายการกลุ่ม"
 msgid "List Roles"
 msgstr "รายการบทบาท"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "List Unique Values"
-msgstr "รายการค่าที่ไม่ซ้ำกัน"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
 msgid "List Users"
 msgstr "รายการผู้ใช้"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "รายการคอลัมน์เพิ่มเติมที่ใช้ได้ในฟังก์ชัน JavaScript"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -14769,6 +15052,11 @@ msgstr "ลองจิจูดของวิวพอร์ตเริ่ม
 msgid "Lower Threshold"
 msgstr "ค่าเกณฑ์ต่ำ"
 
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -14838,9 +15126,8 @@ msgstr "จัดการ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
-#, fuzzy
-msgid "Manage dashboard owners and access permissions"
-msgstr "จัดการเจ้าของแดชบอร์ดและสิทธิ์การเข้าถึง"
+msgid "Manage dashboard editors and access permissions"
+msgstr "จัดการผู้แก้ไขแดชบอร์ดและสิทธิ์การเข้าถึง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -14848,10 +15135,15 @@ msgstr "จัดการเจ้าของแดชบอร์ดและ
 msgid "Manage email report"
 msgstr "จัดการรายงานอีเมล"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Manage filters and customizations to set scoping, descriptions, and "
 "limitations. Create new elements for better dashboard insights."
 msgstr ""
+"จัดการตัวกรองและการปรับแต่งเพื่อกำหนดขอบเขต คำอธิบาย และข้อจำกัด "
+"สร้างองค์ประกอบใหม่เพื่อให้ได้ข้อมูลเชิงลึกที่ดีขึ้นจากแดชบอร์ด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14895,13 +15187,21 @@ msgstr "การแสดงผลสด"
 msgid "Map Style"
 msgstr "รูปแบบแผนที่"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "MapLibre (open-source)"
-msgstr ""
+msgstr "MapLibre (โอเพนซอร์ส)"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "MapLibre is open-source and requires no API key. Mapbox requires "
 "MAPBOX_API_KEY to be configured on the server."
 msgstr ""
+"MapLibre เป็นโอเพนซอร์สและไม่ต้องใช้ API key Mapbox ต้องกำหนดค่า "
+"MAPBOX_API_KEY บนเซิร์ฟเวอร์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -14916,8 +15216,11 @@ msgstr "Mapbox"
 msgid "Mapbox (API key required)"
 msgstr "จำเป็นต้องระบุอีเมล"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
-msgstr ""
+msgstr "Mapbox ต้องกำหนดค่า MAPBOX_API_KEY บนเซิร์ฟเวอร์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -15060,6 +15363,9 @@ msgstr "รัศมีสูงสุด"
 msgid "Maximum Width"
 msgstr "ความกว้างต่ำสุด"
 
+msgid "Maximum dot size"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # pt_BR, ru, sk, uk]
 #, fuzzy
@@ -15118,12 +15424,6 @@ msgstr "ค่าเฉลี่ยของค่าในช่วงเวล
 #, fuzzy
 msgid "Mean values"
 msgstr "ค่าเฉลี่ย"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Median"
-msgstr "มัธยฐาน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -15404,8 +15704,11 @@ msgstr "ตัวชี้วัด"
 msgid "Metrics (%s)"
 msgstr "ตัวชี้วัด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Metrics can't be used for both rows and columns at the same time"
-msgstr ""
+msgstr "ไม่สามารถใช้เมตริกสำหรับทั้งแถวและคอลัมน์พร้อมกันได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -15413,8 +15716,11 @@ msgstr ""
 msgid "Metrics folder can only contain metric items"
 msgstr "โฟลเดอร์ตัวชี้วัดสามารถบรรจุเฉพาะรายการตัวชี้วัดเท่านั้น"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Metrics should be inside folders"
-msgstr ""
+msgstr "เมตริกควรอยู่ภายในโฟลเดอร์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -15518,6 +15824,9 @@ msgstr "รัศมีขั้นต่ำ"
 #, fuzzy
 msgid "Minimum Width"
 msgstr "ความกว้างต่ำสุด"
+
+msgid "Minimum dot size"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -15638,7 +15947,7 @@ msgstr "แก้ไขแล้ว %s"
 #, fuzzy, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "แก้ไข 1 คอลัมน์ในชุดข้อมูลเสมือน"
+msgstr[0] "แก้ไข %s คอลัมน์ในชุดข้อมูลเสมือน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -15764,10 +16073,15 @@ msgstr "รองรับหลายรูปแบบ ดูรายละ�
 msgid "Multiplier"
 msgstr "ตัวคูณ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
-"Must be a chart owner to overwrite this chart. Save as a new chart "
+"Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
 msgstr ""
+"คุณต้องเป็นผู้แก้ไขแผนภูมิจึงจะเขียนทับแผนภูมินี้ได้ "
+"โปรดบันทึกเป็นแผนภูมิใหม่แทน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -15824,11 +16138,9 @@ msgstr "เมตริกของฉัน"
 msgid "N/A"
 msgstr "N/A"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
-#, fuzzy
+#. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "ไม่ได้จัดกลุ่มตาม"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -16117,6 +16429,9 @@ msgstr "ยังไม่มีคำอธิบาย"
 msgid "No applied filters"
 msgstr "ไม่มีตัวกรองที่ใช้งาน"
 
+msgid "No archived items"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -16165,6 +16480,9 @@ msgstr "ไม่มีข้อมูล"
 #, fuzzy
 msgid "No data after filtering or data is NULL for the latest time record"
 msgstr "ไม่มีข้อมูลหลังการกรอง หรือข้อมูลเป็น NULL สำหรับบันทึกเวลาล่าสุด"
+
+msgid "No data found"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -16227,8 +16545,11 @@ msgstr "ไม่มีตัวกรอง"
 msgid "No filters are currently added to this dashboard."
 msgstr "ไม่มีตัวกรองที่เพิ่มเข้ามาในแดชบอร์ดนี้ในขณะนี้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "No filters or customizations created yet"
-msgstr ""
+msgstr "ยังไม่มีการสร้างตัวกรองหรือการปรับแต่ง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -16800,11 +17121,9 @@ msgstr "ตกลง"
 msgid "OR"
 msgstr "หรือ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, uk, zh, zh_TW]
-#, fuzzy
+#. do-not-translate
 msgid "OVERWRITE"
-msgstr "เขียนทับ"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -16909,6 +17228,10 @@ msgstr "เมตริกหนึ่งรายการหรือมาก
 msgid "One or more metrics do not exist"
 msgstr "เมตริกหนึ่งรายการหรือมากกว่านั้นไม่มีอยู่"
 
+#, python-format
+msgid "One or more parameters are missing: %(missing)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16952,11 +17275,17 @@ msgstr "ใช้เฉพาะเมื่อ \"ประเภทป้าย
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "ใช้เฉพาะเมื่อ \"ประเภทป้ายกำกับ\" ตั้งค่าให้แสดงค่า"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Only exact match is available for non-string columns."
-msgstr ""
+msgstr "มีเฉพาะการจับคู่แบบตรงทั้งหมดสำหรับคอลัมน์ที่ไม่ใช่ข้อความ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Only proceed if you trust the destination or its source."
-msgstr ""
+msgstr "ดำเนินการต่อเฉพาะเมื่อคุณเชื่อถือปลายทางหรือแหล่งที่มาของปลายทางนั้น"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17033,6 +17362,16 @@ msgstr "เปิดแท็บแหล่งข้อมูล"
 msgid "Open SQL Lab in a new tab"
 msgstr "เปิด SQL Lab ในแท็บใหม่"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Open chart in new tab"
+msgstr "เปิดชาร์ตในแท็บใหม่"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Open dashboard in new tab"
+msgstr "เปิดแดชบอร์ดในแท็บใหม่"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -17101,6 +17440,11 @@ msgstr "สตริงรูปแบบวันที่ d3 (ไม่บั�
 msgid "Optional d3 number format string"
 msgstr "สตริงรูปแบบตัวเลข d3 (ไม่บังคับ)"
 
+msgid ""
+"Optional metric used to scale the size of each dot. Dot areas are scaled "
+"linearly between the minimum and maximum dot size."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -17168,6 +17512,11 @@ msgstr "การวางแนวของแผนภูมิแท่ง"
 msgid "Orientation of filter bar"
 msgstr "การวางแนวของแถบตัวกรอง"
 
+msgid ""
+"Orientation of the chart. Horizontal places the dimension on the y-axis "
+"and the metric on the x-axis."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -17179,12 +17528,6 @@ msgstr "การวางแนวของต้นไม้"
 #, fuzzy
 msgid "Original"
 msgstr "ต้นฉบับ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Original table column order"
-msgstr "ลำดับคอลัมน์ตารางต้นฉบับ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17333,44 +17676,6 @@ msgstr "เขียนทับข้อความในตัวแก้ไ
 msgid "Owned Created or Favored"
 msgstr "เป็นเจ้าของ สร้าง หรือโปรด"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid "Owner"
-msgstr "เจ้าของ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid "Owners"
-msgstr "เจ้าของ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Owners are invalid"
-msgstr "เจ้าของไม่ถูกต้อง"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr "เจ้าของคือรายชื่อผู้ใช้ที่สามารถแก้ไขแดชบอร์ดได้"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"เจ้าของคือรายชื่อผู้ใช้ที่สามารถแก้ไขแดชบอร์ดได้ "
-"สามารถค้นหาด้วยชื่อหรือชื่อผู้ใช้"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -17513,6 +17818,11 @@ msgstr "รหัสผ่าน"
 msgid "Password is required"
 msgstr "จำเป็นต้องระบุรหัสผ่าน"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid "Password must be at least %(min_length)s characters long."
+msgstr "รหัสผ่านต้องมีความยาวอย่างน้อย %(min_length)s ตัวอักษร"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -17573,8 +17883,11 @@ msgstr "ขนาดจุด"
 msgid "Pattern"
 msgstr "รูปแบบ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Pause auto refresh if tab is inactive"
-msgstr ""
+msgstr "หยุดการรีเฟรชอัตโนมัติชั่วคราวหากแท็บไม่ได้ใช้งาน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # sk, uk]
@@ -18056,10 +18369,9 @@ msgstr "โปรดส่งออกไฟล์ของคุณอีกค
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, fa,
 # ja, lv, mi, pl, ru, sl, uk]
-#, fuzzy
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] "โปรดติดต่อเจ้าของแผนภูมิเพื่อขอความช่วยเหลือ"
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "โปรดติดต่อผู้แก้ไขแผนภูมิเพื่อขอความช่วยเหลือ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18099,6 +18411,13 @@ msgstr "โปรดระบุรหัสชุดข้อมูลสำห
 #, fuzzy
 msgid "Please use 3 different metric labels"
 msgstr "โปรดใช้ป้ายกำกับเมตริกที่แตกต่างกัน 3 รายการ"
+
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -18152,6 +18471,11 @@ msgstr "สเกลรัศมีจุด"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Point Radius Unit"
+msgstr "หน่วยรัศมีจุด"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Point Radius Units"
 msgstr "หน่วยรัศมีจุด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -18378,12 +18702,6 @@ msgstr "รูปแบบแกน y หลัก"
 msgid "Private"
 msgstr "คีย์ส่วนตัว"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, pl, ru, sk, sl, uk]
-#, fuzzy
-msgid "Private Channels (Bot in channel)"
-msgstr "ช่องส่วนตัว (บอทในช่อง)"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -18444,11 +18762,17 @@ msgstr "รหัสโครงการ"
 msgid "Proportional"
 msgstr "สัดส่วน"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Public and privately shared sheets"
-msgstr ""
+msgstr "ชีตที่แชร์แบบสาธารณะและส่วนตัว"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Publicly shared sheets only"
-msgstr ""
+msgstr "เฉพาะชีตที่แชร์แบบสาธารณะ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -18762,6 +19086,12 @@ msgstr "อัตราส่วน"
 msgid "Raw records"
 msgstr "ระเบียนดิบ"
 
+msgid "Recently Archived"
+msgstr ""
+
+msgid "Recently archived"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -18785,6 +19115,15 @@ msgstr "ผู้รับถูกคั่นด้วย \",\" หรือ \
 #, fuzzy
 msgid "Records"
 msgstr "ระเบียนดิบ"
+
+msgid "Recover"
+msgstr ""
+
+msgid "Recover this item"
+msgstr ""
+
+msgid "Recover this item to open it"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18953,20 +19292,12 @@ msgstr "ลงทะเบียนสำเร็จ"
 msgid "Regular"
 msgstr "ปกติ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
-#, fuzzy
 msgid ""
-"Regular filters add where clauses to queries if a user belongs to a role "
-"referenced in the filter, base filters apply filters to all queries "
-"except the roles defined in the filter, and can be used to define what "
-"users can see if no RLS filters within a filter group apply to them."
+"Regular filters add where clauses to queries if a user matches a subject "
+"referenced in the filter. Base filters apply filters to all queries "
+"except the subjects defined in the filter, and can be used to define what"
+" users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"ฟิลเตอร์ปกติจะเพิ่มเงื่อนไข WHERE "
-"ในการค้นหาหากผู้ใช้เป็นสมาชิกของบทบาทที่อ้างอิงในฟิลเตอร์ "
-"ฟิลเตอร์พื้นฐานจะใช้ฟิลเตอร์กับการค้นหาทั้งหมดยกเว้นบทบาทที่กำหนดไว้ในฟิลเตอร์"
-" และสามารถใช้กำหนดสิ่งที่ผู้ใช้สามารถเห็นได้หากไม่มีฟิลเตอร์ RLS "
-"ภายในกลุ่มฟิลเตอร์ใดที่ใช้กับพวกเขา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19004,6 +19335,11 @@ msgstr "ปริมาณสัมพัทธ์"
 msgid "Reload"
 msgstr "โหลดใหม่"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Reload SQL Lab"
+msgstr "โหลด SQL Lab ใหม่"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -19034,6 +19370,9 @@ msgstr "ลบฟิลเตอร์ข้าม"
 msgid "Remove customization"
 msgstr "ประเภทการปรับแต่ง"
 
+msgid "Remove dependency"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -19046,6 +19385,9 @@ msgstr "ลบรายการ"
 msgid "Remove item"
 msgstr "ลบรายการ"
 
+msgid "Remove notification method"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -19053,11 +19395,8 @@ msgstr "ลบรายการ"
 msgid "Remove query from log"
 msgstr "ลบคำค้นหาออกจากบันทึก"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Remove table preview"
-msgstr "ลบการแสดงตัวอย่างตาราง"
+msgid "Remove sheet"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -19132,6 +19471,9 @@ msgstr "ไม่สามารถอัปเดตกำหนดการร
 msgid "Report Schedule delete failed."
 msgstr "การลบกำหนดการรายงานล้มเหลว"
 
+msgid "Report Schedule execute now failed."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -19156,11 +19498,24 @@ msgstr "การดำเนินการกำหนดการรายง
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "การดำเนินการกำหนดการรายงานล้มเหลวขณะสร้างภาพหน้าจอ"
 
+msgid "Report Schedule execution failed when generating an Excel file."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Report Schedule execution got an unexpected error."
 msgstr "การดำเนินการกำหนดการรายงานพบข้อผิดพลาดที่ไม่คาดคิด"
+
+msgid ""
+"Report Schedule execution requires a Celery backend to be configured. "
+"Please configure a Celery broker (Redis or RabbitMQ) and worker "
+"processes."
+msgstr ""
+
+#, python-format
+msgid "Report Schedule executor user %(username)s was not found."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19228,6 +19583,11 @@ msgstr "รายงานกำลังใช้งาน"
 #, fuzzy
 msgid "Report name"
 msgstr "ชื่อรายงาน"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Report not yet run"
+msgstr "รายงานยังไม่ถูกเรียกใช้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -19315,6 +19675,13 @@ msgstr "คำขอขาดฟิลด์ข้อมูล"
 msgid "Request timed out"
 msgstr "คำขอหมดเวลา"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -19332,6 +19699,11 @@ msgstr "ค่าการควบคุมที่จำเป็นถูก
 #, fuzzy
 msgid "Resample"
 msgstr "สุ่มตัวอย่างใหม่"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr "ไม่รองรับวิธีการรีแซมเปิล '%(method)s'"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -19410,8 +19782,11 @@ msgstr "ทรัพยากรนี้มีรายงานที่แน
 msgid "Resource was not found."
 msgstr "ไม่พบทรัพยากร"
 
-msgid "Resource was removed before ownership could be verified"
-msgstr ""
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fi, fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
+msgid "Resource was removed before editorship could be verified"
+msgstr "ทรัพยากรถูกลบออกก่อนที่จะสามารถตรวจสอบสิทธิ์การแก้ไขได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19498,8 +19873,11 @@ msgstr "ลบ"
 msgid "Revoke API Key"
 msgstr "คีย์กลุ่ม"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Revoke this API key"
-msgstr ""
+msgstr "เพิกถอน API key นี้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -19593,30 +19971,6 @@ msgstr "จำเป็นต้องระบุชื่อบทบาท"
 #, fuzzy
 msgid "Roles"
 msgstr "บทบาท"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"บทบาทคือรายการที่กำหนดการเข้าถึงแดชบอร์ด "
-"การให้สิทธิ์บทบาทในการเข้าถึงแดชบอร์ดจะข้ามการตรวจสอบระดับชุดข้อมูล "
-"หากไม่ได้กำหนดบทบาทไว้ จะใช้สิทธิ์การเข้าถึงทั่วไป"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"บทบาทคือรายการที่กำหนดการเข้าถึงแดชบอร์ด "
-"การให้สิทธิ์บทบาทในการเข้าถึงแดชบอร์ดจะข้ามการตรวจสอบระดับชุดข้อมูล "
-"หากไม่ได้กำหนดบทบาทไว้ จะใช้สิทธิ์การเข้าถึงทั่วไป"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, de,
 # es, fa, fr, ja, lv, mi, nl, pt, pt_BR, ru, sl, uk, zh, zh_TW]
@@ -19729,6 +20083,13 @@ msgstr "ความสูงของแถว"
 msgid "Row limit"
 msgstr "ขีดจำกัดแถว"
 
+msgid "Row-Level Security"
+msgstr ""
+
+#, python-format
+msgid "Row-Level Security: %d filter(s) may restrict data based on your role."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -19782,6 +20143,9 @@ msgstr "เพิ่มกฎแล้ว"
 #, fuzzy
 msgid "Run"
 msgstr "เรียกใช้"
+
+msgid "Run a new query using the \"Update chart\" button or"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -19871,11 +20235,17 @@ msgstr "SQL"
 msgid "SQL Lab"
 msgstr "SQL Lab"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "SQL Lab cannot authorise a statement that could not be fully parsed. "
 "Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
 "or vendor-specific calls."
 msgstr ""
+"SQL Lab ไม่สามารถอนุญาตคำสั่งที่ไม่สามารถแยกวิเคราะห์ได้อย่างสมบูรณ์ "
+"ระบุตารางอย่างชัดเจนและหลีกเลี่ยง dynamic SQL ภายใน stored procedure "
+"หรือการเรียกใช้เฉพาะของผู้ให้บริการ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -20027,18 +20397,6 @@ msgstr "STRING"
 #, fuzzy
 msgid "SUN"
 msgstr "อา."
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Sample Standard Deviation"
-msgstr "ส่วนเบี่ยงเบนมาตรฐานของกลุ่มตัวอย่าง"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Sample Variance"
-msgstr "ความแปรปรวนของกลุ่มตัวอย่าง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
@@ -20213,8 +20571,11 @@ msgstr "บันทึกหรือเขียนทับชุดข้อ
 msgid "Save query"
 msgstr "บันทึกคำค้นหา"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Save this API key securely"
-msgstr ""
+msgstr "บันทึก API key นี้อย่างปลอดภัย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -20287,8 +20648,11 @@ msgstr "กำลังบันทึก..."
 msgid "Scale and Move"
 msgstr "ปรับขนาดและเลื่อน"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Scale factor applied to metric-driven line widths"
-msgstr ""
+msgstr "ตัวคูณมาตราส่วนที่ใช้กับความกว้างของเส้นที่กำหนดโดยเมตริก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -20430,12 +20794,6 @@ msgstr "เลื่อนลงไปที่ด้านล่างเพื
 msgid "Search"
 msgstr "ค้นหา"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fa, ja, lv, mi, ru, sk, sl, uk]
-#, fuzzy, python-format
-msgid "Search %s records"
-msgstr "ค้นหา %s รายการ"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -20448,6 +20806,9 @@ msgstr "ค้นหา / กรอง"
 #, fuzzy
 msgid "Search Metrics & Columns"
 msgstr "ค้นหาเมตริกและคอลัมน์"
+
+msgid "Search a channel by name, or paste a channel ID"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -20488,9 +20849,8 @@ msgstr "คอลัมน์ที่คำนวณ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "ไม่มีแผนภูมิที่เพิ่มในแดชบอร์ดนี้"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "ค้นหาแผนภูมิตามชื่อ ผู้แก้ไข หรือแดชบอร์ด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -20510,6 +20870,11 @@ msgstr "ค้นหาคอลัมน์"
 msgid "Search columns..."
 msgstr "ค้นหาคอลัมน์..."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
+# uk]
+msgid "Search editors"
+msgstr "ค้นหาผู้แก้ไข"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -20522,17 +20887,8 @@ msgstr "ค้นหาในตัวกรอง"
 msgid "Search metrics by key or label"
 msgstr "ค้นหาเมตริกและคอลัมน์"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy
-msgid "Search owners"
-msgstr "ค้นหาเจ้าของ"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
-# uk]
-#, fuzzy
-msgid "Search roles"
-msgstr "ค้นหาบทบาท"
+msgid "Search records"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -20540,12 +20896,20 @@ msgstr "ค้นหาบทบาท"
 msgid "Search tags"
 msgstr "ค้นหาแท็ก"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
+# uk]
+msgid "Search viewers"
+msgstr "ค้นหาผู้ดู"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
 msgid "Search..."
 msgstr "ค้นหา..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -20620,6 +20984,9 @@ msgstr "ชุดข้อมูล"
 #, fuzzy, python-format
 msgid "See all %(tableName)s"
 msgstr "ดูทั้งหมด %(tableName)s"
+
+msgid "See all dashboards"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21027,6 +21394,11 @@ msgstr "เลือกมิติข้อมูลสำหรับ Top N"
 msgid "Select dimension values"
 msgstr "เลือกค่ามิติข้อมูล"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
+# uk]
+msgid "Select editors"
+msgstr "เลือกผู้แก้ไข"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21123,6 +21495,12 @@ msgstr ""
 msgid "Select operator"
 msgstr "เลือกตัวดำเนินการ"
 
+msgid "Select or type BCC recipients"
+msgstr ""
+
+msgid "Select or type CC recipients"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -21141,11 +21519,8 @@ msgstr "เลือกหรือพิมพ์สัญลักษณ์ส
 msgid "Select or type dataset name"
 msgstr "เลือกหรือพิมพ์ชื่อชุดข้อมูล"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Select owners"
-msgstr "เลือกเจ้าของ"
+msgid "Select or type email recipients"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -21305,15 +21680,23 @@ msgstr "เลือกสีที่กำหนด"
 msgid "Select the geojson column"
 msgstr "เลือกคอลัมน์ geojson"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select the map tile provider. MapLibre is open-source and requires no API"
 " key. Mapbox requires MAPBOX_API_KEY to be configured in Superset."
 msgstr ""
+"เลือกผู้ให้บริการแผนที่ MapLibre เป็นโอเพ่นซอร์สและไม่ต้องใช้ API key "
+"Mapbox ต้องกำหนดค่า MAPBOX_API_KEY ใน Superset"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select the metric used to determine which color breakpoint range each "
 "path falls into."
-msgstr ""
+msgstr "เลือกเมตริกที่ใช้กำหนดว่าแต่ละเส้นทางอยู่ในช่วงจุดแบ่งสีใด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -21341,11 +21724,17 @@ msgid ""
 "query by clicking on the %s button."
 msgstr "เลือกค่าในฟิลด์ที่ไฮไลต์ในแผงควบคุม จากนั้นเรียกใช้คำค้นโดยคลิกที่ปุ่ม %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Select which time grains are available in the filter control. This is a "
 "UI allow list only and does not add extra conditions to the underlying "
 "queries."
 msgstr ""
+"เลือกช่วงเวลาที่สามารถใช้ได้ในตัวควบคุมตัวกรอง "
+"ซึ่งเป็นเพียงรายการที่อนุญาตของ UI "
+"และไม่เพิ่มเงื่อนไขพิเศษให้กับคำค้นหาหลัก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -21379,11 +21768,17 @@ msgstr "อีเมล"
 msgid "Semantic Layer"
 msgstr "ชั้นคำอธิบายประกอบ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic View"
-msgstr ""
+msgstr "มุมมองเชิงความหมาย"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic Views"
-msgstr ""
+msgstr "มุมมองเชิงความหมาย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -21477,17 +21872,26 @@ msgstr "ชุดข้อมูลไม่มีอยู่"
 msgid "Semantic view parameters are invalid."
 msgstr "พารามิเตอร์ชุดข้อมูลไม่ถูกต้อง"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic view updated"
-msgstr ""
+msgstr "อัปเดตมุมมองเชิงความหมายแล้ว"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Semantic views"
-msgstr ""
+msgstr "มุมมองเชิงความหมาย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Send as CSV"
 msgstr "ส่งเป็น CSV"
+
+msgid "Send as Excel"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -21893,6 +22297,9 @@ msgstr "แสดงชื่อเมตริก"
 msgid "Show Metric Names"
 msgstr "แสดงชื่อเมตริก"
 
+msgid "Show Null Values"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -21965,6 +22372,15 @@ msgstr ""
 "จะแสดงค่าต่ำสุด/สูงสุดที่ตั้งด้วยตนเองหากมีการตั้งค่า "
 "หรือแสดงค่าต่ำสุด/สูงสุดจากข้อมูลแทน"
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
+msgid ""
+"Show a summary row of total aggregations: the selected metrics in "
+"aggregate mode, or the sum of numeric columns in raw records mode. Note "
+"that row limit does not apply to the result."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -22036,6 +22452,9 @@ msgstr "แสดงคอลัมน์ว่าง"
 #, fuzzy
 msgid "Show entries per page"
 msgstr "แสดงรายการต่อหน้า"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -22189,6 +22608,11 @@ msgstr ""
 msgid "Show value"
 msgstr "แสดงค่า"
 
+msgid ""
+"Showcases a metric along with a comparison of value, change, and percent "
+"change for a selected time period."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -22339,6 +22763,12 @@ msgstr "ขนาดของสัญลักษณ์ขอบ"
 msgid "Size of marker. Also applies to forecast observations."
 msgstr "ขนาดของตัวทำเครื่องหมาย ใช้กับการสังเกตการณ์พยากรณ์ด้วย"
 
+msgid "Size of the dot representing the largest value of the dot size metric."
+msgstr ""
+
+msgid "Size of the dot representing the smallest value of the dot size metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -22428,20 +22858,39 @@ msgstr ""
 msgid "Solid"
 msgstr "ทึบ"
 
-msgid "Some groups could not be resolved and are shown as IDs."
+msgid "Solid background"
 msgstr ""
 
-msgid "Some permissions could not be resolved and are shown as IDs."
+msgid ""
+"Some filters are inherited from physical tables referenced in this "
+"virtual dataset."
 msgstr ""
 
-msgid "Some required filters on other tabs have values and will not be cleared"
-msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
 #, fuzzy
-msgid "Some roles do not exist"
-msgstr "บางบทบาทไม่มีอยู่"
+msgid "Some groups could not be resolved and are shown as IDs."
+msgstr "บางกลุ่มไม่สามารถระบุได้และแสดงเป็น ID"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
+msgid "Some permissions could not be resolved and are shown as IDs."
+msgstr "บางสิทธิ์ไม่สามารถระบุได้และแสดงเป็น ID"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
+msgid "Some required filters on other tabs have values and will not be cleared"
+msgstr "ตัวกรองที่จำเป็นบางรายการในแท็บอื่นมีค่าและจะไม่ถูกล้าง"
+
+msgid "Some tables are not shown. Refine your search."
+msgstr ""
+
+msgid ""
+"Something went wrong loading the dashboard. Check the dev console for "
+"details."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -22682,11 +23131,17 @@ msgstr "เมตริกสำหรับเรียง"
 msgid "Sort query by"
 msgstr "เรียงคำสั่งตาม"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Sort results by series name in ascending order. When combined with \"Sort"
 " by metric\", this acts as a tiebreaker for equal metric values. Adding "
 "this sort may reduce query performance on some databases."
 msgstr ""
+"เรียงลำดับผลลัพธ์ตามชื่อชุดข้อมูลจากน้อยไปมาก เมื่อใช้ร่วมกับ "
+"\"เรียงตามเมตริก\" ตัวเลือกนี้จะเป็นตัวตัดสินสำหรับค่าเมตริกที่เท่ากัน "
+"การเพิ่มการเรียงลำดับนี้อาจลดประสิทธิภาพการค้นหาในบางฐานข้อมูล"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23038,6 +23493,12 @@ msgstr "หยุดการทำงาน (Ctrl + x)"
 msgid "Stopped an unsafe database connection"
 msgstr "หยุดการเชื่อมต่อฐานข้อมูลที่ไม่ปลอดภัยแล้ว"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -23055,6 +23516,11 @@ msgstr "ถนน"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "แผนภูมิต้นไม้"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Streets (OSM)"
+msgstr "ถนน (OSM)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23086,8 +23552,11 @@ msgstr "มีเส้นขอบ"
 msgid "Structural"
 msgstr "เชิงโครงสร้าง"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Structure is managed by the upstream semantic layer and is read-only."
-msgstr ""
+msgstr "โครงสร้างถูกจัดการโดยเลเยอร์ความหมายต้นน้ำและเป็นแบบอ่านอย่างเดียว"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23119,6 +23588,33 @@ msgstr "หมวดหมู่ย่อย"
 msgid "Subdomain"
 msgstr "ซับโดเมน"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
+#, fuzzy
+msgid "Subject"
+msgstr "หัวข้ออีเมล"
+
+msgid "Subject list"
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Subject type"
+msgstr "ประเภทขั้นตอน"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
+#, fuzzy
+msgid "Subjects"
+msgstr "หัวข้ออีเมล"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Subjects are invalid"
+msgstr "เจ้าของไม่ถูกต้อง"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -23149,6 +23645,9 @@ msgstr "ผลรวมย่อย"
 msgid "Success"
 msgstr "สำเร็จ"
 
+msgid "Success message"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
@@ -23172,24 +23671,6 @@ msgstr "ส่วนต่อท้ายที่ใช้หลังจาก
 #, fuzzy
 msgid "Sum"
 msgstr "ผลรวม"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Sum as Fraction of Columns"
-msgstr "ผลรวมเป็นเศษส่วนของคอลัมน์"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Sum as Fraction of Rows"
-msgstr "ผลรวมเป็นเศษส่วนของแถว"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Sum as Fraction of Total"
-msgstr "ผลรวมเป็นเศษส่วนของยอดรวม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -23275,6 +23756,9 @@ msgstr "สลับชุดข้อมูล"
 #, fuzzy
 msgid "Swap rows and columns"
 msgstr "สลับแถวและคอลัมน์"
+
+msgid "Sweep angle"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -23385,17 +23869,22 @@ msgstr "ลบธีมเริ่มต้นของระบบแล้ว
 msgid "TABLES"
 msgstr "ตาราง"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
-#, fuzzy
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "TEMPORAL_RANGE"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
 msgid "THU"
 msgstr "พฤ"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -23570,6 +24059,9 @@ msgstr "ไม่สามารถอัปเดตแท็กได้"
 msgid "Tag created"
 msgstr "สร้างแท็กแล้ว"
 
+msgid "Tag description"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
@@ -23666,10 +24158,15 @@ msgstr "ไม่สามารถสร้างแท็กได้"
 msgid "Task could not be updated."
 msgstr "ไม่สามารถอัปเดตแท็กได้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Task is not abortable. The task is in progress but has not registered an "
 "abort handler."
 msgstr ""
+"ไม่สามารถยกเลิกงานได้ "
+"งานกำลังดำเนินการอยู่แต่ยังไม่ได้ลงทะเบียนตัวจัดการการยกเลิก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -23683,8 +24180,11 @@ msgstr "พารามิเตอร์ของแท็กไม่ถูก
 msgid "Tasks"
 msgstr "แท็ก"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Tasks will appear here as background operations are executed."
-msgstr ""
+msgstr "งานจะปรากฏที่นี่เมื่อการดำเนินการเบื้องหลังถูกเรียกใช้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
@@ -23778,6 +24278,10 @@ msgstr "การจัดตำแหน่งข้อความ"
 msgid "Text embedded in email"
 msgstr "ข้อความที่ฝังในอีเมล"
 
+#, python-format
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -23819,6 +24323,13 @@ msgstr ""
 "กรุณาตรวจสอบให้แน่ใจว่าคิวรีของคุณมี SELECT เป็นคำสั่งสุดท้าย "
 "จากนั้นลองรันคิวรีอีกครั้ง"
 
+#, python-format
+msgid ""
+"The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
+"combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
+"%(example)s."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -23829,17 +24340,36 @@ msgstr ""
 "GeoJsonLayer รับข้อมูลในรูปแบบ GeoJSON และแสดงผลเป็นรูปหลายเหลี่ยม เส้น "
 "และจุด (วงกลม ไอคอน และ/หรือข้อความ) แบบโต้ตอบ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The Global Task Framework is not enabled. Please contact your "
 "administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
 msgstr ""
+"ไม่ได้เปิดใช้งาน Global Task Framework "
+"กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดใช้งาน feature flag GLOBAL_TASK_FRAMEWORK"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
 "in your feature flags to use @task. See "
 "https://superset.apache.org/docs/configuration/async-queries-celery for "
 "configuration details."
 msgstr ""
+"ไม่ได้เปิดใช้งาน Global Task Framework ตั้งค่า GLOBAL_TASK_FRAMEWORK=True"
+" ใน feature flags เพื่อใช้ @task ดูรายละเอียดการกำหนดค่าได้ที่ "
+"https://superset.apache.org/docs/configuration/async-queries-celery"
+
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "The SSH server host key could not be verified against the expected key."
+msgstr "ไม่สามารถยืนยันคีย์โฮสต์ของเซิร์ฟเวอร์ SSH กับคีย์ที่คาดหวังได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -23911,7 +24441,26 @@ msgstr ""
 "หมวดหมู่ของโหนดต้นทางที่ใช้กำหนดสี "
 "หากโหนดเชื่อมโยงกับมากกว่าหนึ่งหมวดหมู่ จะใช้เฉพาะหมวดหมู่แรกเท่านั้น"
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
 msgid "The chart is still loading. Please wait a moment and try again."
+msgstr "แผนภูมิยังคงโหลดอยู่ กรุณารอสักครู่แล้วลองอีกครั้ง"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"The chart this report targets was deleted. Restore the chart, or update "
+"the report to point at an active chart."
+msgstr ""
+"ชาร์ตที่รายงานนี้กำหนดเป้าหมายถูกลบแล้ว โปรดกู้คืนชาร์ต "
+"หรืออัปเดตรายงานให้ชี้ไปยังชาร์ตที่ใช้งานอยู่"
+
+msgid "The chat failed to load."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -24047,6 +24596,18 @@ msgstr "มาตรฐานรหัสประเทศที่ Superset �
 #, fuzzy
 msgid "The dashboard has been saved"
 msgstr "บันทึกแดชบอร์ดแล้ว"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"The dashboard this report targets was deleted. Restore the dashboard, or "
+"update the report to point at an active dashboard."
+msgstr ""
+"แดชบอร์ดที่รายงานนี้กำหนดเป้าหมายถูกลบแล้ว โปรดกู้คืนแดชบอร์ด "
+"หรืออัปเดตรายงานให้ชี้ไปยังแดชบอร์ดที่ใช้งานอยู่"
+
+msgid "The dashboard you are looking for may have been deleted or moved."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -24264,6 +24825,19 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "คุณสมบัติของฟีเจอร์ที่ใช้สำหรับป้ายกำกับจุด"
 
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -24272,10 +24846,15 @@ msgid ""
 "%(columns)s. "
 msgstr "รายการต่อไปนี้ใน `series_columns` ไม่มีอยู่ใน `columns`: %(columns)s. "
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The following fields contain sensitive information that was masked during"
 " export. Please provide the values to import this database."
 msgstr ""
+"ฟิลด์ต่อไปนี้มีข้อมูลที่ละเอียดอ่อนซึ่งถูกปิดบังระหว่างการส่งออก "
+"กรุณาระบุค่าเพื่อนำเข้าฐานข้อมูลนี้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -24419,6 +24998,11 @@ msgstr "จำนวนการแบ่งย่อยสูงสุดขอ
 #, fuzzy
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "ค่าสูงสุดของเมตริก เป็นการกำหนดค่าที่ไม่บังคับ"
+
+msgid ""
+"The metadata_cache_timeout must be a mapping from string keys to non-"
+"negative integer values."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -24648,8 +25232,11 @@ msgstr ""
 "ของการกำหนดค่าฐานข้อมูลจะไม่อยู่ในไฟล์ส่งออก "
 "และควรเพิ่มด้วยตนเองหลังจากนำเข้าหากจำเป็น"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "The passwords for the databases below are needed in order to import them."
-msgstr ""
+msgstr "ต้องใช้รหัสผ่านสำหรับฐานข้อมูลด้านล่างเพื่อนำเข้า"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -24735,6 +25322,9 @@ msgstr ""
 msgid "The query contains one or more malformed template parameters."
 msgstr "คิวรีมีพารามิเตอร์เทมเพลตที่มีรูปแบบไม่ถูกต้องอย่างน้อยหนึ่งรายการ"
 
+msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -24796,6 +25386,19 @@ msgid ""
 msgstr ""
 "รัศมีของจุดแต่ละจุด (ที่ไม่ได้อยู่ในกลุ่ม) สามารถเป็นคอลัมน์ตัวเลขหรือ "
 "`Auto` ซึ่งปรับขนาดจุดตามกลุ่มที่ใหญ่ที่สุด"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"The radius of point features, in the units specified below. The final "
+"rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+"รัศมีของจุดฟีเจอร์ในหน่วยที่ระบุด้านล่าง "
+"ขนาดที่เรนเดอร์สุดท้ายคือค่านี้คูณด้วยมาตราส่วนรัศมีจุด"
+
+#, python-format
+msgid "The remaining %s will be moved to Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -25108,6 +25711,15 @@ msgstr "หน่วยสำหรับขนาดไอคอน"
 msgid "The unit for label size"
 msgstr "หน่วยสำหรับขนาดป้ายกำกับ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"The unit for point radius. Use \"pixels\" for consistent screen-space "
+"sizing regardless of zoom level."
+msgstr ""
+"หน่วยสำหรับรัศมีจุด ใช้ \"พิกเซล\" "
+"เพื่อให้ได้ขนาดบนหน้าจอที่สม่ำเสมอโดยไม่คำนึงถึงระดับการซูม"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -25210,10 +25822,13 @@ msgstr "ความกว้างของเส้นขอบขององ
 msgid "The width of the lines"
 msgstr "ความกว้างของเส้น"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "The width of the lines as either a fixed value or variable width based on"
 " a metric."
-msgstr ""
+msgstr "ความกว้างของเส้นในรูปแบบค่าคงที่หรือความกว้างแปรผันตามเมตริก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -25313,11 +25928,13 @@ msgstr ""
 "มีพื้นที่ไม่เพียงพอสำหรับส่วนประกอบนี้ "
 "ลองลดความกว้างหรือเพิ่มความกว้างของปลายทาง"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "There was a problem refreshing your dashboard. We'll try again in %s, as "
 "scheduled."
-msgstr ""
+msgstr "เกิดปัญหาในการรีเฟรชแดชบอร์ดของคุณ เราจะลองอีกครั้งใน %s ตามกำหนดการ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -25366,6 +25983,9 @@ msgstr "เกิดข้อผิดพลาดในการดึงข้
 #, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "เกิดข้อผิดพลาดในการดึงข้อมูลแผนภูมิและแดชบอร์ดที่กรองแล้ว:"
+
+msgid "There was an error generating the permalink."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -25463,6 +26083,26 @@ msgstr "เกิดข้อผิดพลาดขณะดึงข้อม
 msgid "There was an error with your request"
 msgstr "เกิดข้อผิดพลาดกับคำขอของคุณ"
 
+#, python-format
+msgid "There was an issue archiving %s: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected charts: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected dashboards: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -25517,17 +26157,19 @@ msgstr "เกิดปัญหาในการลบคำอธิบาย
 msgid "There was an issue deleting the selected charts: %s"
 msgstr "เกิดปัญหาในการลบแผนภูมิที่เลือก: %s"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "There was an issue deleting the selected dashboards: "
-msgstr "เกิดปัญหาในการลบแดชบอร์ดที่เลือก: "
+#, python-format
+msgid "There was an issue deleting the selected dashboards: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "เกิดปัญหาในการลบเลเยอร์ที่เลือก: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -25582,6 +26224,9 @@ msgstr "เกิดปัญหาในการส่งออกแผนภ
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "เกิดปัญหาในการส่งออกแดชบอร์ดที่เลือก"
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -25643,11 +26288,35 @@ msgstr "เกิดปัญหาในการแสดงตัวอย่
 msgid "There was an issue previewing the selected query. %s"
 msgstr "เกิดปัญหาในการแสดงตัวอย่างคิวรีที่เลือก %s"
 
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
 msgid "These are the datasets this filter will be applied to."
 msgstr "นี่คือชุดข้อมูลที่ตัวกรองนี้จะถูกนำไปใช้"
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -25830,6 +26499,9 @@ msgstr ""
 "                  "
 "ปัจจุบันควรส่งต่อไปยังแผนภูมิที่มีข้อมูลคำอธิบายประกอบหรือไม่"
 
+msgid "This dashboard does not exist"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -25914,12 +26586,18 @@ msgid ""
 "table."
 msgstr "ตารางฐานข้อมูลนี้ไม่มีข้อมูล กรุณาเลือกตารางอื่น"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "This database uses OAuth2 for authentication. Please click the link above"
 " to grant Apache Superset permission to access the data. Your personal "
 "access token will be stored encrypted and used only for queries run by "
 "you."
 msgstr ""
+"ฐานข้อมูลนี้ใช้ OAuth2 สำหรับการยืนยันตัวตน "
+"กรุณาคลิกลิงก์ด้านบนเพื่อให้สิทธิ์ Apache Superset เข้าถึงข้อมูล "
+"โทเค็นการเข้าถึงส่วนตัวของคุณจะถูกจัดเก็บแบบเข้ารหัสและใช้เฉพาะสำหรับคำค้นหาที่คุณดำเนินการเท่านั้น"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -25940,6 +26618,10 @@ msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "อีเมลนี้ถูกเชื่อมโยงกับบัญชีอยู่แล้ว กรุณาเลือกอีเมลอื่น"
+
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -25996,12 +26678,6 @@ msgstr "โฟลเดอร์นี้รับเฉพาะคอลัม
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "โฟลเดอร์นี้รับเฉพาะเมตริกเท่านั้น"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "ฟังก์ชันนี้ถูกปิดใช้งานในสภาพแวดล้อมของคุณด้วยเหตุผลด้านความปลอดภัย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -26069,8 +26745,11 @@ msgstr "นี่คือโฟลเดอร์เริ่มต้น"
 msgid "This is the default light theme"
 msgstr "นี่คือธีมสว่างเริ่มต้น"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "This is the only time you will see this key. Store it securely."
-msgstr ""
+msgstr "นี่เป็นครั้งเดียวที่คุณจะเห็นคีย์นี้ เก็บรักษาอย่างปลอดภัย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -26084,10 +26763,24 @@ msgstr ""
 "ออบเจ็กต์ JSON นี้อธิบายตำแหน่งของวิดเจ็ตในแดชบอร์ด "
 "โดยจะถูกสร้างขึ้นแบบไดนามิกเมื่อปรับขนาดและตำแหน่งของวิดเจ็ตโดยใช้การลากและวางในมุมมองแดชบอร์ด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
+msgid "This link cannot be followed because its address is unsafe."
+msgstr "ไม่สามารถเปิดลิงก์นี้ได้เนื่องจากที่อยู่ไม่ปลอดภัย"
+
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
 "safety of external destinations."
 msgstr ""
+"ลิงก์นี้จะพาคุณไปยังเว็บไซต์ภายนอก "
+"เราไม่สามารถรับประกันความปลอดภัยของปลายทางภายนอกได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26140,6 +26833,11 @@ msgid ""
 "This page is intended to be embedded in an iframe, but it looks like that"
 " is not the case."
 msgstr "หน้านี้ถูกออกแบบมาเพื่อฝังใน iframe แต่ดูเหมือนว่านั่นไม่ใช่กรณีนี้"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "This password is too common; please choose a less guessable one."
+msgstr "รหัสผ่านนี้พบบ่อยเกินไป โปรดเลือกรหัสผ่านที่คาดเดาได้ยากกว่านี้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -26243,9 +26941,11 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "สิ่งนี้เกิดจาก:"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
-msgstr ""
+msgstr "การดำเนินการนี้จะยกเลิก (หยุด) งานสำหรับผู้ติดตามทั้งหมด %s ราย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
@@ -26259,8 +26959,11 @@ msgstr ""
 "จะถูกเพิ่มในคอลัมน์หลักเพื่อแสดงการเพิ่มขึ้นและลดลง "
 "การจัดรูปแบบตามเงื่อนไขพื้นฐานสามารถถูกแทนที่ด้วยการจัดรูปแบบตามเงื่อนไขด้านล่าง"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "This will cancel the task."
-msgstr ""
+msgstr "การดำเนินการนี้จะยกเลิกงาน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26345,11 +27048,8 @@ msgstr "รูปแบบเวลา"
 msgid "Time Grain"
 msgstr "หน่วยเวลา"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
-#, fuzzy
-msgid "Time Grain must be specified when using Time Shift."
-msgstr "ต้องระบุหน่วยเวลาเมื่อใช้การเลื่อนเวลา"
+msgid "Time Grain must be specified when using Time Comparison."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26637,11 +27337,15 @@ msgstr "รูปแบบเวลา"
 msgid "Timeline"
 msgstr "ไทม์ไลน์"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "Timeout configured (%s seconds) but no abort handler defined. Task will "
 "continue running past the timeout."
 msgstr ""
+"กำหนดค่า timeout (%s วินาที) แต่ไม่ได้กำหนดตัวจัดการการยกเลิก "
+"งานจะยังคงทำงานต่อหลังจาก timeout"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26741,6 +27445,24 @@ msgstr "เพื่อรับ URL ที่อ่านได้สำหร�
 msgid "Token Request URI"
 msgstr "Token Request URI"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+"มีการร้องขอซับสไลซ์มากเกินไป จำนวนสูงสุดที่อนุญาตคือ %(max)s "
+"แต่มีการร้องขอ %(count)s รายการ"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+"มีการร้องขอการเปรียบเทียบเวลามากเกินไป จำนวนสูงสุดที่อนุญาตคือ %(max)s "
+"แต่มีการร้องขอ %(count)s รายการ"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -26831,11 +27553,11 @@ msgstr "ผลรวม"
 msgid "Total (%(aggfunc)s)"
 msgstr "ผลรวม (%(aggfunc)s)"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr "ผลรวม (%(aggregatorName)s)"
+msgid ""
+"Total angle covered by the chart, in degrees. 360° draws a full circle "
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -26878,6 +27600,9 @@ msgstr "แปลงได้"
 #, fuzzy
 msgid "Transparent"
 msgstr "โปร่งใส"
+
+msgid "Transparent background"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26934,11 +27659,17 @@ msgstr "สามเหลี่ยม"
 msgid "Trigger Alert If..."
 msgstr "ทริกเกอร์การแจ้งเตือนเมื่อ..."
 
+msgid "Trigger now"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
 msgid "True"
 msgstr "จริง"
+
+msgid "Truncate Axis"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -26986,14 +27717,22 @@ msgstr "ตัดทอนแกน Y สามารถแทนที่ได
 msgid "Truncate long cells to the \"min width\" set above"
 msgstr "ตัดทอนเซลล์ที่ยาวให้เหลือ \"ความกว้างต่ำสุด\" ที่กำหนดไว้ด้านบน"
 
+msgid ""
+"Truncate the metric axis. Can be overridden by specifying a min or max "
+"bound."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "ตัดทอนวันที่ที่ระบุให้มีความแม่นยำตามที่กำหนดโดยหน่วยวันที่"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Trust this URL and don't ask again"
-msgstr ""
+msgstr "เชื่อถือ URL นี้และไม่ต้องถามอีก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27056,8 +27795,11 @@ msgstr "พิมพ์ค่า"
 msgid "Type is required"
 msgstr "ต้องระบุประเภท"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type of Google Sheets allowed"
-msgstr ""
+msgstr "ประเภท Google Sheets ที่อนุญาต"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -27077,11 +27819,17 @@ msgstr "ประเภทการเปรียบเทียบ ผลต�
 msgid "Type to search (contains)..."
 msgstr "ค้นหาคอลัมน์..."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type to search (ends with)..."
-msgstr ""
+msgstr "พิมพ์เพื่อค้นหา (ลงท้ายด้วย)..."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Type to search (starts with)..."
-msgstr ""
+msgstr "พิมพ์เพื่อค้นหา (เริ่มต้นด้วย)..."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27125,6 +27873,9 @@ msgstr "URL Slug"
 #, fuzzy
 msgid "URL parameters"
 msgstr "พารามิเตอร์ URL"
+
+msgid "UUID to track the execution status"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
@@ -27199,8 +27950,11 @@ msgstr "ไม่สามารถถอดรหัสค่าได้"
 msgid "Unable to encode value"
 msgstr "ไม่สามารถเข้ารหัสค่าได้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unable to fetch semantic views. Check the layer configuration."
-msgstr ""
+msgstr "ไม่สามารถดึงมุมมองเชิงความหมายได้ ตรวจสอบการกำหนดค่าเลเยอร์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27214,6 +27968,10 @@ msgstr "ไม่สามารถค้นหาวันหยุดดัง
 msgid "Unable to generate download payload"
 msgstr "ไม่สามารถโหลดแดชบอร์ดได้"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -27223,6 +27981,12 @@ msgid ""
 msgstr ""
 "ไม่สามารถระบุคอลัมน์เวลาสำหรับการเปรียบเทียบช่วงวันที่ได้ "
 "โปรดตรวจสอบว่าชุดข้อมูลของคุณมีคอลัมน์เวลาที่กำหนดค่าอย่างถูกต้อง"
+
+#, python-format
+msgid ""
+"Unable to interpret the time offset: %(offset)s. Use a relative time such"
+" as \"1 month ago\"."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -27425,8 +28189,11 @@ msgstr "ข้อผิดพลาดที่ไม่รู้จัก"
 msgid "Unknown input format"
 msgstr "รูปแบบอินพุตที่ไม่รู้จัก"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unknown tokens will be highlighted as warnings."
-msgstr ""
+msgstr "โทเค็นที่ไม่รู้จักจะถูกไฮไลต์เป็นคำเตือน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -27452,8 +28219,16 @@ msgstr "ยกเลิกการปักหมุด"
 msgid "Unpin from the result panel"
 msgstr "ปักหมุดที่แผงผลลัพธ์"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Unpin from top"
-msgstr ""
+msgstr "เลิกปักหมุดจากด้านบน"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy
+msgid "Unsafe link blocked"
+msgstr "บล็อกลิงก์ที่ไม่ปลอดภัย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27642,6 +28417,11 @@ msgstr "จำเป็นต้องอัปโหลดไฟล์"
 #, fuzzy
 msgid "Upper Threshold"
 msgstr "เกณฑ์บน"
+
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -27928,8 +28708,11 @@ msgstr ""
 "เลื่อนเมาส์ไปเหนือเส้นทางแต่ละเส้นในการแสดงผลเพื่อทำความเข้าใจขั้นตอนที่ค่าผ่านไป"
 " เหมาะสำหรับการแสดงผลช่องทางและไปป์ไลน์แบบหลายขั้นตอนและหลายกลุ่ม"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "Uses the first 25 values if the dimension has more."
-msgstr ""
+msgstr "ใช้ค่า 25 ค่าแรกหากมิติมีค่ามากกว่านั้น"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -28015,6 +28798,10 @@ msgstr "ค่าต้องไม่เกิน %s"
 #, fuzzy
 msgid "Value difference between the time periods"
 msgstr "ความแตกต่างของค่าระหว่างช่วงเวลา"
+
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -28114,6 +28901,10 @@ msgstr "แนวตั้ง (ซ้าย)"
 msgid "View"
 msgstr "ดู"
 
+#, python-format
+msgid "View %(type)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -28146,12 +28937,6 @@ msgid "View in SQL Lab"
 msgstr "ดูใน SQL Lab"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
-msgid "View keys & indexes (%s)"
-msgstr "ดูคีย์และดัชนี (%s)"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
@@ -28175,6 +28960,27 @@ msgstr "ดูแล้ว"
 #, fuzzy, python-format
 msgid "Viewed %s"
 msgstr "ดูแล้ว %s"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+msgid "Viewer"
+msgstr "ผู้ดู"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+msgid "Viewers"
+msgstr "ผู้ดู"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
+#, fuzzy
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
+"ผู้ดูคือรายการของบุคคลที่สามารถดูแดชบอร์ดได้ หากไม่ได้กำหนดผู้ดูไว้ "
+"แดชบอร์ดจะสามารถเข้าถึงได้โดยผู้ใช้ทุกคนที่มีสิทธิ์แหล่งข้อมูลที่เหมาะสม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -28376,20 +29182,19 @@ msgstr "ประเภทการแสดงผล"
 msgid "WED"
 msgstr "พ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, sk, uk]
-#, fuzzy
+#. do-not-translate
 msgid "WFS"
-msgstr "WFS"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, sk, uk]
-#, fuzzy
-msgid "WMS"
-msgstr "WMS"
-
-msgid "Waiting for first refresh"
 msgstr ""
+
+#. do-not-translate
+msgid "WMS"
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
+msgid "Waiting for first refresh"
+msgstr "กำลังรอการรีเฟรชครั้งแรก"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -28436,10 +29241,15 @@ msgid ""
 "not exist."
 msgstr "คำเตือน! การเปลี่ยนชุดข้อมูลอาจทำให้แผนภูมิเสียหายหากไม่มีข้อมูลเมตา"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
 msgstr ""
+"คำเตือน: คำค้นหา ILIKE "
+"อาจช้าบนชุดข้อมูลขนาดใหญ่เนื่องจากไม่สามารถใช้ดัชนีได้อย่างมีประสิทธิภาพ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -28708,6 +29518,12 @@ msgstr ""
 "เมื่อคอลัมน์เวลารองถูกกรอง "
 "ให้ใช้ตัวกรองเดียวกันกับคอลัมน์วันที่และเวลาหลัก"
 
+msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, es, fa,
 # fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -28826,6 +29642,9 @@ msgstr "ว่าจะแสดงคำอธิบายสำหรับแ
 #, fuzzy
 msgid "Whether to display bubbles on top of countries"
 msgstr "ว่าจะแสดงฟองข้อมูลบนประเทศต่างๆ หรือไม่"
+
+msgid "Whether to display entries with null values in the hierarchy"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -29065,11 +29884,10 @@ msgstr "เรียงลำดับจากมากไปน้อยหร
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "เรียงลำดับผลลัพธ์ตามตัวชี้วัดที่เลือกจากมากไปน้อยหรือไม่"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr "เรียงลำดับคำแนะนำเครื่องมือตามตัวชี้วัดที่เลือกจากมากไปน้อยหรือไม่"
+msgid ""
+"Whether to sort tooltip by the selected metric in descending order. On "
+"stacked charts, values are shown in ascending order."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -29276,11 +30094,9 @@ msgstr "แกน X"
 msgid "X-scale interval"
 msgstr "ช่วงสเกล X"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, sk, uk]
-#, fuzzy
+#. do-not-translate
 msgid "XYZ"
-msgstr "XYZ"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29383,6 +30199,9 @@ msgstr "แกน Y"
 #, fuzzy
 msgid "Y-axis bounds"
 msgstr "ขอบเขตแกน Y"
+
+msgid "Y-axis range slider"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29667,6 +30486,11 @@ msgstr "คุณไม่มีสิทธิ์แก้ไขแดชบอ
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "คุณไม่มีสิทธิ์เพียงพอในการแก้ไขชาร์ต"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr "คุณไม่มีสิทธิ์เข้าถึงแหล่งข้อมูลที่อ้างอิงหนึ่งรายการหรือมากกว่า"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -29801,25 +30625,50 @@ msgstr ""
 "และจะไม่สามารถยกเลิกการดำเนินการถัดไปได้อย่างสมบูรณ์ "
 "คุณอาจบันทึกสถานะปัจจุบันเพื่อรีเซ็ตประวัติ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, python-format
 msgid ""
-"You must be a %s owner in order to edit. Please reach out to a %s owner "
-"to request modifications or edit access."
+"You must be a %s editor in order to edit. Please reach out to a %s editor"
+" to request modifications or edit access."
 msgstr ""
-"คุณต้องเป็นเจ้าของชุดข้อมูลจึงจะแก้ไขได้ "
-"โปรดติดต่อเจ้าของชุดข้อมูลเพื่อขอแก้ไขหรือสิทธิ์การแก้ไข"
+"คุณต้องเป็นผู้แก้ไขของ %s จึงจะแก้ไขได้ โปรดติดต่อผู้แก้ไขของ %s "
+"เพื่อขอแก้ไขหรือขอสิทธิ์แก้ไข"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
 msgid ""
-"You must be a dataset owner in order to edit. Please reach out to a "
-"dataset owner to request modifications or edit access."
+"You must be a chart editor in order to delete. Please reach out to a "
+"chart editor to request modifications or edit access."
 msgstr ""
-"คุณต้องเป็นเจ้าของชุดข้อมูลจึงจะแก้ไขได้ "
-"โปรดติดต่อเจ้าของชุดข้อมูลเพื่อขอแก้ไขหรือสิทธิ์การแก้ไข"
+
+msgid ""
+"You must be a chart editor in order to edit. Please reach out to a chart "
+"editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to delete. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to edit. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to delete. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to edit. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
+"คุณต้องเป็นผู้แก้ไขชุดข้อมูลจึงจะแก้ไขได้ "
+"โปรดติดต่อผู้แก้ไขชุดข้อมูลเพื่อขอแก้ไขหรือขอสิทธิ์แก้ไข"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, tr]
+#, fuzzy
+msgid "You must change your password before continuing."
+msgstr "คุณต้องเปลี่ยนรหัสผ่านก่อนดำเนินการต่อ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29833,8 +30682,17 @@ msgstr "คุณต้องเลือกชื่อสำหรับแด
 msgid "You must run the query successfully first"
 msgstr "คุณต้องรันคิวรีให้สำเร็จก่อน"
 
-msgid "You need to"
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
+"คุณต้องมีสิทธิ์เข้าถึงตารางต่อไปนี้: %(tables)s หรือสิทธิ์ "
+"'all_database_access' หรือ 'all_datasource_access'"
+
+msgid "You need to"
+msgstr "คุณต้อง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29847,11 +30705,13 @@ msgstr ""
 "คุณอัปเดตค่าในแผงควบคุมแล้ว แต่แผนภูมิไม่ได้อัปเดตโดยอัตโนมัติ "
 "รันคิวรีโดยคลิกที่ปุ่ม \"อัปเดตแผนภูมิ\" หรือ"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
 "subscriber(s)."
-msgstr ""
+msgstr "คุณจะถูกลบออกจากงานนี้ งานจะยังคงทำงานต่อสำหรับผู้ติดตาม %s รายอื่น"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -29889,17 +30749,38 @@ msgstr "แผนภูมิของคุณไม่เป็นปัจจ
 msgid "Your chart is ready to go!"
 msgstr "แผนภูมิของคุณพร้อมใช้งานแล้ว!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
 msgid "Your dashboard is near the size limit."
 msgstr "แดชบอร์ดของคุณใกล้ถึงขีดจำกัดขนาดแล้ว"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
-#, fuzzy
-msgid "Your dashboard is too large. Please reduce its size before saving it."
-msgstr "แดชบอร์ดของคุณใหญ่เกินไป โปรดลดขนาดก่อนบันทึก"
+#, python-format
+msgid ""
+"Your dashboard is too large to save: the serialized layout length is %s "
+"but the limit is %s. Reduce the dashboard size (for example, split it "
+"into multiple dashboards) or raise the "
+"SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -29957,6 +30838,11 @@ msgstr "อัปเดตคิวรีของคุณแล้ว"
 #, fuzzy
 msgid "Your report could not be deleted"
 msgstr "ไม่สามารถลบรายงานของคุณได้"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "Your session has ended. Please sign in again."
+msgstr "เซสชันของคุณสิ้นสุดแล้ว โปรดลงชื่อเข้าใช้อีกครั้ง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -30103,9 +30989,10 @@ msgstr "คุณสมบัติ `operation` ของออบเจ็ก�
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
+#, fuzzy, python-format
 msgid "`periods` must be between 1 and %(max)s"
-msgstr ""
+msgstr "`periods` ต้องอยู่ระหว่าง 1 ถึง %(max)s"
 
 #, fuzzy
 msgid "`prophet` package not installed"
@@ -30136,6 +31023,11 @@ msgstr "`row_offset` ต้องมีค่ามากกว่าหรื�
 #, fuzzy
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` ต้องมีค่ามากกว่าหรือเท่ากับ 0"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "`window` must be between 1 and 10000"
+msgstr "`window` ต้องอยู่ระหว่าง 1 ถึง 10000"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -30199,6 +31091,11 @@ msgstr "คำอธิบายประกอบ"
 msgid "annotation_layer"
 msgstr "ชั้นคำอธิบายประกอบ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "apple"
+msgstr "แอปเปิ้ล"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -30228,6 +31125,11 @@ msgstr "พื้นหลัง"
 #, fuzzy
 msgid "background color"
 msgstr "สีพื้นหลัง"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid "banana"
+msgstr "กล้วย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -30265,11 +31167,9 @@ msgstr "ระหว่าง {down} และ {up} {name}"
 msgid "bfill"
 msgstr "bfill"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, sk, sl, uk, zh, zh_TW]
-#, fuzzy
+#. do-not-translate
 msgid "bolt"
-msgstr "สายฟ้า"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30435,11 +31335,9 @@ msgstr "สร้างแผนภูมิใหม่"
 msgid "create dataset from SQL query"
 msgstr "สร้างชุดข้อมูลจากคำสั่ง SQL"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fa, fr, lv, mi, sk, sl, uk]
-#, fuzzy
+#. do-not-translate
 msgid "crontab"
-msgstr "crontab"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30576,6 +31474,7 @@ msgstr "deck.gl เส้นชั้นความสูง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "deck.gl Geojson"
 msgstr "deck.gl GeoJSON"
@@ -30674,6 +31573,7 @@ msgstr "เอกสาร"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
+#. do-not-translate
 #, fuzzy
 msgid "dttm"
 msgstr "dttm"
@@ -30750,14 +31650,23 @@ msgstr "เช่น world_population"
 msgid "e.g. xy12345.us-east-2.aws"
 msgstr "เช่น xy12345.us-east-2.aws"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "e.g., CI/CD Pipeline, Analytics Script"
-msgstr ""
+msgstr "เช่น CI/CD Pipeline, Analytics Script"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
 msgid "edit mode"
 msgstr "โหมดแก้ไข"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
+# zh_TW]
+msgid "editors"
+msgstr "ผู้แก้ไข"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -30783,23 +31692,15 @@ msgstr "ไปยังทั้งแถว"
 msgid "entries"
 msgstr "รายการ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# ja, lv, mi, ru, sk, uk]
-#, fuzzy
-msgid "entries per page"
-msgstr "รายการต่อหน้า"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
 msgid "error"
 msgstr "ข้อผิดพลาด"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
-#, fuzzy
+#. do-not-translate
 msgid "error_message"
-msgstr "error_message"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -30846,8 +31747,11 @@ msgstr "ทุกเดือน"
 msgid "expand"
 msgstr "ขยาย"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "extra.dashboard must be an object"
-msgstr ""
+msgstr "extra.dashboard ต้องเป็น object"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -30855,8 +31759,11 @@ msgstr ""
 msgid "failed"
 msgstr "ล้มเหลว"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "farewell"
-msgstr ""
+msgstr "ลาก่อน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30923,8 +31830,11 @@ msgstr "แผนที่ความร้อน"
 msgid "heatmap: values are normalized across the entire heatmap"
 msgstr "แผนที่ความร้อน: ค่าต่างๆ ถูกทำให้เป็นมาตรฐานทั่วทั้งแผนที่ความร้อน"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "hello"
-msgstr ""
+msgstr "สวัสดี"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -30946,8 +31856,11 @@ msgstr "ชั่วโมง"
 msgid "in"
 msgstr "ใน"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "in order to run this operation."
-msgstr ""
+msgstr "เพื่อดำเนินการนี้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -31184,30 +32097,43 @@ msgstr "ต้องมีค่า"
 msgid "name"
 msgstr "ชื่อ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "nativeFilters must be a list"
-msgstr ""
+msgstr "nativeFilters ต้องเป็น list"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s] missing required keys: %(keys)s"
-msgstr ""
+msgstr "nativeFilters[%(idx)s] ขาดคีย์ที่จำเป็น: %(keys)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s] must be an object"
-msgstr ""
+msgstr "nativeFilters[%(idx)s] ต้องเป็น object"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s].filterValues must be a list"
-msgstr ""
+msgstr "nativeFilters[%(idx)s].filterValues ต้องเป็นรายการ"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid ""
 "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' does not exist on "
 "the dashboard"
-msgstr ""
+msgstr "nativeFilters[%(idx)s].nativeFilterId '%(filter_id)s' ไม่มีอยู่ในแดชบอร์ด"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy, python-format
 msgid "nativeFilters[%(idx)s].nativeFilterId must be a non-empty string"
-msgstr ""
+msgstr "nativeFilters[%(idx)s].nativeFilterId ต้องเป็นสตริงที่ไม่ว่างเปล่า"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -31293,12 +32219,6 @@ msgstr "ต้นฉบับ"
 msgid "overall"
 msgstr "ภาพรวม"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
-#, fuzzy
-msgid "owners"
-msgstr "เจ้าของ"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -31307,24 +32227,28 @@ msgstr "ความแม่นยำของค่า p"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "p1"
 msgstr "p1"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "p5"
 msgstr "p5"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "p95"
 msgstr "p95"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#. do-not-translate
 #, fuzzy
 msgid "p99"
 msgstr "p99"
@@ -31351,10 +32275,9 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "ไม่พบสถานะลิงก์ถาวร"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, uk]
-#, fuzzy
+#. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "pivoted_xlsx"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -31397,6 +32320,9 @@ msgstr "ต้องการการอนุญาต"
 #, fuzzy
 msgid "quarter"
 msgstr "ไตรมาส"
+
+msgid "queries"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -31473,17 +32399,18 @@ msgstr "กำลังทำงาน"
 msgid "save"
 msgstr "บันทึก"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# sk, uk]
-#, fuzzy
+#. do-not-translate
 msgid "schema1,schema2"
-msgstr "schema1,schema2"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
 msgid "seconds"
 msgstr "วินาที"
+
+msgid "semantic layer"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -31503,11 +32430,9 @@ msgstr ""
 "ชุดข้อมูลทั้งหมดใช้สเกลเดียวกัน; การเปลี่ยนแปลง: "
 "แสดงการเปลี่ยนแปลงเปรียบเทียบกับจุดข้อมูลแรกในแต่ละชุดข้อมูล"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fa, fr, ja, lv, mi, pl, pt_BR, sk, sl, uk]
-#, fuzzy
+#. do-not-translate
 msgid "sql"
-msgstr "sql"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -31533,17 +32458,13 @@ msgstr "สลับกัน"
 msgid "std"
 msgstr "std"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
-#, fuzzy
+#. do-not-translate
 msgid "step-after"
-msgstr "ขั้น-หลัง"
+msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, uk, zh, zh_TW]
-#, fuzzy
+#. do-not-translate
 msgid "step-before"
-msgstr "ขั้น-ก่อน"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -31581,11 +32502,9 @@ msgstr "สำเร็จ"
 msgid "sum"
 msgstr "ผลรวม"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# sk, uk]
-#, fuzzy
+#. do-not-translate
 msgid "superset.example.com"
-msgstr "superset.example.com"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -31623,8 +32542,11 @@ msgstr "ไปยังสีข้อความ"
 msgid "textarea"
 msgstr "พื้นที่ข้อความ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "the Handlebars chart documentation"
-msgstr ""
+msgstr "เอกสารประกอบแผนภูมิ Handlebars"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -31706,6 +32628,9 @@ msgstr "ค่าจากน้อยไปมาก"
 #, fuzzy
 msgid "value descending"
 msgstr "ค่าจากมากไปน้อย"
+
+msgid "valuename"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -31794,11 +32719,9 @@ msgstr "y: ค่าถูกทำให้เป็นมาตรฐานภ
 msgid "year"
 msgstr "ปี"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
-# sk, uk]
-#, fuzzy
+#. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "your-project-1234-a1"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -31812,5 +32735,8 @@ msgstr "พื้นที่ซูม"
 msgid "© Layer attribution"
 msgstr "© การระบุแหล่งที่มาของเลเยอร์"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
+# sr_Latn]
+#, fuzzy
 msgid "№"
-msgstr ""
+msgstr "№"

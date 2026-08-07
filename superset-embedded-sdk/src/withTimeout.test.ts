@@ -18,22 +18,23 @@
  */
 
 import { withTimeout } from "./withTimeout";
+import { test, expect } from "vitest";
 
 test("resolves with the value when the promise settles in time", async () => {
   await expect(withTimeout(Promise.resolve("ok"), 1000, "fetch")).resolves.toBe(
-    "ok"
+    "ok",
   );
 });
 
 test("rejects when the promise does not settle within the timeout", async () => {
   const never = new Promise<string>(() => {});
   await expect(withTimeout(never, 10, "fetch")).rejects.toThrow(
-    /fetch did not resolve within 10ms/
+    /fetch did not resolve within 10ms/,
   );
 });
 
 test("passes the promise through unchanged when the timeout is disabled", async () => {
   await expect(withTimeout(Promise.resolve("ok"), 0, "fetch")).resolves.toBe(
-    "ok"
+    "ok",
   );
 });

@@ -19,9 +19,11 @@
 Unit tests for MCP generate_chart tool
 """
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.mcp_service.chart.schemas import (
@@ -432,16 +434,165 @@ def _make_mock_chart(chart_id: int = 42) -> Mock:
     chart.created_on = None
     chart.created_on_humanized = "2 days ago"
     chart.uuid = "test-uuid-42"
+    chart.deleted_at = None
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     return chart
+
+
+class _DetachableSlice:
+    """A Slice stand-in that starts attached and can be detached at will.
+
+    Once detached, every attribute read raises ``DetachedInstanceError``, which
+    is what SQLAlchemy does when a concurrent request tears down the session
+    this instance was loaded in.
+    """
+
+    def __init__(self, chart_id: int = 42) -> None:
+        self._values = {
+            "id": chart_id,
+            "slice_name": "Concurrent chart",
+            "viz_type": "table",
+            "uuid": "2a0e0e0e-0000-4000-8000-000000000042",
+            "datasource_id": 1,
+        }
+        self._detached = False
+
+    def detach(self) -> None:
+        self._detached = True
+
+    def __getattr__(self, name: str) -> Any:
+        if self._detached:
+            raise DetachedInstanceError(
+                f"Instance <Slice> is not bound to a Session; "
+                f"attribute refresh operation cannot proceed ({name})"
+            )
+        try:
+            return self._values[name]
+        except KeyError as ex:
+            raise AttributeError(name) from ex
+
+
+async def _generate_saved_chart(
+    refetch: Any,
+) -> tuple[Any, _DetachableSlice]:
+    """Run generate_chart(save_chart=True) with a chart that detaches on commit.
+
+    ``refetch`` is used as the ``ChartDAO.find_by_id`` behaviour of the
+    serialization path.
+    """
+    request = GenerateChartRequest(
+        dataset_id="1",
+        config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
+        save_chart=True,
+        generate_preview=False,
+    )
+    ctx = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.debug = AsyncMock()
+    ctx.warning = AsyncMock()
+    ctx.error = AsyncMock()
+    ctx.report_progress = AsyncMock()
+
+    chart = _DetachableSlice()
+    dataset = Mock(
+        id=1, datasource_name="test_table", table_name="test_table", sql=None
+    )
+    validation_result = Mock(is_valid=True, request=request, warnings={}, error=None)
+    session = MagicMock()
+    # The instance is detached right after the commit, before any of the reads
+    # that build the response.
+    session.refresh.side_effect = lambda _chart: chart.detach()
+
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            return_value=validation_result,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart.has_dataset_access",
+            return_value=True,
+        ),
+        # validate_chart_dataset is deliberately not mocked: it runs for real
+        # against the detached instance, which is where it used to raise.
+        patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
+        patch(
+            "superset.commands.chart.create.CreateChartCommand",
+            return_value=Mock(run=Mock(return_value=chart)),
+        ),
+        patch("superset.db.session", session),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart._compile_chart",
+            return_value=CompileResult(success=True, warnings=[]),
+        ),
+        patch("superset.daos.chart.ChartDAO", Mock(find_by_id=refetch)),
+        patch(
+            "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand",
+            return_value=Mock(run=Mock(return_value="form-data-key")),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        result = await generate_chart(request, ctx=ctx)
+
+    return result, chart
+
+
+class TestGenerateChartDetachedInstance:
+    """The committed chart must be reported even if its instance is detached.
+
+    Regression tests for https://github.com/apache/superset/issues/42567: under
+    concurrency the chart was written to the database and the tool still
+    returned an error, because the response was built by reading attributes off
+    an instance another request had detached.
+    """
+
+    @pytest.mark.asyncio
+    async def test_detached_chart_is_reported_as_created(self) -> None:
+        """A detached instance no longer turns a committed chart into an error."""
+        refetched = _make_mock_chart()
+
+        result, chart = await _generate_saved_chart(
+            refetch=Mock(return_value=refetched)
+        )
+
+        assert chart._detached is True
+        assert result.success is True
+        assert result.error is None
+        assert result.chart is not None
+        assert result.chart.id == 42
+        assert result.explore_url == "http://localhost:8088/explore/?slice_id=42"
+        assert result.api_endpoints["data"].endswith("/api/v1/chart/42/data/")
+
+    @pytest.mark.asyncio
+    async def test_detached_chart_falls_back_to_captured_scalars(self) -> None:
+        """The minimal fallback response never reads the detached instance."""
+        result, chart = await _generate_saved_chart(
+            refetch=Mock(side_effect=SQLAlchemyError("session is gone"))
+        )
+
+        assert chart._detached is True
+        assert result.success is True
+        assert result.error is None
+        assert result.chart is not None
+        assert result.chart.id == 42
+        assert result.chart.slice_name == "Concurrent chart"
+        assert result.chart.viz_type == "table"
 
 
 class TestChartSerializationEagerLoading:
     """Tests for eager loading fix in generate_chart serialization path."""
 
     def test_serialize_chart_object_succeeds_with_loaded_relationships(self):
-        """serialize_chart_object works when tags/owners are already loaded."""
+        """serialize_chart_object works when tags/editors are already loaded."""
         from superset.mcp_service.chart.schemas import serialize_chart_object
 
         chart = _make_mock_chart()
@@ -451,7 +602,7 @@ class TestChartSerializationEagerLoading:
         assert result.id == 42
         assert result.slice_name == sanitize_for_llm_context("Test Chart")
         assert result.tags == []
-        assert "owners" not in result.model_dump()
+        assert "editors" not in result.model_dump()
 
     def test_serialize_chart_object_with_certification_fields(self):
         """serialize_chart_object correctly serializes non-None certification values."""
@@ -575,7 +726,7 @@ class TestChartSerializationEagerLoading:
 
     def test_generate_chart_refetches_via_dao(self):
         """The serialization path re-fetches the chart via
-        ChartDAO.find_by_id() with query_options for owners and tags."""
+        ChartDAO.find_by_id() with query_options for editors and tags."""
         refetched_chart = _make_mock_chart()
         refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
         refetched_chart.tags[0].description = ""
@@ -635,9 +786,10 @@ class TestChartSerializationEagerLoading:
         assert chart_data["id"] == original_chart.id
         assert chart_data["slice_name"] == original_chart.slice_name
         assert chart_data["url"] == explore_url
-        # No tags/owners keys — those would require relationship access
+        # No tags/editors keys — those would require relationship access
         assert "tags" not in chart_data
-        assert "owners" not in chart_data
+        assert "editors" not in chart_data
+        assert "editors" not in chart_data
 
 
 # ---------------------------------------------------------------------------

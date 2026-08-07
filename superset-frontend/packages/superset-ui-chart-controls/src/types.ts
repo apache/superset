@@ -86,7 +86,7 @@ export interface Dataset {
   name?: string;
   description: string | null;
   uid?: string;
-  owners?: Owner[];
+  editors?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
@@ -713,4 +713,5 @@ export interface DataColumnMeta {
   isChildColumn?: boolean;
   description?: string;
   currencyCodeColumn?: string;
+  isFilterable?: boolean;
 }

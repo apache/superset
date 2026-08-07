@@ -45,17 +45,17 @@ jest.mock('@superset-ui/core', () => ({
   ),
 }));
 
-jest.mock('lodash/debounce', () => {
-  const debounced = (fn: Function) => {
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fn: Function) => {
     const debouncedFn = ((...args: any[]) =>
       fn(...args)) as unknown as Function & {
       cancel: () => void;
     };
     debouncedFn.cancel = () => {};
     return debouncedFn;
-  };
-  return debounced;
-});
+  },
+}));
 
 const mockStore = configureStore({
   reducer: (state = { common: { locale: 'en' } }) => state,
@@ -165,7 +165,7 @@ describe('SliceAdder', () => {
       description: '',
       description_markdown: '',
       modified: '2020-01-01',
-      owners: [],
+      editors: [],
       created_by: { id: 1 }, // Fix: provide required user object instead of null
       cache_timeout: null,
       uuid: '1234',

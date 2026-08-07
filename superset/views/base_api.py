@@ -354,7 +354,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         }
     """
 
-    extra_fields_rel_fields: dict[str, list[str]] = {"owners": ["email", "active"]}
+    extra_fields_rel_fields: dict[str, list[str]] = {}
     """
     Declare extra fields for the representation of the Model object::
 
@@ -501,8 +501,15 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             values = [row["value"] for row in result]
             ids = [id_ for id_ in ids if id_ not in values]
             pk_col = datamodel.get_pk()
-            # Fetch requested values from ids
-            extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
+            # Fetch requested values from ids, applying the same scoping as the
+            # unforced query so ``include_ids`` cannot resolve rows the
+            # related-field filters deliberately hide.
+            query = db.session.query(datamodel.obj).filter(pk_col.in_(ids))
+            if base_filters := self.base_related_field_filters.get(column_name):
+                query = datamodel.apply_filters(
+                    query, datamodel.get_filters().add_filter_list(base_filters)
+                )
+            extra_rows = query.all()
             result += self._get_result_from_rows(datamodel, extra_rows, column_name)
 
     @event_logger.log_this_with_context(
@@ -589,9 +596,9 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
-    def ensure_owners_write_access(self, column_name: str) -> Optional[Response]:
-        """Restrict the owners related field to users with write access."""
-        if column_name == "owners" and not security_manager.can_access(
+    def ensure_access_list_write_access(self, column_name: str) -> Optional[Response]:
+        """Restrict access-list related fields to users with write access."""
+        if column_name in {"editors", "viewers"} and not security_manager.can_access(
             "can_write", self.class_permission_name
         ):
             return self.response_403()
@@ -638,7 +645,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if response := self.ensure_owners_write_access(column_name):
+        if response := self.ensure_access_list_write_access(column_name):
             return response
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)

@@ -122,7 +122,7 @@ async def list_reports(
             output_list_schema=ReportList,
             all_columns=list(ReportInfo.model_fields.keys()),
             sortable_columns=REPORT_SORTABLE_COLUMNS,
-            owner_filter_column="owners.id",
+            editor_filter_column="editor",
             logger=logger,
         )
 
@@ -136,7 +136,7 @@ async def list_reports(
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
-                owned_by_me=request.owned_by_me,
+                edited_by_me=request.edited_by_me,
             )
 
         await ctx.info(

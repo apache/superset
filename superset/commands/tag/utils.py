@@ -17,9 +17,11 @@
 
 from typing import Any, Optional, Union
 
+from superset import security_manager
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.query import SavedQueryDAO
+from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
@@ -50,3 +52,22 @@ def to_object_model(
 
         return DatasetDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
     return None
+
+
+def current_user_can_modify_object(model: Any) -> bool:
+    """Whether the current user may create/modify tag relationships on ``model``.
+
+    Mirrors the editorship check the bulk-create path already applies, or the
+    object's creator, so the tag-update path enforces the same boundary.
+    Look the model up with
+    ``skip_base_filter=True`` before calling this, so an object the user cannot
+    access reaches the check instead of resolving to ``None`` and being written
+    without any check.
+    """
+    try:
+        security_manager.raise_for_editorship(model)
+        return True
+    except SupersetSecurityException:
+        return bool(
+            model.created_by and model.created_by == security_manager.current_user
+        )

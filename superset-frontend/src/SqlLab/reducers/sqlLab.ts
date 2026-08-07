@@ -18,7 +18,7 @@
  */
 import { normalizeTimestamp, QueryState } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { isEqual, omit } from 'lodash';
+import { isEqual, omit } from 'lodash-es';
 import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';
 import type { SqlLabRootState, QueryEditor, Table } from '../types';
@@ -716,7 +716,7 @@ export default function sqlLabReducer(
           {
             hideLeftBar: action.hideLeftBar,
           },
-          action.queryEditor!.id!,
+          action.queryEditorId!,
         ),
       };
     },
@@ -730,7 +730,13 @@ export default function sqlLabReducer(
           extra_json: JSON.parse(db.extra || ''),
         };
       });
-      return { ...state, databases };
+      return {
+        ...state,
+        databases: {
+          ...state.databases,
+          ...databases,
+        },
+      };
     },
     [actions.REFRESH_QUERIES]() {
       let newQueries = { ...state.queries };

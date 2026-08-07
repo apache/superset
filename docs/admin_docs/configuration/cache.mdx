@@ -15,9 +15,8 @@ fail-fast behavior ensures operators are immediately aware of infrastructure iss
 
 Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes.
 Flask-Caching supports various caching backends, including Redis (recommended), Memcached,
-SimpleCache (in-memory), or the local filesystem.
-[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends)
-are also supported.
+SimpleCache (in-memory), MinIO/S3, or the local filesystem.
+[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) are also supported.
 
 Caching can be configured by providing dictionaries in
 `superset_config.py` that comply with [the Flask-Caching config specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
@@ -47,6 +46,7 @@ In order to use dedicated cache stores, additional python libraries must be inst
 - For Redis: we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
 - Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
   `python-memcached` does not handle storing binary data correctly.
+- MinIO (S3): we recommend using the [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) package
 
 These libraries can be installed using pip.
 
@@ -75,6 +75,21 @@ value defined in `DATA_CACHE_CONFIG`.
 
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
+
+## Limiting Cached Result Size
+
+Very large chart or SQL query results can flood the cache backend (Redis/Memcached), evicting many
+smaller useful entries or exhausting memory. To cap the size of any single value written to the data
+cache, set `DATA_CACHE_MAX_VALUE_SIZE` (in bytes) in `superset_config.py`:
+
+```python
+DATA_CACHE_MAX_VALUE_SIZE = 10 * 1024 * 1024  # 10 MB
+```
+
+When a result's serialized size exceeds this threshold it is not written to the data cache — the
+chart still renders, but the next load re-queries the datasource instead of getting a cache hit. The
+`skip_cache_value_too_large` statsd metric is incremented each time this happens. Set to `None` (the
+default) to disable the check.
 
 ## SQL Lab Query Results
 
@@ -139,6 +154,10 @@ from superset.tasks.types import FixedExecutor
 THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
 ```
 
+When using `ExecutorType.EDITOR`, thumbnails are rendered as a physical user represented by
+the dashboard or chart editors. Superset prioritizes the last modifier, then the creator,
+then the first direct user editor, then a deterministic user from editor roles or groups.
+
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
 
@@ -179,10 +198,10 @@ WEBDRIVER_BASEURL = "https://superset.company.com"
 
 To control which user account is used for rendering thumbnails and warming up caches, configure
 `THUMBNAIL_EXECUTORS` and `CACHE_WARMUP_EXECUTORS`. Each accepts a list of executor types (which
-resolve to an owner, creator, modifier, or the currently-logged-in user) and/or a `FixedExecutor`
-pinned to a specific username. By default, thumbnails render as the current user
-(`ExecutorType.CURRENT_USER`) and cache warmup runs as the chart/dashboard owner
-(`ExecutorType.OWNER`).
+resolve to an editor, creator, modifier, or the currently-logged-in user) and/or a
+`FixedExecutor` pinned to a specific username. By default, thumbnails render as the current user
+(`ExecutorType.CURRENT_USER`) and cache warmup uses editor-based execution
+(`ExecutorType.EDITOR`) where executor-based cache warmup is used.
 
 To force both to run as a dedicated service account (`admin` in this example):
 
@@ -304,6 +323,7 @@ While database-backed operations work reliably, the Redis backend is recommended
 deployments where low latency and reduced database load are important.
 
 :::resources
+
 - [Blog: The Data Engineer's Guide to Lightning-Fast Superset Dashboards](https://preset.io/blog/the-data-engineers-guide-to-lightning-fast-apache-superset-dashboards/)
 - [Blog: Accelerating Dashboards with Materialized Views](https://preset.io/blog/accelerating-apache-superset-dashboards-with-materialized-views/)
-:::
+  :::
