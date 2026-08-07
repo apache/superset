@@ -156,6 +156,41 @@ test('select pill shows active state (clear button) when a value is selected', (
   ).toBeInTheDocument();
 });
 
+test('clearing a select filter notifies its update callback', async () => {
+  const onFilterUpdate = jest.fn();
+  const filters = [
+    {
+      Header: 'Folder',
+      key: 'folder',
+      id: 'folder_id',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.DashboardFolder,
+      selects: [{ label: 'Finance', value: 'finance' }],
+      onFilterUpdate,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'folder_id',
+          operator: ListViewFilterOperator.DashboardFolder,
+          value: { label: 'Finance', value: 'finance' },
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await userEvent.click(
+    screen.getByRole('button', { name: /clear folder filter/i }),
+  );
+  expect(onFilterUpdate).toHaveBeenCalledWith(undefined);
+  expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, undefined);
+});
+
 test('select pill tooltip falls back to static selects on cold URL load (no cached label)', () => {
   const filters = [
     {

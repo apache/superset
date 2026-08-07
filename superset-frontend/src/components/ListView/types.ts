@@ -75,6 +75,12 @@ export interface ListViewFilter {
   inputName?: string;
 }
 
+export interface ListViewFilterControls {
+  clearFilters: () => void;
+  clearFilterById: (id: string) => void;
+  setFilterValueById?: (id: string, value?: InnerFilterValue) => void;
+}
+
 export type ListViewFilters = ListViewFilter[];
 
 export type ViewModeType = 'card' | 'table';
@@ -145,6 +151,7 @@ export enum ListViewFilterOperator {
   ChartDeletedRecency = 'chart_deleted_recency',
   DashboardDeletedState = 'dashboard_deleted_state',
   DashboardDeletedRecency = 'dashboard_deleted_recency',
+  DashboardFolder = 'dashboard_folder',
   DatasetDeletedState = 'dataset_deleted_state',
   DatasetDeletedRecency = 'dataset_deleted_recency',
 }
