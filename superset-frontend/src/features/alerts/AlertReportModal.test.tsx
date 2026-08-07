@@ -481,12 +481,12 @@ test('properly renders edit report text', async () => {
   expect(saveButton).toBeInTheDocument();
 });
 
-test('renders 4 sections for reports', () => {
+test('renders 5 sections for reports', () => {
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
   const sections = screen.getAllByRole('tab');
-  expect(sections.length).toBe(4);
+  expect(sections.length).toBe(5);
 });
 
 test('renders 5 sections for alerts', () => {
@@ -615,6 +615,9 @@ test('renders all Alert Condition fields', async () => {
   expect(sql).toBeInTheDocument();
   expect(condition).toBeInTheDocument();
   expect(threshold).toBeInTheDocument();
+  // Guard against a double border: passing type="number" leaks onto the inner
+  // input and matches the StyledInputContainer input[type='number'] border rule.
+  expect(threshold).not.toHaveAttribute('type', 'number');
 });
 test('disables condition threshold if not null condition is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
@@ -624,13 +627,13 @@ test('disables condition threshold if not null condition is selected', async () 
   await screen.findByText(/smaller than/i);
   const condition = screen.getByRole('combobox', { name: /condition/i });
   const spinButton = screen.getByRole('spinbutton');
-  expect(spinButton).toHaveValue(10);
+  expect(spinButton).toHaveValue('10');
   await comboboxSelect(
     condition,
     'not null',
     () => screen.getAllByText(/not null/i)[0],
   );
-  expect(spinButton).toHaveValue(null);
+  expect(spinButton).toHaveValue('');
   expect(spinButton).toBeDisabled();
 });
 
@@ -807,6 +810,29 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
+test('does not show screenshot width when Excel is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByText(/select chart/i),
+  );
+  const reportFormatSelector = screen.getByRole('combobox', {
+    name: /select format/i,
+  });
+  await comboboxSelect(
+    reportFormatSelector,
+    'Excel',
+    () => screen.getAllByText(/Send as Excel/i)[0],
+  );
+  expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+});
+
 test('clearing the chart selection resets the combobox value', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
@@ -852,7 +878,34 @@ test('shows screenshot width when PDF is selected', async () => {
     () => screen.getAllByText(/Send as PDF/i)[0],
   );
   expect(screen.getByText(/screenshot width/i)).toBeInTheDocument();
-  expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+  const screenshotWidth = screen.getByRole('spinbutton');
+  expect(screenshotWidth).toBeInTheDocument();
+  // Guard against a double border: passing type="number" leaks onto the inner
+  // input and matches the StyledInputContainer input[type='number'] border rule.
+  expect(screenshotWidth).not.toHaveAttribute('type', 'number');
+});
+
+test('does not show screenshot width when excel is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByText(/select chart/i),
+  );
+  const reportFormatSelector = screen.getByRole('combobox', {
+    name: /select format/i,
+  });
+  await comboboxSelect(
+    reportFormatSelector,
+    'XLSX',
+    () => screen.getAllByText(/Send as Excel/i)[0],
+  );
+  expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
 // Schedule Section
@@ -861,9 +914,9 @@ test('opens Schedule Section on click', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  const scheduleHeader = within(
+  const [scheduleHeader] = within(
     screen.getByRole('tab', { expanded: true }),
-  ).queryAllByText(/schedule/i)[0];
+  ).queryAllByText(/schedule/i);
   expect(scheduleHeader).toBeInTheDocument();
 });
 test('renders default Schedule fields', async () => {
@@ -929,9 +982,9 @@ test('opens Notification Method Section on click', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('notification-method-panel'));
-  const notificationMethodHeader = within(
+  const [notificationMethodHeader] = within(
     screen.getByRole('tab', { expanded: true }),
-  ).queryAllByText(/notification method/i)[0];
+  ).queryAllByText(/notification method/i);
   expect(notificationMethodHeader).toBeInTheDocument();
 });
 
@@ -1422,7 +1475,7 @@ test('adding and removing dashboard filter rows', async () => {
 });
 
 test('alert shows condition section, report does not', () => {
-  // Alert has 5 sections
+  // Alert has 5 sections (general, condition, content, schedule, notification)
   const { unmount } = render(
     <AlertReportModal {...generateMockedProps(false)} />,
     { useRedux: true },
@@ -1431,11 +1484,11 @@ test('alert shows condition section, report does not', () => {
   expect(screen.getByTestId('alert-condition-panel')).toBeInTheDocument();
   unmount();
 
-  // Report has 4 sections, no condition panel
+  // Report has 5 sections (general, content, schedule, notification, error handling)
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
-  expect(screen.getAllByRole('tab')).toHaveLength(4);
+  expect(screen.getAllByRole('tab')).toHaveLength(5);
   expect(screen.queryByTestId('alert-condition-panel')).not.toBeInTheDocument();
 });
 
@@ -2824,5 +2877,71 @@ test('modal reopen resets local state', async () => {
   // Fresh mount should have empty name
   await waitFor(() => {
     expect(screen.getByPlaceholderText(/enter report name/i)).toHaveValue('');
+  });
+});
+
+// ---------- Error Handling Panel ----------
+
+test('renders error handling panel with Enable Retries switch', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  const errorHandlingTab = screen.getByText('Error handling');
+  expect(errorHandlingTab).toBeInTheDocument();
+  await userEvent.click(errorHandlingTab);
+  expect(screen.getByText('Enable Retries')).toBeInTheDocument();
+});
+
+test('shows retry options when Enable Retries is toggled on', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  const errorHandlingTab = screen.getByText('Error handling');
+  await userEvent.click(errorHandlingTab);
+
+  // Retry options should not be visible initially
+  expect(screen.queryByText('Maximum Retry Attempts')).not.toBeInTheDocument();
+
+  // Toggle Enable Retries — the Switch renders as a <button role="switch">
+  const switches = screen.getAllByRole('switch');
+  const enableRetriesSwitch = switches[switches.length - 1];
+  await userEvent.click(enableRetriesSwitch);
+
+  // Retry options should now be visible
+  await waitFor(() => {
+    expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
+    expect(screen.getByText('Send Failed Reports')).toBeInTheDocument();
+    expect(screen.getByText('Failure Notifications')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
+    expect(screen.getByText('Report Recipients')).toBeInTheDocument();
+  });
+});
+
+test('hides retry options and resets state when Enable Retries is toggled off', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  const errorHandlingTab = screen.getByText('Error handling');
+  await userEvent.click(errorHandlingTab);
+
+  // Toggle ON
+  const switches = screen.getAllByRole('switch');
+  const enableRetriesSwitch = switches[switches.length - 1];
+  await userEvent.click(enableRetriesSwitch);
+
+  await waitFor(() => {
+    expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
+  });
+
+  // Toggle OFF
+  await userEvent.click(enableRetriesSwitch);
+
+  // Retry options should be hidden again
+  await waitFor(() => {
+    expect(
+      screen.queryByText('Maximum Retry Attempts'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Send Failed Reports')).not.toBeInTheDocument();
+    expect(screen.queryByText('Failure Notifications')).not.toBeInTheDocument();
   });
 });

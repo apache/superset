@@ -105,7 +105,7 @@ if (!isDevMode) {
 const plugins = [
   new webpack.ProvidePlugin({
     process: 'process/browser.js',
-    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix plugin-chart-paired-t-test broken Story
   }),
 
   // creates a manifest.json mapping of name to hashed output used in template files
@@ -184,6 +184,10 @@ const plugins = [
       antd: {
         singleton: true,
         requiredVersion: packageConfig.dependencies.antd,
+        eager: true,
+      },
+      '@apache-superset/core': {
+        singleton: true,
         eager: true,
       },
     },
@@ -472,10 +476,10 @@ const config = {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
-      vm: require.resolve('vm-browserify'),
+      vm: false,
       path: false,
       stream: require.resolve('stream-browserify'),
-      ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+      ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix plugin-chart-paired-t-test broken Story
     },
   },
   context: APP_DIR, // to automatically find tsconfig.json

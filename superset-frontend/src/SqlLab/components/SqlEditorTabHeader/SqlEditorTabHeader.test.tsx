@@ -322,6 +322,8 @@ test('does not leak tab-editing keystrokes from the rename input to the surround
   const onContainerKeyDown = jest.fn();
   const store = mockStore(initialState);
   render(
+    // Test-only harness div asserting keydown doesn't leak past the tab header.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div onKeyDown={onContainerKeyDown}>
       <SqlEditorTabHeader queryEditor={defaultQueryEditor} />
     </div>,

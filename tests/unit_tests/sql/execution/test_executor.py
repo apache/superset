@@ -47,7 +47,11 @@ from superset.models.core import Database
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
-from .conftest import mock_query_execution
+from .conftest import (
+    _passthrough_mutate_sql_based_on_config,
+    create_mock_cursor,
+    mock_query_execution,
+)
 
 # =============================================================================
 # Basic Execution Tests
@@ -871,6 +875,47 @@ def test_execute_applies_sql_mutator(
     mutate_mock.assert_called()
 
 
+@pytest.mark.parametrize("is_split", [True, False])
+def test_execute_sql_with_cursor_forwards_is_split(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+    mock_query: MagicMock,
+    is_split: bool,
+) -> None:
+    """
+    `execute_sql_with_cursor` must forward `is_split` to the SQL mutator.
+
+    `Database.mutate_sql_based_on_config` only fires `SQL_QUERY_MUTATOR` when
+    `is_split == MUTATE_AFTER_SPLIT`, so passing the wrong value silently skips
+    mutation (the SQL Lab bug behind issue #30169). This guards the contract.
+    """
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mutate_mock: MagicMock = mocker.patch.object(
+        database,
+        "mutate_sql_based_on_config",
+        side_effect=_passthrough_mutate_sql_based_on_config,
+    )
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[(1,)])
+    mocker.patch("superset.result_set.SupersetResultSet", return_value=MagicMock())
+
+    cursor: MagicMock = create_mock_cursor(["id"], data=[(1,)])
+
+    execute_sql_with_cursor(
+        database=database,
+        cursor=cursor,
+        statements=["SELECT id FROM t"],
+        query=mock_query,
+        is_split=is_split,
+    )
+
+    mutate_mock.assert_called_once()
+    assert mutate_mock.call_args.kwargs["is_split"] is is_split
+
+
 # =============================================================================
 # Progress Tracking Tests
 # =============================================================================
@@ -1136,6 +1181,36 @@ def test_execute_sql_with_cursor_empty_statements(app_context: None) -> None:
     )
 
     assert result == []  # Returns empty list for empty statements
+
+
+@pytest.mark.parametrize("mutated_output", ["   \n", "-- governance comment\n"])
+def test_execute_sql_with_cursor_empty_after_mutation(
+    app_context: None,
+    mutated_output: str,
+) -> None:
+    """A mutator that strips a statement to nothing executable (whitespace or
+    comments only) raises a clean error."""
+    from superset.errors import SupersetErrorType
+    from superset.exceptions import SupersetErrorException
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.mutate_sql_based_on_config = lambda sql, **kw: mutated_output
+
+    mock_cursor = MagicMock()
+    mock_query = MagicMock()
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        execute_sql_with_cursor(
+            database=mock_database,
+            cursor=mock_cursor,
+            statements=["SELECT 1"],
+            query=mock_query,
+        )
+
+    assert excinfo.value.error.error_type == SupersetErrorType.INVALID_SQL_ERROR
+    mock_database.db_engine_spec.execute.assert_not_called()
 
 
 def test_execute_sql_with_cursor_stopped_mid_execution(
@@ -2340,3 +2415,37 @@ def test_cached_async_result_get_result_returns_cached(
     assert retrieved_result.status == QueryStatus.SUCCESS
     assert sum(s.row_count for s in retrieved_result.statements) == 3
     assert retrieved_result is cached_result
+
+
+def test_build_statement_blocks_skips_validation_for_unparseable_mutated_sql(
+    mocker: MockerFixture, mock_database: MagicMock, app_context: None
+) -> None:
+    """
+    A mutator may emit engine-specific SQL the parser can't handle. The
+    empty-statement validation on the joined block is skipped in that case
+    instead of blocking execution, leaving the database as the authority
+    on validity.
+    """
+    from superset.exceptions import SupersetParseError
+    from superset.sql.execution.executor import build_statement_blocks
+    from superset.sql.parse import SQLScript
+
+    mocker.patch.dict(current_app.config, {"MUTATE_AFTER_SPLIT": True})
+    mock_database.db_engine_spec.run_multiple_statements_as_one = True
+    mocker.patch.object(
+        mock_database,
+        "mutate_sql_based_on_config",
+        side_effect=lambda sql, **kw: f"ENGINE SPECIFIC {sql}",
+    )
+    parsed_script = SQLScript("SELECT 1; SELECT 2;", engine="bigquery")
+    mocker.patch(
+        "superset.sql.execution.executor.SQLScript",
+        side_effect=SupersetParseError("ENGINE SPECIFIC SQL"),
+    )
+
+    _, blocks = build_statement_blocks(
+        parsed_script, mock_database.db_engine_spec, mock_database
+    )
+
+    assert len(blocks) == 1
+    assert blocks[0].count("ENGINE SPECIFIC") == 2

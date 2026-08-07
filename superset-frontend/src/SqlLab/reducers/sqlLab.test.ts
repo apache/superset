@@ -21,13 +21,46 @@ import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import type { SqlLabAction } from 'src/SqlLab/actions/sqlLab';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { table, initialState as mockState } from '../fixtures';
+import { table, databases, initialState as mockState } from '../fixtures';
 
 type SqlLabState = SqlLabRootState['sqlLab'];
 const initialState = mockState.sqlLab as unknown as SqlLabState;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sqlLabReducer', () => {
+  test('should merge databases instead of replacing existing database state', () => {
+    const existingDb = {
+      ...databases.result[0],
+      extra: '{}',
+    };
+    const existingDbId = Number(existingDb.id);
+
+    const incomingDb = {
+      ...databases.result[0],
+      id: existingDbId + 1,
+      database_name: 'new database',
+      extra: '{}',
+    };
+    const incomingDbId = Number(incomingDb.id);
+
+    const state = {
+      ...initialState,
+      databases: {
+        [existingDbId]: existingDb,
+      },
+    } as any;
+
+    const action = actions.setDatabases([incomingDb] as any);
+
+    const newState = sqlLabReducer(state, action);
+
+    expect(newState.databases[existingDbId]).toEqual(existingDb);
+    expect(newState.databases[incomingDbId]).toEqual({
+      ...incomingDb,
+      extra_json: {},
+    });
+  });
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Query editors actions', () => {
     let newState: SqlLabState;

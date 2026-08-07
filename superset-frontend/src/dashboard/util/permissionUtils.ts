@@ -22,6 +22,7 @@ import {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import Subject from 'src/types/Subject';
 import { findPermission } from 'src/utils/findPermission';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -32,6 +33,32 @@ const ADMIN_ROLE_NAME = 'admin';
 const getUserSubjects = (): number[] =>
   getBootstrapData()?.common?.user_subjects ?? [];
 
+/**
+ * Editor lists arrive either as full Subjects (`editors`) or as bare subject
+ * ids (`extra_editors`, which the API dumps straight from
+ * `get_extra_editor_subject_ids`).
+ */
+export type SubjectRef = number | { id: number };
+
+const subjectId = (subject: SubjectRef): number =>
+  typeof subject === 'number' ? subject : subject.id;
+
+/**
+ * Whether the viewer is any of the given subjects — their user, roles or
+ * groups — across every supplied list.
+ */
+export const isUserInSubjects = (
+  ...subjectLists: (SubjectRef[] | null | undefined)[]
+): boolean => {
+  const userSubjects = getUserSubjects();
+  return subjectLists.some(subjects =>
+    (subjects ?? []).some(subject => userSubjects.includes(subjectId(subject))),
+  );
+};
+
+const isUserInEditors = (editors: Subject[] = []): boolean =>
+  isUserInSubjects(editors);
+
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
@@ -40,12 +67,20 @@ export const isUserAdmin = (
     role => role.toLowerCase() === ADMIN_ROLE_NAME,
   );
 
-export const isUserDashboardEditor = (dashboard: Dashboard): boolean => {
-  const userSubjects = getUserSubjects();
-  return (
-    dashboard.editors?.some(editor => userSubjects.includes(editor.id)) ?? false
-  );
-};
+export const isUserEditorOrAdmin = (
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
+  editors: Subject[] = [],
+): boolean => isUserInEditors(editors) || isUserAdmin(user);
+
+/**
+ * Editorship of *dashboard*, matching the server's `is_editor`: the explicit
+ * editor list unioned with any editorship granted indirectly by a
+ * deployment's EXTRA_EDITORS_RESOLVER. Must stay in step with the server's
+ * `is_editor` (security/manager.py): a predicate narrower than the server's
+ * hides actions the API permits.
+ */
+export const isUserDashboardEditor = (dashboard: Dashboard): boolean =>
+  isUserInSubjects(dashboard.editors, dashboard.extra_editors);
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,

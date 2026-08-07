@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryState } from '@superset-ui/core';
-import { User as BootstrapUser } from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Database from 'src/types/Database';
 import User from 'src/types/User';
 import Subject from 'src/types/Subject';
@@ -44,7 +44,7 @@ export type Filter = {
 export interface DashboardTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
-  user?: BootstrapUser;
+  user?: UserWithPermissionsAndRoles;
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
   otherTabData?: Array<Dashboard>;
@@ -137,7 +137,12 @@ export enum QueryObjectColumns {
 }
 
 export type ImportResourceName =
-  'chart' | 'dashboard' | 'database' | 'dataset' | 'saved_query' | 'theme';
+  | 'chart'
+  | 'dashboard'
+  | 'database'
+  | 'dataset'
+  | 'saved_query'
+  | 'theme';
 
 export interface Tag {
   changed_on_delta_humanized: string;

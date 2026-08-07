@@ -264,3 +264,53 @@ test('uses description from column even when verboseMap renames the column', () 
   expect(columnMeta!.label).toBe('Custom Label');
   expect(columnMeta!.description).toBe('Original column description');
 });
+
+test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
+  // Green/Red rules are rendered via the increase/decrease path, so they must
+  // not reach getColorFormatters, which would treat the scheme name as a hex
+  // color and emit an invalid `'GreenFF'` background.
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_a', 'metric_b'],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      conditional_formatting: [
+        {
+          column: 'metric_a',
+          operator: '>',
+          targetValue: 0,
+          colorScheme: 'Green',
+        },
+        {
+          column: 'metric_b',
+          operator: '>',
+          targetValue: 0,
+          colorScheme: '#FF0000',
+        },
+      ],
+    } as unknown as TableChartProps['rawFormData'],
+    queriesData: [
+      {
+        data: [{ metric_a: 10, metric_b: 20 }],
+        colnames: ['metric_a', 'metric_b'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+  });
+
+  const result = transformProps(props);
+  const formattedColumns = result.columnColorFormatters.map(f => f.column);
+  // The standard (#FF0000) rule is kept...
+  expect(formattedColumns).toContain('metric_b');
+  // ...but the Green rule is excluded.
+  expect(formattedColumns).not.toContain('metric_a');
+});

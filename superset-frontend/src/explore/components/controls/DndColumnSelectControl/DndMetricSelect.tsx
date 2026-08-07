@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocMetricSimple,
@@ -27,7 +27,6 @@ import {
   Metric,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import { arrayMove } from '@dnd-kit/sortable';
 import { ColumnMeta } from '@superset-ui/chart-controls';

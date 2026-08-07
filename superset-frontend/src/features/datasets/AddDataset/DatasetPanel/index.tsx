@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  ErrorTypeEnum,
+  getClientErrorObject,
+  SupersetClient,
+} from '@superset-ui/core';
+import type { SupersetError } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -30,7 +35,7 @@ import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
 /**
  * Interface for the getTableMetadata API call
  */
-interface IColumnProps {
+interface TableMetadataRequest {
   /**
    * Unique id of the database
    */
@@ -43,6 +48,10 @@ interface IColumnProps {
    * Name of the schema (optional for databases that don't support schemas)
    */
   schema?: string | null;
+  /**
+   * Name of the catalog (optional for databases that don't support catalogs)
+   */
+  catalog?: string | null;
 }
 
 export interface IDatasetPanelWrapperProps {
@@ -63,7 +72,7 @@ export interface IDatasetPanelWrapperProps {
    * The selected database object (used to check engine capabilities)
    */
   database?: Partial<DatabaseObject> | null;
-  setHasColumns?: Function;
+  setHasColumns?: (hasColumns: boolean) => void;
   datasets?: DatasetObject[] | undefined;
 }
 
@@ -78,74 +87,131 @@ const DatasetPanelWrapper = ({
 }: IDatasetPanelWrapperProps) => {
   const [columnList, setColumnList] = useState<ITableColumn[]>([]);
   const [loading, setLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const tableNameRef = useRef(tableName);
+  const [error, setError] = useState<SupersetError>();
+  const requestIdRef = useRef(0);
+  const currentRequestRef = useRef<TableMetadataRequest>();
+  const supportsSchemas = database?.supports_schemas;
 
-  const getTableMetadata = async (props: IColumnProps) => {
-    const { dbId, tableName, schema } = props;
-    setLoading(true);
-    setHasColumns?.(false);
-    const path = `/api/v1/database/${dbId}/table_metadata/${toQueryString({
-      name: tableName,
-      catalog,
-      schema,
-    })}`;
-    try {
-      const response = await SupersetClient.get({
-        endpoint: path,
-      });
+  const getTableMetadata = useCallback(
+    async (props: TableMetadataRequest) => {
+      const { dbId, tableName, catalog, schema } = props;
+      requestIdRef.current += 1;
+      const requestId = requestIdRef.current;
+      setLoading(true);
+      setColumnList([]);
+      setError(undefined);
+      setHasColumns?.(false);
+      const path = `/api/v1/database/${dbId}/table_metadata/${toQueryString({
+        name: tableName,
+        catalog,
+        schema,
+      })}`;
+      try {
+        const response = await SupersetClient.get({
+          endpoint: path,
+        });
 
-      if (isIDatabaseTable(response?.json)) {
-        const table: IDatabaseTable = response.json as IDatabaseTable;
-        /**
-         *  The user is able to click other table columns while the http call for last selected table column is made
-         *  This check ensures we process the response that matches the last selected table name and ignore the others
-         */
-        if (table.name === tableNameRef.current) {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+
+        const table = isIDatabaseTable(response?.json)
+          ? (response.json as IDatabaseTable)
+          : undefined;
+        if (table?.name === tableName) {
           setColumnList(table.columns);
           setHasColumns?.(table.columns.length > 0);
-          setHasError(false);
+          setError(undefined);
+        } else {
+          const message = t(
+            'The API response from %s does not match the IDatabaseTable interface.',
+            path,
+          );
+          setColumnList([]);
+          setHasColumns?.(false);
+          setError({
+            error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
+            extra: null,
+            level: 'error',
+            message,
+          });
+          addDangerToast(message);
+          logging.error(message);
         }
-      } else {
-        setColumnList([]);
-        setHasColumns?.(false);
-        setHasError(true);
-        addDangerToast(
-          t(
-            'The API response from %s does not match the IDatabaseTable interface.',
-            path,
-          ),
+      } catch (caughtError) {
+        const clientError = await getClientErrorObject(
+          caughtError as Parameters<typeof getClientErrorObject>[0],
         );
-        logging.error(
-          t(
-            'The API response from %s does not match the IDatabaseTable interface.',
-            path,
-          ),
-        );
+
+        if (requestId === requestIdRef.current) {
+          const parsedError = clientError.errors?.[0] ?? {
+            error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
+            extra: null,
+            level: 'error' as const,
+            message:
+              clientError.error ||
+              clientError.message ||
+              clientError.statusText ||
+              t('Unable to load columns for the selected table.'),
+          };
+
+          setColumnList([]);
+          setHasColumns?.(false);
+          setError(parsedError);
+        }
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      setColumnList([]);
-      setHasColumns?.(false);
-      setHasError(true);
-    } finally {
-      setLoading(false);
+    },
+    [setHasColumns],
+  );
+
+  const retryGetTableMetadata = useCallback(() => {
+    if (currentRequestRef.current) {
+      getTableMetadata(currentRequestRef.current);
     }
-  };
+  }, [getTableMetadata]);
 
   useEffect(() => {
-    tableNameRef.current = tableName;
-    const schemaRequired = database?.supports_schemas !== false;
+    const schemaRequired = supportsSchemas !== false;
     if (tableName && dbId && (schema || !schemaRequired)) {
-      getTableMetadata({ tableName, dbId, schema: schema || undefined });
+      const request = {
+        tableName,
+        dbId,
+        catalog,
+        schema: schema || undefined,
+      };
+      currentRequestRef.current = request;
+      getTableMetadata(request);
+    } else if (currentRequestRef.current) {
+      currentRequestRef.current = undefined;
+      requestIdRef.current += 1;
+      setColumnList([]);
+      setError(undefined);
+      setHasColumns?.(false);
+      setLoading(false);
     }
-    // getTableMetadata is a const and should not be in dependency array
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableName, dbId, schema, database]);
+
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [
+    tableName,
+    dbId,
+    catalog,
+    schema,
+    supportsSchemas,
+    getTableMetadata,
+    setHasColumns,
+  ]);
 
   return (
     <DatasetPanel
       columnList={columnList}
-      hasError={hasError}
+      error={error}
+      errorMitigationFunction={retryGetTableMetadata}
       loading={loading}
       tableName={tableName}
       datasets={datasets}

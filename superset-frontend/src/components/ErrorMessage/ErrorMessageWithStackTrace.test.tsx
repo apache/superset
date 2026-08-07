@@ -26,6 +26,7 @@ jest.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
       <span role="img" aria-label={fileName.replace('_', '-')} />
     ),
 );

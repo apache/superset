@@ -112,9 +112,21 @@ const VizTypeControl = ({
           color: ${theme.colorTextTertiary};
         `}
       >
-        <span role="button" tabIndex={0} onClick={openModal}>
+        <button
+          type="button"
+          css={css`
+            appearance: none;
+            border: none;
+            background: none;
+            padding: 0;
+            font: inherit;
+            color: inherit;
+            text-decoration: inherit;
+          `}
+          onClick={openModal}
+        >
           {t('View all charts')}
-        </span>
+        </button>
       </div>
       <UnpaddedModal
         show={showModal}

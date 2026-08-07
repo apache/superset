@@ -23,7 +23,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { CellProps } from 'react-table';
 import rison from 'rison';
@@ -39,6 +39,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import {
+  ActionButton,
   Button,
   DeleteModal,
   Dropdown,
@@ -110,14 +111,6 @@ interface DatabaseListProps {
     lastName: string;
   };
 }
-
-const Actions = styled.div`
-  .action-button {
-    display: inline-block;
-    height: 100%;
-    color: ${({ theme }) => theme.colorIcon};
-  }
-`;
 
 function BooleanDisplay({ value }: { value: boolean }) {
   return value ? (
@@ -685,42 +678,26 @@ function DatabaseList({
           if (isSemanticLayer) {
             if (!canEdit && !canDelete) return null;
             return (
-              <Actions className="actions">
+              <div className="actions">
                 {canDelete && (
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={t('Delete')}
+                  <ActionButton
+                    label={t('Delete')}
+                    tooltip={t('Delete')}
                     placement="bottom"
-                  >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={() => setSlCurrentlyDeleting(original)}
-                    >
-                      <Icons.DeleteOutlined iconSize="l" />
-                    </span>
-                  </Tooltip>
+                    icon={<Icons.DeleteOutlined iconSize="l" />}
+                    onClick={() => setSlCurrentlyDeleting(original)}
+                  />
                 )}
                 {canEdit && (
-                  <Tooltip
-                    id="edit-action-tooltip"
-                    title={t('Edit')}
+                  <ActionButton
+                    label={t('Edit')}
+                    tooltip={t('Edit')}
                     placement="bottom"
-                  >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      onClick={() =>
-                        setSlCurrentlyEditing(original.uuid ?? null)
-                      }
-                    >
-                      <Icons.EditOutlined iconSize="l" />
-                    </span>
-                  </Tooltip>
+                    icon={<Icons.EditOutlined iconSize="l" />}
+                    onClick={() => setSlCurrentlyEditing(original.uuid ?? null)}
+                  />
                 )}
-              </Actions>
+              </div>
             );
           }
 
@@ -733,75 +710,50 @@ function DatabaseList({
             return null;
           }
           return (
-            <Actions className="actions">
+            <div className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    data-test="database-edit"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  dataTest="database-edit"
+                  onClick={handleEdit}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="database-export"
+                  onClick={handleExport}
+                />
               )}
               {canEdit && (
-                <Tooltip
-                  id="sync-action-tooltip"
-                  title={t('Sync Permissions')}
+                <ActionButton
+                  label={t('Sync Permissions')}
+                  tooltip={t('Sync Permissions')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    data-test="database-sync-perm"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleSync}
-                  >
-                    <Icons.SyncOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.SyncOutlined iconSize="l" />}
+                  dataTest="database-sync-perm"
+                  onClick={handleSync}
+                />
               )}
               {canDelete && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  data-test="database-delete"
+                <ActionButton
+                  label={t('Delete %s', databaseLabelLower())}
+                  tooltip={t('Delete %s', databaseLabelLower())}
+                  placement="bottom"
+                  icon={<Icons.DeleteOutlined iconSize="l" />}
+                  dataTest="database-delete"
                   onClick={handleDelete}
-                >
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={t('Delete %s', databaseLabelLower())}
-                    placement="bottom"
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </Tooltip>
-                </span>
+                />
               )}
-            </Actions>
+            </div>
           );
         },
         Header: t('Actions'),

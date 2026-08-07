@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-06-23 03:46-0700\n"
+"POT-Creation-Date: 2026-07-31 11:53+0100\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -29,33 +29,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-#, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a new "
-"dataset over this table, or use a different table name."
-msgstr ""
-
-#, python-format
-msgid ""
-"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
-"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or "
-"upload to a different table name."
-msgstr ""
-
-msgid ""
-"Cannot delete a database whose only remaining datasets are soft-deleted. "
-"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
-"permanently once a purge capability ships, or remove the underlying rows "
-"out-of-band, before deleting the database."
-msgstr ""
-
-msgid ""
-"Dataset cannot be restored because another active dataset already references "
-"the same physical table (same database, catalog, schema, and table name). "
-"Delete the duplicate or rename the table before restoring."
-msgstr ""
 
 msgid ""
 "\n"
@@ -163,9 +136,6 @@ msgstr " для подробиць."
 msgid " near '%(highlight)s'"
 msgstr " поруч з «%(highlight)s»"
 
-msgid " source code of Superset's sandboxed parser"
-msgstr " код ізольованого аналізатора Superset"
-
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -245,6 +215,10 @@ msgid "% of total"
 msgstr "%  всього"
 
 #, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 "%(dialect)s не можна використовувати як джерело даних з безпекових "
@@ -255,12 +229,48 @@ msgid "%(label)s file"
 msgstr "Файл %(label)s"
 
 #, python-format
+msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s restored successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr ""
+
+#, python-format
 msgid "%(name)s.csv"
 msgstr "%(name)s.csv"
 
 #, python-format
 msgid "%(name)s.pdf"
 msgstr "%(name)s.pdf"
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "%(object)s does not exist in this database."
@@ -300,8 +310,12 @@ msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
 msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
-msgstr[1] "%(firstSuggestions)s або %(lastSuggestion)s замість «%(undefinedParameter)s?»"
-msgstr[2] "%(firstSuggestions)s або %(lastSuggestion)s замість «%(undefinedParameter)s?»"
+msgstr[1] ""
+"%(firstSuggestions)s або %(lastSuggestion)s замість "
+"«%(undefinedParameter)s?»"
+msgstr[2] ""
+"%(firstSuggestions)s або %(lastSuggestion)s замість "
+"«%(undefinedParameter)s?»"
 msgstr[3] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
 
 #, python-format
@@ -447,6 +461,18 @@ msgstr[2] ""
 msgstr[3] ""
 
 #, python-format
+msgid ""
+"%s of the selected items is a semantic view, which cannot be archived: it"
+" will be deleted permanently and cannot be recovered."
+msgid_plural ""
+"%s of the selected items are semantic views, which cannot be archived: "
+"they will be deleted permanently and cannot be recovered."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
 msgid "%s operator(s)"
 msgstr "%s операторів"
 
@@ -485,14 +511,6 @@ msgstr "%s вкладки вибрано"
 #, python-format
 msgid "%s recipients"
 msgstr "%s отримувачів"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] "%s запис..."
-msgstr[1] "%s записи..."
-msgstr[2] "%s записів..."
-msgstr[3] "%s запис"
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -701,6 +719,7 @@ msgstr "10 секунд"
 msgid "10/90 percentiles"
 msgstr "10/90 процентилів"
 
+#. do-not-translate
 msgid "10000"
 msgstr "10000"
 
@@ -878,12 +897,6 @@ msgstr "> = (більше або рівне)"
 msgid "A Big Number"
 msgstr "Лічильник"
 
-msgid "A JavaScript function that generates a label configuration object"
-msgstr "Функція JavaScript, яка генерує об’єкт налаштування мітки"
-
-msgid "A JavaScript function that generates an icon configuration object"
-msgstr "Функція JavaScript, яка генерує об’єкт налаштування піктограми"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-brace-format
@@ -897,6 +910,9 @@ msgstr ""
 "перевизначаючи інші параметри керування з вищим пріоритетом. (напр. { "
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Деталі:"
 " https://echarts.apache.org/en/option.html. "
+
+msgid "A TTL is required for ephemeral state."
+msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Перелік стовпців, розділених комами, які слід розпізнавати як дати"
@@ -913,8 +929,10 @@ msgstr "База даних з такою назвою вже існує."
 msgid "A date is required when using custom date shift"
 msgstr "Для зсуву дати потрібно її вказати"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "A description for your dashboard"
-msgstr ""
+msgstr "Опис вашої панелі"
 
 #, python-brace-format
 msgid ""
@@ -973,10 +991,14 @@ msgstr ""
 msgid "A metric to use for color"
 msgstr "Показник, що впливає на колір"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "A multiplier applied to the point radius. Use this to uniformly scale all"
 " points."
 msgstr ""
+"Множник, що застосовується до радіуса точки. Використовуйте це для "
+"рівномірного масштабування всіх точок."
 
 msgid "A new chart and dashboard will be created."
 msgstr "Створиться нова діаграма та звіт."
@@ -1017,6 +1039,30 @@ msgstr ""
 "Набір параметрів, які стають доступними в запиті через синтаксис шаблонів"
 " Jinja"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before creating a "
+"new dataset over this table, or use a different table name."
+msgstr ""
+"М'яко видалений набір даних (uuid %(uuid)s) вже посилається на цю "
+"таблицю. Відновіть його за допомогою POST "
+"/api/v1/dataset/%(uuid)s/restore перед створенням нового набору даних для"
+" цієї таблиці або використайте іншу назву таблиці."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
+msgid ""
+"A soft-deleted dataset (uuid %(uuid)s) already references this table. "
+"Restore it via POST /api/v1/dataset/%(uuid)s/restore before uploading, or"
+" upload to a different table name."
+msgstr ""
+"М'яко видалений набір даних (uuid %(uuid)s) вже посилається на цю "
+"таблицю. Відновіть його за допомогою POST "
+"/api/v1/dataset/%(uuid)s/restore перед завантаженням або завантажте до "
+"таблиці з іншою назвою."
+
 msgid "A timeout occurred while executing the query."
 msgstr "Запит не встиг виконатися у відведений час."
 
@@ -1025,6 +1071,9 @@ msgstr "Створення CSV не встигло завершитись у в�
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Перетворення у табличні дані не встигло завершитись у відведений час."
+
+msgid "A timeout occurred while generating an Excel file."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Знімок не встиг створитися у відведений час."
@@ -1078,9 +1127,6 @@ msgstr "API ключ успішно відкликано"
 #, fuzzy
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr "API ключі дозволяють обмежений програмний доступ до Superset."
-
-msgid "APPLY"
-msgstr "ЗАСТОСУВАТИ"
 
 msgid "APR"
 msgstr "квіт"
@@ -1244,6 +1290,12 @@ msgstr "Додати колір для відстеження змін"
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Розбарвити стовпці для додатних і від’ємних значень"
 
+msgid ""
+"Add columns to filter by. When typing or pasting filter values, commas "
+"will separate values into multiple entries. To include a comma within a "
+"value, wrap it in double quotes: \"San Francisco, CA\""
+msgstr ""
+
 msgid "Add cross-filter"
 msgstr "Додати перехресний фільтр"
 
@@ -1325,6 +1377,9 @@ msgstr "Додайте обовʼязкові контрольні значен�
 msgid "Add required control values to save chart"
 msgstr "Додайте обовʼязкові контрольні значення, щоб зберегти діаграму"
 
+msgid "Add service credentials"
+msgstr ""
+
 msgid "Add sheet"
 msgstr "Додати аркуш"
 
@@ -1396,6 +1451,12 @@ msgstr ""
 "Додає кольори до символів діаграми на основі додатного чи відʼємної зміни"
 " після порівняння значень."
 
+msgid "Adhoc metric SQL expression is invalid"
+msgstr ""
+
+msgid "Adhoc metric aggregate is invalid"
+msgstr ""
+
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "Налаштувати як база даних буде взаємодіяти з майстернею запитів."
 
@@ -1465,11 +1526,6 @@ msgstr ""
 " ньому."
 
 msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr "Функція агрегації для зведення даних і підрахунку підсумків"
-
-msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1481,9 +1537,6 @@ msgstr "Агрегація"
 
 msgid "Aggregation Method"
 msgstr "Спосіб агрегації даних"
-
-msgid "Aggregation function"
-msgstr "Функція агрегації даних"
 
 msgid "Alert"
 msgstr "Оповіщення"
@@ -1591,6 +1644,9 @@ msgstr "Усі панелі"
 msgid "All records"
 msgstr "Усі записи"
 
+msgid "All time"
+msgstr ""
+
 msgid "Allow CREATE TABLE AS"
 msgstr "Дозволити створювати таблиці (CREATE TABLE AS)"
 
@@ -1672,6 +1728,9 @@ msgstr ""
 "порівнює розподіли одного показника між кількома групами. Коробка в "
 "центрі виділяє середнє, медіану та внутрішні два квартилі. «Вуса» навколо"
 " коробки показують мінімум, максимум, діапазон та зовнішні два квартилі."
+
+msgid "Also overwrite all assets (charts, datasets and databases)"
+msgstr ""
 
 msgid "Altered"
 msgstr "Змінено"
@@ -1852,6 +1911,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Не вдалось одержати назви функцій."
 
 #, python-format
+msgid "An error occurred while fetching row level security subject values: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching schema values: %s"
 msgstr "Не вдалось одержати інформацію про схему: %s"
 
@@ -1900,14 +1963,23 @@ msgstr "Не вдалось одержати інформацію про кор�
 msgid "An error occurred while formatting SQL"
 msgstr "Не вдалося відформатувати код"
 
+msgid ""
+"An error occurred while generating the file. Please try again, or contact"
+" your administrator if the problem persists."
+msgstr ""
+
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Не вдалось імпортувати %s: %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "An error occurred while loading SQL Lab. This may be caused by a "
 "corrupted query state."
 msgstr ""
+"Під час завантаження SQL Lab сталася помилка. Це може бути спричинено "
+"пошкодженим станом запиту."
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Сталася помилка під час завантаження інформації про звіт."
@@ -1959,6 +2031,9 @@ msgstr ""
 msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "Не вдалося синхронізувати права доступу для %s: %s"
 
+msgid "An error occurred while triggering the report"
+msgstr ""
+
 msgid "An error occurred while updating the extension."
 msgstr "Не вдалося оновити розширення."
 
@@ -1975,11 +2050,19 @@ msgstr "Не вдалося вставити розширення."
 msgid "An error occurred while upserting the value."
 msgstr "Не вдалося вставити значення."
 
+msgid "An export for this dashboard is already in progress."
+msgstr ""
+
 msgid "An unexpected error occurred"
 msgstr "Неочікувана помилка"
 
 msgid "Anchor to"
 msgstr "Прив’язати до"
+
+msgid ""
+"Angle at which the first slice begins, in degrees. 90° starts at the top,"
+" 0°/360° at the right, 270° at the bottom, and 180° at the left."
+msgstr ""
 
 msgid "Angle at which to end progress axis"
 msgstr "Кут кінця шкали"
@@ -2202,6 +2285,41 @@ msgstr "Квітень"
 msgid "Arc"
 msgstr "Дуга"
 
+msgid "Archive"
+msgstr ""
+
+#, python-format
+msgid "Archive %(name)s?"
+msgstr ""
+
+#, python-format
+msgid "Archive selected %s?"
+msgstr ""
+
+msgid "Archive selected charts?"
+msgstr ""
+
+msgid "Archive selected dashboards?"
+msgstr ""
+
+msgid "Archived"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s)"
+msgstr ""
+
+#, python-format
+msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
+msgstr ""
+
+msgid "Archived by"
+msgstr ""
+
+#, python-format
+msgid "Archived: %s"
+msgstr ""
+
 msgid "Are you sure you intend to overwrite the following values?"
 msgstr "Певні, що маєте намір перезаписати такі значення?"
 
@@ -2233,6 +2351,9 @@ msgstr "Певні, що бажаєте вилучити вибрані груп
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Певні, що бажаєте вилучити вибрані шари?"
+
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Певні, що бажаєте вилучити вибрані ролі?"
@@ -2713,19 +2834,8 @@ msgstr "За ключем: використовувати назви рядкі�
 msgid "By value: use metric values as sorting key"
 msgstr "За значенням: використовувати значення показників для сортування"
 
-msgid "CANCEL"
-msgstr "СКАСУВАТИ"
-
 msgid "CC recipients"
 msgstr "Одержувачі в копії"
-
-msgid "COPY QUERY"
-msgstr "Скопіювати запит"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Copy query"
-msgstr "Копіювати запит"
 
 msgid "CREATE TABLE AS"
 msgstr "Створити як таблицю"
@@ -2798,9 +2908,6 @@ msgstr ""
 "CTAS (створення таблиці за результатами запиту) можна виконати тільки "
 "якщо остання команда у вашому запиті — SELECT. Перевірте, щоб останньою "
 "була саме команда SELECT, а потім спробуйте виконати запит знову."
-
-msgid "CUSTOM"
-msgstr "Власне"
 
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -2895,6 +3002,19 @@ msgstr "Неможливо доступитися до запиту"
 
 msgid "Cannot delete a database that has datasets attached"
 msgstr "Неможливо вилучити базу даних, поки до неї прив’язані набори даних"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Cannot delete a database whose only remaining datasets are soft-deleted. "
+"Restore them (POST /api/v1/dataset/<uuid>/restore) and delete them "
+"permanently once a purge capability ships, or remove the underlying rows "
+"out-of-band, before deleting the database."
+msgstr ""
+"Неможливо видалити базу даних, усі наявні набори даних якої є м'яко "
+"видаленими. Відновіть їх (POST /api/v1/dataset/<uuid>/restore) і видаліть"
+" остаточно після появи функції очищення або видаліть відповідні рядки "
+"поза системою перед видаленням бази даних."
 
 msgid "Cannot delete system themes"
 msgstr "Неможливо вилучити системні теми"
@@ -3150,8 +3270,10 @@ msgstr "Зміни діаграми"
 msgid "Chart could not be created."
 msgstr "Не вдалося створити діаграму."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Chart could not be restored."
-msgstr ""
+msgstr "Не вдалося відновити діаграму."
 
 msgid "Chart could not be updated."
 msgstr "Не вдалося оновити діаграму."
@@ -3190,6 +3312,9 @@ msgstr "Діаграму не знайдено"
 
 msgid "Chart options"
 msgstr "Параметри діаграми"
+
+msgid "Chart orientation"
+msgstr ""
 
 msgid "Chart parameters are invalid."
 msgstr "Параметри діаграми некоректні."
@@ -3423,6 +3548,9 @@ msgstr "Очистити форму"
 msgid "Clear local theme"
 msgstr "Очистити місцеву тему"
 
+msgid "Clear search"
+msgstr ""
+
 msgid "Clear the selection to revert to the system default theme"
 msgstr "Скинути вибір для повернення до системної типової теми"
 
@@ -3537,6 +3665,9 @@ msgstr "Згорнути рядок"
 msgid "Collapse All"
 msgstr "Згорнути все"
 
+msgid "Collapse Datasource panel"
+msgstr ""
+
 msgid "Collapse all"
 msgstr "Згорнути все"
 
@@ -3565,6 +3696,12 @@ msgstr "Колір за"
 
 msgid "Color Metric"
 msgstr "Забарвлений показник"
+
+msgid "Color Range End"
+msgstr ""
+
+msgid "Color Range Start"
+msgstr ""
 
 msgid "Color Scheme"
 msgstr "Схема кольорів"
@@ -3775,8 +3912,10 @@ msgstr ""
 "Вкажіть межі проміжків через кому (наприклад: 2,4,5 для проміжків 0–2, "
 "2–4, 4–5). Останнє значення повинно збігатися з максимальним."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Common (unit per pixel at zoom 0)"
-msgstr ""
+msgstr "Загальний (одиниця на піксель при масштабі 0)"
 
 msgid "Comparator option"
 msgstr "Параметр порівняння"
@@ -3941,6 +4080,9 @@ msgstr "Не вдалося підʼєднатися. Перевірте нал�
 msgid "Connection failed, please check your connection settings."
 msgstr "Не вдалося підʼєднатися. Перевірте параметри зʼєднання."
 
+msgid "Connection looks good!"
+msgstr ""
+
 msgid "Contains"
 msgstr "Містить"
 
@@ -4019,6 +4161,14 @@ msgstr "Скопіювати частину запиту в буфер"
 msgid "Copy permalink to clipboard"
 msgstr "Скопіювати постійне посилання у буфер"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Copy query"
+msgstr "Копіювати запит"
+
+msgid "Copy query URL"
+msgstr ""
+
 msgid "Copy query link to your clipboard"
 msgstr "Скопіювати посилання на запит у буфер"
 
@@ -4067,8 +4217,10 @@ msgstr "Не вдалося одержати всі збережені діаг�
 msgid "Could not find viz object"
 msgstr "Не вдалося знайти об'єкт візуалізації"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Could not load SQL Lab"
-msgstr ""
+msgstr "Не вдалося завантажити SQL Lab"
 
 msgid "Could not load database driver"
 msgstr "Не вдалося завантажити драйвер бази даних"
@@ -4076,6 +4228,11 @@ msgstr "Не вдалося завантажити драйвер бази да�
 #, python-format
 msgid "Could not load database driver for: %(engine)s"
 msgstr "Не вдалося завантажити драйвер бази даних для: %(engine)s"
+
+msgid ""
+"Could not load metadata for this configuration; showing the default form."
+" See the server logs for details."
+msgstr ""
 
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
@@ -4086,18 +4243,6 @@ msgstr "Не вдалося підтвердити користувача в п�
 
 msgid "Count"
 msgstr "Кількість"
-
-msgid "Count Unique Values"
-msgstr "Кількість унікальних значень"
-
-msgid "Count as Fraction of Columns"
-msgstr "Кількість як частка від стовпців"
-
-msgid "Count as Fraction of Rows"
-msgstr "Кількість як частка від рядків"
-
-msgid "Count as Fraction of Total"
-msgstr "Кількість як частка від всього"
 
 msgid "Country"
 msgstr "Країна"
@@ -4140,6 +4285,11 @@ msgstr "Створити нову мітку"
 
 msgid "Create a new chart"
 msgstr "Створити нову діаграму"
+
+msgid ""
+"Create a new tag and assign it to existing entities like charts or "
+"dashboards"
+msgstr ""
 
 msgid "Create and explore dataset"
 msgstr "Створити та дослідити набір даних"
@@ -4396,6 +4546,7 @@ msgstr "Формат дати ДД/ММ, міжнародний та європ�
 msgid "DEC"
 msgstr "груд"
 
+#. do-not-translate
 msgid "DELETE"
 msgstr "ВИЛУЧИТИ"
 
@@ -4441,6 +4592,11 @@ msgstr "Звіт неможливо скопіювати через некоре
 msgid "Dashboard cannot be favorited."
 msgstr "Неможливо додати звіт до улюбленого."
 
+msgid ""
+"Dashboard cannot be restored because its slug is now used by another "
+"active dashboard. Rename one of the dashboards and retry."
+msgstr ""
+
 msgid "Dashboard cannot be unfavorited."
 msgstr "Неможливо вилучити звіт з улюбленого."
 
@@ -4453,8 +4609,10 @@ msgstr "Не вдалося оновити налаштування кольор
 msgid "Dashboard could not be deleted."
 msgstr "Не вдалося вилучити звіт."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Dashboard could not be restored."
-msgstr ""
+msgstr "Не вдалося відновити панель."
 
 msgid "Dashboard could not be updated."
 msgstr "Не вдалось оновити звіт."
@@ -4695,6 +4853,18 @@ msgstr "Набір даних %(table)s вже існує"
 msgid "Dataset Name"
 msgstr "Назва набору даних"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
+msgid ""
+"Dataset cannot be restored because another active dataset already "
+"references the same physical table (same database, catalog, schema, and "
+"table name). Delete the duplicate or rename the table before restoring."
+msgstr ""
+"Набір даних не може бути відновлений, оскільки інший активний набір даних"
+" вже посилається на ту саму фізичну таблицю (однакові база даних, "
+"каталог, схема та назва таблиці). Видаліть дублікат або перейменуйте "
+"таблицю перед відновленням."
+
 msgid "Dataset column delete failed."
 msgstr "Не вдалося вилучити стовпець."
 
@@ -4707,8 +4877,10 @@ msgstr "Не вдалося створити набір даних."
 msgid "Dataset could not be duplicated."
 msgstr "Не вдалося дублювати набір даних."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Dataset could not be restored."
-msgstr ""
+msgstr "Не вдалося відновити набір даних."
 
 msgid "Dataset could not be updated."
 msgstr "Не вдалося оновити набір даних."
@@ -4937,25 +5109,6 @@ msgid ""
 "default\" is checked"
 msgstr "Значення задано автоматично, коли використовувати «Вибрати перше значення»"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr "Напишіть функцію, яка отримує вміст підказки"
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr "Напишіть функцію, яка повертає посилання для переходу після кліку"
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-"Напишіть функцію за допомогою JavaScript, яка отримує масив даних, що "
-"використовується у візуалізації, і повертає його змінену версію. Її можна"
-" використати для зміни властивостей даних, фільтрації або доповнення "
-"масиву."
-
 msgid "Define color breakpoints for the data"
 msgstr "Визначити розфарбовані пороги для даних"
 
@@ -5096,6 +5249,16 @@ msgstr "Вилучити групу"
 
 msgid "Delete item"
 msgstr "Вилучити елемент"
+
+msgid "Delete permanently"
+msgstr ""
+
+#, python-format
+msgid "Delete permanently %(name)s?"
+msgstr ""
+
+msgid "Delete query"
+msgstr ""
 
 msgid "Delete role"
 msgstr "Вилучити роль"
@@ -5419,6 +5582,11 @@ msgstr "Імʼя на загал"
 msgid "Display all"
 msgstr "Показати все"
 
+msgid ""
+"Display charts on a map. For using this plugin, users first have to "
+"create any other chart that can then be placed on the map."
+msgstr ""
+
 msgid "Display column in the chart"
 msgstr "Показувати стовпець на діаграмі"
 
@@ -5541,16 +5709,19 @@ msgstr "Пусто"
 msgid "Donut"
 msgstr "Бублик"
 
+msgid "Dot size metric"
+msgstr ""
+
 msgid "Dotted"
 msgstr "Пунктирний"
 
 msgid "Download"
 msgstr "Звантажити"
 
-msgid "Download as Image"
-msgstr "Звантажте як зображення"
+msgid "Download Excel file"
+msgstr ""
 
-msgid "Download as image"
+msgid "Download as Image"
 msgstr "Звантажте як зображення"
 
 msgid "Download is on the way"
@@ -5782,6 +5953,7 @@ msgstr "Шукати значення фільтра на льоту"
 msgid "Dynamically select grouping columns from a dataset"
 msgstr "Динамічно вибирати стовпці для групування з набору даних"
 
+#. do-not-translate
 msgid "ECharts"
 msgstr "ECharts"
 
@@ -5791,11 +5963,16 @@ msgstr "ECharts"
 msgid "ECharts Options (JS object literals)"
 msgstr "Параметри ECharts (літерали об'єктів JS)"
 
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
 
 msgid "ERROR"
 msgstr "Помилка"
+
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
 
 msgid "Edge length"
 msgstr "Довжина ребра"
@@ -5886,6 +6063,9 @@ msgstr "Редагувати групу"
 msgid "Edit properties"
 msgstr "Редагувати властивості"
 
+msgid "Edit query"
+msgstr ""
+
 msgid "Edit report"
 msgstr "Редагувати доповідь"
 
@@ -5971,6 +6151,9 @@ msgstr "Електронна пошта обовʼязкова"
 msgid "Email link"
 msgstr "Посилання електронної пошти"
 
+msgid "Email recipients"
+msgstr ""
+
 msgid "Email reports active"
 msgstr "Увімкнути доповіді листом"
 
@@ -6039,14 +6222,8 @@ msgstr "Дозволити прогнозування"
 msgid "Enable graph roaming"
 msgstr "Дозволити переміщення графа"
 
-msgid "Enable icon JavaScript mode"
-msgstr "Увімкнути режим JavaScript для піктограм"
-
 msgid "Enable icons"
 msgstr "Увімкнути піктограми"
-
-msgid "Enable label JavaScript mode"
-msgstr "Увімкнути режим JavaScript для міток"
 
 msgid "Enable labels"
 msgstr "Увімкнути мітки"
@@ -6066,12 +6243,6 @@ msgstr "Дозволити розгортання рядків у схемах"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Розбивати результат на сторінки через сервер (експериментальна можливість)"
-
-msgid "Enables custom icon configuration via JavaScript"
-msgstr "Дозволяє підкидати нетипові піктограми через JavaScript"
-
-msgid "Enables custom label configuration via JavaScript"
-msgstr "Дозволяє підкидати нетипові мітки через JavaScript"
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Дозволяє відтворювати піктограми для точок GeoJSON"
@@ -6148,9 +6319,6 @@ msgstr "Введіть основні облікові дані"
 msgid "Enter a name for this sheet"
 msgstr "Введіть назву для цього аркуша"
 
-msgid "Enter a new title for the tab"
-msgstr "Введіть нову назву для вкладки"
-
 msgid "Enter a part of the object name"
 msgstr "Введіть частину назви об’єкта"
 
@@ -6208,6 +6376,9 @@ msgstr "Введіть вашого користувача і його паро�
 
 msgid "Entity"
 msgstr "Елемент"
+
+msgid "Entries per page"
+msgstr ""
 
 msgid "Equal Date Sizes"
 msgstr "Однакові розміри дат"
@@ -6379,6 +6550,9 @@ msgstr "Експортувати в Excel"
 msgid "Excel XML Export"
 msgstr "Експортувати в XML"
 
+msgid "Excel export is not configured on this server."
+msgstr ""
+
 msgid "Excel file format cannot be determined"
 msgstr "Не вдалося визначити формат файла Excel"
 
@@ -6405,6 +6579,9 @@ msgstr "Журнал виконання"
 
 msgid "Existing dataset"
 msgstr "Наявний набір даних"
+
+msgid "Exit edit mode"
+msgstr ""
 
 msgid "Exit fullscreen"
 msgstr "Вийти з повного екрану"
@@ -6465,11 +6642,20 @@ msgstr "Експортувати всі дані"
 msgid "Export Current View"
 msgstr "Експортувати поточний перегляд"
 
+msgid "Export Data to Excel"
+msgstr ""
+
+msgid "Export Images to Excel"
+msgstr ""
+
 msgid "Export YAML"
 msgstr "Експортувати у YAML"
 
 msgid "Export as Example"
 msgstr "Експортувати як приклад"
+
+msgid "Export as PDF"
+msgstr ""
 
 msgid "Export cancelled"
 msgstr "Експорт скасовано"
@@ -6487,8 +6673,14 @@ msgstr "Помилка експортування - спробуйте ще ра
 msgid "Export failed: %s"
 msgstr "Помилка експортування: %s"
 
+msgid "Export query"
+msgstr ""
+
 msgid "Export screenshot (jpeg)"
 msgstr "Експортувати знімок (jpeg)"
+
+msgid "Export screenshot (png)"
+msgstr ""
 
 #, python-format
 msgid "Export successful: %s"
@@ -6528,6 +6720,17 @@ msgstr "Експортувати до первинного .csv"
 msgid "Export to pivoted .CSV"
 msgstr "Експортувати до зведеного .csv"
 
+#, python-format
+msgid ""
+"Exporting semantic views is not supported yet — %s semantic-view row(s) "
+"were skipped."
+msgstr ""
+
+msgid ""
+"Exporting semantic views is not supported yet. Deselect the semantic-view"
+" rows and try again."
+msgstr ""
+
 msgid "Expose database in SQL Lab"
 msgstr "Відкрити базу даних у майстерні запитів"
 
@@ -6540,6 +6743,12 @@ msgstr "Вираз SQL"
 
 msgid "Expression cannot be empty"
 msgstr "Вираз не може бути порожній"
+
+#, python-format
+msgid ""
+"Extension '%(extension_id)s' has exceeded its persistent storage quota of"
+" %(quota)d bytes."
+msgstr ""
 
 msgid "Extensions"
 msgstr "Розширення"
@@ -6561,9 +6770,6 @@ msgstr "Додаткові перемикачі"
 
 msgid "Extra Parameters"
 msgstr "Додаткові параметри"
-
-msgid "Extra data for JS"
-msgstr "Додаткові дані для JS"
 
 #, python-brace-format
 msgid ""
@@ -6595,14 +6801,6 @@ msgstr "Об'ємний"
 
 msgid "FEB"
 msgstr "лют"
-
-msgid "FIT DATA"
-msgstr "АВТОМАТИЧНО"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
-#, fuzzy
-msgid "Fit data"
-msgstr "Підігнати дані"
 
 msgid "FRI"
 msgstr "ПТ"
@@ -6641,8 +6839,25 @@ msgid "Failed to create report"
 msgstr "Не вдалося створити доповідь"
 
 #, python-format
+msgid "Failed to delete %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to delete %(name)s: %(errMsg)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
+msgstr ""
+
+#, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Не вдалося виконати %(query)s"
+
+msgid ""
+"Failed to export chart data. Please try again or contact your "
+"administrator."
+msgstr ""
 
 #, fuzzy
 msgid "Failed to fetch API keys"
@@ -6678,6 +6893,14 @@ msgstr "Не вдалося вилучити системну темну тем�
 #, python-format
 msgid "Failed to remove system default theme: %s"
 msgstr "Не вдалося вилучити системну типову тему: %s"
+
+#, python-format
+msgid "Failed to restore %(name)s"
+msgstr ""
+
+#, python-format
+msgid "Failed to restore %(name)s: %(errMsg)s"
+msgstr ""
 
 msgid "Failed to retrieve advanced type"
 msgstr "Не вдалося одержати розширений тип"
@@ -6717,6 +6940,10 @@ msgstr "Не вдалося зберегти результат запиту. С
 
 msgid "Failed to tag items"
 msgstr "Не вдалося додати мітку до елементів"
+
+#, python-format
+msgid "Failed to trigger %(alertType)s \"%(alertName)s\": %(error)s"
+msgstr ""
 
 msgid "Failed to update report"
 msgstr "Не вдалось оновити доповідь"
@@ -6930,6 +7157,11 @@ msgstr "Ім'я обов'язкове"
 msgid "Fit columns dynamically"
 msgstr "Підлаштовувати стовпці самостійно"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv]
+#, fuzzy
+msgid "Fit data"
+msgstr "Підігнати дані"
+
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
 "results do not include the start or end dates"
@@ -6990,11 +7222,6 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "Для одержання додаткових інструкцій звертайтесь до"
 
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr "Якщо бажаєте детальніше ознайомитися з обʼєктами цієї функції, дивіться"
-
 #, fuzzy
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
@@ -7054,6 +7281,9 @@ msgstr "Примусово встановлює вибраний проміжо�
 msgid "Forecast periods"
 msgstr "Періоди, які прогнозувати"
 
+msgid "Forecast requires at least 2 data points"
+msgstr ""
+
 msgid "Foreign key"
 msgstr "Зовнішній ключ"
 
@@ -7104,6 +7334,9 @@ msgstr ""
 
 msgid "Formatted CSV attached in email"
 msgstr "Форматований CSV, який вкладено до листа"
+
+msgid "Formatted Excel attached in email"
+msgstr ""
 
 msgid "Formatted value"
 msgstr "Форматоване значення"
@@ -7162,6 +7395,7 @@ msgstr "Додаткові налаштування як показувати к
 msgid "Further customize how to display each metric"
 msgstr "Додаткові налаштування як показувати кожний показник"
 
+#. do-not-translate
 msgid "GROUP BY"
 msgstr "Групування"
 
@@ -7428,9 +7662,6 @@ msgstr "Коди ISO 3166-2"
 msgid "ISO 8601"
 msgstr "ISO 8601"
 
-msgid "Icon JavaScript config generator"
-msgstr "Генератор налаштувань JavaScript для піктограм"
-
 msgid "Icon URL"
 msgstr "Посилання на піктограму"
 
@@ -7451,13 +7682,9 @@ msgid ""
 "as the currently logged on user who must have permission to run them. If "
 "Hive and hive.server2.enable.doAs is enabled, will run the queries as "
 "service account, but impersonate the currently logged on user via "
-"hive.server2.proxy.user property."
+"hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
+"authenticate as the currently logged on user."
 msgstr ""
-"Якщо використовується Presto або Trino, усі запити в майстерні запитів "
-"виконуються від поточного користувача, який має мати відповідні права. "
-"Якщо використовується Hive і ввімкнено hive.server2.enable.doAs, запити "
-"виконуються від службового облікового запису, з підміною користувача "
-"через hive.server2.proxy.user."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Якщо вказано показник, сортування буде за його значенням"
@@ -7479,6 +7706,12 @@ msgstr ""
 msgid "If table already exists"
 msgstr "Якщо таблиця вже існує"
 
+msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid "If you did not request this, you can ignore this email."
+msgstr ""
+
 msgid "If you don't save, changes will be lost."
 msgstr "Якщо не зберегти, зміни буде втрачено."
 
@@ -7497,10 +7730,10 @@ msgstr "Зображення (PNG) вкладене у лист"
 msgid "Image download failed, please refresh and try again."
 msgstr "Не вдалося звантажити зображення — оновіть сторінку та спробуйте знову."
 
-msgid "Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)"
-msgstr ""
-"Виконувати з-під поточного користувача (Presto, Trino, Drill, Hive та "
+msgid ""
+"Impersonate logged in user (Presto, Trino, Drill, Hive, Databricks, and "
 "Google Sheets)"
+msgstr ""
 
 msgid "Import"
 msgstr "Імпортувати"
@@ -7928,15 +8161,6 @@ msgstr "Черв"
 msgid "January"
 msgstr "Січень"
 
-msgid "JavaScript data interceptor"
-msgstr "Перехоплювач даних JavaScript"
-
-msgid "JavaScript onClick href"
-msgstr "Дія на клік (JavaScript onClick href)"
-
-msgid "JavaScript tooltip generator"
-msgstr "Генератор підказок JavaScript"
-
 msgid "Jinja templating"
 msgstr "Шаблонізація Jinja"
 
@@ -7982,9 +8206,6 @@ msgstr "Мітка"
 msgid "Label Contents"
 msgstr "Вміст мітки"
 
-msgid "Label JavaScript config generator"
-msgstr "Генератор налаштувань JavaScript для міток"
-
 msgid "Label Line"
 msgstr "Підпис"
 
@@ -8011,6 +8232,9 @@ msgstr "Мітка для стовпця індексу. Не використо
 
 msgid "Label for your query"
 msgstr "Мітка для вашого запиту"
+
+msgid "Label must not be empty."
+msgstr ""
 
 msgid "Label position"
 msgstr "Позиція мітки"
@@ -8050,6 +8274,15 @@ msgstr "Великий"
 
 msgid "Last"
 msgstr "Останній"
+
+msgid "Last 30 days"
+msgstr ""
+
+msgid "Last 7 days"
+msgstr ""
+
+msgid "Last 90 days"
+msgstr ""
 
 msgid "Last Name"
 msgstr "Прізвище"
@@ -8188,6 +8421,15 @@ msgstr "Тип легенди"
 msgid "Legend type"
 msgstr "Тип легенди"
 
+msgid "Length in cm (12345678cm => 123.46km)"
+msgstr ""
+
+msgid "Length in cm (12345cm => 123.45m)"
+msgstr ""
+
+msgid "Length in m (12345m => 12.35km)"
+msgstr ""
+
 msgid "Less Than"
 msgstr "Менше за"
 
@@ -8231,8 +8473,12 @@ msgstr "Обмеження"
 msgid "Limit type"
 msgstr "Тип обмеження"
 
-msgid "Limits the number of cells that get retrieved."
-msgstr "Обмежує кількість комірок, які отримуються."
+msgid ""
+"Limits the number of cells that get retrieved. Not applied when non-"
+"additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
+"present, since totals and subtotals are then computed via a database "
+"rollup query that must see every row to stay correct."
+msgstr ""
 
 msgid "Limits the number of rows that get displayed."
 msgstr "Обмежує кількість рядків, які показувати."
@@ -8307,6 +8553,9 @@ msgstr "Стовпець з лінією"
 msgid "Lines encoding"
 msgstr "Кодування ліній"
 
+msgid "Link Copied!"
+msgstr ""
+
 msgid "List"
 msgstr "Перелік"
 
@@ -8316,14 +8565,8 @@ msgstr "Перелік груп"
 msgid "List Roles"
 msgstr "Перелік ролей"
 
-msgid "List Unique Values"
-msgstr "Перелік унікальних значень"
-
 msgid "List Users"
 msgstr "Перелік користувачів"
-
-msgid "List of extra columns made available in JavaScript functions"
-msgstr "Перелік додаткових стовпців, що доступні у функціях JavaScript"
 
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Перелік зі n+1 значень для розподілу показника на n груп."
@@ -8445,6 +8688,11 @@ msgstr "Довгота типового вікна перегляду"
 
 msgid "Lower Threshold"
 msgstr "Нижній поріг"
+
+msgid ""
+"Lower bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Нижній поріг не може бути більший за верхній"
@@ -8622,6 +8870,9 @@ msgstr "Найбільший радіус"
 msgid "Maximum Width"
 msgstr "Мінімальна ширина"
 
+msgid "Maximum dot size"
+msgstr ""
+
 msgid "Maximum folder nesting depth reached"
 msgstr "Досягнуто максимальну глибину вкладеності"
 
@@ -8653,9 +8904,6 @@ msgstr "Середнє значення за вказаний період"
 
 msgid "Mean values"
 msgstr "Середні значення"
-
-msgid "Median"
-msgstr "Медіана"
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -8879,6 +9127,9 @@ msgstr "Найменший радіус"
 msgid "Minimum Width"
 msgstr "Мінімальна ширина"
 
+msgid "Minimum dot size"
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "Мінімум не може бути більший за максимум"
 
@@ -9024,7 +9275,9 @@ msgstr "Множник"
 msgid ""
 "Must be a chart editor to overwrite this chart. Save as a new chart "
 "instead."
-msgstr "Щоб перезаписати цей графік, ви маєте бути редактором графіка. Натомість збережіть його як новий графік."
+msgstr ""
+"Щоб перезаписати цей графік, ви маєте бути редактором графіка. Натомість "
+"збережіть його як новий графік."
 
 msgid "Must be unique"
 msgstr "Має бути неповторний"
@@ -9053,6 +9306,7 @@ msgstr "Мій показник"
 msgid "N/A"
 msgstr "Пусто"
 
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "Не згруповано"
 
@@ -9200,6 +9454,9 @@ msgstr "Ще немає анотації"
 msgid "No applied filters"
 msgstr "Жоден фільтр не застосовано"
 
+msgid "No archived items"
+msgstr ""
+
 msgid "No available filters."
 msgstr "Немає доступних фільтрів."
 
@@ -9224,6 +9481,9 @@ msgstr "Немає даних"
 
 msgid "No data after filtering or data is NULL for the latest time record"
 msgstr "Немає даних після фільтрування або вони порожні для останнього запису часу"
+
+msgid "No data found"
+msgstr ""
 
 msgid "No data in file"
 msgstr "Немає даних у файлі"
@@ -9569,6 +9829,7 @@ msgstr "Гаразд"
 msgid "OR"
 msgstr "АБО"
 
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr "ПЕРЕЗАПИСАТИ"
 
@@ -9626,6 +9887,10 @@ msgstr "Один або кілька показників повторюютьс
 
 msgid "One or more metrics do not exist"
 msgstr "Один або кілька показників не існують"
+
+#, python-format
+msgid "One or more parameters are missing: %(missing)s"
+msgstr ""
 
 msgid "One or more parameters needed to configure a database are missing."
 msgstr ""
@@ -9702,11 +9967,15 @@ msgstr "Відкрити вкладку джерел даних"
 msgid "Open SQL Lab in a new tab"
 msgstr "Відкрити майстерню запитів у новій вкладці"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open chart in new tab"
-msgstr ""
+msgstr "Відкрити діаграму у новій вкладці"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Open dashboard in new tab"
-msgstr ""
+msgstr "Відкрити панель у новій вкладці"
 
 msgid "Open in SQL Lab"
 msgstr "Відкрити в майстерні запитів"
@@ -9748,6 +10017,11 @@ msgstr "Рядок формату дати (d3)"
 msgid "Optional d3 number format string"
 msgstr "Рядок формату числа (d3)"
 
+msgid ""
+"Optional metric used to scale the size of each dot. Dot areas are scaled "
+"linearly between the minimum and maximum dot size."
+msgstr ""
+
 msgid "Optional name of the data column."
 msgstr "Назва стовпця з даними."
 
@@ -9785,6 +10059,11 @@ msgstr "Напрямок стовпчикової діаграми"
 
 msgid "Orientation of filter bar"
 msgstr "Напрямок фільтрів"
+
+msgid ""
+"Orientation of the chart. Horizontal places the dimension on the y-axis "
+"and the metric on the x-axis."
+msgstr ""
 
 msgid "Orientation of tree"
 msgstr "Напрямок дерева"
@@ -9953,9 +10232,10 @@ msgstr "Пароль"
 msgid "Password is required"
 msgstr "Пароль обовʼязковий"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Password must be at least %(min_length)s characters long."
-msgstr ""
+msgstr "Пароль повинен містити щонайменше %(min_length)s символів."
 
 msgid "Password:"
 msgstr "Пароль:"
@@ -10281,6 +10561,13 @@ msgstr ""
 msgid "Please use 3 different metric labels"
 msgstr "Використайте 3 різні назви показників"
 
+msgid ""
+"Plot each time-shifted series across its full time range instead of "
+"truncating it to the main series. Useful for comparing a partial current "
+"period (e.g. today so far) against complete prior periods (e.g. all of "
+"yesterday)."
+msgstr ""
+
 msgid "Plot the distance (like flight paths) between origin and destination."
 msgstr ""
 "Побудувати відстань (наприклад, маршрути польоту) між пунктом "
@@ -10314,8 +10601,10 @@ msgstr "Шкала товщини маркера"
 msgid "Point Radius Unit"
 msgstr "Одиниця виміру товщини"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Point Radius Units"
-msgstr ""
+msgstr "Одиниці радіуса точки"
 
 msgid "Point Size"
 msgstr "Розмір маркера"
@@ -10429,9 +10718,6 @@ msgstr "Формат основної осі Y"
 #, fuzzy
 msgid "Private"
 msgstr "Закритий ключ"
-
-msgid "Private Channels (Bot in channel)"
-msgstr "Закриті канали (бот в каналі)"
 
 msgid "Private Key"
 msgstr "Закритий ключ"
@@ -10631,6 +10917,12 @@ msgstr "Відношення сторін"
 msgid "Raw records"
 msgstr "Сирі записи"
 
+msgid "Recently Archived"
+msgstr ""
+
+msgid "Recently archived"
+msgstr ""
+
 msgid "Recently modified"
 msgstr "Нещодавно змінено"
 
@@ -10643,6 +10935,15 @@ msgstr "Одержувачі розділяються комами «,» або 
 #, fuzzy
 msgid "Records"
 msgstr "Сирі записи"
+
+msgid "Recover"
+msgstr ""
+
+msgid "Recover this item"
+msgstr ""
+
+msgid "Recover this item to open it"
+msgstr ""
 
 msgid "Rectangle"
 msgstr "Прямокутник"
@@ -10733,16 +11034,11 @@ msgid "Regular"
 msgstr "Звичайний"
 
 msgid ""
-"Regular filters add where clauses to queries if a user belongs to a role "
-"referenced in the filter, base filters apply filters to all queries "
-"except the roles defined in the filter, and can be used to define what "
-"users can see if no RLS filters within a filter group apply to them."
+"Regular filters add where clauses to queries if a user matches a subject "
+"referenced in the filter. Base filters apply filters to all queries "
+"except the subjects defined in the filter, and can be used to define what"
+" users can see if no RLS filters within a filter group apply to them."
 msgstr ""
-"Звичайні фільтри додають умови WHERE до запитів, якщо користувач належить"
-" до ролі, вказаної у фільтрі. Базові фільтри застосовуються до всіх "
-"запитів, окрім ролей, визначених у фільтрі, і можуть використовуватися, "
-"щоб задати, які дані бачать користувачі, якщо до них не застосовується "
-"жоден фільтр рівня доступу до рядків (RLS) у межах групи фільтрів."
 
 msgid "Relational"
 msgstr "Відносний"
@@ -10762,8 +11058,10 @@ msgstr "Відносна кількість"
 msgid "Reload"
 msgstr "Перезавантажити"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Reload SQL Lab"
-msgstr ""
+msgstr "Перезавантажити SQL Lab"
 
 msgid "Remove"
 msgstr "Вилучити"
@@ -10781,6 +11079,9 @@ msgstr "Вилучити перехресний фільтр"
 msgid "Remove customization"
 msgstr "Тип налаштування"
 
+msgid "Remove dependency"
+msgstr ""
+
 #, fuzzy
 msgid "Remove filter"
 msgstr "Вилучити елемент"
@@ -10788,8 +11089,14 @@ msgstr "Вилучити елемент"
 msgid "Remove item"
 msgstr "Вилучити елемент"
 
+msgid "Remove notification method"
+msgstr ""
+
 msgid "Remove query from log"
 msgstr "Вилучити запит з журналу"
+
+msgid "Remove sheet"
+msgstr ""
 
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
@@ -10833,6 +11140,9 @@ msgstr "Не вдалося оновити розклад доповіді."
 msgid "Report Schedule delete failed."
 msgstr "Не вдалося вилучити розклад доповіді."
 
+msgid "Report Schedule execute now failed."
+msgstr ""
+
 msgid "Report Schedule execution failed when generating a csv."
 msgstr "Не вдалося сформувати файл CSV у розкладі доповіді."
 
@@ -10845,8 +11155,21 @@ msgstr "Не вдалося сформувати файл PDF у розклад�
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "Не вдалося сформувати знімок екрана у розкладі доповіді."
 
+msgid "Report Schedule execution failed when generating an Excel file."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Трапилась несподівана помилка у розкладі доповіді."
+
+msgid ""
+"Report Schedule execution requires a Celery backend to be configured. "
+"Please configure a Celery broker (Redis or RabbitMQ) and worker "
+"processes."
+msgstr ""
+
+#, python-format
+msgid "Report Schedule executor user %(username)s was not found."
+msgstr ""
 
 msgid "Report Schedule is still working, refusing to re-compute."
 msgstr "Розклад досі виконується, але доповідь не вдалося надіслати."
@@ -10881,8 +11204,10 @@ msgstr "Чинна доповідь"
 msgid "Report name"
 msgstr "Назва доповіді"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Report not yet run"
-msgstr ""
+msgstr "Звіт ще не виконано"
 
 msgid "Report schedule client error"
 msgstr "Трапилася клієнтська помилка з розкладом доповіді"
@@ -10927,6 +11252,13 @@ msgstr "Бракує поля у запиті."
 msgid "Request timed out"
 msgstr "Запит вичерпано"
 
+#, python-format
+msgid ""
+"Requested page would return %(requested_size)d bytes, exceeding the "
+"maximum allowed list payload size of %(max_size)d bytes. Reduce page_size"
+" and try again."
+msgstr ""
+
 msgid "Required"
 msgstr "Обовʼязково"
 
@@ -10936,9 +11268,10 @@ msgstr "Обов’язкові значення параметрів вилуч
 msgid "Resample"
 msgstr "Передискретизація"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid "Resample method '%(method)s' is not supported."
-msgstr ""
+msgstr "Метод повторної вибірки '%(method)s' не підтримується."
 
 msgid "Resample method should be in "
 msgstr "Спосіб передискретизація повинен бути один із "
@@ -11144,6 +11477,13 @@ msgstr "Висота рядка"
 msgid "Row limit"
 msgstr "Обмеження рядків"
 
+msgid "Row-Level Security"
+msgstr ""
+
+#, python-format
+msgid "Row-Level Security: %d filter(s) may restrict data based on your role."
+msgstr ""
+
 msgid "Rows"
 msgstr "Рядки"
 
@@ -11171,6 +11511,9 @@ msgstr "Правило додано"
 
 msgid "Run"
 msgstr "Виконати"
+
+msgid "Run a new query using the \"Update chart\" button or"
+msgstr ""
 
 msgid "Run a query to display query history"
 msgstr "Виконати запит, щоб показати історію"
@@ -11311,12 +11654,6 @@ msgstr "Рядок"
 
 msgid "SUN"
 msgstr "НД"
-
-msgid "Sample Standard Deviation"
-msgstr "Стандартне відхилення"
-
-msgid "Sample Variance"
-msgstr "Дисперсія"
 
 msgid "Samples"
 msgstr "Зразки"
@@ -11519,15 +11856,14 @@ msgstr "Пригорнути вниз до кінця, щоб увімкнути
 msgid "Search"
 msgstr "Пошук"
 
-#, python-format
-msgid "Search %s records"
-msgstr "Пошук серед %s записів"
-
 msgid "Search / Filter"
 msgstr "Пошук / фільтр"
 
 msgid "Search Metrics & Columns"
 msgstr "Пошук показників та стовпців"
+
+msgid "Search a channel by name, or paste a channel ID"
+msgstr ""
 
 msgid "Search all charts"
 msgstr "Пошук всіх діаграм"
@@ -11572,6 +11908,9 @@ msgstr "Пошук у фільтрах"
 msgid "Search metrics by key or label"
 msgstr "Пошук показників та стовпців"
 
+msgid "Search records"
+msgstr ""
+
 msgid "Search tags"
 msgstr "Пошук міток"
 
@@ -11580,6 +11919,9 @@ msgstr "Шукати переглядачів"
 
 msgid "Search..."
 msgstr "Пошук..."
+
+msgid "Searches all text fields: Name, Description, Database & Schema"
+msgstr ""
 
 msgid "Second"
 msgstr "Секунда"
@@ -11619,6 +11961,9 @@ msgstr "ряди"
 #, python-format
 msgid "See all %(tableName)s"
 msgstr "Перелік %(tableName)s"
+
+msgid "See all dashboards"
+msgstr ""
 
 msgid "See less"
 msgstr "Сховати деталі"
@@ -11902,6 +12247,12 @@ msgstr ""
 msgid "Select operator"
 msgstr "Вибрати оператора"
 
+msgid "Select or type BCC recipients"
+msgstr ""
+
+msgid "Select or type CC recipients"
+msgstr ""
+
 msgid "Select or type a custom value..."
 msgstr "Виберіть або ведіть власне значення..."
 
@@ -11910,6 +12261,9 @@ msgstr "Виберіть або ведіть символ валюти"
 
 msgid "Select or type dataset name"
 msgstr "Виберіть або введіть назву набору даних"
+
+msgid "Select or type email recipients"
+msgstr ""
 
 msgid "Select page size"
 msgstr "Вибрати розмір сторінки"
@@ -12167,6 +12521,9 @@ msgstr "Семантичні вигляди"
 msgid "Send as CSV"
 msgstr "Надіслати як CSV"
 
+msgid "Send as Excel"
+msgstr ""
+
 msgid "Send as PDF"
 msgstr "Надіслати як PNG"
 
@@ -12384,6 +12741,9 @@ msgstr "Показати назву показника"
 msgid "Show Metric Names"
 msgstr "Показати назву показника"
 
+msgid "Show Null Values"
+msgstr ""
+
 msgid "Show Range Filter"
 msgstr "Показати діапазон"
 
@@ -12423,6 +12783,15 @@ msgstr ""
 "мінімальні/максимальні значення; інакше — мінімум/максимум із самих "
 "даних."
 
+msgid "Show a draggable slider to control the visible range of the Y-axis."
+msgstr ""
+
+msgid ""
+"Show a summary row of total aggregations: the selected metrics in "
+"aggregate mode, or the sum of numeric columns in raw records mode. Note "
+"that row limit does not apply to the result."
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Показати всі стовпці"
 
@@ -12459,6 +12828,9 @@ msgstr "Показати порожні стовпці"
 
 msgid "Show entries per page"
 msgstr "Кількість записів на сторінку"
+
+msgid "Show full range for time shift"
+msgstr ""
 
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
@@ -12540,6 +12912,11 @@ msgstr ""
 
 msgid "Show value"
 msgstr "Показати значення"
+
+msgid ""
+"Showcases a metric along with a comparison of value, change, and percent "
+"change for a selected time period."
+msgstr ""
 
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
@@ -12631,6 +13008,12 @@ msgstr "Розмір маркерів"
 msgid "Size of marker. Also applies to forecast observations."
 msgstr "Розмір маркера. Також застосовується до прогнозних спостережень."
 
+msgid "Size of the dot representing the largest value of the dot size metric."
+msgstr ""
+
+msgid "Size of the dot representing the smallest value of the dot size metric."
+msgstr ""
+
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
 msgstr "Пропустити порожні рядки, а не інтерпретувати їх як нечислові значення"
 
@@ -12678,6 +13061,14 @@ msgstr ""
 msgid "Solid"
 msgstr "Суцільний"
 
+msgid "Solid background"
+msgstr ""
+
+msgid ""
+"Some filters are inherited from physical tables referenced in this "
+"virtual dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -12700,8 +13091,13 @@ msgstr ""
 "Деякі обов'язкові фільтри на інших вкладках мають значення і не будуть "
 "очищені"
 
-msgid "Some roles do not exist"
-msgstr "Деякі ролі не існують"
+msgid "Some tables are not shown. Refine your search."
+msgstr ""
+
+msgid ""
+"Something went wrong loading the dashboard. Check the dev console for "
+"details."
+msgstr ""
 
 msgid "Something went wrong while saving the user info"
 msgstr "Трапилася помилка збереження відомостей про користувача"
@@ -13025,6 +13421,12 @@ msgstr "Зупинити виконання (Ctrl + X)"
 msgid "Stopped an unsafe database connection"
 msgstr "Зупинено небезпечне зʼєднання з базою даних"
 
+#, python-format
+msgid ""
+"Storage key exceeds the maximum allowed length of %(max_length)d "
+"characters."
+msgstr ""
+
 msgid "Stream"
 msgstr "Потік"
 
@@ -13035,8 +13437,10 @@ msgstr "Вулиці"
 msgid "Streets (Carto)"
 msgstr "Дерево"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Streets (OSM)"
-msgstr ""
+msgstr "Вулиці (OSM)"
 
 msgid "Strength to pull the graph toward center"
 msgstr "Сила тяжіння до центру"
@@ -13079,6 +13483,9 @@ msgstr "Розділ"
 msgid "Subject"
 msgstr "Суб’єкт"
 
+msgid "Subject list"
+msgstr ""
+
 msgid "Subject type"
 msgstr "Тип суб’єкта"
 
@@ -13104,6 +13511,9 @@ msgstr "Підсумок"
 msgid "Success"
 msgstr "Успіх"
 
+msgid "Success message"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
 msgstr "Успішно змінило набір даних!"
@@ -13116,15 +13526,6 @@ msgstr "Суфікс після відсотків"
 
 msgid "Sum"
 msgstr "Сума"
-
-msgid "Sum as Fraction of Columns"
-msgstr "Сума як частка стовпців"
-
-msgid "Sum as Fraction of Rows"
-msgstr "Сума як частка рядків"
-
-msgid "Sum as Fraction of Total"
-msgstr "Сума як частка всього"
 
 msgid "Sum of values over specified period"
 msgstr "Сума значень протягом вказаного періоду"
@@ -13168,6 +13569,9 @@ msgstr "Замінити набір даних"
 
 msgid "Swap rows and columns"
 msgstr "Поміняти місцями рядки та стовпці"
+
+msgid "Sweep angle"
+msgstr ""
 
 msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, "
@@ -13231,11 +13635,19 @@ msgstr "Системну типову тему вилучено"
 msgid "TABLES"
 msgstr "Таблиці"
 
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr "TEMPORAL_RANGE"
 
 msgid "THU"
 msgstr "ЧТ"
+
+msgid "TTL must be a positive integer."
+msgstr ""
+
+#, python-format
+msgid "TTL must not exceed %(max_ttl)d seconds."
+msgstr ""
 
 msgid "TUE"
 msgstr "ВТ"
@@ -13330,6 +13742,9 @@ msgstr "Мітку неможливо оновити."
 
 msgid "Tag created"
 msgstr "Мітку створено"
+
+msgid "Tag description"
+msgstr ""
 
 msgid "Tag name"
 msgstr "Назва мітки"
@@ -13467,6 +13882,10 @@ msgstr "Вирівнювання тексту"
 msgid "Text embedded in email"
 msgstr "Текст, долучений до листа"
 
+#, python-format
+msgid "The %(key)s in metadata_cache_timeout must be a non-negative integer."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "The %s"
 msgstr "Одержано %s"
@@ -13494,6 +13913,13 @@ msgstr ""
 "CTAS (створення таблиці за результатами запиту) не містить оператора "
 "SELECT наприкінці. Переконайтеся, що запит завершується відповідно, і "
 "спробуйте виконати його ще раз."
+
+#, python-format
+msgid ""
+"The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be "
+"combined with a GROUP BY. Wrap it in an aggregate function, e.g. "
+"%(example)s."
+msgstr ""
 
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
@@ -13526,8 +13952,15 @@ msgstr ""
 "налаштування: https://superset.apache.org/docs/configuration/async-"
 "queries-celery."
 
+msgid "The SQL query mutator removed all executable statements from this query."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "The SSH server host key could not be verified against the expected key."
 msgstr ""
+"Не вдалося перевірити ключ хоста SSH-сервера відповідно до очікуваного "
+"ключа."
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -13575,16 +14008,27 @@ msgstr ""
 "Категорія початкових вузлів, що використовується для визначення кольорів."
 " Якщо вузол належить до кількох категорій, буде використано лише першу."
 
+msgid ""
+"The chart data is too large to download. Please try reducing the date "
+"range, limiting rows, or using fewer columns."
+msgstr ""
+
+msgid "The chart is still loading. Please wait a moment and try again."
+msgstr "Графік ще завантажується. Зачекайте хвилину і спробуйте знову."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid ""
 "The chart this report targets was deleted. Restore the chart, or update "
 "the report to point at an active chart."
 msgstr ""
+"Діаграму, на яку посилається цей звіт, було видалено. Відновіть діаграму "
+"або оновіть звіт, щоб він посилався на активну діаграму."
 
-msgid "The chart is still loading. Please wait a moment and try again."
-msgstr "Графік ще завантажується. Зачекайте хвилину і спробуйте знову."
+msgid "The chat failed to load."
+msgstr ""
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -13668,9 +14112,16 @@ msgstr "Стандарт коду країни, який очікується в
 msgid "The dashboard has been saved"
 msgstr "Звіт збережено"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The dashboard this report targets was deleted. Restore the dashboard, or "
 "update the report to point at an active dashboard."
+msgstr ""
+"Панель, на яку посилається цей звіт, було видалено. Відновіть панель або "
+"оновіть звіт, щоб він посилався на активну панель."
+
+msgid "The dashboard you are looking for may have been deleted or moved."
 msgstr ""
 
 msgid "The data source seems to have been deleted"
@@ -13800,6 +14251,19 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Спеціальна властивість для міток точок"
 
+msgid "The following charts could not be exported:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because an error occurred while "
+"exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because they have no saved query "
+"context. To include them, open each chart in Explore and re-save."
+msgstr ""
+
 #, python-format
 msgid ""
 "The following entries in `series_columns` are missing in `columns`: "
@@ -13914,6 +14378,11 @@ msgstr ""
 
 msgid "The maximum value of metrics. It is an optional configuration"
 msgstr "Максимальне значення показників. Це необов'язковий параметр"
+
+msgid ""
+"The metadata_cache_timeout must be a mapping from string keys to non-"
+"negative integer values."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -14135,6 +14604,9 @@ msgstr ""
 msgid "The query contains one or more malformed template parameters."
 msgstr "Запит містить один або кілька неправильно сформованих параметрів шаблону."
 
+msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Запит не вдалося завантажити"
 
@@ -14178,9 +14650,17 @@ msgstr ""
 "стовпцем або вказано «Автоматично», яке масштабує точку залежно від "
 "найбільшого кластера"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The radius of point features, in the units specified below. The final "
 "rendered size is this value multiplied by Point Radius Scale."
+msgstr ""
+"Радіус точкових об'єктів у одиницях, вказаних нижче. Кінцевий розмір "
+"відображення — це значення, помножене на масштаб радіуса точки."
+
+#, python-format
+msgid "The remaining %s will be moved to Recently Archived."
 msgstr ""
 
 msgid "The report has been created"
@@ -14382,10 +14862,14 @@ msgstr "Одиниця розміру піктограми"
 msgid "The unit for label size"
 msgstr "Одиниця розміру мітки"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid ""
 "The unit for point radius. Use \"pixels\" for consistent screen-space "
 "sizing regardless of zoom level."
 msgstr ""
+"Одиниця виміру радіуса точки. Використовуйте \"пікселі\" для однакового "
+"розміру в просторі екрана незалежно від рівня масштабування."
 
 msgid "The unit of measure for the specified point radius"
 msgstr "Одиниця виміру для заданого радіуса точки"
@@ -14543,6 +15027,9 @@ msgstr "Трапилась помилка одержання статусу: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Трапилась помилка одержання відсіяних діаграм і звітів:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Трапилась помилка завантаження користувачів."
@@ -14596,6 +15083,26 @@ msgstr "Трапилась помилка одержання користува�
 msgid "There was an error with your request"
 msgstr "Трапилась помилка з вашим запитом"
 
+#, python-format
+msgid "There was an issue archiving %s: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected charts: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving the selected dashboards: %s"
+msgstr ""
+
+#, python-format
+msgid "There was an issue archiving: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue cancelling the task: %s"
 msgstr "Трапилась проблема під час вилучення %s: %s"
@@ -14632,12 +15139,17 @@ msgstr "Трапилась проблема під час вилучення в�
 msgid "There was an issue deleting the selected charts: %s"
 msgstr "Трапилась проблема під час вилучення вибраних діаграм: %s"
 
-msgid "There was an issue deleting the selected dashboards: "
-msgstr "Трапилась проблема вилучення вибраних звітів: "
+#, python-format
+msgid "There was an issue deleting the selected dashboards: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Трапилась проблема вилучення вибраних шарів: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14672,6 +15184,9 @@ msgstr "Трапилась проблема експортування вибр�
 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Трапилась проблема експортування вибраних звітів"
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 msgid "There was an issue exporting the selected themes"
 msgstr "Трапилась проблема експортування вибраних тем"
@@ -14709,8 +15224,32 @@ msgstr "Трапилась проблема огляду вибраного за
 msgid "There was an issue previewing the selected query. %s"
 msgstr "Трапилась проблема огляду вибраного запиту: %s"
 
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"These %(type)s will be moved to Recently Archived. You can recover them "
+"there."
+msgstr ""
+
 msgid "These are the datasets this filter will be applied to."
 msgstr "Фільтр буде застосовано до цих наборів даних."
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there within %(days)s days."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived. You can recover it "
+"there."
+msgstr ""
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -14826,6 +15365,9 @@ msgstr ""
 "                  перегляду має передаватися до діаграми, що містить дані"
 " анотацій."
 
+msgid "This dashboard does not exist"
+msgstr ""
+
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "Це звіт контролюється зовні, і не можливо відреагувати звідси"
 
@@ -14906,6 +15448,10 @@ msgstr ""
 "Ця електронна адреса вже пов'язана з наявним обліковим записом. Виберіть "
 "іншу."
 
+#, python-format
+msgid "This export was requested on %(when)s UTC."
+msgstr ""
+
 msgid "This feature is experimental and may change or have limitations"
 msgstr "Ця функція експериментальна: вона може змінитися або містити обмеження"
 
@@ -14941,9 +15487,6 @@ msgstr "Ця така може містити лише стовпці"
 #, fuzzy
 msgid "This folder only supports metrics"
 msgstr "Ця така може містити лише показники"
-
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr "Цю функціональність вимкнено у вашому оточені з міркувань безпеки."
 
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
@@ -15007,6 +15550,10 @@ msgstr ""
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Це посилання неможливо відкрити, оскільки його адреса є небезпечною."
 
+#, python-format
+msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15048,8 +15595,10 @@ msgid ""
 " is not the case."
 msgstr "Ця сторінка має відкриватися лише в iframe."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "This password is too common; please choose a less guessable one."
-msgstr ""
+msgstr "Цей пароль занадто простий; будь ласка, оберіть більш складний."
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -15180,8 +15729,8 @@ msgstr "Формат часу"
 msgid "Time Grain"
 msgstr "Одиниця часу"
 
-msgid "Time Grain must be specified when using Time Shift."
-msgstr "Потрібно вказати одиниця часу, якщо використовується зміщення часу."
+msgid "Time Grain must be specified when using Time Comparison."
+msgstr ""
 
 msgid "Time Granularity"
 msgstr "Деталізація часу"
@@ -15396,17 +15945,23 @@ msgstr "Щоб одержати просте для читання посила�
 msgid "Token Request URI"
 msgstr "Посилання запиту жетону"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Запитано забагато підзрізів. Максимально дозволена кількість — %(max)s, "
+"але було запитано %(count)s."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "Too many time comparisons requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr ""
+"Запитано забагато порівнянь часу. Максимально дозволена кількість — "
+"%(max)s, але було запитано %(count)s."
 
 msgid "Tool Panel"
 msgstr "Панель інструментів"
@@ -15454,9 +16009,11 @@ msgstr "Всього"
 msgid "Total (%(aggfunc)s)"
 msgstr "Всього (%(aggfunc)s)"
 
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr "Всього (%(aggregatorName)s)"
+msgid ""
+"Total angle covered by the chart, in degrees. 360° draws a full circle "
+"and 180° draws a half donut. Partial arcs are automatically re-centered "
+"and scaled to make use of the available space."
+msgstr ""
 
 msgid "Total color"
 msgstr "Колір підсумків"
@@ -15479,6 +16036,9 @@ msgstr "Конструктор"
 
 msgid "Transparent"
 msgstr "Прозорий"
+
+msgid "Transparent background"
+msgstr ""
 
 msgid "Transpose pivot"
 msgstr "Розвернути таблицю"
@@ -15507,8 +16067,14 @@ msgstr "Трикутник"
 msgid "Trigger Alert If..."
 msgstr "Оповіщати, якщо..."
 
+msgid "Trigger now"
+msgstr ""
+
 msgid "True"
 msgstr "Так"
+
+msgid "Truncate Axis"
+msgstr ""
 
 msgid "Truncate Cells"
 msgstr "Обрізати комірку"
@@ -15536,6 +16102,11 @@ msgstr ""
 
 msgid "Truncate long cells to the \"min width\" set above"
 msgstr "Обрізати довгі значення в комірках до «мінімальної ширини», заданої вище"
+
+msgid ""
+"Truncate the metric axis. Can be overridden by specifying a min or max "
+"bound."
+msgstr ""
 
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "Обрізає вказану дату з точністю до вказаної одиниці часу."
@@ -15630,6 +16201,9 @@ msgstr "Посилання-хвостик"
 msgid "URL parameters"
 msgstr "Параметри посилання"
 
+msgid "UUID to track the execution status"
+msgstr ""
+
 msgid "Unable to calculate such a date delta"
 msgstr "Неможливо порахувати таку різницю між датами"
 
@@ -15694,6 +16268,10 @@ msgstr "Неможливо знайти таке свято: [%(holiday)s]"
 msgid "Unable to generate download payload"
 msgstr "Не вдалося завантажити звіт"
 
+#, python-format
+msgid "Unable to generate forecast: %(error)s"
+msgstr ""
+
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
 "ensure your dataset has a properly configured time column."
@@ -15701,6 +16279,12 @@ msgstr ""
 "Не вдалося визначити часовий стовпець для порівняння періодів. "
 "Переконайтеся, що у вашому наборі даних правильно налаштовано стовпець "
 "часу."
+
+#, python-format
+msgid ""
+"Unable to interpret the time offset: %(offset)s. Use a relative time such"
+" as \"1 month ago\"."
+msgstr ""
 
 msgid ""
 "Unable to load columns for the selected table. Please select a different "
@@ -15949,6 +16533,11 @@ msgstr "Вивантажте файл"
 msgid "Upper Threshold"
 msgstr "Верхній поріг"
 
+msgid ""
+"Upper bound of the color scale. When both start and end are set, the "
+"legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Верхній поріг має бути більшим за нижній"
 
@@ -16163,6 +16752,10 @@ msgstr "Значення не може перевищувати %s"
 msgid "Value difference between the time periods"
 msgstr "Різниця значень у часі"
 
+#, python-format
+msgid "Value exceeds the maximum allowed size of %(max_size)d bytes."
+msgstr ""
+
 msgid "Value format"
 msgstr "Формат значення"
 
@@ -16212,6 +16805,10 @@ msgstr "Вертикальний (зліва)"
 
 msgid "View"
 msgstr "Переглянути"
+
+#, python-format
+msgid "View %(type)s"
+msgstr ""
 
 msgid "View All »"
 msgstr "Подивитись все »"
@@ -16389,9 +16986,11 @@ msgstr "Тип візуалізації"
 msgid "WED"
 msgstr "СР"
 
+#. do-not-translate
 msgid "WFS"
 msgstr "WFS"
 
+#. do-not-translate
 msgid "WMS"
 msgstr "WMS"
 
@@ -16626,6 +17225,12 @@ msgstr ""
 "фільтр до основного стовпця дати й часу."
 
 msgid ""
+"When typing or pasting filter values, commas will separate values into "
+"multiple entries. To include a comma within a value, wrap it in double "
+"quotes: \"San Francisco, CA\""
+msgstr ""
+
+msgid ""
 "When unchecked, colors from the selected color scheme will be used for "
 "time shifted series"
 msgstr ""
@@ -16706,6 +17311,9 @@ msgstr "Чи показувати легенду для діаграми"
 
 msgid "Whether to display bubbles on top of countries"
 msgstr "Чи показувати бульбашки поверх країн"
+
+msgid "Whether to display entries with null values in the hierarchy"
+msgstr ""
 
 msgid "Whether to display in the chart"
 msgstr "Чи показувати на діаграмі"
@@ -16829,8 +17437,10 @@ msgstr "Чи впорядковувати за зростанням або сп�
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Чи впорядковувати результати за вибраним показником у порядку спадання."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr "Чи впорядковувати підказки за вибраним показником у порядку спадання."
+msgid ""
+"Whether to sort tooltip by the selected metric in descending order. On "
+"stacked charts, values are shown in ascending order."
+msgstr ""
 
 msgid "Whether to truncate metrics"
 msgstr "Чи обрізати показники"
@@ -16935,6 +17545,7 @@ msgstr "Вісь X"
 msgid "X-scale interval"
 msgstr "Інтервал осі X"
 
+#. do-not-translate
 msgid "XYZ"
 msgstr "XYZ"
 
@@ -16988,6 +17599,9 @@ msgstr "Вісь Y"
 
 msgid "Y-axis bounds"
 msgstr "Межі осі Y"
+
+msgid "Y-axis range slider"
+msgstr ""
 
 msgid "Y-scale interval"
 msgstr "Інтервал осі X"
@@ -17164,8 +17778,10 @@ msgstr "Ви не маєте прав для редагування цього �
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "У вас недостатньо прав для редагування діаграми"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "You don't have access to one or more of the referenced datasources."
-msgstr ""
+msgstr "У вас немає доступу до одного або кількох зазначених джерел даних."
 
 msgid "You don't have access to this chart."
 msgstr "У вас немає доступу до цієї діаграми."
@@ -17247,15 +17863,46 @@ msgstr ""
 msgid ""
 "You must be a %s editor in order to edit. Please reach out to a %s editor"
 " to request modifications or edit access."
-msgstr "Щоб редагувати, ви маєте бути редактором %s. Зверніться до редактора %s, щоб запросити зміни або доступ до редагування."
+msgstr ""
+"Щоб редагувати, ви маєте бути редактором %s. Зверніться до редактора %s, "
+"щоб запросити зміни або доступ до редагування."
+
+msgid ""
+"You must be a chart editor in order to delete. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a chart editor in order to edit. Please reach out to a chart "
+"editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to delete. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dashboard editor in order to edit. Please reach out to a "
+"dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to delete. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
 
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
-msgstr "Щоб редагувати, ви маєте бути редактором набору даних. Зверніться до редактора набору даних, щоб запросити зміни або доступ до редагування."
-
-msgid "You must change your password before continuing."
 msgstr ""
+"Щоб редагувати, ви маєте бути редактором набору даних. Зверніться до "
+"редактора набору даних, щоб запросити зміни або доступ до редагування."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, tr]
+#, fuzzy
+msgid "You must change your password before continuing."
+msgstr "Ви повинні змінити пароль перед продовженням."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Ви повинні вибрати назву для нового звіту"
@@ -17263,11 +17910,14 @@ msgstr "Ви повинні вибрати назву для нового зві
 msgid "You must run the query successfully first"
 msgstr "Спочатку потрібно виконати успішний запит"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy, python-format
 msgid ""
 "You need access to the following tables: %(tables)s, "
 "'all_database_access' or 'all_datasource_access' permission"
 msgstr ""
+"Вам потрібен доступ до таких таблиць: %(tables)s, або дозвіл "
+"'all_database_access' чи 'all_datasource_access'"
 
 msgid "You need to"
 msgstr "Вам потрібно"
@@ -17309,11 +17959,35 @@ msgstr "Діаграма не найсвіжіша"
 msgid "Your chart is ready to go!"
 msgstr "Діаграма готова до використання!"
 
+#, python-format
+msgid "Your dashboard export could not be completed: %(title)s"
+msgstr ""
+
+#, python-format
+msgid "Your dashboard export is ready: %(title)s"
+msgstr ""
+
 msgid "Your dashboard is near the size limit."
 msgstr "Звіт наблизився до межі дозволеного розміру."
 
-msgid "Your dashboard is too large. Please reduce its size before saving it."
-msgstr "Ваш звіт надто величезний. Зменшіть його розмір перед збереженням."
+#, python-format
+msgid ""
+"Your dashboard is too large to save: the serialized layout length is %s "
+"but the limit is %s. Reduce the dashboard size (for example, split it "
+"into multiple dashboards) or raise the "
+"SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
+msgstr ""
+
+msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" could not be completed."
+msgstr ""
+
+#, python-format
+msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
 
 msgid "Your query could not be saved"
 msgstr "Запит неможливо зберегти"
@@ -17343,8 +18017,10 @@ msgstr "Запит оновлено"
 msgid "Your report could not be deleted"
 msgstr "Доповідь неможливо вилучити"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "Your session has ended. Please sign in again."
-msgstr ""
+msgstr "Ваш сеанс завершено. Будь ласка, увійдіть знову."
 
 msgid "Your user information"
 msgstr "Відомості про вашого користувача"
@@ -17450,8 +18126,10 @@ msgstr "`row_offset` має бути більше або дорівнювати 
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` має бути більше або дорівнювати нулю"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "`window` must be between 1 and 10000"
-msgstr ""
+msgstr "`window` повинен бути між 1 та 10000"
 
 #, fuzzy
 msgid "a few seconds"
@@ -17484,8 +18162,10 @@ msgstr "анотація"
 msgid "annotation_layer"
 msgstr "шар_анотації"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "apple"
-msgstr ""
+msgstr "яблуко"
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -17503,8 +18183,10 @@ msgstr "тло"
 msgid "background color"
 msgstr "Колі тла"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
+#, fuzzy
 msgid "banana"
-msgstr ""
+msgstr "банан"
 
 msgid "basis"
 msgstr "базовий"
@@ -17525,6 +18207,7 @@ msgstr "між {down} і {up} {name}"
 msgid "bfill"
 msgstr "bfill"
 
+#. do-not-translate
 msgid "bolt"
 msgstr "bolt"
 
@@ -17612,6 +18295,7 @@ msgstr "створити нову діаграму"
 msgid "create dataset from SQL query"
 msgstr "створити набір даних із запиту SQL"
 
+#. do-not-translate
 msgid "crontab"
 msgstr "crontab"
 
@@ -17684,6 +18368,7 @@ msgstr "Deck.gl - Дуга"
 msgid "deck.gl Contour"
 msgstr "Deck.gl - Контурна карта"
 
+#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr "Deck.gl - Geojson"
 
@@ -17732,6 +18417,7 @@ msgstr "dialect+driver://username:password@host:port/database"
 msgid "documentation"
 msgstr "документація"
 
+#. do-not-translate
 msgid "dttm"
 msgstr "dttm"
 
@@ -17796,12 +18482,10 @@ msgstr "Цілий рядок"
 msgid "entries"
 msgstr "записи"
 
-msgid "entries per page"
-msgstr "записів на сторінку"
-
 msgid "error"
 msgstr "помилка"
 
+#. do-not-translate
 msgid "error_message"
 msgstr "error_message"
 
@@ -18115,15 +18799,19 @@ msgstr "загалом"
 msgid "p-value precision"
 msgstr "точність значення p"
 
+#. do-not-translate
 msgid "p1"
 msgstr "p1"
 
+#. do-not-translate
 msgid "p5"
 msgstr "p5"
 
+#. do-not-translate
 msgid "p95"
 msgstr "p95"
 
+#. do-not-translate
 msgid "p99"
 msgstr "p99"
 
@@ -18140,6 +18828,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr "не знайдено стан постійного посилання"
 
+#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr "pivoted_xlsx"
 
@@ -18164,6 +18853,9 @@ msgstr "Не розпізнало користувача"
 
 msgid "quarter"
 msgstr "квартал"
+
+msgid "queries"
+msgstr ""
 
 msgid "query"
 msgstr "запит"
@@ -18201,11 +18893,15 @@ msgstr "виконується"
 msgid "save"
 msgstr "зберегти"
 
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr "schema1,schema2"
 
 msgid "seconds"
 msgstr "секунди"
+
+msgid "semantic layer"
+msgstr ""
 
 msgid "series"
 msgstr "ряди"
@@ -18218,6 +18914,7 @@ msgstr ""
 "ряди: кожен ряд обробляється окремо; загалом: усі ряди мають спільну "
 "шкалу; зміна: показати зміни відносно першої точки даних у кожному ряді"
 
+#. do-not-translate
 msgid "sql"
 msgstr "sql"
 
@@ -18233,9 +18930,11 @@ msgstr "ступінчастий"
 msgid "std"
 msgstr "стандартне відхилення"
 
+#. do-not-translate
 msgid "step-after"
 msgstr "крок-після"
 
+#. do-not-translate
 msgid "step-before"
 msgstr "крок-до"
 
@@ -18258,6 +18957,7 @@ msgstr "успіх"
 msgid "sum"
 msgstr "сума"
 
+#. do-not-translate
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
@@ -18331,6 +19031,9 @@ msgstr "значення за зростанням"
 msgid "value descending"
 msgstr "значення за спаданням"
 
+msgid "valuename"
+msgstr ""
+
 msgid "var"
 msgstr "дисперсія"
 
@@ -18373,6 +19076,7 @@ msgstr "y: значення нормалізуються в кожному ря�
 msgid "year"
 msgstr "рік"
 
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr "your-project-1234-a1"
 

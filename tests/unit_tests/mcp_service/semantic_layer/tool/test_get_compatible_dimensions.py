@@ -22,6 +22,7 @@ from __future__ import annotations
 import importlib
 from collections.abc import Generator
 from types import ModuleType
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -282,3 +283,91 @@ async def test_get_compatible_dimensions_external_not_found(
 
     assert data["success"] is False
     assert data["error_type"] == "NotFound"
+
+
+@pytest.mark.asyncio
+async def test_get_compatible_dimensions_builtin_empty_selection(
+    mcp_server: FastMCP,
+) -> None:
+    """Explicitly empty selected_metrics/selected_dimensions is not an error.
+
+    An empty selection is the natural starting state of a query builder
+    (nothing picked yet), so it must return the full groupby-enabled column
+    set rather than a validation failure.
+    """
+    mock_ds: MagicMock = _make_dataset(42)
+
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_compatible_dimensions",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "selected_metrics": [],
+                        "selected_dimensions": [],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    names: set[str] = {d["name"] for d in data["compatible_dimensions"]}
+    assert names == {"region", "category"}
+
+
+@pytest.mark.asyncio
+async def test_get_compatible_dimensions_external_empty_selection(
+    mcp_server: FastMCP,
+) -> None:
+    """External views handle an explicitly empty selection without error."""
+    mock_view: MagicMock = _make_view(5)
+    mock_view.get_compatible_dimensions = MagicMock(return_value=[])
+
+    with patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id",
+        return_value=mock_view,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_compatible_dimensions",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "selected_metrics": [],
+                        "selected_dimensions": [],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["compatible_dimensions"] == []
+    mock_view.get_compatible_dimensions.assert_called_once_with([], [])
+
+
+@pytest.mark.asyncio
+async def test_get_compatible_dimensions_unicode_unknown_selection_validation_error(
+    mcp_server: FastMCP,
+) -> None:
+    """Unicode/special-character names in an unknown selection surface cleanly."""
+    mock_ds = _make_dataset(42)
+
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_compatible_dimensions",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "selected_metrics": ["日本語_metric"],
+                        "selected_dimensions": ["special!chars?"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "Unknown metric: '日本語_metric'" in data["error"]
+    assert "Unknown dimension: 'special!chars?'" in data["error"]
