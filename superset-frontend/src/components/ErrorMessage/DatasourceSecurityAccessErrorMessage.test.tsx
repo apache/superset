@@ -25,7 +25,7 @@ jest.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
-      <span role="img" aria-label={fileName.replace('_', '-')} />
+      <img alt={fileName.replace('_', '-')} />
     ),
 );
 
