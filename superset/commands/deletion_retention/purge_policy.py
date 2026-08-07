@@ -19,12 +19,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field, replace
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from types import MappingProxyType
-from typing import Any, Protocol
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapper, Session
@@ -56,7 +56,6 @@ class ExecutionPhase(str, Enum):
     """Describe the execution phase associated with a dependency."""
 
     VALIDATE = "validate"
-    SNAPSHOT = "snapshot"
     ASSOCIATIONS = "associations"
     OWNED = "owned"
     VERSION = "version"
@@ -70,47 +69,11 @@ class ListenerAction(str, Enum):
     DELETE_DATASET_PERMISSION = "delete_dataset_permission"
 
 
-class PolicyAction(Protocol):
-    """Execute one mutating or validating policy phase."""
-
-    def __call__(
-        self, session: Session, policy: PurgeEntityPolicy, entity_id: int, /
-    ) -> None: ...
-
-
-class CountSnapshot(Protocol):
-    """Capture one integer policy snapshot before cleanup."""
-
-    def __call__(
-        self, session: Session, policy: PurgeEntityPolicy, entity_id: int, /
-    ) -> int: ...
-
-
-class UuidSnapshot(Protocol):
-    """Capture policy-owned dangling UUIDs before cleanup."""
-
-    def __call__(
-        self, session: Session, policy: PurgeEntityPolicy, entity_id: int, /
-    ) -> list[str]: ...
-
-
-class PermissionSnapshot(Protocol):
-    """Capture a listener-equivalent permission identity before deletion."""
-
-    def __call__(self, entity: Any, policy: PurgeEntityPolicy, /) -> str | None: ...
-
-
-class PermissionCleanup(Protocol):
-    """Apply listener-equivalent permission cleanup after root deletion."""
-
-    def __call__(
-        self,
-        session: Session,
-        policy: PurgeEntityPolicy,
-        permission_name: str | None,
-        entity_id: int,
-        /,
-    ) -> None: ...
+PolicyAction = Callable[[Session, "PurgeEntityPolicy", int], None]
+CountSnapshot = Callable[[Session, "PurgeEntityPolicy", int], int]
+UuidSnapshot = Callable[[Session, "PurgeEntityPolicy", int], list[str]]
+PermissionSnapshot = Callable[[Any, "PurgeEntityPolicy"], "str | None"]
+PermissionCleanup = Callable[[Session, "PurgeEntityPolicy", "str | None", int], None]
 
 
 @dataclass(frozen=True, order=True)
@@ -124,7 +87,6 @@ class DependencyKey:
     remote_columns: tuple[str, ...] = ()
     direction: str = ""
     relationship: str = ""
-    relationship_aliases: tuple[str, ...] = field(default=(), compare=False)
 
     def describe(self) -> str:
         """Return a deterministic human-readable dependency identity."""
@@ -192,9 +154,6 @@ class PurgeEntityPolicy:
             for dependency in self.dependencies
             if dependency.classification is DependencyClassification.VERSION_OWNED
         )
-
-
-_VALIDATED_POLICIES: dict[type[Any], PurgeEntityPolicy] = {}
 
 
 @dataclass(frozen=True)
@@ -297,28 +256,6 @@ def discover_dependencies(
                     relationship=relationship.key,
                 )
             )
-        else:
-            related_table_name: str = (
-                relationship.secondary.name
-                if relationship.secondary is not None
-                else related_mapper.local_table.name
-            )
-            matching_keys: tuple[DependencyKey, ...] = tuple(
-                key
-                for key in discovered
-                if key.owner_table == table.name
-                and key.related_table == related_table_name
-            )
-            for key in matching_keys:
-                discovered.remove(key)
-                discovered.add(
-                    replace(
-                        key,
-                        relationship_aliases=tuple(
-                            sorted({*key.relationship_aliases, relationship.key})
-                        ),
-                    )
-                )
     discovered.update(
         _discover_recursive_table_dependencies(
             table,
@@ -487,7 +424,6 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
             DependencyClassification.ASSOCIATION: ExecutionPhase.ASSOCIATIONS,
             DependencyClassification.PRESERVE: None,
             DependencyClassification.BLOCK: ExecutionPhase.VALIDATE,
-            DependencyClassification.LISTENER_EFFECT: None,
             DependencyClassification.VERSION_OWNED: ExecutionPhase.VERSION,
         }
         if len(keys) != len(classifications):
@@ -861,11 +797,9 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
     return validate_unique_root_policies(registry.values())
 
 
-def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
+@lru_cache(maxsize=None)
+def _validated_purge_policy(model: type) -> PurgeEntityPolicy:
     """Validate and return one root policy without blocking unrelated roots."""
-    cached_policy: PurgeEntityPolicy | None = _VALIDATED_POLICIES.get(model)
-    if cached_policy is not None:
-        return cached_policy
     try:
         policy: PurgeEntityPolicy = purge_policy_registry()[model]
     except KeyError as ex:
@@ -906,7 +840,6 @@ def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
                 f"{details}; " if details else ""
             ) + f"stale_listeners=[{', '.join(coverage.stale_listeners)}]"
         raise RuntimeError(f"Incomplete purge policy for {model.__name__}: {details}")
-    _VALIDATED_POLICIES[model] = policy
     return policy
 
 
@@ -929,7 +862,7 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
             )
 
 
-def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
+def get_purge_policy(model: type) -> PurgeEntityPolicy:
     """Resolve a complete policy or reject an unsupported purge model."""
     return _validated_purge_policy(model)
 
@@ -954,7 +887,9 @@ def validate_deletion_allowed(
             continue
         key: DependencyKey = dependency.key
         table: sa.Table = _dependency_table(metadata, key)
-        predicates: tuple[Any, ...] = _dependency_predicates(policy, key, entity_id)
+        predicates: tuple[Any, ...] = _dependency_predicates(
+            policy, key, entity_id, table
+        )
         if session.execute(
             sa.select(sa.literal(1)).select_from(table).where(*predicates).limit(1)
         ).first():
@@ -1048,13 +983,10 @@ def _delete_declared_dependencies(
     )
     for dependency in dependencies:
         key: DependencyKey = dependency.key
-        if key.kind != "foreign_key" or key.direction != "inbound":
-            raise RuntimeError(
-                f"Purge execution cannot delete {key.describe()} "
-                f"as {classification.value}"
-            )
         table: sa.Table = _dependency_table(metadata, key)
-        predicates: tuple[Any, ...] = _dependency_predicates(policy, key, entity_id)
+        predicates: tuple[Any, ...] = _dependency_predicates(
+            policy, key, entity_id, table
+        )
         session.execute(sa.delete(table).where(*predicates))
 
 
@@ -1070,19 +1002,18 @@ def _dependency_predicates(
     policy: PurgeEntityPolicy,
     key: DependencyKey,
     entity_id: int,
+    table: sa.Table,
 ) -> tuple[Any, ...]:
     """Build an atomic predicate for a simple or composite inbound constraint."""
     if key.kind != "foreign_key" or key.direction != "inbound":
         raise RuntimeError(f"Purge execution cannot use {key.describe()}")
-    metadata: sa.MetaData = sa.inspect(policy.model).local_table.metadata
-    dependency_table: sa.Table = _dependency_table(metadata, key)
     if len(key.local_columns) != len(key.remote_columns):
         raise RuntimeError(f"Mismatched dependency columns for {key.describe()}")
     owner_values: Any = _owner_value_select(
         policy, key.owner_table, key.local_columns, entity_id
     )
     remote_columns: tuple[sa.Column[Any], ...] = tuple(
-        dependency_table.c[column_name] for column_name in key.remote_columns
+        table.c[column_name] for column_name in key.remote_columns
     )
     if len(remote_columns) == 1:
         return (remote_columns[0].in_(owner_values),)
@@ -1104,25 +1035,7 @@ def _owner_value_select(
     )
     if owner_table_name == root_table.name:
         return sa.select(*selected_columns).where(root_table.c.id == entity_id)
-    traversal_classifications: frozenset[DependencyClassification] = frozenset(
-        {
-            DependencyClassification.OWNED,
-            DependencyClassification.ASSOCIATION,
-        }
-    )
-    ownership_edges: tuple[DependencyKey, ...] = tuple(
-        dependency.key
-        for dependency in policy.dependencies
-        if dependency.classification in traversal_classifications
-        and dependency.key.related_table == owner_table_name
-        and dependency.key.direction == "inbound"
-    )
-    if len(ownership_edges) != 1:
-        raise RuntimeError(
-            f"Expected one ownership path to {owner_table_name}, "
-            f"found {len(ownership_edges)}"
-        )
-    ownership_key: DependencyKey = ownership_edges[0]
+    ownership_key: DependencyKey = _ownership_edge(policy, owner_table_name)
     parent_values: Any = _owner_value_select(
         policy,
         ownership_key.owner_table,
@@ -1140,6 +1053,24 @@ def _owner_value_select(
     return sa.select(*selected_columns).where(predicate)
 
 
+def _ownership_edge(policy: PurgeEntityPolicy, owner_table_name: str) -> DependencyKey:
+    """Resolve the unique owned/association edge linking a table to the root."""
+    ownership_edges: tuple[DependencyKey, ...] = tuple(
+        dependency.key
+        for dependency in policy.dependencies
+        if dependency.classification
+        in {DependencyClassification.OWNED, DependencyClassification.ASSOCIATION}
+        and dependency.key.related_table == owner_table_name
+        and dependency.key.direction == "inbound"
+    )
+    if len(ownership_edges) != 1:
+        raise RuntimeError(
+            f"Expected one ownership path to {owner_table_name}, "
+            f"found {len(ownership_edges)}"
+        )
+    return ownership_edges[0]
+
+
 def _dependency_owner_depth(
     policy: PurgeEntityPolicy,
     key: DependencyKey,
@@ -1148,22 +1079,7 @@ def _dependency_owner_depth(
     root_table: sa.Table = sa.inspect(policy.model).local_table
     if key.owner_table == root_table.name:
         return 0
-    traversal_classifications: frozenset[DependencyClassification] = frozenset(
-        {
-            DependencyClassification.OWNED,
-            DependencyClassification.ASSOCIATION,
-        }
-    )
-    ownership_edges: tuple[DependencyKey, ...] = tuple(
-        dependency.key
-        for dependency in policy.dependencies
-        if dependency.classification in traversal_classifications
-        and dependency.key.related_table == key.owner_table
-        and dependency.key.direction == "inbound"
-    )
-    if len(ownership_edges) != 1:
-        raise RuntimeError(f"No unique ownership path for {key.describe()}")
-    return 1 + _dependency_owner_depth(policy, ownership_edges[0])
+    return 1 + _dependency_owner_depth(policy, _ownership_edge(policy, key.owner_table))
 
 
 def _execute_listener_effects(

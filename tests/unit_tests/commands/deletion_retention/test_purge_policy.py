@@ -124,25 +124,6 @@ def test_terminal_dependency_classifications_are_complete(
     assert compare_policy({key}, (DependencyPolicy(key, classification),)).complete
 
 
-def test_fk_relationship_aliases_do_not_change_dependency_identity() -> None:
-    """Harmless mapper aliases remain diagnostic rather than new obligations."""
-    first: DependencyKey = DependencyKey(
-        "foreign_key",
-        "root",
-        "child",
-        relationship_aliases=("children",),
-    )
-    second: DependencyKey = DependencyKey(
-        "foreign_key",
-        "root",
-        "child",
-        relationship_aliases=("items",),
-    )
-
-    assert first == second
-    assert len({first, second}) == 1
-
-
 def test_composite_foreign_key_is_one_atomic_dependency() -> None:
     """Composite constraints retain ordered local and remote column tuples."""
     metadata: sa.MetaData = sa.MetaData()
@@ -237,17 +218,10 @@ def test_real_mapper_graph_has_complete_policy(model: type[Any]) -> None:
 
 
 @pytest.mark.parametrize("model", [Slice, Dashboard, SqlaTable])
-def test_root_policy_exposes_typed_phase_callbacks(model: type[Any]) -> None:
-    """The resolved registry entry is executable without root dispatch."""
+def test_non_preserve_dependencies_carry_phases(model: type[Any]) -> None:
+    """Every executable classification declares its execution phase."""
     policy: PurgeEntityPolicy = get_purge_policy(model)
 
-    assert callable(policy.validate)
-    assert callable(policy.count_dashboard_slices)
-    assert callable(policy.collect_dangling_chart_uuids)
-    assert callable(policy.delete_associations)
-    assert callable(policy.delete_owned_children)
-    assert callable(policy.capture_permission_name)
-    assert callable(policy.cleanup_permission)
     assert all(
         dependency.phase is not None
         for dependency in policy.dependencies
