@@ -19,33 +19,20 @@
 import type { ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
-import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { provider } from 'src/core/dashboard/store';
 import Inert from './InertControl';
 
 /**
  * What acts on the canvas as a whole, in the canvas's own corner.
  *
- * These two are not chrome about the dashboard — not what it is called, who
- * owns it, or whether it is published. They act on the blocks in front of you,
- * and both are reached for while looking at them, which is why they sit here
- * rather than on the bar above.
+ * Not chrome about the dashboard — not what it is called, who owns it, or
+ * whether it is published. It acts on the blocks in front of you, and is
+ * reached for while looking at them, which is why it sits here rather than
+ * on the bar above.
  *
- * **Arrange** is a route, not a control. How a container lays out its
- * children is a property of that container and is asked with the rest of them
- * — the columns, the gap, the row height it works alongside. That is the
- * right home for it and also further from hand than something permanently on
- * screen, so this is the way back to it. A second copy of the switcher would
- * be a second thing to keep agreeing with the first; selecting the root is
- * all this does, and the editor panel brings Properties forward on a
- * selection it did not make itself. It stays live on a page where almost
- * nothing is, because selecting a node this page already holds in memory
- * needs no dashboard row.
- *
- * **Refresh** is the opposite: named, and honest that it cannot work. There
- * is no row behind this page and no query to re-run, so it says so rather
- * than doing nothing quietly.
+ * **Refresh** is named, and honest that it cannot work. There is no row
+ * behind this page and no query to re-run, so it says so rather than doing
+ * nothing quietly.
  */
 export default function CanvasControls(): ReactElement {
   const theme = useTheme();
@@ -54,7 +41,7 @@ export default function CanvasControls(): ReactElement {
     <div
       data-test="canvas-controls"
       // In the canvas's own padding, and sized to fit inside it: at the next
-      // step up these are taller than the inset and clip the frame the root
+      // step up this is taller than the inset and clips the frame the root
       // draws, which reads as a collision rather than as a corner.
       //
       // Raised because the root is positioned too, and a positioned sibling
@@ -67,23 +54,8 @@ export default function CanvasControls(): ReactElement {
         zIndex: 1,
         display: 'flex',
         alignItems: 'center',
-        // Two icons of the same size and colour sitting a hair apart read as
-        // one control with two halves. The space is what separates arranging
-        // the canvas from reloading it.
-        gap: theme.sizeUnit * 3,
       }}
     >
-      <Button
-        buttonSize="xsmall"
-        buttonStyle="link"
-        aria-label={t('Arrange dashboard')}
-        data-test="canvas-arrange"
-        tooltip={t('Arrange dashboard — choose how the canvas lays blocks out')}
-        placement="bottom"
-        onClick={() => provider.setSelection(provider.getRoot().id)}
-      >
-        <Icons.LayoutOutlined iconSize="s" />
-      </Button>
       <Inert
         label={t('Refresh dashboard')}
         test="canvas-refresh"
@@ -92,7 +64,7 @@ export default function CanvasControls(): ReactElement {
         // wrapped in a span so its tooltip survives, and Superset's button
         // styles give a wrapped button a left margin meant for a row of them
         // — so this one sat further from its neighbour than the neighbour sat
-        // from anything, and the pair's spacing stopped being the `gap` above.
+        // from anything, and this row has no neighbour any more.
         style={{ marginLeft: 0 }}
       >
         <Icons.ReloadOutlined iconSize="s" />

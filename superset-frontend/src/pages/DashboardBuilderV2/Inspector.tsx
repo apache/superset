@@ -27,30 +27,16 @@ import {
   Form,
   Input,
   InputNumber,
-  Radio,
-  Switch,
   Tabs,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import { blockLabel } from 'src/core/dashboard/blockLabel';
-import { resolveLayoutMode } from 'src/core/dashboard/layoutStyle';
 import DashboardProperties from './DashboardProperties';
-import LayoutModeSwitcher from './LayoutModeSwitcher';
 import PropsForm from './PropsForm';
 
 type LayoutProps = dashboardApi.LayoutProps;
-
-/** Which layout fields belong to a container, and which to its child. */
-const CONTAINER_FIELDS: readonly {
-  readonly key: keyof LayoutProps;
-  readonly label: string;
-}[] = [
-  { key: 'columns', label: t('Columns') },
-  { key: 'gap', label: t('Gap') },
-  { key: 'rowUnit', label: t('Row height') },
-];
 
 const CHILD_FIELDS: readonly {
   readonly key: keyof LayoutProps;
@@ -61,139 +47,6 @@ const CHILD_FIELDS: readonly {
   { key: 'col', label: t('Start column') },
   { key: 'row', label: t('Start row') },
 ];
-
-/**
- * Which fields a mode actually reads.
- *
- * A field the renderer ignores is worse than a missing one: it accepts a
- * value, writes it to the node, and changes nothing on screen — so an author
- * concludes the layout is broken rather than that the question did not apply.
- *
- * `columns`, `gap` and `rowUnit` are read by every mode, flex included, and
- * stay put: a flex line divides into `columns` parts and gives each child the
- * share its `colSpan` names (see `resolveFlexBasis`), spaces them by `gap`,
- * and sizes them off `rowUnit` (see `resolveFlexMetrics`).
- *
- * What differs is at the two ends. `col`/`row` are coordinates in a grid, and
- * a flex line has no cells to hold them — position there is `children` order,
- * which is why dragging in a flex canvas reorders rather than repositions.
- * And `direction`/`wrap`/`justify`/`align` are what a flex line has instead,
- * documented on `LayoutProps` as "flex only, ignored in every other mode" —
- * and until now not offered anywhere, so a flex canvas could be chosen and
- * then not actually arranged.
- */
-const GRID_ONLY_PLACEMENT: ReadonlySet<keyof LayoutProps> = new Set([
-  'col',
-  'row',
-]);
-
-const FLEX_DIRECTIONS = [
-  { value: 'row', label: t('Row') },
-  { value: 'column', label: t('Column') },
-];
-
-const FLEX_JUSTIFY = [
-  { value: 'start', label: t('Start') },
-  { value: 'center', label: t('Center') },
-  { value: 'end', label: t('End') },
-  { value: 'space-between', label: t('Space between') },
-  { value: 'space-around', label: t('Space around') },
-];
-
-const FLEX_ALIGN = [
-  { value: 'stretch', label: t('Stretch') },
-  { value: 'start', label: t('Start') },
-  { value: 'center', label: t('Center') },
-  { value: 'end', label: t('End') },
-];
-
-/**
- * One of a small fixed set, chosen where the choices can all be seen.
- *
- * `Radio.Group` rather than a dropdown, which is what `LayoutModeSwitcher`
- * already uses for the layout mode a few lines above these — and the shared
- * `Select` does not declare `value` or `size` among the antd props it
- * exposes, so driving one from the store would mean widening a type in a
- * package the rest of the app depends on.
- */
-const ChoiceField = ({
-  label,
-  test,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  test: string;
-  value: string;
-  options: readonly { readonly value: string; readonly label: string }[];
-  onChange: (next: string) => void;
-}): ReactElement => {
-  const theme = useTheme();
-  return (
-    <Form.Item label={label} style={{ marginBottom: theme.sizeUnit * 2 }}>
-      <Radio.Group
-        size="small"
-        value={value}
-        data-test={test}
-        onChange={event => onChange(event.target.value as string)}
-      >
-        {options.map(option => (
-          <Radio.Button key={option.value} value={option.value}>
-            {option.label}
-          </Radio.Button>
-        ))}
-      </Radio.Group>
-    </Form.Item>
-  );
-};
-
-/** The four a flex line is arranged by, and no other mode reads. */
-const FlexFields = ({
-  nodeId,
-  layout,
-}: {
-  nodeId: string;
-  layout: LayoutProps | undefined;
-}): ReactElement => {
-  const theme = useTheme();
-  const set = (next: Partial<LayoutProps>) =>
-    provider.updateLayout(nodeId, next);
-
-  return (
-    <>
-      <ChoiceField
-        label={t('Direction')}
-        test="inspector-direction"
-        value={layout?.direction ?? 'row'}
-        options={FLEX_DIRECTIONS}
-        onChange={next => set({ direction: next as LayoutProps['direction'] })}
-      />
-      <ChoiceField
-        label={t('Justify')}
-        test="inspector-justify"
-        value={layout?.justify ?? 'start'}
-        options={FLEX_JUSTIFY}
-        onChange={next => set({ justify: next as LayoutProps['justify'] })}
-      />
-      <ChoiceField
-        label={t('Align')}
-        test="inspector-align"
-        value={layout?.align ?? 'stretch'}
-        options={FLEX_ALIGN}
-        onChange={next => set({ align: next as LayoutProps['align'] })}
-      />
-      <Form.Item label={t('Wrap')} style={{ marginBottom: theme.sizeUnit * 2 }}>
-        <Switch
-          size="small"
-          data-test="inspector-wrap"
-          checked={layout?.wrap !== false}
-          onChange={wrap => set({ wrap })}
-        />
-      </Form.Item>
-    </>
-  );
-};
 
 /**
  * A group of fields, and where one stops.
@@ -350,54 +203,6 @@ const ContentField = ({
         }}
       />
     </Form.Item>
-  );
-};
-
-/**
- * Which of its siblings a block is drawn over.
- *
- * A free canvas is the only place this can be asked. `react-grid-layout`
- * gives an overlapping child no `z-index` of its own, so the browser falls
- * back to tree order and the container's `children` order becomes the paint
- * order — the last child wins, and a block earlier in the array cannot be
- * put in front of a later one by moving it, resizing it, or selecting it.
- * That order was never something an author could see, let alone choose; this
- * is what turns it into something they can say.
- *
- * The two ends are the whole control on purpose. "Forward one" and "back
- * one" are the same call with an index arithmetic that only means anything
- * to someone already picturing the array, and the Outline is where a longer
- * stack is read and reordered.
- *
- * Every other mode arranges its children so they do not overlap, so there is
- * nothing to be in front of and the question does not arise.
- */
-const StackingControls = ({ nodeId }: { nodeId: string }): ReactElement => {
-  const theme = useTheme();
-  return (
-    <div style={{ display: 'flex', gap: theme.sizeUnit }}>
-      {/* `secondary`, which is what this app calls a button that is not the
-          headline action — the style Cancel takes beside Save. Left unsaid the
-          shared Button draws every one of them `primary`, which is two filled
-          headline buttons for what is a pair of nudges. Neither of these
-          commits anything, and neither leads. */}
-      <Button
-        buttonSize="xsmall"
-        buttonStyle="secondary"
-        data-test="inspector-bring-to-front"
-        onClick={() => provider.bringToFront(nodeId)}
-      >
-        {t('Bring to front')}
-      </Button>
-      <Button
-        buttonSize="xsmall"
-        buttonStyle="secondary"
-        data-test="inspector-send-to-back"
-        onClick={() => provider.sendToBack(nodeId)}
-      >
-        {t('Send to back')}
-      </Button>
-    </div>
   );
 };
 
@@ -673,18 +478,10 @@ export default function Inspector(): ReactElement {
     );
   }
 
-  const isContainer = node.children !== undefined;
   // The root is the dashboard rather than a block on it, so what it is asked
   // for is different in kind: what it is called, who it belongs to, how it
-  // looks — not where it sits or what it renders. Arranging is the one thing
-  // the two have in common, and it comes below as it does for any container.
+  // looks — not where it sits or what it renders.
   const isRoot = node.id === provider.getRoot().id;
-  const parentId = provider.getParentId(node.id);
-  const parent =
-    parentId === undefined ? undefined : provider.getNode(parentId);
-  // Only where children can overlap is there anything to be in front of.
-  const stacks =
-    parent !== undefined && resolveLayoutMode(parent.layout) === 'free';
   const content = node.props?.content;
   // Offered for a block whose renderer reads prose, whether or not it has
   // any yet — a markdown block placed a moment ago has no props at all, and
@@ -729,47 +526,12 @@ export default function Inspector(): ReactElement {
         </Section>
       )}
 
-      {/* Labels above their fields: beside them halves the width left for the
-          control, in the panel that most needs the room. */}
-      <Form layout="vertical" component="div">
-        {isContainer && (
-          <Section
-            title={t('Arrangement')}
-            test="inspector-section-arrangement"
-          >
-            {/* One run of fields: the mode is asked as a field now, so it
-                spaces itself against the rest rather than needing a gap put
-                between it and them. */}
-            <LayoutModeSwitcher nodeId={node.id} />
-            {CONTAINER_FIELDS.map(field => (
-              <NumberField
-                key={field.key}
-                label={field.label}
-                test={`inspector-${field.key}`}
-                value={node.layout?.[field.key] as number | undefined}
-                onChange={next =>
-                  provider.updateLayout(node.id, { [field.key]: next })
-                }
-              />
-            ))}
-            {resolveLayoutMode(node.layout) === 'flex' && (
-              <FlexFields nodeId={node.id} layout={node.layout} />
-            )}
-          </Section>
-        )}
-
-        {/* The root is placed by nothing — it is what everything else is
-            placed in — so it has no column, row or span of its own to set. */}
-        {!isRoot && (
+      {/* The root is placed by nothing — it is what everything else is
+          placed in — so it has no column, row or span of its own to set. */}
+      {!isRoot && (
+        <Form layout="vertical" component="div">
           <Section title={t('Placement')} test="inspector-section-placement">
-            {CHILD_FIELDS.filter(
-              field =>
-                !(
-                  parent !== undefined &&
-                  resolveLayoutMode(parent.layout) === 'flex' &&
-                  GRID_ONLY_PLACEMENT.has(field.key)
-                ),
-            ).map(field => (
+            {CHILD_FIELDS.map(field => (
               <NumberField
                 key={field.key}
                 label={field.label}
@@ -780,10 +542,9 @@ export default function Inspector(): ReactElement {
                 }
               />
             ))}
-            {stacks && <StackingControls nodeId={node.id} />}
           </Section>
-        )}
-      </Form>
+        </Form>
+      )}
 
       {/* `removeBuildingBlock` refuses the root, so offering it here would be
           a button that only ever raises.

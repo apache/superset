@@ -339,10 +339,9 @@ class DashboardProvider {
     // applied here so the programmatic path gives the same guarantee.
     //
     // None of which is true when the parent has not changed. A move within
-    // one container is a reorder — how a free canvas says "put this in
-    // front", since paint order there is child order — and the position it
-    // keeps is the one the author placed it at. Resetting it would teleport
-    // the block to auto-placement as the price of raising it.
+    // one container is a reorder of reading/DOM/tab order alone, and the
+    // position it keeps is the one the author placed it at. Resetting it
+    // would teleport the block to auto-placement as the price of a reorder.
     if (oldParentId !== newParentId) {
       const node = nodes[id];
       const destColumns = targetParent.layout?.columns ?? DEFAULT_COLUMNS;
@@ -362,42 +361,6 @@ class DashboardProvider {
 
     this.commit(nodes);
   }
-
-  /**
-   * Which of its siblings a node is drawn over.
-   *
-   * Where children overlap — a `free` canvas — the container's child order is
-   * the paint order, because `react-grid-layout` gives an overlapping item no
-   * `z-index` of its own and the browser falls back to tree order. So "in
-   * front" is "last", and raising a block is reordering it.
-   *
-   * Named for what an author means rather than left to callers to express as
-   * an index, because the index is a trap: {@link moveBuildingBlock} detaches
-   * before it inserts, so the array a node lands in is one shorter than the
-   * one that was counted. Every caller getting that arithmetic right
-   * separately is a bug waiting for the second caller.
-   *
-   * Doing nothing when there is nothing to do is part of the contract, not an
-   * optimisation. A drag ends on the block already in front more often than
-   * not, and a revision tick there re-renders every subscriber to produce the
-   * array it already had.
-   */
-  private restack(id: string, edge: 'front' | 'back'): void {
-    const parentId = this.findParentId(id, this.nodes);
-    if (parentId === undefined) return;
-    const children = this.nodes[parentId]?.children ?? [];
-    const settled = edge === 'front' ? children.at(-1) : children[0];
-    if (settled === id) return;
-    this.moveBuildingBlock(
-      id,
-      parentId,
-      edge === 'front' ? children.length : 0,
-    );
-  }
-
-  public bringToFront = (id: string): void => this.restack(id, 'front');
-
-  public sendToBack = (id: string): void => this.restack(id, 'back');
 
   public updateLayout(id: string, layout: Partial<LayoutProps>): void {
     const node = this.nodes[id];

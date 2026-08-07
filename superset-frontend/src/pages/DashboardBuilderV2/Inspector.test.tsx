@@ -286,47 +286,6 @@ test('the empty state is set down too', () => {
   );
 });
 
-/**
- * Places two blocks in a free canvas and selects the one drawn underneath.
- *
- * A free canvas paints its children in the order it holds them, so the first
- * child is the one nothing can be put in front of by any other means.
- */
-const selectInFreeCanvas = (which: 'first' | 'second') => {
-  const rootId = provider.getRoot().id;
-  provider.updateLayout(rootId, { mode: 'free' });
-  const first = provider.addBuildingBlock(rootId, 0, { type: 'markdown' });
-  const second = provider.addBuildingBlock(rootId, 1, { type: 'markdown' });
-  provider.setSelection(which === 'first' ? first : second);
-  render(<Inspector />);
-  return { rootId, first, second };
-};
-
-test('a block under another in a free canvas can be brought to the front', async () => {
-  const { first, second } = selectInFreeCanvas('first');
-
-  await userEvent.click(screen.getByTestId('inspector-bring-to-front'));
-
-  expect(provider.getRoot().children).toEqual([second, first]);
-});
-
-test('bringing a block to the front leaves it where the author put it', async () => {
-  const { first } = selectInFreeCanvas('first');
-  provider.updateLayout(first, { col: 5, row: 4 });
-
-  await userEvent.click(screen.getByTestId('inspector-bring-to-front'));
-
-  expect(provider.getNode(first)?.layout).toMatchObject({ col: 5, row: 4 });
-});
-
-test('a block over another in a free canvas can be sent to the back', async () => {
-  const { first, second } = selectInFreeCanvas('second');
-
-  await userEvent.click(screen.getByTestId('inspector-send-to-back'));
-
-  expect(provider.getRoot().children).toEqual([second, first]);
-});
-
 const selectRoot = () => {
   const rootId = provider.getRoot().id;
   provider.setSelection(rootId);
@@ -334,10 +293,13 @@ const selectRoot = () => {
   return rootId;
 };
 
-test('the root is where the dashboard is arranged, now that the header does not ask', () => {
+test('the root does not offer a layout mode switch from the panel', () => {
   selectRoot();
 
-  expect(screen.getByTestId('layout-mode-switcher')).toBeInTheDocument();
+  expect(screen.queryByTestId('layout-mode-switcher')).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId('inspector-section-arrangement'),
+  ).not.toBeInTheDocument();
 });
 
 test('selecting the dashboard offers the properties the dashboard has', () => {
@@ -383,76 +345,30 @@ test('the panel counts what is on the dashboard', () => {
   );
 });
 
-test('stacking is not offered in a grid canvas, where nothing overlaps', () => {
+test('a child is asked where it starts', () => {
   const rootId = provider.getRoot().id;
-  provider.addBuildingBlock(rootId, 0, { type: 'markdown' });
-  const second = provider.addBuildingBlock(rootId, 1, { type: 'markdown' });
-  provider.setSelection(second);
-  render(<Inspector />);
-
-  expect(
-    screen.queryByTestId('inspector-bring-to-front'),
-  ).not.toBeInTheDocument();
-  expect(
-    screen.queryByTestId('inspector-send-to-back'),
-  ).not.toBeInTheDocument();
-});
-
-/** Places a child inside a canvas laid out in `mode`, and selects one of them. */
-const selectChildOfCanvasIn = (mode: 'grid' | 'flex') => {
-  const rootId = provider.getRoot().id;
-  provider.updateLayout(rootId, { mode });
   const childId = provider.addBuildingBlock(rootId, 0, { type: 'markdown' });
   provider.setSelection(childId);
   render(<Inspector />);
-  return childId;
-};
 
-test('a flex child is not asked where it starts, because a flex line has no cells', () => {
-  selectChildOfCanvasIn('flex');
-
-  // `col`/`row` are grid coordinates. A flex container lays its children out
-  // in `children` order and reads neither, so offering them is offering a
-  // field that silently does nothing.
-  expect(screen.queryByTestId('inspector-col')).not.toBeInTheDocument();
-  expect(screen.queryByTestId('inspector-row')).not.toBeInTheDocument();
-
-  // Its share of the line and its height are read in every mode.
+  expect(screen.getByTestId('inspector-col')).toBeInTheDocument();
+  expect(screen.getByTestId('inspector-row')).toBeInTheDocument();
   expect(screen.getByTestId('inspector-colSpan')).toBeInTheDocument();
   expect(screen.getByTestId('inspector-rowSpan')).toBeInTheDocument();
 });
 
-test('a grid child is still asked where it starts', () => {
-  selectChildOfCanvasIn('grid');
+test('a container is not offered any arrangement fields from the panel', () => {
+  selectRoot();
 
-  expect(screen.getByTestId('inspector-col')).toBeInTheDocument();
-  expect(screen.getByTestId('inspector-row')).toBeInTheDocument();
-});
-
-test('a flex container is asked the things only a flex line has', () => {
-  const rootId = provider.getRoot().id;
-  provider.updateLayout(rootId, { mode: 'flex' });
-  provider.setSelection(rootId);
-  render(<Inspector />);
-
-  // Documented on LayoutProps as "flex only. Ignored in every other mode" —
-  // and until now unreachable from the panel at all, so a flex canvas could
-  // be chosen and then not actually arranged.
-  ['direction', 'wrap', 'justify', 'align'].forEach(key =>
-    expect(screen.getByTestId(`inspector-${key}`)).toBeInTheDocument(),
-  );
-});
-
-test('a grid container is not asked about flow, which it does not read', () => {
-  const rootId = provider.getRoot().id;
-  provider.setSelection(rootId);
-  render(<Inspector />);
-
-  ['direction', 'wrap', 'justify', 'align'].forEach(key =>
+  [
+    'direction',
+    'wrap',
+    'justify',
+    'align',
+    'columns',
+    'gap',
+    'rowUnit',
+  ].forEach(key =>
     expect(screen.queryByTestId(`inspector-${key}`)).not.toBeInTheDocument(),
-  );
-  // What every mode does read stays put.
-  ['columns', 'gap', 'rowUnit'].forEach(key =>
-    expect(screen.getByTestId(`inspector-${key}`)).toBeInTheDocument(),
   );
 });

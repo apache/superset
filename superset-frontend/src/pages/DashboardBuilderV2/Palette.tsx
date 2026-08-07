@@ -24,7 +24,10 @@ import { EmptyState, Input } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { views } from 'src/core/views';
 import { DASHBOARD_BUILDING_BLOCKS_LOCATION } from 'src/core/dashboard/resolveBuildingBlockView';
-import { isContainerType } from 'src/core/dashboard/DashboardProvider';
+import {
+  CONTAINER_TYPE,
+  isContainerType,
+} from 'src/core/dashboard/DashboardProvider';
 import { PALETTE_MIME } from 'src/core/dashboard/placement';
 
 /**
@@ -59,12 +62,14 @@ export interface PaletteEntry {
 
 /** Everything registered as a building block, in the order it was registered. */
 export const paletteEntries = (): readonly PaletteEntry[] =>
-  (views.getViews(DASHBOARD_BUILDING_BLOCKS_LOCATION) ?? []).map(view => ({
-    type: view.id,
-    label: view.name,
-    description: view.description,
-    shelf: isContainerType(view.id) ? 'structure' : 'content',
-  }));
+  (views.getViews(DASHBOARD_BUILDING_BLOCKS_LOCATION) ?? [])
+    .filter(view => view.id !== CONTAINER_TYPE)
+    .map(view => ({
+      type: view.id,
+      label: view.name,
+      description: view.description,
+      shelf: isContainerType(view.id) ? 'structure' : 'content',
+    }));
 
 const matches = (entry: PaletteEntry, query: string): boolean => {
   if (query === '') {
@@ -323,7 +328,9 @@ const Disclosure = ({
  * The list is the registry's — `views.getViews('dashboard.buildingBlocks')`,
  * the same call `BuildingBlockView` resolves a renderer through. Registering
  * a block makes it placeable and unregistering one removes it, with no list
- * here to keep in agreement.
+ * here to keep in agreement — except canvas, which stays registered so the
+ * root node has something to render through but is filtered out below, since
+ * placing one is not an authored feature.
  */
 export default function Palette({
   onAdd,

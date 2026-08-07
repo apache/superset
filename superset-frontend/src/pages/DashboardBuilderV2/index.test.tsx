@@ -17,7 +17,7 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { act, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import DashboardBuilderV2 from '.';
 
@@ -33,7 +33,7 @@ beforeEach(() => {
 
 const renderPage = () => render(<DashboardBuilderV2 />, { useRedux: true });
 
-test('a blank dashboard can still be reached, and so can the layout it arranges in', async () => {
+test('a blank dashboard can still be reached', async () => {
   renderPage();
 
   // The canvas is no longer chat-only: a palette sits beside it, so the
@@ -44,54 +44,22 @@ test('a blank dashboard can still be reached, and so can the layout it arranges 
     ),
   ).toBeInTheDocument();
 
-  // A `/dashboard/v2/new/` load lands on nothing, and that is exactly when
-  // someone reaches for the layout control: whatever is placed next lands in
-  // the mode already chosen, rather than being placed and then rearranged.
-  // Arranging is asked in the root's own properties, so the blank canvas has
-  // to be selectable or the mode is unreachable until something is placed.
   await userEvent.click(screen.getByTestId('empty-canvas'));
 
   expect(provider.getSelection()).toBe(provider.getRoot().id);
-  expect(screen.getByTestId('layout-mode-switcher')).toBeInTheDocument();
 });
 
-test('selecting the root offers the layout once blocks have been placed too', async () => {
-  provider.addBuildingBlock(provider.getRoot().id, 0, { type: 'markdown' });
+test('the canvas has no arrange shortcut, since the layout it once opened is gone', () => {
   renderPage();
 
-  provider.setSelection(provider.getRoot().id);
-
-  expect(await screen.findByTestId('layout-mode-switcher')).toBeInTheDocument();
+  expect(screen.queryByTestId('canvas-arrange')).not.toBeInTheDocument();
 });
 
-test('the canvas carries the route to how it is arranged', async () => {
-  provider.addBuildingBlock(provider.getRoot().id, 0, { type: 'markdown' });
+test('refreshing is honest about not working', () => {
   renderPage();
 
-  // On the thing it arranges rather than on the bar above it: choosing how
-  // blocks lay out is done while looking at the blocks, and the control it
-  // leads to is one selection away in the root's own properties.
-  await userEvent.click(screen.getByTestId('canvas-arrange'));
-
-  expect(provider.getSelection()).toBe(provider.getRoot().id);
-  expect(screen.getByTestId('layout-mode-switcher')).toBeInTheDocument();
-});
-
-test('the arrange shortcut is offered on a blank canvas too', () => {
-  renderPage();
-
-  // A blank dashboard is exactly when the mode is chosen — whatever is placed
-  // next lands in it.
-  expect(screen.getByTestId('canvas-arrange')).toBeInTheDocument();
-});
-
-test('refreshing sits with arranging, and is honest about not working', () => {
-  renderPage();
-
-  // Both act on the canvas as a whole rather than on anything placed in it,
-  // so they are reached for from the same corner. Refreshing is still the
-  // affordance this builder cannot honour: there is no dashboard row behind
-  // the page and nothing to re-read.
+  // There is no dashboard row behind this page and nothing to re-read, so
+  // it says so rather than doing nothing quietly.
   expect(screen.getByTestId('canvas-refresh')).toBeDisabled();
 });
 
@@ -117,8 +85,13 @@ test('placing a block from the palette puts it on the dashboard and selects it',
 
 test('a block placed while a container is selected goes inside it', async () => {
   renderPage();
-  await userEvent.click(screen.getByTestId('palette-canvas'));
-  const sectionId = provider.getSelection()!;
+  // Canvas is not on the palette, but a container can still exist — placed
+  // by the assistant, or carried over from before this UI stopped offering
+  // it — and a block placed into a selected one still goes inside it.
+  const sectionId = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'canvas',
+  });
+  act(() => provider.setSelection(sectionId));
 
   await userEvent.click(screen.getByTestId('palette-markdown'));
 

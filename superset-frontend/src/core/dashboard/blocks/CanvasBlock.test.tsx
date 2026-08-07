@@ -16,24 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  fireEvent,
-  render,
-  screen,
-  within,
-} from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from '../DashboardProvider';
 import CanvasBlock from './CanvasBlock';
 
 /**
- * Which renderer a container gets, and what a gesture in it commits.
+ * What a gesture on the grid commits.
  *
- * `react-grid-layout` is mocked down to the props that decide the two grid
- * modes apart. Everything about how it draws is its own business and covered
- * by its own tests; what matters here is that `free` reaches it with
- * compaction off and overlap allowed, and that `grid` does not — because
- * that single pair of props is the whole difference between "the space above
- * a block closes" and "a block stays where it was put".
+ * `react-grid-layout` is mocked down to the props CanvasBlock feeds it.
+ * Everything about how it draws is its own business and covered by its own
+ * tests; what matters here is that CanvasBlock always compacts and never
+ * allows overlap.
  */
 jest.mock('react-grid-layout/legacy', () => ({
   __esModule: true,
@@ -70,11 +63,8 @@ beforeEach(() => {
   provider.reset();
 });
 
-const withMode = (mode?: 'grid' | 'free' | 'flex') => {
+const mount = () => {
   const rootId = provider.getRoot().id;
-  if (mode) {
-    provider.updateLayout(rootId, { mode });
-  }
   const first = provider.addBuildingBlock(rootId, 0, { type: 'markdown' });
   const second = provider.addBuildingBlock(rootId, 1, { type: 'markdown' });
   render(<CanvasBlock nodeId={rootId} />);
@@ -82,7 +72,7 @@ const withMode = (mode?: 'grid' | 'free' | 'flex') => {
 };
 
 test('a grid compacts its children and does not let them overlap', () => {
-  withMode('grid');
+  mount();
 
   const grid = screen.getByTestId('rgl');
   expect(grid).toHaveAttribute('data-compact-type', 'vertical');
@@ -90,7 +80,7 @@ test('a grid compacts its children and does not let them overlap', () => {
 });
 
 test('the corner a block removes itself from is not also a resize handle', () => {
-  withMode('grid');
+  mount();
 
   // react-grid-layout appends its handles after a block's own content, so the
   // north-east one landed on the remove control and took every click aimed at
@@ -101,115 +91,6 @@ test('the corner a block removes itself from is not also a resize handle', () =>
     'data-resize-handles',
     'se,sw,nw',
   );
-});
-
-test('a container that named no mode is drawn as a grid', () => {
-  withMode();
-
-  expect(screen.getByTestId('rgl')).toHaveAttribute(
-    'data-compact-type',
-    'vertical',
-  );
-});
-
-test('a free canvas turns compaction off and allows overlap', () => {
-  withMode('free');
-
-  // `allowOverlap` is what makes a free canvas work. Passing `compactType`
-  // null on its own leaves react-grid-layout's collision resolution running
-  // with nothing to settle it, which is the runaway displacement recorded in
-  // CanvasBlock — a free canvas must never reach that path.
-  const grid = screen.getByTestId('rgl');
-  expect(grid).toHaveAttribute('data-compact-type', 'null');
-  expect(grid).toHaveAttribute('data-allow-overlap', 'true');
-});
-
-test('a flex container is not a grid at all', () => {
-  withMode('flex');
-
-  // A flex line has no cells to give react-grid-layout coordinates in, so
-  // this is a different renderer rather than the same one configured
-  // differently.
-  expect(screen.getByTestId('flex-canvas')).toBeInTheDocument();
-  expect(screen.queryByTestId('rgl')).not.toBeInTheDocument();
-});
-
-test('a flex child hands its block a definite box', () => {
-  const rootId = provider.getRoot().id;
-  provider.updateLayout(rootId, { mode: 'flex' });
-  const id = provider.addBuildingBlock(rootId, 0, {
-    type: 'markdown',
-    layout: { rowSpan: 4 },
-  });
-  render(<CanvasBlock nodeId={rootId} />);
-
-  // Every leaf block fills the box its placement wrapper gives it — a chart
-  // measures that box to size its canvas, and markdown scrolls inside it. In
-  // a grid, react-grid-layout supplies the box by cloning the block with an
-  // explicit pixel width and height. A flex container positions its own
-  // children, so it has to hand the same box down itself; without it the
-  // block is content-height, the chart's measured height collapses, and
-  // markdown taller than its share paints over the row beneath it.
-  const block = within(screen.getByTestId(`flex-child-${id}`)).getByRole(
-    'button',
-    { name: 'markdown' },
-  );
-  expect(block).toHaveStyle({ width: '100%', height: '100%' });
-});
-
-test('a flex child is as tall as the same block in a grid', () => {
-  const rootId = provider.getRoot().id;
-  provider.updateLayout(rootId, { mode: 'flex' });
-  const id = provider.addBuildingBlock(rootId, 0, {
-    type: 'markdown',
-    layout: { rowSpan: 4 },
-  });
-  render(<CanvasBlock nodeId={rootId} />);
-
-  // react-grid-layout reserves the rows *and the gaps between them*
-  // (`rowUnit * rowSpan + (rowSpan - 1) * gap`), so 4 rows of 32 with a gap
-  // of 16 is 176px, not 128. Counting only the rows would make every block on
-  // the canvas shrink the moment the mode changed.
-  expect(screen.getByTestId(`flex-child-${id}`)).toHaveStyle({
-    height: '176px',
-  });
-});
-
-test('dragging one flex child onto another reorders them', () => {
-  const { rootId, first, second } = withMode('flex');
-  const data = new Map<string, string>();
-  const dataTransfer = {
-    setData: (type: string, value: string) => data.set(type, value),
-    getData: (type: string) => data.get(type) ?? '',
-    effectAllowed: '',
-  };
-
-  fireEvent.dragStart(screen.getByTestId(`flex-child-${second}`), {
-    dataTransfer,
-  });
-  fireEvent.drop(screen.getByTestId(`flex-child-${first}`), { dataTransfer });
-
-  // Position in a flex container is order, so the gesture that arranges one
-  // is a reorder — and it commits through the same moveBuildingBlock the AI
-  // tools call.
-  expect(provider.getNode(rootId)?.children).toEqual([second, first]);
-});
-
-test('a flex child dropped on itself changes nothing', () => {
-  const { rootId, first, second } = withMode('flex');
-  const data = new Map<string, string>();
-  const dataTransfer = {
-    setData: (type: string, value: string) => data.set(type, value),
-    getData: (type: string) => data.get(type) ?? '',
-    effectAllowed: '',
-  };
-
-  fireEvent.dragStart(screen.getByTestId(`flex-child-${first}`), {
-    dataTransfer,
-  });
-  fireEvent.drop(screen.getByTestId(`flex-child-${first}`), { dataTransfer });
-
-  expect(provider.getNode(rootId)?.children).toEqual([first, second]);
 });
 
 /** A drag payload jsdom's synthetic events do not carry on their own. */
@@ -225,7 +106,7 @@ const paletteTransfer = (type: string) => {
 };
 
 test('dropping a palette block on a container places it there', () => {
-  const { rootId } = withMode('grid');
+  const { rootId } = mount();
 
   fireEvent.drop(screen.getByTestId('canvas-container'), {
     dataTransfer: paletteTransfer('markdown'),
@@ -236,19 +117,8 @@ test('dropping a palette block on a container places it there', () => {
   expect(provider.getNode(children[2])?.type).toBe('markdown');
 });
 
-test('a drop into a flex container lands there too', () => {
-  const { rootId } = withMode('flex');
-
-  fireEvent.drop(screen.getByTestId('flex-canvas'), {
-    dataTransfer: paletteTransfer('echarts'),
-  });
-
-  const children = provider.getNode(rootId)?.children ?? [];
-  expect(provider.getNode(children[children.length - 1])?.type).toBe('echarts');
-});
-
 test('a drop carrying something else is not read as a block', () => {
-  const { rootId } = withMode('grid');
+  const { rootId } = mount();
   const before = provider.getNode(rootId)?.children?.length;
 
   fireEvent.drop(screen.getByTestId('canvas-container'), {
@@ -266,7 +136,7 @@ test('a drop carrying something else is not read as a block', () => {
 });
 
 test('a placed block offers a way to remove it, and the root does not', () => {
-  const { rootId, first } = withMode('grid');
+  const { rootId, first } = mount();
 
   expect(screen.getByTestId(`block-remove-${first}`)).toBeInTheDocument();
   // Removing the root is refused by the provider, so offering the button
@@ -277,7 +147,7 @@ test('a placed block offers a way to remove it, and the root does not', () => {
 });
 
 test('the remove control removes that block and nothing else', () => {
-  const { rootId, first, second } = withMode('grid');
+  const { rootId, first, second } = mount();
 
   fireEvent.click(screen.getByTestId(`block-remove-${first}`));
 
@@ -285,7 +155,7 @@ test('the remove control removes that block and nothing else', () => {
 });
 
 test('the grid is told not to start a drag from the remove control', () => {
-  const { first } = withMode('grid');
+  const { first } = mount();
 
   // react-grid-layout begins a drag on a press anywhere in the block it is
   // positioning, and the button sits inside that block. `draggableCancel` is
@@ -307,7 +177,7 @@ test('the grid is told not to start a drag from the remove control', () => {
 });
 
 test('clicking the remove control removes rather than selects', () => {
-  const { first, second } = withMode('grid');
+  const { first, second } = mount();
 
   fireEvent.click(screen.getByTestId(`block-remove-${second}`));
 

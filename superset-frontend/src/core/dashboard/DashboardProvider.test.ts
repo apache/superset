@@ -147,8 +147,8 @@ test('moveBuildingBlock keeps an explicit position when the parent is unchanged'
   const second = provider.addBuildingBlock(rootId, 1, { type: 'text' });
   provider.updateLayout(first, { col: 3, row: 2, colSpan: 6 });
 
-  // Reordering within one parent is how a free canvas expresses "bring this
-  // to the front" — the node's own placement is not part of what changed.
+  // A move within one parent reorders reading/DOM/tab order alone — the
+  // node's own placement is not part of what changed.
   provider.moveBuildingBlock(first, rootId, 1);
 
   expect(provider.getRoot().children).toEqual([second, first]);
@@ -157,54 +157,6 @@ test('moveBuildingBlock keeps an explicit position when the parent is unchanged'
     row: 2,
     colSpan: 6,
   });
-});
-
-test('bringToFront makes a node the last of its siblings, where it is drawn over them', () => {
-  const provider = DashboardProvider.getInstance();
-  const rootId = provider.getRoot().id;
-  const first = provider.addBuildingBlock(rootId, 0, { type: 'text' });
-  const second = provider.addBuildingBlock(rootId, 1, { type: 'text' });
-  const third = provider.addBuildingBlock(rootId, 2, { type: 'text' });
-  provider.updateLayout(first, { col: 3, row: 2 });
-
-  provider.bringToFront(first);
-
-  expect(provider.getRoot().children).toEqual([second, third, first]);
-  // Raising a block is not moving it.
-  expect(provider.getNode(first)?.layout).toMatchObject({ col: 3, row: 2 });
-});
-
-test('sendToBack makes a node the first of its siblings', () => {
-  const provider = DashboardProvider.getInstance();
-  const rootId = provider.getRoot().id;
-  const first = provider.addBuildingBlock(rootId, 0, { type: 'text' });
-  const second = provider.addBuildingBlock(rootId, 1, { type: 'text' });
-
-  provider.sendToBack(second);
-
-  expect(provider.getRoot().children).toEqual([second, first]);
-});
-
-test('raising a node already in front changes nothing, and says nothing changed', () => {
-  const provider = DashboardProvider.getInstance();
-  const rootId = provider.getRoot().id;
-  provider.addBuildingBlock(rootId, 0, { type: 'text' });
-  const last = provider.addBuildingBlock(rootId, 1, { type: 'text' });
-  const revisionBefore = provider.getRevision();
-
-  provider.bringToFront(last);
-
-  // A drag that ends on the block already in front is the common case, and
-  // a revision tick for it re-renders every subscriber for nothing.
-  expect(provider.getRevision()).toBe(revisionBefore);
-});
-
-test('bringToFront is a no-op for the root, which has no siblings', () => {
-  const provider = DashboardProvider.getInstance();
-  const revisionBefore = provider.getRevision();
-
-  expect(() => provider.bringToFront(provider.getRoot().id)).not.toThrow();
-  expect(provider.getRevision()).toBe(revisionBefore);
 });
 
 test('getParentId returns the canvas holding a node', () => {

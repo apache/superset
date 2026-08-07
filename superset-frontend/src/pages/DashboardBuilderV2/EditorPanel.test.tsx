@@ -55,17 +55,17 @@ test('building blocks is what you start on, and it lists what is registered', ()
   expect(screen.getByTestId('palette-echarts')).toBeVisible();
 });
 
-test('a canvas is shelved as structure and everything else as content', () => {
+test('canvas is not offered in the palette, since nesting one is not an authored feature', () => {
   mount();
 
-  // The one distinction this fork records: whether placing the type produces
-  // something other blocks can go inside.
-  expect(screen.getByTestId('palette-shelf-structure')).toContainElement(
-    screen.getByTestId('palette-canvas'),
-  );
-  expect(screen.getByTestId('palette-shelf-content')).toContainElement(
-    screen.getByTestId('palette-markdown'),
-  );
+  // Canvas stays registered so the root node has something to render
+  // through, but placing one is not offered.
+  expect(screen.queryByTestId('palette-canvas')).not.toBeInTheDocument();
+  // With nothing left on it, the shelf it would have sat on does not render
+  // either.
+  expect(
+    screen.queryByTestId('palette-shelf-structure'),
+  ).not.toBeInTheDocument();
 });
 
 test('clicking a block asks the page to place it', async () => {
