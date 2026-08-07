@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, cloneDeep } from 'lodash';
+import { snakeCase, cloneDeep } from 'lodash-es';
 import {
   useCallback,
   useEffect,
@@ -56,6 +56,7 @@ import type { Dispatch } from 'redux';
 import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
+import { handleChartDataResponse } from './chartAction';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -162,6 +163,14 @@ interface ChartHooks {
   setDataMask: (dataMask: DataMask) => void;
   onLegendScroll: (legendIndex: number) => void;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  // Resolve async (HTTP 202 / GLOBAL_ASYNC_QUERIES) chart-data responses for
+  // self-contained chart components in superset-ui-core (e.g. StatefulChart),
+  // which cannot import app-level async-event middleware.
+  handleAsyncChartData?: (
+    response: Response,
+    json: JsonObject,
+    signal?: AbortSignal,
+  ) => Promise<QueryData[]> | QueryData[];
 }
 
 const BLANK = {};
@@ -183,7 +192,6 @@ function ChartRendererComponent({
   onFilterMenuClose = () => BLANK,
   initialValues = BLANK,
   setControlValue = () => {},
-  triggerRender = false,
   ...restProps
 }: ChartRendererProps): JSX.Element | null {
   const {
@@ -386,6 +394,10 @@ function ChartRendererComponent({
       setDataMask: setDataMaskCallback,
       onLegendScroll: handleLegendScroll,
       onChartStateChange,
+      // Lets self-contained chart components in superset-ui-core (e.g.
+      // StatefulChart) resolve async (202) chart-data responses without
+      // depending on app-level async-event middleware.
+      handleAsyncChartData: handleChartDataResponse,
     }),
     [
       handleAddFilter,
@@ -487,10 +499,18 @@ function ChartRendererComponent({
     Object.keys(ownState.agGridFilterModel).length > 0;
 
   const currentFormDataExtended = currentFormData as JsonObject;
-  const bypassNoResult = !(
-    currentFormDataExtended?.server_pagination &&
-    (hasSearchText || hasAgGridFilters)
-  );
+  // Some charts fetch their own data and issue no top-level query (e.g. deck.gl
+  // Multiple Layers, which renders its sub-layer charts), so an empty response
+  // is expected and shouldn't trigger the no-results state. Honor the chart's
+  // own enableNoResults metadata (defaults to true).
+  const chartEnableNoResults =
+    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
+  const bypassNoResult =
+    chartEnableNoResults &&
+    !(
+      currentFormDataExtended?.server_pagination &&
+      (hasSearchText || hasAgGridFilters)
+    );
 
   return (
     <>

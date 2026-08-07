@@ -92,7 +92,7 @@ const MatrixNoDataComponent = () => {
  * Individual grid cell component - memoized to prevent unnecessary re-renders
  */
 const MatrixifyGridCell = memo(
-  ({ cell, rowHeight, datasource, hooks }: MatrixifyGridCellProps) => {
+  ({ cell, hooks }: MatrixifyGridCellProps) => {
     // Use computed title from template (will be empty string if no template)
     const cellLabel = cell.title || '';
 

@@ -63,7 +63,7 @@ import {
   MarkAreaComponent,
   MarkLineComponent,
 } from 'echarts/components';
-import { LabelLayout } from 'echarts/features';
+import { LabelLayout, LegacyGridContainLabel } from 'echarts/features';
 import {
   EchartsHandler,
   EchartsProps,
@@ -72,6 +72,7 @@ import {
 } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+import { loadLocale } from './echartsLocale';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -119,17 +120,23 @@ use([
   TitleComponent,
   VisualMapComponent,
   LabelLayout,
+  // Superset chart options rely on `grid.containLabel`, which echarts 6
+  // ignores (clipping axis labels) unless this legacy feature is registered.
+  LegacyGridContainLabel,
 ]);
 
-const loadLocale = async (locale: string) => {
-  let lang;
+// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
+// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+export function isReportScreenshotMode(): boolean {
   try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
+    const standalone = new URLSearchParams(window.location.search).get(
+      'standalone',
+    );
+    return standalone === 'true' || standalone === '3';
   } catch {
-    // Locale not supported in ECharts
+    return false;
   }
-  return lang?.default;
-};
+}
 
 function Echart(
   {
@@ -278,13 +285,16 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      // Disable animations during auto-refresh to reduce visual noise
-      const animationOverride = isDashboardRefreshing
-        ? {
-            animation: false,
-            animationDuration: 0,
-          }
-        : {};
+      // Disable animation on auto-refresh and screenshots. Screenshots have no
+      // "render finished" signal, so a running draw can be captured mid-frame,
+      // producing partial/blank charts.
+      const animationOverride =
+        isDashboardRefreshing || isReportScreenshotMode()
+          ? {
+              animation: false,
+              animationDuration: 0,
+            }
+          : {};
 
       const themedEchartOptions = mergeEchartsThemeOverrides(
         baseTheme,

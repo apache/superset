@@ -51,7 +51,9 @@ def _make_model(
     model.name = "test_schedule"
     model.crontab = "0 9 * * *"
     model.last_state = "noop"
-    model.owners = []
+    model.editors = []
+    model.retry_on_failure = False
+    model.send_failed_reports = False
     return model
 
 
@@ -65,7 +67,7 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         return_value=True,
     )
     mocker.patch(
-        "superset.commands.report.update.security_manager.raise_for_ownership",
+        "superset.commands.report.update.security_manager.raise_for_editorship",
     )
     mocker.patch(
         "superset.commands.report.update.DatabaseDAO.find_by_id",
@@ -79,10 +81,8 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         UpdateReportScheduleCommand,
         "validate_report_frequency",
     )
-    mocker.patch.object(
-        UpdateReportScheduleCommand,
-        "compute_owners",
-        return_value=[],
+    mocker.patch(
+        "superset.commands.report.update.compute_subjects",
     )
 
 
@@ -424,15 +424,15 @@ def test_deactivation_from_non_working_does_not_reset(mocker: MockerFixture) -> 
     assert "last_state" not in cmd._properties
 
 
-# --- Ownership check ---
+# --- Editorship check ---
 
 
-def test_ownership_check_raises_forbidden(mocker: MockerFixture) -> None:
-    """Non-owner should get ReportScheduleForbiddenError."""
+def test_editorship_check_raises_forbidden(mocker: MockerFixture) -> None:
+    """Non-editor should get ReportScheduleForbiddenError."""
     model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
     _setup_mocks(mocker, model)
     mocker.patch(
-        "superset.commands.report.update.security_manager.raise_for_ownership",
+        "superset.commands.report.update.security_manager.raise_for_editorship",
         side_effect=SupersetSecurityException(
             SupersetError(
                 message="Forbidden",
@@ -502,3 +502,41 @@ def test_alert_with_nonexistent_database_rejected(mocker: MockerFixture) -> None
     messages = _get_validation_messages(exc_info)
     assert "database" in messages
     assert "does not exist" in messages["database"].lower()
+
+
+# --- Retry config validation on update ---
+
+
+def test_update_rejects_retry_on_alert(mocker: MockerFixture) -> None:
+    """Enabling retries on an alert schedule is rejected."""
+    model = _make_model(mocker, model_type=ReportScheduleType.ALERT, database_id=5)
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"retry_on_failure": True})
+    with pytest.raises(ReportScheduleInvalidError) as exc_info:
+        cmd.validate()
+    messages = _get_validation_messages(exc_info)
+    assert "retry_on_failure" in messages
+
+
+def test_update_rejects_send_failed_without_retry(mocker: MockerFixture) -> None:
+    """send_failed_reports=True requires retry_on_failure=True."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"send_failed_reports": True})
+    with pytest.raises(ReportScheduleInvalidError) as exc_info:
+        cmd.validate()
+    messages = _get_validation_messages(exc_info)
+    assert "send_failed_reports" in messages
+
+
+def test_update_accepts_retry_on_report(mocker: MockerFixture) -> None:
+    """Enabling retries on a report schedule is accepted."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(
+        model_id=1, data={"retry_on_failure": True, "retry_max_attempts": 5}
+    )
+    cmd.validate()  # should not raise

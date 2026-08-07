@@ -61,7 +61,7 @@ const StyledTable = styled(AntTable)(
       text-overflow: ellipsis;
     }
 
-    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+    .ant-spin .ant-spin-dot {
       width: ${theme.sizeUnit * 12}px;
       height: unset;
     }
@@ -84,8 +84,8 @@ const VirtualTable = <RecordType extends object>(
     allowHTML = false,
   } = props;
   const [tableWidth, setTableWidth] = useState<number>(0);
-  const onResize = useCallback((width: number) => {
-    setTableWidth(width);
+  const onResize = useCallback((width?: number) => {
+    setTableWidth(width ?? 0);
   }, []);
   const { ref } = useResizeDetector({ onResize });
   const theme = useTheme();

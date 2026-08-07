@@ -45,6 +45,9 @@ logger = logging.getLogger(__name__)
 class DatasourceRestApi(BaseSupersetApi):
     allow_browser_login = True
     class_permission_name = "Datasource"
+    method_permission_name = {
+        "combined_list": "read",
+    }
     resource_name = "datasource"
     openapi_spec_tag = "Datasources"
 

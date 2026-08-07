@@ -24,14 +24,14 @@ import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
     background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
     grid-template-rows: auto 1fr;
     flex: 1;
     /* Special cases */

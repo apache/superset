@@ -26,10 +26,18 @@ export type FetchRetryOptions = {
   retries?: number;
   retryDelay?:
     | number
-    | ((attempt: number, error: Error, response: Response) => number);
+    | ((
+        attempt: number,
+        error: Error | null,
+        response: Response | null,
+      ) => number);
   retryOn?:
     | number[]
-    | ((attempt: number, error: Error, response: Response) => boolean);
+    | ((
+        attempt: number,
+        error: Error | null,
+        response: Response | null,
+      ) => boolean);
 };
 export type Headers = { [k: string]: string };
 export type Host = string;

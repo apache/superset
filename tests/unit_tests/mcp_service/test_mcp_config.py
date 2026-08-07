@@ -103,7 +103,7 @@ def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles()
     assert "Do NOT disclose dashboard access lists" in instructions
     assert "other users' names, usernames, email addresses" in instructions
     assert "current user's own identity details" in instructions
-    assert "Do NOT use execute_sql to query user, role, owner" in instructions
+    assert "Do NOT use execute_sql to query user, role, editor" in instructions
     assert "direct them to their workspace admin" in instructions
 
 
@@ -226,6 +226,27 @@ def test_get_mcp_config_respects_app_config_override() -> None:
     custom = {"execute_sql", "health_check"}
     config = get_mcp_config({"MCP_DISABLED_TOOLS": custom})
     assert config["MCP_DISABLED_TOOLS"] == custom
+
+
+def test_get_mcp_config_includes_mcp_stateless_http_key() -> None:
+    """get_mcp_config must include MCP_STATELESS_HTTP in its defaults dict, like
+    MCP_DEBUG and MCP_RBAC_ENABLED, so an operator override in superset_config.py
+    is actually read back out via flask_app.config (see run_server() and
+    __main__.main() in the mcp_service package, which read this key)."""
+    from superset.mcp_service.mcp_config import get_mcp_config, MCP_STATELESS_HTTP
+
+    config = get_mcp_config()
+    assert "MCP_STATELESS_HTTP" in config
+    assert config["MCP_STATELESS_HTTP"] is MCP_STATELESS_HTTP is True
+
+
+def test_get_mcp_config_respects_mcp_stateless_http_override() -> None:
+    """An operator's MCP_STATELESS_HTTP=False in superset_config.py must take
+    precedence over the module-level True default."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    config = get_mcp_config({"MCP_STATELESS_HTTP": False})
+    assert config["MCP_STATELESS_HTTP"] is False
 
 
 def test_build_composite_verifier_string_prefix():

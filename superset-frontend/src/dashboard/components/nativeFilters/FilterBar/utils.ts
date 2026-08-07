@@ -23,7 +23,7 @@ import {
   Filter,
   FilterState,
 } from '@superset-ui/core';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { areObjectsEqual } from 'src/reduxUtils';
@@ -48,7 +48,9 @@ export const checkIsMissingRequiredValue = (
   filter: FilterElement,
   filterState?: FilterState,
 ) => {
-  const isRequired = !!filter.controlValues?.enableEmptyFilter;
+  const isRequired =
+    !!filter.controlValues?.enableEmptyFilter ||
+    !!filter.controlValues?.defaultToFirstItem;
 
   if (!isRequired) return false;
 

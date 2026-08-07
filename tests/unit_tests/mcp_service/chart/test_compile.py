@@ -28,7 +28,6 @@ from unittest.mock import Mock, patch
 import pytest
 
 from superset.mcp_service.chart.compile import (
-    build_dataset_context_from_orm,
     CompileResult,
     validate_and_compile,
 )
@@ -40,6 +39,9 @@ from superset.mcp_service.chart.schemas import (
     PivotTableChartConfig,
     TableChartConfig,
     XYChartConfig,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    build_dataset_context_from_orm,
 )
 
 

@@ -43,13 +43,14 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Owner from 'src/types/Owner';
-import {
-  OwnerSelectLabel,
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-  OWNER_OPTION_FILTER_PROPS,
-} from 'src/features/owners/OwnerSelectLabel';
+import SubjectPicker, {
+  mapSubjectPickerValuesToIds,
+  mapSubjectsToPickerValues,
+  normalizeSubjectToPickerValue,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
+import type Subject from 'src/types/Subject';
+import { SubjectType } from 'src/types/Subject';
 // import { Form as AntdForm } from 'src/components/Form';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
@@ -100,6 +101,7 @@ import {
 import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -134,6 +136,12 @@ export interface AlertReportModalProps {
   onHide: () => void;
   show: boolean;
 }
+
+type AlertFormState = Partial<
+  Omit<AlertObject, 'editors'> & {
+    editors?: SubjectPickerValue[];
+  }
+>;
 
 const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 0 * * *'; // every day
@@ -223,6 +231,10 @@ const FORMAT_OPTIONS = {
   csv: {
     label: t('Send as CSV'),
     value: 'CSV',
+  },
+  xlsx: {
+    label: t('Send as Excel'),
+    value: 'XLSX',
   },
   txt: {
     label: t('Send as text'),
@@ -460,7 +472,7 @@ export const TRANSLATIONS = {
   NOTIFICATION_TITLE: t('Notification method'),
   // Error text
   NAME_ERROR_TEXT: t('name'),
-  OWNERS_ERROR_TEXT: t('owners'),
+  EDITORS_ERROR_TEXT: t('editors'),
   CONTENT_ERROR_TEXT: t('content type'),
   DATABASE_ERROR_TEXT: t('database'),
   SQL_ERROR_TEXT: t('sql'),
@@ -519,6 +531,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   // Check config for alternate notification methods setting
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
@@ -526,8 +539,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
 
-  const [currentAlert, setCurrentAlert] =
-    useState<Partial<AlertObject> | null>();
+  const [currentAlert, setCurrentAlert] = useState<AlertFormState | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
 
   const [activeCollapsePanel, setActiveCollapsePanel] = useState<
@@ -702,7 +714,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
     working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     name: '',
-    owners: [],
+    editors: [],
     recipients: [],
     sql: '',
     email_subject: '',
@@ -710,6 +722,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     validator_type: '',
     force_screenshot: false,
     grace_period: undefined,
+    retry_on_failure: false,
+    retry_max_attempts: 3,
+    send_failed_reports: false,
+    retry_notify_owners: true,
+    retry_notify_recipients: false,
   };
 
   const fetchDashboardFilterValues = async (
@@ -958,9 +975,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : null,
       custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
-      owners: (currentAlert?.owners || []).map(
-        owner => (owner as MetaObject).value || owner.id,
-      ),
+      editors: mapSubjectPickerValuesToIds(currentAlert?.editors || []),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
@@ -1016,38 +1031,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   // Fetch data to populate form dropdowns
-  const loadOwnerOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/report/related/created_by?q=${query}`,
-        }).then(response => ({
-          data: response.json.result.map(
-            (item: {
-              value: number;
-              text: string;
-              extra: { email?: string };
-            }) => ({
-              value: item.value,
-              label: OwnerSelectLabel({
-                name: item.text,
-                email: item.extra?.email,
-              }),
-              [OWNER_TEXT_LABEL_PROP]: item.text,
-              [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
-            }),
-          ),
-          totalCount: response.json.count,
-        }));
-      },
-    [],
-  );
-
   const getSourceData = useCallback(
     (db?: MetaObject) => {
       const database = db || currentAlert?.database;
@@ -1180,7 +1163,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             );
           }
         })
-        .catch(e => {
+        .catch(() => {
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
@@ -1393,8 +1376,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('sql', value || '');
   };
 
-  const onOwnersChange = (value: Array<SelectValue>) => {
-    updateAlertState('owners', value || []);
+  const onEditorsChange = (value: SubjectPickerValue[]) => {
+    updateAlertState('editors', value || []);
   };
 
   const onSourceChange = (value: Array<SelectValue>) => {
@@ -1427,7 +1410,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const openDashboardInNewTab = (dashboardId?: number | string | null) => {
     if (!dashboardId) return;
-    navigateTo(`/superset/dashboard/${dashboardId}`, { newWindow: true });
+    navigateTo(`/dashboard/${dashboardId}/`, { newWindow: true });
   };
 
   const onChartChange = (chart: SelectValue) => {
@@ -1792,8 +1775,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.name?.length) {
       errors.push(TRANSLATIONS.NAME_ERROR_TEXT);
     }
-    if (!currentAlert?.owners?.length) {
-      errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
+    if (!currentAlert?.editors?.length) {
+      errors.push(TRANSLATIONS.EDITORS_ERROR_TEXT);
     }
     updateValidationStatus(Sections.General, errors);
   };
@@ -1912,6 +1895,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Initialize
   useEffect(() => {
+    const currentUserEditor =
+      currentUserSubjectId !== undefined && currentUser
+        ? normalizeSubjectToPickerValue({
+            value: currentUserSubjectId,
+            text: `${currentUser.firstName} ${currentUser.lastName}`,
+            type: SubjectType.User,
+            secondary_label: currentUser.email,
+          })
+        : undefined;
+
     if (
       isEditMode &&
       (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
@@ -1926,19 +1919,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       setCurrentAlert({
         ...defaultAlert,
-        owners: currentUser
-          ? [
-              {
-                value: currentUser.userId,
-                label: OwnerSelectLabel({
-                  name: `${currentUser.firstName} ${currentUser.lastName}`,
-                  email: currentUser.email,
-                }),
-                [OWNER_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
-                [OWNER_EMAIL_PROP]: currentUser.email ?? '',
-              },
-            ]
-          : [],
+        editors: currentUserEditor ? [currentUserEditor] : [],
       });
       setNotificationSettings([
         {
@@ -2028,21 +2009,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (resource.owners || []).map(owner => {
-          const ownerName =
-            (owner as MetaObject).label ||
-            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`;
-          return {
-            value: (owner as MetaObject).value || owner.id,
-            label: OwnerSelectLabel({
-              name: typeof ownerName === 'string' ? ownerName : '',
-              email: (owner as Owner).email,
-            }),
-            [OWNER_TEXT_LABEL_PROP]:
-              typeof ownerName === 'string' ? ownerName : '',
-            [OWNER_EMAIL_PROP]: (owner as Owner).email ?? '',
-          };
-        }),
+        editors: mapSubjectsToPickerValues(
+          (resource.editors || []) as Subject[],
+        ),
         validator_config_json:
           resource.validator_type === 'not null'
             ? {
@@ -2060,7 +2029,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateEmailSubject();
   }, [
     currentAlertSafe.name,
-    currentAlertSafe.owners,
+    currentAlertSafe.editors,
     currentAlertSafe.database,
     currentAlertSafe.sql,
     currentAlertSafe.validator_config_json,
@@ -2182,23 +2151,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       onChange={onInputChange}
                     />
                   </ModalFormField>
-                  <ModalFormField label={t('Owners')} required>
-                    <AsyncSelect
-                      ariaLabel={t('Owners')}
+                  <ModalFormField label={t('Editors')} required>
+                    <SubjectPicker
+                      relatedUrl="/api/v1/report/related/editors"
+                      ariaLabel={t('Editors')}
                       allowClear
-                      name="owners"
-                      mode="multiple"
-                      placeholder={t('Select owners')}
-                      value={
-                        (currentAlert?.owners as {
-                          label: string;
-                          value: number;
-                        }[]) || []
-                      }
-                      options={loadOwnerOptions}
-                      onChange={onOwnersChange}
-                      data-test="owners-select"
-                      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
+                      placeholder={t('Select editors')}
+                      value={currentAlert?.editors || []}
+                      onChange={onEditorsChange}
+                      dataTest="editors-select"
                     />
                   </ModalFormField>
                   <ModalFormField label={t('Description')}>
@@ -2324,7 +2285,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             <div className="input-container">
                               <InputNumber
                                 disabled={conditionNotNull}
-                                type="number"
                                 name="threshold"
                                 value={
                                   currentAlert?.validator_config_json
@@ -2464,7 +2424,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   </StyledInputContainer>
                   <StyledInputContainer
                     css={
-                      ['PDF', 'TEXT', 'CSV'].includes(reportFormat) &&
+                      ['PDF', 'TEXT', 'CSV', 'XLSX'].includes(reportFormat) &&
                       noMarginBottom
                     }
                   >
@@ -2490,7 +2450,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                     chartVizType,
                                   )
                                 ? Object.values(FORMAT_OPTIONS)
-                                : ['pdf', 'png', 'csv'].map(
+                                : ['pdf', 'png', 'csv', 'xlsx'].map(
                                     key =>
                                       FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
                                   )
@@ -2630,7 +2590,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       </div>
                       <div className="input-container">
                         <InputNumber
-                          type="number"
                           name="custom_width"
                           value={currentAlert?.custom_width || undefined}
                           min={600}
@@ -2785,6 +2744,123 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </>
               ),
             },
+            ...(isReport
+              ? [
+                  {
+                    key: 'error-handling',
+                    label: (
+                      <CollapseLabelInModal
+                        title={t('Error handling')}
+                        subtitle={t(
+                          'Configure retry behavior on delivery failure.',
+                        )}
+                        testId="error-handling-panel"
+                      />
+                    ),
+                    children: (
+                      <div className="header-section">
+                        <StyledSwitchContainer
+                          css={css`
+                            margin-bottom: ${theme.sizeUnit * 4}px;
+                          `}
+                        >
+                          <Switch
+                            checked={!!currentAlert?.retry_on_failure}
+                            onChange={(checked: boolean) => {
+                              updateAlertState('retry_on_failure', checked);
+                              if (!checked) {
+                                updateAlertState('send_failed_reports', false);
+                                updateAlertState('retry_notify_owners', true);
+                                updateAlertState(
+                                  'retry_notify_recipients',
+                                  false,
+                                );
+                                updateAlertState('retry_max_attempts', 3);
+                              }
+                            }}
+                          />
+                          <div className="switch-label">
+                            {t('Enable Retries')}
+                          </div>
+                          <InfoTooltip
+                            tooltip={t(
+                              'Automatically retry sending the report when delivery fails.',
+                            )}
+                          />
+                        </StyledSwitchContainer>
+                        {currentAlert?.retry_on_failure && (
+                          <>
+                            <ModalFormField label={t('Maximum Retry Attempts')}>
+                              <InputNumber
+                                min={1}
+                                max={10}
+                                value={currentAlert?.retry_max_attempts ?? 3}
+                                onChange={(value: number | null) =>
+                                  updateAlertState(
+                                    'retry_max_attempts',
+                                    value ?? 3,
+                                  )
+                                }
+                              />
+                            </ModalFormField>
+                            <StyledSwitchContainer
+                              css={css`
+                                margin-bottom: ${theme.sizeUnit * 4}px;
+                              `}
+                            >
+                              <Switch
+                                checked={!!currentAlert?.send_failed_reports}
+                                onChange={(checked: boolean) =>
+                                  updateAlertState(
+                                    'send_failed_reports',
+                                    checked,
+                                  )
+                                }
+                              />
+                              <div className="switch-label">
+                                {t('Send Failed Reports')}
+                              </div>
+                              <InfoTooltip
+                                tooltip={t(
+                                  'Notify all recipients when the report fails after exhausting all retry attempts.',
+                                )}
+                              />
+                            </StyledSwitchContainer>
+                            <ModalFormField label={t('Failure Notifications')}>
+                              <Checkbox
+                                checked={
+                                  currentAlert?.retry_notify_owners ?? true
+                                }
+                                onChange={(e: CheckboxChangeEvent) =>
+                                  updateAlertState(
+                                    'retry_notify_owners',
+                                    e.target.checked,
+                                  )
+                                }
+                              >
+                                {t('Owners')}
+                              </Checkbox>
+                              <Checkbox
+                                checked={
+                                  !!currentAlert?.retry_notify_recipients
+                                }
+                                onChange={(e: CheckboxChangeEvent) =>
+                                  updateAlertState(
+                                    'retry_notify_recipients',
+                                    e.target.checked,
+                                  )
+                                }
+                              >
+                                {t('Report Recipients')}
+                              </Checkbox>
+                            </ModalFormField>
+                          </>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]
+              : []),
           ]}
         />
       </div>

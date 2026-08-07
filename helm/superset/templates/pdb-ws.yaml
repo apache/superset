@@ -27,13 +27,7 @@ kind: PodDisruptionBudget
 metadata:
   name: {{ include "superset.fullname" $ }}-ws-pdb
   labels:
-    app: {{ template "superset.name" $ }}-ws
-    chart: {{ template "superset.chart" $ }}
-    release: {{ $.Release.Name }}
-    heritage: {{ $.Release.Service }}
-    {{- if $.Values.extraLabels }}
-      {{- toYaml $.Values.extraLabels | nindent 4 }}
-    {{- end }}
+    {{- include "superset.componentLabels" (dict "component" "websocket" "root" $) | nindent 4 }}
 spec:
   {{- if .minAvailable }}
   minAvailable: {{ .minAvailable }}

@@ -17,12 +17,11 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { useMenu } from 'src/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, Divider, Dropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { commands } from 'src/core';
+import { commands, useMenu } from 'src/core';
 
 export interface PanelToolbarProps {
   viewId: string;
@@ -56,7 +55,7 @@ const PanelToolbar = ({
 
           return (
             <Button
-              key={item.view}
+              key={item.command}
               onClick={() => commands.executeCommand(command?.id)}
               tooltip={command?.description ?? command?.title}
               icon={<Icon iconSize="m" />}

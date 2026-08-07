@@ -36,7 +36,7 @@ import traceback
 import uuid
 import warnings
 import zlib
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
@@ -59,7 +59,7 @@ from typing import (
     TypedDict,
     TypeVar,
 )
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urlparse
 from zipfile import ZipFile
 
 import markdown as md
@@ -96,7 +96,6 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -119,6 +118,28 @@ if TYPE_CHECKING:
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
+
+EMAIL_ATTACHMENT_SUBTYPES: dict[str, str] = {
+    ".pdf": "pdf",
+    ".zip": "zip",
+    ".xlsx": "vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+
+def build_email_attachment(name: str, body: bytes | str) -> MIMEApplication:
+    """
+    Create an email attachment part with stable filename metadata.
+    """
+    subtype = EMAIL_ATTACHMENT_SUBTYPES.get(os.path.splitext(name)[1].lower())
+    payload = body.encode("utf-8") if isinstance(body, str) else body
+    attachment = MIMEApplication(
+        payload,
+        _subtype=subtype or "octet-stream",
+        Name=name,
+    )
+    attachment.add_header("Content-Disposition", "attachment", filename=name)
+    return attachment
+
 
 DTTM_ALIAS = "__timestamp"
 
@@ -210,7 +231,7 @@ class LoggerLevel(StrEnum):
 
 class HeaderDataType(TypedDict):
     notification_format: str
-    owners: list[int]
+    editors: list[int]
     notification_type: str
     notification_source: str | None
     chart_id: int | None
@@ -641,9 +662,7 @@ def generic_find_constraint_name(
     table: str, columns: set[str], referenced: str, database: SQLAlchemy
 ) -> str | None:
     """Utility to find a constraint name in alembic migrations"""
-    tbl = sa.Table(
-        table, database.metadata, autoload=True, autoload_with=database.engine
-    )
+    tbl = sa.Table(table, database.metadata, autoload_with=database.engine)
 
     for fk in tbl.foreign_key_constraints:
         if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
@@ -683,12 +702,19 @@ def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
 
 
 def generic_find_uq_constraint_name(
-    table: str, columns: set[str], insp: Inspector
+    table: str, columns: Collection[str], insp: Inspector
 ) -> str | None:
-    """Utility to find a unique constraint name in alembic migrations"""
+    """Utility to find a unique constraint name in alembic migrations.
 
+    ``columns`` is coerced to a set before comparison. Historically the
+    parameter was annotated ``set[str]`` but compared with ``==`` against a
+    set — a caller passing a list (as migration ``df3d7e2eb9a4`` did)
+    silently never matched, because ``list == set`` is always ``False``.
+    Coercing removes that foot-gun for future callers.
+    """
+    target = set(columns)
     for uq in insp.get_unique_constraints(table):
-        if columns == set(uq["column_names"]):
+        if target == set(uq["column_names"]):
             return uq["name"]
 
     return None
@@ -832,7 +858,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     html_content: str,
     config: dict[str, Any],
     files: list[str] | None = None,
-    data: dict[str, str] | None = None,
+    data: dict[str, bytes | str] | None = None,
     pdf: dict[str, bytes] | None = None,
     images: dict[str, bytes] | None = None,
     dryrun: bool = False,
@@ -879,30 +905,14 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     for fname in files or []:
         basename = os.path.basename(fname)
         with open(fname, "rb") as f:
-            msg.attach(
-                MIMEApplication(
-                    f.read(),
-                    Content_Disposition=f"attachment; filename='{basename}'",
-                    Name=basename,
-                )
-            )
+            msg.attach(build_email_attachment(basename, f.read()))
 
     # Attach any files passed directly
     for name, body in (data or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body, Content_Disposition=f"attachment; filename='{name}'", Name=name
-            )
-        )
+        msg.attach(build_email_attachment(name, body))
 
     for name, body_pdf in (pdf or {}).items():
-        msg.attach(
-            MIMEApplication(
-                body_pdf,
-                Content_Disposition=f"attachment; filename='{name}'",
-                Name=name,
-            )
-        )
+        msg.attach(build_email_attachment(name, body_pdf))
 
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
@@ -1430,12 +1440,15 @@ def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
 
 def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
     form_data: FormData,
-    engine: str,
+    engine: str | None = None,  # pylint: disable=unused-argument
 ) -> None:
     """
     Mutates form data to restructure the adhoc filters in the form of the three base
     filters, `where`, `having`, and `filters` which represent free form where sql,
     free form having sql, and structured where clauses.
+
+    ``engine`` is retained for backwards compatibility and is unused: clauses are
+    validated downstream, after Jinja templates are rendered.
     """
     adhoc_filters = form_data.get("adhoc_filters")
     if isinstance(adhoc_filters, list):
@@ -1456,7 +1469,9 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                     )
             elif expression_type == "SQL":
                 sql_expression = adhoc_filter.get("sqlExpression")
-                sql_expression = sanitize_clause(sql_expression, engine)
+                # keep a trailing line comment from swallowing the " AND " join
+                if sql_expression and "--" in sql_expression:
+                    sql_expression = f"{sql_expression}\n"
                 if clause == "WHERE":
                     sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
@@ -1789,7 +1804,7 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
         operation = match.group(1)
         return METRIC_MAP_TYPE.get(operation, "")
 
-    logger.warning("Unexpected metric expression type: %s", expression)
+    logger.debug("Unexpected metric expression type: %s", expression)
     return ""
 
 
@@ -1821,9 +1836,9 @@ def extract_dataframe_dtypes(
                 columns_by_name[column.column_name] = column
 
     generic_types: list[GenericDataType] = []
-    for column in df.columns:
+    for i, column in enumerate(df.columns):
         column_object = columns_by_name.get(str(column))
-        series = df[column]
+        series = df.iloc[:, i]
         inferred_type: str = ""
         if series.isna().all():
             sql_type: Optional[str] = ""
@@ -2009,13 +2024,26 @@ def _process_datetime_column(
 
         # Parse with or without format (suppress warning if no format)
         if format_to_use:
-            df[col.col_label] = pd.to_datetime(
+            converted = pd.to_datetime(
                 df[col.col_label],
                 utc=False,
                 format=format_to_use,
                 errors="coerce",
                 exact=False,
             )
+            # A format that coerces every non-null value to NaT is a mismatch
+            # (e.g. an epoch-millis column that inherited a '%Y' string format
+            # when used as a chart's granularity). Assigning it would silently
+            # blank the whole column, so keep the original values instead.
+            if df[col.col_label].notna().any() and not converted.notna().any():
+                logger.warning(
+                    "Datetime format %s coerced every value of column %s to NaT; "
+                    "keeping the original values",
+                    format_to_use,
+                    col.col_label,
+                )
+            else:
+                df[col.col_label] = converted
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message=".*Could not infer format.*")
@@ -2187,11 +2215,21 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
 def get_query_source_from_request() -> QuerySource | None:
     if not request or not request.referrer:
         return None
-    if "/superset/dashboard/" in request.referrer:
+    # Match on the referrer's path only, so query-string payloads (e.g.
+    # /explore/?next=/dashboard/1/) cannot misattribute the source. The bare
+    # segment covers legacy /superset/dashboard/ referrers and any
+    # application-root prefix (e.g. /myapp/dashboard/1/).
+    try:
+        referrer_path = urlparse(request.referrer).path
+    except ValueError:
+        # Client-controlled header; e.g. "http://[" raises on the IPv6
+        # bracket check and must not 500 the query path.
+        return None
+    if "/dashboard/" in referrer_path:
         return QuerySource.DASHBOARD
-    if "/explore/" in request.referrer:
+    if "/explore/" in referrer_path:
         return QuerySource.CHART
-    if "/sqllab/" in request.referrer:
+    if "/sqllab/" in referrer_path:
         return QuerySource.SQL_LAB
     return None
 

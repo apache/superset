@@ -359,4 +359,24 @@ describe('ListView', () => {
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalled();
   });
+
+  test('switches view mode via click of the toggle buttons', async () => {
+    const { container } = factory({
+      renderCard: jest.fn(),
+      data: [],
+      count: 0,
+      initialSort: [{ id: 'something' }],
+    });
+
+    const [cardToggle, tableToggle] =
+      container.querySelectorAll<HTMLElement>('.toggle-button');
+
+    expect(screen.getByTestId('empty-state')).toHaveClass('card');
+
+    await userEvent.click(tableToggle);
+    expect(screen.getByTestId('empty-state')).toHaveClass('table');
+
+    await userEvent.click(cardToggle);
+    expect(screen.getByTestId('empty-state')).toHaveClass('card');
+  });
 });

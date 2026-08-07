@@ -221,18 +221,22 @@ export const DynamicEditableTitle = memo(
             onPressEnter={handleKeyPress}
             placeholder={placeholder}
             css={css`
-              ${!canEdit &&
-              `&[disabled] {
+              ${
+                !canEdit &&
+                `&[disabled] {
                   cursor: default;
                 }
-              `}
+              `
+              }
               font-size: ${theme.fontSizeXL}px;
               transition: auto;
-              ${inputWidth &&
-              inputWidth > 0 &&
-              css`
-                width: ${inputWidth}px;
-              `}
+              ${
+                inputWidth &&
+                inputWidth > 0 &&
+                css`
+                  width: ${inputWidth}px;
+                `
+              }
             `}
             disabled={!canEdit}
           />

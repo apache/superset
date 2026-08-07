@@ -19,6 +19,7 @@
 
 import re
 from random import random
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -52,7 +53,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_data,  # noqa: F401
 )
 
-from .base_tests import DEFAULT_PASSWORD, SupersetTestCase
+from .base_tests import DEFAULT_PASSWORD, subjects_from_users, SupersetTestCase
 
 
 class TestDashboard(SupersetTestCase):
@@ -119,7 +120,7 @@ class TestDashboard(SupersetTestCase):
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         assert dash_count_before + 1 == dash_count_after
         group = re.match(
-            r"\/superset\/dashboard\/([0-9]*)\/\?edit=true",
+            r"\/dashboard\/([0-9]*)\/\?edit=true",
             response.headers["Location"],
         )
         assert group is not None
@@ -129,6 +130,27 @@ class TestDashboard(SupersetTestCase):
         created_dashboard = db.session.query(Dashboard).get(created_dashboard_id)
         db.session.delete(created_dashboard)
         db.session.commit()
+
+    def test_new_dashboard_calls_after_asset_create_hook(self):
+        self.login(ADMIN_USERNAME)
+        mock_hook = MagicMock()
+        app = self.app
+        app.config["AFTER_ASSET_CREATE"] = mock_hook
+        try:
+            url = "/dashboard/new/"
+            self.client.get(url, follow_redirects=False)
+
+            mock_hook.assert_called_once()
+            call_args = mock_hook.call_args
+            assert isinstance(call_args[0][0], Dashboard)
+            assert call_args[0][1] == "dashboard"
+
+            # Cleanup
+            created_dashboard = call_args[0][0]
+            db.session.delete(created_dashboard)
+            db.session.commit()
+        finally:
+            del app.config["AFTER_ASSET_CREATE"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")
@@ -148,7 +170,7 @@ class TestDashboard(SupersetTestCase):
         assert "birth_names" not in resp
 
         resp = self.get_resp("/api/v1/dashboard/")
-        assert "/superset/dashboard/births/" not in resp
+        assert "/dashboard/births/" not in resp
 
         self.grant_public_access_to_table(table)
 
@@ -156,14 +178,14 @@ class TestDashboard(SupersetTestCase):
         assert "birth_names" in self.get_resp("/api/v1/chart/")
 
         resp = self.get_resp("/api/v1/dashboard/")
-        assert "/superset/dashboard/births/" in resp
+        assert "/dashboard/births/" in resp
 
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp("/api/v1/chart/")
         assert "wb_health_population" not in resp
 
         resp = self.get_resp("/api/v1/dashboard/")
-        assert "/superset/dashboard/world_health/" not in resp
+        assert "/dashboard/world_health/" not in resp
 
         # Cleanup
         self.revoke_public_access_to_table(table)
@@ -176,11 +198,11 @@ class TestDashboard(SupersetTestCase):
         self.grant_public_access_to_table(table)
 
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
-        dash.owners = [security_manager.find_user("admin")]
+        dash.editors = subjects_from_users([security_manager.find_user("admin")])
         dash.created_by = security_manager.find_user("admin")
         db.session.commit()
 
-        res: Response = self.client.get("/superset/dashboard/births/")
+        res: Response = self.client.get("/dashboard/births/")
         assert res.status_code == 200
 
         # Cleanup
@@ -192,7 +214,7 @@ class TestDashboard(SupersetTestCase):
     )
     def test_anonymous_user_redirects_to_login_with_next(self):
         self.logout()
-        target_path = f"/superset/dashboard/{pytest.hidden_dash_slug}/"
+        target_path = f"/dashboard/{pytest.hidden_dash_slug}/"
 
         response = self.client.get(target_path, follow_redirects=False)
 
@@ -225,7 +247,7 @@ class TestDashboard(SupersetTestCase):
 
     def test_anonymous_user_redirects_to_login_for_missing_dashboard(self):
         self.logout()
-        target_path = "/superset/dashboard/nonexistent-dashboard/"
+        target_path = "/dashboard/nonexistent-dashboard/"
 
         response = self.client.get(target_path, follow_redirects=False)
 
@@ -243,7 +265,7 @@ class TestDashboard(SupersetTestCase):
     )
     def test_authenticated_user_without_access_gets_404(self):
         self.login(GAMMA_USERNAME)
-        target_path = f"/superset/dashboard/{pytest.hidden_dash_slug}/"
+        target_path = f"/dashboard/{pytest.hidden_dash_slug}/"
 
         response = self.client.get(
             target_path,
@@ -260,8 +282,8 @@ class TestDashboard(SupersetTestCase):
     def test_users_can_list_published_dashboard(self):
         self.login(ALPHA_USERNAME)
         resp = self.get_resp("/api/v1/dashboard/")
-        assert f"/superset/dashboard/{pytest.hidden_dash_slug}/" not in resp
-        assert f"/superset/dashboard/{pytest.published_dash_slug}/" in resp
+        assert f"/dashboard/{pytest.hidden_dash_slug}/" not in resp
+        assert f"/dashboard/{pytest.published_dash_slug}/" in resp
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")
@@ -272,7 +294,7 @@ class TestDashboard(SupersetTestCase):
         dash = Dashboard()
         dash.dashboard_title = "My Dashboard"
         dash.slug = my_dash_slug
-        dash.owners = [user]
+        dash.editors = subjects_from_users([user])
 
         hidden_dash = Dashboard()
         hidden_dash.dashboard_title = "Not My Dashboard"
@@ -290,8 +312,8 @@ class TestDashboard(SupersetTestCase):
         db.session.delete(hidden_dash)
         db.session.commit()
 
-        assert f"/superset/dashboard/{my_dash_slug}/" in resp
-        assert f"/superset/dashboard/{not_my_dash_slug}/" not in resp
+        assert f"/dashboard/{my_dash_slug}/" in resp
+        assert f"/dashboard/{not_my_dash_slug}/" not in resp
 
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
@@ -301,7 +323,7 @@ class TestDashboard(SupersetTestCase):
         dash = Dashboard()
         dash.dashboard_title = "My Dashboard"
         dash.slug = slug
-        dash.owners = [admin_user]
+        dash.editors = subjects_from_users([admin_user])
         dash.published = False
         db.session.add(dash)
         db.session.commit()
@@ -313,4 +335,4 @@ class TestDashboard(SupersetTestCase):
         db.session.delete(dash)
         db.session.commit()
 
-        assert f"/superset/dashboard/{slug}/" not in resp
+        assert f"/dashboard/{slug}/" not in resp

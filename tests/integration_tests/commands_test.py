@@ -27,7 +27,7 @@ from superset.commands.importers.v1.utils import is_valid_config
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase, user_is_editor
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     dashboard_config,
@@ -129,6 +129,7 @@ class TestImportAssetsCommand(SupersetTestCase):
         assert json.loads(dashboard.json_metadata) == {
             "color_scheme": None,
             "expanded_slices": {str(new_chart_id): True},
+            "expand_all_slices": False,
             "import_time": 1604342885,
             "native_filter_configuration": [],
             "refresh_frequency": 0,
@@ -167,7 +168,8 @@ class TestImportAssetsCommand(SupersetTestCase):
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
-        assert dashboard.owners == [self.user]
+        assert len(dashboard.editors) == 1
+        assert user_is_editor(self.user, dashboard)
 
         mock_add_permissions.assert_called_with(database)
 

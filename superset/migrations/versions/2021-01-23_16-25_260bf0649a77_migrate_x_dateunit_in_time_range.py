@@ -34,7 +34,7 @@ from sqlalchemy import Column, Integer, or_, Text  # noqa: E402
 from sqlalchemy.dialects.mysql.base import MySQLDialect  # noqa: E402
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
 from sqlalchemy.exc import OperationalError  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -53,7 +53,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     x_dateunit_in_since = DateRangeMigration.x_dateunit_in_since
     x_dateunit_in_until = DateRangeMigration.x_dateunit_in_until
 

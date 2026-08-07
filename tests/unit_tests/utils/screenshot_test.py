@@ -33,6 +33,10 @@ from superset.utils.screenshots import (
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
 
+# A minimal valid PNG header, used wherever a test needs bytes that pass
+# ScreenshotCachePayload's image validation.
+FAKE_PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"fake-png-body"
+
 
 class MockCache:
     """A class to manage screenshot cache."""
@@ -92,7 +96,7 @@ def test_get_cache_key(app_context, screenshot_obj):
 def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     """get_from_cache_key should always return a ScreenshotCachePayload Object"""
     # backwards compatibility test for retrieving plain bytes
-    fake_bytes = b"fake_screenshot_data"
+    fake_bytes = FAKE_PNG_BYTES
     BaseScreenshot.cache = MockCache()
     BaseScreenshot.cache.set("key", fake_bytes)
     cache_payload = screenshot_obj.get_from_cache_key("key")
@@ -108,10 +112,10 @@ class TestComputeAndCache:
             BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
         )
         get_screenshot = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"new_image_data"
+            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
         )
         resize_image = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES
         )
         BaseScreenshot.cache = MockCache()
         return {
@@ -125,6 +129,27 @@ class TestComputeAndCache:
         screenshot_obj.compute_and_cache(force=False)
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Updated"
+
+    def test_passes_cache_key_log_context_to_capture(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        """compute_and_cache must thread its cache_key into the capture layer
+        as log_context, so every webdriver/screenshot log line produced by a
+        thumbnail or direct-download run can be traced back to the exact
+        cached entry it was computing (reports already do this with their
+        execution_id)."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        cache_key = screenshot_obj.get_cache_key()
+        screenshot_obj.compute_and_cache(force=False)
+
+        get_screenshot: MagicMock = mocks.get("get_screenshot")
+        get_screenshot.assert_called_once()
+        assert (
+            get_screenshot.call_args.kwargs["log_context"] == f"cache_key={cache_key}"
+        )
+        resize_image: MagicMock = mocks.get("resize_image")
+        resize_image.assert_called_once()
+        assert resize_image.call_args.kwargs["log_context"] == f"cache_key={cache_key}"
 
     def test_screenshot_error(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)

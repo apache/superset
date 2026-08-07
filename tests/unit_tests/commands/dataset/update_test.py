@@ -35,10 +35,10 @@ from superset.commands.dataset.update import (
     UpdateDatasetCommand,
     validate_folders,
 )
-from superset.commands.exceptions import OwnersNotFoundValidationError
 from superset.datasets.schemas import FolderSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from tests.unit_tests.conftest import with_feature_flags
 
 
@@ -61,7 +61,7 @@ def test_update_dataset_forbidden(mocker: MockerFixture) -> None:
     mock_dataset_dao.find_by_id.return_value = mocker.MagicMock()
 
     mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
         side_effect=SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
@@ -90,19 +90,19 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
-    mock_dataset.owners = []  # No owners to avoid ownership computation issues
+    mock_dataset.editors = []  # No editors to avoid computation issues
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
     mock_dataset_dao.update.return_value = mock_dataset
 
-    # Mock successful ownership check
+    # Mock successful editorship check
     mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
     )
 
-    # Mock security manager methods for owner computation
+    # Mock security manager methods for editor computation
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
 
     # Mock security manager to allow access to the schema
@@ -135,18 +135,18 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
-    mock_dataset.owners = []  # No owners to avoid ownership computation issues
+    mock_dataset.editors = []  # No editors to avoid computation issues
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
 
-    # Mock successful ownership check
+    # Mock successful editorship check
     mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
     )
 
-    # Mock security manager methods for owner computation
+    # Mock security manager methods for editor computation
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
 
     # Mock security manager to raise error for SQL schema access
@@ -193,9 +193,9 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
             "Dataset catalog.schema.table already exists",
         ),
         (
-            {"owners": [1]},
-            OwnersNotFoundValidationError,
-            "Owners are invalid",
+            {"editors": [999]},
+            SubjectsNotFoundValidationError,
+            "Subjects are invalid",
         ),
     ],
 )
@@ -210,12 +210,13 @@ def test_update_dataset_validation_errors(
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
     mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
     )
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
     mocker.patch(
         "superset.commands.utils.security_manager.get_user_by_id", return_value=None
     )
+    mocker.patch("superset.commands.utils.get_subject", return_value=None)
     mock_database = mocker.MagicMock()
     mock_database.id = 1
     mock_database.get_default_catalog.return_value = "catalog"
@@ -279,7 +280,7 @@ def test_update_dataset_rejects_malicious_expression(
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
     mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
     )
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
     mocker.patch(
@@ -324,7 +325,7 @@ def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
     mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
     )
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
     mocker.patch(
@@ -365,7 +366,7 @@ def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
     mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
     )
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
     mocker.patch(

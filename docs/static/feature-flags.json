@@ -88,6 +88,12 @@
         "description": "Enable semantic layers and show semantic views alongside datasets"
       },
       {
+        "name": "SOFT_DELETE",
+        "default": true,
+        "lifecycle": "development",
+        "description": "Temporary rollout / kill-switch gate for soft delete (off = legacy hard delete). An emergency stop, not a clean rollback: flipping ON->OFF resurrects already-soft-deleted rows. Retained through this release as the move-back lever; removed (along with its two gate points \u2014 BaseDAO.delete routing and the do_orm_execute visibility listener) once post-flip confidence is established."
+      },
+      {
         "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
         "default": false,
         "lifecycle": "development",
@@ -98,6 +104,12 @@
         "default": false,
         "lifecycle": "development",
         "description": "Enables the tagging system for organizing assets"
+      },
+      {
+        "name": "VERSION_HISTORY",
+        "default": true,
+        "lifecycle": "development",
+        "description": "Enables the version history panel on Explore and Dashboard pages. History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on; with capture off the panel renders but stays empty, so the two ship with matching defaults and should be changed together."
       }
     ],
     "testing": [
@@ -116,9 +128,9 @@
       },
       {
         "name": "ALERT_REPORT_SLACK_V2",
-        "default": false,
+        "default": true,
         "lifecycle": "testing",
-        "description": "Enables Slack V2 integration for Alerts and Reports"
+        "description": "Enables Slack V2 integration for Alerts and Reports. Defaults to True; the legacy Slack v1 path is deprecated and will be removed in the next major release. Operators must grant the Slack bot both the `channels:read` and `groups:read` scopes so existing v1 recipients can be auto-upgraded on their next send. Without those scopes, file uploads fail (Slack retired the `files.upload` endpoint in 2025) and only text-only `chat_postMessage` sends will continue to work via the legacy path."
       },
       {
         "name": "ALERT_REPORT_WEBHOOK",
@@ -131,6 +143,13 @@
         "default": false,
         "lifecycle": "testing",
         "description": "Allow users to export full CSV of table viz type. Warning: Could cause server memory/compute issues with large datasets."
+      },
+      {
+        "name": "ASSIGN_CREATOR_GROUPS_AS_VIEWERS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Share a newly created dashboard or chart read-only with every group its creator belongs to, unless the create payload names viewers explicitly. Requires ENABLE_VIEWERS. Narrows access: an asset with no viewers falls back to datasource permissions; one with viewers is limited to its editors and viewers, and dashboards must also be published before those viewers gain access.",
+        "category": "security"
       },
       {
         "name": "AWS_DATABASE_IAM_AUTH",
@@ -175,6 +194,13 @@
         "lifecycle": "testing",
         "description": "Allows users to add a superset:// DB that can query across databases. Experimental with potential security/performance risks. See SUPERSET_META_DB_LIMIT.",
         "docs": "https://superset.apache.org/user-docs/databases/supported/superset-meta-database"
+      },
+      {
+        "name": "ENABLE_VIEWERS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Subject-based viewer access control for dashboards and charts. When enabled, resources can have explicit viewer Subject assignments.",
+        "category": "security"
       },
       {
         "name": "ESTIMATE_QUERY_COST",
@@ -248,14 +274,6 @@
         "default": true,
         "lifecycle": "stable",
         "description": "Enables CSS Templates in Settings menu and dashboard forms",
-        "category": "runtime_config"
-      },
-      {
-        "name": "DASHBOARD_RBAC",
-        "default": false,
-        "lifecycle": "stable",
-        "description": "Role-based access control for dashboards",
-        "docs": "https://superset.apache.org/docs/using-superset/creating-your-first-dashboard",
         "category": "runtime_config"
       },
       {
@@ -396,22 +414,10 @@
     ],
     "deprecated": [
       {
-        "name": "AVOID_COLORS_COLLISION",
-        "default": true,
-        "lifecycle": "deprecated",
-        "description": "Avoid color collisions in charts by using distinct colors"
-      },
-      {
         "name": "DRILL_TO_DETAIL",
         "default": true,
         "lifecycle": "deprecated",
         "description": "Enable drill-to-detail functionality in charts"
-      },
-      {
-        "name": "ENABLE_JAVASCRIPT_CONTROLS",
-        "default": false,
-        "lifecycle": "deprecated",
-        "description": "Allow JavaScript in chart controls. WARNING: XSS security vulnerability!"
       }
     ]
   }

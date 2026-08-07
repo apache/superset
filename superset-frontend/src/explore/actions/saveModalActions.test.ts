@@ -45,7 +45,7 @@ const datasourceId = 22;
 const datasourceType = DatasourceType.Table;
 const dashboards = [12, 13];
 const queryContext = { sampleKey: 'sampleValue' };
-const owners = [0];
+const editors = [0];
 
 const formData: Partial<QueryFormData> = {
   viz_type: vizType,
@@ -87,7 +87,7 @@ const mockExploreState: Partial<QueryFormData> = {
 
 const sliceResponsePayload: Partial<PayloadSlice> = {
   slice_id: sliceId,
-  owners: [],
+  editors: [],
   form_data: formData,
 };
 
@@ -116,7 +116,7 @@ test('updateSlice handles success', async () => {
   const slice = await updateSlice(
     {
       slice_id: sliceId,
-      owners: owners as [],
+      editors: editors as [],
       form_data: formData,
       slice_name: '',
       description: '',
@@ -168,7 +168,7 @@ test('updateSlice handles failure', async () => {
     await updateSlice(
       {
         slice_id: sliceId,
-        owners: [],
+        editors: [],
         form_data: formData,
         slice_name: '',
         description: '',
@@ -301,7 +301,7 @@ test('updateSlice with add to new dashboard handles success', async () => {
   const slice = await updateSlice(
     {
       slice_id: sliceId,
-      owners: [],
+      editors: [],
       form_data: {
         datasource: `${datasourceId}__${datasourceType}`,
         viz_type: '',
@@ -360,7 +360,7 @@ test('updateSlice with add to existing dashboard handles success', async () => {
   const slice = await updateSlice(
     {
       slice_id: sliceId,
-      owners: [],
+      editors: [],
       form_data: {
         datasource: `${datasourceId}__${datasourceType}`,
         viz_type: '',
@@ -428,7 +428,7 @@ test('getSliceDashboards with slice handles success', async () => {
   const dispatch = (action: any) => dispatchSpy(action);
   const sliceDashboards = await getSliceDashboards({
     slice_id: 10,
-    owners: [],
+    editors: [],
     form_data: {
       datasource: `${datasourceId}__${datasourceType}`,
       viz_type: '',
@@ -454,7 +454,7 @@ test('getSliceDashboards with slice handles failure', async () => {
   try {
     await getSliceDashboards({
       slice_id: sliceId,
-      owners: [],
+      editors: [],
       form_data: {
         datasource: `${datasourceId}__${datasourceType}`,
         viz_type: '',
@@ -483,7 +483,7 @@ describe('getSlicePayload', () => {
     adhoc_filters: [],
   };
   const dashboards = [5];
-  const owners = [0];
+  const editors = [0];
   const formDataFromSlice: QueryFormData = {
     datasource: `${datasourceId}__${datasourceType}`,
     viz_type: VizType.Pie,
@@ -504,7 +504,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithNativeFilters,
       dashboards,
-      owners as [],
+      editors as [],
       formDataFromSlice,
     );
     expect(result).toHaveProperty('params');
@@ -516,7 +516,7 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('datasource_id', 22);
     expect(result).toHaveProperty('datasource_type', 'table');
     expect(result).toHaveProperty('dashboards', dashboards);
-    expect(result).toHaveProperty('owners', owners);
+    expect(result).toHaveProperty('editors', editors);
     expect(result).toHaveProperty('query_context');
     expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataWithNativeFilters.adhoc_filters,
@@ -540,7 +540,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithAdhocFilters,
       dashboards,
-      owners as [],
+      editors as [],
       formDataFromSlice,
     );
     expect(result).toHaveProperty('params');
@@ -552,7 +552,7 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('datasource_id', 22);
     expect(result).toHaveProperty('datasource_type', 'table');
     expect(result).toHaveProperty('dashboards', dashboards);
-    expect(result).toHaveProperty('owners', owners);
+    expect(result).toHaveProperty('editors', editors);
     expect(result).toHaveProperty('query_context');
     expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataWithAdhocFilters.adhoc_filters,
@@ -576,7 +576,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
-      owners as [],
+      editors as [],
       formDataFromSlice,
     );
     expect(result).toHaveProperty('params');
@@ -588,7 +588,7 @@ describe('getSlicePayload', () => {
     expect(result).toHaveProperty('datasource_id', 22);
     expect(result).toHaveProperty('datasource_type', 'table');
     expect(result).toHaveProperty('dashboards', dashboards);
-    expect(result).toHaveProperty('owners', owners);
+    expect(result).toHaveProperty('editors', editors);
     expect(result).toHaveProperty('query_context');
     expect(JSON.parse(result.params as string).adhoc_filters).toEqual(
       formDataFromSlice.adhoc_filters,
@@ -637,7 +637,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
-      owners as [],
+      editors as [],
       formDataFromSliceWithAdhocFilterB,
     );
 
@@ -684,7 +684,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithAdhocFiltersWithExtra,
       dashboards,
-      owners as [],
+      editors as [],
       formDataFromSliceWithAdhocFilterB,
     );
 
@@ -717,7 +717,7 @@ describe('getSlicePayload', () => {
       sliceName,
       formDataWithTemporalFilterWithExtra,
       dashboards,
-      owners as [],
+      editors as [],
       {} as QueryFormData,
     );
 

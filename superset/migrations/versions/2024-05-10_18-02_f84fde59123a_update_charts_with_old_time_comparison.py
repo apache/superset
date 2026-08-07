@@ -30,7 +30,7 @@ from typing import Any
 
 from alembic import op
 from sqlalchemy import Column, Integer, or_, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.migrations.shared.utils import paginated_update
@@ -97,7 +97,7 @@ def upgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(
@@ -198,7 +198,7 @@ def downgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in paginated_update(
         session.query(Slice).filter(
