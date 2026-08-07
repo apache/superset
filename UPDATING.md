@@ -26,6 +26,31 @@ assists people when migrating to a new version.
 
 - [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
 
+### SQLAlchemy bumped to 2.0, flask-sqlalchemy to 3.1.1
+
+Superset's core ORM dependencies move from SQLAlchemy 1.4 to 2.0 and
+flask-sqlalchemy `<3.0` to 3.1.1, completing the migration tracked in
+[discussion #40273](https://github.com/apache/superset/discussions/40273).
+
+**Custom `db_engine_specs`, plugins, or extensions that import SQLAlchemy
+internals directly** should review the
+[SQLAlchemy 1.4-to-2.0 migration guide](https://docs.sqlalchemy.org/en/20/changelog/migration_20.html)
+for API changes that affect them — most 1.4 code already runs unmodified
+under 2.0's compatibility mode, but patterns like `Engine.execute()`,
+string-keyed `Row` access, and `MetaData(bind=)` are removed outright.
+
+**Several optional DB-connector extras remain capped below their
+SQLAlchemy-2.0-only releases**, either because that bump is a separate
+follow-up ([#42891](https://github.com/apache/superset/pull/42891): dremio,
+exasol, firebird, redshift, risingwave) or because the upstream dialect
+package has no SQLAlchemy 2.0 support yet at all (aurora-data-api, d1,
+kusto, solr; ocient's 2.0 compatibility is unverified). Installing one of
+these extras continues to pull a SQLAlchemy-1.4-line version of that
+dialect; each package's constraint in `pyproject.toml` documents why.
+
+No application-level configuration changes are required for deployments
+that don't touch SQLAlchemy directly.
+
 ### Soft delete is on by default, and purging is live
 
 `SOFT_DELETE` now ships **on** (`DEFAULT_FEATURE_FLAGS`), so deleting a
