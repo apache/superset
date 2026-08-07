@@ -119,6 +119,25 @@ class TimeFilter:
     time_range: str | None
 
 
+def _normalize_postgresql_backslash_escapes(dialect: Dialect) -> None:
+    """Correct a PostgreSQL dialect instance's ``_backslash_escapes`` default
+    in place so backslashes round-trip unchanged when the dialect is used to
+    render literals without a live connection.
+
+    A dialect built without a live connection (as ``Database.get_dialect()``
+    does) defaults ``_backslash_escapes`` to ``True``, which would double
+    every backslash even though every supported PostgreSQL version treats
+    the backslash as a plain character by default
+    (``standard_conforming_strings`` has been on since PostgreSQL 9.1). Left
+    uncorrected, a value like ``C:\\Users`` would be rewritten to
+    ``C:\\\\Users`` and silently fail to match the original value. Other
+    dialects (for example MySQL/MariaDB, which do treat the backslash as an
+    escape character) are left untouched.
+    """
+    if dialect.name == "postgresql":
+        dialect._backslash_escapes = False
+
+
 class ExtraCache:
     """
     Dummy class that exposes a method used to store additional values used in
@@ -441,16 +460,9 @@ class ExtraCache:
         side of over-escaping, which can distort a backslash-containing
         value but can never widen the query.
 
-        PostgreSQL is special-cased: a dialect instance built without a live
-        connection (as ``Database.get_dialect()`` does) defaults
-        ``_backslash_escapes`` to ``True``, which would double every
-        backslash even though every supported PostgreSQL version treats the
-        backslash as a plain character by default (``standard_conforming_strings``
-        has been on since PostgreSQL 9.1). Left uncorrected, a value like
-        ``C:\\Users`` would be rewritten to ``C:\\\\Users`` and silently fail to
-        match the original value. Forcing it off here restores parity with
-        PostgreSQL's default configuration while MySQL/MariaDB keep the
-        stricter, backslash-doubling behavior above.
+        PostgreSQL is special-cased via ``_normalize_postgresql_backslash_escapes``
+        to restore parity with PostgreSQL's default configuration, while
+        MySQL/MariaDB keep the stricter, backslash-doubling behavior above.
 
         Lists are processed element-wise and dict values recursively, so
         strings nested inside JSON structures are also escaped; dict keys
@@ -461,8 +473,7 @@ class ExtraCache:
             return val
         if isinstance(val, str):
             compiler = self.dialect.statement_compiler(self.dialect, None)
-            if self.dialect.name == "postgresql":
-                compiler.dialect._backslash_escapes = False
+            _normalize_postgresql_backslash_escapes(compiler.dialect)
             return compiler.render_literal_value(val, String())[1:-1]
         if isinstance(val, list):
             return [self._escape_value(v) for v in val]
@@ -776,6 +787,10 @@ def validate_template_context(
 
 class WhereInMacro:  # pylint: disable=too-few-public-methods
     def __init__(self, dialect: Dialect):
+        # Without this, a PostgreSQL value like ``C:\Users`` would render as
+        # ``C:\\Users`` and silently fail to match the original value; see
+        # ``_normalize_postgresql_backslash_escapes`` for the full rationale.
+        _normalize_postgresql_backslash_escapes(dialect)
         self.dialect = dialect
 
     def __call__(

@@ -433,6 +433,13 @@ renders Python's string form of that structure, which is not valid SQL, and obje
 are not escaped at all. Use `|where_in` for arrays, `|tojson` where you need a
 JSON-stringified value, or read individual keys/elements out of the structure yourself.
 
+The same double-escaping problem described above for `|where_in` applies to `|tojson`:
+pass `escape_result=False` before piping to `|tojson` (for example
+`{{ get_guest_user_attribute('profile', escape_result=False)|tojson }}`), since JSON
+already handles its own quoting and re-escaping a value first would corrupt it (a nested
+string such as `O'Brien` would come back as the altered `O''Brien` in the serialized
+JSON).
+
 :::
 
 ### Explicitly Including Values in Cache Key

@@ -897,6 +897,20 @@ def test_where_in_empty_list() -> None:
     assert where_in([], default_to_none=True) is None
 
 
+def test_where_in_postgres_backslash_preserved() -> None:
+    """
+    Test that ``where_in`` leaves backslashes untouched on PostgreSQL. A
+    dialect instance built without a live connection (as
+    ``Database.get_dialect()`` does) defaults ``_backslash_escapes`` to
+    ``True``, which would double every backslash even though every
+    supported PostgreSQL version treats the backslash as a plain character
+    by default; doubling it would rewrite a value like ``C:\\Users`` to
+    ``C:\\\\Users`` and silently fail to match the original value.
+    """
+    where_in = WhereInMacro(dialect())
+    assert where_in([r"C:\Users"]) == r"('C:\Users')"
+
+
 @pytest.mark.parametrize(
     "value,format,output",
     [
