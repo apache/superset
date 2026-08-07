@@ -107,9 +107,9 @@
       },
       {
         "name": "VERSION_HISTORY",
-        "default": false,
+        "default": true,
         "lifecycle": "development",
-        "description": "Enables the version history panel on Explore and Dashboard pages. History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on; with capture off the panel renders but stays empty."
+        "description": "Enables the version history panel on Explore and Dashboard pages. History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on; with capture off the panel renders but stays empty, so the two ship with matching defaults and should be changed together."
       }
     ],
     "testing": [

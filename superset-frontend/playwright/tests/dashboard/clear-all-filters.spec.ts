@@ -25,8 +25,13 @@ import {
   buildSingleRowDashboardLayout,
 } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
+import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
 import { TIMEOUT } from '../../utils/constants';
+import {
+  buildFilterJsonMetadata,
+  buildSelectFilter,
+} from './dashboard-test-helpers';
 
 const DATASET_NAME = 'birth_names';
 const FILTER_COLUMN = 'gender';
@@ -59,12 +64,10 @@ testWithAssets(
       params: JSON.stringify(chartParams),
     });
     expect(chartResp.ok()).toBe(true);
-    const chart = await chartResp.json();
-    const chartId: number = chart.id ?? chart.result?.id;
+    const chartId = await extractIdFromResponse(chartResp);
     testAssets.trackChart(chartId);
 
     // Create dashboard with chart in position_json and a native filter in json_metadata
-    const filterId = `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`;
     const positionJson = buildSingleRowDashboardLayout([
       {
         id: chartId,
@@ -74,39 +77,17 @@ testWithAssets(
       },
     ]);
 
-    const jsonMetadata = {
-      native_filter_configuration: [
-        {
-          id: filterId,
-          name: 'Gender',
-          filterType: 'filter_select',
-          type: 'NATIVE_FILTER',
-          targets: [
-            {
-              datasetId,
-              column: { name: FILTER_COLUMN },
-            },
-          ],
-          controlValues: {
-            multiSelect: false,
-            enableEmptyFilter: false,
-            defaultToFirstItem: false,
-            inverseSelection: false,
-            searchAllOptions: false,
-          },
-          defaultDataMask: { filterState: {}, extraFormData: {} },
-          cascadeParentIds: [],
-          scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    const jsonMetadata = buildFilterJsonMetadata({
+      chartsInScope: [chartId],
+      nativeFilters: [
+        buildSelectFilter({
+          datasetId,
+          column: FILTER_COLUMN,
           chartsInScope: [chartId],
-        },
+          name: 'Gender',
+        }),
       ],
-      chart_configuration: {},
-      cross_filters_enabled: false,
-      global_chart_configuration: {
-        scope: { rootPath: ['ROOT_ID'], excluded: [] },
-        chartsInScope: [chartId],
-      },
-    };
+    });
 
     const dashResp = await apiPostDashboard(page, {
       dashboard_title: `clear_all_repro_${Date.now()}`,
@@ -115,8 +96,7 @@ testWithAssets(
       json_metadata: JSON.stringify(jsonMetadata),
     });
     expect(dashResp.ok()).toBe(true);
-    const dashBody = await dashResp.json();
-    const dashboardId: number = dashBody.result?.id ?? dashBody.id;
+    const dashboardId = await extractIdFromResponse(dashResp);
     testAssets.trackDashboard(dashboardId);
 
     // Associate chart with the dashboard so it actually renders
