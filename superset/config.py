@@ -365,7 +365,6 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
-    "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
     "flask_appbuilder.security.views.acs",
@@ -689,13 +688,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
-    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
-    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
-    # resurrects already-soft-deleted rows. Removed (along with its two gate
-    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
-    # once soft delete is stable.
+    # Temporary rollout / kill-switch gate for soft delete (off = legacy hard
+    # delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Retained through this release as
+    # the move-back lever; removed (along with its two gate points —
+    # BaseDAO.delete routing and the do_orm_execute visibility listener) once
+    # post-flip confidence is established.
     # @lifecycle: development
-    "SOFT_DELETE": False,
+    "SOFT_DELETE": True,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -723,9 +723,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     # Enables the version history panel on Explore and Dashboard pages.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
-    # with capture off the panel renders but stays empty.
+    # with capture off the panel renders but stays empty, so the two ship
+    # with matching defaults and should be changed together.
     # @lifecycle: development
-    "VERSION_HISTORY": False,
+    "VERSION_HISTORY": True,
     # =================================================================
     # IN TESTING
     # =================================================================
@@ -1003,10 +1004,11 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 FEATURE_FLAGS: dict[str, bool] = {}
 
 # Retention policy for soft-deleted dashboards, charts, and datasets. A value of
-# zero disables scheduled purging. Dry-run mode is enabled by default so operators
-# must explicitly opt in to irreversible deletion.
+# zero disables scheduled purging. Purging is live by default, so the retention
+# promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
+# to True to have the task log ``would_purge`` counts without deleting anything.
 SOFT_DELETE_RETENTION_DAYS: int = 30
-SOFT_DELETE_PURGE_DRY_RUN: bool = True
+SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -1667,19 +1669,19 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
-# Master switch for entity-version-history capture. Ships defaulted ``False``
-# so the versioning infrastructure (schema + Continuum wiring) lands inert:
-# no save writes shadow rows or a ``version_transaction``/``version_changes``
-# record, while the /versions/ endpoints stay available read-only (returning
-# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
-# same name) to enable the before-flush listeners that drive capture.
-# Capture is activated by flipping this default to on once validated in
-# production. It is an operational escape hatch — for use when a
-# versioning-induced regression needs a 30-second recovery instead of
-# revert-and-redeploy — not a feature flag, and remains as the permanent
-# kill-switch.
+# Master switch for entity-version-history capture. Capture is enabled by
+# default, so saves write shadow rows and a ``version_transaction`` /
+# ``version_changes`` record. Set this to a falsy value in
+# ``superset_config.py`` (or via the environment variable of the same name) to
+# disable the before-flush listeners while keeping the /versions/ endpoints
+# available read-only.
+# Capture ships on. It is an operational escape hatch — set the environment
+# variable to a falsy value when a versioning-induced regression needs a
+# 30-second recovery instead of revert-and-redeploy — not a feature flag,
+# and it remains permanently as the kill-switch rather than being removed
+# with the rollout toggles.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
-    os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
 
 # Retention window (days) for entity version history. Version rows
