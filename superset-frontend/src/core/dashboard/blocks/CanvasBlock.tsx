@@ -29,6 +29,7 @@ import { useTheme } from '@apache-superset/core/theme';
 import { provider, useDashboardRevision } from '../store';
 import { resolveGridMetrics } from '../layoutStyle';
 import { packChildLayout } from '../gridPacking';
+import { PALETTE_MIME, placeBlock } from '../placement';
 import BuildingBlockView from '../BuildingBlockView';
 
 type LayoutProps = dashboardApi.LayoutProps;
@@ -205,6 +206,7 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
 
   const { columns, gap, rowUnitPx } = resolveGridMetrics(node.layout, theme);
   const children = node.children ?? [];
+
   const packed = packChildLayout(children, columns, provider.getNode);
   const layout: Layout = children.map(id => ({
     i: id,
@@ -216,6 +218,26 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
   return (
     <div
       data-container-id={nodeId}
+      data-test="canvas-container"
+      // Every container is a drop target, not just the root: a nested
+      // section is exactly where an author means to put something when they
+      // drag it there, and the stop is what makes the innermost container
+      // under the pointer the one that takes it rather than every ancestor
+      // claiming the same drop.
+      onDragOver={event => {
+        if (event.dataTransfer.types.includes(PALETTE_MIME)) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+        }
+      }}
+      onDrop={event => {
+        const type = event.dataTransfer.getData(PALETTE_MIME);
+        if (type !== '') {
+          event.preventDefault();
+          event.stopPropagation();
+          placeBlock(nodeId, type);
+        }
+      }}
       style={{ width: '100%', height: '100%', overflow: 'auto' }}
     >
       <ResizableGridLayout
@@ -238,8 +260,17 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
         // by moving the sibling down exactly once, by exactly its own
         // height, every time.
         compactType="vertical"
+        allowOverlap={false}
         preventCollision={false}
-        resizeHandles={['se', 'sw', 'ne', 'nw']}
+        // Every corner but the top-right one, which a block spends on its
+        // remove control. react-grid-layout appends its handles after the
+        // block's own content, so a 20px handle sat over that button and took
+        // every click aimed at it — `elementFromPoint` at the button's centre
+        // returned the handle. A handle nobody can grab is worse than no
+        // handle: the corner looks resizable and answers a drag that starts
+        // one pixel away. Three corners still size a block, and the fourth
+        // does the one thing that corner is labelled for.
+        resizeHandles={['se', 'sw', 'nw']}
         // A nested canvas that declares its own `rowUnit` independently of
         // the outer `rowSpan` that placed it can end up needing more (or
         // less) height than that outer placement actually reserves — see
@@ -256,7 +287,7 @@ export default function CanvasBlock({ nodeId }: { nodeId: string }) {
         // `data-container-id` itself, so this never affects dragging a
         // leaf — only a nested canvas becomes un-draggable as a whole via
         // a body click (it's still resizable via its own corner handles).
-        draggableCancel="[data-container-id]"
+        draggableCancel="[data-container-id],[data-block-remove]"
         onDragStart={handleDragStart}
         onDragStop={handleDragStop}
         onResizeStart={handleResizeStart}

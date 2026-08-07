@@ -18,10 +18,13 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { Flex, Typography } from '@superset-ui/core/components';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { EmptyState, Flex } from '@superset-ui/core/components';
 import { dashboard, useDashboardRevision } from 'src/core/dashboard';
+import { provider } from 'src/core/dashboard/store';
+import { placeBlock } from 'src/core/dashboard/placement';
 import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
+import DashboardHeader from './DashboardHeader';
+import EditorPanel from './EditorPanel';
 
 const PageContainer = styled(Flex)`
   ${({ theme }) => css`
@@ -41,6 +44,12 @@ const Canvas = styled.div`
   `}
 `;
 
+const Workspace = styled.div`
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+`;
+
 const EmptyCanvasWrapper = styled.div`
   ${({ theme }) => css`
     height: 100%;
@@ -51,13 +60,36 @@ const EmptyCanvasWrapper = styled.div`
   `}
 `;
 
+/**
+ * The dashboard with nothing on it, as something to aim at.
+ *
+ * A dashed frame is what the rest of the app draws around a place a thing can
+ * be dropped, and this is one — the palette drags land here. It is also the
+ * only way to select the root on a blank canvas, so it answers a pointer and a
+ * Tab the way anything clickable does: the frame firms up and the surface
+ * lifts, rather than a dashed box that never reacts to being pressed.
+ */
 const CanvasPlaceholder = styled(Flex)`
   ${({ theme }) => css`
     width: 100%;
     height: 100%;
-    border: 2px dashed ${theme.colorBorderSecondary};
+    border: 2px dashed ${theme.colorBorder};
     border-radius: ${theme.borderRadiusLG}px;
     color: ${theme.colorTextTertiary};
+    cursor: pointer;
+    transition:
+      border-color ${theme.motionDurationMid},
+      background-color ${theme.motionDurationMid};
+
+    &:hover {
+      border-color: ${theme.colorPrimaryBorderHover};
+      background-color: ${theme.colorFillQuaternary};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimaryBorder};
+      outline-offset: 2px;
+    }
   `}
 `;
 
@@ -87,27 +119,86 @@ export default function DashboardBuilderV2() {
   const root = dashboard.getRoot();
   const isEmpty = !root.children || root.children.length === 0;
 
+  /**
+   * Places a block from the palette.
+   *
+   * Into whatever is selected when that can hold children, and into the root
+   * otherwise. An author who has just selected a section and reaches for a
+   * chart means to put it in that section; one who has selected a chart means
+   * to put the next thing beside it, not inside it.
+   *
+   * A drag from the palette says where for itself — the container it was
+   * dropped on takes it — so only the click needs a target chosen for it.
+   * Both then go through the same `placeBlock`, because two copies of what a
+   * freshly placed block looks like is how the two paths quietly diverge.
+   */
+  const addBlock = (type: string): void => {
+    const selected = provider.getSelection();
+    const selectedNode =
+      selected === undefined ? undefined : provider.getNode(selected);
+    placeBlock(
+      selectedNode?.children !== undefined ? selectedNode.id : root.id,
+      type,
+    );
+  };
+
   return (
     <PageContainer vertical>
-      <Canvas>
-        {isEmpty ? (
-          <EmptyCanvasWrapper>
-            <CanvasPlaceholder
-              vertical
-              align="center"
-              justify="center"
-              gap="small"
-            >
-              <Icons.AppstoreOutlined iconSize="xl" />
-              <Typography.Text type="secondary">
-                {t('Blank dashboard — ask the assistant to start building')}
-              </Typography.Text>
-            </CanvasPlaceholder>
-          </EmptyCanvasWrapper>
-        ) : (
-          <BuildingBlockView nodeId={root.id} />
-        )}
-      </Canvas>
+      <DashboardHeader />
+      <Workspace>
+        <EditorPanel onAdd={addBlock} />
+        <Canvas
+          data-test="canvas"
+          onClick={event => {
+            // A click that reached the canvas itself passed every block on
+            // the way, so it is the one gesture that unambiguously means
+            // "nothing". A click on a block stops before here.
+            if (event.target === event.currentTarget) {
+              provider.setSelection(undefined);
+            }
+          }}
+        >
+          {isEmpty ? (
+            <EmptyCanvasWrapper>
+              {/* The dashboard itself, standing in for a canvas that has
+                  nothing on it yet. It selects the root because that is the
+                  only thing there is to select here, and because how the
+                  canvas is arranged is asked in the root's properties — a
+                  blank dashboard is exactly when that is asked, since
+                  whatever is placed next lands in the mode already chosen.
+                  Without this the mode would be unreachable until something
+                  had already been placed and then rearranged. */}
+              <CanvasPlaceholder
+                vertical
+                align="center"
+                justify="center"
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+                role="button"
+                tabIndex={0}
+                aria-label={t('Dashboard')}
+                data-test="empty-canvas"
+                onClick={() => provider.setSelection(root.id)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    provider.setSelection(root.id);
+                  }
+                }}
+              >
+                <EmptyState
+                  image="empty-dashboard.svg"
+                  title={t('Start building')}
+                  description={t(
+                    'Drag a building block from the panel, or ask the assistant for one.',
+                  )}
+                />
+              </CanvasPlaceholder>
+            </EmptyCanvasWrapper>
+          ) : (
+            <BuildingBlockView nodeId={root.id} />
+          )}
+        </Canvas>
+      </Workspace>
     </PageContainer>
   );
 }

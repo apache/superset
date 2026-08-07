@@ -31,8 +31,8 @@ import { Event } from '../common';
 /**
  * The set of top-level application surfaces.
  *
- * `'explore'`, `'dashboard'` and `'dataset'` are the single-entity
- * editing/viewing surfaces. `'chart_list'`, `'dashboard_list'` and
+ * `'explore'`, `'dashboard'`, `'dashboard_v2'` and `'dataset'` are the
+ * single-entity editing/viewing surfaces. `'chart_list'`, `'dashboard_list'` and
  * `'dataset_list'` are the browse/list surfaces, distinct from those because no
  * single entity is active. `'sqllab'` is the SQL editor where
  * `sqlLab.getCurrentTab()` resolves; `'query_history'` and `'saved_queries'`
@@ -41,6 +41,7 @@ import { Event } from '../common';
  */
 export type Page =
   | 'dashboard'
+  | 'dashboard_v2'
   | 'dashboard_list'
   | 'explore'
   | 'chart_list'

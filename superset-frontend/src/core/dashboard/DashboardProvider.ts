@@ -31,6 +31,20 @@ type StoredNode = Omit<DashboardNode, 'id'>;
 
 const ROOT_ID = 'root';
 
+/**
+ * The one node type that holds other nodes.
+ *
+ * Named here because two things need to agree on it and neither should learn
+ * it by string comparison of its own: this provider, deciding whether a new
+ * node gets a `children` array at all, and the palette, deciding whether a
+ * block an author places is a container or something to put in one.
+ */
+export const CONTAINER_TYPE = 'canvas';
+
+/** Whether placing this type produces something other nodes can go inside. */
+export const isContainerType = (type: string): boolean =>
+  type === CONTAINER_TYPE;
+
 function createBlankNodes(): Record<string, StoredNode> {
   return {
     [ROOT_ID]: {
@@ -68,6 +82,22 @@ class DashboardProvider {
 
   private revision = 0;
 
+  /**
+   * Which node the author is working on.
+   *
+   * Host-internal, exactly like {@link getRevision} and for the same reason:
+   * it is a property of one person looking at one screen, not of the
+   * dashboard. Two people opening the same tree select different things, and
+   * nothing about a selection belongs in a document or in the public API an
+   * extension calls.
+   *
+   * It lives here rather than in page state because the canvas draws it and
+   * the editor panel reads it, and those sit in different layers — putting it
+   * in the one place both already subscribe to beats threading it through the
+   * render tree that `BuildingBlockView` deliberately keeps ignorant.
+   */
+  private selection: string | undefined;
+
   private layoutChangeEmitter = createEventEmitter<void>();
 
   private stateSubscribers = new Set<() => void>();
@@ -86,7 +116,31 @@ class DashboardProvider {
 
   public getRevision = (): number => this.revision;
 
+  public getSelection = (): string | undefined => this.selection;
+
+  /**
+   * Selects a node, or clears the selection with `undefined`.
+   *
+   * Ticks the same revision every mutation does, so everything already
+   * subscribed re-reads without needing a second subscription of its own.
+   */
+  public setSelection = (id: string | undefined): void => {
+    if (this.selection === id) {
+      return;
+    }
+    this.selection = id;
+    this.revision += 1;
+    this.stateSubscribers.forEach(fn => fn());
+  };
+
   private commit(nodes: Record<string, StoredNode>): void {
+    // A selection is a reference to a node, and a node that is gone cannot be
+    // the thing being edited. Clearing it here — rather than at each removal
+    // site — covers a subtree deletion too, where the node that vanished was
+    // a descendant of the one actually removed.
+    if (this.selection !== undefined && !nodes[this.selection]) {
+      this.selection = undefined;
+    }
     this.nodes = nodes;
     this.revision += 1;
     this.layoutChangeEmitter.fire();
@@ -101,6 +155,19 @@ class DashboardProvider {
   public getRoot = (): DashboardNode => this.toNode(ROOT_ID)!;
 
   public getNode = (id: string): DashboardNode | undefined => this.toNode(id);
+
+  /**
+   * The canvas a node sits in, or `undefined` for the root and for a node
+   * that is not in the tree.
+   *
+   * {@link moveBuildingBlock} takes the destination parent as an argument, so
+   * every caller that moves a node already has to know which parent it is in
+   * — a caller reordering a node within its own container most of all. The
+   * walk itself is one line, and leaving it out meant each caller wrote that
+   * line again over a `nodes` map only this class is supposed to hold.
+   */
+  public getParentId = (id: string): string | undefined =>
+    this.findParentId(id, this.nodes);
 
   /** True if `targetId` is `nodeId` itself or nested somewhere in its subtree. */
   private isNodeOrDescendant(nodeId: string, targetId: string): boolean {
@@ -180,7 +247,7 @@ class DashboardProvider {
       layout: spec.layout,
       props: spec.props,
       style: spec.style,
-      ...(spec.type === 'canvas' ? { children: [] } : {}),
+      ...(isContainerType(spec.type) ? { children: [] } : {}),
     };
 
     const children = [...parent.children];
@@ -245,6 +312,8 @@ class DashboardProvider {
       );
     }
 
+    const oldParentId = this.findParentId(id, this.nodes);
+
     const nodes = { ...this.nodes };
     Object.entries(nodes).forEach(([parentId, parent]) => {
       if (parent.children?.includes(id)) {
@@ -268,20 +337,27 @@ class DashboardProvider {
     // drag-based reparenting (see `CanvasBlock`'s `handleDragStop`) already
     // resets exactly these two things on drop; this is that same reset,
     // applied here so the programmatic path gives the same guarantee.
-    const node = nodes[id];
-    const destColumns = targetParent.layout?.columns ?? DEFAULT_COLUMNS;
-    nodes[id] = {
-      ...node,
-      layout: {
-        ...node.layout,
-        col: undefined,
-        row: undefined,
-        colSpan:
-          node.layout?.colSpan != null
-            ? Math.min(node.layout.colSpan, destColumns)
-            : undefined,
-      },
-    };
+    //
+    // None of which is true when the parent has not changed. A move within
+    // one container is a reorder of reading/DOM/tab order alone, and the
+    // position it keeps is the one the author placed it at. Resetting it
+    // would teleport the block to auto-placement as the price of a reorder.
+    if (oldParentId !== newParentId) {
+      const node = nodes[id];
+      const destColumns = targetParent.layout?.columns ?? DEFAULT_COLUMNS;
+      nodes[id] = {
+        ...node,
+        layout: {
+          ...node.layout,
+          col: undefined,
+          row: undefined,
+          colSpan:
+            node.layout?.colSpan != null
+              ? Math.min(node.layout.colSpan, destColumns)
+              : undefined,
+        },
+      };
+    }
 
     this.commit(nodes);
   }
@@ -348,6 +424,7 @@ class DashboardProvider {
   /** Test/demo helper — discards all nodes back to a blank canvas. */
   public reset(): void {
     this.nodes = createBlankNodes();
+    this.selection = undefined;
     this.revision = 0;
     this.layoutChangeEmitter = createEventEmitter<void>();
     this.stateSubscribers.clear();

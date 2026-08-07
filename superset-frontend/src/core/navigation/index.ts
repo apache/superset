@@ -41,6 +41,7 @@ const PAGE_ROUTES: { path: string; page: Page }[] = [
   // greedily capture `/dashboard/list/` (idOrSlug='list'), so the more specific
   // list route has to win first — mirroring the `routes.tsx` Switch precedence.
   { path: RoutePaths.DASHBOARD_LIST, page: 'dashboard_list' },
+  { path: RoutePaths.DASHBOARD_V2_NEW, page: 'dashboard_v2' },
   { path: RoutePaths.DASHBOARD, page: 'dashboard' },
   { path: RoutePaths.QUERY_HISTORY, page: 'query_history' },
   { path: RoutePaths.SAVED_QUERIES, page: 'saved_queries' },

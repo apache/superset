@@ -37,9 +37,9 @@ export default function MarkdownBlock({ nodeId }: { nodeId: string }) {
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: theme.colorBgContainer,
-        border: `1px solid ${theme.colorBorderSecondary}`,
-        borderRadius: theme.borderRadiusLG,
+        // Surface, border and corners belong to the card `BuildingBlockView`
+        // draws around this block and the name above it, so that the name is
+        // inside the frame rather than over it.
         padding: theme.padding,
         overflow: 'auto',
       }}

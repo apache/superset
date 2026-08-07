@@ -223,19 +223,20 @@ export default function ChartBlock({ nodeId }: { nodeId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 
-  const option = useMemo(
-    () =>
-      rows
-        ? resolveBindings(
-            (node?.props?.echartsOptions as Record<string, unknown>) ?? {},
-            {
-              rows,
-              theme,
-            },
-          )
-        : undefined,
-    [node?.props?.echartsOptions, rows, theme],
-  );
+  const option = useMemo(() => {
+    if (!rows) return undefined;
+    const resolved = resolveBindings(
+      (node?.props?.echartsOptions as Record<string, unknown>) ?? {},
+      { rows, theme },
+    );
+    // The chart's name is drawn by the block's header, which reads it from
+    // this same option (see `blockLabel`). Leaving it here too would print it
+    // twice, at two sizes, in two places — and the header's copy is the one
+    // that sits where every other block's name sits.
+    const withoutTitle = { ...resolved };
+    delete withoutTitle.title;
+    return withoutTitle;
+  }, [node?.props?.echartsOptions, rows, theme]);
 
   if (!node) return null;
 
@@ -249,9 +250,9 @@ export default function ChartBlock({ nodeId }: { nodeId: string }) {
         // so this is never zero or ambiguous.
         width: '100%',
         height: '100%',
-        backgroundColor: theme.colorBgContainer,
-        border: `1px solid ${theme.colorBorderSecondary}`,
-        borderRadius: theme.borderRadiusLG,
+        // Surface, border and corners belong to the card `BuildingBlockView`
+        // draws around this block and the name above it, so that the name is
+        // inside the frame rather than over it.
         overflow: 'hidden',
       }}
     >

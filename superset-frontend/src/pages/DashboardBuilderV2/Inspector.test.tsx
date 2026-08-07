@@ -1,0 +1,374 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import userEvent from '@testing-library/user-event';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import DashboardProvider from 'src/core/dashboard/DashboardProvider';
+import 'src/core/dashboard';
+import Inspector from './Inspector';
+
+const provider = DashboardProvider.getInstance();
+
+beforeEach(() => {
+  provider.reset();
+});
+
+/**
+ * Brings the JSON half forward. The panel opens on the form, so every test
+ * that reads the raw record has to say so — which is also the assertion that
+ * the form is what comes first.
+ */
+const openJson = async () => {
+  await userEvent.click(screen.getByRole('tab', { name: 'JSON' }));
+  return screen.findByTestId('inspector-props');
+};
+
+const select = (type: string, props?: Record<string, unknown>) => {
+  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type,
+    ...(props ? { props } : {}),
+  });
+  provider.setSelection(id);
+  render(<Inspector />);
+  return id;
+};
+
+test('a markdown block placed a moment ago can still be given content', async () => {
+  // The block arrives with no props at all. Waiting for a `content` key to
+  // exist before offering the field is what left a fresh block with no way
+  // to be given one.
+  const id = select('markdown');
+
+  await userEvent.type(
+    screen.getByTestId('inspector-content'),
+    'Quarterly review',
+  );
+  await userEvent.tab();
+
+  expect(provider.getNode(id)?.props?.content).toBe('Quarterly review');
+});
+
+test('content a block already has is what the field shows', () => {
+  select('markdown', { content: 'Welcome' });
+
+  expect(screen.getByTestId('inspector-content')).toHaveValue('Welcome');
+});
+
+test('a block with no prose field is still authorable through its properties', async () => {
+  select('echarts');
+
+  // A chart's dataBinding and echartsOptions have never had a hand-editing
+  // path. They are just keys, and the general editor reaches every one.
+  expect(screen.queryByTestId('inspector-content')).not.toBeInTheDocument();
+  expect(await openJson()).toBeInTheDocument();
+});
+
+test('applying properties writes them to the block', async () => {
+  const id = select('echarts');
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{"dataBinding":{"datasetId":3,"metrics":["count"]}}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+
+  expect(provider.getNode(id)?.props?.dataBinding).toEqual({
+    datasetId: 3,
+    metrics: ['count'],
+  });
+});
+
+test('a key deleted from the properties stops reaching the block', async () => {
+  const id = select('echarts', { keep: 1, drop: 2 });
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{"keep":1}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+
+  // `updateProps` merges, so omitting a key would silently do nothing and
+  // the block would go on rendering from the value it appeared to lose.
+  // Sending `undefined` is as close to a removal as a merge can express: the
+  // block reads nothing there, and the key does not survive serialization
+  // back into the editor.
+  expect(provider.getNode(id)?.props?.drop).toBeUndefined();
+  expect(provider.getNode(id)?.props?.keep).toBe(1);
+  expect(screen.getByTestId('inspector-props')).toHaveValue(
+    JSON.stringify({ keep: 1 }, null, 2),
+  );
+});
+
+test('malformed properties cannot be applied, and stay on screen to be fixed', async () => {
+  const id = select('echarts', { kept: true });
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{ "broken": ' },
+  });
+
+  expect(screen.getByTestId('inspector-props-apply')).toBeDisabled();
+  expect(screen.getByTestId('inspector-props-error')).toBeInTheDocument();
+  // The draft is the author's; it is not reverted out from under them.
+  expect(screen.getByTestId('inspector-props')).toHaveValue('{ "broken": ');
+  expect(provider.getNode(id)?.props?.kept).toBe(true);
+});
+
+test('properties that are not an object are refused', async () => {
+  select('echarts');
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '[1, 2, 3]' },
+  });
+
+  expect(screen.getByTestId('inspector-props-apply')).toBeDisabled();
+});
+
+/** The form is what the panel opens on, so this only has to find it. */
+const openForm = async () => screen.findByTestId('inspector-props-form');
+
+test('properties can be edited as a form or as JSON, whichever suits', async () => {
+  select('echarts', { title: 'Revenue' });
+
+  // Two views of one set of values, not two places a value can live. The
+  // form is where the values are filled in and is what the panel opens on;
+  // JSON is where the shape is changed, since it alone can add or drop a key.
+  expect(screen.getByRole('tab', { name: 'Form' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await openForm();
+
+  expect(await openJson()).toBeInTheDocument();
+});
+
+test('the form is built from the properties the block is actually holding', async () => {
+  select('echarts', { title: 'Revenue', limit: 10 });
+
+  const form = await openForm();
+
+  // No block type is named anywhere in this panel, so a contributed block
+  // gets a form on the same terms a built-in one does.
+  expect(form).toHaveTextContent('Title');
+  expect(form).toHaveTextContent('Limit');
+  expect(screen.getByDisplayValue('Revenue')).toBeInTheDocument();
+});
+
+test('a value typed into the form reaches the block', async () => {
+  const id = select('echarts', { title: 'Revenue' });
+  await openForm();
+
+  await userEvent.clear(screen.getByDisplayValue('Revenue'));
+  await userEvent.type(screen.getByRole('textbox'), 'Quarterly revenue');
+
+  // Awaited because JsonForms debounces what it reports by 10ms — which is
+  // also why this writes on change rather than on blur: a commit on blur
+  // fires before that debounce lands and would save the value as it stood a
+  // keystroke earlier.
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.title).toBe('Quarterly revenue'),
+  );
+});
+
+test('each half of the properties editor is set down from the tabs above it', async () => {
+  select('echarts', { title: 'Revenue' });
+
+  // Flush against the tab bar, whichever label comes first reads as a caption
+  // on the tabs rather than as the head of the field under it — the same set
+  // down the panel and the palette already take from theirs.
+  expect((await openForm()).parentElement).toHaveStyle('padding-top: 12px');
+  await openJson();
+  expect(screen.getByTestId('inspector-props-json')).toHaveStyle(
+    'padding-top: 12px',
+  );
+});
+
+test('the properties on screen can be taken away as JSON', async () => {
+  const writeText = jest.fn();
+  const original = global.navigator.clipboard;
+  // @ts-expect-error jsdom ships no clipboard to spy on
+  global.navigator.clipboard = { write: writeText, writeText };
+  select('echarts', { title: 'Revenue' });
+  await openJson();
+
+  // What is copied is what is on screen, not what the block holds — an edit
+  // typed but not applied yet is the state most worth being able to take
+  // somewhere else.
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{"title":"Quarterly"}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-copy'));
+
+  expect(writeText).toHaveBeenCalledWith('{"title":"Quarterly"}');
+  // @ts-expect-error restoring what jsdom did not have
+  global.navigator.clipboard = original;
+});
+
+test("the dashboard-wide properties are the dashboard's alone", async () => {
+  select('echarts', { title: 'Revenue' });
+
+  // What a dashboard is called, who may see it and how often it refreshes are
+  // properties of the dashboard, not of anything placed on it — a block asked
+  // for a URL slug would be asking for something it has no such thing as.
+  expect(screen.queryByTestId('dashboard-properties')).not.toBeInTheDocument();
+  [
+    'General information',
+    'Access & ownership',
+    'Styling',
+    'Refresh settings',
+    'Certification',
+    'Advanced settings',
+  ].forEach(section =>
+    expect(screen.queryByText(section)).not.toBeInTheDocument(),
+  );
+  // And what a block does have stays where it is.
+  expect(await openForm()).toBeInTheDocument();
+});
+
+test('a block with no properties yet says where they are added', async () => {
+  select('echarts');
+
+  // A form generated from values cannot offer a field for a key nothing has
+  // written. Rendering nothing at all would read as a broken tab.
+  const form = await openForm();
+
+  expect(form).toHaveTextContent('JSON');
+});
+
+test('reverting restores what the block still has', async () => {
+  select('echarts', { kept: true });
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-revert'));
+
+  expect(screen.getByTestId('inspector-props')).toHaveValue(
+    JSON.stringify({ kept: true }, null, 2),
+  );
+});
+
+test('the panel is set down from the tabs above it', () => {
+  select('markdown');
+
+  // Flush against the tab bar, the first line reads as a caption belonging
+  // to the tabs rather than to the block it names.
+  expect(screen.getByTestId('inspector')).toHaveStyle('padding-top: 12px');
+});
+
+test('the empty state is set down too', () => {
+  render(<Inspector />);
+
+  expect(screen.getByTestId('inspector-empty')).toHaveStyle(
+    'padding-top: 12px',
+  );
+});
+
+const selectRoot = () => {
+  const rootId = provider.getRoot().id;
+  provider.setSelection(rootId);
+  render(<Inspector />);
+  return rootId;
+};
+
+test('the root does not offer a layout mode switch from the panel', () => {
+  selectRoot();
+
+  expect(screen.queryByTestId('layout-mode-switcher')).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId('inspector-section-arrangement'),
+  ).not.toBeInTheDocument();
+});
+
+test('selecting the dashboard offers the properties the dashboard has', () => {
+  selectRoot();
+
+  // The six the saved dashboard's own properties modal asks for, reused
+  // whole — this panel and that modal are two ways into one set of fields.
+  expect(screen.getByTestId('dashboard-properties')).toBeInTheDocument();
+  [
+    'General information',
+    'Access & ownership',
+    'Styling',
+    'Refresh settings',
+    'Certification',
+    'Advanced settings',
+  ].forEach(section => expect(screen.getByText(section)).toBeInTheDocument());
+});
+
+test('the dashboard is not a block, so it is not placed and cannot be deleted', () => {
+  selectRoot();
+
+  // `removeBuildingBlock` refuses the root outright, so a Delete there is a
+  // control that only ever raises; and the root is placed by nothing, so it
+  // has no column or row of its own to start at.
+  expect(screen.queryByTestId('inspector-delete')).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId('inspector-section-placement'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByTestId('inspector-identity')).not.toBeInTheDocument();
+});
+
+test('the panel counts what is on the dashboard', () => {
+  const rootId = provider.getRoot().id;
+  const section = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
+  provider.addBuildingBlock(section, 0, { type: 'markdown' });
+  provider.addBuildingBlock(rootId, 1, { type: 'markdown' });
+  selectRoot();
+
+  // Every block, at any depth — a section and what is inside it are both
+  // things on the dashboard.
+  expect(screen.getByTestId('dashboard-properties-counts')).toHaveTextContent(
+    '3 blocks, 0 filters',
+  );
+});
+
+test('a child is asked where it starts', () => {
+  const rootId = provider.getRoot().id;
+  const childId = provider.addBuildingBlock(rootId, 0, { type: 'markdown' });
+  provider.setSelection(childId);
+  render(<Inspector />);
+
+  expect(screen.getByTestId('inspector-col')).toBeInTheDocument();
+  expect(screen.getByTestId('inspector-row')).toBeInTheDocument();
+  expect(screen.getByTestId('inspector-colSpan')).toBeInTheDocument();
+  expect(screen.getByTestId('inspector-rowSpan')).toBeInTheDocument();
+});
+
+test('a container is not offered any arrangement fields from the panel', () => {
+  selectRoot();
+
+  [
+    'direction',
+    'wrap',
+    'justify',
+    'align',
+    'columns',
+    'gap',
+    'rowUnit',
+  ].forEach(key =>
+    expect(screen.queryByTestId(`inspector-${key}`)).not.toBeInTheDocument(),
+  );
+});

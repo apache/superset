@@ -140,6 +140,42 @@ test('moveBuildingBlock relocates a node to a new parent at the given index', ()
   expect(provider.getNode(canvasId)?.children).toEqual([id]);
 });
 
+test('moveBuildingBlock keeps an explicit position when the parent is unchanged', () => {
+  const provider = DashboardProvider.getInstance();
+  const rootId = provider.getRoot().id;
+  const first = provider.addBuildingBlock(rootId, 0, { type: 'text' });
+  const second = provider.addBuildingBlock(rootId, 1, { type: 'text' });
+  provider.updateLayout(first, { col: 3, row: 2, colSpan: 6 });
+
+  // A move within one parent reorders reading/DOM/tab order alone — the
+  // node's own placement is not part of what changed.
+  provider.moveBuildingBlock(first, rootId, 1);
+
+  expect(provider.getRoot().children).toEqual([second, first]);
+  expect(provider.getNode(first)?.layout).toMatchObject({
+    col: 3,
+    row: 2,
+    colSpan: 6,
+  });
+});
+
+test('getParentId returns the canvas holding a node', () => {
+  const provider = DashboardProvider.getInstance();
+  const rootId = provider.getRoot().id;
+  const canvasId = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
+  const childId = provider.addBuildingBlock(canvasId, 0, { type: 'text' });
+
+  expect(provider.getParentId(childId)).toBe(canvasId);
+  expect(provider.getParentId(canvasId)).toBe(rootId);
+});
+
+test('getParentId returns undefined for the root and for an unknown id', () => {
+  const provider = DashboardProvider.getInstance();
+
+  expect(provider.getParentId(provider.getRoot().id)).toBeUndefined();
+  expect(provider.getParentId('missing')).toBeUndefined();
+});
+
 test('moveBuildingBlock throws when moving the root node', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
@@ -330,4 +366,61 @@ test('getRevision increments on every mutation and is stable otherwise', () => {
   provider.addBuildingBlock(rootId, 0, { type: 'text' });
 
   expect(provider.getRevision()).toBe(before + 1);
+});
+
+/**
+ * Selection is host-internal state, like the revision counter: a property of
+ * one person looking at one screen, not of the dashboard.
+ */
+test('selecting a node reports it back', () => {
+  const provider = DashboardProvider.getInstance();
+  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'markdown',
+  });
+
+  provider.setSelection(id);
+
+  expect(provider.getSelection()).toBe(id);
+});
+
+test('removing the selected node clears the selection', () => {
+  const provider = DashboardProvider.getInstance();
+  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'markdown',
+  });
+  provider.setSelection(id);
+
+  provider.removeBuildingBlock(id);
+
+  // A selection is a reference to a node, and a node that is gone cannot be
+  // the thing being edited — an inspector reading a dangling id would show a
+  // block that no longer exists.
+  expect(provider.getSelection()).toBeUndefined();
+});
+
+test('removing a container clears a selection inside its subtree', () => {
+  const provider = DashboardProvider.getInstance();
+  const sectionId = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'canvas',
+  });
+  const childId = provider.addBuildingBlock(sectionId, 0, { type: 'markdown' });
+  provider.setSelection(childId);
+
+  provider.removeBuildingBlock(sectionId);
+
+  // The node that vanished was a descendant of the one actually removed,
+  // which is why the check belongs in the commit rather than at the removal.
+  expect(provider.getSelection()).toBeUndefined();
+});
+
+test('reset clears the selection along with the tree', () => {
+  const provider = DashboardProvider.getInstance();
+  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'markdown',
+  });
+  provider.setSelection(id);
+
+  provider.reset();
+
+  expect(provider.getSelection()).toBeUndefined();
 });
