@@ -130,16 +130,34 @@ export const useSimpleTabFilterProps = (props: Props) => {
       // hide the TEMPORAL_RANGE operator
       return false;
     }
-    // CONTAINS (array membership) only applies to multi-value columns.
-    if (operator === Operators.Contains) {
+    // Element-level array operators only apply to multi-value columns.
+    const arrayElementOperators = [
+      Operators.ContainsAny,
+      Operators.ContainsAll,
+      Operators.IsEmpty,
+      Operators.IsNotEmpty,
+      Operators.LengthEquals,
+      Operators.LengthGreaterThan,
+      Operators.LengthLessThan,
+      Operators.LengthGreaterThanOrEqual,
+      Operators.LengthLessThanOrEqual,
+    ];
+    if (arrayElementOperators.includes(operator)) {
       return isColumnMultiValue;
     }
     if (isColumnMultiValue) {
-      // multi-value columns support membership and null checks only;
-      // CONTAINS is already handled by the early return above.
-      return (
-        operator === Operators.IsNull || operator === Operators.IsNotNull
-      );
+      // Array columns support whole-array operators (=, !=, In, Not in, null
+      // checks) plus the element-level operators above. Scalar-only operators
+      // (Like, <, >, <=, >=) are hidden because they aren't valid on an array.
+      return [
+        Operators.Equals,
+        Operators.NotEquals,
+        Operators.In,
+        Operators.NotIn,
+        Operators.IsNull,
+        Operators.IsNotNull,
+        ...arrayElementOperators,
+      ].includes(operator);
     }
     if (operator === Operators.IsTrue || operator === Operators.IsFalse) {
       return isColumnBoolean || isColumnNumber || isColumnFunction;
@@ -181,9 +199,19 @@ export const useSimpleTabFilterProps = (props: Props) => {
           ].operation
         : null;
     if (!isDefined(operator)) {
-      // if operator is `null`, use the `IN` and reset the comparator.
-      operator = Operators.In;
-      operatorId = Operators.In;
+      // The previous operator is not relevant for the new subject; pick a
+      // sensible default and reset the comparator. Multi-value (array) columns
+      // default to "Contains any" (element membership) rather than the
+      // scalar-only IN.
+      const newColumn = props.datasource.columns?.find(
+        col => col.column_name === subject,
+      );
+      const defaultOperator =
+        newColumn?.type_generic === GenericDataType.MultiValue
+          ? Operators.ContainsAny
+          : Operators.In;
+      operator = defaultOperator;
+      operatorId = defaultOperator;
       comparator = undefined;
     }
 

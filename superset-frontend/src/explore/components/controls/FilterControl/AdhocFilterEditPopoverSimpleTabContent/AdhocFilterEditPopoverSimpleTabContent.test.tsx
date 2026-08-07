@@ -253,7 +253,7 @@ test('shows boolean only operators when subject is number', () => {
   ].map(operator => expect(isOperatorRelevant(operator, 'value')).toBe(true));
 });
 
-test('shows CONTAINS and null operators when subject is multi-value', () => {
+test('shows array operators (tier 1 + tier 2) when subject is multi-value', () => {
   const props = setup({
     adhocFilter: new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
@@ -277,16 +277,28 @@ test('shows CONTAINS and null operators when subject is multi-value', () => {
   const { isOperatorRelevant } = useSimpleTabFilterProps(
     props as unknown as Props,
   );
-  [Operators.Contains, Operators.IsNull, Operators.IsNotNull].forEach(
-    operator => expect(isOperatorRelevant(operator, 'skills')).toBe(true),
+  // Tier 1 (whole-array) + Tier 2 (element-level) are all relevant.
+  [
+    Operators.Equals,
+    Operators.NotEquals,
+    Operators.In,
+    Operators.NotIn,
+    Operators.IsNull,
+    Operators.IsNotNull,
+    Operators.ContainsAny,
+    Operators.ContainsAll,
+    Operators.IsEmpty,
+    Operators.IsNotEmpty,
+  ].forEach(operator =>
+    expect(isOperatorRelevant(operator, 'skills')).toBe(true),
   );
-  // scalar operators are hidden for array columns
-  [Operators.Equals, Operators.GreaterThan, Operators.Like].forEach(operator =>
-    expect(isOperatorRelevant(operator, 'skills')).toBe(false),
+  // scalar-only operators are hidden for array columns
+  [Operators.GreaterThan, Operators.LessThan, Operators.Like].forEach(
+    operator => expect(isOperatorRelevant(operator, 'skills')).toBe(false),
   );
 });
 
-test('hides CONTAINS for non multi-value columns', () => {
+test('hides element-level array operators for non multi-value columns', () => {
   const props = setup({
     adhocFilter: new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
@@ -303,7 +315,14 @@ test('hides CONTAINS for non multi-value columns', () => {
   const { isOperatorRelevant } = useSimpleTabFilterProps(
     props as unknown as Props,
   );
-  expect(isOperatorRelevant(Operators.Contains, 'value')).toBe(false);
+  [
+    Operators.ContainsAny,
+    Operators.ContainsAll,
+    Operators.IsEmpty,
+    Operators.IsNotEmpty,
+  ].forEach(operator =>
+    expect(isOperatorRelevant(operator, 'value')).toBe(false),
+  );
 });
 
 test('will convert from individual comparator to array if the operator changes to multi', () => {

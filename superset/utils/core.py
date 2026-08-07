@@ -298,7 +298,17 @@ class FilterOperator(StrEnum):
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
-    CONTAINS = "CONTAINS"  # array membership, for MULTI_VALUE columns
+    # Element-level operators for MULTI_VALUE (array) columns
+    CONTAINS_ANY = "CONTAINS_ANY"
+    CONTAINS_ALL = "CONTAINS_ALL"
+    IS_EMPTY = "IS_EMPTY"
+    IS_NOT_EMPTY = "IS_NOT_EMPTY"
+    # Length (element-count) comparison operators for array columns
+    LENGTH_EQUALS = "LENGTH_EQUALS"
+    LENGTH_GREATER_THAN = "LENGTH_GREATER_THAN"
+    LENGTH_LESS_THAN = "LENGTH_LESS_THAN"
+    LENGTH_GREATER_THAN_OR_EQUALS = "LENGTH_GREATER_THAN_OR_EQUALS"
+    LENGTH_LESS_THAN_OR_EQUALS = "LENGTH_LESS_THAN_OR_EQUALS"
 
 
 class FilterStringOperators(StrEnum):
@@ -317,7 +327,15 @@ class FilterStringOperators(StrEnum):
     LATEST_PARTITION = ("LATEST_PARTITION",)
     IS_TRUE = ("IS_TRUE",)
     IS_FALSE = ("IS_FALSE",)
-    CONTAINS = ("CONTAINS",)
+    CONTAINS_ANY = ("CONTAINS_ANY",)
+    CONTAINS_ALL = ("CONTAINS_ALL",)
+    IS_EMPTY = ("IS_EMPTY",)
+    IS_NOT_EMPTY = ("IS_NOT_EMPTY",)
+    LENGTH_EQUALS = ("LENGTH_EQUALS",)
+    LENGTH_GREATER_THAN = ("LENGTH_GREATER_THAN",)
+    LENGTH_LESS_THAN = ("LENGTH_LESS_THAN",)
+    LENGTH_GREATER_THAN_OR_EQUALS = ("LENGTH_GREATER_THAN_OR_EQUALS",)
+    LENGTH_LESS_THAN_OR_EQUALS = ("LENGTH_LESS_THAN_OR_EQUALS",)
 
 
 class PostProcessingBoxplotWhiskerType(StrEnum):
@@ -1298,22 +1316,6 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     )
 
 
-class MultiValueColumnOperation(StrEnum):
-    """Operations that can be applied to a multi-value (array) column."""
-
-    LENGTH = "LENGTH"
-    EXPLODE = "EXPLODE"
-
-
-def is_multivalue_operation_column(column: Column) -> bool:
-    """Whether ``column`` is a multi-value modifier (e.g. array length).
-
-    These columns carry a base ``column`` plus a ``columnOperation`` instead of a
-    ``sqlExpression``; the actual SQL is produced by the engine spec.
-    """
-    return isinstance(column, dict) and "columnOperation" in column
-
-
 def is_base_axis(column: Column) -> bool:
     return is_adhoc_column(column) and column.get("columnType") == "BASE_AXIS"
 
@@ -1724,7 +1726,7 @@ def get_column_name_from_column(column: Column) -> str | None:
     :param column: Physical and ad-hoc column
     :return: column name if physical column, otherwise None
     """
-    if is_adhoc_column(column) or is_multivalue_operation_column(column):
+    if is_adhoc_column(column):
         return None
     return column  # type: ignore
 

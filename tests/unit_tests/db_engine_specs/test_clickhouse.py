@@ -639,26 +639,37 @@ def test_clickhouse_supports_multivalue_columns() -> None:
     assert spec.supports_multivalue_columns is True
 
 
-def test_multivalue_contains_sql() -> None:
+def test_multivalue_contains_any_sql() -> None:
     from sqlalchemy import column
 
     from superset.db_engine_specs.clickhouse import (  # noqa: N813
         ClickHouseEngineSpec as spec,
     )
 
-    expr = spec.array_contains(column("skills"), "Driver")
-    assert _compile(expr) == "has(skills, 'Driver')"
+    expr = spec.array_contains_any(column("skills"), ["Driver", "Cook"])
+    assert _compile(expr) == "hasAny(skills, array('Driver', 'Cook'))"
+
+
+def test_multivalue_contains_all_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_all(column("skills"), ["Driver", "Cook"])
+    assert _compile(expr) == "hasAll(skills, array('Driver', 'Cook'))"
 
 
 def test_multivalue_contains_binds_parameters() -> None:
-    """Value must be a bound parameter, not inlined (SQL-injection safety)."""
+    """Values must be bound parameters, not inlined (SQL-injection safety)."""
     from sqlalchemy import column
 
     from superset.db_engine_specs.clickhouse import (  # noqa: N813
         ClickHouseEngineSpec as spec,
     )
 
-    expr = spec.array_contains(column("skills"), "Driver")
+    expr = spec.array_contains_any(column("skills"), ["Driver"])
     compiled = expr.compile()
     assert "Driver" not in str(compiled)
     assert "Driver" in compiled.params.values()
@@ -673,14 +684,3 @@ def test_multivalue_length_sql() -> None:
 
     expr = spec.array_length(column("skills"))
     assert _compile(expr) == "length(skills)"
-
-
-def test_multivalue_explode_sql() -> None:
-    from sqlalchemy import column
-
-    from superset.db_engine_specs.clickhouse import (  # noqa: N813
-        ClickHouseEngineSpec as spec,
-    )
-
-    expr = spec.array_explode(column("skills"))
-    assert _compile(expr) == "arrayJoin(skills)"
