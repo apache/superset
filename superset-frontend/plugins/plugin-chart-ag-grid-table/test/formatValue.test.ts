@@ -19,7 +19,11 @@
 import { CurrencyFormatter } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { ValueFormatterParams } from '@superset-ui/core/components/ThemedAgGridReact';
-import { formatColumnValue, valueFormatter, valueGetter } from '../src/utils/formatValue';
+import {
+  formatColumnValue,
+  valueFormatter,
+  valueGetter,
+} from '../src/utils/formatValue';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import { DataColumnMeta, InputColumn } from '../src/types';
 
@@ -48,7 +52,10 @@ test('valueFormatter never returns a raw Date/object when col.formatter is unset
   // returned that raw object, which crashes React with "Objects are not valid
   // as a React child" once a cell renderer renders it directly.
   const date = new DateWithFormatter(1069113600000);
-  const result = valueFormatter(makeParams(date), { ...baseCol, formatter: undefined });
+  const result = valueFormatter(makeParams(date), {
+    ...baseCol,
+    formatter: undefined,
+  });
 
   expect(typeof result).toBe('string');
   expect(result).not.toBe(date);
@@ -84,10 +91,13 @@ test('valueFormatter falls back to a string when the CurrencyFormatter returns a
 
 test('valueFormatter uses the formatter result when it is truthy', () => {
   const formatter = jest.fn().mockReturnValue('2003-11-18');
-  const result = valueFormatter(makeParams(new DateWithFormatter(1069113600000)), {
-    ...baseCol,
-    formatter: formatter as unknown as InputColumn['formatter'],
-  });
+  const result = valueFormatter(
+    makeParams(new DateWithFormatter(1069113600000)),
+    {
+      ...baseCol,
+      formatter: formatter as unknown as InputColumn['formatter'],
+    },
+  );
 
   expect(result).toBe('2003-11-18');
 });
@@ -141,7 +151,9 @@ test('formatColumnValue applies the small-number formatter for values under 1 in
     isNumeric: true,
     isMetric: true,
     isPercentMetric: false,
-    formatter: new CurrencyFormatter({ currency: { symbol: 'AUTO', symbolPosition: 'prefix' } }),
+    formatter: new CurrencyFormatter({
+      currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    }),
     config: {},
   };
 

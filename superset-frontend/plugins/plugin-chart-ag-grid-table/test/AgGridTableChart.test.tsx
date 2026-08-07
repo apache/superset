@@ -1001,7 +1001,11 @@ test('AgGridTableChart renders a temporal column with a blank row without crashi
   render(
     ProviderWrapper({
       children: (
-        <AgGridTableChart {...props} setDataMask={mockSetDataMask} slice_id={1} />
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
       ),
     }),
   );
@@ -1012,7 +1016,9 @@ test('AgGridTableChart renders a temporal column with a blank row without crashi
 
   const reactChildError = errorSpy.mock.calls
     .map(call => call.join(' '))
-    .find(message => message.includes('Objects are not valid as a React child'));
+    .find(message =>
+      message.includes('Objects are not valid as a React child'),
+    );
   errorSpy.mockRestore();
   expect(reactChildError).toBeUndefined();
 
