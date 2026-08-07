@@ -695,6 +695,27 @@ describe('sqlLabReducer', () => {
       );
       expect(newState.queries['sync-query'].state).toBe(QueryState.Fetching);
     });
+    test('should move an async query from running to success when polling reports it finished', () => {
+      const asyncQuery = {
+        ...query,
+        id: 'async-query',
+        state: QueryState.Running,
+        runAsync: true,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { 'async-query': asyncQuery },
+        },
+        actions.refreshQueries({
+          'async-query': {
+            ...asyncQuery,
+            state: QueryState.Success,
+          },
+        }),
+      );
+      expect(newState.queries['async-query'].state).toBe(QueryState.Success);
+    });
   });
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('CLEAR_INACTIVE_QUERIES', () => {
