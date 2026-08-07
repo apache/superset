@@ -79,3 +79,25 @@ def test_normalize_table_name_for_upload(
 
     assert normalized_table == expected_table
     assert normalized_schema == expected_schema
+
+
+def test_extended_aggregation_func_inherited_from_postgres() -> None:
+    """
+    Redshift is a Postgres fork and inherits `_extended_aggregations` from
+    `PostgresBaseEngineSpec` -- its documented SQL function reference matches
+    Postgres for these functions, though this has not been separately
+    verified against a live Redshift instance (see the SIP doc for caveats).
+    """
+    from sqlalchemy import column
+
+    col = column("sales")
+
+    median_func = RedshiftEngineSpec.get_extended_aggregation_func("MEDIAN")
+    assert median_func is not None
+    assert (
+        str(median_func(col).compile(compile_kwargs={"literal_binds": True}))
+        == "percentile_cont(0.5) WITHIN GROUP (ORDER BY sales)"
+    )
+
+    for aggregate in ("STDDEV_SAMP", "VAR_SAMP"):
+        assert RedshiftEngineSpec.get_extended_aggregation_func(aggregate) is not None
