@@ -394,7 +394,7 @@ def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     if viz_type == "bubble":
         return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
 
-    metrics = form_data.get("metrics", [])
+    metrics = form_data.get("metrics") or []
     if not metrics and (metric := form_data.get("metric")):
         metrics = [metric]
     return metrics
@@ -437,8 +437,8 @@ def resolve_metrics_and_groupby(
     chart: Any | None = None,
 ) -> tuple[list[Any], list[Any]]:
     """Resolve metrics and groupby columns from form_data."""
-    viz_type = form_data.get(
-        "viz_type", getattr(chart, "viz_type", "") if chart else ""
+    viz_type = (
+        form_data.get("viz_type", getattr(chart, "viz_type", "") if chart else "") or ""
     )
     singular_metric_no_groupby = (
         "big_number",
@@ -446,8 +446,13 @@ def resolve_metrics_and_groupby(
         "pop_kpi",
     )
     if viz_type in singular_metric_no_groupby:
-        metrics: list[Any] = [metric] if (metric := form_data.get("metric")) else []
-        return metrics, []
+        metric = form_data.get("metric")
+        if not metric:
+            # Some saved/migrated form_data stores the metric under the
+            # plural "metrics" key even for single-metric chart types.
+            plural_metrics = form_data.get("metrics") or []
+            metric = plural_metrics[0] if plural_metrics else None
+        return ([metric] if metric else []), []
 
     return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
 

@@ -578,6 +578,11 @@ def test_import_removes_dashboard_charts(
     expected_number_of_charts = len(charts_config_2)
 
     ImportAssetsCommand._import(base_configs)
+    # Commit between imports, as production does: ``run()`` carries
+    # ``@transaction()``, so two imports are two transactions. Without this the
+    # add and the remove of one association share a Continuum transaction and
+    # collide on ``dashboard_slices_version``'s composite key.
+    db.session.commit()
     ImportAssetsCommand._import(new_configs)
     dashboard_ids = db.session.scalars(
         select(dashboard_slices.c.dashboard_id).distinct()

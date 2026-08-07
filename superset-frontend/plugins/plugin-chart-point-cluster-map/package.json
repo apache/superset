@@ -9,27 +9,30 @@
   "bugs": {
     "url": "https://github.com/apache/superset/issues"
   },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "repository": {
     "type": "git",
     "url": "https://github.com/apache/superset.git",
     "directory": "superset-frontend/plugins/plugin-chart-point-cluster-map"
   },
-  "license": "Apache-2.0",
-  "author": "Superset",
+  "files": [
+    "esm",
+    "lib"
+  ],
   "sideEffects": [
     "*.css"
   ],
   "main": "lib/index.js",
   "module": "esm/index.js",
-  "files": [
-    "esm",
-    "lib"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@math.gl/web-mercator": "^4.1.0",
-    "mapbox-gl": "^3.26.0",
+    "mapbox-gl": "^3.27.0",
     "maplibre-gl": "^5.24.0",
-    "react-map-gl": "^8.1.1",
+    "react-map-gl": "^8.1.2",
     "supercluster": "^8.0.1"
   },
   "peerDependencies": {
@@ -38,8 +41,5 @@
     "@superset-ui/core": "*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }
