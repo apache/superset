@@ -21,10 +21,6 @@ import { act, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import DashboardBuilderV2 from '.';
 
-jest.mock('src/core/chat', () => ({
-  chat: { registerClientTools: () => ({ dispose: () => {} }) },
-}));
-
 const provider = DashboardProvider.getInstance();
 
 beforeEach(() => {

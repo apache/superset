@@ -66,24 +66,3 @@ test('setDisplayMode updates the display mode', () => {
   chat.setDisplayMode('panel');
   expect(chat.getDisplayMode()).toBe('panel');
 });
-
-test('registerClientTools exposes and executes a page-owned tool', async () => {
-  const registration = chat.registerClientTools([
-    {
-      name: 'dashboard_get_state',
-      description: 'Reads the active dashboard.',
-      inputSchema: { type: 'object', properties: {} },
-      execute: args => ({ content: JSON.stringify(args) }),
-    },
-  ]);
-
-  expect(chat.getClientTools()).toEqual([
-    expect.objectContaining({ name: 'dashboard_get_state' }),
-  ]);
-  await expect(
-    chat.executeClientTool('dashboard_get_state', { detail: 'full' }),
-  ).resolves.toEqual({ content: '{"detail":"full"}' });
-
-  registration.dispose();
-  expect(chat.getClientTools()).toEqual([]);
-});

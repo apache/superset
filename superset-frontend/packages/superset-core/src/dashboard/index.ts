@@ -60,9 +60,10 @@ import type { Event } from '../common';
  * at once — a `canvas` nested inside another `canvas` both holds a grid for
  * its own children and occupies cells in its parent's.
  *
- * A single-column grid with every child left at its default full-width span
- * behaves like a plain top-to-bottom stack — a flow falls out of the same
- * schema rather than requiring a different one.
+ * There is no separate "flow" or "absolute" mode: a single-column grid with
+ * every child left at its default full-width span behaves like a plain
+ * top-to-bottom stack — it falls out of the same schema rather than
+ * requiring a different one.
  */
 export interface LayoutProps {
   // --- Container side: how this node arranges its own children. Ignored
