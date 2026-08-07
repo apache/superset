@@ -65,6 +65,7 @@ from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
+    enforce_theme_algorithm,
     is_valid_theme,
 )
 from superset.translations.utils import get_language_pack_version
@@ -429,6 +430,11 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     # Process and validate themes
     default_theme = _process_theme(default_theme, ThemeMode.DEFAULT)
     dark_theme = _process_theme(dark_theme, ThemeMode.DARK)
+
+    # Force each theme to carry the algorithm of the slot it fills, so a light
+    # theme assigned to the dark slot (or vice versa) still renders consistently
+    default_theme = enforce_theme_algorithm(default_theme, ThemeMode.DEFAULT)
+    dark_theme = enforce_theme_algorithm(dark_theme, ThemeMode.DARK)
 
     return {
         "theme": {
