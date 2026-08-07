@@ -50,7 +50,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
         command = estimate.QueryEstimationCommand(data)
 
         with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
-            mock_superset_db.session.query().get.return_value = None
+            mock_superset_db.session.get.return_value = None
             with pytest.raises(SupersetErrorException) as ex_info:
                 command.validate()
             assert (
@@ -82,7 +82,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
         is_feature_enabled.return_value = False
 
         with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
-            mock_superset_db.session.query().get.return_value = db_mock
+            mock_superset_db.session.get.return_value = db_mock
             with pytest.raises(SupersetErrorException) as ex_info:
                 command.run()
             assert (
@@ -108,7 +108,7 @@ class TestQueryEstimationCommand(SupersetTestCase):
         db_mock.db_engine_spec.query_cost_formatter = mock.Mock(return_value=payload)
 
         with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
-            mock_superset_db.session.query().get.return_value = db_mock
+            mock_superset_db.session.get.return_value = db_mock
             result = command.run()
             assert result == payload
 

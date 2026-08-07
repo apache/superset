@@ -81,7 +81,7 @@ def generate_preview_from_form_data(
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
 
-        dataset = db.session.query(SqlaTable).get(dataset_id)
+        dataset = db.session.get(SqlaTable, dataset_id)
         if not dataset:
             return ChartError(
                 error=f"Dataset {dataset_id} not found", error_type="DatasetNotFound"
