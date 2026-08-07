@@ -59,7 +59,7 @@ class KeyValueEntry(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session: Session = db.Session(bind=bind)
+    session: Session = db.Session(bind=bind, future=True)
     truncated_count = 0
     for entry in paginated_update(
         session.query(KeyValueEntry).filter(
@@ -85,7 +85,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session: Session = db.Session(bind=bind)
+    session: Session = db.Session(bind=bind, future=True)
     for entry in paginated_update(
         session.query(KeyValueEntry).filter(
             KeyValueEntry.resource.in_(RESOURCES_TO_MIGRATE)

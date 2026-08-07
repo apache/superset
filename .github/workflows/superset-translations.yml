@@ -19,13 +19,13 @@ concurrency:
 
 jobs:
   frontend-check-translations:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
@@ -55,13 +55,13 @@ jobs:
           npm run build-translation
 
   babel-extract:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
@@ -153,3 +153,14 @@ jobs:
       - name: Fail if regression detected
         if: steps.regression.outcome == 'failure'
         run: exit 1
+
+  actions-timeline:
+    needs: [frontend-check-translations, babel-extract]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+        with:
+          expand-composite-actions: true

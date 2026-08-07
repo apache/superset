@@ -1,0 +1,33 @@
+name: supersetbot orglabel based on author
+
+on:
+  issues:
+    types: [opened, edited]
+
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  superbot-orglabel:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Execute supersetbot orglabel command
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Label the issue with the appropriate org using supersetbot
+          # - this requires for the author to be publicly associated with their org
+          # - and for the org to be listed in `supersetbot/src/metadata.js`
+          supersetbot orglabel --issue ${{ github.event.number || github.event.issue.number }} --repo ${{ github.repository }} || true

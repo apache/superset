@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -34,7 +34,7 @@ jobs:
       frontend: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -48,7 +48,7 @@ jobs:
   playwright-tests-experimental:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     continue-on-error: true
     permissions:
@@ -83,21 +83,21 @@ jobs:
       # Conditional checkout based on context (same as Cypress workflow)
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
@@ -170,3 +170,14 @@ jobs:
             ${{ github.workspace }}/superset-frontend/playwright-results/
             ${{ github.workspace }}/superset-frontend/test-results/
           name: playwright-experimental-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+
+  actions-timeline:
+    needs: playwright-tests-experimental
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+        with:
+          expand-composite-actions: true

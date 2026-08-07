@@ -16,7 +16,7 @@
 # under the License.
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import sqlalchemy as sa
 
@@ -65,10 +65,12 @@ class LogPruneCommand(BaseCommand):
 
         # Select all IDs that need to be deleted
         # Log.dttm is stored as a naive UTC datetime (no tzinfo), so compute
-        # the cutoff with utcnow() to avoid a naive/aware mismatch that raises
+        # the cutoff as a naive UTC datetime to avoid a naive/aware mismatch that raises
         # on PostgreSQL ("operator does not exist: timestamp without time zone").
         select_stmt = sa.select(Log.id).where(
-            Log.dttm < datetime.utcnow() - timedelta(days=self.retention_period_days)
+            Log.dttm
+            < datetime.now(timezone.utc).replace(tzinfo=None)
+            - timedelta(days=self.retention_period_days)
         )
 
         # Optionally limited by max_rows_per_run

@@ -33,67 +33,60 @@ Skeleton loading component with support for avatar, title, paragraph, button, an
 <StoryWithControls
   component="Skeleton"
   props={{
-  active: true,
-  avatar: false,
-  loading: true,
-  title: true,
-  shape: "circle",
-  size: "default",
-  block: false
-}}
+    active: true,
+    avatar: false,
+    loading: true,
+    title: true,
+    shape: 'circle',
+    size: 'default',
+    block: false,
+  }}
   controls={[
-  {
-    name: "active",
-    label: "Active",
-    type: "boolean",
-    description: "Show animation effect."
-  },
-  {
-    name: "avatar",
-    label: "Avatar",
-    type: "boolean",
-    description: "Show avatar placeholder."
-  },
-  {
-    name: "loading",
-    label: "Loading",
-    type: "boolean",
-    description: "Display the skeleton when true."
-  },
-  {
-    name: "title",
-    label: "Title",
-    type: "boolean",
-    description: "Show title placeholder."
-  },
-  {
-    name: "shape",
-    label: "Shape",
-    type: "select",
-    options: [
-      "circle",
-      "square"
-    ],
-    description: "Shape of the avatar/button skeleton."
-  },
-  {
-    name: "size",
-    label: "Size",
-    type: "select",
-    options: [
-      "large",
-      "small",
-      "default"
-    ],
-    description: "Size of the skeleton elements."
-  },
-  {
-    name: "block",
-    label: "Block",
-    type: "boolean",
-    description: "Option to fit button width to its parent width."
-  }
-]}
+    {
+      name: 'active',
+      label: 'Active',
+      type: 'boolean',
+      description: 'Show animation effect.',
+    },
+    {
+      name: 'avatar',
+      label: 'Avatar',
+      type: 'boolean',
+      description: 'Show avatar placeholder.',
+    },
+    {
+      name: 'loading',
+      label: 'Loading',
+      type: 'boolean',
+      description: 'Display the skeleton when true.',
+    },
+    {
+      name: 'title',
+      label: 'Title',
+      type: 'boolean',
+      description: 'Show title placeholder.',
+    },
+    {
+      name: 'shape',
+      label: 'Shape',
+      type: 'select',
+      options: ['circle', 'square'],
+      description: 'Shape of the avatar/button skeleton.',
+    },
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'select',
+      options: ['large', 'small', 'default'],
+      description: 'Size of the skeleton elements.',
+    },
+    {
+      name: 'block',
+      label: 'Block',
+      type: 'boolean',
+      description: 'Option to fit button width to its parent width.',
+    },
+  ]}
 />
 
 ## Try It
@@ -102,29 +95,21 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
-  return (
-    <Skeleton
-      active
-      loading
-      title
-      shape="circle"
-      size="default"
-    />
-  );
+  return <Skeleton active loading title shape="circle" size="default" />;
 }
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `active` | `boolean` | `true` | Show animation effect. |
-| `avatar` | `boolean` | `false` | Show avatar placeholder. |
-| `loading` | `boolean` | `true` | Display the skeleton when true. |
-| `title` | `boolean` | `true` | Show title placeholder. |
-| `shape` | `string` | `"circle"` | Shape of the avatar/button skeleton. |
-| `size` | `string` | `"default"` | Size of the skeleton elements. |
-| `block` | `boolean` | `false` | Option to fit button width to its parent width. |
+| Prop      | Type      | Default     | Description                                     |
+| --------- | --------- | ----------- | ----------------------------------------------- |
+| `active`  | `boolean` | `true`      | Show animation effect.                          |
+| `avatar`  | `boolean` | `false`     | Show avatar placeholder.                        |
+| `loading` | `boolean` | `true`      | Display the skeleton when true.                 |
+| `title`   | `boolean` | `true`      | Show title placeholder.                         |
+| `shape`   | `string`  | `"circle"`  | Shape of the avatar/button skeleton.            |
+| `size`    | `string`  | `"default"` | Size of the skeleton elements.                  |
+| `block`   | `boolean` | `false`     | Option to fit button width to its parent width. |
 
 ## Import
 

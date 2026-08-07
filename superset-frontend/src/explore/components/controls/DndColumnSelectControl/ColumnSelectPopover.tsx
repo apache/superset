@@ -35,7 +35,6 @@ import {
   DatasourceType,
   Metric,
   QueryFormMetric,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/theme';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
@@ -89,6 +88,16 @@ const MetricIcon = styled.span`
 
 const MetricLabel = styled.span`
   color: ${({ theme }) => theme.colorText};
+`;
+
+const inlineTextButtonCss = css`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 `;
 
 export interface ColumnSelectPopoverProps {
@@ -473,30 +482,24 @@ const ColumnSelectPopover = ({
                           description={
                             isTemporal ? (
                               <>
-                                <span
-                                  role="button"
-                                  tabIndex={0}
+                                <button
+                                  type="button"
+                                  css={inlineTextButtonCss}
                                   onClick={setDatasetAndClose}
-                                  onKeyDown={handleKeyboardActivation(
-                                    setDatasetAndClose,
-                                  )}
                                 >
                                   {t('Create a dataset')}
-                                </span>{' '}
+                                </button>{' '}
                                 {t(' to mark a column as a time column')}
                               </>
                             ) : (
                               <>
-                                <span
-                                  role="button"
-                                  tabIndex={0}
+                                <button
+                                  type="button"
+                                  css={inlineTextButtonCss}
                                   onClick={setDatasetAndClose}
-                                  onKeyDown={handleKeyboardActivation(
-                                    setDatasetAndClose,
-                                  )}
                                 >
                                   {t('Create a dataset')}
-                                </span>{' '}
+                                </button>{' '}
                                 {t(' to add calculated columns')}
                               </>
                             )
@@ -524,16 +527,13 @@ const ColumnSelectPopover = ({
                         )
                       ) : (
                         <>
-                          <span
-                            role="button"
-                            tabIndex={0}
+                          <button
+                            type="button"
+                            css={inlineTextButtonCss}
                             onClick={setDatasetAndClose}
-                            onKeyDown={handleKeyboardActivation(
-                              setDatasetAndClose,
-                            )}
                           >
                             {t('Create a dataset')}
-                          </span>{' '}
+                          </button>{' '}
                           {t(' to mark a column as a time column')}
                         </>
                       )
