@@ -18,6 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash-es';
+import { rebaseToPercentChange } from './percentChange';
 import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
@@ -25,6 +26,8 @@ import {
   buildCustomFormatters,
   CategoricalColorNamespace,
   CurrencyFormatter,
+  DataRecordValue,
+  DTTM_ALIAS,
   ensureIsArray,
   tooltipHtml,
   getCustomFormatter,
@@ -78,6 +81,7 @@ import {
   extractSeries,
   extractShowValueIndexes,
   extractTooltipKeys,
+  getAreaScaledSymbolSize,
   getAxisType,
   getColtypesMapping,
   getHorizontalLegendAvailableWidth,
@@ -228,6 +232,8 @@ export default function transformProps(
     logAxis,
     markerEnabled,
     markerSize,
+    maxMarkerSize = 30,
+    minMarkerSize = 5,
     metrics,
     minorSplitLine,
     minorTicks,
@@ -239,6 +245,7 @@ export default function transformProps(
     seriesType,
     showLegend,
     showValue,
+    size,
     colorByPrimaryAxis,
     sliceId,
     sortSeriesType,
@@ -290,7 +297,7 @@ export default function transformProps(
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedData = rebaseForecastDatum(data, verboseMap);
+  const forecastRebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
   if (
     isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
@@ -298,6 +305,18 @@ export default function transformProps(
   ) {
     xAxisLabel = verboseMap[xAxisLabel];
   }
+  // Restores the legacy nvd3 "Time-series Percent Change" view: every series
+  // rebased client-side to its percent change from the first point. The
+  // baseline can be re-indexed interactively via the draggable line the
+  // chart component installs.
+  const rebasePercentChange = Boolean(
+    (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
+  );
+  const rebasedData = rebasePercentChange
+    ? // the same temporal-alias fallback extractSeries applies, so a chart
+      // with no explicit x-axis cannot have its x column rebased as data
+      rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
+    : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
@@ -321,7 +340,7 @@ export default function transformProps(
     seriesType,
   );
 
-  const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
+  const [allRawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
     {
       fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
@@ -337,6 +356,144 @@ export default function transformProps(
       xAxisType,
     },
   );
+
+  // Dot size by metric (scatter): the size metric's series are excluded from
+  // rendering and instead provide per-point values that scale each marker's
+  // area between minMarkerSize and maxMarkerSize.
+  const sizeMetricLabel =
+    seriesType === EchartsTimeseriesSeriesType.Scatter && size
+      ? getMetricLabel(size)
+      : undefined;
+  const sizeSeriesLabel = isDefined(sizeMetricLabel)
+    ? (verboseMap[sizeMetricLabel!] ?? sizeMetricLabel)
+    : undefined;
+  const valueMetricLabels = ensureIsArray(metrics)
+    .map(getMetricLabel)
+    .map(label => verboseMap[label] ?? label);
+  // When the size metric is also a value metric, the query dedupes them into a
+  // single column, so each point's own value doubles as its size value.
+  const sizeIsValueMetric = isDefined(sizeSeriesLabel)
+    ? valueMetricLabels.includes(sizeSeriesLabel!)
+    : false;
+  // Time-comparison series keep the raw metric label with an `__<offset>`
+  // suffix (verbose mapping only applies to base columns, see
+  // rebaseForecastDatum), so a metric's series can be named `<label>`,
+  // `<label>, <dims>`, `<raw label>__<offset>` or
+  // `<raw label>__<offset>, <dims>`. Given a raw metric label, return the
+  // `<offset>|<dims>` key for a series name belonging to that metric, or
+  // undefined if the name doesn't belong to it. Keying by offset pairs each
+  // comparison value series with the size series from the same offset.
+  const timeCompareOffsets = ensureIsArray(timeCompare).map(String);
+  const matchSeriesKey = (
+    name: string,
+    rawLabel: string,
+  ): string | undefined => {
+    const candidates = [
+      { label: verboseMap[rawLabel] ?? rawLabel, offset: '' },
+      ...timeCompareOffsets.map(offset => ({
+        label: `${rawLabel}__${offset}`,
+        offset,
+      })),
+    ];
+    for (const { label, offset } of candidates) {
+      if (name === label) {
+        return `${offset}|`;
+      }
+      if (name.startsWith(`${label}, `)) {
+        return `${offset}|${name.slice(label.length + 2)}`;
+      }
+    }
+    return undefined;
+  };
+  const isSizeSeries = (name: string) =>
+    isDefined(sizeMetricLabel) &&
+    !sizeIsValueMetric &&
+    matchSeriesKey(name, sizeMetricLabel!) !== undefined;
+  const rawSeries = sizeSeriesLabel
+    ? allRawSeries.filter(entry => !isSizeSeries(String(entry.name ?? '')))
+    : allRawSeries;
+  // A hidden size-only series carries its own value range (e.g. a revenue
+  // metric driving dot size while a different metric renders on the value
+  // axis), so recompute the lower bound used for log-axis ticks from the
+  // series that actually render rather than the pre-filter allRawSeries.
+  const renderedMinPositiveValue =
+    rawSeries === allRawSeries
+      ? minPositiveValue
+      : rawSeries.reduce<number | undefined>((min, entry) => {
+          (
+            entry.data as [DataRecordValue, DataRecordValue][] | undefined
+          )?.forEach(datum => {
+            const value = isHorizontal ? datum[0] : datum[1];
+            if (
+              typeof value === 'number' &&
+              value > 0 &&
+              (min === undefined || value < min)
+            ) {
+              min = value;
+            }
+          });
+          return min;
+        }, undefined);
+  // Maps each value series' dimension key to a lookup from primary-axis value
+  // to size value.
+  let sizeLookups: Map<string, Map<DataRecordValue, number>> | undefined;
+  let sizeExtent: [number, number] | undefined;
+  if (sizeSeriesLabel) {
+    let sizeMin = Infinity;
+    let sizeMax = -Infinity;
+    if (sizeIsValueMetric) {
+      rawSeries.forEach(entry => {
+        (entry.data as DataRecordValue[][]).forEach(datum => {
+          const sizeValue = isHorizontal ? datum[0] : datum[1];
+          if (typeof sizeValue === 'number' && Number.isFinite(sizeValue)) {
+            sizeMin = Math.min(sizeMin, sizeValue);
+            sizeMax = Math.max(sizeMax, sizeValue);
+          }
+        });
+      });
+    } else {
+      sizeLookups = new Map();
+      allRawSeries
+        .filter(entry => isSizeSeries(String(entry.name ?? '')))
+        .forEach(entry => {
+          const name = String(entry.name ?? '');
+          const dimsKey = matchSeriesKey(name, sizeMetricLabel!)!;
+          const lookup = new Map<DataRecordValue, number>();
+          (entry.data as DataRecordValue[][]).forEach(datum => {
+            const axisValue = isHorizontal ? datum[1] : datum[0];
+            const sizeValue = isHorizontal ? datum[0] : datum[1];
+            if (typeof sizeValue === 'number' && Number.isFinite(sizeValue)) {
+              lookup.set(axisValue, sizeValue);
+              sizeMin = Math.min(sizeMin, sizeValue);
+              sizeMax = Math.max(sizeMax, sizeValue);
+            }
+          });
+          sizeLookups!.set(dimsKey, lookup);
+        });
+    }
+    if (sizeMin <= sizeMax) {
+      sizeExtent = [sizeMin, sizeMax];
+    }
+  }
+  // Strips the metric label off a series name, leaving the `<offset>|<dims>`
+  // key used to match a value series with its size series.
+  const rawValueMetricLabels = ensureIsArray(metrics).map(getMetricLabel);
+  const getSeriesDimsKey = (name: string): string => {
+    for (const rawLabel of rawValueMetricLabels) {
+      const key = matchSeriesKey(name, rawLabel);
+      if (key !== undefined) {
+        return key;
+      }
+    }
+    return `|${name}`;
+  };
+  // Normalize the configured dot size range so an inverted min/max still
+  // scales larger metric values to larger dots.
+  const markerSizeRange: [number, number] =
+    minMarkerSize <= maxMarkerSize
+      ? [minMarkerSize, maxMarkerSize]
+      : [maxMarkerSize, minMarkerSize];
+
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
     onlyTotal,
@@ -349,7 +506,9 @@ export default function transformProps(
   const isAreaExpand = stack === StackControlsValue.Expand;
   const series: SeriesOption[] = [];
 
-  const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
+  const forcePercentFormatter = Boolean(
+    contributionMode || isAreaExpand || rebasePercentChange,
+  );
   const percentFormatter = forcePercentFormatter
     ? getPercentFormatter(yAxisFormat)
     : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
@@ -481,6 +640,27 @@ export default function transformProps(
       }
     }
 
+    let symbolSizeFn:
+      | ((value: (number | string | null)[]) => number)
+      | undefined;
+    if (sizeExtent) {
+      const extent = sizeExtent;
+      const sizeLookup = sizeLookups?.get(getSeriesDimsKey(entryName));
+      if (sizeIsValueMetric || sizeLookup) {
+        symbolSizeFn = value => {
+          const sizeValue = sizeIsValueMetric
+            ? value[isHorizontal ? 0 : 1]
+            : sizeLookup!.get(value[isHorizontal ? 1 : 0]);
+          // Points with a missing/invalid size value get the smallest
+          // configured dot size; the fixed marker size control is hidden
+          // when a size metric is set, so its value would be stale here.
+          return typeof sizeValue === 'number'
+            ? getAreaScaledSymbolSize(sizeValue, extent, markerSizeRange)
+            : markerSizeRange[0];
+        };
+      }
+    }
+
     const transformedSeries = transformSeries(
       entry,
       colorScale,
@@ -492,6 +672,7 @@ export default function transformProps(
         seriesContexts,
         markerEnabled,
         markerSize,
+        symbolSizeFn,
         areaOpacity: opacity,
         seriesType,
         legendState,
@@ -692,9 +873,9 @@ export default function transformProps(
   } else if (
     logAxis &&
     yAxisMin === undefined &&
-    minPositiveValue !== undefined
+    renderedMinPositiveValue !== undefined
   ) {
-    yAxisMin = calculateLowerLogTick(minPositiveValue);
+    yAxisMin = calculateLowerLogTick(renderedMinPositiveValue);
   }
 
   // For horizontal bar charts, set max/min from calculated data bounds

@@ -73,6 +73,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     allows_alias_to_source_column = False
     supports_grouping_sets = True
 
+    encrypted_extra_sensitive_fields = {
+        **PrestoBaseEngineSpec.encrypted_extra_sensitive_fields,
+        "$.oauth2_client_info.secret": "OAuth2 client secret",
+    }
+
     # The full set of columns Trino's "<table>$partitions" exposes for an
     # Iceberg table. The real partition keys are nested in the "partition" ROW,
     # so none of these are user partition columns.

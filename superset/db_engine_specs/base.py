@@ -275,6 +275,36 @@ class CompatibleDatabase(TypedDict, total=False):
     notes: str
     docs_url: str
     categories: list[str]  # Override parent categories (e.g., for HOSTED_OPEN_SOURCE)
+    known_incompatibilities: list[KnownIncompatibility]
+
+
+class KnownIncompatibility(TypedDict, total=False):
+    """A known, currently-unresolved incompatibility with a Superset dependency."""
+
+    dependency: str  # e.g. "SQLAlchemy 2.0"
+    reason: str
+    tracking_url: str  # upstream issue/PR tracking a fix, if one exists
+    since: str  # ISO date this was last confirmed still broken
+
+
+# Shared `known_incompatibilities` entry for the Aurora Data API driver
+# (`sqlalchemy-aurora-data-api`), used by both the MySQL and PostgreSQL
+# `compatible_databases` metadata for their respective Aurora entries.
+AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
+    {
+        "dependency": "SQLAlchemy 2.0",
+        "reason": (
+            "Neither our fork (preset-io/sqlalchemy-aurora-data-api, "
+            "dormant since 2021) nor the more active community fork "
+            "(cloud-utils/sqlalchemy-aurora-data-api) has resolved "
+            "SQLAlchemy 2.0 compatibility."
+        ),
+        "tracking_url": (
+            "https://github.com/cloud-utils/sqlalchemy-aurora-data-api/issues/43"
+        ),
+        "since": "2026-07-28",
+    }
+]
 
 
 class DBEngineSpecMetadata(TypedDict, total=False):
@@ -316,6 +346,11 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     tutorials: list[str]
     install_instructions: str
     version_requirements: str
+
+    # Known, currently-unresolved incompatibilities with a Superset
+    # dependency (e.g. a driver that doesn't yet support SQLAlchemy 2.0).
+    # Hopefully temporary; remove the entry once resolved upstream.
+    known_incompatibilities: list[KnownIncompatibility]
 
     # Related databases (e.g., PostgreSQL-compatible databases)
     compatible_databases: list[CompatibleDatabase]
@@ -620,6 +655,40 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
+        """Build the bounded-read retry form of system-authored sampling SQL.
+
+        Some engines reject bounded queries from a pre-execution row estimate
+        that ignores LIMIT (e.g. ClickHouse ``max_rows_to_read``), which breaks
+        Superset-authored sampling queries (filter values, samples/preview,
+        datetime format detection) on large tables. Engine specs that support
+        a bounded-read override return a modified query; ``None`` (the base
+        implementation, mirroring ``get_column_description_retry_sql``) means
+        no retry is available.
+
+        The override must only be applied to sampling queries whose statement
+        Superset generated (a physical-table dataset, not a virtual dataset's
+        user-authored base query), and only as a retry after the engine
+        rejected the un-modified statement with a read-limit error (see
+        ``is_read_limit_error``), so deployments whose queries already succeed
+        — including ClickHouse users connected with ``readonly=1``, which
+        rejects in-query SETTINGS changes — never see altered SQL. Callers go
+        through ``Database.sampling_read_limit_retry_sql`` so the per-database
+        opt-out is honored.
+        """
+        return None
+
+    @classmethod
+    def is_read_limit_error(cls, ex: Exception) -> bool:
+        """Return True when the exception is this engine's read-limit rejection.
+
+        Used to decide whether a failed system-sampling query should be
+        retried with ``apply_sampling_read_limit_override``. The base
+        implementation recognizes nothing.
+        """
+        return False
 
     @classmethod
     def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
@@ -1110,8 +1179,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
         elif pdf == "epoch_ms":
             time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
+        elif pdf == "%Y":
+            # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
+            # example dataset) has no native date type to lean on; without this the
+            # column value is passed straight into the grain function below, which
+            # every engine interprets as something other than a calendar year (SQLite
+            # reads a bare integer as a Julian day number, for instance), silently
+            # producing NULL for every row.
+            time_expr = cls._apply_year_to_dttm(time_expr)
 
         return TimestampExpression(time_expr, col, type_=col.type)
+
+    @classmethod
+    def _apply_year_to_dttm(cls, time_expr: str) -> str:
+        """
+        Substitute `{col}` in ``time_expr`` with the ``year_to_dttm`` expression.
+
+        Engine specs that have not implemented `year_to_dttm` fall back to the
+        prior behavior of passing the raw column through, rather than raising
+        for every dataset with a bare-year column.
+        """
+        try:
+            return time_expr.replace("{col}", cls.year_to_dttm())
+        except NotImplementedError:
+            return time_expr
 
     @classmethod
     def get_time_grains(cls) -> tuple[TimeGrain, ...]:
@@ -1325,6 +1416,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SQL Expression
         """
         return cls.epoch_to_dttm().replace("{col}", "({col}/1000)")
+
+    @classmethod
+    def year_to_dttm(cls) -> str:
+        """
+        SQL expression that converts a bare four-digit year value to the January 1st
+        datetime of that year, for use in a query. The reference column should be
+        denoted as `{col}` in the return expression, e.g. "MAKE_DATE({col}, 1, 1)"
+
+        :return: SQL Expression
+        """
+        raise NotImplementedError()
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> str | None:
@@ -2774,6 +2876,11 @@ class BasicParametersMixin:
     # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
     encryption_parameters: dict[str, str] = {}
 
+    # query parameter to explicitly disable encryption, for drivers that do not
+    # treat the absence of `encryption_parameters` as an unencrypted connection
+    # for Databend this would be `{"sslmode": "disable"}`, eg.
+    encryption_disable_parameters: dict[str, str] = {}
+
     @classmethod
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
@@ -2789,6 +2896,8 @@ class BasicParametersMixin:
                     "Unable to build a URL with encryption enabled"
                 )
             query.update(cls.encryption_parameters)
+        else:
+            query.update(cls.encryption_disable_parameters)
 
         return str(
             URL.create(
@@ -2807,10 +2916,14 @@ class BasicParametersMixin:
         cls, uri: str, encrypted_extra: dict[str, Any] | None = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
+        encryption_items = [
+            *cls.encryption_parameters.items(),
+            *cls.encryption_disable_parameters.items(),
+        ]
         query = {
             key: value
             for (key, value) in url.query.items()
-            if (key, value) not in cls.encryption_parameters.items()
+            if (key, value) not in encryption_items
         }
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()

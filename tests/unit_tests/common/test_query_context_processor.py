@@ -24,6 +24,7 @@ import pandas as pd
 import pytest
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.utils.core import GenericDataType
@@ -36,6 +37,16 @@ def mock_query_context():
         "superset.common.query_context_processor.QueryContextProcessor"
     ) as mock_query_context_processor:
         yield mock_query_context_processor
+
+
+def _query_timing() -> QueryTiming:
+    return QueryTiming(
+        query_planning_ns=0,
+        cache_resolution_ns=0,
+        data_acquisition_ns=None,
+        payload_assembly_ns=0,
+        total_ns=0,
+    )
 
 
 @pytest.fixture
@@ -1426,8 +1437,8 @@ def test_ensure_totals_available_updates_cache_values():
 
         # Now call get_payload which should update cache_values
         with patch(
-            "superset.common.query_context_processor.get_query_results"
-        ) as mock_get_query_results:
+            "superset.common.query_context_processor.get_query_results_with_timing"
+        ) as mock_get_query_results_with_timing:
             # Mock the query results
             mock_query_results_response = [
                 {
@@ -1435,7 +1446,10 @@ def test_ensure_totals_available_updates_cache_values():
                     "query": "SELECT ...",
                 }
             ]
-            mock_get_query_results.return_value = mock_query_results_response
+            mock_get_query_results_with_timing.return_value = QueryDataResult(
+                payload=mock_query_results_response[0],
+                timing=_query_timing(),
+            )
 
             # Mock cache manager to avoid actual caching
             with patch(
@@ -1650,15 +1664,18 @@ def test_cache_values_sync_after_ensure_totals_available():
 
             # Mock the query results
             with patch(
-                "superset.common.query_context_processor.get_query_results"
-            ) as mock_get_query_results:
+                "superset.common.query_context_processor.get_query_results_with_timing"
+            ) as mock_get_query_results_with_timing:
                 mock_query_results_response = [
                     {
                         "data": [{"region": "North", "sales": 100}],
                         "query": "SELECT region, SUM(sales) FROM table GROUP BY region",
                     }
                 ]
-                mock_get_query_results.return_value = mock_query_results_response
+                mock_get_query_results_with_timing.return_value = QueryDataResult(
+                    payload=mock_query_results_response[0],
+                    timing=_query_timing(),
+                )
 
                 # Call get_payload - this internally calls ensure_totals_available()
                 # and then should update cache_values
@@ -1896,6 +1913,7 @@ def test_force_cached_normalizes_totals_query_row_limit():
     processor = QueryContextProcessor(mock_query_context)
     processor._qc_datasource = mock_datasource
     mock_query_context.get_df_payload = processor.get_df_payload
+    mock_query_context.get_df_payload_result = processor.get_df_payload_result
     mock_query_context.get_data = processor.get_data
 
     with patch(
@@ -2256,3 +2274,106 @@ def test_grouping_sets_fallback_applies_row_offset_once_globally() -> None:
     # ...and the requested offset is applied exactly once, to the combined
     # result: 2 + 1 = 3 total rows in, minus an offset of 1 = 2 rows out.
     assert len(result.df) == 2
+
+
+def test_relative_offset_preserves_inner_bounds(
+    processor: QueryContextProcessor,
+) -> None:
+    """
+    Regression test for #40501: Relative time comparison offset should
+    preserve inner bounds as the original (unshifted) period, not the shifted one.
+
+    When comparing 2026-05-01 : 2026-05-28 with offset "365 days ago":
+    - inner_from_dttm should be 2026-05-01 (original), NOT 2025-05-01 (shifted)
+    - inner_to_dttm should be 2026-05-28 (original), NOT 2025-05-28 (shifted)
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    datasource: Any = processor._qc_datasource
+
+    for method in (
+        "processing_time_offsets",
+        "_align_offset_without_time_grain",
+        "_coalesce_offset_index",
+    ):
+        setattr(
+            datasource,
+            method,
+            getattr(ExploreMixin, method).__get__(datasource),
+        )
+
+    df = pd.DataFrame(
+        {
+            "__timestamp": pd.to_datetime(["2026-05-01", "2026-05-15", "2026-05-28"]),
+            "sum__num": [100, 200, 300],
+        }
+    )
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        time_offsets=["365 days ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-05-01 : 2026-05-28",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame(
+            {
+                "__timestamp": pd.date_range(
+                    start=dct["from_dttm"], periods=3, freq="14D"
+                ),
+                "sum__num": [1.0, 2.0, 3.0],
+            }
+        )
+        result.query = "SELECT 1"
+        return result
+
+    datasource.query = fake_query
+    datasource.normalize_df = MagicMock(
+        side_effect=lambda offset_df, _query_object: offset_df
+    )
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2026-05-01"), pd.Timestamp("2026-05-28")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        datasource.processing_time_offsets(df, query_object, None, None, False)
+
+    # The offset query should use shifted dates for the main window
+    assert len(captured) == 1
+    assert captured[0]["from_dttm"] == pd.Timestamp("2025-05-01")
+    assert captured[0]["to_dttm"] == pd.Timestamp("2025-05-28")
+
+    # The inner bounds (used for series-limit subquery) should be the
+    # ORIGINAL unshifted dates, not the shifted ones — this is the fix
+    # for #40501. Without the fix, inner_from/to_dttm == shifted dates.
+    assert captured[0]["inner_from_dttm"] == pd.Timestamp("2026-05-01")
+    assert captured[0]["inner_to_dttm"] == pd.Timestamp("2026-05-28")

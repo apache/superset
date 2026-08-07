@@ -256,7 +256,7 @@ cypress-run-all() {
   # UNCOMMENT the next few commands to monitor memory usage
   # monitor_memory &  # Start memory monitoring in the background
   # memoryMonitorPid=$!
-  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group $PARALLEL_ID --retries 5 $USE_DASHBOARD_FLAG
+  python ../../scripts/cypress_run.py --retries 5 $USE_DASHBOARD_FLAG
   # kill $memoryMonitorPid
 }
 

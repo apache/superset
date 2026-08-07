@@ -481,12 +481,12 @@ test('properly renders edit report text', async () => {
   expect(saveButton).toBeInTheDocument();
 });
 
-test('renders 4 sections for reports', () => {
+test('renders 5 sections for reports', () => {
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
   const sections = screen.getAllByRole('tab');
-  expect(sections.length).toBe(4);
+  expect(sections.length).toBe(5);
 });
 
 test('renders 5 sections for alerts', () => {
@@ -1475,7 +1475,7 @@ test('adding and removing dashboard filter rows', async () => {
 });
 
 test('alert shows condition section, report does not', () => {
-  // Alert has 5 sections
+  // Alert has 5 sections (general, condition, content, schedule, notification)
   const { unmount } = render(
     <AlertReportModal {...generateMockedProps(false)} />,
     { useRedux: true },
@@ -1484,11 +1484,11 @@ test('alert shows condition section, report does not', () => {
   expect(screen.getByTestId('alert-condition-panel')).toBeInTheDocument();
   unmount();
 
-  // Report has 4 sections, no condition panel
+  // Report has 5 sections (general, content, schedule, notification, error handling)
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
-  expect(screen.getAllByRole('tab')).toHaveLength(4);
+  expect(screen.getAllByRole('tab')).toHaveLength(5);
   expect(screen.queryByTestId('alert-condition-panel')).not.toBeInTheDocument();
 });
 
@@ -2877,5 +2877,71 @@ test('modal reopen resets local state', async () => {
   // Fresh mount should have empty name
   await waitFor(() => {
     expect(screen.getByPlaceholderText(/enter report name/i)).toHaveValue('');
+  });
+});
+
+// ---------- Error Handling Panel ----------
+
+test('renders error handling panel with Enable Retries switch', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  const errorHandlingTab = screen.getByText('Error handling');
+  expect(errorHandlingTab).toBeInTheDocument();
+  await userEvent.click(errorHandlingTab);
+  expect(screen.getByText('Enable Retries')).toBeInTheDocument();
+});
+
+test('shows retry options when Enable Retries is toggled on', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  const errorHandlingTab = screen.getByText('Error handling');
+  await userEvent.click(errorHandlingTab);
+
+  // Retry options should not be visible initially
+  expect(screen.queryByText('Maximum Retry Attempts')).not.toBeInTheDocument();
+
+  // Toggle Enable Retries — the Switch renders as a <button role="switch">
+  const switches = screen.getAllByRole('switch');
+  const enableRetriesSwitch = switches[switches.length - 1];
+  await userEvent.click(enableRetriesSwitch);
+
+  // Retry options should now be visible
+  await waitFor(() => {
+    expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
+    expect(screen.getByText('Send Failed Reports')).toBeInTheDocument();
+    expect(screen.getByText('Failure Notifications')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
+    expect(screen.getByText('Report Recipients')).toBeInTheDocument();
+  });
+});
+
+test('hides retry options and resets state when Enable Retries is toggled off', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  const errorHandlingTab = screen.getByText('Error handling');
+  await userEvent.click(errorHandlingTab);
+
+  // Toggle ON
+  const switches = screen.getAllByRole('switch');
+  const enableRetriesSwitch = switches[switches.length - 1];
+  await userEvent.click(enableRetriesSwitch);
+
+  await waitFor(() => {
+    expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
+  });
+
+  // Toggle OFF
+  await userEvent.click(enableRetriesSwitch);
+
+  // Retry options should be hidden again
+  await waitFor(() => {
+    expect(
+      screen.queryByText('Maximum Retry Attempts'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Send Failed Reports')).not.toBeInTheDocument();
+    expect(screen.queryByText('Failure Notifications')).not.toBeInTheDocument();
   });
 });

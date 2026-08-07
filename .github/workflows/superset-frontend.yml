@@ -23,6 +23,12 @@ jobs:
   frontend-build:
     runs-on: ubuntu-26.04
     timeout-minutes: 30
+    # The change detector reads the PR's file list, which needs
+    # `pull-requests: read`. Public repos serve that endpoint without it;
+    # private forks return 403.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
     steps:
@@ -122,25 +128,13 @@ jobs:
           pattern: coverage-artifacts-*
           path: coverage/
 
-      - name: Reorganize test result reports
-        run: |
-          find coverage/
-          for i in {1..8}; do
-            mv coverage/coverage-artifacts-${i}/coverage-final.json coverage/coverage-shard-${i}.json
-          done
-        shell: bash
-
-      - name: Merge Code Coverage
-        run: npx nyc merge coverage/ merged-output/coverage-summary.json
-
       - name: Upload Code Coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: javascript
           use_oidc: true
           verbose: true
-          disable_search: true
-          files: merged-output/coverage-summary.json
+          directory: coverage
           slug: apache/superset
 
   lint-frontend:
@@ -183,6 +177,11 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
+      - name: Validate dependency tree
+        run: |
+          docker run --rm $TAG bash -c \
+          "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
+
       - name: Build Plugins Packages
         run: |
           docker run --rm $TAG bash -c \
@@ -207,3 +206,14 @@ jobs:
         run: |
           docker run --rm $TAG bash -c \
           "npm run build-storybook && npx playwright install-deps && npx playwright install chromium && npm run test-storybook:ci"
+
+  actions-timeline:
+    needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+        with:
+          expand-composite-actions: true

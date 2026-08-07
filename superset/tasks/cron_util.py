@@ -19,7 +19,7 @@ import logging
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 
-from croniter import croniter
+from croniter import croniter, CroniterBadDateError
 from flask import current_app
 from pytz import timezone as pytz_timezone, UnknownTimeZoneError
 
@@ -42,8 +42,15 @@ def cron_schedule_window(
     start_at = time_now - timedelta(seconds=window_size / 2)
     stop_at = time_now + timedelta(seconds=window_size / 2)
     crons = croniter(cron, start_at)
-    for schedule in crons.all_next(datetime):
-        if schedule >= stop_at:
-            break
-        # convert schedule back to utc
-        yield schedule.astimezone(utc).replace(tzinfo=None)
+    try:
+        for schedule in crons.all_next(datetime):
+            if schedule >= stop_at:
+                break
+            # convert schedule back to utc
+            yield schedule.astimezone(utc).replace(tzinfo=None)
+    except CroniterBadDateError:
+        logger.error(
+            "Cron schedule %s can never match a valid date; "
+            "it will not produce any executions",
+            cron,
+        )
