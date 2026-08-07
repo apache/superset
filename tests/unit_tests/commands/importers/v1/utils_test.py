@@ -16,10 +16,14 @@
 # under the License.
 """Tests for superset/commands/dataset/importers/v1/utils.py temporal helpers."""
 
+import gzip
+import io
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from marshmallow.exceptions import ValidationError
+from sqlalchemy.orm import Session
 
 
 class TestConvertTemporalColumns:
@@ -119,6 +123,28 @@ class TestConvertTemporalColumns:
         assert call_args[1] == 2  # 2 out-of-bounds, 1 pre-existing null
 
 
+class TestReadBounded:
+    """``_read_bounded`` caps the bytes materialized from a dataset import
+    data URI, including after gzip decompression, so a small compressed
+    payload can't expand to an unbounded in-memory allocation."""
+
+    def test_rejects_oversized_gzip_stream(self) -> None:
+        """A small compressed payload that decompresses past the cap must fail."""
+        from superset.commands.dataset.importers.v1.utils import _read_bounded
+        from superset.commands.exceptions import ImportFailedError
+
+        payload = gzip.compress(b"a" * 100_000)
+        stream = gzip.GzipFile(fileobj=io.BytesIO(payload))
+        with pytest.raises(ImportFailedError):
+            _read_bounded(stream, max_bytes=10_000)
+
+    def test_passes_small_payload_through(self) -> None:
+        from superset.commands.dataset.importers.v1.utils import _read_bounded
+
+        buffer = _read_bounded(io.BytesIO(b"a,b\n1,2\n"), max_bytes=10_000)
+        assert buffer.read() == b"a,b\n1,2\n"
+
+
 class TestLoadYaml:
     def test_parser_error_raises_validation_error(self) -> None:
         """A malformed flow sequence raises yaml.parser.ParserError."""
@@ -138,3 +164,128 @@ class TestLoadYaml:
 
         with pytest.raises(ValidationError):
             load_yaml("test.yaml", 'key: "unterminated string')
+
+
+class TestLoadConfigsNonMappingYaml:
+    """A syntactically valid YAML document whose top-level value is a
+    scalar or list (not a mapping) must be reported as a schema validation
+    error, not raise an unhandled AttributeError from the ``config.get()``
+    calls that assume a mapping."""
+
+    def test_top_level_list_is_reported_as_validation_error(
+        self, session: Session
+    ) -> None:
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.databases.schemas import ImportV1DatabaseSchema
+        from superset.models.core import Database
+
+        engine = session.get_bind()
+        Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+        contents = {"databases/malformed.yaml": "- not\n- a\n- mapping\n"}
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            {"databases/": ImportV1DatabaseSchema()},
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert configs == {}
+        assert len(exceptions) == 1
+        assert "databases/malformed.yaml" in exceptions[0].messages
+
+    def test_top_level_scalar_is_reported_as_validation_error(
+        self, session: Session
+    ) -> None:
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.databases.schemas import ImportV1DatabaseSchema
+        from superset.models.core import Database
+
+        engine = session.get_bind()
+        Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+        contents = {"databases/malformed.yaml": "just a string"}
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            {"databases/": ImportV1DatabaseSchema()},
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert configs == {}
+        assert len(exceptions) == 1
+        assert "databases/malformed.yaml" in exceptions[0].messages
+
+
+class TestDatabaseConnectionIdentityUnchanged:
+    """Stored database secrets (password, SSH tunnel key) may only be
+    re-attached to an import when the incoming config still points at the
+    same connection endpoint as the stored one — a UUID match alone is not
+    enough, since UUIDs are not secrets (they appear in every exported
+    bundle)."""
+
+    def test_same_endpoint_differing_masked_credential_is_unchanged(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:pass@host1:5432/db",
+        )
+
+    def test_host_change_is_changed(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@attacker.example.com:5432/db",
+        )
+
+    def test_port_change_is_changed(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@host1:5433/db",
+        )
+
+    def test_query_args_can_redirect_the_connection(self) -> None:
+        """Query args become driver connect args (e.g. psycopg2 ``?host=``)
+        and can redirect the connection just like the host segment."""
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@host1:5432/db?host=attacker.example.com",
+        )
+
+    def test_missing_either_side_is_never_reusable(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            None, "postgresql://user:pass@host1:5432/db"
+        )
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db", None
+        )

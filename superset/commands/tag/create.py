@@ -21,11 +21,8 @@ from typing import Any
 from superset import security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.tag.exceptions import TagCreateFailedError, TagInvalidError
-from superset.commands.tag.utils import (
-    current_user_can_modify_object,
-    to_object_model,
-    to_object_type,
-)
+from superset.commands.tag.utils import to_object_model, to_object_type
+from superset.commands.utils import current_user_can_modify_object
 from superset.daos.tag import TagDAO
 from superset.exceptions import SupersetSecurityException
 from superset.tags.models import ObjectType, TagType

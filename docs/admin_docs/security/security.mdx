@@ -198,6 +198,51 @@ Available per-entity overrides are:
 When an override is set, it replaces `SUBJECTS_RELATED_TYPES` for that picker. When it is `None`,
 the picker inherits the global default.
 
+#### Looking Up Subjects via API
+
+Superset exposes a read-only REST API for resolving subjects:
+
+```
+GET /api/v1/security/subject/
+```
+
+The main use case is **id mapping** — given a user, role, or group id, callers (including
+extensions) can look up the corresponding subject entity, and vice versa. Access is gated by
+the `can_read` permission on the `Subject` resource, which is granted to **Admins only** by
+default, since subjects enumerate every user, role, and group on the instance. Callers without
+that permission receive a `403`. Only `GET` (list, get, info) is exposed — there is no create,
+update, or delete, because subjects are derived automatically from users, roles, and groups and
+kept in sync internally.
+
+**Resolve the subject for a given principal id** using [Rison](https://github.com/Nanonid/rison)
+query syntax:
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:user_id,opr:eq,value:5)))
+GET /api/v1/security/subject/?q=(filters:!((col:role_id,opr:eq,value:3)))
+GET /api/v1/security/subject/?q=(filters:!((col:group_id,opr:eq,value:2)))
+```
+
+**Filter by subject type or active status:**
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:type,opr:eq,value:1)))
+GET /api/v1/security/subject/?q=(filters:!((col:active,opr:eq,value:!t)))
+```
+
+The `type` column is an integer enum: `1` for User, `2` for Role, `3` for Group
+(`superset.subjects.types.SubjectType`).
+
+**Search by label:**
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:label,opr:subject_all_text,value:finance)))
+```
+
+Each subject in the response includes flat scalar ids (`user_id`, `role_id`, `group_id`) rather
+than a nested object, so callers can match directly on whichever id they already have — only the
+id field matching the subject's `type` is populated; the others are `null`.
+
 ### Dashboard Access Control
 
 Access to dashboards is managed via editors (subjects that have edit permissions to the dashboard).
@@ -355,7 +400,7 @@ Once enabled, each user manages their own keys from their profile page:
 1. Open the user menu (top-right) and click **Info** to navigate to the User Info page
 2. Expand the **API Keys** section
 3. Click **+ API Key**
-4. Enter a name and (optionally) an expiration date
+4. Enter a name and optionally select resource scopes
 5. Copy the generated token — it is shown only once
 
 Only users with the `can_read` and `can_write` permissions on `ApiKey` (granted by default to Admins) can manage API keys.
@@ -369,6 +414,18 @@ Authorization: Bearer <your-api-key>
 ```
 
 This works for all REST API endpoints and the MCP server. The request is executed with the permissions of the user who created the key.
+
+#### API Key Scopes
+
+The creation dialog can restrict an API key to MCP resource actions such as
+`superset:dashboard:read` or `superset:chart:write`. A scope is an additional
+restriction: it never grants a permission that the creating user does not
+already have through Superset RBAC. Write scopes also cover update and delete
+operations for that resource; `superset:sqllab:write` covers SQL execution.
+
+Keys created without scopes retain legacy RBAC-only behavior. The scoped-key
+restrictions described here are enforced by the MCP server; regular REST API
+routes continue to apply their existing Superset RBAC checks.
 
 #### Use Cases
 

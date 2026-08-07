@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
+import fetchMock from 'fetch-mock';
 import {
   cleanup,
   render,
@@ -34,6 +35,10 @@ import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { useDrillDetailMenuItems, DrillDetailMenuItemsProps } from './index';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
+
+// Opening the context menu logs an event, and an unmatched request makes
+// fetch-mock throw inside the component.
+fetchMock.post('glob:*/log/?*', {});
 
 jest.mock(
   '../DrillDetail/DrillDetailPane',

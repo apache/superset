@@ -20,7 +20,11 @@
 import { Dispatch, AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { Dataset } from '@superset-ui/chart-controls';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import {
+  Currency,
+  SupersetClient,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { updateFormDataByDatasource } from './exploreActions';
 import { ExplorePageState } from '../types';
@@ -50,8 +54,25 @@ export function changeDatasource(newDatasource: Dataset) {
     const {
       explore: { datasource: prevDatasource },
     } = getState();
-    dispatch(setDatasource(newDatasource));
-    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
+    // Recompute currency_formats from the updated metrics, mirroring the
+    // logic in hydrateExplore. The raw API response does not carry this
+    // derived field, so without this step any currency change made via
+    // Edit Dataset would not be reflected in the chart preview.
+    const datasourceWithCurrencyFormats: Dataset = {
+      ...newDatasource,
+      currency_formats: Object.fromEntries(
+        (newDatasource.metrics ?? [])
+          .filter(metric => !!metric.currency)
+          .map((metric): [string, Currency] => [
+            metric.metric_name,
+            metric.currency!,
+          ]),
+      ),
+    };
+    dispatch(setDatasource(datasourceWithCurrencyFormats));
+    dispatch(
+      updateFormDataByDatasource(prevDatasource, datasourceWithCurrencyFormats),
+    );
   };
 }
 

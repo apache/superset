@@ -37,11 +37,9 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.tool.generate_chart import (
     _compile_chart,
-    _sanitize_generate_chart_form_data_for_llm_context,
     CompileResult,
     generate_chart,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as utils_json
 
 
@@ -475,7 +473,8 @@ class _DetachableSlice:
 
 async def _generate_saved_chart(
     refetch: Any,
-) -> tuple[Any, _DetachableSlice]:
+    compile_result: CompileResult | None = None,
+) -> tuple[Any, _DetachableSlice, Mock]:
     """Run generate_chart(save_chart=True) with a chart that detaches on commit.
 
     ``refetch`` is used as the ``ChartDAO.find_by_id`` behaviour of the
@@ -503,6 +502,7 @@ async def _generate_saved_chart(
     # The instance is detached right after the commit, before any of the reads
     # that build the response.
     session.refresh.side_effect = lambda _chart: chart.detach()
+    create_command = Mock(return_value=Mock(run=Mock(return_value=chart)))
 
     with (
         patch(
@@ -524,12 +524,12 @@ async def _generate_saved_chart(
         patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
         patch(
             "superset.commands.chart.create.CreateChartCommand",
-            return_value=Mock(run=Mock(return_value=chart)),
+            create_command,
         ),
         patch("superset.db.session", session),
         patch(
             "superset.mcp_service.chart.tool.generate_chart._compile_chart",
-            return_value=CompileResult(success=True, warnings=[]),
+            return_value=compile_result or CompileResult(success=True, warnings=[]),
         ),
         patch("superset.daos.chart.ChartDAO", Mock(find_by_id=refetch)),
         patch(
@@ -543,7 +543,7 @@ async def _generate_saved_chart(
     ):
         result = await generate_chart(request, ctx=ctx)
 
-    return result, chart
+    return result, chart, create_command
 
 
 class TestGenerateChartDetachedInstance:
@@ -560,7 +560,7 @@ class TestGenerateChartDetachedInstance:
         """A detached instance no longer turns a committed chart into an error."""
         refetched = _make_mock_chart()
 
-        result, chart = await _generate_saved_chart(
+        result, chart, _create_command = await _generate_saved_chart(
             refetch=Mock(return_value=refetched)
         )
 
@@ -575,7 +575,7 @@ class TestGenerateChartDetachedInstance:
     @pytest.mark.asyncio
     async def test_detached_chart_falls_back_to_captured_scalars(self) -> None:
         """The minimal fallback response never reads the detached instance."""
-        result, chart = await _generate_saved_chart(
+        result, chart, _create_command = await _generate_saved_chart(
             refetch=Mock(side_effect=SQLAlchemyError("session is gone"))
         )
 
@@ -586,6 +586,25 @@ class TestGenerateChartDetachedInstance:
         assert result.chart.id == 42
         assert result.chart.slice_name == "Concurrent chart"
         assert result.chart.viz_type == "table"
+
+    @pytest.mark.asyncio
+    async def test_compile_failure_does_not_create_a_chart(self) -> None:
+        result, chart, create_command = await _generate_saved_chart(
+            refetch=Mock(),
+            compile_result=CompileResult(
+                success=False,
+                error="column category must appear in GROUP BY",
+                error_code="CHART_COMPILE_FAILED",
+                tier="compile",
+                warnings=["Database returned partial metadata"],
+            ),
+        )
+
+        assert result.success is False
+        assert result.chart is None
+        assert result.warnings == ["Database returned partial metadata"]
+        assert chart._detached is False
+        create_command.assert_not_called()
 
 
 class TestChartSerializationEagerLoading:
@@ -600,7 +619,7 @@ class TestChartSerializationEagerLoading:
 
         assert result is not None
         assert result.id == 42
-        assert result.slice_name == sanitize_for_llm_context("Test Chart")
+        assert result.slice_name == ("Test Chart")
         assert result.tags == []
         assert "editors" not in result.model_dump()
 
@@ -615,10 +634,8 @@ class TestChartSerializationEagerLoading:
         result = serialize_chart_object(chart)
 
         assert result is not None
-        assert result.certified_by == sanitize_for_llm_context("Data Team")
-        assert result.certification_details == sanitize_for_llm_context(
-            "Verified Q1 2026 metrics"
-        )
+        assert result.certified_by == ("Data Team")
+        assert result.certification_details == ("Verified Q1 2026 metrics")
 
     def test_serialize_chart_object_sanitizes_chart_metadata_and_filters(
         self,
@@ -655,28 +672,22 @@ class TestChartSerializationEagerLoading:
         result = serialize_chart_object(chart)
 
         assert result is not None
-        assert result.slice_name == sanitize_for_llm_context("Test Chart")
-        assert result.description == sanitize_for_llm_context("Show sales instructions")
-        assert result.certification_details == sanitize_for_llm_context(
-            "Verified by analytics"
-        )
+        assert result.slice_name == ("Test Chart")
+        assert result.description == ("Show sales instructions")
+        assert result.certification_details == ("Verified by analytics")
         assert result.form_data is not None
         assert result.form_data["datasource"] == "42__table"
-        assert result.form_data["where"] == sanitize_for_llm_context("country = 'BR'")
-        assert result.form_data["time_range"] == sanitize_for_llm_context(
-            "Last quarter"
-        )
+        assert result.form_data["where"] == ("country = 'BR'")
+        assert result.form_data["time_range"] == ("Last quarter")
         assert result.filters is not None
-        assert result.filters.where == sanitize_for_llm_context("country = 'BR'")
-        assert result.filters.time_range == sanitize_for_llm_context("Last quarter")
-        assert result.filters.adhoc_filters[
-            0
-        ].sql_expression == sanitize_for_llm_context("region = 'EMEA'")
-        assert result.tags[0].name == sanitize_for_llm_context("Tag instructions")
-        assert result.tags[0].description == sanitize_for_llm_context("Tag description")
+        assert result.filters.where == ("country = 'BR'")
+        assert result.filters.time_range == ("Last quarter")
+        assert result.filters.adhoc_filters[0].sql_expression == ("region = 'EMEA'")
+        assert result.tags[0].name == ("Tag instructions")
+        assert result.tags[0].description == ("Tag description")
 
-    def test_generate_chart_form_data_response_is_sanitized(self) -> None:
-        """Generated chart form data wraps user-controlled response values."""
+    def test_generate_chart_form_data_response_preserves_values(self) -> None:
+        """Generated chart form data preserves user-controlled response values."""
         form_data = {
             "viz_type": "table",
             "datasource": "42__table",
@@ -692,21 +703,15 @@ class TestChartSerializationEagerLoading:
             "url": "https://example.com/user-value",
         }
 
-        result = _sanitize_generate_chart_form_data_for_llm_context(form_data)
+        result: dict[str, Any] = form_data
 
         assert result["viz_type"] == "table"
         assert result["datasource"] == "42__table"
-        assert result["where"] == sanitize_for_llm_context("country = 'BR'")
-        assert result["time_range"] == sanitize_for_llm_context("Last quarter")
-        assert result["adhoc_filters"][0]["sqlExpression"] == sanitize_for_llm_context(
-            "region = 'EMEA'"
-        )
-        assert result["adhoc_filters"][0]["comparator"] == sanitize_for_llm_context(
-            "EMEA"
-        )
-        assert result["url"] == sanitize_for_llm_context(
-            "https://example.com/user-value"
-        )
+        assert result["where"] == ("country = 'BR'")
+        assert result["time_range"] == ("Last quarter")
+        assert result["adhoc_filters"][0]["sqlExpression"] == ("region = 'EMEA'")
+        assert result["adhoc_filters"][0]["comparator"] == ("EMEA")
+        assert result["url"] == ("https://example.com/user-value")
 
     def test_serialize_chart_object_fails_on_detached_instance(self):
         """serialize_chart_object raises when accessing lazy attrs on detached
@@ -851,32 +856,23 @@ class TestGenerateChartSqlMetric:
                 }
             )
 
-    def test_response_form_data_wraps_sql_metric_strings(self) -> None:
-        """Regression: previously the generate_chart response's top-level
-        ``form_data`` skipped the per-key SQL-metric wrap, shipping LLM-
-        controlled sqlExpression/label back unwrapped."""
-        from superset.mcp_service.chart.tool.generate_chart import (
-            _sanitize_generate_chart_form_data_for_llm_context,
-        )
-
-        wrapped = _sanitize_generate_chart_form_data_for_llm_context(
-            {
-                "viz_type": "echarts_timeseries_line",
-                "metrics": [
-                    {
-                        "expressionType": "SQL",
-                        "sqlExpression": _SQL_EXPR,
-                        "label": "Win Rate",
-                        "aggregate": None,
-                        "column": None,
-                        "optionName": "metric_sql_abcd1234",
-                        "hasCustomLabel": True,
-                        "datasourceWarning": False,
-                    }
-                ],
-            }
-        )
-        m = wrapped["metrics"][0]
-        assert "<UNTRUSTED-CONTENT>" in m["sqlExpression"]
-        assert "<UNTRUSTED-CONTENT>" in m["label"]
-        assert "<UNTRUSTED-CONTENT>" not in m["optionName"]
+    def test_response_form_data_preserves_sql_metric_strings(self) -> None:
+        result: dict[str, Any] = {
+            "viz_type": "echarts_timeseries_line",
+            "metrics": [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": _SQL_EXPR,
+                    "label": "Win Rate",
+                    "aggregate": None,
+                    "column": None,
+                    "optionName": "metric_sql_abcd1234",
+                    "hasCustomLabel": True,
+                    "datasourceWarning": False,
+                }
+            ],
+        }
+        m = result["metrics"][0]
+        assert m["sqlExpression"] == _SQL_EXPR
+        assert m["label"] == "Win Rate"
+        assert m["optionName"] == "metric_sql_abcd1234"

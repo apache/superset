@@ -51,3 +51,16 @@ export const DEFAULT_CROSS_FILTER_SCOPING: NativeFilterScope = {
 
 export const CHART_WIDTH = 4;
 export const CHART_HEIGHT = 50;
+
+/**
+ * Window events used to coordinate dashboard virtualization when capturing the
+ * dashboard for a client-side export (Download as Image/PDF).
+ *
+ * When DASHBOARD_VIRTUALIZATION is enabled, charts more than a viewport away
+ * are unmounted, so a naive DOM capture records loading spinners instead of the
+ * charts. The export utilities dispatch FORCE_IN_VIEW_EVENT to make every Row
+ * render its content, wait for the charts to finish loading, capture, then
+ * dispatch RESTORE_VIRTUALIZATION_EVENT to re-enable lazy loading.
+ */
+export const FORCE_IN_VIEW_EVENT = 'superset-force-all-in-view';
+export const RESTORE_VIRTUALIZATION_EVENT = 'superset-restore-virtualization';
