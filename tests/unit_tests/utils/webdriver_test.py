@@ -1555,10 +1555,116 @@ class TestWebDriverPlaywrightChartReadiness:
         # is excluded from the readiness requirement rather than blocking it.
         assert "getBoundingClientRect" in js
         assert "window.innerHeight" in js
-        # set_viewport_size is only ever called on the tiled branch (to
-        # resize to tile_height); confirming it's untouched here is what
-        # makes the viewport-scoped predicate necessary for this branch.
+        # The non-tiled branch resizes the viewport only for a "standalone"
+        # full-page dashboard capture (to mount off-screen holders); this test
+        # uses a non-standalone element, so no resize happens and the
+        # viewport-scoped predicate is what keeps below-the-fold holders from
+        # blocking the wait.
         mock_page.set_viewport_size.assert_not_called()
+
+    def test_mount_offscreen_holders_resizes_tall_standalone_dashboard(self):
+        """A dashboard taller than the viewport is grown to its full height so
+        DashboardVirtualization mounts every off-screen ("virtualized") chart
+        holder before the standalone full_page capture."""
+        page = MagicMock()
+        page.evaluate.return_value = 4000
+        WebDriverPlaywright._mount_offscreen_chart_holders(
+            page, "http://example.com/dashboard/21", "standalone", 800, 600
+        )
+        page.set_viewport_size.assert_called_once_with({"width": 800, "height": 4000})
+
+    def test_mount_offscreen_holders_skips_when_dashboard_fits_viewport(self):
+        """Nothing is off-screen when the dashboard already fits the viewport,
+        so the viewport is left untouched."""
+        page = MagicMock()
+        page.evaluate.return_value = 500
+        WebDriverPlaywright._mount_offscreen_chart_holders(
+            page, "http://example.com/dashboard/21", "standalone", 800, 600
+        )
+        page.set_viewport_size.assert_not_called()
+
+    def test_mount_offscreen_holders_scoped_to_standalone(self):
+        """Chart captures have no dashboard grid to virtualize, so the helper
+        no-ops (it never even measures the page) for non-standalone elements."""
+        page = MagicMock()
+        WebDriverPlaywright._mount_offscreen_chart_holders(
+            page, "http://example.com", "chart-container", 800, 600
+        )
+        page.evaluate.assert_not_called()
+        page.set_viewport_size.assert_not_called()
+
+    @patch("superset.utils.webdriver.logger")
+    def test_mount_offscreen_holders_caps_height_and_warns(self, mock_logger):
+        """A pathologically tall dashboard is capped at the memory guard and a
+        warning recommends enabling tiled screenshots."""
+        from superset.utils.webdriver import MAX_STANDALONE_CAPTURE_VIEWPORT_HEIGHT
+
+        page = MagicMock()
+        page.evaluate.return_value = MAX_STANDALONE_CAPTURE_VIEWPORT_HEIGHT + 50000
+        WebDriverPlaywright._mount_offscreen_chart_holders(
+            page, "http://example.com/dashboard/21", "standalone", 800, 600
+        )
+        page.set_viewport_size.assert_called_once_with(
+            {"width": 800, "height": MAX_STANDALONE_CAPTURE_VIEWPORT_HEIGHT}
+        )
+        assert any(
+            "exceeds the standalone" in call.args[0]
+            for call in mock_logger.warning.call_args_list
+        )
+
+    @patch("superset.utils.webdriver.logger")
+    def test_mount_offscreen_holders_swallows_errors(self, mock_logger):
+        """Mounting is best-effort: a failure must never abort the capture."""
+        page = MagicMock()
+        page.evaluate.side_effect = RuntimeError("boom")
+        # Must not raise.
+        WebDriverPlaywright._mount_offscreen_chart_holders(
+            page, "http://example.com/dashboard/21", "standalone", 800, 600
+        )
+        page.set_viewport_size.assert_not_called()
+        assert mock_logger.warning.called
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_standalone_report_expands_viewport_before_readiness(
+        self, mock_app, mock_browser_manager
+    ):
+        """Regression for blank scheduled reports: the non-tiled standalone
+        report path grows the viewport to the whole dashboard (mounting
+        off-screen holders) *before* the readiness wait, so virtualized
+        below-the-fold charts are required to render rather than captured
+        blank."""
+        from superset.utils.screenshot_utils import DASHBOARD_CONTENT_HEIGHT_JS
+
+        mock_app.config = {**self._base_config}
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+
+        def fake_eval(script, *args, **kwargs):
+            if script == DASHBOARD_CONTENT_HEIGHT_JS:
+                return 4000
+            if "scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = fake_eval
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            result = WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com/dashboard/21",
+                "standalone",
+                MagicMock(),
+                report_execution_context=_report_context(),
+            )
+
+        mock_page.set_viewport_size.assert_called_once_with(
+            {"width": 800, "height": 4000}
+        )
+        call_names = [c[0] for c in mock_page.mock_calls]
+        assert call_names.index("set_viewport_size") < call_names.index(
+            "wait_for_function"
+        )
+        assert result == mock_page.screenshot.return_value
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
