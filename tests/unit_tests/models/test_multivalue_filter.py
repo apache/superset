@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Stage B: the CONTAINS filter operator for multi-value (array) columns."""
+"""Element-level array filter operators (Contains Any/All, Is empty/not empty)."""
 
 from __future__ import annotations
+
+from typing import Any, cast
 
 import pytest
 from flask import Flask
@@ -30,11 +32,7 @@ from superset.utils.core import FilterOperator
 
 
 def _make_dataset(mocker: MockerFixture) -> SqlaTable:
-    database = Database(
-        id=1,
-        database_name="test_db",
-        sqlalchemy_uri="sqlite://",
-    )
+    database = Database(id=1, database_name="test_db", sqlalchemy_uri="sqlite://")
     columns = [
         TableColumn(column_name="skills", type="Array(String)"),
         TableColumn(column_name="city", type="VARCHAR(100)"),
@@ -56,67 +54,181 @@ def _make_dataset(mocker: MockerFixture) -> SqlaTable:
     return dataset
 
 
-def _query_obj() -> QueryObjectDict:
-    return {
-        "granularity": None,
-        "from_dttm": None,
-        "to_dttm": None,
-        "is_timeseries": False,
-        "groupby": ["city"],
-        "metrics": ["count"],
-        "filter": [
-            {
-                "col": "skills",
-                "op": FilterOperator.CONTAINS.value,
-                "val": "Driver",
-            }
-        ],
-        "columns": [],
-    }
+def _clickhouse(mocker: MockerFixture, dataset: SqlaTable) -> None:
+    # Imported lazily: clickhouse.py touches app.config at import time.
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    mocker.patch.object(
+        SqlaTable, "db_engine_spec", new=property(lambda self: ClickHouseEngineSpec)
+    )
 
 
-def test_contains_operator_is_registered() -> None:
-    """The operator round-trips through the enum used to parse filter payloads."""
-    assert FilterOperator("CONTAINS") is FilterOperator.CONTAINS
-    assert FilterOperator.CONTAINS.value == "CONTAINS"
+def _filter_query(filters: list[dict[str, Any]]) -> QueryObjectDict:
+    return cast(
+        QueryObjectDict,
+        {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "is_timeseries": False,
+            "groupby": ["city"],
+            "metrics": ["count"],
+            "filter": filters,
+            "columns": [],
+        },
+    )
 
 
-def test_contains_filter_unsupported_engine_raises(
-    mocker: MockerFixture,
-    app: Flask,
+def _sql(dataset: SqlaTable, filters: list[dict[str, Any]]) -> str:
+    return dataset.get_query_str_extended(
+        _filter_query(filters), mutate=False
+    ).sql.lower()
+
+
+def test_contains_any_generates_hasany(mocker: MockerFixture, app: Flask) -> None:
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(
+            dataset,
+            [
+                {
+                    "col": "skills",
+                    "op": FilterOperator.CONTAINS_ANY.value,
+                    "val": ["Driver", "Cook"],
+                }
+            ],
+        )
+    assert "hasany(skills, array('driver', 'cook'))" in sql
+
+
+def test_contains_all_generates_hasall(mocker: MockerFixture, app: Flask) -> None:
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(
+            dataset,
+            [
+                {
+                    "col": "skills",
+                    "op": FilterOperator.CONTAINS_ALL.value,
+                    "val": ["Driver", "Cook"],
+                }
+            ],
+        )
+    assert "hasall(skills, array('driver', 'cook'))" in sql
+
+
+def test_is_empty_generates_length_zero(mocker: MockerFixture, app: Flask) -> None:
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(dataset, [{"col": "skills", "op": FilterOperator.IS_EMPTY.value}])
+    assert "length(skills) = 0" in sql
+
+
+def test_is_not_empty_generates_length_gt_zero(
+    mocker: MockerFixture, app: Flask
 ) -> None:
-    """On an engine without array support (sqlite) CONTAINS is rejected."""
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(
+            dataset, [{"col": "skills", "op": FilterOperator.IS_NOT_EMPTY.value}]
+        )
+    assert "length(skills) > 0" in sql
+
+
+def test_contains_resolves_to_hasany(mocker: MockerFixture, app: Flask) -> None:
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(
+            dataset,
+            [
+                {
+                    "col": "skills",
+                    "op": FilterOperator.CONTAINS_ANY.value,
+                    "val": ["Driver"],
+                }
+            ],
+        )
+    assert "hasany(skills" in sql
+
+
+def test_element_op_on_scalar_column_raises(mocker: MockerFixture, app: Flask) -> None:
+    """CONTAINS_ANY on a scalar column is rejected on an array-capable engine."""
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():  # noqa: SIM117
+        with pytest.raises(QueryObjectValidationError):
+            _sql(
+                dataset,
+                [
+                    {
+                        "col": "city",
+                        "op": FilterOperator.CONTAINS_ANY.value,
+                        "val": ["NYC"],
+                    }
+                ],
+            )
+
+
+def test_element_op_unsupported_engine_raises(
+    mocker: MockerFixture, app: Flask
+) -> None:
+    """On an engine without array support (sqlite) the array op is rejected."""
     dataset = _make_dataset(mocker)
     with app.test_request_context():  # noqa: SIM117
         with pytest.raises(QueryObjectValidationError):
-            dataset.get_query_str_extended(_query_obj(), mutate=False)
+            _sql(dataset, [{"col": "skills", "op": FilterOperator.IS_EMPTY.value}])
 
 
-def test_contains_filter_generates_native_sql(
-    mocker: MockerFixture,
-    app: Flask,
-) -> None:
-    """On a multi-value-capable engine CONTAINS compiles to the native call.
-
-    The dataset compiles against sqlite (so no ClickHouse driver is needed), but
-    its engine spec is ClickHouse, so the operator routes through
-    ``ClickHouseEngineSpec.array_contains`` -> ``has(...)``. ``func.has`` renders
-    the same regardless of dialect, which lets us assert on it here.
-    """
-    # Imported lazily: clickhouse.py touches app.config at import time, which
-    # is unavailable at pytest collection once clickhouse-connect is installed.
-    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
-
+def test_equals_on_array_parses_literal(mocker: MockerFixture, app: Flask) -> None:
+    """A pasted array literal for = is parsed into col = array(...)."""
     dataset = _make_dataset(mocker)
-    mocker.patch.object(
-        SqlaTable,
-        "db_engine_spec",
-        new=property(lambda self: ClickHouseEngineSpec),
-    )
-
+    _clickhouse(mocker, dataset)
     with app.test_request_context():
-        extended = dataset.get_query_str_extended(_query_obj(), mutate=False)
-        sql = extended.sql
+        sql = _sql(
+            dataset,
+            [
+                {
+                    "col": "skills",
+                    "op": FilterOperator.EQUALS.value,
+                    "val": "['Driver', 'Cook']",
+                }
+            ],
+        )
+    assert "skills = array('driver', 'cook')" in sql
 
-    assert "has(" in sql.lower()
-    assert "driver" in sql.lower()
+
+def test_equals_on_array_plain_value_fallback(
+    mocker: MockerFixture, app: Flask
+) -> None:
+    """A plain (non-bracketed) value becomes a single-element array."""
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(
+            dataset,
+            [{"col": "skills", "op": FilterOperator.EQUALS.value, "val": "Driver"}],
+        )
+    assert "skills = array('driver')" in sql
+
+
+def test_in_on_array_parses_literals(mocker: MockerFixture, app: Flask) -> None:
+    """Whole-array IN parses each pasted array literal into its own array."""
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(
+            dataset,
+            [
+                {
+                    "col": "skills",
+                    "op": FilterOperator.IN.value,
+                    "val": ["['Driver']", "['Cook']"],
+                }
+            ],
+        )
+    assert "skills in (array('driver'), array('cook'))" in sql

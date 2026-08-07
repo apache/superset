@@ -2583,14 +2583,31 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise
 
     @classmethod
-    def array_contains(cls, col: ColumnElement, value: Any) -> ColumnElement:
+    def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
         """
         Build a boolean expression testing whether array column ``col`` contains
-        ``value``. Engines that set ``supports_multivalue_columns = True`` must
-        override this with their native array-membership function.
+        **any** of ``values`` (element-level membership, like ``IN``). Engines
+        that set ``supports_multivalue_columns = True`` must override this with
+        their native function (e.g. ClickHouse ``hasAny``).
 
         :param col: SQLAlchemy column element for the array column
-        :param value: scalar value to look for inside the array
+        :param values: element values to look for inside the array
+        :return: a SQLAlchemy boolean expression
+        """
+        raise NotImplementedError(
+            f"{cls.engine} does not support multi-value (array) columns"
+        )
+
+    @classmethod
+    def array_contains_all(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        """
+        Build a boolean expression testing whether array column ``col`` contains
+        **all** of ``values``. Engines that set
+        ``supports_multivalue_columns = True`` must override this with their
+        native function (e.g. ClickHouse ``hasAll``).
+
+        :param col: SQLAlchemy column element for the array column
+        :param values: element values that must all be present
         :return: a SQLAlchemy boolean expression
         """
         raise NotImplementedError(
@@ -2602,7 +2619,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Build a numeric expression returning the number of elements in array
         column ``col``. Engines that set ``supports_multivalue_columns = True``
-        must override this with their native array-length function.
+        must override this with their native array-length function. Used both for
+        the ``Length`` filter and the ``Is empty`` / ``Is not empty`` operators.
 
         :param col: SQLAlchemy column element for the array column
         :return: a SQLAlchemy numeric expression
@@ -2612,16 +2630,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
-    def array_explode(cls, col: ColumnElement) -> ColumnElement:
+    def array_literal(cls, values: list[Any]) -> ColumnElement:
         """
-        Build an expression that expands array column ``col`` into one scalar
-        value per element (e.g. ClickHouse ``arrayJoin``). Set-returning dialects
-        (Postgres/Trino/BigQuery ``UNNEST``) need additional FROM/JOIN plumbing
-        that is handled by the query builder; this method only returns the
-        element-producing expression.
+        Build an array-literal expression from ``values`` (e.g. ClickHouse
+        ``array(v1, v2)`` == ``[v1, v2]``). Used for the whole-array (column-
+        level) operators ``=`` / ``!=`` / ``IN`` / ``NOT IN`` where the array is
+        compared as a single value. Engines that set
+        ``supports_multivalue_columns = True`` must override this.
 
-        :param col: SQLAlchemy column element for the array column
-        :return: a SQLAlchemy expression yielding individual array elements
+        :param values: element values that make up the array
+        :return: a SQLAlchemy array-literal expression
         """
         raise NotImplementedError(
             f"{cls.engine} does not support multi-value (array) columns"

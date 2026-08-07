@@ -176,9 +176,15 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     )
 
     @classmethod
-    def array_contains(cls, col: ColumnElement, value: Any) -> ColumnElement:
-        # ClickHouse: has(arr, value) -> 1 if the array contains value
-        return func.has(col, value)
+    def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAny(arr, [v1, v2]) -> 1 if arr shares any element.
+        # func.array(*values) renders as array(v1, v2) == [v1, v2].
+        return func.hasAny(col, func.array(*values))
+
+    @classmethod
+    def array_contains_all(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAll(arr, [v1, v2]) -> 1 if arr contains all elements.
+        return func.hasAll(col, func.array(*values))
 
     @classmethod
     def array_length(cls, col: ColumnElement) -> ColumnElement:
@@ -186,10 +192,9 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         return func.length(col)
 
     @classmethod
-    def array_explode(cls, col: ColumnElement) -> ColumnElement:
-        # ClickHouse: arrayJoin(arr) is a scalar function usable directly in
-        # SELECT/GROUP BY (no JOIN needed, unlike UNNEST dialects).
-        return func.arrayJoin(col)
+    def array_literal(cls, values: list[Any]) -> ColumnElement:
+        # ClickHouse: array(v1, v2) is equivalent to the literal [v1, v2].
+        return func.array(*values)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
