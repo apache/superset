@@ -19,6 +19,7 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -1045,6 +1046,344 @@ def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
     assert query_context_modified(query_context)
 
 
+def build_guest_query_context(
+    mocker: MockerFixture,
+    params: dict[str, Any],
+    form_data: dict[str, Any],
+    queries: list[QueryObject] | None = None,
+) -> Any:
+    """
+    A guest request for the chart described by `params`.
+
+    `form_data` holds only the keys under test; the slice id is filled in so the request
+    is for the stored chart rather than a different one.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = params
+    query_context.form_data = {"slice_id": 42, **form_data}
+    query_context.queries = queries if queries is not None else []
+    return query_context
+
+
+def test_query_context_modified_gantt_tooltip_metrics(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a Gantt chart's `tooltip_metrics` are accepted as stored metrics.
+
+    Gantt's `buildQuery` sends `tooltip_metrics` as the query's `metrics`.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "gantt_chart",
+            "start_time": "start",
+            "end_time": "end",
+            "y_axis": "task",
+            "tooltip_metrics": ["count"],
+        },
+        {"metrics": ["count"], "columns": ["start", "end", "task"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_mixed_timeseries_query_b(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a mixed timeseries chart's Query B controls are accepted.
+
+    `retainFormDataSuffix` strips the `_b` suffix, so `groupby_b` and
+    `timeseries_limit_metric_b` become Query B's columns and sort metric.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "mixed_timeseries",
+            "metrics": ["count"],
+            "groupby": ["gender"],
+            "metrics_b": ["sum__num"],
+            "groupby_b": ["state"],
+            "timeseries_limit_metric_b": "sum__num",
+        },
+        {},
+        [
+            QueryObject(metrics=["count"], columns=["gender"]),
+            QueryObject(
+                metrics=["sum__num"],
+                columns=["state"],
+                orderby=[("sum__num", False)],
+            ),
+        ],
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_graph_categories(mocker: MockerFixture) -> None:
+    """
+    Test that a graph chart's category controls are accepted as stored columns.
+
+    Graph aliases `source_category` and `target_category` to `columns`.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "graph_chart",
+            "source": "src",
+            "target": "tgt",
+            "source_category": "src_cat",
+            "target_category": "tgt_cat",
+            "metric": "count",
+        },
+        {"columns": ["src", "tgt", "src_cat", "tgt_cat"], "metrics": ["count"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_spatial(mocker: MockerFixture) -> None:
+    """
+    Test that a deck.gl chart's nested spatial configuration is decomposed.
+
+    `getSpatialColumns()` turns the config into the columns the query selects, so the
+    stored config has to be decomposed the same way.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_screengrid",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+            "size": "count",
+            "js_columns": ["extra"],
+        },
+        {"columns": ["LON", "LAT", "extra"], "metrics": ["count"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_arc_spatial(mocker: MockerFixture) -> None:
+    """
+    Test that an Arc chart's start and end spatial configurations are decomposed.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_arc",
+            "start_spatial": {"type": "delimited", "lonlatCol": "from_latlon"},
+            "end_spatial": {"type": "geohash", "geohashCol": "to_geohash"},
+            "dimension": "carrier",
+        },
+        {"columns": ["from_latlon", "to_geohash", "carrier"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_spatial_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a column absent from a spatial configuration is still rejected.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_screengrid",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+        },
+        {"columns": ["LON", "LAT", "salary"]},
+    )
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_tooltip_contents(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that deck.gl tooltip-config objects are reduced to the columns they wrap.
+
+    `extractTooltipColumns()` adds `item_type: "column"` entries to the query's columns.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_path",
+            "line_column": "path",
+            "tooltip_contents": [
+                {"item_type": "column", "column_name": "name"},
+                {"item_type": "metric", "metric_name": "count"},
+                "plain_column",
+            ],
+        },
+        {"columns": ["path", "name", "plain_column"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_tooltip_metric_not_a_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a tooltip metric entry does not become a permitted column.
+
+    Metric entries are read from data already fetched and never reach the query's
+    columns, so requesting one as a column is a modification.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_path",
+            "line_column": "path",
+            "tooltip_contents": [{"item_type": "metric", "metric_name": "count"}],
+        },
+        {"columns": ["path", "count"]},
+    )
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_point_radius_fixed_metric(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a metric-typed `point_radius_fixed` is accepted as a stored metric.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_scatter",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+            "point_radius_fixed": {"type": "metric", "value": "count"},
+        },
+        {
+            "columns": ["LON", "LAT"],
+            "metrics": ["count"],
+            "orderby": [["count", False]],
+        },
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_point_radius_fixed_legacy(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the legacy bare-string form of `point_radius_fixed` is accepted.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_scatter",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+            "point_radius_fixed": "count",
+        },
+        {"columns": ["LON", "LAT"], "metrics": ["count"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_point_radius_fixed_value_not_a_metric(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a fixed-typed `point_radius_fixed` grants no metric.
+
+    A `fix` value is a radius in pixels, never queried, so a metric of the same name
+    still has to be stored elsewhere on the chart.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_scatter",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+            "point_radius_fixed": {"type": "fix", "value": "count"},
+        },
+        {"columns": ["LON", "LAT"], "metrics": ["count"]},
+    )
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_cartodiagram(mocker: MockerFixture) -> None:
+    """
+    Test that a Cartodiagram's nested chart definition is descended into.
+
+    `selected_chart` holds a JSON-encoded chart whose own `params` is a JSON string; its
+    metrics and group-bys are what the delegated `buildQuery` actually queries, with the
+    geometry column prepended to the group-bys.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "cartodiagram",
+            "geom_column": "geom",
+            "selected_chart": json.dumps(
+                {
+                    "viz_type": "pie",
+                    "params": json.dumps(
+                        {"metric": "count", "groupby": ["gender"]},
+                    ),
+                }
+            ),
+        },
+        {"groupby": ["geom", "gender"], "metrics": ["count"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_cartodiagram_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a column absent from a Cartodiagram's nested chart is still rejected.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "cartodiagram",
+            "geom_column": "geom",
+            "selected_chart": json.dumps(
+                {
+                    "viz_type": "pie",
+                    "params": json.dumps(
+                        {"metric": "count", "groupby": ["gender"]},
+                    ),
+                }
+            ),
+        },
+        {"groupby": ["geom", "salary"], "metrics": ["count"]},
+    )
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_malformed_selected_chart(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an unparseable `selected_chart` neither crashes nor grants access.
+    """
+    for selected_chart in ["not json", json.dumps({"params": "not json"}), None, 42]:
+        query_context = build_guest_query_context(
+            mocker,
+            {
+                "viz_type": "cartodiagram",
+                "geom_column": "geom",
+                "selected_chart": selected_chart,
+            },
+            {"groupby": ["geom"]},
+        )
+        assert not query_context_modified(query_context)
+
+        tampered = build_guest_query_context(
+            mocker,
+            {
+                "viz_type": "cartodiagram",
+                "geom_column": "geom",
+                "selected_chart": selected_chart,
+            },
+            {"groupby": ["geom", "salary"]},
+        )
+        assert query_context_modified(tampered)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
@@ -1547,3 +1886,399 @@ def test_validate_child_in_parent_multilayer_null_params(
     assert not sm._validate_child_in_parent_multilayer(
         child_slice_id=1, parent_slice=parent_slice
     )
+
+
+def test_query_context_modified_stored_groupby(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a chart storing only `groupby`.
+
+    A request always sends its columns under `columns`, while a chart with a group-by
+    stores them under `groupby`, so the two control names must compare as equivalent.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["deal_size"],
+    }
+    query_context.queries = [QueryObject(metrics=["count"], columns=["deal_size"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_stored_metric(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a big number chart.
+
+    Big number stores its single metric under `metric`, but requests it as `metrics`.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {"metric": "count"}
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metric": "count",
+        "metrics": ["count"],
+    }
+    query_context.queries = [QueryObject(metrics=["count"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_stored_all_columns(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a table chart in raw mode.
+
+    A raw mode table stores its columns under `all_columns`.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "query_mode": "raw",
+        "all_columns": ["product_line", "status"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "query_mode": "raw",
+        "all_columns": ["product_line", "status"],
+        "columns": ["product_line", "status"],
+    }
+    query_context.queries = [QueryObject(columns=["product_line", "status"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a time series chart.
+
+    The frontend replaces the chart's saved `x_axis` with a synthesized `BASE_AXIS`
+    column reference, which must compare equal to the stored physical column name.
+    """
+    base_axis: dict[str, Any] = {
+        "columnType": "BASE_AXIS",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "timeGrain": "P1M",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+        "x_axis": "order_date",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "x_axis": "order_date",
+        "columns": [base_axis, "deal_size"],
+    }
+    query_context.queries = [
+        QueryObject(metrics=["count"], columns=[base_axis, "deal_size"])  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_tampered(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function when a `BASE_AXIS` is forged.
+
+    Tagging a column the chart does not read as `BASE_AXIS` must not grant access to it.
+    """
+    forged_axis: dict[str, Any] = {
+        "columnType": "BASE_AXIS",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+        "label": "credit_limit",
+        "sqlExpression": "credit_limit",
+        "timeGrain": "P1M",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+        "x_axis": "order_date",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "x_axis": "order_date",
+        "columns": [forged_axis, "deal_size"],
+    }
+    query_context.queries = [
+        QueryObject(metrics=["count"], columns=[forged_axis, "deal_size"])  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_base_axis_metric_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `query_context_modified` function when `BASE_AXIS` markers are smuggled
+    onto a metric, to disguise free-form SQL as a column reference.
+    """
+    smuggled_metric: dict[str, Any] = {
+        "columnType": "BASE_AXIS",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+        "label": "MAX(credit_limit)",
+        "sqlExpression": "MAX(credit_limit)",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "x_axis": "order_date",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": [smuggled_metric],
+        "x_axis": "order_date",
+    }
+    query_context.queries = [QueryObject(metrics=[smuggled_metric])]  # type: ignore
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_own_metric(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function when sorting by the chart's own metric.
+
+    Charts legitimately order by a metric or column they already read, neither of which
+    is stored under `orderby`.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["deal_size"],
+        "orderby": [["count", False]],
+    }
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            columns=["deal_size"],
+            orderby=[("count", False)],
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_orderby_unrelated_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `query_context_modified` function when ordering by an unrelated column.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupby": ["deal_size"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["deal_size"],
+        "orderby": [["credit_limit", False]],
+    }
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            columns=["deal_size"],
+            orderby=[("credit_limit", False)],
+        )
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_scalar_groupby(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a scalar-valued `groupby`.
+
+    Heatmap stores its group-by as a bare string rather than a list; it must not be
+    compared character by character.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metric": "count",
+        "x_axis": "product_line",
+        "groupby": "deal_size",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metric": "count",
+        "x_axis": "product_line",
+        "groupby": "deal_size",
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(metrics=["count"], columns=["product_line", "deal_size"])
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_column_reference(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for an adhoc column reference.
+
+    Box plot sends its saved temporal column as an adhoc column whose `sqlExpression` is
+    its own label, which stands for the physical column stored in `params`.
+    """
+    column_reference: dict[str, Any] = {
+        "expressionType": "SQL",
+        "label": "order_date",
+        "sqlExpression": "order_date",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "columns": ["order_date"],
+        "groupby": ["product_line"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["order_date"],
+        "groupby": ["product_line"],
+    }
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            columns=[column_reference, "product_line"],  # type: ignore
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_column_reference_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `query_context_modified` function when an adhoc column wraps free-form SQL.
+
+    A column reference only collapses to the name it points at, so SQL disguised as a
+    label must still be rejected.
+    """
+    disguised: dict[str, Any] = {
+        "expressionType": "SQL",
+        "label": "UPPER(secret)",
+        "sqlExpression": "UPPER(secret)",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "columns": ["order_date"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "columns": ["order_date"],
+    }
+    query_context.queries = [
+        QueryObject(metrics=["count"], columns=[disguised])  # type: ignore  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_pivot_table_groupby(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for a pivot table.
+
+    Pivot table splits its group-bys across `groupbyColumns` and `groupbyRows`.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+        "groupbyColumns": ["product_line"],
+        "groupbyRows": ["country", "city"],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+        "groupbyColumns": ["product_line"],
+        "groupbyRows": ["country", "city"],
+    }
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            columns=["product_line", "country", "city"],
+        )
+    ]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_order_by_cols(mocker: MockerFixture) -> None:
+    """
+    Test the `query_context_modified` function for `order_by_cols`.
+
+    Entries are JSON-encoded `[column, is_ascending]` pairs, and the column they sort on
+    is read by the query.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "series": "priority",
+        "order_by_cols": ['["status",false]'],
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "start_time": "start_time",
+        "end_time": "end_time",
+        "series": "priority",
+        "order_by_cols": ['["status",false]'],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=["start_time", "end_time", "priority", "status"],
+        )
+    ]
+    assert not query_context_modified(query_context)
