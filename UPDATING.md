@@ -52,6 +52,33 @@ One caveat on turning soft delete back off: objects archived while it was on are
 **resurrected** into normal listings, since the rows were never removed — an
 emergency stop rather than a clean rollback.
 
+### Version history is on by default
+
+`VERSION_HISTORY` and `ENABLE_VERSIONING_CAPTURE` now both ship **on**. Every
+save of a chart, dashboard, or dataset writes version rows, and the version
+history panel appears on Explore and Dashboard pages. The two flip together
+deliberately: a panel with capture off renders an empty "No history yet" that
+misrepresents the entity as unchanged.
+
+**What operators should expect:**
+
+- **Storage growth.** Capture writes shadow rows per save, so the metadata
+  database grows with edit volume. The `version_history.prune_old_versions`
+  beat task removes rows whose transaction is older than
+  `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` (default 30). A deployment that
+  replaces `CELERY_CONFIG` rather than inheriting it must carry both the
+  `superset.tasks.version_history_retention` import and the beat entry; a
+  startup warning names whichever is absent.
+- **`PUT` responses change shape.** Entity updates now return populated
+  `old_version_uuid` / `new_version_uuid` fields and an `ETag` header, which
+  were null or absent while capture was off.
+
+`ENABLE_VERSIONING_CAPTURE` is **retained permanently** as an operational
+kill-switch — not removed with the rollout toggles. Setting it to a falsy value
+stops capture within a restart, without a revert-and-redeploy. Unlike the
+soft-delete toggle, turning it off is a clean stop: existing version rows remain
+readable and no entity state is altered.
+
 ### Scheduled report execution now enforces one application deadline
 
 Scheduled report (not alert) executions are now governed by a single
@@ -481,7 +508,7 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 |---|---|---|
 | `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
 
-The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE` (ships off).
+The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE`, which now ships on.
 
 ### Deletion retention (soft-deleted entities are eventually purged)
 
@@ -491,7 +518,7 @@ Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the reten
 
 Deployments that replace the default `CELERY_CONFIG` must ensure workers register `superset.tasks.deletion_retention` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config uses `imports` and includes both entries. While `SOFT_DELETE` is statically enabled, a missing beat entry logs a startup warning; when the override explicitly defines `imports`, a missing purge module is also reported.
 
-Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every purge writes an immutable, content-free audit record to the new `purge_audit_log` table that survives the entity it names: the **scheduled** purge fails closed (an entity whose audit row cannot be written is skipped and retried next run), while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure.
+Operators can immediately erase a specific entity for compliance (GDPR) via `superset deletion-retention force-purge --uuid <uuid>`; this applies legacy hard-delete semantics — a live chart referencing a force-purged dataset is left without a datasource until re-pointed (the chart is not modified), and it purges the named entity even when it was never soft-deleted. Every scheduled evaluation writes a provisional, content-free record to the new `purge_audit_log` table before the cascade starts. Meaningful retained outcomes survive the entity they name. Consecutive scheduled evaluations with the same blocked outcome suppress only the redundant current provisional record; completed outcomes, outcome transitions, and every force-purge attempt remain independent and immutable. The **scheduled** purge fails closed when its provisional record cannot be written, while **force-purge** proceeds even if the audit write fails — the operator is present and deletion outranks audit for a compliance erasure. Operators can monitor `deletion_retention.blocked_audit_suppressed` and `deletion_retention.blocked_audit_dedupe_fallback` to verify suppression and fail-safe fallback behavior without changing the existing blocked-workload gauge.
 
 ### Recently Archived view and permanent delete (purge) endpoints
 
