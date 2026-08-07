@@ -168,7 +168,7 @@ describe('transformSeries', () => {
       timeShiftColor: false,
       // percentage_threshold defaults to 0, so thresholdValues[dataIndex] is
       // 0 too — a value of exactly 0 would satisfy `numericValue >= 0`
-      // without the explicit `numericValue > 0` guard.
+      // without the explicit `numericValue !== 0` guard.
       thresholdValues: [0],
       formatter: (value: number) => `${value}`,
     };
@@ -191,6 +191,32 @@ describe('transformSeries', () => {
       seriesName: 'test-series',
     });
     expect(nonZeroValueLabel).toBe('32');
+  });
+
+  test('still renders a per-series stacked label for a genuine negative value that clears the threshold', () => {
+    const opts = {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: true,
+      onlyTotal: false,
+      isHorizontal: false,
+      timeShiftColor: false,
+      // A category whose stacked total is itself negative produces a
+      // negative threshold — a strictly-positive check would wrongly
+      // suppress a real, meaningful negative-value label here.
+      thresholdValues: [-10],
+      formatter: (value: number) => `${value}`,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+    const { formatter: labelFormatter } = (result as any).label;
+
+    const negativeValueLabel = labelFormatter({
+      value: [null, -5],
+      dataIndex: 0,
+      seriesIndex: 0,
+      seriesName: 'test-series',
+    });
+    expect(negativeValueLabel).toBe('-5');
   });
 });
 

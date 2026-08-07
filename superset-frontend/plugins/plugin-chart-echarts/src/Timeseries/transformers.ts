@@ -470,12 +470,14 @@ export function transformSeries(
           // A zero-height stacked segment has no meaningful position to
           // attach a label to: it starts and ends at the same y-coordinate
           // as the top of the previous segment, so its label would render
-          // directly on top of that segment's own label. Requiring a
-          // strictly positive value keeps this independent of the
-          // configured percentage threshold, whose default of 0 would
-          // otherwise let a value of exactly 0 pass (#42702).
+          // directly on top of that segment's own label. Excluding exactly
+          // 0 keeps this independent of the configured percentage
+          // threshold, whose default of 0 would otherwise let a value of
+          // exactly 0 pass (#42702) — a strictly-positive check would also
+          // wrongly suppress a genuine negative value that clears a
+          // (possibly also negative) threshold.
           if (
-            numericValue > 0 &&
+            numericValue !== 0 &&
             numericValue >=
               (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
           ) {
