@@ -121,6 +121,25 @@ class TestSupersetApp:
 
 
 class TestSupersetAppInitializer:
+    @patch("superset.initialization.os.makedirs")
+    @patch("superset.initialization.wtforms_json.init")
+    @patch("superset.initialization.validate_report_execution_config")
+    def test_pre_init_validates_report_budget_at_boot(
+        self,
+        validate_report_config,
+        wtforms_init,
+        makedirs,
+    ) -> None:
+        mock_app = MagicMock()
+        mock_app.config = {"DATA_DIR": "/var/lib/superset"}
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        app_initializer.pre_init()
+
+        validate_report_config.assert_called_once_with(mock_app.config)
+        wtforms_init.assert_called_once_with()
+        makedirs.assert_called_once_with("/var/lib/superset", exist_ok=True)
+
     @patch("superset.initialization.logger")
     def test_init_app_in_ctx_calls_sync_config_to_db(self, mock_logger):
         """Test that initialization calls app.sync_config_to_db()."""
