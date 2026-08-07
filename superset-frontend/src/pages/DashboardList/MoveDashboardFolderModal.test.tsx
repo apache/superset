@@ -100,3 +100,61 @@ test('uses a read-only parent to navigate to a writable child', async () => {
   );
   expect(screen.getByRole('button', { name: 'Move' })).toBeEnabled();
 });
+
+test('initializes parent and child selections and moves the dashboard', async () => {
+  const onHide = jest.fn();
+  const onMove = jest.fn().mockResolvedValue(undefined);
+  render(
+    <MoveDashboardFolderModal
+      dashboardTitle="Revenue"
+      currentFolderId="child"
+      folders={folders}
+      onHide={onHide}
+      onMove={onMove}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: 'Move' }));
+
+  expect(onMove).toHaveBeenCalledWith('child');
+  expect(onHide).toHaveBeenCalledTimes(1);
+});
+
+test('falls back to uncategorized for an unknown current folder', async () => {
+  const onMove = jest.fn().mockResolvedValue(undefined);
+  render(
+    <MoveDashboardFolderModal
+      dashboardTitle="Revenue"
+      currentFolderId="missing"
+      folders={folders}
+      onHide={jest.fn()}
+      onMove={onMove}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: 'Move' }));
+  expect(onMove).toHaveBeenCalledWith(null);
+});
+
+test('shows the full hierarchy path in child folder options', async () => {
+  const grandchild = {
+    ...folders[1],
+    id: 'grandchild',
+    name: 'August',
+    parent_id: 'child',
+  };
+  render(
+    <MoveDashboardFolderModal
+      dashboardTitle="Revenue"
+      folders={[...folders, grandchild]}
+      onHide={jest.fn()}
+      onMove={jest.fn().mockResolvedValue(undefined)}
+    />,
+  );
+
+  await selectOption('Finance', 'Parent folder');
+  await userEvent.click(screen.getByRole('combobox', { name: 'Child folder' }));
+  expect(
+    await screen.findByRole('option', { name: 'Monthly reports / August' }),
+  ).toBeInTheDocument();
+});

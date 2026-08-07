@@ -17,7 +17,12 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  selectOption,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { DashboardFolderPanel } from './DashboardFolderPanel';
 
 const folders = [
@@ -240,4 +245,87 @@ test('clears the folder filter when selecting the active folder again', async ()
 
   await userEvent.click(screen.getByText('Finance'));
   expect(onSelect).toHaveBeenCalledWith(null);
+});
+
+test('submits a normalized name and parent when creating a child folder', async () => {
+  const onCreate = jest.fn().mockResolvedValue(undefined);
+  render(
+    <DashboardFolderPanel
+      folders={folders}
+      selectedFolderId={null}
+      canCreate
+      onSelect={jest.fn()}
+      onCreate={onCreate}
+      onRename={jest.fn()}
+      onDelete={jest.fn()}
+    />,
+  );
+
+  await userEvent.click(screen.getByLabelText('Create dashboard folder'));
+  await userEvent.type(screen.getByLabelText('Folder name'), '  Forecasts  ');
+  await selectOption('Finance', 'Parent folder');
+  await userEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+  expect(onCreate).toHaveBeenCalledWith('Forecasts', 'parent');
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+  );
+});
+
+test('submits the new name when renaming a folder', async () => {
+  const onRename = jest.fn().mockResolvedValue(undefined);
+  render(
+    <DashboardFolderPanel
+      folders={folders}
+      selectedFolderId={null}
+      canCreate
+      onSelect={jest.fn()}
+      onCreate={jest.fn()}
+      onRename={onRename}
+      onDelete={jest.fn()}
+    />,
+  );
+
+  await userEvent.click(screen.getByLabelText('Rename folder'));
+  const nameInput = screen.getByLabelText('Folder name');
+  await userEvent.clear(nameInput);
+  await userEvent.type(nameInput, '  Planning  ');
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  expect(onRename).toHaveBeenCalledWith(folders[0], 'Planning');
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+  );
+});
+
+test('keeps the uncategorized entry switchable with the list filter', async () => {
+  const onSelect = jest.fn();
+  const { rerender } = render(
+    <DashboardFolderPanel
+      folders={folders}
+      selectedFolderId={null}
+      canCreate
+      onSelect={onSelect}
+      onCreate={jest.fn()}
+      onRename={jest.fn()}
+      onDelete={jest.fn()}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Uncategorized'));
+  expect(onSelect).toHaveBeenLastCalledWith('uncategorized');
+
+  rerender(
+    <DashboardFolderPanel
+      folders={folders}
+      selectedFolderId="uncategorized"
+      canCreate
+      onSelect={onSelect}
+      onCreate={jest.fn()}
+      onRename={jest.fn()}
+      onDelete={jest.fn()}
+    />,
+  );
+  await userEvent.click(screen.getByText('Uncategorized'));
+  expect(onSelect).toHaveBeenLastCalledWith(null);
 });

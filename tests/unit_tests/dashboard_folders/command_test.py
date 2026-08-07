@@ -17,6 +17,7 @@
 """Tests for dashboard folder commands."""
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -38,6 +39,7 @@ from superset.commands.dashboard_folder.update import UpdateDashboardFolderComma
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dashboard_folder import DashboardFolderDAO
 from superset.exceptions import SupersetSecurityException
+from superset.models.dashboard_folder import DashboardFolder
 
 
 def test_non_admin_cannot_assign_folder_owners() -> None:
@@ -358,5 +360,157 @@ def test_move_rejects_missing_folder() -> None:
         ),
         patch.object(DashboardFolderDAO, "get_by_id", return_value=None),
         pytest.raises(DashboardFolderNotFoundError),
+    ):
+        command.validate()
+
+
+def test_create_rejects_blank_name() -> None:
+    """Verify that a folder cannot be created with a whitespace-only name."""
+    command = CreateDashboardFolderCommand({"name": "   "})
+
+    with pytest.raises(DashboardFolderInvalidError):
+        command.validate()
+
+
+def test_create_normalizes_valid_properties() -> None:
+    """Verify create validation normalizes the name and keeps empty owners."""
+    command = CreateDashboardFolderCommand({"name": " Finance "})
+
+    with patch.object(DashboardFolderDAO, "find_name_conflict", return_value=None):
+        command.validate()
+
+    assert command._properties == {"name": "Finance", "owners": []}
+
+
+def test_update_runs_with_validated_folder() -> None:
+    """Verify that update passes normalized attributes to the DAO."""
+    folder = cast(DashboardFolder, SimpleNamespace(id=uuid4()))
+    command = UpdateDashboardFolderCommand(folder.id, {"name": "Finance"})
+    command._folder = folder
+
+    with (
+        patch.object(command, "validate"),
+        patch.object(DashboardFolderDAO, "update", return_value=folder) as update,
+    ):
+        assert command.run() is folder
+
+    update.assert_called_once_with(folder, {"name": "Finance"})
+
+
+def test_update_rejects_owner_changes_from_non_admin() -> None:
+    """Verify that non-admin users cannot change folder owners."""
+    folder = SimpleNamespace(id=uuid4())
+    command = UpdateDashboardFolderCommand(folder.id, {"owners": [7]})
+
+    with (
+        patch.object(DashboardFolderDAO, "get_by_id", return_value=folder),
+        patch.object(DashboardFolderDAO, "can_write", return_value=True),
+        patch(
+            "superset.commands.dashboard_folder.update.security_manager.is_admin",
+            return_value=False,
+        ),
+        pytest.raises(DashboardFolderForbiddenError),
+    ):
+        command.validate()
+
+
+def test_update_rejects_blank_name() -> None:
+    """Verify that a folder cannot be updated with a whitespace-only name."""
+    folder = SimpleNamespace(id=uuid4(), name="Finance", parent_id=None)
+    command = UpdateDashboardFolderCommand(folder.id, {"name": "   "})
+
+    with (
+        patch.object(DashboardFolderDAO, "get_by_id", return_value=folder),
+        patch.object(DashboardFolderDAO, "can_write", return_value=True),
+        pytest.raises(DashboardFolderInvalidError),
+    ):
+        command.validate()
+
+
+def test_update_rejects_missing_effective_parent() -> None:
+    """Verify that retaining a parent still checks whether it exists."""
+    parent_id = uuid4()
+    folder = SimpleNamespace(id=uuid4(), name="Finance", parent_id=parent_id)
+    command = UpdateDashboardFolderCommand(folder.id, {"name": "Reports"})
+
+    with (
+        patch.object(
+            DashboardFolderDAO,
+            "get_by_id",
+            side_effect=[folder, None],
+        ),
+        patch.object(DashboardFolderDAO, "can_write", return_value=True),
+        pytest.raises(DashboardFolderInvalidError),
+    ):
+        command.validate()
+
+
+def test_update_rejects_name_matching_effective_parent() -> None:
+    """Verify that a folder cannot have the same name as its parent."""
+    parent_id = uuid4()
+    folder = SimpleNamespace(id=uuid4(), name="Reports", parent_id=parent_id)
+    parent = SimpleNamespace(id=parent_id, name="Finance", parent_id=None)
+    command = UpdateDashboardFolderCommand(folder.id, {"name": " finance "})
+
+    with (
+        patch.object(
+            DashboardFolderDAO,
+            "get_by_id",
+            side_effect=[folder, parent],
+        ),
+        patch.object(DashboardFolderDAO, "can_write", return_value=True),
+        pytest.raises(DashboardFolderNameConflictError),
+    ):
+        command.validate()
+
+
+def test_update_rejects_missing_target_parent() -> None:
+    """Verify that a move target parent must exist."""
+    folder = SimpleNamespace(id=uuid4(), name="Finance", parent_id=None)
+    command = UpdateDashboardFolderCommand(folder.id, {"parent_id": uuid4()})
+
+    with (
+        patch.object(
+            DashboardFolderDAO,
+            "get_by_id",
+            side_effect=[folder, None],
+        ),
+        patch.object(DashboardFolderDAO, "can_write", return_value=True),
+        pytest.raises(DashboardFolderInvalidError),
+    ):
+        command.validate()
+
+
+def test_update_rejects_read_only_target_parent() -> None:
+    """Verify that a folder cannot move into a read-only target parent."""
+    folder = SimpleNamespace(id=uuid4(), name="Finance", parent_id=None)
+    parent = SimpleNamespace(id=uuid4(), name="Reports", parent_id=None)
+    command = UpdateDashboardFolderCommand(folder.id, {"parent_id": parent.id})
+
+    with (
+        patch.object(
+            DashboardFolderDAO,
+            "get_by_id",
+            side_effect=[folder, parent],
+        ),
+        patch.object(
+            DashboardFolderDAO,
+            "can_write",
+            side_effect=[True, False],
+        ),
+        pytest.raises(DashboardFolderForbiddenError),
+    ):
+        command.validate()
+
+
+def test_delete_rejects_root_without_write_access() -> None:
+    """Verify that a user cannot delete a read-only root folder."""
+    folder = SimpleNamespace(id=uuid4(), children=[])
+    command = DeleteDashboardFolderCommand(folder.id)
+
+    with (
+        patch.object(DashboardFolderDAO, "get_by_id", return_value=folder),
+        patch.object(DashboardFolderDAO, "can_write", return_value=False),
+        pytest.raises(DashboardFolderForbiddenError),
     ):
         command.validate()

@@ -103,7 +103,7 @@ def test_visible_tree_uses_access_scoped_dashboard_counts() -> None:
 
 
 def test_folder_actions_follow_granular_permissions() -> None:
-    """验证文件夹所有者的动作权限相互独立。"""
+    """Verify that folder owner action permissions remain independent."""
     current_user = SimpleNamespace(id=7)
     folder = cast(DashboardFolder, SimpleNamespace(owners=[current_user]))
 
@@ -133,7 +133,7 @@ def test_folder_actions_follow_granular_permissions() -> None:
 
 
 def test_read_only_folder_has_no_mutation_actions() -> None:
-    """验证非所有者看到的文件夹保持只读。"""
+    """Verify that folders remain read-only for non-owners."""
     current_user = SimpleNamespace(id=7)
     folder = cast(
         DashboardFolder,
@@ -158,3 +158,152 @@ def test_read_only_folder_has_no_mutation_actions() -> None:
         assert DashboardFolderDAO.can_perform(folder, "rename") is False
         assert DashboardFolderDAO.can_perform(folder, "delete") is False
         assert DashboardFolderDAO.can_perform(folder, "move_dashboard") is False
+
+
+def test_get_by_id_uses_the_public_folder_uuid() -> None:
+    """Verify that the DAO looks up folders by public UUID."""
+    folder_id = uuid4()
+    folder = SimpleNamespace(id=folder_id)
+
+    with patch(
+        "superset.daos.dashboard_folder.db.session.get",
+        return_value=folder,
+    ) as session_get:
+        assert DashboardFolderDAO.get_by_id(folder_id) is folder
+
+    session_get.assert_called_once_with(DashboardFolder, folder_id)
+
+
+def test_find_name_conflict_scopes_root_and_excluded_folder() -> None:
+    """Verify root duplicate checks exclude the folder being renamed."""
+    excluded_folder_id = uuid4()
+    conflict = SimpleNamespace(id=uuid4())
+    query = MagicMock()
+    query.filter.return_value = query
+    query.first.return_value = conflict
+
+    with patch(
+        "superset.daos.dashboard_folder.db.session.query",
+        return_value=query,
+    ):
+        result = DashboardFolderDAO.find_name_conflict(
+            " Finance ",
+            None,
+            excluded_folder_id=excluded_folder_id,
+        )
+
+    assert result is conflict
+    assert query.filter.call_count == 3
+
+
+def test_find_name_conflict_scopes_child_to_parent() -> None:
+    """Verify child duplicate checks are scoped to the selected parent."""
+    query = MagicMock()
+    query.filter.return_value = query
+    query.first.return_value = None
+
+    with patch(
+        "superset.daos.dashboard_folder.db.session.query",
+        return_value=query,
+    ):
+        result = DashboardFolderDAO.find_name_conflict("Finance", uuid4())
+
+    assert result is None
+    assert query.filter.call_count == 2
+
+
+def test_get_users_handles_empty_and_populated_owner_lists() -> None:
+    """Verify empty owner lists skip queries and non-empty lists resolve users."""
+    users = [SimpleNamespace(id=7), SimpleNamespace(id=8)]
+    query = MagicMock()
+    query.filter.return_value.all.return_value = users
+
+    with patch(
+        "superset.daos.dashboard_folder.db.session.query",
+        return_value=query,
+    ) as session_query:
+        assert DashboardFolderDAO.get_users([]) == []
+        assert DashboardFolderDAO.get_users([7, 8]) == users
+
+    session_query.assert_called_once()
+
+
+def test_accessible_dashboard_query_uses_the_canonical_filter() -> None:
+    """Verify dashboard counts reuse Superset's standard access filter."""
+    query = MagicMock()
+    filtered_query = MagicMock()
+    access_filter = MagicMock()
+    access_filter.apply.return_value = filtered_query
+    data_model = MagicMock()
+
+    with (
+        patch(
+            "superset.daos.dashboard_folder.db.session.query",
+            return_value=query,
+        ),
+        patch(
+            "superset.daos.dashboard_folder.SQLAInterface",
+            return_value=data_model,
+        ) as interface,
+        patch(
+            "superset.daos.dashboard_folder.DashboardAccessFilter",
+            return_value=access_filter,
+        ) as access_filter_class,
+    ):
+        result = DashboardFolderDAO.accessible_dashboard_query()
+
+    assert result is filtered_query
+    interface.assert_called_once()
+    access_filter_class.assert_called_once_with("id", data_model)
+    access_filter.apply.assert_called_once_with(query, None)
+
+
+def test_admin_tree_includes_all_folders_and_stops_recursive_cycles() -> None:
+    """Verify admins see all folders and cyclic hierarchies terminate."""
+    first_id = uuid4()
+    second_id = uuid4()
+    owner = SimpleNamespace(id=7, first_name="Admin", last_name="User")
+    first = SimpleNamespace(
+        id=first_id,
+        name="First",
+        description=None,
+        parent_id=second_id,
+        owners=[owner],
+    )
+    second = SimpleNamespace(
+        id=second_id,
+        name="Second",
+        description=None,
+        parent_id=first_id,
+        owners=[owner],
+    )
+    folder_query = MagicMock()
+    folder_query.all.return_value = [first, second]
+    dashboard_query = MagicMock()
+    grouped_query = dashboard_query.with_entities.return_value.group_by.return_value
+    grouped_query.all.return_value = [(first_id, 1)]
+
+    with (
+        patch(
+            "superset.daos.dashboard_folder.db.session.query",
+            return_value=folder_query,
+        ),
+        patch.object(
+            DashboardFolderDAO,
+            "accessible_dashboard_query",
+            return_value=dashboard_query,
+        ),
+        patch.object(DashboardFolderDAO, "can_perform", return_value=True),
+        patch(
+            "superset.daos.dashboard_folder.security_manager.is_admin",
+            return_value=True,
+        ),
+    ):
+        result = DashboardFolderDAO.get_visible_tree()
+
+    assert {item["id"] for item in result["result"]} == {
+        str(first_id),
+        str(second_id),
+    }
+    assert {item["dashboard_count"] for item in result["result"]} == {1}
+    assert result["total_dashboards"] == 1

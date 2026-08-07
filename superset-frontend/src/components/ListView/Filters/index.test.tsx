@@ -18,7 +18,7 @@
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { ListViewFilterOperator } from '../types';
+import { type ListViewFilterControls, ListViewFilterOperator } from '../types';
 import UIFilters from './index';
 
 const mockUpdateFilterValue = jest.fn();
@@ -189,6 +189,47 @@ test('clearing a select filter notifies its update callback', async () => {
   );
   expect(onFilterUpdate).toHaveBeenCalledWith(undefined);
   expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, undefined);
+});
+
+test('sets a value by filter ID through the public ref', () => {
+  const controlsRef = {
+    current: null,
+  } as React.RefObject<ListViewFilterControls>;
+  const filters = [
+    {
+      Header: 'Folder',
+      key: 'folder',
+      id: 'folder_id',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.DashboardFolder,
+      selects: [{ label: 'Finance', value: 'finance' }],
+    },
+  ];
+
+  render(
+    <UIFilters
+      ref={controlsRef}
+      filters={filters}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  controlsRef.current?.setFilterValueById?.('folder_id', {
+    label: 'Finance',
+    value: 'finance',
+  });
+  expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, {
+    label: 'Finance',
+    value: 'finance',
+  });
+
+  mockUpdateFilterValue.mockClear();
+  controlsRef.current?.setFilterValueById?.('missing', {
+    label: 'Missing',
+    value: 'missing',
+  });
+  expect(mockUpdateFilterValue).not.toHaveBeenCalled();
 });
 
 test('select pill tooltip falls back to static selects on cold URL load (no cached label)', () => {
