@@ -26,8 +26,10 @@ from unittest.mock import Mock, patch
 from urllib import request
 
 import pytest
+import yaml
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
+from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -251,6 +253,451 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     ]
     assert sqla_table.database.uuid == database.uuid
     assert sqla_table.database.id == database.id
+
+
+def test_export_import_round_trip_preserves_metric_folder_membership(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A metric (or column) assigned to a custom folder must stay in that folder
+    after the dataset is exported and imported into another workspace.
+
+    Folder leaves reference metrics/columns by UUID. If the export drops the
+    metric/column UUIDs, the importer recreates them with fresh random UUIDs
+    while the ``folders`` JSON still points at the originals — so the metric can
+    no longer be matched to its folder and is re-homed to the default folder.
+    This exercises the full export -> import round trip and asserts the
+    imported metric/column keep the UUIDs the folder leaves reference.
+    """
+    from superset.commands.dataset.export import ExportDatasetsCommand
+    from superset.connectors.sqla.models import SqlMetric
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # --- source workspace: a dataset with a metric + column pinned to a custom
+    # folder, referenced by UUID ---
+    source_db = Database(database_name="source_db", sqlalchemy_uri="sqlite://")
+    db.session.add(source_db)
+    db.session.flush()
+
+    metric_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000a1")
+    column_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000b2")
+    folder_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000c3")
+
+    sqla_table = SqlaTable(
+        table_name="my_table",
+        database=source_db,
+        columns=[
+            TableColumn(column_name="profit", type="INTEGER", uuid=column_uuid),
+        ],
+        metrics=[
+            SqlMetric(metric_name="cnt", expression="COUNT(*)", uuid=metric_uuid),
+        ],
+        folders=[
+            {
+                "uuid": str(folder_uuid),
+                "type": "folder",
+                "name": "Custom",
+                "children": [
+                    {"uuid": str(metric_uuid), "type": "metric"},
+                    {"uuid": str(column_uuid), "type": "column"},
+                ],
+            },
+        ],
+    )
+    db.session.add(sqla_table)
+    db.session.flush()
+
+    # --- export (command-level YAML payload) ---
+    config = yaml.safe_load(ExportDatasetsCommand._file_content(sqla_table))  # pylint: disable=protected-access
+
+    # The exported metric/column must carry their UUIDs so the folder
+    # references survive the round trip.
+    assert config["metrics"][0].get("uuid") == str(metric_uuid)
+    assert any(col.get("uuid") == str(column_uuid) for col in config["columns"])
+
+    # The import schema must accept and preserve those UUIDs; without the schema
+    # fields it would reject them as unknown and the round trip would break.
+    loaded = ImportV1DatasetSchema().load(config)
+    assert loaded["metrics"][0]["uuid"] == metric_uuid
+    assert any(col["uuid"] == column_uuid for col in loaded["columns"])
+
+    # --- import into another workspace ---
+    # Model a separate workspace: drop the source dataset so its UUIDs are free
+    # (a fresh workspace has never seen them), then import against a fresh
+    # database and a brand-new dataset UUID so the importer creates the
+    # metric/column anew from the exported payload.
+    db.session.delete(sqla_table)
+    db.session.flush()
+
+    target_db = Database(database_name="target_db", sqlalchemy_uri="sqlite://")
+    db.session.add(target_db)
+    db.session.flush()
+    config["database_id"] = target_db.id
+    config["uuid"] = str(uuid.uuid4())
+
+    imported = import_dataset(config)
+
+    # The metric/column must be recreated with their original UUIDs so the
+    # typed folder leaves still resolve to them — i.e. they stay in the custom
+    # folder rather than being re-homed to the default one.
+    imported_metric = next(m for m in imported.metrics if m.metric_name == "cnt")
+    assert imported_metric.uuid == metric_uuid
+    imported_column = next(c for c in imported.columns if c.column_name == "profit")
+    assert imported_column.uuid == column_uuid
+
+    # The folders JSON is stored verbatim (it round-trips with or without the
+    # fix); the uuid assertions above are the real gate that its leaves still
+    # resolve to the imported children. This just documents the expected shape.
+    assert imported.folders == [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Custom",
+            "children": [
+                {"uuid": str(metric_uuid), "type": "metric"},
+                {"uuid": str(column_uuid), "type": "column"},
+            ],
+        },
+    ]
+
+
+def test_import_dataset_clone_with_duplicate_child_uuid_gets_fresh_uuid(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Cloning a dataset by importing its config under a new dataset UUID must not
+    fail when the original — and its metric/column UUIDs — still exist.
+
+    Metric/column UUIDs are globally unique but matched only within their parent
+    on import, so an unchanged child UUID under a *new* dataset would otherwise
+    violate the unique constraint on INSERT. The importer drops the colliding
+    UUID and lets a fresh one be assigned, so the clone imports cleanly (the
+    pre-uuid-export behavior for that workflow).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000d4"
+    column_uuid = "00000000-0000-0000-0000-0000000000e5"
+    config = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [
+            {"column_name": "profit", "type": "INTEGER", "uuid": column_uuid},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    original = import_dataset(copy.deepcopy(config))
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
+
+    # Clone: same child UUIDs, but a new dataset UUID and name (as a user editing
+    # the exported config to duplicate the dataset would produce).
+    clone_config = copy.deepcopy(config)
+    clone_config["table_name"] = "my_table_clone"
+    clone_config["uuid"] = str(uuid.uuid4())
+
+    clone = import_dataset(clone_config)
+
+    # The clone imports without hitting the unique constraint, and its children
+    # receive fresh UUIDs while the original keeps its own.
+    assert clone.id != original.id
+    assert [m.metric_name for m in clone.metrics] == ["cnt"]
+    assert [c.column_name for c in clone.columns] == ["profit"]
+    assert str(clone.metrics[0].uuid) != metric_uuid
+    assert str(clone.columns[0].uuid) != column_uuid
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
+
+
+def test_import_dataset_clone_overwrite_reimport_keeps_fresh_child_uuid(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Overwriting a cloned dataset with its own bundle must not resurrect the
+    original's child UUIDs.
+
+    On the overwrite path children sync with ``sync=["columns", "metrics"]`` and
+    are matched within the parent by name, so re-importing the clone bundle
+    (which still carries the original's metric/column UUIDs) would otherwise
+    ``setattr`` those UUIDs onto the clone's children and violate the global
+    unique constraint at flush. The importer drops any incoming child UUID owned
+    by a different row on the UPDATE branch too, so the overwrite succeeds and
+    the clone's children keep the fresh UUIDs assigned on first import.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000d6"
+    column_uuid = "00000000-0000-0000-0000-0000000000e7"
+    config = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [
+            {"column_name": "profit", "type": "INTEGER", "uuid": column_uuid},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    original = import_dataset(copy.deepcopy(config))
+
+    # Clone under a new dataset UUID and name; its children get fresh UUIDs
+    # because the originals still exist.
+    clone_config = copy.deepcopy(config)
+    clone_config["table_name"] = "my_table_clone"
+    clone_config["uuid"] = str(uuid.uuid4())
+    clone = import_dataset(copy.deepcopy(clone_config))
+    fresh_metric_uuid = str(clone.metrics[0].uuid)
+    fresh_column_uuid = str(clone.columns[0].uuid)
+    assert fresh_metric_uuid != metric_uuid
+    assert fresh_column_uuid != column_uuid
+
+    # Re-import the same clone bundle with overwrite=True. The children match by
+    # (table_id, name), and the bundle still carries the original's UUIDs; the
+    # guard must keep this from writing them onto the clone's children.
+    reimported = import_dataset(copy.deepcopy(clone_config), overwrite=True)
+
+    assert reimported.id == clone.id
+    assert [m.metric_name for m in reimported.metrics] == ["cnt"]
+    assert [c.column_name for c in reimported.columns] == ["profit"]
+    # The clone keeps its fresh child UUIDs and the original is untouched.
+    assert str(reimported.metrics[0].uuid) == fresh_metric_uuid
+    assert str(reimported.columns[0].uuid) == fresh_column_uuid
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
+
+
+def test_import_dataset_null_child_uuid_keeps_existing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An explicit ``uuid: null`` must not wipe an existing child's UUID.
+
+    The child import schemas accept ``uuid=None``. Without the guard the
+    overwrite path would ``setattr`` that ``None`` onto the matched child and
+    persist a literal NULL — the column is nullable and ``unique`` permits
+    repeated NULLs, so it would fail silently and orphan every folder leaf
+    pointing at that child.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000f8"
+    config: dict[str, Any] = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(config))
+    assert str(dataset.metrics[0].uuid) == metric_uuid
+
+    # Re-import the same bundle with the child uuid explicitly nulled.
+    nulled = copy.deepcopy(config)
+    nulled["metrics"][0]["uuid"] = None
+    reimported = import_dataset(nulled, overwrite=True)
+
+    assert reimported.id == dataset.id
+    assert reimported.metrics[0].uuid is not None
+    assert str(reimported.metrics[0].uuid) == metric_uuid
+
+
+def test_import_dataset_ambiguous_child_aborts_instead_of_half_applying(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An ambiguous metric/column match must abort the import, not half-apply it.
+
+    Children are matched within their parent by name *or* UUID, so a payload
+    metric can match one existing metric by name and a *different* one by UUID.
+    That raises ``MultipleResultsFound`` from inside the child import — after
+    the dataset's own fields were already updated and after earlier siblings
+    were already imported. Swallowing it (the legacy dataset-level contract)
+    would report success over a partially-applied import, so the importer must
+    raise ``ImportFailedError`` and let the transaction roll everything back.
+    """
+    from superset.connectors.sqla.models import SqlMetric
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    a_uuid = "00000000-0000-0000-0000-0000000000a1"
+    cnt_uuid = "00000000-0000-0000-0000-0000000000a2"
+    dataset_uuid = str(uuid.uuid4())
+    config: dict[str, Any] = {
+        "table_name": "my_table",
+        "description": "as exported",
+        "uuid": dataset_uuid,
+        "metrics": [
+            {"metric_name": "a", "expression": "COUNT(*)", "uuid": a_uuid},
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": cnt_uuid},
+        ],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(config))
+
+    # Simulate the target instance drifting: ``cnt`` is renamed to ``cnt_old``
+    # (keeping its UUID) and a brand-new metric takes the name ``cnt``. The
+    # dataset itself is edited too.
+    renamed = next(m for m in dataset.metrics if m.metric_name == "cnt")
+    renamed.metric_name = "cnt_old"
+    new_cnt_uuid = str(uuid.uuid4())
+    dataset.metrics.append(
+        SqlMetric(metric_name="cnt", expression="COUNT(1)", uuid=new_cnt_uuid)
+    )
+    dataset.description = "edited in the UI"
+    db.session.flush()
+    db.session.commit()
+
+    # Re-import the *original* bundle: its ``cnt``/``cnt_uuid`` metric matches
+    # the new ``cnt`` by name and ``cnt_old`` by UUID.
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(copy.deepcopy(config), overwrite=True)
+
+    assert "matches two different existing" in str(excinfo.value)
+    assert "my_table" in str(excinfo.value)
+
+    # Because it raised, the caller's transaction can undo everything; nothing
+    # from the aborted import is visible afterwards.
+    db.session.rollback()
+
+    reloaded = db.session.query(SqlaTable).filter_by(uuid=dataset_uuid).one()
+    # The parent's scalar fields were NOT overwritten by the aborted payload.
+    assert reloaded.description == "edited in the UI"
+    # No metric was added, renamed, or deleted by the aborted import.
+    assert sorted(m.metric_name for m in reloaded.metrics) == ["a", "cnt", "cnt_old"]
+    assert {m.metric_name: str(m.uuid) for m in reloaded.metrics} == {
+        "a": a_uuid,
+        "cnt_old": cnt_uuid,
+        "cnt": new_cnt_uuid,
+    }
+
+
+def _dataset_config_with_children(
+    metrics: list[dict[str, Any]],
+    columns: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "database_uuid": str(uuid.uuid4()),
+        "metrics": metrics,
+        "columns": columns,
+    }
+
+
+def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
+    """
+    Two metrics sharing a UUID must be rejected by the import schema.
+
+    UUIDs are globally unique, so such a payload cannot be imported faithfully:
+    the second metric would match the first one by UUID and overwrite it in
+    place, silently collapsing two metrics into one.
+    """
+    duplicate = str(uuid.uuid4())
+    config = _dataset_config_with_children(
+        metrics=[
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": duplicate},
+            {"metric_name": "cnt2", "expression": "COUNT(1)", "uuid": duplicate},
+        ],
+        columns=[],
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatasetSchema().load(config)
+
+    assert "metrics" in excinfo.value.messages
+    assert duplicate in str(excinfo.value.messages["metrics"])
+
+
+def test_import_dataset_schema_rejects_duplicate_column_uuids() -> None:
+    """
+    Two columns sharing a UUID must be rejected by the import schema.
+    """
+    duplicate = str(uuid.uuid4())
+    config = _dataset_config_with_children(
+        metrics=[],
+        columns=[
+            {"column_name": "profit", "type": "INTEGER", "uuid": duplicate},
+            {"column_name": "revenue", "type": "INTEGER", "uuid": duplicate},
+        ],
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatasetSchema().load(config)
+
+    assert "columns" in excinfo.value.messages
+    assert duplicate in str(excinfo.value.messages["columns"])
+
+
+def test_import_dataset_schema_allows_distinct_and_missing_child_uuids() -> None:
+    """
+    Distinct UUIDs — and children with no UUID at all — remain valid.
+
+    Only the ``null``/absent case may repeat: a pre-uuid-export bundle has no
+    child UUIDs whatsoever and must keep importing.
+    """
+    config = _dataset_config_with_children(
+        metrics=[
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": str(uuid.uuid4())},
+            {"metric_name": "cnt2", "expression": "COUNT(1)"},
+            {"metric_name": "cnt3", "expression": "COUNT(2)", "uuid": None},
+        ],
+        columns=[
+            {"column_name": "profit", "type": "INTEGER", "uuid": str(uuid.uuid4())},
+            {"column_name": "revenue", "type": "INTEGER"},
+            {"column_name": "expenses", "type": "INTEGER", "uuid": None},
+        ],
+    )
+
+    loaded = ImportV1DatasetSchema().load(config)
+
+    assert len(loaded["metrics"]) == 3
+    assert len(loaded["columns"]) == 3
 
 
 def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> None:

@@ -43,6 +43,7 @@ from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.models.helpers import ChildMultipleResultsFound
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
@@ -442,6 +443,22 @@ def import_dataset(  # noqa: C901
     # import recursively to include columns and metrics
     try:
         dataset = SqlaTable.import_from_dict(config, recursive=True, sync=sync)
+    except ChildMultipleResultsFound as ex:
+        # An ambiguous *child* (metric/column) lookup. Unlike the dataset-level
+        # case handled below, this is raised after the dataset's own fields were
+        # updated and after earlier siblings were already imported, so there is
+        # no unmodified row to fall back to — silently returning one would
+        # report success over a half-applied import (parent scalars written,
+        # children not synced, the ``sync`` deletion never run). Raise instead
+        # so the command's transaction wrapper rolls the whole thing back.
+        raise ImportFailedError(
+            f"Dataset {config['table_name']!r} (uuid {config['uuid']}) "
+            "could not be imported because one of its metrics or columns "
+            "matches two different existing ones — one by name and another by "
+            "UUID. The import was aborted so it is not applied partially. "
+            "Rename or delete the conflicting metric/column in the target "
+            "instance, or remove the UUID from the uploaded file, and retry."
+        ) from ex
     except MultipleResultsFound as ex:
         # Finding multiple results when importing a dataset only happens because initially  # noqa: E501
         # datasets were imported without schemas (eg, `examples.NULL.users`), and later
