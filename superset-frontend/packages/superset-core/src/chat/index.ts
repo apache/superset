@@ -150,3 +150,7 @@ export declare const onDidChangeDisplayMode: Event<DisplayMode>;
  * a resizer — do not rely on this event firing.
  */
 export declare const onDidResizePanel: Event<{ width: number }>;
+
+// TODO: client actions API — tool availability functions will be added here
+// once the client_actions SIP is finalized. The chat namespace is the
+// intended integration point between the two SIPs.
