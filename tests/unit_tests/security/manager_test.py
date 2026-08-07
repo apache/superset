@@ -1046,6 +1046,344 @@ def test_query_context_modified_orderby(mocker: MockerFixture) -> None:
     assert query_context_modified(query_context)
 
 
+def build_guest_query_context(
+    mocker: MockerFixture,
+    params: dict[str, Any],
+    form_data: dict[str, Any],
+    queries: list[QueryObject] | None = None,
+) -> Any:
+    """
+    A guest request for the chart described by `params`.
+
+    `form_data` holds only the keys under test; the slice id is filled in so the request
+    is for the stored chart rather than a different one.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = params
+    query_context.form_data = {"slice_id": 42, **form_data}
+    query_context.queries = queries if queries is not None else []
+    return query_context
+
+
+def test_query_context_modified_gantt_tooltip_metrics(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a Gantt chart's `tooltip_metrics` are accepted as stored metrics.
+
+    Gantt's `buildQuery` sends `tooltip_metrics` as the query's `metrics`.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "gantt_chart",
+            "start_time": "start",
+            "end_time": "end",
+            "y_axis": "task",
+            "tooltip_metrics": ["count"],
+        },
+        {"metrics": ["count"], "columns": ["start", "end", "task"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_mixed_timeseries_query_b(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a mixed timeseries chart's Query B controls are accepted.
+
+    `retainFormDataSuffix` strips the `_b` suffix, so `groupby_b` and
+    `timeseries_limit_metric_b` become Query B's columns and sort metric.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "mixed_timeseries",
+            "metrics": ["count"],
+            "groupby": ["gender"],
+            "metrics_b": ["sum__num"],
+            "groupby_b": ["state"],
+            "timeseries_limit_metric_b": "sum__num",
+        },
+        {},
+        [
+            QueryObject(metrics=["count"], columns=["gender"]),
+            QueryObject(
+                metrics=["sum__num"],
+                columns=["state"],
+                orderby=[("sum__num", False)],
+            ),
+        ],
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_graph_categories(mocker: MockerFixture) -> None:
+    """
+    Test that a graph chart's category controls are accepted as stored columns.
+
+    Graph aliases `source_category` and `target_category` to `columns`.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "graph_chart",
+            "source": "src",
+            "target": "tgt",
+            "source_category": "src_cat",
+            "target_category": "tgt_cat",
+            "metric": "count",
+        },
+        {"columns": ["src", "tgt", "src_cat", "tgt_cat"], "metrics": ["count"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_spatial(mocker: MockerFixture) -> None:
+    """
+    Test that a deck.gl chart's nested spatial configuration is decomposed.
+
+    `getSpatialColumns()` turns the config into the columns the query selects, so the
+    stored config has to be decomposed the same way.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_screengrid",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+            "size": "count",
+            "js_columns": ["extra"],
+        },
+        {"columns": ["LON", "LAT", "extra"], "metrics": ["count"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_arc_spatial(mocker: MockerFixture) -> None:
+    """
+    Test that an Arc chart's start and end spatial configurations are decomposed.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_arc",
+            "start_spatial": {"type": "delimited", "lonlatCol": "from_latlon"},
+            "end_spatial": {"type": "geohash", "geohashCol": "to_geohash"},
+            "dimension": "carrier",
+        },
+        {"columns": ["from_latlon", "to_geohash", "carrier"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_spatial_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a column absent from a spatial configuration is still rejected.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_screengrid",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+        },
+        {"columns": ["LON", "LAT", "salary"]},
+    )
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_tooltip_contents(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that deck.gl tooltip-config objects are reduced to the columns they wrap.
+
+    `extractTooltipColumns()` adds `item_type: "column"` entries to the query's columns.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_path",
+            "line_column": "path",
+            "tooltip_contents": [
+                {"item_type": "column", "column_name": "name"},
+                {"item_type": "metric", "metric_name": "count"},
+                "plain_column",
+            ],
+        },
+        {"columns": ["path", "name", "plain_column"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_deckgl_tooltip_metric_not_a_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a tooltip metric entry does not become a permitted column.
+
+    Metric entries are read from data already fetched and never reach the query's
+    columns, so requesting one as a column is a modification.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_path",
+            "line_column": "path",
+            "tooltip_contents": [{"item_type": "metric", "metric_name": "count"}],
+        },
+        {"columns": ["path", "count"]},
+    )
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_point_radius_fixed_metric(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a metric-typed `point_radius_fixed` is accepted as a stored metric.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_scatter",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+            "point_radius_fixed": {"type": "metric", "value": "count"},
+        },
+        {
+            "columns": ["LON", "LAT"],
+            "metrics": ["count"],
+            "orderby": [["count", False]],
+        },
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_point_radius_fixed_legacy(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the legacy bare-string form of `point_radius_fixed` is accepted.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_scatter",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+            "point_radius_fixed": "count",
+        },
+        {"columns": ["LON", "LAT"], "metrics": ["count"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_point_radius_fixed_value_not_a_metric(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a fixed-typed `point_radius_fixed` grants no metric.
+
+    A `fix` value is a radius in pixels, never queried, so a metric of the same name
+    still has to be stored elsewhere on the chart.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "deck_scatter",
+            "spatial": {"type": "latlong", "lonCol": "LON", "latCol": "LAT"},
+            "point_radius_fixed": {"type": "fix", "value": "count"},
+        },
+        {"columns": ["LON", "LAT"], "metrics": ["count"]},
+    )
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_cartodiagram(mocker: MockerFixture) -> None:
+    """
+    Test that a Cartodiagram's nested chart definition is descended into.
+
+    `selected_chart` holds a JSON-encoded chart whose own `params` is a JSON string; its
+    metrics and group-bys are what the delegated `buildQuery` actually queries, with the
+    geometry column prepended to the group-bys.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "cartodiagram",
+            "geom_column": "geom",
+            "selected_chart": json.dumps(
+                {
+                    "viz_type": "pie",
+                    "params": json.dumps(
+                        {"metric": "count", "groupby": ["gender"]},
+                    ),
+                }
+            ),
+        },
+        {"groupby": ["geom", "gender"], "metrics": ["count"]},
+    )
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_cartodiagram_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a column absent from a Cartodiagram's nested chart is still rejected.
+    """
+    query_context = build_guest_query_context(
+        mocker,
+        {
+            "viz_type": "cartodiagram",
+            "geom_column": "geom",
+            "selected_chart": json.dumps(
+                {
+                    "viz_type": "pie",
+                    "params": json.dumps(
+                        {"metric": "count", "groupby": ["gender"]},
+                    ),
+                }
+            ),
+        },
+        {"groupby": ["geom", "salary"], "metrics": ["count"]},
+    )
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_malformed_selected_chart(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that an unparseable `selected_chart` neither crashes nor grants access.
+    """
+    for selected_chart in ["not json", json.dumps({"params": "not json"}), None, 42]:
+        query_context = build_guest_query_context(
+            mocker,
+            {
+                "viz_type": "cartodiagram",
+                "geom_column": "geom",
+                "selected_chart": selected_chart,
+            },
+            {"groupby": ["geom"]},
+        )
+        assert not query_context_modified(query_context)
+
+        tampered = build_guest_query_context(
+            mocker,
+            {
+                "viz_type": "cartodiagram",
+                "geom_column": "geom",
+                "selected_chart": selected_chart,
+            },
+            {"groupby": ["geom", "salary"]},
+        )
+        assert query_context_modified(tampered)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.

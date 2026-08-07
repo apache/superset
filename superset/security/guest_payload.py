@@ -36,11 +36,15 @@ STORED_METRIC_PARAMS = (
     "metrics",
     "metrics_b",
     "percent_metrics",
+    "point_radius_fixed",
     "right_axis_metric",
     "secondary_metric",
     "series_limit_metric",
+    "series_limit_metric_b",
     "size",
     "timeseries_limit_metric",
+    "timeseries_limit_metric_b",
+    "tooltip_metrics",
     "x",
     "y",
 )
@@ -54,22 +58,33 @@ STORED_COLUMN_PARAMS = (
     "all_columns_x",
     "column",
     "columns",
+    "dimension",
+    "end_spatial",
     "end_time",
     "entity",
+    "geom_column",
     "granularity_sqla",
     "groupby",
     "groupbyColumns",
     "groupbyRows",
+    "groupby_b",
     "id",
+    "js_columns",
+    "line_column",
     "name",
     "order_by_cols",
     "parent",
     "series",
     "series_columns",
     "source",
+    "source_category",
+    "spatial",
+    "start_spatial",
     "start_time",
     "target",
+    "target_category",
     "tooltip_columns",
+    "tooltip_contents",
     "x_axis",
     "y_axis",
 )
@@ -171,6 +186,108 @@ def _decode_orderby_pair(value: Any) -> Any:
     return decoded if isinstance(decoded, list) else value
 
 
+#: Controls whose stored value is a nested lat/lon/geohash configuration rather than a
+#: column name. The frontend decomposes them with ``getSpatialColumns()`` and queries
+#: the columns they name, so the stored config has to be decomposed the same way to be
+#: comparable against the flat column names a request carries.
+SPATIAL_PARAMS = frozenset({"end_spatial", "spatial", "start_spatial"})
+
+#: Keys a spatial configuration can name a column under, per ``getSpatialColumns()``.
+SPATIAL_COLUMN_KEYS = ("geohashCol", "latCol", "lonCol", "lonlatCol")
+
+#: Control holding a chart definition JSON-encoded inside a string, with its own metrics
+#: and columns nested within. Scanning the outer ``params`` keys never looks inside it.
+EMBEDDED_CHART_PARAM = "selected_chart"
+
+
+def decompose_spatial(value: Any) -> list[Any]:
+    """
+    The columns a spatial configuration names, mirroring ``getSpatialColumns()``.
+
+    A configuration names its columns under ``lonCol``/``latCol`` (latlong),
+    ``lonlatCol`` (delimited) or ``geohashCol`` (geohash). All of them are returned
+    regardless of the declared ``type``, since every one is a column the chart is saved
+    with; the request still has to name one of them exactly.
+    """
+    if not isinstance(value, dict):
+        return [value]
+    return [value[key] for key in SPATIAL_COLUMN_KEYS if value.get(key)]
+
+
+def decompose_tooltip_contents(value: Any) -> list[Any]:
+    """
+    The columns a deck.gl tooltip entry reads, mirroring ``extractTooltipColumns()``.
+
+    An entry is either a bare column name or a tooltip-config object wrapping one. Only
+    ``item_type: "column"`` entries reach the query's columns; metric entries are read
+    from data already fetched and add nothing to select.
+    """
+    if isinstance(value, dict):
+        if value.get("item_type") == "column" and value.get("column_name"):
+            return [value["column_name"]]
+        return []
+    return [value]
+
+
+def decompose_fixed_or_metric(value: Any) -> list[Any]:
+    """
+    The metric a fixed-or-metric control holds, if it holds one.
+
+    deck.gl's ``point_radius_fixed`` is either a legacy bare metric name or
+    ``{"type": "fix" | "metric", "value": ...}``, where only the ``metric`` variant
+    contributes a metric to the query.
+    """
+    if not isinstance(value, dict):
+        return [value]
+    if value.get("type") == "metric" and value.get("value") is not None:
+        return [value["value"]]
+    return []
+
+
+def embedded_chart_params(value: Any) -> dict[str, Any]:
+    """
+    The ``params`` of a chart definition nested inside a control's value.
+
+    Cartodiagram stores the chart it renders per feature in ``selected_chart`` as a
+    JSON string whose ``params`` is itself a JSON string. Its metrics and columns are
+    the ones actually queried, so they have to be reachable.
+    """
+    definition = _decode_json(value)
+    if not isinstance(definition, dict):
+        return {}
+    params = _decode_json(definition.get("params"))
+    return params if isinstance(params, dict) else {}
+
+
+def _decode_json(value: Any) -> Any:
+    """
+    Decode a JSON-encoded string, leaving anything else untouched.
+    """
+    if not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except ValueError:
+        return None
+
+
+def _decompose(key: str, value: Any) -> list[Any]:
+    """
+    The individual metrics or columns a control's value holds.
+
+    Most controls hold their values flat, as a name or a list of names. The ones that
+    wrap them in a nested structure are decomposed into the names they point at, so that
+    they compare against the flat names a request carries.
+    """
+    if key in SPATIAL_PARAMS:
+        return decompose_spatial(value)
+    if key == "tooltip_contents":
+        return decompose_tooltip_contents(value)
+    if key == "point_radius_fixed":
+        return decompose_fixed_or_metric(value)
+    return [value]
+
+
 def _normalize(value: Any) -> str:
     """
     Frozen form of a single metric or column, ready to be compared.
@@ -194,9 +311,16 @@ def stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[st
     """
     Frozen values stored under any of the given chart ``params`` keys.
 
-    Matching itself stays exact; only the shape of each value is normalized.
+    A chart nested in ``selected_chart`` is descended into, since its own metrics and
+    columns are what get queried. Matching itself stays exact; only the shape of each
+    value is normalized.
     """
     values: set[str] = set()
     for key in keys:
-        values |= {_normalize(item) for item in _as_items(params.get(key))}
+        for item in _as_items(params.get(key)):
+            values |= {_normalize(part) for part in _decompose(key, item)}
+
+    if nested := embedded_chart_params(params.get(EMBEDDED_CHART_PARAM)):
+        values |= stored_param_values(nested, keys)
+
     return values
