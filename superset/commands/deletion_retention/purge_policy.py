@@ -19,12 +19,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Hashable, Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from types import MappingProxyType
-from typing import Any
+from typing import Any, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapper, Session
@@ -798,7 +798,7 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
 
 
 @lru_cache(maxsize=None)
-def _validated_purge_policy(model: type) -> PurgeEntityPolicy:
+def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
     """Validate and return one root policy without blocking unrelated roots."""
     try:
         policy: PurgeEntityPolicy = purge_policy_registry()[model]
@@ -862,9 +862,9 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
             )
 
 
-def get_purge_policy(model: type) -> PurgeEntityPolicy:
+def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
     """Resolve a complete policy or reject an unsupported purge model."""
-    return _validated_purge_policy(model)
+    return _validated_purge_policy(cast(Hashable, model))
 
 
 def listener_responsibilities(model: type[Any]) -> frozenset[str]:
