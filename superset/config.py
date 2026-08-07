@@ -723,9 +723,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     # Enables the version history panel on Explore and Dashboard pages.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
-    # with capture off the panel renders but stays empty.
+    # with capture off the panel renders but stays empty, so the two ship
+    # with matching defaults and should be changed together.
     # @lifecycle: development
-    "VERSION_HISTORY": False,
+    "VERSION_HISTORY": True,
     # =================================================================
     # IN TESTING
     # =================================================================
@@ -1668,19 +1669,19 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
-# Master switch for entity-version-history capture. Ships defaulted ``False``
-# so the versioning infrastructure (schema + Continuum wiring) lands inert:
-# no save writes shadow rows or a ``version_transaction``/``version_changes``
-# record, while the /versions/ endpoints stay available read-only (returning
-# empty). Set to ``True`` in ``superset_config.py`` (or via the env var of the
-# same name) to enable the before-flush listeners that drive capture.
-# Capture is activated by flipping this default to on once validated in
-# production. It is an operational escape hatch — for use when a
-# versioning-induced regression needs a 30-second recovery instead of
-# revert-and-redeploy — not a feature flag, and remains as the permanent
-# kill-switch.
+# Master switch for entity-version-history capture. Capture is enabled by
+# default, so saves write shadow rows and a ``version_transaction`` /
+# ``version_changes`` record. Set this to a falsy value in
+# ``superset_config.py`` (or via the environment variable of the same name) to
+# disable the before-flush listeners while keeping the /versions/ endpoints
+# available read-only.
+# Capture ships on. It is an operational escape hatch — set the environment
+# variable to a falsy value when a versioning-induced regression needs a
+# 30-second recovery instead of revert-and-redeploy — not a feature flag,
+# and it remains permanently as the kill-switch rather than being removed
+# with the rollout toggles.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
-    os.environ.get("ENABLE_VERSIONING_CAPTURE", "false")
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
 
 # Retention window (days) for entity version history. Version rows
