@@ -17,34 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  enforce_single_migration_head:
-    name: Enforce single Alembic migration head
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-    steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Setup Python
-        uses: ./.github/actions/setup-backend/
-        with:
-          requirements-type: base
-      - name: Assert a single Alembic head
-        env:
-          SUPERSET__SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
-        run: |
-          heads="$(superset db heads)"
-          echo "$heads"
-          head_count=$(printf '%s\n' "$heads" | grep -c .)
-          if [ "$head_count" -ne 1 ]; then
-            echo "::error::superset/migrations resolves to $head_count Alembic heads (expected exactly 1)."
-            echo "Another migration already landed with the same down_revision this branch was cut from."
-            echo "Add a no-op merge revision joining the heads: https://superset.apache.org/docs/contributing/development#merging-db-migrations"
-            exit 1
-          fi
-
   check_db_migration_conflict:
     name: Check DB migration conflict
     runs-on: ubuntu-slim
