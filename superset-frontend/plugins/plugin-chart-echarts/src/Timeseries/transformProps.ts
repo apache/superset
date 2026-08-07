@@ -318,9 +318,14 @@ export default function transformProps(
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
-    getMetricLabel,
-  );
+  // rebasedData's keys have already been through rebaseForecastDatum, which
+  // renames a key to its verboseMap entry when one is configured for that
+  // metric. extraMetricLabels must be mapped the same way, or a sort-only
+  // metric with a verbose_name set would silently fail to match here (and in
+  // extractSeries below, which has the same requirement).
+  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
+    .map(getMetricLabel)
+    .map(label => verboseMap[label] ?? label);
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
