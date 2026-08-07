@@ -68,7 +68,7 @@ class Database(Base):
 
 
 def replace(source, target):
-    with db.Session(bind=op.get_bind()) as session:
+    with db.Session(bind=op.get_bind(), future=True) as session:
         with session.begin():
             query = (
                 session.query(Slice, Database)

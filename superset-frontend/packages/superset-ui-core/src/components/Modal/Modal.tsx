@@ -84,7 +84,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         `
       }
 
-      .ant-modal-content {
+      .ant-modal-container {
         background-color: ${theme.colorBgContainer};
         display: flex;
         flex-direction: column;
@@ -196,7 +196,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
               height: 100%;
             }
 
-            .ant-modal-content {
+            .ant-modal-container {
               height: 100%;
 
               .ant-modal-body {

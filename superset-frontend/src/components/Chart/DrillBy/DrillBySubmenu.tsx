@@ -84,7 +84,7 @@ export const DrillBySubmenu = ({
   const [debouncedSearchInput, setDebouncedSearchInput] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
   const ref = useRef<InputRef>(null);
-  const menuItemRef = useRef<HTMLDivElement>(null);
+  const menuItemRef = useRef<HTMLButtonElement>(null);
 
   const columns = useMemo(
     () => (dataset ? ensureIsArray(dataset.drillable_columns) : []),
@@ -284,11 +284,18 @@ export const DrillBySubmenu = ({
   );
 
   const menuItem = (
-    <div
+    <button
+      type="button"
       ref={menuItemRef}
-      role="button"
+      aria-disabled={isDisabled}
       tabIndex={isDisabled ? -1 : 0}
       css={css`
+        appearance: none;
+        border: none;
+        background: none;
+        padding: 0;
+        font: inherit;
+        width: 100%;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -299,12 +306,6 @@ export const DrillBySubmenu = ({
         }
       `}
       onClick={() => !isDisabled && setPopoverOpen(!popoverOpen)}
-      onKeyDown={e => {
-        if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          setPopoverOpen(!popoverOpen);
-        }
-      }}
     >
       <span>{t('Drill by')}</span>
       {isDisabled ? (
@@ -312,7 +313,7 @@ export const DrillBySubmenu = ({
       ) : (
         <Icons.RightOutlined iconSize="s" iconColor={theme.colorTextTertiary} />
       )}
-    </div>
+    </button>
   );
 
   if (isDisabled) {

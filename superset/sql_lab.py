@@ -161,6 +161,15 @@ def get_query(query_id: int) -> Query:
     try:
         return db.session.query(Query).filter_by(id=query_id).one()
     except Exception as ex:
+        # roll back so a poisoned session (e.g. PendingRollbackError after a
+        # failed flush) doesn't fail every subsequent backoff retry identically.
+        # Swallow rollback failures so a session/connection too broken to roll
+        # back doesn't replace the original exception with one the backoff
+        # decorator won't retry on.
+        try:
+            db.session.rollback()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to roll back session in get_query", exc_info=True)
         raise SqlLabException("Failed at getting query") from ex
 
 

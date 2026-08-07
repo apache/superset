@@ -93,7 +93,7 @@ def fix_charts_schema_perm(session):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     if isinstance(bind.dialect, SQLiteDialect):
         return  # sqlite doesn't have a concat function
 
