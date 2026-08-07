@@ -39,7 +39,6 @@ Create Date: 2026-08-07 09:00:00.000000
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.sql import func, select
 
 from superset.migrations.shared.utils import create_index, drop_index
 
@@ -49,6 +48,9 @@ down_revision: str = "b8d2f4a6c901"
 
 TABLE_NAME = "database_user_oauth2_tokens"
 INDEX_NAME = "idx_user_id_database_id"
+# Temporary name for the unique index while it and the old non-unique index
+# briefly coexist -- see the comment in ``upgrade`` below.
+TMP_INDEX_NAME = "idx_user_id_database_id_tmp_unique"
 
 
 def upgrade() -> None:
@@ -56,20 +58,40 @@ def upgrade() -> None:
     metadata = sa.MetaData()
     table = sa.Table(TABLE_NAME, metadata, autoload_with=bind)
 
-    max_ids = (
-        select(func.max(table.c.id).label("max_id"))
-        .group_by(table.c.user_id, table.c.database_id)
-        .alias("max_ids")
-    )
-    bind.execute(table.delete().where(table.c.id.notin_(select(max_ids.c.max_id))))
+    # Find the highest id per (user_id, database_id) pair by reading into
+    # Python first, rather than deleting via a subquery on the same table:
+    # MySQL rejects a DELETE whose WHERE clause subqueries the target table
+    # (error 1093).
+    rows = bind.execute(
+        sa.select(table.c.id, table.c.user_id, table.c.database_id)
+    ).fetchall()
+    max_id_by_pair: dict[tuple[int, int], int] = {}
+    for row in rows:
+        pair = (row.user_id, row.database_id)
+        if row.id > max_id_by_pair.get(pair, -1):
+            max_id_by_pair[pair] = row.id
+    keep_ids = set(max_id_by_pair.values())
+    dupe_ids = [row.id for row in rows if row.id not in keep_ids]
+    if dupe_ids:
+        bind.execute(table.delete().where(table.c.id.in_(dupe_ids)))
 
+    # MySQL's InnoDB won't drop an index that's still needed to satisfy a
+    # foreign key (error 1553) -- the existing (user_id, database_id) index
+    # is the only one covering the `user_id` FK. Create the new unique
+    # index (which covers the same leading column) before dropping the old
+    # one, so an FK-satisfying index always exists, then swap it into its
+    # final name.
+    create_index(TABLE_NAME, TMP_INDEX_NAME, ["user_id", "database_id"], unique=True)
     drop_index(TABLE_NAME, INDEX_NAME)
     create_index(TABLE_NAME, INDEX_NAME, ["user_id", "database_id"], unique=True)
+    drop_index(TABLE_NAME, TMP_INDEX_NAME)
 
 
 def downgrade() -> None:
     # The pre-flight dedupe above is not reversible -- any rows it removed
     # stay removed -- but that only ever discards rows that violated the
     # single-token-per-pair invariant the application already assumed.
+    create_index(TABLE_NAME, TMP_INDEX_NAME, ["user_id", "database_id"])
     drop_index(TABLE_NAME, INDEX_NAME)
     create_index(TABLE_NAME, INDEX_NAME, ["user_id", "database_id"])
+    drop_index(TABLE_NAME, TMP_INDEX_NAME)
