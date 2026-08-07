@@ -59,22 +59,19 @@ async function startBackend(handler) {
   return server;
 }
 
-function get(port) {
+function get(port, path = '/dashboard/list/') {
   return new Promise((resolve, reject) => {
-    const req = http.get(
-      { hostname: 'localhost', port, path: '/dashboard/list/' },
-      res => {
-        const chunks = [];
-        res.on('data', chunk => chunks.push(chunk));
-        res.on('end', () =>
-          resolve({
-            statusCode: res.statusCode,
-            body: Buffer.concat(chunks).toString(),
-          }),
-        );
-        res.on('error', reject);
-      },
-    );
+    const req = http.get({ hostname: 'localhost', port, path }, res => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () =>
+        resolve({
+          statusCode: res.statusCode,
+          body: Buffer.concat(chunks).toString(),
+        }),
+      );
+      res.on('error', reject);
+    });
     req.on('error', reject);
   });
 }
@@ -201,6 +198,56 @@ describe('webpack.proxy-config zstd/gzip HTML decompression', () => {
           hangGuard,
         ]);
         expect(body).toContain('Error requesting');
+      } finally {
+        clearTimeout(hangGuardTimer);
+        await closeAll(proxy, backend);
+      }
+    },
+    HANG_GUARD_MS + 1000,
+  );
+});
+
+describe('webpack.proxy-config generic (non-HTML) passthrough', () => {
+  test(
+    'fails fast instead of hanging when the backend connection drops mid-response (JSON)',
+    async () => {
+      // Dashboard/chart data requests (e.g. /api/v1/chart/data) go through
+      // this generic passthrough branch, not processHTML -- pin the same
+      // mid-stream-disconnect hang for it too.
+      const json = `{"result": "${'x'.repeat(20000)}"}`;
+      const backend = await startBackend((req, res) => {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.write(json.slice(0, Math.floor(json.length / 2)));
+        setTimeout(() => res.socket.destroy(), 20);
+      });
+      const proxy = await startProxy(backend.address().port);
+
+      let hangGuardTimer;
+      try {
+        const hangGuard = new Promise((_resolve, reject) => {
+          hangGuardTimer = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  'request never resolved -- the client-facing response hung ' +
+                    'instead of the proxy propagating the backend disconnect',
+                ),
+              ),
+            HANG_GUARD_MS,
+          );
+        });
+
+        // Whether the truncated body surfaces as a client-side error or as
+        // a short-but-well-framed response depends on transfer encoding --
+        // what matters here is that the request settles promptly one way
+        // or the other instead of hanging indefinitely.
+        const settled = await Promise.race([
+          get(proxy.address().port, '/api/v1/chart/data').catch(e => ({
+            error: e.message,
+          })),
+          hangGuard,
+        ]);
+        expect(settled).toBeTruthy();
       } finally {
         clearTimeout(hangGuardTimer);
         await closeAll(proxy, backend);

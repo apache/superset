@@ -215,7 +215,20 @@ module.exports = newManifest => {
             });
           } else {
             response.flushHeaders();
-            proxyResponse.pipe(response);
+            // Same pipe()-doesn't-propagate-errors gotcha fixed in
+            // processHTML above: a plain .pipe() here leaves `response`
+            // hanging forever if the backend connection drops mid-body
+            // (e.g. the Flask dev server's reloader restarting on a file
+            // save) while streaming non-HTML, non-CSV payloads such as
+            // chart/dashboard JSON. `pipeline()` ends/destroys `response`
+            // as soon as `proxyResponse` errors or closes prematurely.
+            pipeline(proxyResponse, response).catch(e => {
+              // eslint-disable-next-line no-console
+              console.error(`Error requesting ${request.path} from proxy:`, e);
+              if (!response.writableEnded) {
+                response.end();
+              }
+            });
           }
         }
       } catch (e) {
