@@ -1138,6 +1138,141 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_deck_layers(self):
+        """
+        Chart API: Test get deck.gl Multiple Layers container's declared layers
+
+        The layer charts sit on no dashboard of their own, so they are
+        resolved without the base filter, gated only on access to the
+        container -- mirroring how the legacy explore_json pipeline
+        resolved them server-side.
+        """
+        admin = self.get_user("admin")
+        layer_one = self.insert_chart(
+            "layer one",
+            [admin.id],
+            1,
+            viz_type="deck_scatter",
+            params=json.dumps({"viz_type": "deck_scatter"}),
+        )
+        layer_two = self.insert_chart(
+            "layer two",
+            [admin.id],
+            1,
+            viz_type="deck_scatter",
+            params=json.dumps({"viz_type": "deck_scatter"}),
+        )
+        container = self.insert_chart(
+            "deck multi container",
+            [admin.id],
+            1,
+            viz_type="deck_multi",
+            params=json.dumps(
+                {
+                    "viz_type": "deck_multi",
+                    "deck_slices": [layer_one.id, layer_two.id],
+                }
+            ),
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/chart/{container.id}/deck_layers/"
+        rv = self.get_assert_metric(uri, "deck_layers")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert [layer["slice_id"] for layer in data["result"]] == [
+            layer_one.id,
+            layer_two.id,
+        ]
+        assert data["result"][0]["viz_type"] == "deck_scatter"
+
+        db.session.delete(layer_one)
+        db.session.delete(layer_two)
+        db.session.delete(container)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_deck_layers_no_container_access(self):
+        """
+        Chart API: Test get deck layers 404s when the container itself
+        isn't accessible, regardless of the layers' own access.
+        """
+        admin = self.get_user("admin")
+        layer_one = self.insert_chart(
+            "layer one no access",
+            [admin.id],
+            1,
+            viz_type="deck_scatter",
+            params=json.dumps({"viz_type": "deck_scatter"}),
+        )
+        container = self.insert_chart(
+            "deck multi container no access",
+            [admin.id],
+            1,
+            viz_type="deck_multi",
+            params=json.dumps(
+                {"viz_type": "deck_multi", "deck_slices": [layer_one.id]}
+            ),
+        )
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/chart/{container.id}/deck_layers/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
+        db.session.delete(layer_one)
+        db.session.delete(container)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_deck_layers_omits_inaccessible_layer_for_ordinary_user(self):
+        """
+        Chart API: An ordinary (non-guest) user with access to the deck_multi
+        container must not have an inaccessible layer's params/datasource
+        leaked just because it's named in the container's `deck_slices` --
+        that layer is silently omitted from the result instead.
+        """
+        admin = self.get_user("admin")
+        gamma = self.get_user("gamma")
+        layer_visible = self.insert_chart(
+            "layer visible",
+            [gamma.id],
+            1,
+            viz_type="deck_scatter",
+            params=json.dumps({"viz_type": "deck_scatter"}),
+        )
+        layer_hidden = self.insert_chart(
+            "layer hidden from gamma",
+            [admin.id],
+            1,
+            viz_type="deck_scatter",
+            params=json.dumps({"viz_type": "deck_scatter"}),
+        )
+        container = self.insert_chart(
+            "deck multi container for gamma",
+            [gamma.id],
+            1,
+            viz_type="deck_multi",
+            params=json.dumps(
+                {
+                    "viz_type": "deck_multi",
+                    "deck_slices": [layer_visible.id, layer_hidden.id],
+                }
+            ),
+        )
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/chart/{container.id}/deck_layers/"
+        rv = self.get_assert_metric(uri, "deck_layers")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert [layer["slice_id"] for layer in data["result"]] == [
+            layer_visible.id,
+        ]
+
+        db.session.delete(layer_visible)
+        db.session.delete(layer_hidden)
+        db.session.delete(container)
+        db.session.commit()
+
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice",
         "load_birth_names_dashboard_with_slices",
@@ -2201,7 +2336,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 "result": [
                     {
                         "chart_id": slc.id,
-                        "viz_error": "Chart's query context does not exist",
+                        "viz_error": "Chart's query context does not exist. Open the "
+                        "chart in Explore once (or re-save it) to generate it.",
                         "viz_status": None,
                     },
                 ],
@@ -2228,7 +2364,8 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 "result": [
                     {
                         "chart_id": slc.id,
-                        "viz_error": "Chart's query context does not exist",
+                        "viz_error": "Chart's query context does not exist. Open the "
+                        "chart in Explore once (or re-save it) to generate it.",
                         "viz_status": None,
                     },
                 ],
