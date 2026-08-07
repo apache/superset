@@ -26,6 +26,7 @@ here instead of reaching that function.
 from __future__ import annotations
 
 import pytest
+from freezegun import freeze_time
 
 from superset.commands.chart.exceptions import TimeRangeParseFailError
 from superset.mcp_service.common.time_range_validation import (
@@ -129,8 +130,10 @@ class TestValidateTimeRangeSubDayLast:
             ("Last Hour", "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"),
         ],
     )
+    @freeze_time("2026-08-05 12:00:00")
     def test_sub_day_last_normalizes(self, value: str, expected: str) -> None:
-        # Confirm the premise: the raw value really does blow up downstream.
+        # Freeze away from midnight so the raw parser's since > today premise
+        # remains deterministic for every sub-day case.
         with pytest.raises(ValueError, match="From date cannot be larger"):
             get_since_until(time_range=value)
 

@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { LabeledValue as AntdLabeledValue } from 'antd/es/select';
 import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
   makeQuoteAwareTokenizer,
+  propertyComparator,
 } from './utils';
 
 test('stripSurroundingQuotes removes matching surrounding double quotes', () => {
@@ -137,4 +139,48 @@ test('makeQuoteAwareTokenizer detects any separator from the list outside quotes
   const tokenize = makeQuoteAwareTokenizer([',', '\n']);
   expect(tokenize('a\nb')).toEqual(['a', 'b']);
   expect(tokenize('"a\nb"')).toEqual(['"a\nb"']);
+});
+
+test('propertyComparator sorts string properties lexicographically', () => {
+  const compare = propertyComparator('label');
+  const ten = { label: '10' } as AntdLabeledValue;
+  const two = { label: '2' } as AntdLabeledValue;
+  const hundred = { label: '100' } as AntdLabeledValue;
+  expect([ten, two, hundred].sort(compare)).toEqual([ten, hundred, two]);
+});
+
+test('propertyComparator sorts number properties numerically', () => {
+  const compare = propertyComparator('value');
+  const ten = { value: 10 } as unknown as AntdLabeledValue;
+  const two = { value: 2 } as unknown as AntdLabeledValue;
+  const hundred = { value: 100 } as unknown as AntdLabeledValue;
+  expect([ten, two, hundred].sort(compare)).toEqual([two, ten, hundred]);
+});
+
+test('propertyComparator sorts bigint properties numerically, not lexicographically', () => {
+  const compare = propertyComparator('value');
+  const ten = { value: 10n } as unknown as AntdLabeledValue;
+  const two = { value: 2n } as unknown as AntdLabeledValue;
+  const hundred = { value: 100n } as unknown as AntdLabeledValue;
+  expect([ten, two, hundred].sort(compare)).toEqual([two, ten, hundred]);
+});
+
+test('propertyComparator sorts diverging-digit-length bigint values numerically', () => {
+  const compare = propertyComparator('value');
+  const a = { value: 10000000000000002n } as unknown as AntdLabeledValue;
+  const b = { value: 9000000000000001n } as unknown as AntdLabeledValue;
+  const c = { value: 10000000000000001n } as unknown as AntdLabeledValue;
+  expect([a, b, c].sort(compare)).toEqual([b, c, a]);
+});
+
+test('propertyComparator sorts mixed bigint and number properties numerically', () => {
+  const compare = propertyComparator('value');
+  const bigTen = { value: 10n } as unknown as AntdLabeledValue;
+  const two = { value: 2 } as unknown as AntdLabeledValue;
+  const bigHundred = { value: 100n } as unknown as AntdLabeledValue;
+  expect([bigTen, two, bigHundred].sort(compare)).toEqual([
+    two,
+    bigTen,
+    bigHundred,
+  ]);
 });

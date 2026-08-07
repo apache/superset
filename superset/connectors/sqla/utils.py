@@ -23,6 +23,7 @@ from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
+from jinja2 import UndefinedError
 from sqlalchemy.engine.url import URL as SqlaURL  # noqa: N811
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import DeclarativeMeta
@@ -37,6 +38,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetVirtualTableParseException,
 )
 from superset.models.core import Database
 from superset.result_set import SupersetResultSet
@@ -96,6 +98,11 @@ def get_physical_table_metadata(
     return cols
 
 
+def _has_jinja_markers(sql: str) -> bool:
+    """Return True if ``sql`` contains Jinja template markers (``{%`` or ``{{``)."""
+    return "{%" in sql or "{{" in sql
+
+
 def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
@@ -104,17 +111,42 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         )
 
     db_engine_spec = dataset.database.db_engine_spec
+    original_sql = dataset.sql
     try:
         sql = dataset.get_template_processor().process_template(
-            dataset.sql, **dataset.template_params_dict
+            original_sql, **dataset.template_params_dict
         )
     except SupersetSyntaxErrorException as ex:
+        # ``process_template`` aggregates several jinja2 exceptions
+        # (``TemplateSyntaxError``, ``SecurityError``, ``UndefinedError``,
+        # ``Unicode*Error``) into ``SupersetSyntaxErrorException``. Only
+        # the ``UndefinedError`` case is a "missing runtime context"
+        # signal that ``RefreshDatasetCommand`` can safely soften — the
+        # rest (sandbox violations, malformed template syntax, encoding
+        # errors) indicate a real problem with the template that must
+        # surface. See #38012.
+        if isinstance(ex.__cause__, UndefinedError):
+            raise SupersetVirtualTableParseException(
+                message=_("Template processing error: %(error)s", error=str(ex)),
+            ) from ex
         raise SupersetGenericDBErrorException(
             message=_("Template processing error: %(error)s", error=str(ex)),
         ) from ex
     try:
         parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
     except SupersetParseError as ex:
+        # ``SQLScript`` fails on any invalid SQL, including static SQL
+        # with no template dependency. Only soften when the input
+        # contained Jinja markers — in that case an "Invalid SQL"
+        # outcome is very likely a rendering artifact (e.g. an empty
+        # ``filter_values('x')`` producing ``WHERE col IN ()``) rather
+        # than a genuine defect in the user's SQL, and the row is
+        # already persisted by ``UpdateDatasetCommand``. Genuinely
+        # invalid static SQL must still hard-error. See #38012.
+        if _has_jinja_markers(original_sql):
+            raise SupersetVirtualTableParseException(
+                message=_("Invalid SQL: %(error)s", error=ex.error.message),
+            ) from ex
         raise SupersetGenericDBErrorException(
             message=_("Invalid SQL: %(error)s", error=ex.error.message),
         ) from ex
