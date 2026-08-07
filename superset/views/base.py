@@ -636,6 +636,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "extra_categorical_color_schemes": app.config[
             "EXTRA_CATEGORICAL_COLOR_SCHEMES"
         ],
+        "extra_theme_tokens": app.config["EXTRA_THEME_TOKENS"],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
         "user_subject_id": _get_user_subject_id(user_id),
