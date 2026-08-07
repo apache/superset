@@ -98,6 +98,30 @@ def test_migration_without_datasource_key_in_params() -> None:
     assert new_form_data["datasource"] == "1__table"
 
 
+def test_migration_preserves_semantic_view_datasource_type() -> None:
+    """DatasourceKey used to only recognize "query" as a non-table type,
+    defaulting everything else (e.g. "semantic_view") to "table". Slices
+    with no pre-existing query_context get one built from scratch via
+    DatasourceKey, which must keep the original type rather than silently
+    repointing the chart at a table with the same id."""
+    from superset.models.slice import Slice
+
+    source: dict[str, Any] = {**SOURCE_FORM_DATA, "datasource": "7__semantic_view"}
+    dumped_form_data: str = json.dumps(source)
+
+    slc: Slice = Slice(
+        viz_type=MigrateTableChart.source_viz_type,
+        datasource_type="table",
+        params=dumped_form_data,
+        query_context=None,
+    )
+
+    MigrateTableChart.upgrade_slice(slc)
+
+    new_query_context: dict[str, Any] = json.loads(slc.query_context)
+    assert new_query_context["datasource"] == {"id": 7, "type": "semantic_view"}
+
+
 def test_migration_raw_mode() -> None:
     source: dict[str, Any] = {
         **SOURCE_FORM_DATA,

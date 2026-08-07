@@ -85,13 +85,31 @@ const getCellStyle = (params: CellStyleParams) => {
         ? columnKey.slice('Main '.length)
         : columnKey;
 
+    // Formatters with no formatting target color their own source column,
+    // keyed off this cell's own value.
     columnColorFormatters!
       .filter(
         formatter =>
-          formatter.columnFormatting !== ObjectFormattingEnum.ENTIRE_ROW &&
+          !formatter.columnFormatting &&
           resolveColumnKey(formatter.column) === colDef.field,
       )
       .forEach(formatter => applyFormatter(formatter, value));
+
+    // Formatters with a real target column color that target column,
+    // keyed off the value in the formatter's own (source) column.
+    columnColorFormatters!
+      .filter(
+        formatter =>
+          formatter.columnFormatting &&
+          formatter.columnFormatting !== ObjectFormattingEnum.ENTIRE_ROW &&
+          resolveColumnKey(formatter.columnFormatting) === colDef.field,
+      )
+      .forEach(formatter =>
+        applyFormatter(
+          formatter,
+          node?.data?.[resolveColumnKey(formatter.column)],
+        ),
+      );
 
     // Entire-row formatters apply to every cell in the row, keyed off the
     // value in the formatter's own column rather than this cell's column.

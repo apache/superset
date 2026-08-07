@@ -67,6 +67,11 @@ export default function isEqualColumns(
       b.datasource?.currencyFormats,
     ),
     verboseMap: isEqual(a.datasource?.verboseMap, b.datasource?.verboseMap),
+    currencyCodeColumn:
+      a.datasource?.currencyCodeColumn === b.datasource?.currencyCodeColumn,
+    detectedCurrency:
+      a.queriesData?.[0]?.detected_currency ===
+      b.queriesData?.[0]?.detected_currency,
     tableTimestampFormat:
       a.formData?.tableTimestampFormat === b.formData?.tableTimestampFormat,
     timeGrainSqla: a.formData?.timeGrainSqla === b.formData?.timeGrainSqla,
