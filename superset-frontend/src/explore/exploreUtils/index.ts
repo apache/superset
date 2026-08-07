@@ -156,19 +156,7 @@ export function getURIDirectory(
   endpointType: EndpointType | string = 'base',
   includeAppRoot = true,
 ): string {
-  // Building the directory part of the URI
-  const uri = [
-    'full',
-    'json',
-    'csv',
-    'xlsx',
-    'query',
-    'results',
-    'samples',
-  ].includes(endpointType)
-    ? '/explore_json/'
-    : '/explore/';
-  return includeAppRoot ? ensureAppRoot(uri) : uri;
+  return includeAppRoot ? ensureAppRoot('/explore/') : '/explore/';
 }
 
 export function mountExploreUrl(
@@ -267,23 +255,8 @@ export function getExploreUrl({
   if (force) {
     search.force = 'true';
   }
-  if (endpointType === 'csv') {
-    search.csv = 'true';
-  }
-  if (endpointType === 'xlsx') {
-    search.xlsx = 'true';
-  }
   if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
-  }
-  if (endpointType === 'query') {
-    search.query = 'true';
-  }
-  if (endpointType === 'results') {
-    search.results = 'true';
-  }
-  if (endpointType === 'samples') {
-    search.samples = 'true';
   }
   const paramNames = Object.keys(requestParams);
   if (paramNames.length) {
@@ -298,14 +271,11 @@ export function getExploreUrl({
 
 export const getQuerySettings = (
   formData: Partial<QueryFormData>,
-): [boolean, string] => {
+): [string] => {
   const vizMetadata = formData.viz_type
     ? getChartMetadataRegistry().get(formData.viz_type)
     : undefined;
-  return [
-    vizMetadata?.useLegacyApi ?? false,
-    vizMetadata?.parseMethod ?? 'json-bigint',
-  ];
+  return [vizMetadata?.parseMethod ?? 'json-bigint'];
 };
 
 export const buildV1ChartDataPayload = async ({
@@ -346,15 +316,6 @@ export const buildV1ChartDataPayload = async ({
   );
 };
 
-export const getLegacyEndpointType = ({
-  resultType,
-  resultFormat,
-}: {
-  resultType: string;
-  resultFormat: string;
-}): string =>
-  resultFormat === 'csv' || resultFormat === 'xlsx' ? resultFormat : resultType;
-
 export const exportChart = async ({
   formData,
   resultFormat = 'json',
@@ -363,30 +324,14 @@ export const exportChart = async ({
   ownState = {},
   onStartStreamingExport = null,
 }: ExportChartParams): Promise<void> => {
-  let url: string | null;
-  let payload: QueryFormData | ReturnType<typeof buildQueryContext>;
-  const [useLegacyApi] = getQuerySettings(formData);
-  if (useLegacyApi) {
-    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
-      formData,
-      endpointType,
-      force,
-      allowDomainSharding: false,
-      relative: true,
-      includeAppRoot: false,
-    });
-    payload = formData;
-  } else {
-    url = '/api/v1/chart/data';
-    payload = await buildV1ChartDataPayload({
-      formData,
-      force,
-      resultFormat,
-      resultType,
-      ownState,
-    });
-  }
+  const url = '/api/v1/chart/data';
+  const payload = await buildV1ChartDataPayload({
+    formData,
+    force,
+    resultFormat,
+    resultType,
+    ownState,
+  });
 
   // Check if streaming export handler is provided (from dashboard Chart.jsx)
   if (onStartStreamingExport) {

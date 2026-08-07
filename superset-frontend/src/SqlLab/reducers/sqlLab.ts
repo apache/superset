@@ -613,7 +613,8 @@ export default function sqlLabReducer(
           ? actionId
           : ((
               getFromArr(state.queryEditors, actionId, 'tabViewId') as
-                QueryEditor | undefined
+                | QueryEditor
+                | undefined
             )?.id ?? actionId);
       if (
         unsavedQueryEditor?.id === normalizedId &&
@@ -729,7 +730,13 @@ export default function sqlLabReducer(
           extra_json: JSON.parse(db.extra || ''),
         };
       });
-      return { ...state, databases };
+      return {
+        ...state,
+        databases: {
+          ...state.databases,
+          ...databases,
+        },
+      };
     },
     [actions.REFRESH_QUERIES]() {
       let newQueries = { ...state.queries };

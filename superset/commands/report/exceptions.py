@@ -133,6 +133,23 @@ class ReportScheduleFrequencyNotAllowed(ValidationError):  # noqa: N818
         )
 
 
+class ReportScheduleCrontabNotValidError(ValidationError):  # noqa: N818
+    """
+    Marshmallow validation error for a crontab that is syntactically valid
+    but never matches a real calendar date (e.g. February 30th)
+    """
+
+    def __init__(self, cron_schedule: str = "") -> None:
+        super().__init__(
+            _(
+                "Invalid crontab schedule: %(cron_schedule)s never matches"
+                " a valid date",
+                cron_schedule=cron_schedule,
+            ),
+            field_name="crontab",
+        )
+
+
 class ChartNotSavedValidationError(ValidationError):
     """
     Marshmallow validation error for charts that haven't been saved yet
@@ -195,6 +212,12 @@ class ReportSchedulePdfFailedError(CommandException):
 
 class ReportScheduleCsvFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a csv.")
+
+
+class ReportScheduleXlsxFailedError(CommandException):
+    """Raised when generating the Excel (xlsx) attachment for a report fails."""
+
+    message = _("Report Schedule execution failed when generating an Excel file.")
 
 
 class ReportScheduleDataFrameFailedError(CommandException):
@@ -308,6 +331,13 @@ class ReportScheduleScreenshotTimeout(CommandException):
 class ReportScheduleCsvTimeout(CommandException):
     status = 408
     message = _("A timeout occurred while generating a csv.")
+
+
+class ReportScheduleXlsxTimeout(CommandException):
+    """Raised when generating the Excel (xlsx) attachment for a report times out."""
+
+    status: int = 408
+    message = _("A timeout occurred while generating an Excel file.")
 
 
 class ReportScheduleDataFrameTimeout(CommandException):

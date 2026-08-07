@@ -23,6 +23,7 @@ from .get_chart_preview import get_chart_preview
 from .get_chart_sql import get_chart_sql
 from .get_chart_type_schema import get_chart_type_schema
 from .list_charts import list_charts
+from .restore_chart import restore_chart
 from .update_chart import update_chart
 from .update_chart_preview import update_chart_preview
 
@@ -32,6 +33,7 @@ __all__ = [
     "delete_chart",
     "get_chart_sql",
     "generate_chart",
+    "restore_chart",
     "update_chart",
     "update_chart_preview",
     "get_chart_preview",

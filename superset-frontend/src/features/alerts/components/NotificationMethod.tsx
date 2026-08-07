@@ -20,8 +20,10 @@ import {
   FunctionComponent,
   useState,
   ChangeEvent,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 import rison from 'rison';
 
@@ -34,7 +36,12 @@ import {
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { AsyncSelect, Input, Select } from '@superset-ui/core/components';
+import {
+  ActionButton,
+  AsyncSelect,
+  Input,
+  Select,
+} from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import {
   NotificationMethodOption,
@@ -82,6 +89,11 @@ const StyledNotificationMethod = styled.div`
     }
 
     .ghost-button {
+      appearance: none;
+      border: none;
+      background: none;
+      padding: 0;
+      font: inherit;
       color: ${theme.colorPrimaryText};
       display: inline-flex;
       align-items: center;
@@ -109,8 +121,7 @@ const StyledNotificationMethod = styled.div`
       flex-direction: column;
       align-items: stretch;
 
-      .email-recipient-select,
-      .email-recipient-select > div {
+      .email-recipient-select {
         width: 100%;
       }
 
@@ -164,47 +175,6 @@ export const mapSlackValues = ({
     )
     .filter(val => !!val) as { label: string; value: string }[];
 };
-
-export const mapChannelsToOptions = (result: SlackChannel[]) => {
-  const publicChannels: SlackChannel[] = [];
-  const privateChannels: SlackChannel[] = [];
-
-  result.forEach(channel => {
-    if (channel.is_private) {
-      privateChannels.push(channel);
-    } else {
-      publicChannels.push(channel);
-    }
-  });
-
-  return [
-    {
-      label: 'Public Channels',
-      options: publicChannels.map((channel: SlackChannel) => ({
-        label: `${channel.name} ${
-          channel.is_member ? '' : t('(Bot not in channel)')
-        }`,
-        value: channel.id,
-        key: channel.id,
-      })),
-      key: 'public',
-    },
-    {
-      label: t('Private Channels (Bot in channel)'),
-      options: privateChannels.map((channel: SlackChannel) => ({
-        label: channel.name,
-        value: channel.id,
-        key: channel.id,
-      })),
-      key: 'private',
-    },
-  ];
-};
-
-type SlackOptionsType = {
-  label: string;
-  options: { label: string; value: string }[];
-}[];
 
 type EmailRecipientField = 'recipients' | 'cc' | 'bcc';
 
@@ -310,12 +280,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const theme = useTheme();
   const [methodOptionsLoading, setMethodOptionsLoading] =
     useState<boolean>(true);
-  const [slackOptions, setSlackOptions] = useState<SlackOptionsType>([
-    {
-      label: '',
-      options: [],
-    },
-  ]);
+  const [slackRefreshKey, setSlackRefreshKey] = useState<number>(0);
+  const forceRefreshSlackRef = useRef<boolean>(false);
   const recipientEmailOptions = useMemo(
     () => recipientStringToOptions(recipientValue),
     [recipientValue],
@@ -330,8 +296,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   );
 
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
-  const [isSlackChannelsLoading, setIsSlackChannelsLoading] =
-    useState<boolean>(true);
 
   const onMethodChange = (selected: {
     label: string;
@@ -355,83 +319,134 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
-  const fetchSlackChannels = async ({
+  const fetchSlackChannels = ({
     searchString = '',
     types = [],
     exactMatch = false,
     force = false,
+    page,
+    pageSize,
   }: {
-    searchString?: string | undefined;
+    searchString?: string;
     types?: string[];
-    exactMatch?: boolean | undefined;
-    force?: boolean | undefined;
+    exactMatch?: boolean;
+    force?: boolean;
+    page?: number;
+    pageSize?: number;
   } = {}): Promise<JsonResponse> => {
     const queryString = rison.encode({
-      searchString,
+      search_string: searchString,
       types,
-      exactMatch,
+      exact_match: exactMatch,
       force,
+      ...(page !== undefined ? { page } : {}),
+      ...(pageSize !== undefined ? { page_size: pageSize } : {}),
     });
     const endpoint = `/api/v1/report/slack_channels/?q=${queryString}`;
     return SupersetClient.get({ endpoint });
   };
 
-  const updateSlackOptions = async ({
-    force,
-  }: {
-    force?: boolean | undefined;
-  } = {}) => {
-    setIsSlackChannelsLoading(true);
-    fetchSlackChannels({ types: ['public_channel', 'private_channel'], force })
-      .then(({ json }) => {
-        const { result } = json;
-        const options: SlackOptionsType = mapChannelsToOptions(result);
-
-        setSlackOptions(options);
-
-        if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
-          // for edit mode, map existing ids to names for display if slack v2
-          // or names to ids if slack v1
-          const [publicOptions, privateOptions] = options;
-          if (
-            method &&
-            [
-              NotificationMethodOption.SlackV2,
-              NotificationMethodOption.Slack,
-            ].includes(method)
-          ) {
-            setSlackRecipients(
-              mapSlackValues({
-                method,
-                recipientValue,
-                slackOptions: [
-                  ...publicOptions.options,
-                  ...privateOptions.options,
-                ],
-              }),
-            );
-          }
-        }
-      })
-      .catch(() => {
-        // Fallback to slack v1 if slack v2 is not compatible
-        setUseSlackV1(true);
-      })
-      .finally(() => {
-        setMethodOptionsLoading(false);
-        setIsSlackChannelsLoading(false);
+  // Lazily fetch one page of channels as the user searches, so workspaces with
+  // tens of thousands of channels never load the whole list into the browser.
+  const loadSlackChannels = useCallback(
+    async (search: string, page: number, pageSize: number) => {
+      const force = forceRefreshSlackRef.current;
+      forceRefreshSlackRef.current = false;
+      const { json } = await fetchSlackChannels({
+        searchString: search,
+        types: ['public_channel', 'private_channel'],
+        force,
+        page,
+        pageSize,
       });
+      const result = (json?.result ?? []) as SlackChannel[];
+      return {
+        data: result.map(channel => ({
+          label:
+            !channel.is_private && !channel.is_member
+              ? `${channel.name} ${t('(Bot not in channel)')}`
+              : channel.name,
+          value: channel.id,
+        })),
+        totalCount: json?.count ?? result.length,
+      };
+    },
+    // fetchSlackChannels only closes over stable refs/imports
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const onRefreshSlackChannels = () => {
+    forceRefreshSlackRef.current = true;
+    // Remount the AsyncSelect so its internal result cache is discarded and the
+    // forced (cache-busting) fetch runs.
+    setSlackRefreshKey(key => key + 1);
   };
 
+  // Resolve the channel ids saved on an existing SlackV2 report into
+  // human-readable labels. Bounded by exact_match so it never enumerates the
+  // whole workspace.
   useEffect(() => {
+    let cancelled = false;
     const slackEnabled = options?.some(
       option =>
         option === NotificationMethodOption.Slack ||
         option === NotificationMethodOption.SlackV2,
     );
-    if (slackEnabled && !slackOptions[0]?.options.length) {
-      updateSlackOptions();
+    const savedIds =
+      method === NotificationMethodOption.SlackV2 && recipientValue
+        ? recipientValue
+            .split(',')
+            .map(value => value.trim())
+            .filter(Boolean)
+        : [];
+
+    const resolveSavedRecipients = async () => {
+      // Show the saved ids immediately so the existing selection is always
+      // visible, then enrich with channel names once the lookup resolves.
+      if (savedIds.length && !cancelled) {
+        setSlackRecipients(savedIds.map(id => ({ label: id, value: id })));
+      }
+      try {
+        if (savedIds.length) {
+          const { json } = await fetchSlackChannels({
+            searchString: recipientValue,
+            types: ['public_channel', 'private_channel'],
+            exactMatch: true,
+          });
+          const result = (json?.result ?? []) as SlackChannel[];
+          const namesById = new Map(
+            result.map(channel => [channel.id, channel.name]),
+          );
+          if (!cancelled) {
+            setSlackRecipients(
+              savedIds.map(id => ({
+                label: namesById.get(id) ?? id,
+                value: id,
+              })),
+            );
+          }
+        }
+      } catch {
+        // Keep the raw ids as labels; the AsyncSelect onError handler drives
+        // the v1 fallback for the picker itself.
+      } finally {
+        if (!cancelled) {
+          setMethodOptionsLoading(false);
+        }
+      }
+    };
+
+    if (slackEnabled) {
+      resolveSavedRecipients();
+    } else {
+      setMethodOptionsLoading(false);
     }
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -569,15 +584,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               loading={methodOptionsLoading}
             />
             {index !== 0 && !!onRemove ? (
-              <span
-                role="button"
-                tabIndex={0}
+              <ActionButton
+                label={t('Remove notification method')}
                 className="delete-button"
+                icon={<Icons.DeleteOutlined iconSize="l" />}
                 onClick={() => onRemove(index)}
-                aria-label={t('Remove notification method')}
-              >
-                <Icons.DeleteOutlined iconSize="l" />
-              </span>
+              />
             ) : null}
           </div>
         </StyledInputContainer>
@@ -665,23 +677,26 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   ) : (
                     // for SlackV2
                     <div className="input-container">
-                      <Select
+                      <AsyncSelect
+                        key={slackRefreshKey}
                         ariaLabel={t('Select channels')}
                         mode="multiple"
                         name="recipients"
                         value={slackRecipients}
-                        options={slackOptions}
+                        options={loadSlackChannels}
                         onChange={onSlackRecipientsChange}
+                        onError={() => setUseSlackV1(true)}
                         allowClear
+                        allowNewOptions
                         data-test="recipients"
-                        loading={isSlackChannelsLoading}
-                        allowSelectAll={false}
                         labelInValue
+                        placeholder={t(
+                          'Search a channel by name, or paste a channel ID',
+                        )}
                       />
                       <RefreshLabel
-                        onClick={() => updateSlackOptions({ force: true })}
+                        onClick={onRefreshSlackChannels}
                         tooltipContent={t('Force refresh Slack channels list')}
-                        disabled={isSlackChannelsLoading}
                       />
                     </div>
                   )}
@@ -768,26 +783,24 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               )}
               {/* New buttons container */}
               <div className="ghost-button">
-                <span
+                <button
+                  type="button"
                   className="ghost-button"
-                  role="button"
-                  tabIndex={0}
                   onClick={() => setCcVisible(true)}
                   style={{ display: ccVisible ? 'none' : 'inline-flex' }}
                 >
                   <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add CC Recipients')}
-                </span>
-                <span
+                </button>
+                <button
+                  type="button"
                   className="ghost-button"
-                  role="button"
-                  tabIndex={0}
                   onClick={() => setBccVisible(true)}
                   style={{ display: bccVisible ? 'none' : 'inline-flex' }}
                 >
                   <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add BCC Recipients')}
-                </span>
+                </button>
               </div>
             </StyledInputContainer>
           )}

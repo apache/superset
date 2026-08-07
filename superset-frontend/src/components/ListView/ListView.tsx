@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import {
   useCallback,
   useEffect,
@@ -184,10 +184,15 @@ const ViewModeContainer = styled.div`
     display: inline-block;
 
     .toggle-button {
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
       display: inline-block;
       border-radius: ${theme.borderRadius}px;
       padding: ${theme.sizeUnit}px;
       padding-bottom: ${theme.sizeUnit * 0.5}px;
+      cursor: pointer;
 
       &:first-of-type {
         margin-right: ${theme.sizeUnit * 2}px;
@@ -202,6 +207,15 @@ const ViewModeContainer = styled.div`
       }
     }
   `}
+`;
+
+const inlineTextButtonCss = css`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
 `;
 
 const ClearAllButton = styled.button`
@@ -247,32 +261,30 @@ const ViewModeToggle = ({
 }) => (
   <ViewModeContainer>
     <Tooltip title={t('Grid view')}>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-pressed={mode === 'card'}
-        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           e.currentTarget.blur();
           setMode('card');
         }}
         className={cx('toggle-button', { active: mode === 'card' })}
       >
         <Icons.AppstoreOutlined iconSize="xl" />
-      </div>
+      </button>
     </Tooltip>
     <Tooltip title={t('List view')}>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-pressed={mode === 'table'}
-        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           e.currentTarget.blur();
           setMode('table');
         }}
         className={cx('toggle-button', { active: mode === 'table' })}
       >
         <Icons.UnorderedListOutlined iconSize="xl" />
-      </div>
+      </button>
     </Tooltip>
   </ViewModeContainer>
 );
@@ -502,16 +514,15 @@ export function ListView<T extends object = any>({
                   </div>
                   {Boolean(selectedFlatRows.length) && (
                     <>
-                      <span
+                      <button
+                        type="button"
                         data-test="bulk-select-deselect-all"
-                        style={{ cursor: 'pointer' }}
-                        role="button"
-                        tabIndex={0}
+                        css={inlineTextButtonCss}
                         className="deselect-all"
                         onClick={() => toggleAllRowsSelected(false)}
                       >
                         {t('Deselect all')}
-                      </span>
+                      </button>
                       <div className="divider" />
                       {bulkActions
                         .filter(
@@ -537,16 +548,15 @@ export function ListView<T extends object = any>({
                           </Button>
                         ))}
                       {enableBulkTag && (
-                        <span
+                        <button
+                          type="button"
                           data-test="bulk-select-tag-btn"
-                          role="button"
-                          style={{ cursor: 'pointer' }}
-                          tabIndex={0}
+                          css={inlineTextButtonCss}
                           className="tag-btn"
                           onClick={() => setShowBulkTagModal(true)}
                         >
                           {t('Add Tag')}
-                        </span>
+                        </button>
                       )}
                     </>
                   )}

@@ -27,6 +27,7 @@ import {
   Label,
   ListViewCard,
   MenuItem,
+  Tooltip,
 } from '@superset-ui/core/components';
 import Chart from 'src/types/Chart';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
@@ -35,6 +36,20 @@ import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+
+const menuItemButtonCss = css`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+`;
 
 interface ChartCardProps {
   chart: Chart;
@@ -48,7 +63,7 @@ interface ChartCardProps {
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
   chartFilter?: string;
-  userId?: string | number;
+  user?: UserWithPermissionsAndRoles;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
   getData?: (tab: TableTab) => void;
@@ -67,35 +82,49 @@ export default function ChartCard({
   saveFavoriteStatus,
   favoriteStatus,
   chartFilter,
-  userId,
+  user,
   handleBulkChartExport,
   getData,
 }: ChartCardProps) {
+  const userId = user?.userId;
+
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const allowEdit = isUserEditorOrAdmin(user, chart.editors);
   const menuItems: MenuItem[] = [];
 
   if (canEdit) {
     menuItems.push({
       key: 'edit',
       label: (
-        <div
-          data-test="chart-list-edit-option"
-          role="button"
-          tabIndex={0}
-          onClick={() => openChartEditModal(chart)}
+        <Tooltip
+          title={
+            allowEdit
+              ? null
+              : t(
+                  'You must be a chart editor in order to edit. Please reach out to a chart editor to request modifications or edit access.',
+                )
+          }
         >
-          <Icons.EditOutlined
-            iconSize="l"
-            css={css`
-              vertical-align: text-top;
-            `}
-          />{' '}
-          {t('Edit')}
-        </div>
+          <button
+            type="button"
+            css={menuItemButtonCss}
+            data-test="chart-list-edit-option"
+            onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
+          >
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                vertical-align: text-top;
+              `}
+            />{' '}
+            {t('Edit')}
+          </button>
+        </Tooltip>
       ),
+      disabled: !allowEdit,
     });
   }
 
@@ -103,9 +132,10 @@ export default function ChartCard({
     menuItems.push({
       key: 'export',
       label: (
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
+          css={menuItemButtonCss}
+          data-test="chart-list-export-option"
           onClick={() => handleBulkChartExport([chart])}
         >
           <Icons.UploadOutlined
@@ -115,7 +145,7 @@ export default function ChartCard({
             `}
           />{' '}
           {t('Export')}
-        </div>
+        </button>
       ),
     });
   }
@@ -144,24 +174,35 @@ export default function ChartCard({
           }
         >
           {confirmDelete => (
-            <div
-              data-test="chart-list-delete-option"
-              role="button"
-              tabIndex={0}
-              className="action-button"
-              onClick={confirmDelete}
+            <Tooltip
+              title={
+                allowEdit
+                  ? null
+                  : t(
+                      'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                    )
+              }
             >
-              <Icons.DeleteOutlined
-                iconSize="l"
-                css={css`
-                  vertical-align: text-top;
-                `}
-              />{' '}
-              {t('Delete')}
-            </div>
+              <button
+                type="button"
+                css={menuItemButtonCss}
+                data-test="chart-list-delete-option"
+                className="action-button"
+                onClick={allowEdit ? confirmDelete : undefined}
+              >
+                <Icons.DeleteOutlined
+                  iconSize="l"
+                  css={css`
+                    vertical-align: text-top;
+                  `}
+                />{' '}
+                {t('Delete')}
+              </button>
+            </Tooltip>
           )}
         </ConfirmStatusChange>
       ),
+      disabled: !allowEdit,
     });
   }
 

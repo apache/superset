@@ -152,7 +152,7 @@ def upgrade():  # noqa: C901
     """
 
     bind = op.get_bind()
-    session = orm.Session(bind=bind)
+    session = orm.Session(bind=bind, future=True)
 
     faulty_view_menus = (
         session.query(ViewMenu)

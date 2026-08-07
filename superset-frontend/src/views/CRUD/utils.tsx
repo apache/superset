@@ -27,6 +27,7 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import Chart from 'src/types/Chart';
+import { deletedToast, deleteFailedToast } from 'src/utils/softDeleteCopy';
 import { intersection } from 'lodash-es';
 import rison from 'rison';
 import type {
@@ -86,7 +87,7 @@ const createFetchResourceMethod =
     resource: string,
     relation: string,
     handleError: (error: Response) => void,
-    user?: { userId: string | number; firstName: string; lastName: string },
+    user?: { userId?: string | number; firstName: string; lastName: string },
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
     const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
@@ -101,12 +102,13 @@ const createFetchResourceMethod =
 
     let fetchedLoggedUser = false;
     let loggedUserExtra: Record<string, unknown> | undefined;
-    const loggedUser = user
-      ? {
-          label: `${user.firstName} ${user.lastName}`,
-          value: user.userId,
-        }
-      : undefined;
+    const loggedUser =
+      user?.userId === undefined
+        ? undefined
+        : {
+            label: `${user.firstName} ${user.lastName}`,
+            value: user.userId,
+          };
 
     const data: {
       label: string;
@@ -271,7 +273,7 @@ const createFetchSubjectRelation =
   (
     resource: string,
     handleError: (error: Response) => void,
-    user?: { userId: string | number; firstName: string; lastName: string },
+    user?: { userId?: string | number; firstName: string; lastName: string },
   ) => {
     const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
     const subjectUser =
@@ -293,7 +295,8 @@ const createFetchSubjectRelation =
         ...result,
         data: result.data.flatMap(item => {
           const secondaryLabel = item.extra?.secondary_label as
-            string | undefined;
+            | string
+            | undefined;
           const type = item.extra?.type as number | undefined;
           const value = normalizeSubjectToPickerValue({
             value: item.value,
@@ -373,10 +376,10 @@ export function handleChartDelete(
       if (chartFilter === 'Mine') refreshData(filters);
       else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
-      addSuccessToast(t('Deleted: %s', sliceName));
+      addSuccessToast(deletedToast(sliceName));
     },
     () => {
-      addDangerToast(t('There was an issue deleting: %s', sliceName));
+      addDangerToast(deleteFailedToast(sliceName));
     },
   );
 }
@@ -415,12 +418,10 @@ export function handleDashboardDelete(
       else if (dashboardFilter === 'Other' && getData)
         getData(dashboardFilter as TableTab);
       else refreshData();
-      addSuccessToast(t('Deleted: %s', dashboardTitle));
+      addSuccessToast(deletedToast(dashboardTitle));
     },
     createErrorHandler(errMsg =>
-      addDangerToast(
-        t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
-      ),
+      addDangerToast(deleteFailedToast(dashboardTitle, errMsg)),
     ),
   );
 }

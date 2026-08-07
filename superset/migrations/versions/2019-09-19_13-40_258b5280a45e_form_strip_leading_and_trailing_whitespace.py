@@ -161,7 +161,7 @@ down_revision = "11c737c17cc6"
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     tables = [
         Annotation,

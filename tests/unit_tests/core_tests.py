@@ -30,6 +30,7 @@ from superset.utils.core import (
     get_metric_names,
     get_time_filter_status,
     is_adhoc_metric,
+    split_adhoc_filters_into_base_filters,
 )
 from tests.unit_tests.fixtures.datasets import get_dataset_mock
 
@@ -55,6 +56,10 @@ SQL_ADHOC_COLUMN: AdhocColumn = {
     "label": "My Adhoc Column",
     "sqlExpression": "case when foo = 1 then 'foo' else 'bar' end",
 }
+JINJA_HAVING = (
+    "sum(price_each) > {% if filter_values('threshold')|length %} "
+    "{{ filter_values('threshold')[0] }} {% else %} 0 {% endif %}"
+)
 
 
 def test_get_metric_name_saved_metric():
@@ -233,3 +238,61 @@ def test_get_time_filter_status_no_temporal_col():
             }
         ],
     )
+
+
+def test_split_adhoc_filters_joins_sql_expressions():
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SQL",
+                "clause": "WHERE",
+                "sqlExpression": "a = 1",
+            },
+            {
+                "expressionType": "SQL",
+                "clause": "WHERE",
+                "sqlExpression": "b = 2",
+            },
+        ]
+    }
+
+    split_adhoc_filters_into_base_filters(form_data)
+
+    assert form_data["where"] == "(a = 1) AND (b = 2)"
+
+
+def test_split_adhoc_filters_preserves_jinja_templates():
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SQL",
+                "clause": "HAVING",
+                "sqlExpression": JINJA_HAVING,
+            }
+        ]
+    }
+
+    split_adhoc_filters_into_base_filters(form_data)
+
+    assert form_data["having"] == f"({JINJA_HAVING})"
+
+
+def test_split_adhoc_filters_terminates_inline_comments():
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SQL",
+                "clause": "WHERE",
+                "sqlExpression": "a = 1 -- comment",
+            },
+            {
+                "expressionType": "SQL",
+                "clause": "WHERE",
+                "sqlExpression": "b = 2",
+            },
+        ]
+    }
+
+    split_adhoc_filters_into_base_filters(form_data)
+
+    assert form_data["where"] == "(a = 1 -- comment\n) AND (b = 2)"

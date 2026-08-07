@@ -39,6 +39,7 @@ import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelect
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
+  ActionButton,
   CertifiedBadge,
   ConfirmStatusChange,
   DeleteModal,
@@ -60,6 +61,10 @@ import {
   type ListViewFilters,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
+import {
+  archiveConfirmDescription,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -79,6 +84,8 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import type { CellProps } from 'react-table';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -97,11 +104,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user?: UserWithPermissionsAndRoles;
 }
 
 export interface Dashboard {
@@ -243,11 +246,17 @@ function DashboardList(props: DashboardListProps) {
   };
 
   // TODO: Fix usage of localStorage keying on the user id
-  const userKey = dangerouslyGetItemDoNotUse(user?.userId?.toString(), null);
+  const userKey =
+    user?.userId === undefined
+      ? null
+      : dangerouslyGetItemDoNotUse(user.userId.toString(), null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  // When soft-delete is on, deleting archives the dashboard (recoverable), so
+  // the confirmation drops the type-DELETE friction and explains the archive.
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -334,11 +343,23 @@ function DashboardList(props: DashboardListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(json.message);
+        addSuccessToast(
+          softDelete
+            ? t('Archived %s item(s)', dashboardsToDelete.length)
+            : json.message,
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected dashboards: ', errMsg),
+          softDelete
+            ? t(
+                'There was an issue archiving the selected dashboards: %s',
+                errMsg,
+              )
+            : t(
+                'There was an issue deleting the selected dashboards: %s',
+                errMsg,
+              ),
         ),
       ),
     );
@@ -478,7 +499,8 @@ function DashboardList(props: DashboardListProps) {
         id: 'changed_on_delta_humanized',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellProps<Dashboard>) => {
+          const allowEdit = isUserEditorOrAdmin(user, original.editors);
           const handleDelete = () =>
             handleDashboardDelete(
               original,
@@ -492,69 +514,77 @@ function DashboardList(props: DashboardListProps) {
           return (
             <Actions className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={
+                    allowEdit
+                      ? t('Edit')
+                      : t(
+                          'You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
-                >
-                  <span
-                    data-test="dashboard-row-edit"
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  dataTest="dashboard-row-edit"
+                  disabled={!allowEdit}
+                  onClick={handleEdit}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <span
-                    data-test="dashboard-row-export"
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="dashboard-row-export"
+                  onClick={handleExport}
+                />
               )}
               {canDelete && (
                 <ConfirmStatusChange
-                  title={t('Please confirm')}
+                  recoverable={softDelete}
+                  title={
+                    softDelete
+                      ? t('Archive %(name)s?', {
+                          name: original.dashboard_title,
+                        })
+                      : t('Please confirm')
+                  }
                   description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.dashboard_title}</b>?
-                    </>
+                    softDelete ? (
+                      archiveConfirmDescription(t('dashboard'))
+                    ) : (
+                      <>
+                        {t('Are you sure you want to delete')}{' '}
+                        <b>{original.dashboard_title}</b>?
+                      </>
+                    )
                   }
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={t('Delete')}
+                    <ActionButton
+                      label={deleteActionLabel()}
+                      tooltip={
+                        allowEdit
+                          ? deleteActionLabel()
+                          : t(
+                              'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+                            )
+                      }
                       placement="bottom"
-                    >
-                      <span
-                        data-test="dashboard-row-delete"
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
-                      >
+                      icon={
                         <Icons.DeleteOutlined
                           iconSize="l"
                           data-test="dashboard-list-trash-icon"
                         />
-                      </span>
-                    </Tooltip>
+                      }
+                      dataTest="dashboard-row-delete"
+                      disabled={!allowEdit}
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
@@ -573,7 +603,7 @@ function DashboardList(props: DashboardListProps) {
       },
     ],
     [
-      user?.userId,
+      user,
       canEdit,
       canDelete,
       canExport,
@@ -759,7 +789,7 @@ function DashboardList(props: DashboardListProps) {
             ? userKey.thumbnails
             : isFeatureEnabled(FeatureFlag.Thumbnails)
         }
-        userId={user?.userId}
+        user={user}
         loading={loading}
         openDashboardEditModal={openDashboardEditModal}
         saveFavoriteStatus={saveFavoriteStatus}
@@ -773,7 +803,7 @@ function DashboardList(props: DashboardListProps) {
       favoriteStatus,
       hasPerm,
       loading,
-      user?.userId,
+      user,
       saveFavoriteStatus,
       userKey,
       handleBulkDashboardExport,
@@ -822,10 +852,15 @@ function DashboardList(props: DashboardListProps) {
     <>
       <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
       <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t(
-          'Are you sure you want to delete the selected dashboards?',
-        )}
+        recoverable={softDelete}
+        title={
+          softDelete ? t('Archive selected dashboards?') : t('Please confirm')
+        }
+        description={
+          softDelete
+            ? archiveConfirmDescription(t('dashboards'), true)
+            : t('Are you sure you want to delete the selected dashboards?')
+        }
         onConfirm={handleBulkDashboardDelete}
       >
         {confirmDelete => {
@@ -834,7 +869,7 @@ function DashboardList(props: DashboardListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: deleteActionLabel(),
               type: 'danger',
               onSelect: confirmDelete,
             });
