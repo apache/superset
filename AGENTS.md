@@ -2,21 +2,28 @@
 
 Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
 
-## ⚠️ CRITICAL: Always Run Pre-commit Before Pushing
+## Run Pre-commit Before Pushing
 
-**ALWAYS run `pre-commit run --all-files` before pushing commits.** CI will fail if pre-commit checks don't pass. This is non-negotiable.
+Always run pre-commit against the files changed by the current branch before
+pushing. This matches CI and keeps unrelated failures already present on
+`master` from blocking otherwise independent work.
 
 ```bash
 # Stage your changes first
 git add .
 
-# Run pre-commit on all files
-pre-commit run --all-files
+# Run pre-commit on staged files
+pre-commit run
 
 # If there are auto-fixes, stage them and commit
 git add .
 git commit --amend  # or new commit
 ```
+
+Use `pre-commit run --all-files` when auditing or repairing the repository-wide
+baseline. If that check finds failures in files untouched by the current branch,
+fix them in a separate branch rather than adding unrelated changes to the
+current pull request.
 
 Common pre-commit failures:
 - **Formatting** - black, oxfmt, eslint will auto-fix
