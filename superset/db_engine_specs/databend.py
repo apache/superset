@@ -195,10 +195,15 @@ class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
     supports_file_upload = False
 
     sqlalchemy_uri_placeholder = (
-        "databend://user:password@host[:port][/dbname][?secure=value&=value...]"
+        "databend://user:password@host[:port][/dbname][?sslmode=value&=value...]"
     )
     parameters_schema = DatabendParametersSchema()
-    encryption_parameters = {"secure": "true"}
+    encryption_parameters = {"sslmode": "require"}
+    encryption_disable_parameters = {"sslmode": "disable"}
+
+    # every ``sslmode`` the driver resolves to an https scheme; it accepts both
+    # spellings, so a hand-written ``sslmode=enable`` must not read as plaintext
+    encryption_sslmodes = frozenset({"require", "enable"})
 
     metadata = {
         "description": (
@@ -214,7 +219,7 @@ class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
         ],
         "pypi_packages": ["databend-sqlalchemy"],
         "connection_string": (
-            "databend://{username}:{password}@{host}:{port}/{database}?secure=true"
+            "databend://{username}:{password}@{host}:{port}/{database}?sslmode=require"
         ),
         "default_port": 443,
         "parameters": {
@@ -259,29 +264,73 @@ class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
 
     @classmethod
     def build_sqlalchemy_uri(
-        cls, parameters: BasicParametersType, *_args: dict[str, str] | None
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
     ) -> str:
-        url_params = parameters.copy()
-        if url_params.get("encryption"):
-            query = parameters.get("query", {}).copy()
-            query.update(cls.encryption_parameters)
-            url_params["query"] = query
-        if not url_params.get("database"):
-            url_params["database"] = "__default__"
-        url_params.pop("encryption", None)
-        return str(URL(f"{cls.engine}", **url_params))
+        """
+        Build a Databend URI, always stating the TLS mode explicitly.
+
+        The driver honours ``sslmode`` rather than inferring TLS from the port,
+        so an unencrypted connection needs ``sslmode=disable`` spelled out
+        rather than simply omitting the encryption parameters.
+        """
+        query = parameters.get("query", {}).copy()
+        query.update(
+            cls.encryption_parameters
+            if parameters.get("encryption")
+            else cls.encryption_disable_parameters
+        )
+
+        return str(
+            URL.create(
+                cls.engine,
+                username=parameters.get("username"),
+                password=parameters.get("password"),
+                host=parameters.get("host"),
+                port=parameters.get("port"),
+                database=parameters.get("database") or "__default__",
+                query=query,
+            )
+        )
+
+    @classmethod
+    def _encryption_from_tls_parameters(
+        cls, sslmode: str | None, secure: str | None
+    ) -> bool:
+        """
+        Resolve whether a connection is encrypted from either TLS spelling.
+
+        ``databend-py`` parsed the legacy ``secure`` value with ``asbool``, so
+        casing is not significant in either parameter.
+        """
+        if sslmode is not None:
+            return sslmode.lower() in cls.encryption_sslmodes
+        if secure is not None:
+            return secure.lower() == "true"
+        return False
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, *_args: dict[str, Any] | None
+        cls,
+        uri: str,
+        encrypted_extra: dict[str, Any] | None = None,
     ) -> BasicParametersType:
+        """
+        Decompose a Databend URI into individual connection parameters.
+
+        The legacy ``secure`` parameter is still recognised so that connections
+        stored before the move to ``sslmode`` repopulate the form correctly. Its
+        values were parsed as booleans by the previous driver, so casing is not
+        significant in either parameter. Both are always removed, so a URI
+        carrying the legacy and the current spelling at once cannot leak one of
+        them back into the connection as a user-supplied extra parameter.
+        """
         url = make_url_safe(uri)
-        query = url.query
-        if "secure" in query:
-            encryption = url.query.get("secure") == "true"
-            query.pop("secure")
-        else:
-            encryption = False
+        query = dict(url.query)
+        encryption = cls._encryption_from_tls_parameters(
+            query.pop("sslmode", None), query.pop("secure", None)
+        )
         return BasicParametersType(
             username=url.username,
             password=url.password,

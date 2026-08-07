@@ -772,7 +772,7 @@ class TestWebDriverPlaywrightErrorHandling:
 
         assert result == []
         mock_logger.exception.assert_called_once_with(
-            "Failed to capture unexpected errors"
+            "Failed to capture unexpected errors%s", ""
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -979,7 +979,7 @@ class TestWebDriverPlaywrightErrorHandling:
         # not installed) accepting unrelated exceptions.
         assert exc_info.value is timeout
         mock_logger.exception.assert_any_call(
-            "Timed out requesting url %s", "http://example.com"
+            "Timed out requesting url %s%s", "http://example.com", ""
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -1064,11 +1064,12 @@ class TestWebDriverPlaywrightErrorHandling:
         # the benign/expected case and must not be logged as a WARNING.
         mock_logger.debug.assert_any_call(
             "Could not determine dashboard height for element %s "
-            "at url %s (%s chart containers found); %s",
+            "at url %s (%s chart containers found); %s%s",
             "dashboard",
             "http://example.com",
             1,
             "falling back to standard screenshot behavior",
+            "",
         )
         assert not any(
             call.args and "Could not determine dashboard height" in call.args[0]
@@ -1154,11 +1155,12 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_take_tiled.assert_called_once()
         mock_logger.warning.assert_any_call(
             "Could not determine dashboard height for element %s "
-            "at url %s (%s chart containers found); %s",
+            "at url %s (%s chart containers found); %s%s",
             "dashboard",
             "http://example.com",
             25,
             "attempting tiled screenshot anyway",
+            "",
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
@@ -1232,10 +1234,11 @@ class TestWebDriverPlaywrightErrorHandling:
         assert exc_info.value is timeout
         mock_logger.warning.assert_any_call(
             "Timed out waiting for chart containers to draw at url %s "
-            "(%s of %s chart containers rendered before the timeout)",
+            "(%s of %s chart containers rendered before the timeout)%s",
             "http://example.com",
             1,
             2,
+            "",
             exc_info=True,
         )
         mock_logger.exception.assert_not_called()
