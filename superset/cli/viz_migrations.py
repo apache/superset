@@ -26,6 +26,7 @@ from flask.cli import with_appcontext
 
 from superset import db
 from superset.migrations.shared.migrate_viz.base import (
+    FORM_DATA_BAK_FIELD_NAME,
     MigrateViz,
     Slice,
 )
@@ -33,6 +34,7 @@ from superset.migrations.shared.migrate_viz.processors import (
     MigrateAreaChart,
     MigrateBarChart,
     MigrateBubbleChart,
+    MigrateCompareChart,
     MigrateDistBarChart,
     MigrateDualLine,
     MigrateHeatmapChart,
@@ -44,13 +46,14 @@ from superset.migrations.shared.migrate_viz.processors import (
     MigrateTableChart,
     MigrateTreeMap,
 )
-from superset.migrations.shared.utils import paginated_update
+from superset.migrations.shared.utils import paginated_update, try_load_json
 
 
 class VizType(str, Enum):
     AREA = "area"
     BAR = "bar"
     BUBBLE = "bubble"
+    COMPARE = "compare"
     DIST_BAR = "dist_bar"
     DUAL_LINE = "dual_line"
     HEATMAP = "heatmap"
@@ -67,6 +70,7 @@ MIGRATIONS: dict[VizType, Type[MigrateViz]] = {
     VizType.AREA: MigrateAreaChart,
     VizType.BAR: MigrateBarChart,
     VizType.BUBBLE: MigrateBubbleChart,
+    VizType.COMPARE: MigrateCompareChart,
     VizType.DIST_BAR: MigrateDistBarChart,
     VizType.DUAL_LINE: MigrateDualLine,
     VizType.HEATMAP: MigrateHeatmapChart,
@@ -77,10 +81,6 @@ MIGRATIONS: dict[VizType, Type[MigrateViz]] = {
     VizType.SUNBURST: MigrateSunburst,
     VizType.TABLE: MigrateTableChart,
     VizType.TREEMAP: MigrateTreeMap,
-}
-
-PREVIOUS_VERSION = {
-    migration.target_viz_type: migration for migration in MIGRATIONS.values()
 }
 
 
@@ -174,7 +174,19 @@ def migrate_by_id(ids: tuple[int, ...], is_downgrade: bool = False) -> None:
         ),
     ):
         if is_downgrade:
-            PREVIOUS_VERSION[slc.viz_type].downgrade_slice(slc)
+            # Look up the migration by the slice's OWN backed-up original
+            # viz_type rather than its current one: several source viz types
+            # can migrate onto the same target (e.g. both `line` and
+            # `compare` migrate onto `echarts_timeseries_line`), so a lookup
+            # keyed by the current viz_type can't tell which migration
+            # actually produced this slice's backup.
+            form_data = try_load_json(slc.params)
+            source_viz_type = form_data.get(FORM_DATA_BAK_FIELD_NAME, {}).get(
+                "viz_type"
+            )
+            migration = MIGRATIONS.get(source_viz_type) if source_viz_type else None
+            if migration:
+                migration.downgrade_slice(slc)
         elif slc.viz_type in MIGRATIONS:
             MIGRATIONS[slc.viz_type].upgrade_slice(slc)
 

@@ -118,7 +118,7 @@ dependencies = [
     "sqlalchemy>=1.4.43, <2", # 1.4.43 adds the python-oracledb (oracle+oracledb) dialect
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
-    "sqlglot>=30.12.0, <31",
+    "sqlglot>=30.14.0, <31",
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -131,7 +131,7 @@ dependencies = [
 
 [project.optional-dependencies]
 
-athena = ["pyathena[pandas]>=3.35.2, <4"]
+athena = ["pyathena[pandas]>=3.35.4, <4"]
 # No SQLAlchemy 2.0 support anywhere in this dialect's ecosystem today: our
 # own preset-io/sqlalchemy-aurora-data-api fork is dead since 2021, and the
 # more active community fork (cloud-utils/sqlalchemy-aurora-data-api) has an
