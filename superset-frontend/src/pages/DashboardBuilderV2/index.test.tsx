@@ -45,18 +45,12 @@ test('a blank dashboard can still be reached', async () => {
   expect(provider.getSelection()).toBe(provider.getRoot().id);
 });
 
-test('the canvas has no arrange shortcut, since the layout it once opened is gone', () => {
+test('the canvas has no corner controls', () => {
   renderPage();
 
+  expect(screen.queryByTestId('canvas-controls')).not.toBeInTheDocument();
   expect(screen.queryByTestId('canvas-arrange')).not.toBeInTheDocument();
-});
-
-test('refreshing is honest about not working', () => {
-  renderPage();
-
-  // There is no dashboard row behind this page and nothing to re-read, so
-  // it says so rather than doing nothing quietly.
-  expect(screen.getByTestId('canvas-refresh')).toBeDisabled();
+  expect(screen.queryByTestId('canvas-refresh')).not.toBeInTheDocument();
 });
 
 test('the page is a header, an editor panel and a canvas', () => {

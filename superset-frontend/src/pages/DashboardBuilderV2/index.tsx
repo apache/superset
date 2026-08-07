@@ -23,7 +23,6 @@ import { dashboard, useDashboardRevision } from 'src/core/dashboard';
 import { provider } from 'src/core/dashboard/store';
 import { placeBlock } from 'src/core/dashboard/placement';
 import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
-import CanvasControls from './CanvasControls';
 import DashboardHeader from './DashboardHeader';
 import EditorPanel from './EditorPanel';
 
@@ -41,13 +40,7 @@ const Canvas = styled.div`
     flex: 1;
     min-height: 0;
     overflow: auto;
-    /* What the canvas's own corner controls are positioned against. */
-    position: relative;
-    /* Two past the token, so the corner controls clear the frame the root
-       draws inside this padding rather than sitting hard against it. Written
-       as an offset from the token rather than as a literal, so it still moves
-       with the scale the rest of the app is built on. */
-    padding: ${theme.paddingLG + 2}px;
+    padding: ${theme.paddingLG}px;
   `}
 `;
 
@@ -165,11 +158,6 @@ export default function DashboardBuilderV2() {
             }
           }}
         >
-          {/* The canvas's own corner: what acts on the whole of it rather
-              than on anything placed in it, and so belongs to it rather than
-              to the bar above. First in the tree, raised over the root by its
-              own z-index — see CanvasControls. */}
-          <CanvasControls />
           {isEmpty ? (
             <EmptyCanvasWrapper>
               {/* The dashboard itself, standing in for a canvas that has

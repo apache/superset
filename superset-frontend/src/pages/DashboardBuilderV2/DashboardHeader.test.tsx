@@ -93,10 +93,8 @@ test('how the dashboard is arranged is not asked in the header', () => {
 test('what acts on the canvas is not offered from the bar above it', () => {
   renderHeader();
 
-  // Arranging and refreshing both act on the canvas as a whole, and are both
-  // reached for while looking at it. They sit in its corner — see
-  // CanvasControls. What stays here is what the dashboard is, not what is
-  // being done to the blocks on it.
+  // Arranging and refreshing both act on the canvas as a whole, not on the
+  // dashboard's identity, so neither belongs in this bar.
   expect(screen.queryByTestId('canvas-arrange')).not.toBeInTheDocument();
   expect(screen.queryByTestId('header-arrange')).not.toBeInTheDocument();
   expect(screen.queryByTestId('header-refresh')).not.toBeInTheDocument();
