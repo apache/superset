@@ -211,6 +211,66 @@ test('quotes table identifiers that require quoting in the inserted value', asyn
   );
 });
 
+type IdentifierQuoteFixture = {
+  start: string;
+  end: string;
+  escape_by_doubling?: boolean;
+};
+
+// Shared setup for the dialect-specific quoting tests below: seeds a single
+// table into the store with the given engine-provided quote chars, then
+// renders the hook so keyword autocomplete for that table can be asserted.
+function renderKeywordsForTable(
+  identifierQuote: IdentifierQuoteFixture,
+  tableName: string,
+) {
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+  const storeWithBackend = createStore(
+    {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        databases: {
+          [expectDbId]: {
+            engine_information: { identifier_quote: identifierQuote },
+          },
+        },
+      },
+    },
+    reducers,
+  );
+
+  act(() => {
+    storeWithBackend.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tables',
+        { dbId: expectDbId, schema: expectSchema },
+        {
+          options: [{ value: tableName, label: tableName, type: 'table' }],
+          hasMore: false,
+        },
+      ),
+    );
+  });
+
+  return renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectDbId,
+        schema: expectSchema,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store: storeWithBackend,
+      }),
+    },
+  );
+}
+
 test.each([
   ['mysql', { start: '`', end: '`' }, '`COVID Vaccines`'],
   ['mariadb', { start: '`', end: '`' }, '`COVID Vaccines`'],
@@ -224,56 +284,9 @@ test.each([
 ])(
   'quotes table identifiers using the engine-provided quote characters for %s',
   async (_dialect, identifierQuote, expectedValue) => {
-    const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
-    fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
-
-    const storeWithBackend = createStore(
-      {
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          databases: {
-            [expectDbId]: {
-              engine_information: { identifier_quote: identifierQuote },
-            },
-          },
-        },
-      },
-      reducers,
-    );
-
-    act(() => {
-      storeWithBackend.dispatch(
-        tableApiUtil.upsertQueryData(
-          'tables',
-          { dbId: expectDbId, schema: expectSchema },
-          {
-            options: [
-              {
-                value: 'COVID Vaccines',
-                label: 'COVID Vaccines',
-                type: 'table',
-              },
-            ],
-            hasMore: false,
-          },
-        ),
-      );
-    });
-
-    const { result } = renderHook(
-      () =>
-        useKeywords({
-          queryEditorId: 'testqueryid',
-          dbId: expectDbId,
-          schema: expectSchema,
-        }),
-      {
-        wrapper: createWrapper({
-          useRedux: true,
-          store: storeWithBackend,
-        }),
-      },
+    const { result } = renderKeywordsForTable(
+      identifierQuote,
+      'COVID Vaccines',
     );
 
     await waitFor(() =>
@@ -324,56 +337,9 @@ test.each([
 ])(
   'escapes an embedded closing-quote character per the %s engine-provided escape strategy',
   async (_dialect, identifierQuote, expectedValue) => {
-    const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
-    fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
-
-    const storeWithBackend = createStore(
-      {
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          databases: {
-            [expectDbId]: {
-              engine_information: { identifier_quote: identifierQuote },
-            },
-          },
-        },
-      },
-      reducers,
-    );
-
-    act(() => {
-      storeWithBackend.dispatch(
-        tableApiUtil.upsertQueryData(
-          'tables',
-          { dbId: expectDbId, schema: expectSchema },
-          {
-            options: [
-              {
-                value: 'COVID`Vaccines',
-                label: 'COVID`Vaccines',
-                type: 'table',
-              },
-            ],
-            hasMore: false,
-          },
-        ),
-      );
-    });
-
-    const { result } = renderHook(
-      () =>
-        useKeywords({
-          queryEditorId: 'testqueryid',
-          dbId: expectDbId,
-          schema: expectSchema,
-        }),
-      {
-        wrapper: createWrapper({
-          useRedux: true,
-          store: storeWithBackend,
-        }),
-      },
+    const { result } = renderKeywordsForTable(
+      identifierQuote,
+      'COVID`Vaccines',
     );
 
     await waitFor(() =>
