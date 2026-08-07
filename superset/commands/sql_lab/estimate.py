@@ -66,7 +66,7 @@ class QueryEstimationCommand(BaseCommand):
         self._catalog = params.get("catalog")
 
     def validate(self) -> None:
-        self._database = db.session.query(Database).get(self._database_id)
+        self._database = db.session.get(Database, self._database_id)
         if not self._database:
             raise SupersetErrorException(
                 SupersetError(

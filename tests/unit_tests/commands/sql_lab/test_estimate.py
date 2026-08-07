@@ -63,7 +63,7 @@ def test_validate_raises_when_database_not_found(
     mock_security_manager: MagicMock,
 ) -> None:
     """404 is raised before the access check when the database does not exist."""
-    mock_db.session.query.return_value.get.return_value = None
+    mock_db.session.get.return_value = None
 
     command = QueryEstimationCommand(_make_params())
     with pytest.raises(SupersetErrorException) as exc_info:
@@ -86,7 +86,7 @@ def test_validate_raises_when_database_access_denied(
 ) -> None:
     """SupersetSecurityException propagates when raise_for_access denies access."""
     mock_database = MagicMock()
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
     command = QueryEstimationCommand(_make_params())
@@ -111,7 +111,7 @@ def test_validate_succeeds_for_authorised_user(
 ) -> None:
     """validate() completes without error when access is granted."""
     mock_database = MagicMock()
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
 
     command = QueryEstimationCommand(_make_params())
@@ -136,7 +136,7 @@ def test_raise_for_access_called_with_correct_database(
     """The database object fetched from the session is passed to raise_for_access."""
     mock_database = MagicMock()
     mock_database.id = 42
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
 
     command = QueryEstimationCommand(_make_params(database_id=42))
@@ -401,7 +401,7 @@ def test_run_wraps_raw_jinja_undefined_error(
     from jinja2.exceptions import UndefinedError
 
     mock_database = MagicMock()
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
     mock_get_template_processor.return_value.process_template.side_effect = (
         UndefinedError("'foo' is undefined")

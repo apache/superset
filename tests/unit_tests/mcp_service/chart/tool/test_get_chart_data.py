@@ -1024,7 +1024,7 @@ class TestChartDataCommandValidation:
                 "superset.common.query_context_factory.QueryContextFactory"
             ) as mock_factory,
         ):
-            mock_db.session.query.return_value.get.return_value = mock_dataset
+            mock_db.session.get.return_value = mock_dataset
             mock_factory.return_value.create.return_value = MagicMock()
 
             from superset.mcp_service.chart.preview_utils import (
@@ -1073,7 +1073,7 @@ class TestChartDataCommandValidation:
                 "superset.common.query_context_factory.QueryContextFactory"
             ) as mock_factory,
         ):
-            mock_db.session.query.return_value.get.return_value = mock_dataset
+            mock_db.session.get.return_value = mock_dataset
             mock_factory.return_value.create.return_value = MagicMock()
 
             from superset.mcp_service.chart.preview_utils import (
