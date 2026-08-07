@@ -25,6 +25,7 @@ from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from urllib import parse
 
+import sqlalchemy as sa
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.dialects.mysql import (
@@ -40,6 +41,7 @@ from sqlalchemy.dialects.mysql import (
     TINYTEXT,
 )
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
@@ -93,6 +95,17 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     supports_dynamic_schema = True
     supports_multivalues_insert = True
+
+    # Verified against a live mysql:8.0 instance, including under GROUP BY ...
+    # WITH ROLLUP. `STDDEV_SAMP`/`VAR_SAMP` are native, correct sample
+    # statistics. MEDIAN is deliberately absent: MySQL has neither a `MEDIAN`
+    # function nor `PERCENTILE_CONT` (confirmed: both error). Its `VARIANCE()`
+    # function is population variance, not sample variance, so it is not a
+    # valid stand-in for VAR_SAMP either.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
 
     metadata = {
         "description": "MySQL is a popular open-source relational database.",

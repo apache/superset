@@ -125,6 +125,20 @@ dialect; each package's constraint in `pyproject.toml` documents why.
 No application-level configuration changes are required for deployments
 that don't touch SQLAlchemy directly.
 
+### New metric aggregates: MEDIAN, Sample Standard Deviation, Sample Variance
+
+`MEDIAN`, `STDDEV_SAMP`, and `VAR_SAMP` are now available anywhere a metric
+aggregate is chosen (every chart type, SQL Lab, MCP), not only in Pivot
+Table's controls. Support is opt-in per database engine, verified against a
+live instance before being enabled: Postgres, MySQL (`STDDEV_SAMP`/`VAR_SAMP`
+only, no `MEDIAN`), DuckDB, and Redshift (inherits Postgres's support, not yet
+separately verified) ship enabled in this release. Picking one of these
+aggregates on a database that has not opted in returns a clear "not supported
+on this database" error rather than a failed query. See
+`docs/sip/median-stddev-variance-aggregates.md` for the full design
+rationale, including why this is safe to add without reintroducing the
+totals/subtotals correctness bug fixed by #41184 (SIP-216).
+
 ### Soft delete is on by default, and purging is live
 
 `SOFT_DELETE` now ships **on** (`DEFAULT_FEATURE_FLAGS`), so deleting a

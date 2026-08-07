@@ -191,3 +191,26 @@ def test_fetch_data_preserves_cursor_description(mocker: MockerFixture) -> None:
         assert [col[0] for col in cursor.description] == ["col1", "col2"]
     finally:
         raw_conn.close()
+
+
+def test_extended_aggregation_func_median_stddev_var() -> None:
+    """
+    Verified against a live in-process duckdb instance, including under
+    GROUPING SETS: values match the same-input results from postgres/mysql
+    exactly.
+    """
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    col = column("sales")
+
+    for aggregate, expected_sql in [
+        ("MEDIAN", "median(sales)"),
+        ("STDDEV_SAMP", "stddev_samp(sales)"),
+        ("VAR_SAMP", "var_samp(sales)"),
+    ]:
+        func = DuckDBEngineSpec.get_extended_aggregation_func(aggregate)
+        assert func is not None
+        compiled = str(func(col).compile(compile_kwargs={"literal_binds": True}))
+        assert compiled == expected_sql

@@ -21,8 +21,12 @@ under the License.
 
 ## [DRAFT — proposal for discussion]
 
-This document has no accompanying implementation yet. It is intended to seed
-discussion on whether, and how, to close this gap before any code is written.
+This document now has an accompanying implementation in this PR, for the
+proposed mechanism plus a first, empirically-verified engine set (Postgres,
+MySQL, DuckDB, Redshift by inheritance). It is intended to seed discussion on
+whether this is the right shape and scope before it goes up for a formal SIP
+vote, not to pre-empt that discussion, the code exists so reviewers have a
+concrete design to react to rather than a description of one.
 
 ## Motivation
 
@@ -82,20 +86,29 @@ these are valid, buildable SQL aggregates, Pivot Table (and every other
 chart) gets correct behavior for free. This is the version of "restore the
 control" that does not reopen the bug that was just fixed.
 
-**Where the actual change needs to land:**
+**Where the actual change needs to land, and what this PR does:**
 
-1. `superset-frontend/packages/superset-ui-core/src/query/types/Metric.ts`,
-   extend the `Aggregate` type.
-2. `superset-frontend/src/explore/constants.ts`, add to `AGGREGATES` (drives
-   `AGGREGATES_OPTIONS`, the dropdown in `AdhocMetricEditPopover`).
-3. `superset/connectors/sqla/models.py` (`sqla_aggregations`) and
-   `superset/models/helpers.py` (`ExploreMixin.sqla_aggregations`, a
-   near-duplicate of the same dict), this SIP is also an opportunity to
-   consolidate these into one source of truth.
-4. `superset/mcp_service/chart/*`, once (3) lands, MCP's existing
-   `STDDEV`/`VAR`/`MEDIAN` handling starts actually working instead of
-   silently producing broken charts; audit for any now-redundant validation
-   shims.
+1. **Done.** `superset-frontend/packages/superset-ui-core/src/query/types/Metric.ts`,
+   extended the `Aggregate` type.
+2. **Done.** `superset-frontend/src/explore/constants.ts`, added to `AGGREGATES`
+   (drives `AGGREGATES_OPTIONS`, the dropdown in `AdhocMetricEditPopover`).
+3. **Done**, but not consolidated. `superset/connectors/sqla/models.py`
+   (`sqla_aggregations`) and `superset/models/helpers.py`
+   (`ExploreMixin.sqla_aggregations`) are both wired to consult the new
+   `BaseEngineSpec.get_extended_aggregation_func`, in addition to their
+   existing 6-aggregate dict, so neither's original, already-tested behavior
+   changed. They remain two separate dicts, consolidating them into one
+   source of truth is left as a follow-up (see Open questions).
+4. **Done**, and it surfaced a second, smaller bug on top of the one this SIP
+   opened with: MCP's own aggregate names (`STDDEV`, `VAR`) never matched any
+   real Superset aggregate, before or after this PR, they were always going
+   to error regardless of what this SIP does. `superset/mcp_service/chart/*`
+   now accepts the old shorthand as an alias, normalized to the real,
+   unambiguous names (`STDDEV_SAMP`, `VAR_SAMP`) this PR ships, and the guided
+   prompt text points at the correct names going forward. `MEDIAN`/
+   `PERCENTILE` were already spelled correctly in MCP; `PERCENTILE` remains
+   unimplemented (it needs a parameter this schema has no field for) and is
+   unchanged by this PR, out of scope here.
 
 **The part that needs real engineering care, this must not be a blind
 `sa.func.MEDIAN` / `sa.func.STDDEV_SAMP` / `sa.func.VAR_SAMP`:**

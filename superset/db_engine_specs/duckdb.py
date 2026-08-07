@@ -20,8 +20,9 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, TYPE_CHECKING, TypedDict
 
+import sqlalchemy as sa
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app as app
@@ -30,6 +31,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -201,6 +203,16 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
     sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
     supports_multivalues_insert = True
+
+    # Verified against a live duckdb instance (in-process, no server needed),
+    # including under GROUPING SETS: the grand total correctly reflects every
+    # row, not an aggregate-of-aggregates. Values match postgres/mysql exactly
+    # for the same inputs. Inherited by MotherDuckEngineSpec.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
 
     metadata = {
         "description": (
