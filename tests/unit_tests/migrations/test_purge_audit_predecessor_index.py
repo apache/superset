@@ -18,6 +18,7 @@
 
 from importlib import import_module
 from types import ModuleType
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy.dialects import mysql, sqlite
@@ -33,12 +34,12 @@ migration: ModuleType = import_module(
 
 
 def test_model_uses_fractional_mysql_and_mariadb_timestamp() -> None:
-    column_type: TypeEngine = PurgeAuditLog.__table__.c.created_on.type
+    column_type: TypeEngine[Any] = PurgeAuditLog.__table__.c.created_on.type
 
-    mysql_type: TypeEngine = column_type.dialect_impl(mysql.dialect())
+    mysql_type: TypeEngine[Any] = column_type.dialect_impl(mysql.dialect())
     mariadb_dialect: MariaDBDialect = MariaDBDialect()
-    mariadb_type: TypeEngine = column_type.dialect_impl(mariadb_dialect)
-    sqlite_type: TypeEngine = column_type.dialect_impl(sqlite.dialect())
+    mariadb_type: TypeEngine[Any] = column_type.dialect_impl(mariadb_dialect)
+    sqlite_type: TypeEngine[Any] = column_type.dialect_impl(sqlite.dialect())
 
     assert mysql_type.compile(dialect=mysql.dialect()) == "DATETIME(6)"
     assert mariadb_type.compile(dialect=mariadb_dialect) == "DATETIME(6)"
@@ -48,6 +49,7 @@ def test_model_uses_fractional_mysql_and_mariadb_timestamp() -> None:
 def test_upgrade_expands_mysql_timestamp_precision() -> None:
     bind: MagicMock = MagicMock()
     bind.dialect = mysql.dialect()
+    alter_column: MagicMock
 
     with (
         patch.object(migration.op, "get_bind", return_value=bind),
@@ -69,6 +71,7 @@ def test_upgrade_expands_mysql_timestamp_precision() -> None:
 def test_upgrade_leaves_non_mysql_timestamp_unchanged() -> None:
     bind: MagicMock = MagicMock()
     bind.dialect = sqlite.dialect()
+    alter_column: MagicMock
 
     with (
         patch.object(migration.op, "get_bind", return_value=bind),
@@ -81,6 +84,8 @@ def test_upgrade_leaves_non_mysql_timestamp_unchanged() -> None:
 
 
 def test_downgrade_preserves_expanded_timestamp_precision() -> None:
+    alter_column: MagicMock
+    drop_index: MagicMock
     with (
         patch.object(migration.op, "alter_column") as alter_column,
         patch.object(migration, "drop_index") as drop_index,

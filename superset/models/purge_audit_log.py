@@ -14,13 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""The ``purge_audit_log`` table: immutable, content-free purge records.
+"""The ``purge_audit_log`` table: content-free purge audit records.
 
 The write-ahead audit protocol that populates this table lives in
 :mod:`superset.commands.deletion_retention.audit`; the model is defined
 here so it registers with ``Model.metadata`` at app init like every other
 Superset model (Alembic autogenerate and metadata-driven tooling would
-otherwise not see the table).
+otherwise not see the table). Completed outcomes are immutable; a current
+provisional record may be discarded when it is proven redundant.
 """
 
 from uuid import uuid4
@@ -46,7 +47,7 @@ STATUS_TARGET_ABSENT = "target_absent"
 
 
 class PurgeAuditLog(Model):
-    """Immutable, content-free record of a purge."""
+    """Content-free provisional record or immutable retained purge outcome."""
 
     __tablename__ = "purge_audit_log"
     __table_args__ = (
