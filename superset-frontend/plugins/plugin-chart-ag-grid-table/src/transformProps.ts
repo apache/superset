@@ -173,7 +173,33 @@ const getComparisonColFormatter = (
   return formatter;
 };
 
-const processComparisonDataRecords = memoizeOne(
+// transformProps is a single module-level function shared by every mounted
+// instance of this chart plugin on a dashboard (one plugin registration,
+// not one per chart). memoizeOne only remembers the single most-recent
+// call, so wrapping a function in it directly here means unrelated chart
+// instances evict each other's cached result whenever they render in the
+// same tick, forcing a full rebuild - with brand-new array/object
+// references - even when a given chart's own inputs are unchanged. AG
+// Grid treats a new colDefs identity as "columns changed" and re-measures
+// autoHeight/wrapText rows, which is what actually reads as a layout
+// flicker on a chart that never changed. Keying a separate memoized
+// function per chart id isolates each chart's cache from its siblings.
+function memoizePerChart<Args extends unknown[], R>(
+  fn: (...args: Args) => R,
+  isEqual?: (newArgs: Args, lastArgs: Args) => boolean,
+) {
+  const memoizedByChart = new Map<number, (...args: Args) => R>();
+  return (sliceId: number, ...args: Args): R => {
+    let fnForChart = memoizedByChart.get(sliceId);
+    if (!fnForChart) {
+      fnForChart = isEqual ? memoizeOne(fn, isEqual) : memoizeOne(fn);
+      memoizedByChart.set(sliceId, fnForChart);
+    }
+    return fnForChart(...args);
+  };
+}
+
+const processComparisonDataRecords = memoizePerChart(
   function processComparisonDataRecords(
     originalData: DataRecord[] | undefined,
     originalColumns: DataColumnMeta[],
@@ -314,7 +340,7 @@ const processComparisonColumns = (
 
 const serverPageLengthMap = new Map();
 
-const processDataRecords = memoizeOne(function processDataRecords(
+const processDataRecords = memoizePerChart(function processDataRecords(
   data: DataRecord[] | undefined,
   columns: DataColumnMeta[],
 ) {
@@ -341,7 +367,7 @@ const processDataRecords = memoizeOne(function processDataRecords(
   return data;
 });
 
-const processColumns = memoizeOne(function processColumns(
+const processColumns = memoizePerChart(function processColumns(
   props: TableChartProps,
 ) {
   const {
@@ -718,7 +744,7 @@ const transformProps = (
     hasServerPageLengthChanged = true;
   }
 
-  const [, percentMetrics, columns] = processColumns(chartProps);
+  const [, percentMetrics, columns] = processColumns(slice_id, chartProps);
 
   const timeGrain = extractTimegrain(formData);
 
@@ -761,8 +787,9 @@ const transformProps = (
     rowCount = baseQuery?.rowcount ?? 0;
   }
 
-  const data = processDataRecords(baseQuery?.data, columns);
+  const data = processDataRecords(slice_id, baseQuery?.data, columns);
   const comparisonData = processComparisonDataRecords(
+    slice_id,
     baseQuery?.data,
     columns,
     comparisonSuffix,
