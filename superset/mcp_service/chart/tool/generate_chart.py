@@ -27,7 +27,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
@@ -58,6 +58,9 @@ from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
+)
+from superset.mcp_service.utils.security_error_utils import (
+    extract_error_type_and_extra,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -916,7 +919,13 @@ async def generate_chart(  # noqa: C901
                 },
             }
         )
-    except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+    except (
+        CommandException,
+        SupersetException,
+        SQLAlchemyError,
+        KeyError,
+        ValueError,
+    ) as e:
         from superset import db
 
         try:
@@ -942,12 +951,22 @@ async def generate_chart(  # noqa: C901
 
         execution_time = int((time.time() - start_time) * 1000)
 
+        # Surface the real Superset error_type (e.g. TABLE_SECURITY_ACCESS_ERROR)
+        # when the underlying error carries one (e.g. a SupersetSecurityException
+        # from the compile-check query hitting a denied resource), instead of
+        # always reporting the generic "chart_generation_error". The `extra`
+        # payload is not appended to `reason`: ChartErrorBuilder sanitizes
+        # template vars through a 200-char truncation, which would mangle any
+        # non-trivial extra payload rather than usefully surfacing it.
+        error_type, _extra = extract_error_type_and_extra(e)
+        reason = str(e)
+
         # Build standardized error response
         error = ChartErrorBuilder.build_error(
-            error_type="chart_generation_error",
+            error_type=error_type or "chart_generation_error",
             template_key="generation_failed",
             template_vars={
-                "reason": str(e),
+                "reason": reason,
                 "dataset_id": str(request.dataset_id),
                 "chart_type": chart_type,
             },

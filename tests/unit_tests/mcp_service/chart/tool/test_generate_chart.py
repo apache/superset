@@ -413,6 +413,105 @@ class TestCompileChart:
         assert "invalid metric" in (result.error or "")
 
 
+class TestGenerateChartOuterErrorHandling:
+    """Tests for generate_chart's outer except handler (around _compile_chart
+    et al.), which previously (a) didn't catch SupersetException at all -- so
+    a SupersetSecurityException from the compile-check query (e.g. a denied
+    table) would propagate out of generate_chart() entirely as an unhandled
+    exception -- and (b) always reported the generic "chart_generation_error"
+    type, dropping the real error_type.
+
+    Unlike get_chart_data.py/get_chart_preview.py/preview_utils.py (which
+    return a plain ChartError untouched by any sanitizer), generate_chart's
+    error goes through ChartErrorBuilder, whose _sanitize_user_input
+    truncates template vars at 200 chars. A real Gandalf/DataPortal `extra`
+    payload (nested entities/approvals) is routinely far longer than that,
+    so `extra` is deliberately NOT appended to `reason` here -- only the
+    real error_type is surfaced; the message stays str(e), untouched.
+
+    _compile_chart itself intentionally lets SupersetSecurityException
+    propagate uncaught (see test_compile_chart_security_exception_from_validate
+    in test_get_chart_data.py) -- it's generate_chart's own outer except
+    tuple that must catch it. These tests mirror that except block's
+    error-construction glue (extract_error_type_and_extra +
+    ChartErrorBuilder.build_error) directly.
+    """
+
+    @staticmethod
+    def _build_generate_chart_error(data_error: Exception) -> Any:
+        """Mirror generate_chart.py's except-block error construction."""
+        from superset.mcp_service.utils.error_builder import ChartErrorBuilder
+        from superset.mcp_service.utils.security_error_utils import (
+            extract_error_type_and_extra,
+        )
+
+        error_type, _extra = extract_error_type_and_extra(data_error)
+        reason = str(data_error)
+        return ChartErrorBuilder.build_error(
+            error_type=error_type or "chart_generation_error",
+            template_key="generation_failed",
+            template_vars={
+                "reason": reason,
+                "dataset_id": "10",
+                "chart_type": "table",
+            },
+            error_code="CHART_GENERATION_FAILED",
+        )
+
+    def test_generate_chart_except_tuple_catches_superset_exception(self):
+        """generate_chart's outer except tuple must include SupersetException
+        so a SupersetSecurityException from the compile check doesn't leak
+        out as an unhandled exception."""
+        import importlib
+        import inspect
+
+        from superset.exceptions import SupersetException
+
+        # Use importlib rather than a `from ...tool import generate_chart`
+        # style import -- chart/tool/__init__.py may re-export the decorated
+        # tool function under the same name as the module, which would
+        # shadow the module itself here.
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.generate_chart"
+        )
+
+        source = inspect.getsource(module)
+        assert "SupersetException" in source
+        assert issubclass(SupersetException, Exception)
+
+    def test_table_security_error_uses_real_error_type_without_extra_suffix(self):
+        """Denied-table errors surface the specific error_type, but the
+        (potentially huge) extra payload is not appended to the message."""
+        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
+        extra_payload = {"entities": {"db.tbl": {}}, "type": "HIVE"}
+        data_error = SupersetSecurityException(
+            SupersetError(
+                message="You do not have access to the following tables: db.tbl",
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+                extra=extra_payload,
+            )
+        )
+
+        error = self._build_generate_chart_error(data_error)
+
+        assert error.error_type == "TABLE_SECURITY_ACCESS_ERROR"
+        assert "db.tbl" in error.message
+        assert "extra:" not in error.message
+        assert "HIVE" not in error.message
+
+    def test_plain_error_falls_back_to_generic_chart_generation_error(self):
+        """Non-Superset exceptions keep the generic chart_generation_error
+        type and get no ' extra: ...' suffix appended."""
+        error = self._build_generate_chart_error(ValueError("bad metric config"))
+
+        assert error.error_type == "chart_generation_error"
+        assert "bad metric config" in error.message
+        assert "extra:" not in error.message
+
+
 def _make_mock_chart(chart_id: int = 42) -> Mock:
     """Create a mock chart with all attributes needed by serialize_chart_object."""
     chart = Mock()

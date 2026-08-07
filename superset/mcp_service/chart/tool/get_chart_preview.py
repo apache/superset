@@ -58,6 +58,9 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.security_error_utils import (
+    extract_error_type_and_extra,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
 
@@ -364,9 +367,13 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             TypeError,
         ) as e:
             logger.error("ASCII preview generation failed: %s", e)
+            error_type, extra = extract_error_type_and_extra(e)
             return ChartError(
-                error=f"Failed to generate ASCII preview: {str(e)}",
-                error_type="ASCIIError",
+                error=(
+                    f"Failed to generate ASCII preview: {str(e)}"
+                    f"{f' extra: {extra}' if extra else ''}"
+                ),
+                error_type=error_type or "ASCIIError",
             )
 
 
@@ -423,9 +430,13 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             TypeError,
         ) as e:
             logger.error("Table preview generation failed: %s", e)
+            error_type, extra = extract_error_type_and_extra(e)
             return ChartError(
-                error=f"Failed to generate table preview: {str(e)}",
-                error_type="TableError",
+                error=(
+                    f"Failed to generate table preview: {str(e)}"
+                    f"{f' extra: {extra}' if extra else ''}"
+                ),
+                error_type=error_type or "TableError",
             )
 
 
@@ -526,9 +537,13 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             logger.exception(
                 "Error generating Vega-Lite preview for chart %s", self.chart.id
             )
+            error_type, extra = extract_error_type_and_extra(e)
             return ChartError(
-                error=f"Failed to generate Vega-Lite preview: {str(e)}",
-                error_type="VegaLiteGenerationError",
+                error=(
+                    f"Failed to generate Vega-Lite preview: {str(e)}"
+                    f"{f' extra: {extra}' if extra else ''}"
+                ),
+                error_type=error_type or "VegaLiteGenerationError",
             )
 
     def _create_vega_lite_spec(self, data: List[Any]) -> Dict[str, Any]:
@@ -1466,8 +1481,13 @@ async def _get_chart_preview_internal(  # noqa: C901
             )
         )
         logger.error("Error in get_chart_preview: %s", e)
+        error_type, extra = extract_error_type_and_extra(e)
         return ChartError(
-            error=f"Failed to get chart preview: {str(e)}", error_type="InternalError"
+            error=(
+                f"Failed to get chart preview: {str(e)}"
+                f"{f' extra: {extra}' if extra else ''}"
+            ),
+            error_type=error_type or "InternalError",
         )
 
 
@@ -1564,7 +1584,11 @@ async def get_chart_preview(
                 type(e).__name__,
             )
         )
+        error_type, extra = extract_error_type_and_extra(e)
         return ChartError(
-            error=f"Failed to generate chart preview: {str(e)}",
-            error_type="InternalError",
+            error=(
+                f"Failed to generate chart preview: {str(e)}"
+                f"{f' extra: {extra}' if extra else ''}"
+            ),
+            error_type=error_type or "InternalError",
         )

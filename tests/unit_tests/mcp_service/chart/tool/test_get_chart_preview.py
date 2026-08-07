@@ -48,6 +48,7 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
     TablePreviewStrategy,
+    VegaLitePreviewStrategy,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as utils_json
@@ -856,6 +857,123 @@ class TestGetChartPreview:
         assert metadata.query_duration_ms == 150
         assert metadata.cache_status == "hit"
         assert len(metadata.optimization_suggestions) == 1
+
+
+def _make_mock_chart(**overrides: Any) -> Any:
+    """Build a minimal chart-like mock satisfying the ChartLike protocol."""
+    chart = MagicMock()
+    chart.id = 1
+    chart.slice_name = "Test Chart"
+    chart.viz_type = "table"
+    chart.datasource_id = 10
+    chart.datasource_type = "table"
+    chart.params = '{"metrics": ["count"], "groupby": ["region"]}'
+    for key, value in overrides.items():
+        setattr(chart, key, value)
+    return chart
+
+
+def _table_security_access_error() -> Any:
+    """Build a SupersetSecurityException matching a denied table, the same
+    shape the security manager raises for a row/table-level access denial."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    return SupersetSecurityException(
+        SupersetError(
+            message="You do not have access to the following tables: db.tbl",
+            error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"entities": {"db.tbl": {}}, "type": "HIVE"},
+        )
+    )
+
+
+class TestPreviewStrategySecurityErrors:
+    """Each preview format strategy must surface the real error_type/extra
+    from a SupersetSecurityException (e.g. a denied-table error raised by
+    ChartDataCommand.validate()) instead of always reporting its own generic
+    *Error type, matching the fix in get_chart_data.py's exception handler.
+    """
+
+    @patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+    )
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    def test_ascii_strategy_surfaces_table_security_error(
+        self, mock_command_cls, mock_build_qc
+    ):
+        mock_build_qc.return_value = object()
+        mock_command_cls.return_value.validate.side_effect = (
+            _table_security_access_error()
+        )
+        strategy = ASCIIPreviewStrategy(
+            _make_mock_chart(), GetChartPreviewRequest(identifier=1, format="ascii")
+        )
+
+        result = strategy.generate()
+
+        assert isinstance(result, ChartError)
+        assert result.error_type == "TABLE_SECURITY_ACCESS_ERROR"
+        assert "db.tbl" in result.error
+        assert "extra:" in result.error
+
+    @patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+    )
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    def test_table_strategy_surfaces_table_security_error(
+        self, mock_command_cls, mock_build_qc
+    ):
+        mock_build_qc.return_value = object()
+        mock_command_cls.return_value.validate.side_effect = (
+            _table_security_access_error()
+        )
+        strategy = TablePreviewStrategy(
+            _make_mock_chart(), GetChartPreviewRequest(identifier=1, format="table")
+        )
+
+        result = strategy.generate()
+
+        assert isinstance(result, ChartError)
+        assert result.error_type == "TABLE_SECURITY_ACCESS_ERROR"
+        assert "extra:" in result.error
+
+    @patch(
+        "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+    )
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    def test_vega_lite_strategy_surfaces_table_security_error(
+        self, mock_command_cls, mock_build_qc
+    ):
+        mock_build_qc.return_value = object()
+        mock_command_cls.return_value.validate.side_effect = (
+            _table_security_access_error()
+        )
+        strategy = VegaLitePreviewStrategy(
+            _make_mock_chart(),
+            GetChartPreviewRequest(identifier=1, format="vega_lite"),
+        )
+
+        result = strategy.generate()
+
+        assert isinstance(result, ChartError)
+        assert result.error_type == "TABLE_SECURITY_ACCESS_ERROR"
+        assert "extra:" in result.error
+
+    def test_strategy_plain_error_keeps_generic_type(self):
+        """A non-Superset error (e.g. bad chart params) keeps the strategy's
+        own generic error_type and gets no 'extra:' suffix."""
+        chart = _make_mock_chart(params="not valid json")
+        strategy = ASCIIPreviewStrategy(
+            chart, GetChartPreviewRequest(identifier=1, format="ascii")
+        )
+
+        result = strategy.generate()
+
+        assert isinstance(result, ChartError)
+        assert result.error_type == "ASCIIError"
+        assert "extra:" not in result.error
 
 
 class TestChartPreviewSanitization:

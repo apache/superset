@@ -60,6 +60,9 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.security_error_utils import (
+    extract_error_type_and_extra as _extract_error_type_and_extra,
+)
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -911,9 +914,13 @@ async def get_chart_data(  # noqa: C901
                 )
             )
             logger.error("Data retrieval error for chart %s: %s", chart.id, data_error)
+            error_type, extra = _extract_error_type_and_extra(data_error)
             return ChartError(
-                error=f"Error retrieving chart data: {str(data_error)}",
-                error_type="DataError",
+                error=(
+                    f"Error retrieving chart data: {str(data_error)}"
+                    f"{f' extra: {extra}' if extra else ''}"
+                ),
+                error_type=error_type or "DataError",
             )
 
     except OAuth2RedirectError as ex:
@@ -1106,9 +1113,13 @@ async def _query_from_form_data(
         raise
     except (CommandException, SupersetException, ValueError) as e:
         logger.error("Error querying unsaved chart data: %s", e)
+        error_type, extra = _extract_error_type_and_extra(e)
         return ChartError(
-            error=f"Error querying unsaved chart data: {e}",
-            error_type="DataError",
+            error=(
+                f"Error querying unsaved chart data: {e}"
+                f"{f' extra: {extra}' if extra else ''}"
+            ),
+            error_type=error_type or "DataError",
         )
 
 

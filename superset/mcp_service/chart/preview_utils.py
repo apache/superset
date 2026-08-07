@@ -32,6 +32,9 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
+from superset.mcp_service.utils.security_error_utils import (
+    extract_error_type_and_extra,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -154,8 +157,13 @@ def generate_preview_from_form_data(
 
     except Exception as e:
         logger.error("Preview generation from form data failed: %s", e)
+        error_type, extra = extract_error_type_and_extra(e)
         return ChartError(
-            error=f"Failed to generate preview: {str(e)}", error_type="PreviewError"
+            error=(
+                f"Failed to generate preview: {str(e)}"
+                f"{f' extra: {extra}' if extra else ''}"
+            ),
+            error_type=error_type or "PreviewError",
         )
 
 
