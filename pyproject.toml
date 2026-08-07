@@ -80,7 +80,7 @@ dependencies = [
     "isodate",
     "jsonpath-ng>=1.8.0, <2",
     "Mako>=1.2.2",
-    "markdown>=3.10.2",
+    "markdown>=3.10.3",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
     # https://github.com/apache/superset/issues/33162
