@@ -272,6 +272,11 @@ export default function EditorPanel({
         onChange={key => setTab(key as PanelTab)}
         size="small"
         style={{ flex: 1, minHeight: 0 }}
+        // Without this, the tab body's own overflow stays `visible` (the
+        // component's default) and a tall form or block list bleeds past the
+        // rail's bottom edge instead of scrolling — the rail's `overflow:
+        // hidden` then clips it silently rather than offering a scrollbar.
+        allowOverflow={false}
         // Riding the tab bar rather than sitting above it: closing the panel
         // is done to the panel, and a row of its own for one icon would cost
         // the height of a row on every screen that never uses it.
