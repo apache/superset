@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
+import { t } from '@apache-superset/core/translation';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
