@@ -384,7 +384,7 @@ selenium==4.46.0
     # via apache-superset (pyproject.toml)
 setuptools==80.9.0
     # via -r requirements/base.in
-shillelagh==1.4.4
+shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
 simplejson==4.1.1
     # via apache-superset (pyproject.toml)
