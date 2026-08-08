@@ -462,13 +462,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
-    const getServerPagination = (n: number) => n <= rowCount;
+    const getServerPagination = (n: number) =>
+      n <= Math.max(rowCount, serverPageLength);
     return (
       serverPagination ? SERVER_PAGE_SIZE_OPTIONS : PAGE_SIZE_OPTIONS
     ).filter(([n]) =>
       serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
-  }, [data.length, rowCount, serverPagination]);
+  }, [data.length, rowCount, serverPageLength, serverPagination]);
 
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
