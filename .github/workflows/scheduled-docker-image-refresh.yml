@@ -108,8 +108,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Keep workflow tooling on the triggering revision. Release tags can
+      # contain action pins that no longer satisfy the repository allowlist.
+      - name: Checkout workflow actions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: workflow-source
+          persist-credentials: false
+          sparse-checkout: .github/actions
+
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: ./workflow-source/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -122,7 +132,7 @@ jobs:
           node-version: 20
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: ./workflow-source/.github/actions/setup-supersetbot/
 
       - name: Rebuild and push
         env:
@@ -171,7 +181,7 @@ jobs:
             --repo "$REPOSITORY" \
             --title "Scheduled Docker image refresh failed for ${LATEST_RELEASE}" \
             --label "infra:container" \
-            --label "bug" \
+            --label "#bug" \
             --body "The weekly Docker base-image refresh failed for release \`${LATEST_RELEASE}\`. Published images may be missing upstream base-layer security patches until this is resolved.
 
           Failed run: ${RUN_URL}"
