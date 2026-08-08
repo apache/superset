@@ -176,6 +176,8 @@ METRIC_MAP_TYPE = {
     "PERCENTILE": "floating",
     "VARIANCE": "floating",
     "STDDEV": "floating",
+    "STDDEV_SAMP": "floating",
+    "VAR_SAMP": "floating",
 }
 
 
@@ -1829,7 +1831,9 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
     expression: str = metric.expression
 
     match = re.match(
-        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST)\((.*)\)", expression
+        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST"
+        r"|MEDIAN|STDDEV_SAMP|VAR_SAMP)\((.*)\)",
+        expression,
     )
 
     if match:
