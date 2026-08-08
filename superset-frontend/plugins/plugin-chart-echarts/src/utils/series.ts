@@ -395,7 +395,13 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol, legendState, extraMetricLabels } = opts;
+  const {
+    stack,
+    percentageThreshold,
+    xAxisCol,
+    legendState,
+    extraMetricLabels,
+  } = opts;
   const excludedKeys = new Set([xAxisCol, ...(extraMetricLabels ?? [])]);
   if (stack) {
     data.forEach(datum => {
