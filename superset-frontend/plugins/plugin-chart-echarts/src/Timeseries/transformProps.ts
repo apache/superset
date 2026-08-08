@@ -246,6 +246,7 @@ export default function transformProps(
     showLegend,
     showValue,
     size,
+    labelPosition,
     colorByPrimaryAxis,
     sliceId,
     sortSeriesType,
@@ -699,6 +700,7 @@ export default function transformProps(
         theme,
         hasDimensions: (groupBy?.length ?? 0) > 0,
         colorByPrimaryAxis,
+        labelPosition,
       },
     );
     if (transformedSeries) {

@@ -432,6 +432,56 @@ test('keeps bar value label clipping aligned with the assigned y-axis', () => {
   expect(formatSeriesLabel(barSeries, [timestamp, 0.5])).toBe('');
 });
 
+test('threads labelPosition and labelPositionB to series A and B', () => {
+  const timestamp = 1704067200000;
+  const queryAData = createTestQueryData(
+    [{ __timestamp: timestamp, lineMetric: 0.25 }],
+    {
+      colnames: ['__timestamp', 'lineMetric'],
+      coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      label_map: { lineMetric: ['lineMetric'] },
+    },
+  );
+  const queryBData = createTestQueryData(
+    [{ __timestamp: timestamp, barMetric: 0.5 }],
+    {
+      colnames: ['__timestamp', 'barMetric'],
+      coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      label_map: { 'barMetric (1)': ['barMetric'] },
+    },
+  );
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queryBData],
+    formData: {
+      ...formData,
+      groupby: [],
+      groupbyB: [],
+      metrics: ['lineMetric'],
+      metricsB: ['barMetric'],
+      showValue: true,
+      showValueB: true,
+      labelPosition: 'inside',
+      labelPositionB: 'bottom',
+      stack: null,
+      stackB: null,
+      x_axis: '__timestamp',
+    },
+    queriesData: [queryAData, queryBData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const series = echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'lineMetric');
+  const seriesB = series.find(s => s.name === 'barMetric');
+
+  expect((seriesA?.label as any)?.position).toBe('inside');
+  expect((seriesB?.label as any)?.position).toBe('bottom');
+});
+
 describe('legend sorting', () => {
   const getChartProps = (overrides = {}) =>
     createEchartsTimeseriesTestChartProps<
