@@ -1063,6 +1063,12 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
+# EXTRA_THEME_TOKENS lets a deployment register additional custom theme token
+# names so they validate cleanly in the theme editor instead of being flagged as
+# unknown Ant Design tokens. Deployments and plugins that consume their own
+# tokens via useTheme add them here. This is merely a default.
+EXTRA_THEME_TOKENS: list[str] = []
+
 # -----------------------------------------------------------------------------
 # Theme System Configuration
 # -----------------------------------------------------------------------------

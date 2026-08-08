@@ -38,6 +38,7 @@ class NotificationContent:
     # Populated only when this is a per-retry or final-failure notification
     retry_attempt: Optional[int] = None
     retry_max_attempts: Optional[int] = None
+    include_cta: bool = True  # include the call-to-action link back to Superset
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods
