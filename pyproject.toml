@@ -85,7 +85,7 @@ dependencies = [
     "marshmallow-union>=0.1.15.post1",
     "msgpack>=1.2.0, <1.3",
     "nh3>=0.3.5, <0.4",
-    "numpy>1.23.5, <2.3",
+    "numpy>=1.23.5, <2.5",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
@@ -532,6 +532,11 @@ authorized_licenses = [
 # Seems ok, might need legal review
 # https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
 polyline = "2"
+# NumPy 2.x reports a combined SPDX license expression covering vendored
+# code (BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0), all of which
+# are permissive OSI-approved licenses; the package itself remains
+# BSD-3-Clause. https://github.com/numpy/numpy/blob/main/LICENSE.txt
+numpy = "2"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE
