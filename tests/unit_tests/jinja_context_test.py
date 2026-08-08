@@ -2140,3 +2140,45 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
+
+
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        pytest.param("SELECT 1", False, id="plain"),
+        pytest.param("SELECT '{{ current_username() }}'", True, id="expression"),
+        pytest.param("{% set a = 1 %}SELECT {{ a }}", True, id="statement"),
+        # A comment leaves no trace in a parsed template, but still has to be
+        # expanded away before the SQL is SQL.
+        pytest.param("SELECT 1 {# a comment #}", True, id="comment"),
+        # A whole query that is one macro lexes without a `data` token at all.
+        pytest.param("{{ dataset(1) }}", True, id="template_only"),
+        # Merely containing braces is not templating: Jinja cannot lex either of
+        # these, so there is nothing here it would expand.
+        pytest.param("SELECT '{{1,2},{3,4}}'::int[]", False, id="postgres_array"),
+        pytest.param("""SELECT '{"a": 1}'::json""", False, id="json_literal"),
+    ],
+)
+def test_has_template(sql: str, expected: bool) -> None:
+    """
+    Test the ``has_template`` method.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.has_template(sql) is expected
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
+def test_has_template_when_processing_is_disabled() -> None:
+    """
+    Test that ``has_template`` reports no template when nothing is expanded.
+
+    With ``ENABLE_TEMPLATE_PROCESSING`` off, ``get_template_processor`` returns
+    a ``NoOpTemplateProcessor``: the braces are never expanded, so they are not
+    a template, they are just part of the SQL.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.has_template("SELECT '{{ current_username() }}'") is False

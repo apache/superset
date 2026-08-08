@@ -31,6 +31,7 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
+    SupersetTemplatedQueryNotEstimableException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -148,9 +149,20 @@ class QueryEstimationCommand(BaseCommand):
     ) -> list[dict[str, Any]]:
         self.validate()
 
+        template_processor = get_template_processor(self._database)
+        # A templated query has no single execution plan: it expands using
+        # values only available at run time (a dashboard's time range, the
+        # current user, a URL parameter), and different expansions can produce
+        # different plans. Estimating one of them -- here, the emptiest one,
+        # with no such context to expand from -- would report the plan of a
+        # different query than the one that runs. Refusing before the SQL
+        # reaches `SQLScript` also replaces the parse error the raw `{%` would
+        # otherwise trigger, which reads as a typo in a valid query.
+        if template_processor.has_template(self._sql):
+            raise SupersetTemplatedQueryNotEstimableException()
+
         sql = self._sql
         if self._template_params:
-            template_processor = get_template_processor(self._database)
             try:
                 sql = template_processor.process_template(sql, **self._template_params)
             except TemplateError as ex:

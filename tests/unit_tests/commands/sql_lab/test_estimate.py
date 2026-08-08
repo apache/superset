@@ -26,7 +26,11 @@ from superset.commands.sql_lab.estimate import (
     QueryEstimationCommand,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.exceptions import (
+    SupersetErrorException,
+    SupersetSecurityException,
+    SupersetTemplatedQueryNotEstimableException,
+)
 
 
 def _make_params(**kwargs: object) -> EstimateQueryCostType:
@@ -397,21 +401,128 @@ def test_run_wraps_raw_jinja_undefined_error(
     undefined attribute/subscript access, e.g. ``{{ foo.bar }}``) must not
     leak past ``run()`` -- it should surface as a typed
     ``SupersetErrorException``, matching the ``ExecuteSqlCommand`` sibling's
-    broad-catch pattern in ``commands/sql_lab/execute.py``."""
+    broad-catch pattern in ``commands/sql_lab/execute.py``.
+
+    ``has_template`` is stubbed to False so that the templating gate lets the
+    SQL through and this test covers the wrapping alone. The gate reaches
+    ``process_template()`` for SQL that Jinja cannot lex, where ``from_string``
+    then raises for itself.
+    """
     from jinja2.exceptions import UndefinedError
 
     mock_database = MagicMock()
     mock_db.session.query.return_value.get.return_value = mock_database
     mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.has_template.return_value = False
     mock_get_template_processor.return_value.process_template.side_effect = (
         UndefinedError("'foo' is undefined")
     )
 
     command = QueryEstimationCommand(
-        _make_params(sql="SELECT {{ foo.bar }}", template_params={"x": 1})
+        _make_params(sql="SELECT 1", template_params={"x": 1})
     )
     with pytest.raises(SupersetErrorException) as exc_info:
         command.run()
 
+    mock_get_template_processor.return_value.process_template.assert_called_once()
     assert exc_info.value.status == 400
     assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+
+
+# ---------------------------------------------------------------------------
+# A templated query is refused rather than estimated for one expansion of it
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.db")
+def test_run_refuses_a_templated_query(
+    mock_db: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """A query the template processor reports as templated is refused, and the
+    engine is never asked for a cost.
+
+    The refusal is not a syntax error: leaving the raw ``{%`` to ``SQLScript``
+    reports a parse failure, which reads as a typo in a query that is valid.
+    """
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_database = MagicMock()
+    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.has_template.return_value = True
+
+    command = QueryEstimationCommand(_make_params(sql="{% set a = 1 %}SELECT {{ a }}"))
+    with pytest.raises(SupersetTemplatedQueryNotEstimableException) as exc_info:
+        command.run()
+
+    assert exc_info.value.status == 400
+    assert exc_info.value.error.error_type != SupersetErrorType.SYNTAX_ERROR
+    mock_database.db_engine_spec.estimate_query_cost.assert_not_called()
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.db")
+def test_run_refuses_a_templated_query_with_template_params(
+    mock_db: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """Supplying ``template_params`` does not pin down a context function such
+    as ``get_time_filter()``, so it does not make the estimate representative
+    and the query is refused all the same."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_db.session.query.return_value.get.return_value = MagicMock()
+    mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.has_template.return_value = True
+
+    command = QueryEstimationCommand(
+        _make_params(
+            sql="SELECT {{ get_time_filter('ds') }}",
+            template_params={"unrelated": 1},
+        )
+    )
+    with pytest.raises(SupersetTemplatedQueryNotEstimableException):
+        command.run()
+
+    mock_get_template_processor.return_value.process_template.assert_not_called()
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.db")
+def test_run_estimates_an_untemplated_query(
+    mock_db: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """SQL with no template still reaches the engine unchanged."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_database.db_engine_spec.query_cost_formatter.return_value = [{"Cost": "1"}]
+    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.has_template.return_value = False
+
+    command = QueryEstimationCommand(_make_params(sql="SELECT 1"))
+
+    assert command.run() == [{"Cost": "1"}]
+    assert (
+        mock_database.db_engine_spec.estimate_query_cost.call_args.args[3] == "SELECT 1"
+    )
