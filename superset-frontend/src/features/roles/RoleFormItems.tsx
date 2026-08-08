@@ -60,6 +60,13 @@ export const PermissionsField = ({
         placeholder={t('Select permissions')}
         options={options}
         loading={loading}
+        // fetchPermissionOptions already filters server-side against the raw
+        // permission/view_menu names. AsyncSelect's default client-side
+        // re-filter checks the search term against the rendered label, but
+        // that label has had underscores replaced with spaces
+        // (formatPermissionLabel), so a raw-name search term never matches
+        // it and the correctly-fetched option gets hidden. See #42041.
+        filterOption={false}
         getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
         data-test="permissions-select"
       />
