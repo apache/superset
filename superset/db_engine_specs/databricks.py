@@ -259,6 +259,11 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
 class DatabricksBaseEngineSpec(BaseEngineSpec):
     _time_grain_expressions = time_grain_expressions
 
+    # Databricks SQL is Spark SQL under the hood: identifiers are quoted with
+    # backticks, not the inherited ANSI double quotes.
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
+
     @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None

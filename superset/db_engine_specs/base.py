@@ -575,6 +575,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     arraysize = 0
     max_column_name_length: int | None = None
 
+    # Characters used to quote identifiers (table/column names) that aren't simple.
+    # Defaults to ANSI double quotes; dialects that differ override these — e.g.
+    # MySQL/MariaDB use backticks and SQL Server uses square brackets. These are
+    # surfaced to the client (see `get_public_information`) so identifier quoting
+    # stays owned by the engine spec rather than duplicated per client.
+    identifier_quote_start: str = '"'
+    identifier_quote_end: str = '"'
+    # How an embedded closing-quote character is escaped within a quoted
+    # identifier. Most dialects (ANSI, MySQL/MariaDB backticks, SQL Server
+    # brackets) escape by doubling the closing character. BigQuery's GoogleSQL
+    # backtick identifiers are the exception, escaping with a backslash instead,
+    # so it overrides this to False.
+    identifier_quote_escape_by_doubling: bool = True
+
     # Some databases (e.g. Druid, Pinot) build cursor.description by inspecting
     # the values in the first returned row rather than from query-plan metadata.
     # For those engines WHERE FALSE returns no rows and therefore leaves
@@ -2761,6 +2775,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            "identifier_quote": {
+                "start": cls.identifier_quote_start,
+                "end": cls.identifier_quote_end,
+                "escape_by_doubling": cls.identifier_quote_escape_by_doubling,
+            },
         }
 
     @classmethod

@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import type { Editor } from '@superset-ui/core/components';
 import {
   createWrapper,
   defaultStore as store,
@@ -209,6 +210,149 @@ test('quotes table identifiers that require quoting in the inserted value', asyn
     }),
   );
 });
+
+type IdentifierQuoteFixture = {
+  start: string;
+  end: string;
+  escape_by_doubling?: boolean;
+};
+
+// Shared setup for the dialect-specific quoting tests below: seeds a single
+// table into the store with the given engine-provided quote chars, then
+// renders the hook so keyword autocomplete for that table can be asserted.
+function renderKeywordsForTable(
+  identifierQuote: IdentifierQuoteFixture,
+  tableName: string,
+) {
+  const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
+  fetchMock.get(dbFunctionNamesApiRoute, fakeFunctionNamesApiResult);
+
+  const storeWithBackend = createStore(
+    {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        databases: {
+          [expectDbId]: {
+            engine_information: { identifier_quote: identifierQuote },
+          },
+        },
+      },
+    },
+    reducers,
+  );
+
+  act(() => {
+    storeWithBackend.dispatch(
+      tableApiUtil.upsertQueryData(
+        'tables',
+        { dbId: expectDbId, schema: expectSchema },
+        {
+          options: [{ value: tableName, label: tableName, type: 'table' }],
+          hasMore: false,
+        },
+      ),
+    );
+  });
+
+  return renderHook(
+    () =>
+      useKeywords({
+        queryEditorId: 'testqueryid',
+        dbId: expectDbId,
+        schema: expectSchema,
+      }),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store: storeWithBackend,
+      }),
+    },
+  );
+}
+
+test.each([
+  ['mysql', { start: '`', end: '`' }, '`COVID Vaccines`'],
+  ['mariadb', { start: '`', end: '`' }, '`COVID Vaccines`'],
+  ['mssql', { start: '[', end: ']' }, '[COVID Vaccines]'],
+  ['postgresql', { start: '"', end: '"' }, '"COVID Vaccines"'],
+  [
+    'bigquery',
+    { start: '`', end: '`', escape_by_doubling: false },
+    '`COVID Vaccines`',
+  ],
+])(
+  'quotes table identifiers using the engine-provided quote characters for %s',
+  async (_dialect, identifierQuote, expectedValue) => {
+    const { result } = renderKeywordsForTable(
+      identifierQuote,
+      'COVID Vaccines',
+    );
+
+    await waitFor(() =>
+      expect(result.current).toContainEqual(
+        expect.objectContaining({
+          name: 'COVID Vaccines',
+          value: expectedValue,
+          meta: 'table',
+        }),
+      ),
+    );
+
+    // The caption inserted into the editor on selection is quoted with the
+    // same dialect-specific characters as `value`, not a hardcoded ANSI quote.
+    const tableKeyword = result.current.find(
+      keyword => keyword.meta === 'table' && keyword.name === 'COVID Vaccines',
+    );
+    const insertMatch = tableKeyword?.completer?.insertMatch;
+    const editor = {
+      completer: { insertMatch: jest.fn() },
+    } as unknown as Editor;
+    act(() => {
+      insertMatch?.(editor, {
+        name: 'COVID Vaccines',
+        value: expectedValue,
+        score: TABLE_AUTOCOMPLETE_SCORE,
+        meta: 'table',
+        caption: 'COVID Vaccines',
+      });
+    });
+    expect(editor.completer.insertMatch).toHaveBeenCalledWith(
+      `${expectedValue} `,
+    );
+  },
+);
+
+test.each([
+  [
+    'mysql',
+    { start: '`', end: '`', escape_by_doubling: true },
+    '`COVID``Vaccines`',
+  ],
+  [
+    'bigquery',
+    { start: '`', end: '`', escape_by_doubling: false },
+    '`COVID\\`Vaccines`',
+  ],
+])(
+  'escapes an embedded closing-quote character per the %s engine-provided escape strategy',
+  async (_dialect, identifierQuote, expectedValue) => {
+    const { result } = renderKeywordsForTable(
+      identifierQuote,
+      'COVID`Vaccines',
+    );
+
+    await waitFor(() =>
+      expect(result.current).toContainEqual(
+        expect.objectContaining({
+          name: 'COVID`Vaccines',
+          value: expectedValue,
+          meta: 'table',
+        }),
+      ),
+    );
+  },
+);
 
 test('skip fetching if autocomplete skipped', () => {
   const { result } = renderHook(

@@ -1480,3 +1480,13 @@ def test_get_parameters_from_uri_keeps_unrelated_query_parameters() -> None:
     )
 
     assert parameters["query"] == {"application_name": "superset"}
+
+
+def test_get_public_information_exposes_ansi_identifier_quote() -> None:
+    """The base spec advertises ANSI double quotes for identifier quoting,
+    escaped by doubling the closing character."""
+    assert BaseEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": '"',
+        "end": '"',
+        "escape_by_doubling": True,
+    }
