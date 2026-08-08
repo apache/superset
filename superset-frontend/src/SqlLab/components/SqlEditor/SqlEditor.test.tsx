@@ -41,6 +41,11 @@ import {
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+import { views } from 'src/core';
+import {
+  ViewLocations,
+  PENDING_NORTH_PANE_VIEW_KEY,
+} from 'src/SqlLab/contributions';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
 
@@ -346,6 +351,55 @@ describe('SqlEditor', () => {
     expect(
       await findByText('sqleditor.extension.form extension component'),
     ).toBeInTheDocument();
+  });
+
+  test('renders a registered northPane view in place of the editor', async () => {
+    const { queryEditor } = mockedProps;
+    // The fixture has no tabViewId, so the component falls back to the id;
+    // mirror that here to derive the same persistence key.
+    const storageKey = `sqllab.northPaneView.${queryEditor.id}`;
+    localStorage.setItem(storageKey, 'test.northPane');
+    const disposable = views.registerView(
+      { id: 'test.northPane', name: 'Test North Pane' },
+      ViewLocations.sqllab.northPane,
+      () => <div data-test="np-view">NorthPane content</div>,
+    );
+
+    try {
+      const { findByTestId, queryByTestId } = setup(mockedProps, store);
+      expect(await findByTestId('np-view')).toBeInTheDocument();
+      // The default SQL editor pane is replaced, not rendered alongside.
+      expect(queryByTestId('react-ace')).not.toBeInTheDocument();
+    } finally {
+      disposable.dispose();
+      localStorage.removeItem(storageKey);
+    }
+  });
+
+  test('consumes PENDING_NORTH_PANE_VIEW_KEY, clearing it and persisting the per-tab key', async () => {
+    const { queryEditor } = mockedProps;
+    // The fixture has no tabViewId, so the component falls back to the id.
+    const storageKey = `sqllab.northPaneView.${queryEditor.id}`;
+    // An extension declares the pending northPane view before createTab().
+    localStorage.setItem(PENDING_NORTH_PANE_VIEW_KEY, 'test.northPane');
+    const disposable = views.registerView(
+      { id: 'test.northPane', name: 'Test North Pane' },
+      ViewLocations.sqllab.northPane,
+      () => <div data-test="np-view">NorthPane content</div>,
+    );
+
+    try {
+      const { findByTestId } = setup(mockedProps, store);
+      expect(await findByTestId('np-view')).toBeInTheDocument();
+      // The pending key is consumed (removed) on mount...
+      expect(localStorage.getItem(PENDING_NORTH_PANE_VIEW_KEY)).toBeNull();
+      // ...and the chosen view is persisted under the per-tab key.
+      expect(localStorage.getItem(storageKey)).toEqual('test.northPane');
+    } finally {
+      disposable.dispose();
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(PENDING_NORTH_PANE_VIEW_KEY);
+    }
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
