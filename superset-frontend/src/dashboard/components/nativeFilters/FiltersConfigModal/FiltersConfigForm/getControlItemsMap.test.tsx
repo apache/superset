@@ -17,8 +17,15 @@
  * under the License.
  */
 import { Filter, NativeFilterType } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import type { FormInstance } from '@superset-ui/core/components';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { Form, type FormInstance } from '@superset-ui/core/components';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
 import {
   getControlItems,
@@ -32,12 +39,21 @@ jest.mock('./utils', () => ({
   doesColumnMatchFilterType: jest.fn(),
 }));
 
-// Mock ColumnSelect to test filterValues logic
+jest.mock('src/utils/cachedSupersetGet');
+const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
+  typeof cachedSupersetGet
+>;
+
+type MockColumn = { name: string; filterable: boolean };
+
+// Mock ColumnSelect to test filterValues logic and expose onChange
 jest.mock('./ColumnSelect', () => ({
   ColumnSelect: ({
     filterValues,
+    onChange,
   }: {
-    filterValues: (column: any) => boolean;
+    filterValues: (column: MockColumn) => boolean;
+    onChange?: (value: string) => void;
   }) => {
     const columns = [
       { name: 'col1', filterable: true },
@@ -47,7 +63,9 @@ jest.mock('./ColumnSelect', () => ({
     return (
       <>
         {columns.filter(filterValues).map(column => (
-          <div key={column.name}>{column.name}</div>
+          <div key={column.name} onClick={() => onChange?.(column.name)}>
+            {column.name}
+          </div>
         ))}
       </>
     );
@@ -113,6 +131,7 @@ const createControlItems = () => [
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockCachedSupersetGet.mockReset();
 });
 
 function renderControlItems(
@@ -123,6 +142,35 @@ function renderControlItems(
       {Object.values(controlItemsMap.controlItems).map(value => value.element)}
     </>,
   );
+}
+
+function renderColumnPicker(
+  controlItemConfig: Record<string, unknown> = {},
+  propsOverrides: Partial<ControlItemsProps> = {},
+) {
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'myPluginColumn',
+      config: {
+        isColumnSelect: true,
+        label: 'My Column',
+        ...controlItemConfig,
+      },
+    },
+  ]);
+  const props = { ...createProps(), datasetId: 1, ...propsOverrides };
+  const map = getControlItemsMap(props);
+  const element = map.mainControlItems.myPluginColumn
+    .element as React.ReactElement;
+  // Field/Form.Item only applies `initialValue` when registered under a real
+  // antd Form — without it, the value/onChange the control receives always
+  // resolve to undefined regardless of `initialValue`.
+  function Wrapper() {
+    const [form] = Form.useForm();
+    return <Form form={form}>{element}</Form>;
+  }
+  render(<Wrapper />);
+  return props;
 }
 
 test('Should render null when has no "formFilter"', () => {
@@ -182,6 +230,23 @@ test('Should render ControlItems', () => {
   expect(screen.getAllByRole('checkbox')).toHaveLength(2);
 });
 
+test('renders without throwing when label/description are multi-argument functions', () => {
+  const props = createProps();
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'name_1',
+      config: {
+        renderTrigger: true,
+        label: (state: unknown) => `label:${state}`,
+        description: (state: unknown) => `description:${state}`,
+      },
+    },
+  ]);
+  const controlItemsMap = getControlItemsMap(props);
+  expect(() => renderControlItems(controlItemsMap)).not.toThrow();
+  expect(screen.getByRole('checkbox')).toBeInTheDocument();
+});
+
 test('Clicking on checkbox', () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue(createControlItems());
@@ -206,6 +271,137 @@ test('Clicking on checkbox when resetConfig:false', () => {
   userEvent.click(screen.getByRole('checkbox'));
   expect(props.forceUpdate).toHaveBeenCalled();
   expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
+});
+
+test('Clicking on checkbox calls setNativeFilterFieldValues with requiredFirst when config.requiredFirst is true', () => {
+  const props = {
+    ...createProps(),
+    formFilter: { requiredFirst: { name_1: false } },
+  };
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'name_1',
+      config: { renderTrigger: true, requiredFirst: true, resetConfig: false },
+    },
+  ]);
+  // @ts-expect-error: bypass incomplete formFilter type for test
+  const controlItemsMap = getControlItemsMap(props);
+  renderControlItems(controlItemsMap);
+  userEvent.click(screen.getByRole('checkbox'));
+  expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+    props.form,
+    props.filterId,
+    {
+      requiredFirst: {
+        name_1: expect.objectContaining({
+          target: expect.objectContaining({ checked: true }),
+        }),
+      },
+    },
+  );
+});
+
+test('groupby ColumnSelect onChange resets defaultDataMask and notifies change', () => {
+  (doesColumnMatchFilterType as jest.Mock).mockReturnValue(true);
+  (getControlItems as jest.Mock).mockReturnValue([
+    { name: 'groupby', config: { multiple: false, required: false } },
+  ]);
+  const props = {
+    ...createProps(),
+    formFilter: { filterType: 'filterType' },
+  };
+  // @ts-expect-error: bypass incomplete formFilter type for test
+  const element = getControlItemsMap(props).mainControlItems.groupby
+    .element as React.ReactElement;
+  render(element);
+  expect(props.forceUpdate).not.toHaveBeenCalled();
+  expect(props.formChanged).not.toHaveBeenCalled();
+  userEvent.click(screen.getByText('col1'));
+  expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+    props.form,
+    props.filterId,
+    { defaultDataMask: null },
+  );
+  expect(props.forceUpdate).toHaveBeenCalled();
+  expect(props.formChanged).toHaveBeenCalled();
+});
+
+test('plugin column-picker control (isColumnSelect) resets stale value not present in fetched columns', async () => {
+  const fetchPromise = Promise.resolve({
+    response: {} as Response,
+    json: { result: { columns: [{ column_name: 'col_a' }] } },
+  });
+  mockCachedSupersetGet.mockReturnValue(fetchPromise);
+  const props = renderColumnPicker(
+    {},
+    {
+      filterToEdit: {
+        ...filterMock,
+        controlValues: { myPluginColumn: 'stale_col' },
+      },
+    },
+  );
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
+  await act(async () => {
+    await fetchPromise;
+  });
+  expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+    props.form,
+    props.filterId,
+    { defaultDataMask: null },
+  );
+  expect(props.forceUpdate).toHaveBeenCalled();
+  expect(props.formChanged).toHaveBeenCalled();
+});
+
+test('plugin column-picker control (isColumnSelect) does not reset value that still exists after fetch', async () => {
+  const fetchPromise = Promise.resolve({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [{ column_name: 'col_a' }, { column_name: 'col_b' }],
+      },
+    },
+  });
+  mockCachedSupersetGet.mockReturnValue(fetchPromise);
+  const props = renderColumnPicker(
+    {},
+    {
+      filterToEdit: {
+        ...filterMock,
+        controlValues: { myPluginColumn: 'col_a' },
+      },
+    },
+  );
+  await act(async () => {
+    await fetchPromise;
+  });
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
+  expect(props.forceUpdate).not.toHaveBeenCalled();
+  expect(props.formChanged).not.toHaveBeenCalled();
+});
+
+test('plugin column-picker control (isColumnSelect) resets value immediately when datasetId is cleared', async () => {
+  const props = renderColumnPicker(
+    {},
+    {
+      datasetId: undefined,
+      filterToEdit: {
+        ...filterMock,
+        controlValues: { myPluginColumn: 'stale_col' },
+      },
+    },
+  );
+  expect(mockCachedSupersetGet).not.toHaveBeenCalled();
+  await waitFor(() =>
+    expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+      props.form,
+      props.filterId,
+      { defaultDataMask: null },
+    ),
+  );
+  expect(props.forceUpdate).toHaveBeenCalled();
+  expect(props.formChanged).toHaveBeenCalled();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -248,4 +444,81 @@ describe('ColumnSelect filterValues behavior', () => {
     expect(screen.queryByText('col3')).not.toBeInTheDocument();
     expect(screen.queryByText('col2')).not.toBeInTheDocument();
   });
+});
+
+test('plugin column-picker control (isColumnSelect) populates options after a successful fetch, dropping blank column names', async () => {
+  const fetchPromise = Promise.resolve({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [
+          { column_name: 'col_a' },
+          { column_name: '' },
+          { column_name: null },
+        ],
+      },
+    },
+  });
+  mockCachedSupersetGet.mockReturnValue(fetchPromise);
+  renderColumnPicker();
+  expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: expect.stringContaining('/api/v1/dataset/1?q='),
+  });
+  await act(async () => {
+    await fetchPromise;
+  });
+  userEvent.click(screen.getByRole('combobox'));
+  expect(
+    await screen.findByRole('option', { name: 'col_a' }),
+  ).toBeInTheDocument();
+  expect(screen.getAllByRole('option')).toHaveLength(1);
+});
+
+test('plugin column-picker control (isColumnSelect) falls back to no options when the fetch rejects', async () => {
+  mockCachedSupersetGet.mockRejectedValue(new Error('boom'));
+  renderColumnPicker();
+  await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
+  userEvent.click(screen.getByRole('combobox'));
+  expect(screen.queryAllByRole('option')).toHaveLength(0);
+});
+
+test('plugin column-picker control (isColumnSelect) keeps existing value when fetch rejects', async () => {
+  mockCachedSupersetGet.mockRejectedValue(new Error('boom'));
+  const props = renderColumnPicker(
+    {},
+    {
+      filterToEdit: {
+        ...filterMock,
+        controlValues: { myPluginColumn: 'stale_col' },
+      },
+    },
+  );
+  await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
+  expect(setNativeFilterFieldValues).not.toHaveBeenCalled();
+  expect(props.forceUpdate).not.toHaveBeenCalled();
+  expect(props.formChanged).not.toHaveBeenCalled();
+  expect(await screen.findByText('stale_col')).toBeInTheDocument();
+});
+
+test('plugin column-picker control (isColumnSelect) onChange resets defaultDataMask and notifies change', async () => {
+  const fetchPromise = Promise.resolve({
+    response: {} as Response,
+    json: { result: { columns: [{ column_name: 'col_a' }] } },
+  });
+  mockCachedSupersetGet.mockReturnValue(fetchPromise);
+  const props = renderColumnPicker();
+  await act(async () => {
+    await fetchPromise;
+  });
+  userEvent.click(screen.getByRole('combobox'));
+  userEvent.click(await screen.findByRole('option', { name: 'col_a' }));
+  await waitFor(() =>
+    expect(setNativeFilterFieldValues).toHaveBeenCalledWith(
+      props.form,
+      props.filterId,
+      { defaultDataMask: null },
+    ),
+  );
+  expect(props.forceUpdate).toHaveBeenCalled();
+  expect(props.formChanged).toHaveBeenCalled();
 });
