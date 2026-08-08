@@ -17,9 +17,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect, useRef } from "react";
-import { t } from "@apache-superset/core/translation";
-import { styled } from "@apache-superset/core/theme";
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 
 const Container = styled.div`
   ${({ theme }: any) => {
@@ -155,7 +155,7 @@ interface ColorMapping {
   color: string;
 }
 
-const DEFAULT_NEW_COLOR = ["#0", "00000"].join("");
+const DEFAULT_NEW_COLOR = ['#0', '00000'].join('');
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 const isValidHex = (color: string) => /^#[0-9A-Fa-f]{6}$/i.test(color);
@@ -167,7 +167,7 @@ const LabelColorMapping = ({
   const metadataObj = useMemo<Record<string, unknown>>(() => {
     try {
       const parsed = jsonMetadata ? JSON.parse(jsonMetadata) : {};
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
         ? (parsed as Record<string, unknown>)
         : {};
     } catch (error: unknown) {
@@ -181,14 +181,20 @@ const LabelColorMapping = ({
   const labelColors = useMemo(
     () =>
       metadataObj.label_colors &&
-      typeof metadataObj.label_colors === "object" &&
+      typeof metadataObj.label_colors === 'object' &&
       !Array.isArray(metadataObj.label_colors)
         ? (metadataObj.label_colors as Record<string, string>)
         : {},
     [metadataObj],
   );
 
-  const [rows, setRows] = useState<ColorMapping[]>([]);
+  const [rows, setRows] = useState<ColorMapping[]>(() => {
+    return Object.entries(labelColors).map(([label, color]) => ({
+      id: generateId(),
+      label,
+      color: isValidHex(color) ? color : DEFAULT_NEW_COLOR,
+    }));
+  });
   const lastSyncMetadata = useRef<string>(jsonMetadata);
 
   useEffect(() => {
@@ -205,8 +211,8 @@ const LabelColorMapping = ({
 
   const syncToJson = (currentRows: ColorMapping[]) => {
     const newLabelColors: Record<string, string> = {};
-    currentRows.forEach((row) => {
-      if (row.label.trim() !== "") {
+    currentRows.forEach(row => {
+      if (row.label.trim() !== '') {
         newLabelColors[row.label.trim()] = row.color;
       }
     });
@@ -224,13 +230,13 @@ const LabelColorMapping = ({
   const handleAddRow = () => {
     const newRows = [
       ...rows,
-      { id: generateId(), label: "", color: DEFAULT_NEW_COLOR },
+      { id: generateId(), label: '', color: DEFAULT_NEW_COLOR },
     ];
     setRows(newRows);
   };
 
   const handleUpdateRow = (id: string, newLabel: string, newColor: string) => {
-    const newRows = rows.map((r) =>
+    const newRows = rows.map(r =>
       r.id === id ? { ...r, label: newLabel, color: newColor } : r,
     );
     setRows(newRows);
@@ -238,13 +244,13 @@ const LabelColorMapping = ({
   };
 
   const handleDeleteRow = (id: string) => {
-    const newRows = rows.filter((r) => r.id !== id);
+    const newRows = rows.filter(r => r.id !== id);
     setRows(newRows);
     syncToJson(newRows);
   };
 
   const allKnownLabels = Array.from(
-    new Set(rows.map((r) => r.label).filter(Boolean)),
+    new Set(rows.map(r => r.label).filter(Boolean)),
   );
 
   return (
@@ -257,7 +263,7 @@ const LabelColorMapping = ({
               marginTop: 0,
             })}
           >
-            {t("Label Colors")}
+            {t('Label Colors')}
           </h4>
           <p
             css={(theme: any) => ({
@@ -267,7 +273,7 @@ const LabelColorMapping = ({
             })}
           >
             {t(
-              "Map specific labels to colors. This automatically updates the JSON below.",
+              'Map specific labels to colors. This automatically updates the JSON below.',
             )}
           </p>
         </div>
@@ -276,7 +282,7 @@ const LabelColorMapping = ({
       {rows.length === 0 && (
         <p
           css={(theme: any) => ({
-            fontStyle: "italic",
+            fontStyle: 'italic',
             color: theme?.colors?.grayscale?.light1,
           })}
         >
@@ -284,14 +290,14 @@ const LabelColorMapping = ({
         </p>
       )}
 
-      {rows.map((row) => {
+      {rows.map(row => {
         const availableOptions = allKnownLabels
           .filter(
-            (label) =>
+            label =>
               label === row.label ||
-              !rows.some((r) => r.label === label && r.id !== row.id),
+              !rows.some(r => r.label === label && r.id !== row.id),
           )
-          .map((label) => ({ label, value: label }));
+          .map(label => ({ label, value: label }));
 
         return (
           <Row key={row.id}>
@@ -302,10 +308,10 @@ const LabelColorMapping = ({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   handleUpdateRow(row.id, e.target.value, row.color)
                 }
-                placeholder={t("Select or type a label")}
+                placeholder={t('Select or type a label')}
               />
               <datalist id={`label-options-${row.id}`}>
-                {availableOptions.map((opt) => (
+                {availableOptions.map(opt => (
                   <option
                     key={opt.value}
                     value={opt.value}
@@ -325,7 +331,7 @@ const LabelColorMapping = ({
             <ActionButton
               onClick={() => handleDeleteRow(row.id)}
               type="button"
-              title={t("Remove color mapping")}
+              title={t('Remove color mapping')}
             >
               <svg
                 width="16"
@@ -345,7 +351,7 @@ const LabelColorMapping = ({
         );
       })}
 
-      <AddMoreLink onClick={handleAddRow}>+ {t("Add more")}</AddMoreLink>
+      <AddMoreLink onClick={handleAddRow}>+ {t('Add more')}</AddMoreLink>
     </Container>
   );
 };
