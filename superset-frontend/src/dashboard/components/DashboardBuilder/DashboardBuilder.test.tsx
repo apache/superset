@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import {
   fireEvent,
@@ -56,6 +60,9 @@ fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*', {});
 // Add mock for logging endpoint
 fetchMock.post('glob:*/log/?*', {});
+
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
@@ -429,6 +436,7 @@ describe('DashboardBuilder', () => {
         dashboardFiltersOpen: true,
         toggleDashboardFiltersOpen: jest.fn(),
         nativeFiltersEnabled: true,
+        hasFilters: true,
       });
 
     const { getByTestId } = setup();
@@ -455,6 +463,7 @@ describe('DashboardBuilder', () => {
         dashboardFiltersOpen: false,
         toggleDashboardFiltersOpen: jest.fn(),
         nativeFiltersEnabled: true,
+        hasFilters: true,
       });
 
     const { getByTestId } = setup();
@@ -481,6 +490,7 @@ describe('DashboardBuilder', () => {
         dashboardFiltersOpen: true,
         toggleDashboardFiltersOpen: jest.fn(),
         nativeFiltersEnabled: false,
+        hasFilters: false,
       });
 
     const { getByTestId } = setup();
@@ -540,6 +550,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: false,
+      hasFilters: false,
     });
     const { queryByTestId } = setup();
 
@@ -553,6 +564,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     const { queryByTestId } = setup();
 
@@ -566,6 +578,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     const { queryByTestId } = setup({
       dashboardState: { ...mockState.dashboardState, editMode: true },
@@ -583,6 +596,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();
@@ -608,6 +622,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();
@@ -629,6 +644,7 @@ describe('DashboardBuilder', () => {
       dashboardFiltersOpen: true,
       toggleDashboardFiltersOpen: jest.fn(),
       nativeFiltersEnabled: true,
+      hasFilters: true,
     });
     try {
       const { getByTestId } = setup();
