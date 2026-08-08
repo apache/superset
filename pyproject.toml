@@ -286,7 +286,7 @@ development = [
     "progress>=1.6.1,<2",
     "psutil",
     "pyfakefs",
-    "pyinstrument>=5.1.2,<6",
+    "pyinstrument>=5.1.3,<6",
     "pylint",
     "pytest<10.0.0", # cap below the next major until validated; the earlier <8 pin (current_app proxy timing) no longer reproduces
     "pytest-asyncio",
