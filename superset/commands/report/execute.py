@@ -1243,6 +1243,8 @@ class BaseReportState:
         error_text = None
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
+        # NULL (rows predating the include_cta column) is treated as True
+        include_cta = self._report_schedule.include_cta is not False
 
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -1278,6 +1280,7 @@ class BaseReportState:
                     text=error_text,
                     header_data=header_data,
                     url=url,
+                    include_cta=include_cta,
                 )
 
         if (
@@ -1310,6 +1313,7 @@ class BaseReportState:
             xlsx=xlsx_data,
             embedded_data=embedded_data,
             header_data=header_data,
+            include_cta=include_cta,
         )
 
     def _send(
@@ -1414,7 +1418,12 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=sanitize_title(name), text=message, header_data=header_data, url=url
+            name=sanitize_title(name),
+            text=message,
+            header_data=header_data,
+            url=url,
+            # NULL (rows predating the include_cta column) is treated as True
+            include_cta=self._report_schedule.include_cta is not False,
         )
 
         # filter recipients to recipients who are also editors
