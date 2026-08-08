@@ -33,10 +33,12 @@ from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import (
     OAuth2RedirectError,
+    QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetSecurityException,
 )
+from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
@@ -1264,3 +1266,32 @@ def test_validate_stored_expression_rejects_subquery_around_jinja(
             None,
             "(SELECT password FROM ab_user LIMIT 1) {# x #}",
         )
+
+
+def test_get_sqla_col_wraps_raw_jinja_undefined_error() -> None:
+    """
+    A raw ``jinja2.exceptions.UndefinedError`` raised while rendering a
+    column's Jinja expression (e.g. an arithmetic operation on an undefined
+    variable) must surface as a ``QueryObjectValidationError``, not
+    propagate as an unhandled 500.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        id=1,
+        table_name="test_table",
+        database=database,
+        schema="my_schema",
+        sql=None,
+        columns=[
+            TableColumn(
+                column_name="my_column",
+                type="VARCHAR",
+                expression="{{ nonexistent_var + 1 }}",
+            )
+        ],
+    )
+    column = table.columns[0]
+    processor = get_template_processor(database=database, table=table)
+
+    with pytest.raises(QueryObjectValidationError):
+        column.get_sqla_col(template_processor=processor)
