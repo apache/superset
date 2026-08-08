@@ -248,7 +248,7 @@ redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 # and 2.0 (version numbers don't track SQLAlchemy compat monotonically); pin
 # to the newest 1.4-only release for now. Bump to >=2.0.0 in lockstep with
 # Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
-risingwave = ["sqlalchemy-risingwave>=1.4.1, <3.0.0"]
+risingwave = ["sqlalchemy-risingwave>=2.1.0, <3.0.0"]
 shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.11.0, <2"]
