@@ -58,6 +58,7 @@ def tool(
     class_permission_name: str | None = None,
     method_permission_name: str | None = None,
     annotations: ToolAnnotations | None = None,
+    replaces: str | None = None,
 ) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
     Decorator to register an MCP tool with optional authentication.
@@ -87,6 +88,11 @@ def tool(
             Defaults to "write" if tags includes "mutate", else "read".
         annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
             These hints help MCP clients understand tool behavior and safety.
+        replaces: Name of an existing tool to replace. When set, the decorated
+            function is registered under this exact name (bypassing extension
+            namespace prefixing) and the original tool is removed from the
+            registry. Use this to swap out a host tool with a custom
+            implementation while keeping the same tool name visible to the LLM.
 
     Returns:
         Decorator function that registers and wraps the tool, or the wrapped function
@@ -120,6 +126,11 @@ def tool(
         def create_chart(name: str) -> dict:
             '''Create a new chart'''
             return {"name": name}
+
+        @tool(replaces="get_instance_info")  # Replace an existing host tool
+        def my_custom_instance_info() -> dict:
+            '''Lightweight replacement for the built-in instance info tool'''
+            return {"current_user": ...}
     """
     raise NotImplementedError(
         "MCP tool decorator not initialized. "
