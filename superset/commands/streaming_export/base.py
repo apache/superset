@@ -23,13 +23,12 @@ import io
 import logging
 import time
 from abc import abstractmethod
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from decimal import Decimal
 from numbers import Real
 from typing import Any, Callable, Generator
 
 from flask import current_app as app, g, has_app_context
-from sqlalchemy import text
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -219,19 +218,44 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         delimiter = csv_export_config.get("sep", ",")
         decimal_separator = csv_export_config.get("decimal", ".")
 
+        # Apply SQL mutations (e.g. SQL_QUERY_MUTATOR config hook) before
+        # execution.  All non-streaming paths go through this — the streaming
+        # path was originally skipping it, which left trailing semicolons
+        # unstripped for engines like Trino that reject them.
+        sql = database.mutate_sql_based_on_config(sql)
+
         with db.session(future=True) as session:
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
 
-            with merged_database.get_sqla_engine(
-                catalog=catalog, schema=schema
-            ) as engine:
-                with engine.connect() as connection:
-                    result_proxy = connection.execution_options(
-                        stream_results=True
-                    ).execute(text(sql))
-
-                    columns = list(result_proxy.keys())
+            # Use get_raw_connection() instead of get_sqla_engine() directly.
+            # This is critical for:
+            # 1. User impersonation — get_raw_connection() goes through the
+            #    ENGINE_CONTEXT_MANAGER which applies impersonate_user settings
+            #    (e.g. X-Trino-User header).  Without this, all streaming CSV
+            #    exports run as the service principal, breaking audit trails
+            #    and potentially bypassing per-user authorization (Ranger, OPA,
+            #    RLS views).
+            # 2. SSH tunnels — get_raw_connection() sets up SSH tunnels if
+            #    configured on the database.
+            # 3. OAuth2 — get_raw_connection() wraps execution in
+            #    check_for_oauth2() context.
+            with closing(
+                merged_database.get_raw_connection(catalog=catalog, schema=schema)
+            ) as conn:
+                cursor = conn.cursor()
+                # Set cursor.arraysize to control the batch size for fetchmany().
+                # This ensures DBAPI drivers (Trino, PostgreSQL, etc.) fetch
+                # rows in manageable chunks instead of buffering the entire
+                # result set client-side.
+                cursor.arraysize = limit
+                try:
+                    cursor.execute(sql)
+                    columns = (
+                        [desc[0] for desc in cursor.description]
+                        if cursor.description
+                        else []
+                    )
 
                     # Use StringIO with csv.writer for proper escaping
                     # Apply delimiter from CSV_EXPORT config
@@ -247,10 +271,15 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                     total_bytes += header_bytes
                     yield header_data
 
-                    # Process rows and yield chunks
+                    # Process rows and yield chunks — cursor supports the
+                    # same fetchmany() interface that _process_rows expects.
                     row_count = 0
-                    for data_chunk, rows_processed, chunk_bytes in self._process_rows(
-                        result_proxy, csv_writer, buffer, limit, decimal_separator
+                    for (
+                        data_chunk,
+                        rows_processed,
+                        chunk_bytes,
+                    ) in self._process_rows(
+                        cursor, csv_writer, buffer, limit, decimal_separator
                     ):
                         total_bytes += chunk_bytes
                         row_count = rows_processed
@@ -265,6 +294,8 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                         total_mb,
                         total_time,
                     )
+                finally:
+                    cursor.close()
 
     def run(self) -> Callable[[], Generator[str, None, None]]:
         """
