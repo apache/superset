@@ -551,6 +551,7 @@ LANGUAGES = {
     "fi": {"flag": "fi", "name": "Finnish"},
     "th": {"flag": "th", "name": "Thai"},
     "tr": {"flag": "tr", "name": "Turkish"},
+    "ta": {"flag": "in", "name": "Tamil"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
