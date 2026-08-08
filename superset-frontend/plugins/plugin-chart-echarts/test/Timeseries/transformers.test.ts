@@ -19,6 +19,7 @@
 import {
   CategoricalColorScale,
   ChartProps,
+  NumberFormatter,
   TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -170,7 +171,10 @@ describe('transformSeries', () => {
       // 0 too — a value of exactly 0 would satisfy `numericValue >= 0`
       // without the explicit `numericValue !== 0` guard.
       thresholdValues: [0],
-      formatter: (value: number) => `${value}`,
+      formatter: new NumberFormatter({
+        id: 'test-formatter',
+        formatFunc: (value: number) => `${value}`,
+      }),
     };
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
@@ -204,7 +208,10 @@ describe('transformSeries', () => {
       // negative threshold — a strictly-positive check would wrongly
       // suppress a real, meaningful negative-value label here.
       thresholdValues: [-10],
-      formatter: (value: number) => `${value}`,
+      formatter: new NumberFormatter({
+        id: 'test-formatter',
+        formatFunc: (value: number) => `${value}`,
+      }),
     };
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
