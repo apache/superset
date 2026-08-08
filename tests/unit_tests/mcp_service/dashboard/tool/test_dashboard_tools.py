@@ -1513,6 +1513,47 @@ class TestDashboardSortableColumns:
         for col in SORTABLE_DASHBOARD_COLUMNS:
             assert col in list_dashboards.__doc__
 
+    @patch("superset.daos.dashboard.DashboardDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_dashboards_changed_on_delta_humanized_order_column(
+        self, mock_list, mcp_server
+    ):
+        """Regression test: order_column='changed_on_delta_humanized' is the
+        "Last modified" column name used by Superset's own REST API and list
+        views. Production chatbot calls pass it when asked to sort dashboards
+        by "most recently modified" and must not be rejected. It resolves to
+        'changed_on' for the DAO, matching REST API sort behaviour (see
+        dashboards/api.py's order_columns and
+        models/helpers.py:changed_on_delta_humanized)."""
+        mock_list.return_value = ([], 0)
+
+        async with Client(mcp_server) as client:
+            request = ListDashboardsRequest(order_column="changed_on_delta_humanized")
+            result = await client.call_tool(
+                "list_dashboards", {"request": request.model_dump()}
+            )
+
+            mock_list.assert_called_once()
+            call_args = mock_list.call_args[1]
+            assert call_args["order_column"] == "changed_on"
+
+            data = json.loads(result.content[0].text)
+            assert data["dashboards"] == []
+
+    @patch("superset.daos.dashboard.DashboardDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_dashboards_invalid_order_column_raises_tool_error(
+        self, mock_list, mcp_server
+    ):
+        """A genuinely unknown order_column must still be rejected."""
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+                await client.call_tool(
+                    "list_dashboards", {"request": {"order_column": "random"}}
+                )
+            assert "Invalid order_column" in str(excinfo.value)
+        mock_list.assert_not_called()
+
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
 @pytest.mark.asyncio
