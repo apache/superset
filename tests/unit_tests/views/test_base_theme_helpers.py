@@ -534,6 +534,47 @@ class TestGetThemeBootstrapData:
 
     @patch("superset.views.base.app")
     @patch("superset.views.base.get_config_value")
+    @patch("superset.views.base.ThemeDAO")
+    def test_light_theme_in_dark_slot_gets_dark_algorithm(
+        self,
+        mock_dao,
+        mock_get_config,
+        mock_app,
+    ):
+        """Regression test for a light theme selected as the system dark theme.
+
+        The database theme's algorithm wins the merge against the config base,
+        so without correction the dark slot would be served ``default`` and Ant
+        Design would derive a mix of light and dark tokens.
+        """
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "ENABLE_UI_THEME_ADMINISTRATION": True,
+        }.get(k, d)
+
+        mock_get_config.side_effect = lambda k: {
+            "THEME_DEFAULT": {"token": {"colorPrimary": "#config1"}},
+            "THEME_DARK": {"token": {"colorPrimary": "#config2"}},
+        }.get(k)
+
+        # The same light theme is set as both the system default and system dark
+        light_theme = MagicMock()
+        light_theme.json_data = (
+            '{"token": {"colorPrimary": "#db1"}, "algorithm": "default"}'
+        )
+
+        mock_dao.find_system_default.return_value = light_theme
+        mock_dao.find_system_dark.return_value = light_theme
+
+        result = get_theme_bootstrap_data()
+
+        assert result["theme"]["default"]["algorithm"] == "default"
+        assert result["theme"]["dark"]["algorithm"] == "dark"
+        # The theme's own tokens are still honored in both slots
+        assert result["theme"]["dark"]["token"]["colorPrimary"] == "#db1"
+
+    @patch("superset.views.base.app")
+    @patch("superset.views.base.get_config_value")
     def test_partial_theme_override_preserves_base_tokens(
         self, mock_get_config, mock_app
     ):

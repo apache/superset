@@ -19,19 +19,24 @@
 /* eslint camelcase: 0 */
 import {
   ComponentType,
+  Suspense,
+  lazy,
   memo,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { bindActionCreators, Dispatch } from 'redux';
-import { connect } from 'react-redux';
+import { connect, shallowEqual, useSelector } from 'react-redux';
 import {
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
+  isFeatureEnabled,
+  FeatureFlag,
   QueryFormData,
   JsonObject,
   MatrixifyFormData,
@@ -48,6 +53,7 @@ import { logging } from '@apache-superset/core/utils';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
+import type { Action, Location } from 'history';
 import { ActionButton, Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
@@ -74,6 +80,12 @@ import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
 import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+  selectRestoreTarget,
+  toChartStateHistoryState,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
@@ -88,12 +100,22 @@ import {
 } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { User } from 'src/types/bootstrapTypes';
+import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
+
+// Lazy-loaded so deployments with the VersionHistory flag off never pay
+// the bundle cost of the feature's component graph.
+const ExploreVersionHistory = lazy(
+  () => import('src/features/versionHistory/ExploreVersionHistory'),
+);
+const ChartVersionPreview = lazy(
+  () => import('src/features/versionHistory/ChartVersionPreview'),
+);
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
@@ -173,6 +195,7 @@ const updateHistory = debounce(
     title,
     tabId,
     history,
+    sliceId,
   ) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
@@ -227,7 +250,20 @@ const updateHistory = debounce(
           force,
           false,
         );
-        history.replace(url, payload);
+        const previousChartState = getChartStateFromHistoryState(
+          history.location.state,
+        );
+        const state = toChartStateHistoryState(payload, sliceId);
+        if (
+          isReplace ||
+          !previousChartState ||
+          isEqual(previousChartState, getChartStateFromHistoryState(state))
+        ) {
+          history.replace(url, state);
+        } else {
+          // one entry per chart state is what makes the Back button undo it
+          history.push(url, state);
+        }
       }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
@@ -382,6 +418,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const [lastQueriedControls, setLastQueriedControls] = useState(
     props.controls,
   );
+  /** set while the chart state of a popped history entry is being applied */
+  const restoringFromHistory = useRef(false);
+  const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(
@@ -389,6 +428,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
   const tabId = useTabId();
   const history = useHistory();
+  const isChartVersionPreviewActive = useSelector(
+    selectIsChartVersionPreviewActive,
+  );
 
   const theme = useTheme();
 
@@ -479,6 +521,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         title,
         tabId,
         history,
+        restoreTarget.slice_id,
       );
     },
     [
@@ -486,6 +529,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.form_data,
       props.datasource.id,
       props.datasource.type,
+      restoreTarget.slice_id,
       props.standalone,
       props.force,
       tabId,
@@ -494,6 +538,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
 
   const onQuery = useCallback(() => {
+    if (isChartVersionPreviewActive) {
+      return;
+    }
     props.actions.setForceQuery(false);
 
     // Skip main query if Matrixify is enabled
@@ -518,6 +565,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.actions,
     props.chart.id,
     props.form_data,
+    isChartVersionPreviewActive,
   ]);
 
   const handleKeydown = useCallback(
@@ -555,6 +603,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         : {},
     );
   });
+
+  // a pending update would run against whatever chart the user moved on to
+  useEffect(() => () => updateHistory.cancel(), []);
 
   useChangeEffect(tabId, (previous, current) => {
     if (current) {
@@ -600,7 +651,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         : getFormDataFromControls(props.controls);
       props.actions.updateQueryFormData(newQueryFormData, props.chart.id);
       props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-      addHistory();
+      if (!restoringFromHistory.current) {
+        // an entry for a state we just stepped back to would break the next Back
+        addHistory();
+      }
     },
     [
       addHistory,
@@ -609,6 +663,27 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.chart.latestQueryFormData,
       props.controls,
     ],
+  );
+
+  // Explore's own entries carry the chart state they were pushed with, so a POP
+  // into one is an undo/redo: apply it and re-query in place, which is also why
+  // ExplorePage skips its reload for them.
+  useEffect(
+    () =>
+      history.listen((loc: Location, action: Action) => {
+        const chartState = getChartStateFromHistoryState(loc.state);
+        if (
+          action !== 'POP' ||
+          !chartState ||
+          !isSameChartState(chartState, restoreTarget)
+        ) {
+          return;
+        }
+        restoringFromHistory.current = true;
+        props.actions.setExploreControls(chartState);
+        props.actions.triggerQuery(true, props.chart.id);
+      }),
+    [history, restoreTarget, props.actions, props.chart.id],
   );
 
   // effect to run when controls change
@@ -694,7 +769,12 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               (currentTemplate ? ' ' : '') +
               newVariables.join(' ');
 
-            props.actions.setControlValue('tooltip_template', updatedTemplate);
+            props.actions.setControlValue(
+              'tooltip_template',
+              updatedTemplate,
+              undefined,
+              { programmatic: true },
+            );
           }
         }
       }
@@ -707,9 +787,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         );
 
         if (xAxisTitle && currentMargin < 30) {
-          props.actions.setControlValue('x_axis_title_margin', 30);
+          props.actions.setControlValue('x_axis_title_margin', 30, undefined, {
+            programmatic: true,
+          });
         } else if (!xAxisTitle && currentMargin !== 0) {
-          props.actions.setControlValue('x_axis_title_margin', 0);
+          props.actions.setControlValue('x_axis_title_margin', 0, undefined, {
+            programmatic: true,
+          });
         }
       }
 
@@ -720,9 +804,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         );
 
         if (yAxisTitle && currentMargin < 30) {
-          props.actions.setControlValue('y_axis_title_margin', 30);
+          props.actions.setControlValue('y_axis_title_margin', 30, undefined, {
+            programmatic: true,
+          });
         } else if (!yAxisTitle && currentMargin !== 0) {
-          props.actions.setControlValue('y_axis_title_margin', 0);
+          props.actions.setControlValue('y_axis_title_margin', 0, undefined, {
+            programmatic: true,
+          });
         }
       }
 
@@ -735,6 +823,16 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       }
     }
   }, [props.controls, props.ownState]);
+
+  // A restore queries the controls it just applied, so they are the last
+  // queried ones - otherwise the chart would be reported as stale.
+  // Runs after the effect above so that one still sees the restore.
+  useEffect(() => {
+    if (restoringFromHistory.current) {
+      restoringFromHistory.current = false;
+      setLastQueriedControls(props.controls);
+    }
+  }, [props.controls]);
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {
@@ -1008,15 +1106,32 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               onClick={toggleCollapse}
             />
           </div>
-          {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
-          <DataSourcePanel
-            formData={props.form_data}
-            datasource={props.datasource as any}
-            controls={props.controls as any}
-            actions={props.actions as any}
-            width={width}
-          />
-          {/* eslint-enable @typescript-eslint/no-explicit-any */}
+          <div
+            data-test="explore-datasource-gate"
+            aria-disabled={isChartVersionPreviewActive}
+            css={css`
+              height: 100%;
+              ${
+                isChartVersionPreviewActive
+                  ? `
+                  pointer-events: none;
+                  opacity: 0.5;
+                `
+                  : ''
+              }
+            `}
+            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+          >
+            {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
+            <DataSourcePanel
+              formData={props.form_data}
+              datasource={props.datasource as any}
+              controls={props.controls as any}
+              actions={props.actions as any}
+              width={width}
+            />
+            {/* eslint-enable @typescript-eslint/no-explicit-any */}
+          </div>
         </Resizable>
         {isCollapsed ? (
           <button
@@ -1061,22 +1176,40 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
         >
-          <ConnectedControlPanelsContainer
-            exploreState={props.exploreState}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Combined actions type is compatible at runtime
-            actions={props.actions as any}
-            form_data={props.form_data}
-            controls={props.controls}
-            chart={props.chart}
-            datasource_type={props.datasource_type}
-            isDatasourceMetaLoading={props.isDatasourceMetaLoading}
-            onQuery={onQuery}
-            onStop={onStop}
-            canStopQuery={props.can_add || props.can_overwrite}
-            errorMessage={dataTabErrorMessage}
-            buttonErrorMessage={errorMessage}
-            chartIsStale={chartIsStale}
-          />
+          <div
+            data-test="explore-controls-gate"
+            aria-disabled={isChartVersionPreviewActive}
+            css={css`
+              height: 100%;
+              ${
+                isChartVersionPreviewActive
+                  ? `
+                  pointer-events: none;
+                  opacity: 0.5;
+                `
+                  : ''
+              }
+            `}
+            // inert blocks keyboard focus too; React 18 needs the spread form
+            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+          >
+            <ConnectedControlPanelsContainer
+              exploreState={props.exploreState}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Combined actions type is compatible at runtime
+              actions={props.actions as any}
+              form_data={props.form_data}
+              controls={props.controls}
+              chart={props.chart}
+              datasource_type={props.datasource_type}
+              isDatasourceMetaLoading={props.isDatasourceMetaLoading}
+              onQuery={onQuery}
+              onStop={onStop}
+              canStopQuery={props.can_add || props.can_overwrite}
+              errorMessage={dataTabErrorMessage}
+              buttonErrorMessage={errorMessage}
+              chartIsStale={chartIsStale}
+            />
+          </div>
         </Resizable>
         <div
           className={cx(
@@ -1084,8 +1217,19 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             isCollapsed ? 'col-sm-9' : 'col-sm-7',
           )}
         >
-          {renderChartContainer()}
+          {isChartVersionPreviewActive ? (
+            <Suspense fallback={null}>
+              <ChartVersionPreview />
+            </Suspense>
+          ) : (
+            renderChartContainer()
+          )}
         </div>
+        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+          <Suspense fallback={null}>
+            <ExploreVersionHistory />
+          </Suspense>
+        )}
       </ExplorePanelContainer>
       {props.isSaveModalVisible && (
         <SaveModal

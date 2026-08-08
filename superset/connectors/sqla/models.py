@@ -84,7 +84,6 @@ from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
     QueryObjectValidationError,
-    SupersetGenericDBErrorException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
@@ -192,6 +191,16 @@ class BaseDatasource(
 
     # Only some datasources support Row Level Security
     is_rls_supported: bool = False
+
+    # Datasources that can return raw row samples (anything backed by a SQL
+    # table can; semantic-layer abstractions cannot, since they only expose
+    # pre-defined metrics and dimensions).
+    supports_samples: bool = True
+
+    # Datasources that can answer "drill to detail" requests — i.e. fetch the
+    # raw rows underlying a chart cell. Conceptually similar to ``samples``
+    # but kept as a separate capability so the two can diverge.
+    supports_drill_to_detail: bool = True
 
     @property
     def name(self) -> str:
@@ -486,6 +495,8 @@ class BaseDatasource(
             "order_by_choices": self.order_by_choices,
             "verbose_map": self.verbose_map,
             "select_star": self.select_star,
+            "supports_samples": self.supports_samples,
+            "supports_drill_to_detail": self.supports_drill_to_detail,
         }
 
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
@@ -1846,42 +1857,43 @@ class SqlaTable(
 
             sqla_column = literal_column(expression)
             if has_timegrain or force_type_check:
-                try:
-                    # probe adhoc column type
-                    # Most databases populate cursor.description from query-plan
-                    # metadata, so WHERE FALSE (zero rows, no table scan) is
-                    # preferred — it avoids hitting row-read limits enforced by
-                    # engines like ClickHouse (max_rows_to_read).
-                    # A small number of drivers (Druid, Pinot) instead build
-                    # cursor.description by inspecting the first returned row;
-                    # for those we fall back to LIMIT 1.
-                    tbl, _unused_cte = self.get_from_clause(template_processor)
-                    if self.db_engine_spec.type_probe_needs_row:
-                        qry = sa.select(sqla_column).limit(1).select_from(tbl)
-                    else:
-                        qry = sa.select(sqla_column).where(sa.false()).select_from(tbl)
-                    sql = self.database.compile_sqla_query(
-                        qry,
-                        catalog=self.catalog,
-                        schema=self.schema,
-                    )
-                    col_desc = get_columns_description(
-                        self.database,
-                        self.catalog,
-                        self.schema or None,
-                        sql,
-                    )
-                    if not col_desc:
-                        raise SupersetGenericDBErrorException("Column not found")
-                    is_dttm = col_desc[0]["is_dttm"]  # type: ignore
-                    # ResultSet already resolves the generic type from the
-                    # driver's cursor.description; reuse it so callers can
-                    # coerce filter values correctly (e.g. numeric IN-lists
-                    # stay unquoted for numeric adhoc expressions like
-                    # CAST(... AS BIGINT)).
-                    generic_type = col_desc[0].get("type_generic")
-                except SupersetGenericDBErrorException as ex:
-                    raise ColumnNotFoundException(message=str(ex)) from ex
+                # probe adhoc column type
+                # Most databases populate cursor.description from query-plan
+                # metadata, so WHERE FALSE (zero rows, no table scan) is
+                # preferred — it avoids hitting row-read limits enforced by
+                # engines like ClickHouse (max_rows_to_read).
+                # A small number of drivers (Druid, Pinot) instead build
+                # cursor.description by inspecting the first returned row;
+                # for those we fall back to LIMIT 1.
+                tbl, _unused_cte = self.get_from_clause(template_processor)
+                if self.db_engine_spec.type_probe_needs_row:
+                    qry = sa.select(sqla_column).limit(1).select_from(tbl)
+                else:
+                    qry = sa.select(sqla_column).where(sa.false()).select_from(tbl)
+                sql = self.database.compile_sqla_query(
+                    qry,
+                    catalog=self.catalog,
+                    schema=self.schema,
+                )
+                # A real DB/connectivity failure during the probe surfaces as a
+                # SupersetGenericDBErrorException from get_columns_description and
+                # is allowed to propagate unchanged; only a genuine empty result
+                # (the column truly isn't there) is a ColumnNotFoundException.
+                col_desc = get_columns_description(
+                    self.database,
+                    self.catalog,
+                    self.schema or None,
+                    sql,
+                )
+                if not col_desc:
+                    raise ColumnNotFoundException(message="Column not found")
+                is_dttm = col_desc[0]["is_dttm"]  # type: ignore
+                # ResultSet already resolves the generic type from the
+                # driver's cursor.description; reuse it so callers can
+                # coerce filter values correctly (e.g. numeric IN-lists
+                # stay unquoted for numeric adhoc expressions like
+                # CAST(... AS BIGINT)).
+                generic_type = col_desc[0].get("type_generic")
 
         if is_dttm and has_timegrain:
             sqla_column = self.db_engine_spec.get_timestamp_expr(

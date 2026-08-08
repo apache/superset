@@ -228,6 +228,27 @@ def test_get_mcp_config_respects_app_config_override() -> None:
     assert config["MCP_DISABLED_TOOLS"] == custom
 
 
+def test_get_mcp_config_includes_mcp_stateless_http_key() -> None:
+    """get_mcp_config must include MCP_STATELESS_HTTP in its defaults dict, like
+    MCP_DEBUG and MCP_RBAC_ENABLED, so an operator override in superset_config.py
+    is actually read back out via flask_app.config (see run_server() and
+    __main__.main() in the mcp_service package, which read this key)."""
+    from superset.mcp_service.mcp_config import get_mcp_config, MCP_STATELESS_HTTP
+
+    config = get_mcp_config()
+    assert "MCP_STATELESS_HTTP" in config
+    assert config["MCP_STATELESS_HTTP"] is MCP_STATELESS_HTTP is True
+
+
+def test_get_mcp_config_respects_mcp_stateless_http_override() -> None:
+    """An operator's MCP_STATELESS_HTTP=False in superset_config.py must take
+    precedence over the module-level True default."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    config = get_mcp_config({"MCP_STATELESS_HTTP": False})
+    assert config["MCP_STATELESS_HTTP"] is False
+
+
 def test_build_composite_verifier_string_prefix():
     """A plain-string FAB_API_KEY_PREFIXES is wrapped into a single-element list."""
     from superset.mcp_service.mcp_config import _build_composite_verifier

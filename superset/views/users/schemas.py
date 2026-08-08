@@ -27,6 +27,13 @@ last_name_description = "The current user's last name"
 password_description = "The current user's password for authentication"  # noqa: S105
 
 
+class UserGroupSchema(Schema):
+    """A group the current user belongs to."""
+
+    id = Integer()
+    name = String()
+
+
 class UserResponseSchema(Schema):
     id = Integer()
     username = String()
@@ -36,6 +43,7 @@ class UserResponseSchema(Schema):
     is_active = Boolean()
     is_anonymous = Boolean()
     login_count = Integer()
+    groups = fields.List(fields.Nested(UserGroupSchema))
 
 
 class CurrentUserPutSchema(Schema):
