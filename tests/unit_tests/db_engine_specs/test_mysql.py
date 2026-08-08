@@ -73,6 +73,16 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("DATETIME", types.DateTime, None, GenericDataType.TEMPORAL, True),
         ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
         ("TIME", types.Time, None, GenericDataType.TEMPORAL, True),
+        # Wire-protocol names
+        ("VAR_STRING", types.VARCHAR, None, GenericDataType.STRING, False),
+        ("NEWDECIMAL", DECIMAL, None, GenericDataType.NUMERIC, False),
+        ("TINY", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("SHORT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
+        ("BLOB", types.String, None, GenericDataType.STRING, False),
+        ("TEXT", types.String, None, GenericDataType.STRING, False),
+        ("YEAR", types.Integer, None, GenericDataType.NUMERIC, False),
+        ("ENUM", types.String, None, GenericDataType.STRING, False),
+        ("SET", types.String, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(
@@ -85,6 +95,27 @@ def test_get_column_spec(
     from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+def test_fetch_data_mutates_decimal_rows_in_tuple_results() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    newdecimal, var_string = 246, 253
+    cursor = Mock()
+    cursor.description = [("amount", newdecimal), ("label", var_string)]
+    cursor.fetchall.return_value = (("10.50", "Ships"), ("22.30", "Planes"))
+
+    # Stub the type_code_map so this test doesn't depend on MySQLdb or
+    # pymysql being importable in the test environment.
+    original_type_code_map = spec.type_code_map
+    spec.type_code_map = {newdecimal: "NEWDECIMAL", var_string: "VAR_STRING"}
+
+    try:
+        data = spec.fetch_data(cursor)
+    finally:
+        spec.type_code_map = original_type_code_map
+
+    assert data == [(Decimal("10.50"), "Ships"), (Decimal("22.30"), "Planes")]
 
 
 @pytest.mark.parametrize(
@@ -387,6 +418,6 @@ def test_compile_timegrain_expression_preserves_date_truncation() -> None:
     assert compiled == expected, f"DATE_FORMAT truncation was dropped. Got: {compiled}"
 
     proxied = str(select(select(expr.label("bucket")).subquery().c.bucket))
-    assert expected in proxied, (
-        f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
-    )
+    assert (
+        expected in proxied
+    ), f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
