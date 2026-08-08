@@ -241,6 +241,19 @@ CHART_CONTAINER_READY_JS = f"""
 }}
 """
 
+# Full scrollable height of the rendered document. Used to grow the browser
+# viewport to span the whole dashboard before a standalone (non-tiled) capture
+# so every chart holder intersects the viewport and DashboardVirtualization
+# mounts it, instead of leaving below-the-fold holders as blank placeholders
+# (the virtualized-holder blank-report failure mode -- the readiness gate built
+# on UNREADY_CHART_HOLDERS_JS_BODY above deliberately ignores off-screen holders
+# to avoid deadlocking on lazy charts, #42624).
+DASHBOARD_CONTENT_HEIGHT_JS = (
+    "() => Math.max("
+    "document.body ? document.body.scrollHeight : 0, "
+    "document.documentElement ? document.documentElement.scrollHeight : 0)"
+)
+
 # Diagnostic companion to CHART_CONTAINER_READY_JS: reports why a chart
 # capture is (or is not) ready. Chart pages have no dashboard grid holders,
 # so the holder-count diagnostics read as vacuous zeros there.
