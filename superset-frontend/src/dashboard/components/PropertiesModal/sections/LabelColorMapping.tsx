@@ -22,39 +22,30 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 
 const Container = styled.div`
-  ${({ theme }: any) => {
-    const safeTheme = theme || {};
-    return `
-      margin-bottom: ${(safeTheme.gridUnit || 4) * 4}px;
-      padding: ${(safeTheme.gridUnit || 4) * 4}px;
-      background-color: ${safeTheme.colors?.grayscale?.light4};
-      border-radius: ${safeTheme.borderRadius || 4}px;
-    `;
-  }}
+  ${({ theme }: any) => `
+    margin-bottom: ${(theme?.gridUnit || 4) * 4}px;
+    padding: ${(theme?.gridUnit || 4) * 4}px;
+    background-color: ${theme?.colors?.grayscale?.light4};
+    border-radius: ${theme?.borderRadius || 4}px;
+  `}
 `;
 
 const HeaderRow = styled.div`
-  ${({ theme }: any) => {
-    const safeTheme = theme || {};
-    return `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: ${(safeTheme.gridUnit || 4) * 4}px;
-    `;
-  }}
+  ${({ theme }: any) => `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${(theme?.gridUnit || 4) * 4}px;
+  `}
 `;
 
 const Row = styled.div`
-  ${({ theme }: any) => {
-    const safeTheme = theme || {};
-    return `
-      display: flex;
-      align-items: center;
-      margin-bottom: ${(safeTheme.gridUnit || 4) * 2}px;
-      gap: ${(safeTheme.gridUnit || 4) * 4}px;
-    `;
-  }}
+  ${({ theme }: any) => `
+    display: flex;
+    align-items: center;
+    margin-bottom: ${(theme?.gridUnit || 4) * 2}px;
+    gap: ${(theme?.gridUnit || 4) * 4}px;
+  `}
 `;
 
 const InputGroup = styled.div`
@@ -64,84 +55,72 @@ const InputGroup = styled.div`
 `;
 
 const StyledInput = styled.input`
-  ${({ theme }: any) => {
-    const safeTheme = theme || {};
-    return `
-      flex: 1;
-      width: 100%;
-      height: 32px;
-      padding: 4px 11px;
-      border: 1px solid ${safeTheme.colors?.grayscale?.light2};
-      border-right: none;
-      border-radius: ${safeTheme.borderRadius || 4}px 0 0 ${safeTheme.borderRadius || 4}px;
-      color: ${safeTheme.colors?.grayscale?.dark1};
-      outline: none;
-      &:focus {
-        border-color: ${safeTheme.colors?.primary?.base};
-      }
-    `;
-  }}
+  ${({ theme }: any) => `
+    flex: 1;
+    width: 100%;
+    height: 32px;
+    padding: 4px 11px;
+    border: 1px solid ${theme?.colors?.grayscale?.light2};
+    border-right: none;
+    border-radius: ${theme?.borderRadius || 4}px 0 0 ${theme?.borderRadius || 4}px;
+    color: ${theme?.colors?.grayscale?.dark1};
+    outline: none;
+    &:focus {
+      border-color: ${theme?.colors?.primary?.base};
+    }
+  `}
 `;
 
 const StyledColorInput = styled.input`
-  ${({ theme }: any) => {
-    const safeTheme = theme || {};
-    return `
-      cursor: pointer;
-      height: 32px;
-      width: 40px;
-      padding: 0;
-      border: 1px solid ${safeTheme.colors?.grayscale?.light2};
-      border-radius: 0 ${safeTheme.borderRadius || 4}px ${safeTheme.borderRadius || 4}px 0;
-      outline: none;
-      background: none;
+  ${({ theme }: any) => `
+    cursor: pointer;
+    height: 32px;
+    width: 40px;
+    padding: 0;
+    border: 1px solid ${theme?.colors?.grayscale?.light2};
+    border-radius: 0 ${theme?.borderRadius || 4}px ${theme?.borderRadius || 4}px 0;
+    outline: none;
+    background: none;
 
-      &::-webkit-color-swatch-wrapper {
-        padding: 2px;
-      }
-      &::-webkit-color-swatch {
-        border: none;
-        border-radius: 2px;
-      }
-    `;
-  }}
+    &::-webkit-color-swatch-wrapper {
+      padding: 2px;
+    }
+    &::-webkit-color-swatch {
+      border: none;
+      border-radius: 2px;
+    }
+  `}
 `;
 
 const ActionButton = styled.button`
-  ${({ theme }: any) => {
-    const safeTheme = theme || {};
-    return `
-      background: transparent;
-      border: none;
-      color: ${safeTheme.colors?.grayscale?.base};
-      cursor: pointer;
-      padding: 0;
-      font-size: 16px;
-      transition: color 0.2s;
+  ${({ theme }: any) => `
+    background: transparent;
+    border: none;
+    color: ${theme?.colors?.grayscale?.base};
+    cursor: pointer;
+    padding: 0;
+    font-size: 16px;
+    transition: color 0.2s;
 
-      &:hover {
-        color: ${safeTheme.colors?.error?.base};
-      }
-    `;
-  }}
+    &:hover {
+      color: ${theme?.colors?.error?.base};
+    }
+  `}
 `;
 
 const AddMoreLink = styled.div`
-  ${({ theme }: any) => {
-    const safeTheme = theme || {};
-    return `
-      color: ${safeTheme.colors?.primary?.dark1};
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: ${(safeTheme.gridUnit || 4) * 2}px;
-      display: inline-block;
+  ${({ theme }: any) => `
+    color: ${theme?.colors?.primary?.dark1};
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: ${(theme?.gridUnit || 4) * 2}px;
+    display: inline-block;
 
-      &:hover {
-        text-decoration: underline;
-      }
-    `;
-  }}
+    &:hover {
+      text-decoration: underline;
+    }
+  `}
 `;
 
 interface LabelColorMappingProps {
@@ -188,13 +167,14 @@ const LabelColorMapping = ({
     [metadataObj],
   );
 
-  const [rows, setRows] = useState<ColorMapping[]>(() => {
-    return Object.entries(labelColors).map(([label, color]) => ({
+  const [rows, setRows] = useState<ColorMapping[]>(() =>
+    Object.entries(labelColors).map(([label, color]) => ({
       id: generateId(),
       label,
       color: isValidHex(color) ? color : DEFAULT_NEW_COLOR,
-    }));
-  });
+    })),
+  );
+
   const lastSyncMetadata = useRef<string>(jsonMetadata);
 
   useEffect(() => {
