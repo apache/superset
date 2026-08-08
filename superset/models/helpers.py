@@ -106,6 +106,7 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
@@ -263,6 +264,49 @@ def validate_adhoc_subquery(
     # unnecessary round-tripping through sqlglot can alter dialect-specific
     # syntax.
     return parsed_statement.format() if rls_applied else sql
+
+
+def validate_stored_expression_at_query_time(
+    expression: str,
+    database: Database,
+    catalog: str | None,
+    schema: str,
+    engine: str,
+) -> str:
+    """
+    Validate a stored column/metric expression at the point of use, applying the
+    same sub-query policy and RLS injection as adhoc expressions. The save-time
+    check can be deferred past (Jinja templating, the create path, older data),
+    so the query sink is the reliable place to enforce it.
+
+    A parse failure is ambiguous: the expression may use dialect-specific syntax
+    sqlglot cannot handle (e.g. ``DATE_ADD(ds, 1)`` on MySQL), or it may be
+    unparseable precisely because a sub-query was appended to it. Before falling
+    back to the raw expression, the permissive dialect is used as a detector so a
+    sub-query hidden next to benign-but-unparseable syntax is still caught. Only
+    when even the permissive dialect cannot parse the expression is validation
+    skipped (and logged), matching the pre-gate behaviour for such expressions.
+
+    A disallowed sub-query is surfaced as ``QueryObjectValidationError`` (a
+    chart-level 400) to match the adhoc sinks, rather than a raw 403.
+    """
+    try:
+        return validate_adhoc_subquery(expression, database, catalog, schema, engine)
+    except SupersetSecurityException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
+    except SupersetParseError:
+        # The engine dialect could not parse the expression. Re-check with the
+        # permissive dialect as a detector before giving up, so a sub-query next
+        # to benign dialect syntax is not smuggled through unvalidated.
+        try:
+            validate_adhoc_subquery(expression, database, catalog, schema, "base")
+        except SupersetSecurityException as ex:
+            raise QueryObjectValidationError(ex.message) from ex
+        except SupersetParseError:
+            logger.warning(
+                "Skipping query-time validation of unparseable stored expression"
+            )
+        return expression
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -3604,6 +3648,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             return ValidationResultDict(valid=True, errors=[])
 
+    def _validate_stored_expression(self, expression: str) -> str:
+        return validate_stored_expression_at_query_time(
+            expression,
+            self.database,
+            self.catalog,
+            self.schema or "",
+            self.db_engine_spec.engine,
+        )
+
     def get_timestamp_expression(
         self,
         column: dict[str, Any],
@@ -3627,6 +3680,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if template_processor:
             expression = template_processor.process_template(column["column_name"])
+            expression = self._validate_stored_expression(expression)
             col = sa.literal_column(expression, type_=type_)
 
         time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
@@ -3647,6 +3701,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression := tbl_column.expression:
             if template_processor:
                 expression = template_processor.process_template(expression)
+            expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = sa.column(tbl_column.column_name, type_=type_)
