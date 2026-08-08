@@ -953,7 +953,6 @@ def test_raise_for_access_query_default_schema(
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
         is None
     )
@@ -968,7 +967,6 @@ def test_raise_for_access_query_default_schema(
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
     assert (
         str(excinfo.value)
@@ -1007,7 +1005,6 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
             query=query,
             query_context=None,
             table=None,
-            viz=None,
         )
 
     get_table_access_error_object.assert_called_with({Table("ab_user", "public", None)})

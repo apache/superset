@@ -47,6 +47,13 @@ updates:
       # as a single manual upgrade anyway. TODO: remove when Babel 8 support is viable.
       - dependency-name: "@babel/*"
         update-types: ["version-update:semver-major"]
+      # v2.0.0 renamed ZSTDDecompress to decompress and made it async, breaking
+      # the webpack dev proxy (see #38662, #39138, #39139). Dependabot reopened
+      # the same bump in #39369 after the first revert, so pin it here instead
+      # of relying on a package.json comment (package.json is JSON and can't
+      # hold comments). Remove this once the proxy code is updated to await
+      # the async decompress() API.
+      - dependency-name: "simple-zstd"
     directory: "/superset-frontend/"
     schedule:
       interval: "daily"

@@ -21,6 +21,7 @@ import {
   AnnotationStyle,
   AnnotationType,
   AxisType,
+  ChartProps,
   ComparisonType,
   DataRecord,
   EventAnnotationLayer,
@@ -32,6 +33,7 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
@@ -916,40 +918,38 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
 
-  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
-    const narrowLegendData = [
-      createTestQueryData(
-        createTestData(
-          [
-            {
-              Alpha: 1,
-              Beta: 2,
-              Gamma: 3,
-            },
-          ],
-          { intervalMs: 300000000 },
-        ),
+test('honors an explicit List selection for zoomable top legends even when toolbox space reduces available width', () => {
+  const narrowLegendData = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            Alpha: 1,
+            Beta: 2,
+            Gamma: 3,
+          },
+        ],
+        { intervalMs: 300000000 },
       ),
-    ];
-    const chartProps = createTestChartProps({
-      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
-      formData: {
-        ...formData,
-        legendType: LegendType.Plain,
-        legendOrientation: LegendOrientation.Top,
-        showLegend: true,
-        zoomable: true,
-      },
-      queriesData: narrowLegendData,
-    });
-
-    const transformed = transformProps(chartProps);
-
-    expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
-    );
+    ),
+  ];
+  const chartProps = createTestChartProps({
+    width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      zoomable: true,
+    },
+    queriesData: narrowLegendData,
   });
+
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
 });
 
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
@@ -1987,4 +1987,67 @@ test('tooltip time grain wiring: chart-level time grain drives the tooltip when 
 
   expect(result).toContain('2021');
   expect(result).not.toContain('2021-01-07');
+});
+
+test('rebases each series to its percent change when the flag is enabled', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      rebasePercentChange: true,
+    } as unknown as Partial<EchartsTimeseriesFormData>,
+  });
+  const transformed = transformProps(chartProps);
+
+  // SF: 1 -> 3 rebases to 0 -> 2; NY: 2 -> 4 rebases to 0 -> 1
+  expect(transformed.echartOptions).toEqual(
+    expect.objectContaining({
+      series: expect.arrayContaining([
+        expect.objectContaining({
+          name: 'San Francisco',
+          data: [
+            [BASE_TIMESTAMP, 0],
+            [BASE_TIMESTAMP + 300000000, 2],
+          ],
+        }),
+        expect.objectContaining({
+          name: 'New York',
+          data: [
+            [BASE_TIMESTAMP, 0],
+            [BASE_TIMESTAMP + 300000000, 1],
+          ],
+        }),
+      ]),
+    }),
+  );
+
+  // percent-change view forces a percent axis format
+  expect(getYAxisFormatter(transformed)(1, 0)).toContain('%');
+});
+
+test('honors the snake_case flag the compare-chart migration stores in params', () => {
+  // MigrateCompareChart writes `rebase_percent_change` into slice params;
+  // ChartProps camelizes stored form data before transformProps reads it, so
+  // this exercises the full migrated-chart path rather than the camelized
+  // key the test helper injects directly.
+  const chartProps = new ChartProps({
+    formData: {
+      datasource: '3__table',
+      viz_type: 'echarts_timeseries_line',
+      granularity_sqla: 'ds',
+      rebase_percent_change: true,
+    },
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+    datasource: {},
+  }) as unknown as EchartsTimeseriesChartProps;
+  const { echartOptions } = transformProps(chartProps);
+
+  const { series } = echartOptions as unknown as { series: SeriesOption[] };
+  const sanFrancisco = series.find(s => s.name === 'San Francisco');
+  expect(sanFrancisco?.data).toEqual([
+    [BASE_TIMESTAMP, 0],
+    [BASE_TIMESTAMP + 300000000, 2],
+  ]);
 });
