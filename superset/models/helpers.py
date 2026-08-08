@@ -4242,6 +4242,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 elif is_list_target:
                     assert isinstance(eq, (tuple, list))
+                    if (
+                        target_generic_type == utils.GenericDataType.NUMERIC
+                        and any(
+                            isinstance(item, int) and not isinstance(item, bool)
+                            for item in eq
+                        )
+                        and any(isinstance(item, float) for item in eq)
+                        and not isinstance(eq[0], float)
+                    ):
+                        # SQLAlchemy infers the type for expanding IN parameters
+                        # from the first value. For mixed integer/decimal lists,
+                        # place a decimal first while preserving all values.
+                        first_decimal_index = next(
+                            index
+                            for index, item in enumerate(eq)
+                            if isinstance(item, float)
+                        )
+                        eq = [
+                            eq[first_decimal_index],
+                            *eq[:first_decimal_index],
+                            *eq[first_decimal_index + 1 :],
+                        ]
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
