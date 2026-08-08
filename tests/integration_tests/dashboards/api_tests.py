@@ -31,6 +31,7 @@ import yaml
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
+from superset.dashboards.api import DASHBOARD_DATASET_INACCESSIBLE_FIELDS
 from superset.exceptions import LockAlreadyHeldException
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
@@ -338,18 +339,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.status_code == 200
         data = json.loads(response.data.decode("utf-8"))
         for dataset in data["result"]:
-            for excluded_key in [
-                "sql",
-                "select_star",
-                "fetch_values_predicate",
-                "template_params",
-                "params",
-            ]:
+            for excluded_key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 assert excluded_key not in dataset
-            for column in dataset.get("columns") or []:
-                assert "expression" not in column
-            for metric in dataset.get("metrics") or []:
-                assert "expression" not in metric
+            # The identifying fields needed to render the dashboard are kept.
+            assert "id" in dataset
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -464,6 +457,66 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
         assert result["id"] == dashboard.slices[0].id
         assert result["slice_name"] == dashboard.slices[0].slice_name
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.security_manager.can_access_chart")
+    def test_get_dashboard_charts_strips_form_data_without_chart_access(
+        self, can_access_chart_mock
+    ):
+        """
+        Dashboard API: chart config payload is only included for charts the
+        caller can access; identifying fields are kept for the rest.
+        """
+        dashboard = Dashboard.get("world_health")
+        accessible_slice_id = dashboard.slices[0].id
+
+        def can_access_chart(chart):
+            return chart.id == accessible_slice_id
+
+        can_access_chart_mock.side_effect = can_access_chart
+
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/world_health/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        results_by_id = {chart["id"]: chart for chart in data["result"]}
+
+        # Every member chart is still listed with its identifying fields.
+        for slc in dashboard.slices:
+            assert slc.id in results_by_id
+            assert results_by_id[slc.id]["slice_name"] == slc.slice_name
+
+        # The accessible chart keeps its config payload.
+        assert "form_data" in results_by_id[accessible_slice_id]
+        # Charts the caller cannot access do not expose the config payload.
+        for slice_id, chart in results_by_id.items():
+            if slice_id != accessible_slice_id:
+                assert "form_data" not in chart
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.security_manager.can_access_chart")
+    def test_get_dashboard_charts_list_filtered_by_chart_access(
+        self, can_access_chart_mock
+    ):
+        """
+        Dashboard API: the charts name list on GET /<id> includes only the
+        names of charts the caller can access.
+        """
+        dashboard = Dashboard.get("world_health")
+        accessible_slice = dashboard.slices[0]
+
+        def can_access_chart(chart):
+            return chart.id == accessible_slice.id
+
+        can_access_chart_mock.side_effect = can_access_chart
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        response = self.get_assert_metric(uri, "get")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]["charts"] == [accessible_slice.chart]
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):

@@ -138,6 +138,7 @@ from superset.exceptions import (
 from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
+from superset.models.slice import Slice
 from superset.security.guest_token import GuestUser
 from superset.security.manager import get_extra_editor_subject_ids
 from superset.subjects.filters import (
@@ -266,6 +267,30 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
     "custom_tags.name",
     "custom_tags.type",
 ]
+
+# Fields dropped from a dashboard member dataset when the caller cannot access
+# that datasource on its own. Only the identifying fields needed to render the
+# dashboard are kept; everything describing the dataset's schema, connection,
+# and query construction is removed.
+DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
+    "sql",
+    "select_star",
+    "fetch_values_predicate",
+    "template_params",
+    "params",
+    "perm",
+    "edit_url",
+    "database",
+    "columns",
+    "column_names",
+    "column_types",
+    "metrics",
+    "verbose_map",
+    "order_by_choices",
+    "main_dttm_col",
+    "granularity_sqla",
+    "time_grain_sqla",
+)
 
 
 # pylint: disable=too-many-public-methods
@@ -628,6 +653,16 @@ class DashboardRestApi(
             schema = self.dashboard_get_response_schema
 
         result = schema.dump(dash)
+        if "charts" in result:
+            # The charts field is the list of member chart names. Include only
+            # the names of charts the caller can access, consistent with the
+            # datasource-access check applied when serializing the dashboard's
+            # datasets and charts elsewhere in this API.
+            result["charts"] = [
+                slc.chart
+                for slc in dash.slices
+                if security_manager.can_access_chart(slc)
+            ]
         if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
             result["extra_editors"] = get_extra_editor_subject_ids(dash)
         add_extra_log_payload(
@@ -696,17 +731,13 @@ class DashboardRestApi(
     ) -> dict[str, Any]:
         serialized = self.dashboard_dataset_schema.dump(payload)
         if not security_manager.can_access_datasource(datasource):
-            for key in (
-                "sql",
-                "select_star",
-                "fetch_values_predicate",
-                "template_params",
-                "params",
-            ):
+            # Match the treatment already applied to guest users in
+            # DashboardDatasetSchema.post_dump: for a member dataset the caller
+            # cannot access on its own, keep only the identifying fields needed
+            # to render the dashboard and drop the fields that describe the
+            # dataset's schema, connection, and query construction.
+            for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
-            for collection_key in ("columns", "metrics"):
-                for item in serialized.get(collection_key) or ():
-                    item.pop("expression", None)
         return serialized
 
     @expose("/<id_or_slug>/tabs", methods=("GET",))
@@ -812,12 +843,27 @@ class DashboardRestApi(
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+            result = [self._serialize_dashboard_chart(chart) for chart in charts]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
+
+    def _serialize_dashboard_chart(self, chart: Slice) -> dict[str, Any]:
+        """Serialize a dashboard member chart.
+
+        Applies the same datasource-access check used when serializing a
+        dashboard's datasets (see ``_serialize_dashboard_dataset``) so that
+        the chart configuration payload is only included for callers who can
+        access the chart. Callers who reach the chart only through the parent
+        dashboard still receive the chart's identifying fields, keeping the
+        response shape stable for existing clients.
+        """
+        serialized = self.chart_entity_response_schema.dump(chart)
+        if not security_manager.can_access_chart(chart):
+            serialized.pop("form_data", None)
+        return serialized
 
     @expose("/", methods=("POST",))
     @protect()
