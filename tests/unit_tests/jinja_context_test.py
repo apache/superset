@@ -38,7 +38,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.exceptions import SupersetTemplateException
+from superset.exceptions import QueryObjectValidationError, SupersetTemplateException
 from superset.jinja_context import (
     dataset_macro,
     ExtraCache,
@@ -3243,3 +3243,32 @@ def test_guest_token_serialization_with_attributes() -> None:
     assert deserialized["user"]["attributes"]["roles"] == ["admin", "user"]
     assert deserialized["user"]["attributes"]["metadata"]["team"] == "platform"
     assert deserialized["user"]["attributes"]["metadata"]["manager"] == "jane.doe"
+
+
+def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
+    """
+    A virtual dataset template that indexes into ``filter_values()`` (e.g.
+    ``filter_values('col')[0]``) raises a Jinja ``UndefinedError`` when no
+    dashboard filter is active for that column, since the call returns an
+    empty list. ``get_rendered_sql`` must surface this with the dedicated
+    "Virtual dataset template error" message rather than the generic
+    "Error while rendering virtual dataset query" message used for other
+    template errors.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        sql=(
+            "SELECT col FROM t WHERE col = "
+            """{{ "'" + filter_values('col')[0] + "'" }}"""
+        ),
+    )
+    processor = get_template_processor(database=database, table=table)
+
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Virtual dataset template error: list object has no element 0",
+    ):
+        table.get_rendered_sql(processor)

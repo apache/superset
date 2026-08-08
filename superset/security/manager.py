@@ -32,6 +32,7 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+from urllib.parse import quote
 
 from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
@@ -115,7 +116,6 @@ if TYPE_CHECKING:
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
     from superset.semantic_layers.models import SemanticLayer, SemanticView
-    from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +167,42 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     return subject_ids
 
 
+def _render_permission_instructions_link(
+    *,
+    datasource_id: str = "",
+    datasource_name: str = "",
+    table_names: str = "",
+) -> Optional[str]:
+    """Render the configured ``PERMISSION_INSTRUCTIONS_LINK``.
+
+    The configured URL may contain ``{datasource_id}``, ``{datasource_name}``,
+    ``{table_names}`` and ``{username}`` placeholders, which are substituted with
+    URL-encoded values so the link can deep-link into an organization's access
+    request system. A URL with no placeholders is returned unchanged, and an
+    empty/unset config returns ``None`` (no link). Unsupplied placeholders are
+    replaced with an empty string.
+    """
+    link = get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+    if not link:
+        return None
+
+    username = ""
+    user = getattr(g, "user", None)
+    if user is not None and not getattr(user, "is_anonymous", False):
+        username = getattr(user, "username", "") or ""
+
+    for token, value in (
+        ("datasource_id", datasource_id),
+        ("datasource_name", datasource_name),
+        ("table_names", table_names),
+        ("username", username),
+    ):
+        placeholder = "{" + token + "}"
+        if placeholder in link:
+            link = link.replace(placeholder, quote(str(value), safe=""))
+    return link
+
+
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
 
@@ -193,9 +229,15 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
     configured implementation (DBEventLogger, S3EventLogger, etc.)
     receives these security audit events.
     """
-    from superset.extensions import (
-        event_logger,  # pylint: disable=import-outside-toplevel
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        event_logger,
+        stats_logger_manager,
     )
+
+    try:
+        stats_logger_manager.instance.incr(f"security.{action}")
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Failed to emit audit metric: %s", action, exc_info=True)
 
     user_id = get_user_id()
     try:
@@ -568,6 +610,67 @@ def freeze_value(value: Any) -> str:
     return json.dumps(_strip_overridable_keys(value), sort_keys=True)
 
 
+# Frontend-only markers that ``normalizeTimeColumn`` adds when it synthesizes a
+# chart's x-axis into a ``BASE_AXIS`` column. Like ``timeGrain`` they decorate
+# the column without changing which data is queried, so they must not count as
+# payload tampering.
+BASE_AXIS_SYNTHETIC_KEYS = frozenset({"columnType", "isColumnReference"})
+
+
+def _denormalize_base_axis_column(value: Any) -> Any:
+    """
+    Reduce a synthesized ``BASE_AXIS`` x-axis column back to the reference it
+    stands for.
+
+    Before a chart is queried, ``normalizeTimeColumn`` (superset-ui-core,
+    ``normalizeTimeColumn.ts``) replaces the chart's saved x-axis in the query
+    with an adhoc column tagged ``columnType: "BASE_AXIS"``:
+
+    * for a *physical* x-axis it emits a pure column reference
+      (``isColumnReference: true`` with ``sqlExpression`` == ``label`` == the
+      physical column name), and
+    * for an *adhoc* x-axis it copies the saved adhoc column and adds the
+      markers (plus the time grain, already dropped by ``freeze_value``).
+
+    Neither form selects data beyond the saved x-axis, yet neither appears
+    verbatim in the chart's stored ``params``/``query_context`` (the x-axis is
+    stored under its own ``x_axis`` control, and for charts whose saved
+    ``query_context`` is NULL there is nothing to compare against at all). So a
+    guest merely loading such a chart would otherwise be rejected as a tamperer.
+
+    This collapses the synthesized column to its underlying reference, so it
+    compares equal to the stored x-axis: a physical reference becomes its column
+    name, and an adhoc reference becomes the underlying adhoc column without the
+    synthesized markers. The collapsed value must still match a value stored on
+    the chart, so tagging an unrelated column or free-form SQL as ``BASE_AXIS``
+    grants no additional access. Non-``BASE_AXIS`` values are returned unchanged.
+
+    This has to reduce the value rather than merely drop keys the way
+    ``GUEST_OVERRIDABLE_VALUE_KEYS`` handles ``timeGrain``: a physical x-axis is
+    stored as a bare string (e.g. ``"order_date"``) but sent as a dict, so no
+    amount of key-stripping makes the two compare equal; the dict must collapse
+    back to the string.
+    """
+    if not isinstance(value, dict) or value.get("columnType") != "BASE_AXIS":
+        return value
+    if value.get("isColumnReference") and isinstance(value.get("sqlExpression"), str):
+        return value["sqlExpression"]
+    return {k: v for k, v in value.items() if k not in BASE_AXIS_SYNTHETIC_KEYS}
+
+
+def _payload_value_identity(value: Any, *, is_metric: bool) -> str:
+    """
+    Comparison identity for a column or metric in the guest anti-tamper check.
+
+    Metrics compare by exact frozen value. Columns additionally collapse a
+    synthesized ``BASE_AXIS`` x-axis to the column it references, so a guest is
+    not rejected for a column the frontend derived from the chart's own x-axis.
+    """
+    if is_metric:
+        return freeze_value(value)
+    return freeze_value(_denormalize_base_axis_column(value))
+
+
 def _native_filter_allowed_targets(
     query_context: "QueryContext", form_data: dict[str, Any]
 ) -> Optional[tuple[set[str], set[str]]]:
@@ -795,6 +898,16 @@ def _collect_sortable_identifiers(
             column_config,
             is_metric=False,
         )
+    # The x-axis is a visible dimension held under its own control; a guest may
+    # legitimately sort an embedded chart by it (the request sends it as the
+    # synthesized BASE_AXIS column, reduced to its reference below).
+    if params.get("x_axis"):
+        _add_visible_sort_targets(
+            allowed,
+            [params["x_axis"]],
+            column_config,
+            is_metric=False,
+        )
     _add_visible_sort_targets(
         allowed,
         params.get("metrics"),
@@ -982,9 +1095,65 @@ def _orderby_modified(
             return True
         if freeze_value(entry) in stored_orderby_entries:
             continue
-        if not _requested_sort_target_identifiers(entry[0]) & visible_targets:
+        # Reduce a synthesized BASE_AXIS x-axis sort target back to the reference
+        # it stands for, so sorting by the chart's own temporal dimension is not
+        # read as a new expression. The reduced target must still be a visible
+        # sort target, so this grants nothing beyond the chart's own columns.
+        target = _denormalize_base_axis_column(entry[0])
+        if not _requested_sort_target_identifiers(target) & visible_targets:
             return True
     return False
+
+
+#: Chart params keys that hold the metrics a chart renders. Different chart
+#: types store their metrics under control-specific keys (``metric`` for
+#: big number, ``x``/``y``/``size`` for bubble, and so on); a guest requesting
+#: the exact stored value reads nothing beyond what the chart already shows.
+_STORED_METRIC_PARAMS = (
+    "metrics",
+    "metric",
+    "percent_metrics",
+    "secondary_metric",
+    "series_limit_metric",
+    "timeseries_limit_metric",
+    "x",
+    "y",
+    "size",
+)
+
+#: Chart params keys that hold the columns/group-bys a chart renders, across
+#: the control names chart types use for them (``entity``/``series`` for
+#: bubble and world map, ``granularity_sqla`` for the temporal axis, etc.).
+_STORED_COLUMN_PARAMS = (
+    "columns",
+    "groupby",
+    "all_columns",
+    "entity",
+    "series",
+    "series_columns",
+    "x_axis",
+    "granularity_sqla",
+)
+
+
+def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[str]:
+    """
+    Frozen values stored under any of the given chart params keys.
+
+    Scalar-valued controls (``metric``, ``entity``, ...) contribute their single
+    value; list-valued controls contribute each element. Matching stays exact
+    (via ``freeze_value``) — no label or expression equivalence is applied.
+    """
+    values: set[str] = set()
+    for key in keys:
+        value = params.get(key)
+        if value is None or value == "":
+            continue
+        items = value if isinstance(value, (list, tuple)) else [value]
+        values.update(
+            freeze_value(item) for item in items if item is not None and item != ""
+        )
+    return values
 
 
 def _columns_metrics_modified(
@@ -997,26 +1166,43 @@ def _columns_metrics_modified(
     Whether the requested columns/metrics/group-by read beyond what the stored
     chart exposes. Each requested set must be a subset of the values stored on
     the chart (params and, when present, the stored query context).
+
+    Column-valued keys compare by an identity that first collapses a
+    frontend-synthesized ``BASE_AXIS`` x-axis back to the column it references
+    (see ``_denormalize_base_axis_column``), and additionally allow the chart's
+    stored ``x_axis``: the x-axis is a saved dimension the query carries in
+    ``columns`` but that is not itself listed under ``columns``/``groupby``.
     """
-    for key, equivalent in [
-        ("metrics", ["metrics"]),
-        ("columns", ["columns", "groupby"]),
-        ("groupby", ["columns", "groupby"]),
+    for key, stored_params_keys, equivalent in [
+        ("metrics", _STORED_METRIC_PARAMS, ["metrics"]),
+        ("columns", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
+        ("groupby", _STORED_COLUMN_PARAMS, ["columns", "groupby"]),
     ]:
-        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
-        stored_values = {
-            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
+        is_metric = key == "metrics"
+
+        # Requested column values additionally collapse a frontend-synthesized
+        # ``BASE_AXIS`` x-axis to the column it references (see
+        # ``_payload_value_identity``); metrics compare by exact frozen value.
+        requested_values = {
+            _payload_value_identity(value, is_metric=is_metric)
+            for value in form_data.get(key) or []
         }
-        # ``form_data`` values are checked against ``params_dict`` alone;
-        # ``query_context`` values are checked below against the fuller set that
-        # also includes the stored query context. This asymmetry is intentional:
-        # each requested source is compared to its corresponding stored source.
+        # Stored params are read across every control name that can hold a
+        # metric or column for some chart type: charts whose query is built
+        # from e.g. ``metric``/``entity``/``groupby`` never store a literal
+        # ``metrics``/``columns`` key, yet their generated payload uses those,
+        # and a guest replaying the chart's own values is not tampering. This
+        # set already includes the temporal ``x_axis``; stored raw params never
+        # carry the synthesized ``BASE_AXIS`` shape, so exact matching is right.
+        stored_values = _stored_param_values(
+            stored_chart.params_dict, stored_params_keys
+        )
         if not requested_values.issubset(stored_values):
             return True
 
         # compare queries in query_context
         queries_values = {
-            freeze_value(value)
+            _payload_value_identity(value, is_metric=is_metric)
             for query in query_context.queries
             for value in getattr(query, key, []) or []
         }
@@ -1024,7 +1210,8 @@ def _columns_metrics_modified(
             for query in stored_query_context.get("queries") or []:
                 for equiv_key in equivalent:
                     stored_values.update(
-                        {freeze_value(value) for value in query.get(equiv_key) or []}
+                        _payload_value_identity(value, is_metric=is_metric)
+                        for value in query.get(equiv_key) or []
                     )
 
         if not queries_values.issubset(stored_values):
@@ -1054,6 +1241,13 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         return False
 
     if form_data.get("slice_id") != stored_chart.id:
+        # Only the chart's own (server-side) id is logged; the guest-supplied
+        # slice_id is not echoed, to avoid logging request-controlled values.
+        logger.warning(
+            "Guest chart payload rejected for slice %s: requested slice_id does "
+            "not match the chart",
+            stored_chart.id,
+        )
         return True
 
     stored_query_context = (
@@ -1062,12 +1256,26 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         else None
     )
 
+    # A rejected guest load is most often a chart whose saved query_context is
+    # NULL or stale rather than genuine tampering, and the generic 403 gives no
+    # way to tell which comparator objected. Log that here (server-side only, no
+    # payload values) so the failure is diagnosable; whether the stored
+    # query_context was present is the key signal for the missing/stale case.
+    # Use ``is not None`` so an empty-but-present stored context reads as present.
+    stored_context_state = "present" if stored_query_context is not None else "missing"
+
     # compare columns and metrics in form_data with stored values. Order-by is
     # handled separately: a strict subset check there would reject a guest
     # legitimately sorting an embedded chart by one of its existing columns.
     if _columns_metrics_modified(
         query_context, form_data, stored_chart, stored_query_context
     ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: columns/metrics/group-by "
+            "not a subset of the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
         return True
 
     if _series_limit_metric_modified(
@@ -1076,11 +1284,23 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         stored_chart,
         stored_query_context,
     ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: series-limit metric not "
+            "on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
         return True
 
     # Order-by may sort only by columns/metrics already present in the stored
     # chart; new expressions (e.g. ``random()``) are still rejected.
     if _orderby_modified(query_context, stored_chart, stored_query_context):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: order-by references a "
+            "term not on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
         return True
 
     return False
@@ -1257,7 +1477,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "Chart"),
         ("can_dashboard", "Superset"),
         ("can_slice", "Superset"),
-        ("can_explore_json", "Superset"),
         ("can_dashboard_permalink", "Superset"),
         ("can_read", "DashboardPermalinkRestApi"),
         # Dashboard filter interactions
@@ -1753,17 +1972,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def get_datasource_access_link(  # pylint: disable=unused-argument
+    def get_datasource_access_link(
         datasource: "BaseDatasource | Explorable",
     ) -> Optional[str]:
         """
         Return the link for the denied Superset datasource.
 
+        The configured ``PERMISSION_INSTRUCTIONS_LINK`` may template the denied
+        datasource's id/name (and the current username) into the access URL.
+
         :param datasource: The denied Superset datasource
         :returns: The access URL
         """
 
-        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+        return _render_permission_instructions_link(
+            datasource_id=str(datasource.data["id"]),
+            datasource_name=str(datasource.data["name"]),
+        )
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
         self, datasource: "BaseDatasource | Explorable"
@@ -1782,6 +2007,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.data["id"],
                 "datasource_name": datasource.data["name"],
+                # Owner display names give the viewer someone to contact for
+                # access; sorted for a deterministic payload.
+                "owners": sorted(
+                    str(owner) for owner in getattr(datasource, "owners", []) or []
+                ),
             },
         )
 
@@ -1818,17 +2048,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             },
         )
 
-    def get_table_access_link(  # pylint: disable=unused-argument
-        self, tables: set["Table"]
-    ) -> Optional[str]:
+    def get_table_access_link(self, tables: set["Table"]) -> Optional[str]:
         """
         Return the access link for the denied SQL tables.
+
+        The configured ``PERMISSION_INSTRUCTIONS_LINK`` may template the denied
+        table names (and the current username) into the access URL.
 
         :param tables: The set of denied SQL tables
         :returns: The access URL
         """
 
-        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+        # Build display names from the raw parts: Table.__str__ URL-encodes
+        # each segment, and the renderer encodes the whole value again, so
+        # using it here would double-encode. Sorted for deterministic links.
+        return _render_permission_instructions_link(
+            table_names=",".join(
+                sorted(
+                    ".".join(
+                        part
+                        for part in (table.catalog, table.schema, table.table)
+                        if part
+                    )
+                    for table in tables
+                )
+            ),
+        )
 
     def get_user_datasources(self) -> list["BaseDatasource"]:
         """
@@ -3637,7 +3882,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         query: Optional["Query | Explorable"] = None,
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
-        viz: Optional["BaseViz"] = None,
         sql: Optional[str] = None,
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
@@ -3652,7 +3896,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param query: The SQL Lab query
         :param query_context: The query context
         :param table: The Superset table (requires database)
-        :param viz: The visualization
         :param sql: The SQL string (requires database)
         :param catalog: Optional catalog name
         :param schema: Optional schema name
@@ -3703,7 +3946,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 client_id=shortid()[:10],
                 user_id=get_user_id(),
             )
-            self.session.expunge(query)
+            # This ephemeral Query must never be persisted; with
+            # cascade_backrefs=False it is not added to the session in the
+            # first place, so only expunge if something else added it.
+            if query in self.session:
+                self.session.expunge(query)
 
         if database and table or query:
             if query:
@@ -3878,15 +4125,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
             )
 
-        if datasource or query_context or viz:
+        if datasource or query_context:
             form_data = None
 
             if query_context:
                 datasource = query_context.datasource
                 form_data = query_context.form_data
-            elif viz:
-                datasource = viz.datasource
-                form_data = viz.form_data
 
             assert datasource
 

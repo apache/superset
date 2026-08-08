@@ -84,7 +84,6 @@ from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
     QueryObjectValidationError,
-    SupersetGenericDBErrorException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
@@ -192,6 +191,16 @@ class BaseDatasource(
 
     # Only some datasources support Row Level Security
     is_rls_supported: bool = False
+
+    # Datasources that can return raw row samples (anything backed by a SQL
+    # table can; semantic-layer abstractions cannot, since they only expose
+    # pre-defined metrics and dimensions).
+    supports_samples: bool = True
+
+    # Datasources that can answer "drill to detail" requests — i.e. fetch the
+    # raw rows underlying a chart cell. Conceptually similar to ``samples``
+    # but kept as a separate capability so the two can diverge.
+    supports_drill_to_detail: bool = True
 
     @property
     def name(self) -> str:
@@ -401,6 +410,7 @@ class BaseDatasource(
         for metric in metrics:
             if metric.metric_name not in existing_metrics:
                 metric.table_id = self.id
+                db.session.add(metric)
                 self.metrics.append(metric)
 
     @property
@@ -485,6 +495,8 @@ class BaseDatasource(
             "order_by_choices": self.order_by_choices,
             "verbose_map": self.verbose_map,
             "select_star": self.select_star,
+            "supports_samples": self.supports_samples,
+            "supports_drill_to_detail": self.supports_drill_to_detail,
         }
 
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
@@ -961,6 +973,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="columns",
+        cascade_backrefs=False,
     )
 
     export_fields = [
@@ -1206,6 +1219,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="metrics",
+        cascade_backrefs=False,
     )
 
     export_fields = [
@@ -1297,12 +1311,14 @@ class SqlaTable(
         TableColumn,
         back_populates="table",
         cascade="all, delete-orphan",
+        cascade_backrefs=False,
         passive_deletes=True,
     )
     metrics: Mapped[list[SqlMetric]] = relationship(
         SqlMetric,
         back_populates="table",
         cascade="all, delete-orphan",
+        cascade_backrefs=False,
         passive_deletes=True,
     )
     metric_class = SqlMetric
@@ -1364,7 +1380,14 @@ class SqlaTable(
 
     database: Database = relationship(
         "Database",
-        backref=backref("tables", cascade="all, delete-orphan"),
+        backref=backref(
+            "tables",
+            cascade="all, delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `table.database` no longer
+            # cascades the SqlaTable into the Database's session; callers must
+            # add objects to a session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[database_id],
     )
     schema = Column(String(255))
@@ -1834,42 +1857,43 @@ class SqlaTable(
 
             sqla_column = literal_column(expression)
             if has_timegrain or force_type_check:
-                try:
-                    # probe adhoc column type
-                    # Most databases populate cursor.description from query-plan
-                    # metadata, so WHERE FALSE (zero rows, no table scan) is
-                    # preferred — it avoids hitting row-read limits enforced by
-                    # engines like ClickHouse (max_rows_to_read).
-                    # A small number of drivers (Druid, Pinot) instead build
-                    # cursor.description by inspecting the first returned row;
-                    # for those we fall back to LIMIT 1.
-                    tbl, _unused_cte = self.get_from_clause(template_processor)
-                    if self.db_engine_spec.type_probe_needs_row:
-                        qry = sa.select(sqla_column).limit(1).select_from(tbl)
-                    else:
-                        qry = sa.select(sqla_column).where(sa.false()).select_from(tbl)
-                    sql = self.database.compile_sqla_query(
-                        qry,
-                        catalog=self.catalog,
-                        schema=self.schema,
-                    )
-                    col_desc = get_columns_description(
-                        self.database,
-                        self.catalog,
-                        self.schema or None,
-                        sql,
-                    )
-                    if not col_desc:
-                        raise SupersetGenericDBErrorException("Column not found")
-                    is_dttm = col_desc[0]["is_dttm"]  # type: ignore
-                    # ResultSet already resolves the generic type from the
-                    # driver's cursor.description; reuse it so callers can
-                    # coerce filter values correctly (e.g. numeric IN-lists
-                    # stay unquoted for numeric adhoc expressions like
-                    # CAST(... AS BIGINT)).
-                    generic_type = col_desc[0].get("type_generic")
-                except SupersetGenericDBErrorException as ex:
-                    raise ColumnNotFoundException(message=str(ex)) from ex
+                # probe adhoc column type
+                # Most databases populate cursor.description from query-plan
+                # metadata, so WHERE FALSE (zero rows, no table scan) is
+                # preferred — it avoids hitting row-read limits enforced by
+                # engines like ClickHouse (max_rows_to_read).
+                # A small number of drivers (Druid, Pinot) instead build
+                # cursor.description by inspecting the first returned row;
+                # for those we fall back to LIMIT 1.
+                tbl, _unused_cte = self.get_from_clause(template_processor)
+                if self.db_engine_spec.type_probe_needs_row:
+                    qry = sa.select(sqla_column).limit(1).select_from(tbl)
+                else:
+                    qry = sa.select(sqla_column).where(sa.false()).select_from(tbl)
+                sql = self.database.compile_sqla_query(
+                    qry,
+                    catalog=self.catalog,
+                    schema=self.schema,
+                )
+                # A real DB/connectivity failure during the probe surfaces as a
+                # SupersetGenericDBErrorException from get_columns_description and
+                # is allowed to propagate unchanged; only a genuine empty result
+                # (the column truly isn't there) is a ColumnNotFoundException.
+                col_desc = get_columns_description(
+                    self.database,
+                    self.catalog,
+                    self.schema or None,
+                    sql,
+                )
+                if not col_desc:
+                    raise ColumnNotFoundException(message="Column not found")
+                is_dttm = col_desc[0]["is_dttm"]  # type: ignore
+                # ResultSet already resolves the generic type from the
+                # driver's cursor.description; reuse it so callers can
+                # coerce filter values correctly (e.g. numeric IN-lists
+                # stay unquoted for numeric adhoc expressions like
+                # CAST(... AS BIGINT)).
+                generic_type = col_desc[0].get("type_generic")
 
         if is_dttm and has_timegrain:
             sqla_column = self.db_engine_spec.get_timestamp_expr(
@@ -2005,6 +2029,11 @@ class SqlaTable(
         columns = []
         for col in new_columns:
             old_column = old_columns_by_name.pop(col["column_name"], None)
+            # Some engine specs (e.g. Trino, when expanding nested `ROW` columns)
+            # provide an explicit SQL expression that must be used to select the
+            # physical column, since simply quoting the dotted `column_name` as a
+            # single identifier is not valid syntax for these nested fields.
+            expression: str = col.get("expression") or ""
             if not old_column:
                 results.added.append(col["column_name"])
                 new_column = TableColumn(
@@ -2012,17 +2041,20 @@ class SqlaTable(
                     type=col["type"],
                     table=self,
                 )
+                db.session.add(new_column)
                 new_column.is_dttm = new_column.is_temporal
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
                 db_engine_spec.alter_new_orm_column(new_column)
+                if expression:
+                    new_column.expression = expression
             else:
                 new_column = old_column
                 if new_column.type != col["type"]:
                     results.modified.append(col["column_name"])
                 new_column.type = col["type"]
-                new_column.expression = ""
+                new_column.expression = expression
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
@@ -2032,8 +2064,13 @@ class SqlaTable(
             if not any_date_col and new_column.is_temporal:
                 any_date_col = col["column_name"]
 
-        # add back calculated (virtual) columns
-        columns.extend([col for col in old_columns if col.expression])
+        # Add back calculated (virtual) columns, i.e. those that weren't matched
+        # against `new_columns` above and are thus still present in
+        # `old_columns_by_name`. Columns that were matched are already appended to
+        # `columns` in the loop above, and re-adding them here (e.g. via `old_columns`)
+        # would duplicate any synced physical column that also carries a truthy
+        # `expression`, such as Trino's expanded nested `ROW` fields.
+        columns.extend([col for col in old_columns_by_name.values() if col.expression])
         self.columns = columns
 
         if not self.main_dttm_col:

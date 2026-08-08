@@ -202,7 +202,7 @@ function UserListModal({
                   label: role.name,
                 }))}
                 getPopupContainer={trigger =>
-                  trigger.closest('.ant-modal-content')
+                  trigger.closest('.ant-modal-container')
                 }
               />
             </FormItem>
@@ -221,7 +221,7 @@ function UserListModal({
                   label: group.name,
                 }))}
                 getPopupContainer={trigger =>
-                  trigger.closest('.ant-modal-content')
+                  trigger.closest('.ant-modal-container')
                 }
               />
             </FormItem>

@@ -17,12 +17,17 @@
 from __future__ import annotations
 
 import copy
-import logging
+import time
 from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
 
 from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data_timing import (
+    QueryAcquisitionTiming,
+    QueryDataResult,
+    QueryTiming,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import QueryObjectValidationError, SupersetParseError
 from superset.explorables.base import Explorable
@@ -42,8 +47,6 @@ from superset.utils.currency import (
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
-
-logger = logging.getLogger(__name__)
 
 
 def _get_datasource(query_context: QueryContext, query_obj: QueryObject) -> Explorable:
@@ -150,14 +153,25 @@ def _detect_currency(
     )
 
 
-def _get_full(
+def _get_full_with_timing(
     query_context: QueryContext,
     query_obj: QueryObject,
     force_cached: bool | None = False,
+) -> tuple[dict[str, Any], QueryAcquisitionTiming, int]:
+    acquired = query_context.get_df_payload_result(query_obj, force_cached=force_cached)
+    payload_assembly_start_ns = time.perf_counter_ns()
+    payload = _materialize_full_payload(query_context, query_obj, acquired.payload)
+    payload_assembly_ns = max(0, time.perf_counter_ns() - payload_assembly_start_ns)
+    return payload, acquired.timing, payload_assembly_ns
+
+
+def _materialize_full_payload(
+    query_context: QueryContext,
+    query_obj: QueryObject,
+    payload: dict[str, Any],
 ) -> dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     result_type = query_obj.result_type or query_context.result_type
-    payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
     df = payload["df"]
     status = payload["status"]
     if status != QueryStatus.FAILED:
@@ -202,15 +216,21 @@ def _get_full(
     return payload
 
 
-def _get_samples(
-    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
-) -> dict[str, Any]:
+def _prepare_samples_query(
+    query_context: QueryContext,
+    query_obj: QueryObject,
+) -> QueryObject:
     datasource = _get_datasource(query_context, query_obj)
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
+    # Mark the query as system-authored sampling so query generation may apply
+    # the engine's bounded-read override (physical datasets only). The shallow
+    # copy above shares the extras dict with the original query object, so
+    # build a new dict instead of mutating in place.
+    query_obj.extras = {**(query_obj.extras or {}), "system_sampling": True}
     qry_obj_cols = []
     for o in datasource.columns:
         if isinstance(o, dict):
@@ -221,15 +241,25 @@ def _get_samples(
     query_obj.columns = qry_obj_cols
     query_obj.from_dttm = None
     query_obj.to_dttm = None
-    return _get_full(query_context, query_obj, force_cached)
+    return query_obj
 
 
-def _get_drill_detail(
-    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
-) -> dict[str, Any]:
+def _prepare_drill_detail_query(
+    query_context: QueryContext,
+    query_obj: QueryObject,
+) -> QueryObject:
     # todo(yongjie): Remove this function,
     #  when determining whether samples should be applied to the time filter.
     datasource = _get_datasource(query_context, query_obj)
+    # Refuse for datasource types that don't model raw rows (e.g. semantic
+    # views). Mirrors the ``supports_samples`` gate on the ``/samples``
+    # endpoint so drill-detail is hard-blocked on the backend, not just
+    # hidden in the frontend menu. Defaults to ``True`` for any datasource
+    # class that doesn't explicitly opt out.
+    if not getattr(datasource, "supports_drill_to_detail", True):
+        raise QueryObjectValidationError(
+            _("Drill to detail is not available for this datasource type.")
+        )
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.metrics = None
@@ -243,31 +273,40 @@ def _get_drill_detail(
             qry_obj_cols.append(o.column_name)
     query_obj.columns = qry_obj_cols
     query_obj.orderby = [(query_obj.columns[0], True)]
-    return _get_full(query_context, query_obj, force_cached)
+    return query_obj
 
 
-def _get_results(
-    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
-) -> dict[str, Any]:
-    payload = _get_full(query_context, query_obj, force_cached)
-    return payload
-
-
-_result_type_functions: dict[
+_metadata_result_type_functions: dict[
     ChartDataResultType, Callable[[QueryContext, QueryObject, bool], dict[str, Any]]
 ] = {
     ChartDataResultType.COLUMNS: _get_columns,
     ChartDataResultType.TIMEGRAINS: _get_timegrains,
     ChartDataResultType.QUERY: _get_query,
-    ChartDataResultType.SAMPLES: _get_samples,
-    ChartDataResultType.FULL: _get_full,
-    ChartDataResultType.RESULTS: _get_results,
-    # for requests for post-processed data we return the full results,
-    # and post-process it later where we have the chart context, since
-    # post-processing is unique to each visualization type
-    ChartDataResultType.POST_PROCESSED: _get_full,
-    ChartDataResultType.DRILL_DETAIL: _get_drill_detail,
 }
+
+
+_data_result_type_preparers: dict[
+    ChartDataResultType,
+    Callable[[QueryContext, QueryObject], QueryObject] | None,
+] = {
+    ChartDataResultType.SAMPLES: _prepare_samples_query,
+    ChartDataResultType.FULL: None,
+    ChartDataResultType.RESULTS: None,
+    # Post-processing is visualization-specific, so full data is returned and
+    # transformed later with the chart context.
+    ChartDataResultType.POST_PROCESSED: None,
+    ChartDataResultType.DRILL_DETAIL: _prepare_drill_detail_query,
+}
+
+
+def _metadata_timing(total_ns: int) -> QueryTiming:
+    return QueryTiming(
+        query_planning_ns=None,
+        cache_resolution_ns=None,
+        data_acquisition_ns=None,
+        payload_assembly_ns=None,
+        total_ns=total_ns,
+    )
 
 
 def get_query_results(
@@ -276,8 +315,10 @@ def get_query_results(
     query_obj: QueryObject,
     force_cached: bool,
 ) -> dict[str, Any]:
-    """
-    Return result payload for a chart data request.
+    """Return the legacy payload-only view of a chart-data result.
+
+    This compatibility wrapper deliberately discards the typed timing sidecar
+    returned by :func:`get_query_results_with_timing`.
 
     :param result_type: the type of result to return
     :param query_context: query context to which the query object belongs
@@ -286,8 +327,56 @@ def get_query_results(
     :raises QueryObjectValidationError: if an unsupported result type is requested
     :return: JSON serializable result payload
     """
-    if result_func := _result_type_functions.get(result_type):
-        return result_func(query_context, query_obj, force_cached)
-    raise QueryObjectValidationError(
-        _("Invalid result type: %(result_type)s", result_type=result_type)
+    return get_query_results_with_timing(
+        result_type,
+        query_context,
+        query_obj,
+        force_cached,
+    ).payload
+
+
+def get_query_results_with_timing(
+    result_type: ChartDataResultType,
+    query_context: QueryContext,
+    query_obj: QueryObject,
+    force_cached: bool,
+) -> QueryDataResult:
+    """
+    Return result payload and timing without storing timing in the payload.
+
+    The total interval begins before result-family preparation and dispatch.
+    Metadata result types do not acquire dataframe state, so their phase values
+    are null while the measured total remains available.
+    """
+    started_ns = time.perf_counter_ns()
+    if result_func := _metadata_result_type_functions.get(result_type):
+        payload = result_func(query_context, query_obj, force_cached)
+        total_ns = max(0, time.perf_counter_ns() - started_ns)
+        return QueryDataResult(payload=payload, timing=_metadata_timing(total_ns))
+
+    if result_type not in _data_result_type_preparers:
+        raise QueryObjectValidationError(
+            _("Invalid result type: %(result_type)s", result_type=result_type)
+        )
+
+    if preparer := _data_result_type_preparers[result_type]:
+        query_obj = preparer(query_context, query_obj)
+
+    payload, acquisition_timing, action_assembly_ns = _get_full_with_timing(
+        query_context,
+        query_obj,
+        force_cached,
+    )
+    total_ns = max(0, time.perf_counter_ns() - started_ns)
+    return QueryDataResult(
+        payload=payload,
+        timing=QueryTiming(
+            query_planning_ns=acquisition_timing.query_planning_ns,
+            cache_resolution_ns=acquisition_timing.cache_resolution_ns,
+            data_acquisition_ns=acquisition_timing.data_acquisition_ns,
+            payload_assembly_ns=(
+                acquisition_timing.payload_assembly_ns + action_assembly_ns
+            ),
+            total_ns=total_ns,
+        ),
     )

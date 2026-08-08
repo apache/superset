@@ -170,7 +170,7 @@ const createOwnStateWithChartState = (
 
 const Chart = (props: ChartProps) => {
   const dispatch = useDispatch();
-  const descriptionRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   const boundActionCreators = useMemo(
@@ -208,7 +208,10 @@ const Chart = (props: ChartProps) => {
   );
   const isExpanded = useSelector(
     (state: RootState) =>
-      !!(state.dashboardState as JsonObject).expandedSlices?.[props.id],
+      !!(
+        state.dashboardState.expandedSlices?.[props.id] ??
+        state.dashboardState.expandAllSlices
+      ),
   );
   const supersetCanExplore = useSelector(
     (state: RootState) =>
@@ -537,7 +540,8 @@ const Chart = (props: ChartProps) => {
         actualRowCount = (queriesResponse![0] as JsonObject).rowcount as number;
       } else {
         actualRowCount = (exportFormData as JsonObject)?.row_limit as
-          number | undefined;
+          | number
+          | undefined;
       }
 
       // Handle streaming CSV exports based on row threshold
@@ -756,14 +760,13 @@ const Chart = (props: ChartProps) => {
              https://github.com/apache/superset/pull/23862
         */}
       {isExpanded && slice.description_markdown && (
-        <div
+        <aside
           className="slice_description bs-callout bs-callout-default"
           ref={descriptionRef}
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
             __html: slice.description_markdown,
           }}
-          role="complementary"
         />
       )}
 
@@ -790,6 +793,7 @@ const Chart = (props: ChartProps) => {
           chartAlert={chart.chartAlert ?? undefined}
           chartId={props.id}
           chartStatus={chartStatus ?? undefined}
+          chartStackTrace={chart.chartStackTrace ?? undefined}
           datasource={datasource}
           dashboardId={props.dashboardId}
           initialValues={EMPTY_OBJECT}

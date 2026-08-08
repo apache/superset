@@ -114,6 +114,14 @@ export type AsyncAceEditorOptions = {
 };
 
 /**
+ * Dark-aware color for text selection in the editor. Shared so the plain
+ * selection and the "selected word" occurrence markers always match, falling
+ * back to `colorPrimaryBgHover` on themes that don't define the token.
+ */
+export const editorSelectionColor = (token: SupersetTheme) =>
+  token.colorEditorSelection ?? token.colorPrimaryBgHover;
+
+/**
  * Theme-aware styling for the matched-prefix highlight in the autocomplete
  * popup. Ace ships a hardcoded `color: #000` that is invisible on the dark
  * popup, so the override needs `!important` to win. Lives in the shared editor
@@ -123,6 +131,20 @@ export const aceCompletionHighlightStyles = (token: SupersetTheme) => css`
   .ace_completion-highlight {
     color: ${token.colorPrimaryText} !important;
     background-color: ${token.colorPrimaryBgHover};
+  }
+`;
+
+/**
+ * Theme-aware styling for the "selected word" markers Ace paints on every other
+ * occurrence of the currently selected token. The light `github` theme hardcodes
+ * a near-white box (`rgb(250,250,255)`); in dark mode the recolored token glyphs
+ * sit on it unreadably. Reuse the same dark-aware selection color as
+ * `.ace_selection` so the markers stay legible in every theme.
+ */
+export const aceSelectedWordStyles = (token: SupersetTheme) => css`
+  .ace_editor .ace_marker-layer .ace_selected-word {
+    background-color: ${editorSelectionColor(token)} !important;
+    border: 1px solid ${token.colorBorder} !important;
   }
 `;
 
@@ -389,10 +411,10 @@ export function AsyncAceEditor(
                 }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${
-                    token.colorEditorSelection ?? token.colorPrimaryBgHover
-                  } !important;
+                  background-color: ${editorSelectionColor(token)} !important;
                 }
+
+                ${aceSelectedWordStyles(token)}
 
                 /* Improve active line highlighting */
                 .ace_editor .ace_active-line {

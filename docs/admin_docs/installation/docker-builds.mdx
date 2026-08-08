@@ -11,8 +11,7 @@ The Apache Superset community extensively uses Docker for development, release,
 and productionizing Superset. This page details our Docker builds and tag naming
 schemes to help users navigate our offerings.
 
-Images are built and pushed to the [Superset Docker Hub repository](
-https://hub.docker.com/r/apache/superset) using GitHub Actions.
+Images are built and pushed to the [Superset Docker Hub repository](https://hub.docker.com/r/apache/superset) using GitHub Actions.
 Different sets of images are built and/or published at different times:
 
 - **Published releases** (`release`): published using
@@ -112,12 +111,61 @@ USER superset
 CMD ["/app/docker/entrypoints/run-server.sh"]
 ```
 
+### Adding translations to a custom image
+
+The pattern above, a small Dockerfile that just extends `FROM apache/superset:...`, can't add
+translations after the fact. By the time an official tag is published, its frontend and backend
+layers have already had non-English translation files stripped out unless `BUILD_TRANSLATIONS`
+was set at build time (see below), and there's no `superset/translations` source tree left in the
+final image to compile from.
+
+To get translations into your own image, you need to build from the full Superset source (a
+clone or fork of this repo) rather than extend a published tag. The most efficient way to do this
+is to append your customizations as one more stage at the end of the repo's own `Dockerfile`, so
+Docker can reuse the cached upstream layers and only rebuild what your stage adds:
+
+```Dockerfile
+# Append this to the end of the repo's Dockerfile
+# Keep this tag in sync with the branch/tag of the repo you cloned, so the
+# translation files built from source match the keys the runtime expects:
+FROM apache/superset:5.0.0 AS my-custom-image
+USER root
+
+# Pull the translation files out of the earlier build stages (frontend
+# .json in `superset-node`, backend .mo in `python-translation-compiler`).
+# Those stages' own cleanup only matches single-character extensions, so
+# the source `.po` files can still be present here; strip them explicitly
+# so this stage only keeps the compiled translations.
+COPY --from=superset-node /app/superset/translations superset/translations
+COPY --from=python-translation-compiler /app/translations_mo superset/translations
+RUN find superset/translations -name '*.po' -delete
+
+USER superset
+```
+
+Then build with:
+
+```bash
+docker build --target=my-custom-image --build-arg=BUILD_TRANSLATIONS=true -t mysuperset:5.0.0 .
+```
+
+You can combine this with the database-driver/dependency pattern above by adding your own
+`RUN uv pip install ...` step before switching back to `USER superset`. See
+[issue #35959](https://github.com/apache/superset/issues/35959) for the discussion this pattern
+came out of, credit to the community for working it out.
+
 ## Key ARGs in Dockerfile
 
-- `BUILD_TRANSLATIONS`: whether to build the translations into the image. For the
-  frontend build this tells webpack to strip out all locales other than `en` from
-  the `moment-timezone` library. For the backendthis skips compiling the
-  `*.po` translation files
+- `BUILD_TRANSLATIONS`: whether to compile non-English translations into the image.
+  When `true`, the frontend build converts the `*.po` files to locale JSON and the
+  backend runs `pybabel compile` to produce `*.mo` files; both source `*.po` files
+  are stripped afterward either way. When `false` (the default), those compile
+  steps are skipped and only `en` ships. This only takes effect when building the image from source
+  (`docker build` against this repo's own `Dockerfile`); it has no effect on a downstream
+  Dockerfile that just extends an already-published tag, see
+  "Adding translations to a custom image" above. Note that the backend `pybabel compile`
+  step ignores its exit code, so a `.po` file with a compile error won't fail the build;
+  check the build logs for `pybabel` warnings if a locale's backend strings aren't showing up.
 - `DEV_MODE`: whether to skip the frontend build, this is used by our `docker-compose` dev setup
   where we mount the local volume and build using `webpack` in `--watch` mode, meaning as you
   alter the code in the local file system, webpack, from within a docker image used for this

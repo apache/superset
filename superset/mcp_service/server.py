@@ -30,11 +30,13 @@ from typing import Annotated, Any, Callable
 import uvicorn
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
+from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
+    MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
     MCP_TOOL_SEARCH_CONFIG,
 )
@@ -62,6 +64,8 @@ def _suppress_third_party_warnings() -> None:
     - marshmallow ``RemovedInMarshmallow4Warning`` (triggered during
       database engine schema instantiation)
     - google.api_core ``FutureWarning`` (Python version support notices)
+    - sqlalchemy-redshift ``pkg_resources`` UserWarning (see
+      superset/db_engine_specs/redshift.py for details)
     """
     import warnings
 
@@ -82,6 +86,25 @@ def _suppress_third_party_warnings() -> None:
         "ignore",
         message=r"authlib\.jose module is deprecated",
     )
+    # Same treatment for the pkg_resources warning suppressed at package
+    # init time. Confirmed non-redundant: warnings.filters can be reset
+    # between the package import and this call (e.g. pytest's warnings
+    # plugin resets it around every test -- test_suppress_third_party_warnings
+    # below fails without this line, proving the reset scenario is real,
+    # not hypothetical), so re-registering here is load-bearing, not
+    # belt-and-suspenders.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API",
+        category=UserWarning,
+        module=r"sqlalchemy_redshift(?:\..*)?",
+    )
+
+
+def _downgrade_to_warning(record: logging.LogRecord) -> None:
+    """Mutate *record* in place to WARNING level."""
+    record.levelno = logging.WARNING
+    record.levelname = "WARNING"
 
 
 class FastMCPValidationFilter(logging.Filter):
@@ -107,8 +130,51 @@ class FastMCPValidationFilter(logging.Filter):
         if record.levelno != logging.ERROR:
             return True
         if "Error validating tool" in record.getMessage():
-            record.levelno = logging.WARNING
-            record.levelname = "WARNING"
+            _downgrade_to_warning(record)
+        return True
+
+
+class MCPTransportDisconnectFilter(logging.Filter):
+    """Downgrade MCP SDK client-disconnect transport logs from ERROR to WARNING.
+
+    When an MCP client disconnects mid-request (a cancelled or timed-out tool
+    call — normal client behavior, not a Superset bug), the ``mcp`` SDK's own
+    transport code logs it at ERROR with a full traceback, and separately
+    re-raises it into the session's message loop, which logs a second ERROR.
+    Both are expected under normal client behavior and should not page or
+    open incidents; downgrading to WARNING keeps them visible in log
+    aggregation without polluting ERROR-level alerting.
+
+    Two different loggers require two different matching strategies:
+
+    - ``mcp.server.streamable_http`` (``_handle_post_request``) catches the
+      disconnect via a broad ``except Exception`` and logs it with
+      ``logger.exception(...)``, so ``record.exc_info`` carries the actual
+      exception object — we can check its type directly.
+    - ``mcp.server.lowlevel.server`` (``_handle_message``) receives the same
+      exception secondhand, already wrapped as a bare
+      ``Exception(ClientDisconnect())`` pushed onto the read stream. The
+      original type is lost by the time it's logged, so exception-type
+      checks are impossible here. ``ClientDisconnect`` is always raised with
+      zero args, so ``str(ClientDisconnect())`` is always ``""`` — making the
+      rendered message a fixed, matchable string instead.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno != logging.ERROR:
+            return True
+        if record.name == "mcp.server.streamable_http":
+            if record.exc_info and isinstance(record.exc_info[1], ClientDisconnect):
+                _downgrade_to_warning(record)
+        elif record.name == "mcp.server.lowlevel.server":
+            # NOTE: This matches the literal log message from the mcp SDK's
+            # lowlevel/server.py (``_handle_message``, line ~689 in the
+            # ``mcp==1.24.0`` pinned in requirements/development.txt):
+            # ``logger.error(f"Received exception from stream: {message}")``.
+            # If the SDK changes this f-string's wording, this filter will
+            # stop working silently.
+            if record.getMessage() == "Received exception from stream: ":
+                _downgrade_to_warning(record)
         return True
 
 
@@ -146,6 +212,17 @@ def configure_logging(debug: bool = False) -> None:
     # Downgrade these specific messages from ERROR to WARNING.
     fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
     fastmcp_server_logger.addFilter(FastMCPValidationFilter())
+
+    # MCP client disconnects (cancelled/timed-out tool calls) are logged at
+    # ERROR by the mcp SDK's transport and lowlevel server loggers. These are
+    # expected client behavior, not Superset bugs — downgrade to WARNING.
+    transport_disconnect_filter = MCPTransportDisconnectFilter()
+    logging.getLogger("mcp.server.streamable_http").addFilter(
+        transport_disconnect_filter
+    )
+    logging.getLogger("mcp.server.lowlevel.server").addFilter(
+        transport_disconnect_filter
+    )
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
@@ -868,7 +945,11 @@ def run_server(
     Uses streamable-http transport for HTTP server mode.
 
     For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL
-    to share session state across pods.
+    to share session state across pods. If MCP_STATELESS_HTTP is also set to
+    False (see its docstring in mcp_config.py), sessions are stateful and
+    multi-pod additionally requires session-affinity routing on
+    Mcp-Session-Id at the mesh/ingress layer -- otherwise a session's
+    follow-up requests can land on a pod that never created it.
 
     Args:
         host: Host to bind to
@@ -949,13 +1030,23 @@ def run_server(
         try:
             logging.info("Starting FastMCP on %s:%s", host, port)
 
+            # See MCP_STATELESS_HTTP's docstring in mcp_config.py: stateless
+            # mode races a tool's progress notifications against the
+            # transport teardown that follows its HTTP request, crashing the
+            # session if a client disconnects mid-call.
+            stateless_http = (
+                flask_app.config.get("MCP_STATELESS_HTTP", MCP_STATELESS_HTTP)
+                if flask_app is not None
+                else MCP_STATELESS_HTTP
+            )
+
             if event_store is not None:
                 # Multi-pod: Use http_app with Redis EventStore, run with uvicorn
                 logging.info("Running in multi-pod mode with Redis EventStore")
                 app = mcp_instance.http_app(
                     transport="streamable-http",
                     event_store=event_store,
-                    stateless_http=True,
+                    stateless_http=stateless_http,
                     middleware=starlette_middleware,
                 )
                 uvicorn.run(app, host=host, port=port)
@@ -966,7 +1057,7 @@ def run_server(
                     transport="streamable-http",
                     host=host,
                     port=port,
-                    stateless_http=True,
+                    stateless_http=stateless_http,
                     middleware=starlette_middleware,
                 )
         except Exception as e:

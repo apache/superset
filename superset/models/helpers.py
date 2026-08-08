@@ -54,7 +54,7 @@ from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
-from jinja2.exceptions import TemplateError
+from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
 from pandas import DateOffset
 from sqlalchemy import and_, Column, or_, UniqueConstraint
@@ -77,6 +77,11 @@ from sqlalchemy_utils import UUIDType
 from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
+from superset.common.grouping_sets import (
+    grouping_id_column,
+    grouping_marker_label,
+    grouping_sets_clause,
+)
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
@@ -106,7 +111,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
+from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -213,6 +218,7 @@ SQLA_QUERY_KEYS = {
     "series_limit",
     "series_limit_metric",
     "group_others_when_limit_reached",
+    "grouping_sets",
     "row_limit",
     "row_offset",
     "timeseries_limit",
@@ -363,6 +369,27 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
         return str(self.uuid)[:8]
 
 
+class ChildMultipleResultsFound(MultipleResultsFound):
+    """
+    An ambiguous lookup raised while importing a *child* object.
+
+    ``ImportExportMixin.import_from_dict`` matches an incoming payload against
+    existing rows with a disjunction (unique-constraint match OR uuid match), so
+    a single payload entry can match two different DB rows — one by name and one
+    by uuid. When that happens for a top-level object it is raised before any
+    mutation, and callers may legitimately recover by skipping or returning the
+    existing row (see ``superset/commands/importers/v1/examples.py``).
+
+    When it happens for a *child* (``parent is not None``) the parent's fields
+    have already been updated and earlier siblings have already been imported,
+    so recovering by "returning the existing row" would report success over a
+    half-applied import. This subclass lets callers tell the two cases apart and
+    abort the transaction for the child case. It intentionally subclasses
+    ``MultipleResultsFound`` so existing ``except MultipleResultsFound`` handlers
+    keep working.
+    """
+
+
 class ImportExportMixin(UUIDMixin):
     export_parent: Optional[str] = None
     # The name of the attribute
@@ -500,7 +527,32 @@ class ImportExportMixin(UUIDMixin):
         try:
             obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
-        except MultipleResultsFound:
+        except MultipleResultsFound as ex:
+            # Now that children carry a ``uuid``, this match is a disjunction
+            # (name-match OR uuid-match), so a payload child can match one DB row
+            # by name and a different one by uuid — e.g. metrics renamed/swapped
+            # in the UI, then an older export re-imported with overwrite.
+            #
+            # That stays a hard error on purpose. Resolving it by preferring the
+            # uuid match would rename the uuid-matched row while the name-matched
+            # row still holds that name, trading this clear failure for an opaque
+            # ``UNIQUE constraint failed: (table_id, <name>)`` at the next flush.
+            #
+            # The two cases are not equally recoverable, so they are raised as
+            # distinct types:
+            #
+            # * ``parent is None`` (top-level object) — nothing has been mutated
+            #   yet, so a caller may legitimately skip or fall back to the
+            #   existing row. See the legacy NULL-schema handling in
+            #   ``superset/commands/dataset/importers/v1/utils.py`` (including
+            #   its ``deleted_at`` rollback) and the ``continue`` in
+            #   ``superset/commands/importers/v1/examples.py`` (issue #16051).
+            # * ``parent is not None`` (child object) — the parent's scalar
+            #   fields were already updated and earlier siblings were already
+            #   imported, so there is no "unmodified row" to fall back to.
+            #   Raising ``ChildMultipleResultsFound`` lets the dataset importer
+            #   fail the import atomically (the command's transaction rolls
+            #   back) instead of reporting success over a half-applied state.
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
@@ -508,7 +560,53 @@ class ImportExportMixin(UUIDMixin):
                 yaml.safe_dump(dict_rep),
                 exc_info=True,
             )
+            if parent is not None:
+                raise ChildMultipleResultsFound(
+                    f"{cls.__name__} matches more than one existing row under "
+                    f"its parent {type(parent).__name__}"
+                ) from ex
             raise
+
+        # A child ``uuid`` is globally unique, but the match above is scoped to
+        # this ``parent`` (and also matches on name). Importing a config as a
+        # clone — e.g. a dataset re-imported under an edited uuid while the
+        # original still exists — can leave the incoming child uuid owned by a
+        # different row. Writing it, whether on INSERT (new obj) or on an
+        # overwrite UPDATE (obj matched by name), would violate the ``uuid``
+        # unique constraint at flush. Drop the incoming uuid whenever it belongs
+        # to some other row so ``UUIDMixin`` keeps/assigns a distinct one,
+        # reverting to the pre-uuid-export behavior for that clone.
+        if parent is not None and "uuid" in dict_rep:
+            if dict_rep["uuid"] is None:
+                # The child import schemas accept ``uuid: null``. On the
+                # overwrite UPDATE that would write a literal NULL over an
+                # existing child's uuid — silently, since the column is nullable
+                # and ``unique`` permits repeated NULLs — leaving a child no
+                # folder can reference and no export can round-trip.
+                del dict_rep["uuid"]
+            else:
+                # Known limitation: this lookup goes through the normal session
+                # visibility filter, so for child classes that are soft-deletable
+                # it cannot see a soft-deleted owner of the incoming uuid. In
+                # practice the children that matter here (``TableColumn`` /
+                # ``SqlMetric``) are not soft-deletable; the only soft-deletable
+                # child registered anywhere is ``SqlaTable`` via ``Database``'s
+                # ``export_children = ["tables"]`` (the v0 legacy path), which is
+                # reachable only from a hand-crafted v0 file. There a colliding
+                # uuid owned by a soft-deleted dataset would be kept and fail on
+                # the unique constraint at flush rather than being dropped here.
+                #
+                # Skip the lookup on the common idempotent re-import, where the
+                # name-matched ``obj`` already owns the incoming uuid: the guard
+                # would keep it anyway, so the query is pure waste on that path.
+                if obj is None or str(obj.uuid) != str(dict_rep["uuid"]):
+                    uuid_owner = (
+                        db.session.query(cls)
+                        .filter(cls.uuid == dict_rep["uuid"])
+                        .first()
+                    )
+                    if uuid_owner is not None and uuid_owner is not obj:
+                        del dict_rep["uuid"]
 
         if not obj:
             is_new_obj = True
@@ -609,6 +707,7 @@ class ImportExportMixin(UUIDMixin):
                             recursive=recursive,
                             include_parent_ref=include_parent_ref,
                             include_defaults=include_defaults,
+                            export_uuids=export_uuids,
                         )
                         for child in getattr(self, cld)
                     ],
@@ -640,7 +739,10 @@ class ImportExportMixin(UUIDMixin):
 
     def reset_ownership(self) -> None:
         """object will belong to the current user"""
-        from superset.subjects.utils import get_user_subject
+        from superset.subjects.utils import (
+            get_default_viewers_for_new_asset,
+            get_user_subject,
+        )
 
         # Reset the audit pointers. When a Flask request context is
         # available we explicitly stamp the current user, otherwise we
@@ -658,6 +760,12 @@ class ImportExportMixin(UUIDMixin):
             user_subject = get_user_subject(g.user.id)
             if user_subject:
                 self.editors = [user_subject]
+            # Only dashboards and charts have ``viewers``; this mixin also
+            # serves datasets, which have editors only. Defaults never replace
+            # viewers already present on the instance, matching the create
+            # commands' "explicit viewers win" rule.
+            if hasattr(self, "viewers") and not self.viewers:  # type: ignore[has-type]
+                self.viewers = get_default_viewers_for_new_asset(g.user.id)
         else:
             self.created_by = None
             self.changed_by = None
@@ -675,6 +783,36 @@ def _user(user: User) -> str:
     if not user:
         return ""
     return escape(user)
+
+
+def format_time_humanized(timestamp: datetime) -> str:
+    """Humanize *timestamp* against the server's naive-local clock.
+
+    Module-level rather than a mixin method so values projected outside an
+    entity (the archive list reads ``deleted_at`` in a bare column query) can
+    be humanized identically. The subtraction uses ``datetime.now()`` because
+    the audit columns and ``deleted_at`` are stamped with it; humanizing here,
+    on the clock that did the stamping, is what spares every client from
+    guessing the server's timezone.
+    """
+    locale = str(get_locale())
+    time_diff = datetime.now() - timestamp
+    # Skip activation for 'en' locale as it's humanize's default locale
+    if locale == "en":
+        return humanize.naturaltime(time_diff)
+    try:
+        humanize.i18n.activate(locale)
+        try:
+            return humanize.naturaltime(time_diff)
+        finally:
+            # humanize's activation is thread-local, so there is no
+            # cross-request contamination between workers -- but without the
+            # finally, a naturaltime failure would leave the locale active
+            # for whatever request this thread serves next.
+            humanize.i18n.deactivate()
+    except Exception as e:
+        logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
+        return humanize.naturaltime(time_diff)
 
 
 class AuditMixinNullable(AuditMixin):
@@ -749,19 +887,7 @@ class AuditMixinNullable(AuditMixin):
         return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     def _format_time_humanized(self, timestamp: datetime) -> str:
-        locale = str(get_locale())
-        time_diff = datetime.now() - timestamp
-        # Skip activation for 'en' locale as it's humanize's default locale
-        if locale == "en":
-            return humanize.naturaltime(time_diff)
-        try:
-            humanize.i18n.activate(locale)
-            result = humanize.naturaltime(time_diff)
-            humanize.i18n.deactivate()
-            return result
-        except Exception as e:
-            logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
-            return humanize.naturaltime(time_diff)
+        return format_time_humanized(timestamp)
 
     @property
     def changed_on_humanized(self) -> str:
@@ -937,11 +1063,12 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     (``do_orm_execute`` + ``with_loader_criteria`` — see
     https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
 
-    Skips relationship and column loader paths: those propagate the
-    criteria from the parent statement via
-    ``with_loader_criteria(..., propagate_to_loaders=True)`` (the default)
-    rather than re-attaching it here, which would stack redundant
-    ``deleted_at IS NULL`` clauses.
+    Which statements get the criteria is decided by
+    ``_should_attach_soft_delete_criteria`` -- and note that relationship
+    loads are deliberately INCLUDED (only column loads are skipped).
+    ``propagate_to_loaders`` alone does not reliably cover lazy loads and
+    can leak soft-deleted rows through them; that predicate's own docstring
+    explains why at length. Defer to it.
 
     Per-class scoping: the listener iterates concrete ``SoftDeleteMixin``
     subclasses and attaches a ``with_loader_criteria`` only for those
@@ -1658,13 +1785,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df.columns = labels_expected
             return df
 
-        try:
-            df = self.database.get_df(
-                sql,
+        extras = query_obj.get("extras") or {}
+        system_sampling = bool(extras.get("system_sampling")) and not self.sql
+
+        def run_query(query_sql: str) -> Optional[pd.DataFrame]:
+            return self.database.get_df(
+                query_sql,
                 self.catalog,
                 self.schema,
                 mutator=assign_column_label,
             )
+
+        try:
+            if system_sampling:
+                # System-authored sampling over a physical table (e.g. the
+                # Samples tab): when the engine rejects the statement with a
+                # read-limit error, retry once with the engine's bounded-read
+                # override so a partial sample is returned instead of an error.
+                df = self.database.run_with_sampling_read_limit_retry(sql, run_query)
+            else:
+                df = run_query(sql)
         except Exception as ex:  # pylint: disable=broad-except
             # Re-raise SupersetErrorException (includes OAuth2RedirectError)
             # to bubble up to API layer
@@ -1758,6 +1898,56 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 seen.add(label)
         return tuple(labels)
 
+    def _offset_only_dttm_cols(
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
+        already_collected: set[str],
+    ) -> list[DateColumn]:
+        """``DateColumn`` entries that only need the dataset HOURS OFFSET (and any
+        time shift) applied, for temporal columns the database already returns as
+        native datetimes.
+
+        The dataset offset must apply to *every* temporal column a query returns,
+        not just the selected time column. ``_collect_dttm_labels`` only covers
+        columns that need parsing (a declared ``python_date_format``) or the
+        base-axis / granularity column; a second temporal column returned as a
+        native datetime would otherwise keep its raw, un-offset value. Columns
+        arriving as plain integers/strings without a declared format are skipped,
+        since they cannot be safely interpreted as datetimes.
+        See https://github.com/apache/superset/issues/23167.
+        """
+        if not (self.offset or query_object.time_shift) or not hasattr(
+            self, "get_column"
+        ):
+            return []
+
+        extra: list[DateColumn] = []
+        for label in df.columns:
+            if label in already_collected or label == DTTM_ALIAS:
+                continue
+            if not pd.api.types.is_datetime64_any_dtype(df[label]):
+                continue
+            column_obj = self.get_column(label)
+            if not column_obj:
+                continue
+            is_dttm = (
+                column_obj.get("is_dttm")
+                if isinstance(column_obj, dict)
+                else getattr(column_obj, "is_dttm", False)
+            )
+            if is_dttm:
+                extra.append(
+                    DateColumn(
+                        timestamp_format=None,
+                        offset=self.offset,
+                        time_shift=query_object.time_shift,
+                        col_label=label,
+                    )
+                )
+                already_collected.add(label)
+        return extra
+
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -1787,6 +1977,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     time_shift=query_object.time_shift,
                 )
             )
+
+        dttm_cols.extend(
+            self._offset_only_dttm_cols(
+                df, query_object, {col.col_label for col in dttm_cols}
+            )
+        )
 
         # Build format map from detected datetime formats stored in dataset columns
         format_map: dict[str, str] = {}
@@ -1970,8 +2166,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         offset, outer_to_dttm
                     )
 
-                    query_object_clone.inner_from_dttm = query_object_clone.from_dttm
-                    query_object_clone.inner_to_dttm = query_object_clone.to_dttm
+                    query_object_clone.inner_from_dttm = outer_from_dttm
+                    query_object_clone.inner_to_dttm = outer_to_dttm
 
                 x_axis_label = get_x_axis_label(query_object.columns)
                 query_object_clone.granularity = (
@@ -2713,6 +2909,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if template_processor:
             try:
                 sql = template_processor.process_template(sql)
+            except UndefinedError as ex:
+                # Raised when a template references an undefined value, e.g.
+                # indexing into an empty list returned by `filter_values()`
+                # when no dashboard filter is active for that column.
+                raise QueryObjectValidationError(
+                    _(
+                        "Virtual dataset template error: %(msg)s",
+                        msg=str(ex),
+                    )
+                ) from ex
             except (TemplateError, SupersetSyntaxErrorException) as ex:
                 # Extract error message from different exception types
                 if isinstance(ex, TemplateError):
@@ -3260,7 +3466,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.database.mutate_sql_based_on_config(sql)
 
             with engine.connect() as con:
-                df = pd.read_sql_query(sql=self.text(sql), con=con)
+
+                def run_query(query_sql: str) -> pd.DataFrame:
+                    return pd.read_sql_query(sql=self.text(query_sql), con=con)
+
+                if not self.sql:
+                    # Physical-table dataset: the filter-values statement is
+                    # generated by Superset, so a read-limit rejection (e.g.
+                    # ClickHouse max_rows_to_read) is retried once with the
+                    # engine's bounded-read override. Virtual datasets embed
+                    # user-authored SQL and stay governed by operator read
+                    # limits.
+                    df = self.database.run_with_sampling_read_limit_retry(
+                        sql, run_query
+                    )
+                else:
+                    df = run_query(sql)
                 # replace NaN with None to ensure it can be serialized to JSON
                 df = df.replace({np.nan: None})
                 return df["column_values"].to_list()
@@ -3455,6 +3676,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         series_limit: Optional[int] = None,
         series_limit_metric: Optional[Metric] = None,
         group_others_when_limit_reached: bool = False,
+        grouping_sets: Optional[list[list[str]]] = None,
         row_limit: Optional[int] = None,
         row_offset: Optional[int] = None,
         timeseries_limit: Optional[int] = None,
@@ -3474,14 +3696,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         template_kwargs = {
             "columns": columns,
-            "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "row_offset": row_offset,
             "time_column": granularity,
             "time_grain": time_grain,
-            "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "table_columns": [col.column_name for col in self.columns],
             "filter": filter,
         }
@@ -3520,7 +3740,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         columns_by_name: dict[str, "TableColumn"] = {
             col.column_name: col for col in self.columns
         }
-        quoted_columns_by_name = {quote(k): v for k, v in columns_by_name.items()}
 
         metrics_by_name: dict[str, "SqlMetric"] = {
             m.metric_name: m for m in self.metrics
@@ -3596,9 +3815,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 if utils.is_adhoc_metric(col):
                     # add adhoc sort by column to columns_by_name if not exists
+                    # Pass the template processor so a SIMPLE adhoc metric that
+                    # references a calculated column has that column's Jinja
+                    # expression rendered, matching SELECT/WHERE/GROUP BY. This
+                    # is a no-op for the SQL expression type, whose
+                    # `sqlExpression` was already rendered above; `processed`
+                    # only guards that branch.
                     col = self.adhoc_metric_to_sqla(
                         col,
                         columns_by_name,
+                        template_processor=template_processor,
                         processed=True,
                     )
                     # use the existing instance, if possible
@@ -3688,7 +3914,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # ``quote()`` + ``_process_select_expression`` (sqlglot
                 # ``sanitize_clause``) path below, which re-serializes the merged
                 # identifier into a table-qualified form that no longer matches
-                # ``quoted_columns_by_name`` and is emitted via ``literal_column``
+                # ``columns_by_name`` and is emitted via ``literal_column``
                 # as a single quoted name — breaking drill to detail / samples
                 # queries on nested columns (SC-111745).
                 # The guard fires for every registered physical column, not only
@@ -3704,31 +3930,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     continue
                 if is_adhoc_column(selected):
-                    _sql = selected["sqlExpression"]
-                    _column_label = selected["label"]
-                elif isinstance(selected, str):
-                    _sql = quote(selected)
-                    _column_label = selected
-
-                selected = self._process_select_expression(
-                    expression=_sql,
-                    database_id=self.database_id,
-                    engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
-                )
-
-                select_exprs.append(
-                    self.convert_tbl_column_to_sqla_col(
-                        quoted_columns_by_name[selected],
+                    # Delegate to ``adhoc_column_to_sqla`` (same path as the
+                    # ``need_groupby`` branch) so calculated columns are resolved
+                    # via metadata lookup and their expression is inlined
+                    # (#34784).
+                    outer, _unused = self.adhoc_column_to_sqla(
+                        col=selected,
                         template_processor=template_processor,
-                        label=_column_label,
                     )
-                    if selected in quoted_columns_by_name
-                    else self.make_sqla_column_compatible(
-                        literal_column(selected), _column_label
+                    select_exprs.append(outer)
+                    continue
+                if isinstance(selected, str):
+                    selected = self._process_select_expression(
+                        expression=quote(selected),
+                        database_id=self.database_id,
+                        engine=self.database.backend,
+                        schema=self.schema,
+                        template_processor=template_processor,
                     )
-                )
+                    select_exprs.append(
+                        self.make_sqla_column_compatible(
+                            literal_column(selected), selected
+                        )
+                    )
             metrics_exprs = []
 
         time_filters = []
@@ -3787,12 +4011,58 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if time_filter_column is not None:
                     time_filters.append(time_filter_column)
 
+        # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
+        # real GROUP BY signal and also captures the timeseries time bucket. A
+        # non-aggregate Custom SQL metric under a GROUP BY is invalid SQL, so
+        # raise a clear error instead of a raw database one (#38913). Templated
+        # expressions may render to an aggregate at runtime, so leave them alone.
+        if groupby_all_columns:
+            for metric in metrics:
+                if (
+                    utils.is_adhoc_metric(metric)
+                    and metric.get("expressionType")
+                    == utils.AdhocMetricExpressionType.SQL
+                ):
+                    expression = metric.get("sqlExpression")
+                    if (
+                        isinstance(expression, str)
+                        and "{{" not in expression
+                        and "{%" not in expression
+                        and not has_aggregate(expression, self.database.backend)
+                    ):
+                        raise QueryObjectValidationError(
+                            _(
+                                'The Custom SQL metric "%(metric)s" is not an '
+                                "aggregate and can't be combined with a GROUP BY. "
+                                "Wrap it in an aggregate function, e.g. "
+                                "%(example)s.",
+                                metric=utils.get_metric_name(metric),
+                                example="MAX(%s)" % expression,
+                            )
+                        )
+
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
         # raw columns as custom SQL adhoc metric).
         select_exprs = remove_duplicates(
             select_exprs + metrics_exprs, key=lambda x: x.name
         )
+
+        # GROUPING SETS collapse (SIP.md, phase 3b): when the request supplies
+        # rollup levels via `grouping_sets` and the engine supports it, compute
+        # every level in one query and tag each row with GROUPING() markers so
+        # the caller can split the result back per level. Strictly opt-in: with
+        # `grouping_sets` unset the query is byte-identical to before.
+        use_grouping_sets = bool(
+            grouping_sets
+            and groupby_all_columns
+            and db_engine_spec.supports_grouping_sets
+        )
+        if use_grouping_sets:
+            select_exprs = select_exprs + [
+                grouping_id_column(gby_expr, grouping_marker_label(name))
+                for name, gby_expr in groupby_all_columns.items()
+            ]
 
         # Expected output columns
         labels_expected = [c.key for c in select_exprs]
@@ -3805,7 +4075,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         qry = sa.select(*select_exprs)
 
         if groupby_all_columns:
-            qry = qry.group_by(*groupby_all_columns.values())
+            if use_grouping_sets:
+                gs_levels = [
+                    [
+                        groupby_all_columns[col]
+                        for col in level
+                        if col in groupby_all_columns
+                    ]
+                    for level in grouping_sets or []
+                ]
+                qry = qry.group_by(grouping_sets_clause(gs_levels))
+            else:
+                qry = qry.group_by(*groupby_all_columns.values())
 
         where_clause_and: list[ColumnElement] = []
         having_clause_and: list[ColumnElement] = []
@@ -4123,9 +4404,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             direction = sa.asc if ascending else sa.desc
             qry = qry.order_by(direction(col))
 
-        if row_limit:
+        # A GROUPING SETS query computes a bounded set of rollup levels; applying
+        # a row LIMIT is both unnecessary and unparseable by some SQL parsers
+        # (LIMIT after a GROUPING SETS GROUP BY), so skip it for that path.
+        if row_limit and not use_grouping_sets:
             qry = qry.limit(row_limit)
-        if row_offset:
+        if row_offset and self.database.db_engine_spec.supports_offset:
             qry = qry.offset(row_offset)
 
         if series_limit and groupby_series_columns:
