@@ -28,6 +28,7 @@ Alerts and reports are disabled by default. To turn them on, you'll need to chan
 - Users can customize the email subject by including date code placeholders, which will automatically be replaced with the corresponding UTC date when the email is sent. To enable this functionality, activate the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags). This enables date formatting in email subjects, preventing all reporting emails from being grouped into the same thread (optional for the reporting feature).
   - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
   - If no date code is provided, the original string will be used as the email subject.
+- Each alert/report has an "Include a link back to Superset" option (enabled by default) controlling whether the call-to-action link is included in email and Slack notifications. The link text in emails is configurable via `EMAIL_REPORTS_CTA`; the Slack message always uses "Explore in Superset". Uncheck the option when recipients should not receive a link to your Superset host, e.g. for external audiences.
 
 ##### Disable dry-run mode
 
