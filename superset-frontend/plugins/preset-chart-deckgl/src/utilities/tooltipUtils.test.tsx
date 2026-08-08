@@ -18,8 +18,21 @@
  */
 
 import { JsonObject, QueryFormData } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { render } from '@testing-library/react';
-import { createTooltipContent } from './tooltipUtils';
+import { createTooltipContent, CommonTooltipRows } from './tooltipUtils';
+import { NULL_CATEGORY_KEY } from '../utils';
+
+test('category row shows the null category as N/A, matching the legend', () => {
+  const { container } = render(
+    <>
+      {CommonTooltipRows.category({ object: { cat_color: NULL_CATEGORY_KEY } })}
+    </>,
+  );
+
+  expect(container.textContent).toContain(Constants.NULL_DISPLAY);
+  expect(container.textContent).not.toContain(NULL_CATEGORY_KEY);
+});
 
 test('buildFieldBasedTooltipItems does not append configured metric when tooltip_contents already has string metric', () => {
   const formData = {
