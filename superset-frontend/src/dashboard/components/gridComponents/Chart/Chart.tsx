@@ -208,7 +208,10 @@ const Chart = (props: ChartProps) => {
   );
   const isExpanded = useSelector(
     (state: RootState) =>
-      !!(state.dashboardState as JsonObject).expandedSlices?.[props.id],
+      !!(
+        state.dashboardState.expandedSlices?.[props.id] ??
+        state.dashboardState.expandAllSlices
+      ),
   );
   const supersetCanExplore = useSelector(
     (state: RootState) =>
