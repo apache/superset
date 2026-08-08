@@ -30,3 +30,4 @@ export * from './getTemporalColumns';
 export * from './displayTimeRelatedControls';
 export * from './colorControls';
 export * from './metricColumnFilter';
+export * from './buildSortMetricOrderby';

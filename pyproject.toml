@@ -60,18 +60,27 @@ dependencies = [
     "flask-login>=0.6.0, < 1.0",
     "flask-migrate>=4.1.0, <5.0",
     "flask-session>=0.4.0, <1.0",
+    # Pinned explicitly below 3.0: 3.0.5 resolves without conflict and
+    # supports both SQLAlchemy 1.4 and 2.0, but real CI runs surfaced a
+    # structural incompatibility with Superset's current session/app-context
+    # handling across Celery task boundaries (see PR #42542) -- widespread
+    # "NoneType has no attribute X" failures and MySQL lock-wait timeouts,
+    # not just a connection-pool quirk. Needs dedicated investigation, not a
+    # driver-compat-prep bump; revisit alongside the actual SQLAlchemy 2.0
+    # core bump (discussion #40273, step 6).
+    "flask-sqlalchemy>=2.5.1, <4.0",
     "flask-wtf>=1.3.0, <2.0",
     "geopy",
     "greenlet<=3.5.4, >=3.5.4",
     "gunicorn>=26.0.0, <27; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
-    "holidays>=0.99, <1",
+    "holidays>=0.101, <1",
     "humanize",
     "isodate",
     "jsonpath-ng>=1.8.0, <2",
     "Mako>=1.2.2",
-    "markdown>=3.10.2",
+    "markdown>=3.10.3",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
     # https://github.com/apache/superset/issues/33162
@@ -79,7 +88,7 @@ dependencies = [
     "marshmallow-union>=0.1.15.post1",
     "msgpack>=1.2.0, <1.3",
     "nh3>=0.3.5, <0.4",
-    "numpy>1.23.5, <2.3",
+    "numpy>=1.23.5, <2.5",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
@@ -99,17 +108,17 @@ dependencies = [
     "pyarrow>=24.0.0, <26", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
     "pyyaml>=6.0.3, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
-    "redis>=5.0.0, <9.0",
+    "redis>=8.1.0, <9.0",
     "rison>=2.0.1, <3.0",
-    "selenium>=4.45.0, <5.0",
-    "shillelagh[gsheetsapi]>=1.4.4, <2.0",
+    "selenium>=4.46.0, <5.0",
+    "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=4.1.1",
     "slack_sdk>=3.43.0, <4",
     "sqlalchemy>=1.4.43, <2", # 1.4.43 adds the python-oracledb (oracle+oracledb) dialect
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
-    "sqlglot>=30.12.0, <31",
+    "sqlglot>=30.14.0, <31",
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -122,16 +131,26 @@ dependencies = [
 
 [project.optional-dependencies]
 
-athena = ["pyathena[pandas]>=3.35.2, <4"]
+athena = ["pyathena[pandas]>=3.35.4, <4"]
+# No SQLAlchemy 2.0 support anywhere in this dialect's ecosystem today: our
+# own preset-io/sqlalchemy-aurora-data-api fork is dead since 2021, and the
+# more active community fork (cloud-utils/sqlalchemy-aurora-data-api) has an
+# unresolved SQLAlchemy 2.0 break (upstream issue #43). See
+# superset/db_engine_specs/aurora.py's known_incompatibilities metadata.
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
     "pandas-gbq>=0.35.0",
-    "sqlalchemy-bigquery>=1.17.0",
-    "google-cloud-bigquery>=3.42.2",
+    # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
+    # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
+    "sqlalchemy-bigquery>=1.17.1",
+    "google-cloud-bigquery>=3.42.3",
 ]
 clickhouse = ["clickhouse-connect>=1.6.0, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
-crate = ["sqlalchemy-cratedb>=0.41.0, <1"]
+crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
+# sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
+# explicitly excluding SQLAlchemy 2.0. See superset/db_engine_specs/d1.py's
+# known_incompatibilities metadata.
 d1 = [
     "superset-engine-d1>=0.1.0",
     "sqlalchemy-d1>=0.1.0",
@@ -145,30 +164,47 @@ databricks = [
 datafusion = ["flightsql-dbapi>=0.2.2, <0.3"]
 db2 = ["ibm-db-sa<=0.4.4, >=0.4.4"]
 denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
-dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
-drill = ["sqlalchemy-drill>=1.1.10, <2"]
+# sqlalchemy-dremio 3.0.5+ hard-pins sqlalchemy~=2.0.41, dropping 1.4; 3.0.4
+# is the last dual-compat release. Capped below 3.0.5 for now; widen back to
+# <4 in lockstep with Superset's own SQLAlchemy 2.0 core bump (discussion
+# #40273), not before.
+dremio = ["sqlalchemy-dremio>=1.2.1, <3.0.5"]
+# <2 was an artificial ceiling; upstream has no SQLAlchemy version cap and
+# 1.1.10 already supports SQLAlchemy 2.0 (added `import_dbapi` in 1.1.7).
+drill = ["sqlalchemy-drill>=1.1.10, <3"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.5.4,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.5,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.8.2"]
-solr = ["sqlalchemy-solr >= 0.2.4.3"]
+# Effectively unmaintained (only dependabot bumps since 2024); hard-pinned to
+# SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See
+# superset/db_engine_specs/solr.py's known_incompatibilities metadata.
+solr = ["sqlalchemy-solr>=0.2.4.3"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
-exasol = ["sqlalchemy-exasol>=2.4.0, <8.0"]
+# sqlalchemy-exasol cuts hard from SQLAlchemy 1.4-only (<6.0.0) to 2.0-only
+# (>=6.0.0) with no dual-compat release. Capped below 6.0.0 for now; bump to
+# >=6.0.0,<8.0 in lockstep with Superset's own SQLAlchemy 2.0 core bump
+# (discussion #40273), not before.
+exasol = ["sqlalchemy-exasol>=2.4.0, <6.0.0"]
 excel = ["xlrd>=2.0.2, <2.1"]
 # Async dashboard "Export Data/Images to Excel": uploads the workbook to S3 and
 # emails a pre-signed link. boto3 is imported lazily by superset.utils.s3, so
 # installing this extra is only required to actually run exports.
 excel-export = ["boto3"]
 fastmcp = [
-    "fastmcp>=3.4.3,<4.0",
+    "fastmcp>=3.4.5,<4.0",
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
     "tiktoken>=0.13.0,<1.0",
 ]
-firebird = ["sqlalchemy-firebird>=0.8.0, <2.2"]
-firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
-gevent = ["gevent>=26.4.0"]
-gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
+# sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
+# Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
+# release. Capped below 2.0.0 for now; bump to >=2.2.0 in lockstep with
+# Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
+firebird = ["sqlalchemy-firebird>=0.8.0, <2.0.0"]
+firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
+gevent = ["gevent>=26.7.0"]
+gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
 hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
 hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
@@ -177,6 +213,9 @@ hive = [
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
 impala = ["impyla>=0.24.0, <0.25"]
+# Actively maintained upstream, but setup.py on main hard-pins
+# sqlalchemy==1.4.*, no SQLAlchemy 2.0 work yet. See
+# superset/db_engine_specs/kusto.py's known_incompatibilities metadata.
 kusto = ["sqlalchemy-kusto>=3.1.2, <4"]
 kylin = ["kylinpy>=2.8.4, <2.9"]
 mssql = ["pymssql>=2.3.13, <3"]
@@ -184,7 +223,10 @@ mssql = ["pymssql>=2.3.13, <3"]
 motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.2.8, <3"]
 ocient = [
-    "sqlalchemy-ocient>=1.0.0, <4",
+    # Closed-source vendor package with no public changelog; permissive
+    # unpinned sqlalchemy>=1.4 declared, but SQLAlchemy 2.0 support is
+    # unverified. Lower confidence than the other bumps in this PR.
+    "sqlalchemy-ocient>=3.0.0, <4",
     "pyocient>=1.0.15, <4",
     "shapely",
     "geojson",
@@ -192,14 +234,22 @@ ocient = [
 oracle = ["oracledb>=4.0.2, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb>=5.0.0, <10.0.0"]
-playwright = ["playwright>=1.61.0, <2"]
+playwright = ["playwright>=1.62.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.338.0"]
 prophet = ["prophet>=1.3.0, <2"]
+# sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
+# (>=1.0.0) with no dual-compat release; the existing <0.9 ceiling already
+# keeps this on the 1.4-only line. Bump to >=1.0.0 in lockstep with
+# Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
-risingwave = ["sqlalchemy-risingwave"]
-shillelagh = ["shillelagh[all]>=1.4.4, <2"]
+# No release of sqlalchemy-risingwave has ever supported both SQLAlchemy 1.4
+# and 2.0 (version numbers don't track SQLAlchemy compat monotonically); pin
+# to the newest 1.4-only release for now. Bump to >=2.0.0 in lockstep with
+# Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
+risingwave = ["sqlalchemy-risingwave>=1.4.1, <3.0.0"]
+shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.11.0, <2"]
 sqlite = ["syntaqlite>=0.7.0,<0.8.0"]
@@ -209,14 +259,14 @@ spark = [
     "thrift>=0.24.0, <1",
 ]
 tdengine = [
-    "taospy>=2.8.9",
+    "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
-teradata = ["teradatasql>=20.0.0.62"]
+teradata = ["teradatasql>=20.0.0.64"]
 thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>= 11.1.2, < 11.2"]
-starrocks = ["starrocks>=1.3.3, <2"]
+starrocks = ["starrocks>=1.3.4, <2"]
 doris = ["pydoris>=1.2.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1.2"]
 ydb = ["ydb-sqlalchemy>=0.1.22", "ydb-sqlglot-plugin>=0.2.8"]
@@ -236,7 +286,7 @@ development = [
     "progress>=1.6.1,<2",
     "psutil",
     "pyfakefs",
-    "pyinstrument>=5.1.2,<6",
+    "pyinstrument>=5.1.3,<6",
     "pylint",
     "pytest<10.0.0", # cap below the next major until validated; the earlier <8 pin (current_app proxy timing) no longer reproduces
     "pytest-asyncio",
@@ -485,6 +535,11 @@ authorized_licenses = [
 # Seems ok, might need legal review
 # https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
 polyline = "2"
+# NumPy 2.x reports a combined SPDX license expression covering vendored
+# code (BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0), all of which
+# are permissive OSI-approved licenses; the package itself remains
+# BSD-3-Clause. https://github.com/numpy/numpy/blob/main/LICENSE.txt
+numpy = "2"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE

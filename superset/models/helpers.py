@@ -369,6 +369,27 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
         return str(self.uuid)[:8]
 
 
+class ChildMultipleResultsFound(MultipleResultsFound):
+    """
+    An ambiguous lookup raised while importing a *child* object.
+
+    ``ImportExportMixin.import_from_dict`` matches an incoming payload against
+    existing rows with a disjunction (unique-constraint match OR uuid match), so
+    a single payload entry can match two different DB rows — one by name and one
+    by uuid. When that happens for a top-level object it is raised before any
+    mutation, and callers may legitimately recover by skipping or returning the
+    existing row (see ``superset/commands/importers/v1/examples.py``).
+
+    When it happens for a *child* (``parent is not None``) the parent's fields
+    have already been updated and earlier siblings have already been imported,
+    so recovering by "returning the existing row" would report success over a
+    half-applied import. This subclass lets callers tell the two cases apart and
+    abort the transaction for the child case. It intentionally subclasses
+    ``MultipleResultsFound`` so existing ``except MultipleResultsFound`` handlers
+    keep working.
+    """
+
+
 class ImportExportMixin(UUIDMixin):
     export_parent: Optional[str] = None
     # The name of the attribute
@@ -506,7 +527,32 @@ class ImportExportMixin(UUIDMixin):
         try:
             obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
-        except MultipleResultsFound:
+        except MultipleResultsFound as ex:
+            # Now that children carry a ``uuid``, this match is a disjunction
+            # (name-match OR uuid-match), so a payload child can match one DB row
+            # by name and a different one by uuid — e.g. metrics renamed/swapped
+            # in the UI, then an older export re-imported with overwrite.
+            #
+            # That stays a hard error on purpose. Resolving it by preferring the
+            # uuid match would rename the uuid-matched row while the name-matched
+            # row still holds that name, trading this clear failure for an opaque
+            # ``UNIQUE constraint failed: (table_id, <name>)`` at the next flush.
+            #
+            # The two cases are not equally recoverable, so they are raised as
+            # distinct types:
+            #
+            # * ``parent is None`` (top-level object) — nothing has been mutated
+            #   yet, so a caller may legitimately skip or fall back to the
+            #   existing row. See the legacy NULL-schema handling in
+            #   ``superset/commands/dataset/importers/v1/utils.py`` (including
+            #   its ``deleted_at`` rollback) and the ``continue`` in
+            #   ``superset/commands/importers/v1/examples.py`` (issue #16051).
+            # * ``parent is not None`` (child object) — the parent's scalar
+            #   fields were already updated and earlier siblings were already
+            #   imported, so there is no "unmodified row" to fall back to.
+            #   Raising ``ChildMultipleResultsFound`` lets the dataset importer
+            #   fail the import atomically (the command's transaction rolls
+            #   back) instead of reporting success over a half-applied state.
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
@@ -514,7 +560,53 @@ class ImportExportMixin(UUIDMixin):
                 yaml.safe_dump(dict_rep),
                 exc_info=True,
             )
+            if parent is not None:
+                raise ChildMultipleResultsFound(
+                    f"{cls.__name__} matches more than one existing row under "
+                    f"its parent {type(parent).__name__}"
+                ) from ex
             raise
+
+        # A child ``uuid`` is globally unique, but the match above is scoped to
+        # this ``parent`` (and also matches on name). Importing a config as a
+        # clone — e.g. a dataset re-imported under an edited uuid while the
+        # original still exists — can leave the incoming child uuid owned by a
+        # different row. Writing it, whether on INSERT (new obj) or on an
+        # overwrite UPDATE (obj matched by name), would violate the ``uuid``
+        # unique constraint at flush. Drop the incoming uuid whenever it belongs
+        # to some other row so ``UUIDMixin`` keeps/assigns a distinct one,
+        # reverting to the pre-uuid-export behavior for that clone.
+        if parent is not None and "uuid" in dict_rep:
+            if dict_rep["uuid"] is None:
+                # The child import schemas accept ``uuid: null``. On the
+                # overwrite UPDATE that would write a literal NULL over an
+                # existing child's uuid — silently, since the column is nullable
+                # and ``unique`` permits repeated NULLs — leaving a child no
+                # folder can reference and no export can round-trip.
+                del dict_rep["uuid"]
+            else:
+                # Known limitation: this lookup goes through the normal session
+                # visibility filter, so for child classes that are soft-deletable
+                # it cannot see a soft-deleted owner of the incoming uuid. In
+                # practice the children that matter here (``TableColumn`` /
+                # ``SqlMetric``) are not soft-deletable; the only soft-deletable
+                # child registered anywhere is ``SqlaTable`` via ``Database``'s
+                # ``export_children = ["tables"]`` (the v0 legacy path), which is
+                # reachable only from a hand-crafted v0 file. There a colliding
+                # uuid owned by a soft-deleted dataset would be kept and fail on
+                # the unique constraint at flush rather than being dropped here.
+                #
+                # Skip the lookup on the common idempotent re-import, where the
+                # name-matched ``obj`` already owns the incoming uuid: the guard
+                # would keep it anyway, so the query is pure waste on that path.
+                if obj is None or str(obj.uuid) != str(dict_rep["uuid"]):
+                    uuid_owner = (
+                        db.session.query(cls)
+                        .filter(cls.uuid == dict_rep["uuid"])
+                        .first()
+                    )
+                    if uuid_owner is not None and uuid_owner is not obj:
+                        del dict_rep["uuid"]
 
         if not obj:
             is_new_obj = True
@@ -615,6 +707,7 @@ class ImportExportMixin(UUIDMixin):
                             recursive=recursive,
                             include_parent_ref=include_parent_ref,
                             include_defaults=include_defaults,
+                            export_uuids=export_uuids,
                         )
                         for child in getattr(self, cld)
                     ],

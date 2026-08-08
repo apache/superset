@@ -981,7 +981,6 @@ function AnnotationLayer({
           ariaLabel={t('Annotation layer stroke')}
           name="annotation-layer-stroke"
           label={t('Style')}
-          // see '../../../visualizations/nvd3_vis.css'
           options={[
             { value: 'solid', label: t('Solid') },
             { value: 'dashed', label: t('Dashed') },
@@ -998,7 +997,6 @@ function AnnotationLayer({
           ariaLabel={t('Annotation layer opacity')}
           name="annotation-layer-opacity"
           label={t('Opacity')}
-          // see '../../../visualizations/nvd3_vis.css'
           options={[
             { value: '', label: t('Solid') },
             { value: 'opacityLow', label: '0.2' },
