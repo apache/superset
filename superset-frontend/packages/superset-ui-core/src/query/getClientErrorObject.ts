@@ -88,7 +88,14 @@ const ERROR_CODE_LOOKUP = {
 };
 
 export function checkForHtml(str: string): boolean {
-  return !isJsonString(str) && isProbablyHTML(str);
+  // An HTML error page served by a proxy or gateway begins with markup, and
+  // has no message worth showing. A server-authored error that merely quotes
+  // a tag — a database syntax error echoing back the offending `<a>`, say —
+  // begins with prose, and is the whole point of the response. Only the
+  // former may be collapsed into a generic status message.
+  return (
+    !isJsonString(str) && str.trimStart().startsWith('<') && isProbablyHTML(str)
+  );
 }
 
 export function parseStringResponse(str: string): string {
