@@ -83,6 +83,28 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 ```
 
+When the cache backend is `SupersetMetastoreCache`, report execution does not
+write channel listings into the cache because that backend commits the report's
+database session. Schedule the dedicated warm-up task so cache misses are
+repopulated outside report transactions:
+
+```python
+from celery.schedules import crontab
+
+from superset.config import CeleryConfig
+
+class CustomCeleryConfig(CeleryConfig):
+    beat_schedule = {
+        **CeleryConfig.beat_schedule,
+        "slack.cache_channels": {
+            "task": "slack.cache_channels",
+            "schedule": crontab(minute="0", hour="*"),
+        },
+    }
+
+CELERY_CONFIG = CustomCeleryConfig
+```
+
 #### Slack Enterprise Grid (org-scoped tokens)
 
 On a Slack Enterprise Grid org, an org-scoped token spans multiple workspaces, so
@@ -97,6 +119,38 @@ SLACK_TEAM_ID = "T01234567"
 
 This defaults to `None` and only needs to be set when using an org-scoped token;
 it is accepted but ignored for standard workspace-level tokens.
+
+#### Slack delivery timeouts and retries
+
+Slack delivery uses a request timeout and an application retry budget:
+
+```python
+# Timeout for one Slack API request, in seconds
+SLACK_API_TIMEOUT = 30
+
+# Retry budget shared by every Slack destination and upload phase
+SLACK_SEND_RETRY_MAX_TIME = 150
+
+# Number of explicit HTTP 429 responses retried using Slack's Retry-After value
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
+
+# Cooldown after an on-demand channel-cache refresh
+SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
+```
+
+All channels and upload phases in one report execution share a single
+`SLACK_SEND_RETRY_MAX_TIME` budget. This prevents a large recipient list from
+multiplying the report's wall-clock retry time. The budget is also clamped to
+the report's remaining working timeout, leaving Celery's configured timeout lag
+available for final state persistence. The effective configured budget is at
+least one second longer than `SLACK_API_TIMEOUT`.
+
+To avoid posting the same report twice, Superset does not replay terminal
+`chat.postMessage` or `files.completeUploadExternal` operations after ambiguous
+server or transport failures. Explicit Slack HTTP 429 responses remain
+retryable. These delivery settings and semantics apply to Slack v2 reports and
+legacy text-only Slack delivery, independently of the
+`ALERT_REPORT_SLACK_V2` feature flag.
 
 ### Webhook integration
 
