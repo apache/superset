@@ -548,6 +548,42 @@ describe('extractSeries', () => {
     expect(expandedValue).toBeCloseTo(9007199254740993 / totalStackedValues[0]);
   });
 
+  // Regression for #36401: the default series sort (SortSeriesType.Sum)
+  // calls lodash's sumBy across all rows for a given series name. If one
+  // row's metric value was parsed as BigInt and another row's value for
+  // the same series is a Number, summing them throws before extractSeries
+  // ever reaches the Expand-mode conversion.
+  test('sorts series by sum without throwing when rows mix BigInt and Number values for the same series', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        a: BigInt('9007199254740993'),
+      },
+      {
+        __timestamp: '2000-02-01',
+        a: 5,
+      },
+    ];
+
+    expect(() =>
+      extractSeries(data, { sortSeriesType: SortSeriesType.Sum }),
+    ).not.toThrow();
+
+    const [series] = extractSeries(data, {
+      sortSeriesType: SortSeriesType.Sum,
+    });
+    expect(series).toEqual([
+      {
+        id: 'a',
+        name: 'a',
+        data: [
+          ['2000-01-01', 9007199254740992],
+          ['2000-02-01', 5],
+        ],
+      },
+    ]);
+  });
+
   test('should remove rows that have a null x-value', () => {
     const data = [
       {
