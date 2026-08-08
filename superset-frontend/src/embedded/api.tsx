@@ -17,12 +17,16 @@
  * under the License.
  */
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { partition } from 'lodash';
+import { batch } from 'react-redux';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
 import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
 import { getChartDataPayloads as getChartDataPayloadsUtil } from './utils';
+import { updateDataMask } from '../dataMask/actions';
 
 const bootstrapData = getBootstrapData();
 
@@ -40,6 +44,7 @@ type EmbeddedSupersetApi = {
   getChartDataPayloads: (params?: {
     chartId?: number;
   }) => Promise<Record<string, JsonObject>>;
+  setDataMask: ({ dataMask }: { dataMask: DataMaskStateWithId }) => void;
 };
 
 const getScrollSize = (): Size => ({
@@ -83,6 +88,32 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
 
+const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
+  // The dashboard's own data mask holds an entry for every native filter and
+  // every cross-filter-capable chart, so it doubles as the set of filter ids
+  // this dashboard can accept. Anything else — a filter id from a different
+  // dashboard, or the change-trigger flags that `observeDataMask` emits
+  // alongside the mask — would otherwise be inserted as a bogus filter and
+  // treated as a globally scoped filter by the active-filter derivation.
+  const knownFilterIds = new Set(Object.keys(getDataMask()));
+  const [applicable, ignored] = partition(Object.entries(dataMask), ([id]) =>
+    knownFilterIds.has(id),
+  );
+
+  if (ignored.length) {
+    logging.warn(
+      '[superset] setDataMask ignored unknown filter ids:',
+      ignored.map(([id]) => id).join(', '),
+    );
+  }
+
+  batch(() => {
+    applicable.forEach(([filterId, mask]) => {
+      store?.dispatch(updateDataMask(filterId, mask));
+    });
+  });
+};
+
 const getChartStates = () =>
   store?.getState()?.dashboardState?.chartStates || {};
 
@@ -102,4 +133,5 @@ export const embeddedApi: EmbeddedSupersetApi = {
   getDataMask,
   getChartStates,
   getChartDataPayloads,
+  setDataMask,
 };
