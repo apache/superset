@@ -223,7 +223,19 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
 
-            mutated_sql = merged_database.mutate_sql_based_on_config(sql)
+            # `is_split=True` mirrors the non-streaming download path exactly:
+            # Database.get_df() -> _execute_sql_with_mutation_and_logging()
+            # always calls mutate_sql_based_on_config(..., is_split=True) on
+            # SQL Lab's stored select_sql/executed_sql, and the chart query
+            # path applies its own mutation upstream (in
+            # get_query_str_extended, with is_split=False) before landing
+            # here. Since `is_split` and `MUTATE_AFTER_SPLIT` are compared
+            # for equality, `is_split=True` is the complement of that
+            # upstream chart mutation -- together they mutate the SQL
+            # exactly once for either MUTATE_AFTER_SPLIT setting, instead of
+            # double-mutating when it's False and never mutating when it's
+            # True.
+            mutated_sql = merged_database.mutate_sql_based_on_config(sql, is_split=True)
 
             with merged_database.get_sqla_engine(
                 catalog=catalog, schema=schema
