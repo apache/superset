@@ -208,8 +208,10 @@ Helper to safely read .Values.supersetNode.connections.<key> without erroring wh
 
 {{- define "superset.config" }}
 {{- /* SECURITY: Validate admin password is set if admin creation is enabled */}}
-{{- if and .Values.init.createAdmin (or (not .Values.init.adminUser.password) (eq .Values.init.adminUser.password "")) }}
-{{- fail "SECURITY ERROR: init.createAdmin is true but init.adminUser.password is empty. You must set a secure password using --set init.adminUser.password='your-password' or via external secret." }}
+{{- $adminPasswordSet := and .Values.init.adminUser.password (not (eq .Values.init.adminUser.password "")) }}
+{{- $adminSecretSet := and .Values.init.adminUser.existingSecret (not (eq .Values.init.adminUser.existingSecret "")) }}
+{{- if and .Values.init.enabled .Values.init.createAdmin (not (or $adminPasswordSet $adminSecretSet)) }}
+{{- fail "SECURITY ERROR: init.createAdmin is true but neither init.adminUser.password nor init.adminUser.existingSecret is set. You must set a secure password using --set init.adminUser.password='your-password' or provide an existing Kubernetes secret via init.adminUser.existingSecret." }}
 {{- end }}
 
 import os
@@ -683,6 +685,7 @@ TALISMAN_CONFIG = {
 {{- end -}}
 
 {{- define "superset.initScript" -}}
+{{- $adminSecretSet := and .Values.init.adminUser.existingSecret (not (eq .Values.init.adminUser.existingSecret "")) }}
 #!/bin/sh
 set -eu
 {{- if dig "istio" "terminateSidecarOnExit" false .Values.init }}
@@ -700,15 +703,28 @@ superset init
 echo "Init job: Creating admin user and loading initial data..."
 {{- if .Values.init.createAdmin }}
 echo "Creating admin user (if not present)..."
-if superset fab list-users 2>/dev/null | grep -qF {{ printf "username:%s" .Values.init.adminUser.username | squote }}; then
+{{- if $adminSecretSet }}
+ADMIN_USERNAME="$SUPERSET_ADMIN_USERNAME"
+ADMIN_FIRSTNAME="$SUPERSET_ADMIN_FIRSTNAME"
+ADMIN_LASTNAME="$SUPERSET_ADMIN_LASTNAME"
+ADMIN_EMAIL="$SUPERSET_ADMIN_EMAIL"
+ADMIN_PASSWORD="$SUPERSET_ADMIN_PASSWORD"
+{{- else }}
+ADMIN_USERNAME={{ .Values.init.adminUser.username | squote }}
+ADMIN_FIRSTNAME={{ .Values.init.adminUser.firstname | squote }}
+ADMIN_LASTNAME={{ .Values.init.adminUser.lastname | squote }}
+ADMIN_EMAIL={{ .Values.init.adminUser.email | squote }}
+ADMIN_PASSWORD={{ .Values.init.adminUser.password | squote }}
+{{- end }}
+if superset fab list-users 2>/dev/null | grep -qF 'username:'"${ADMIN_USERNAME}"; then
   echo "Admin user already exists, skipping."
 else
   superset fab create-admin \
-      --username {{ .Values.init.adminUser.username | squote }} \
-      --firstname {{ .Values.init.adminUser.firstname | squote }} \
-      --lastname {{ .Values.init.adminUser.lastname | squote }} \
-      --email {{ .Values.init.adminUser.email | squote }} \
-      --password {{ .Values.init.adminUser.password | squote }}
+      --username "${ADMIN_USERNAME}" \
+      --firstname "${ADMIN_FIRSTNAME}" \
+      --lastname "${ADMIN_LASTNAME}" \
+      --email "${ADMIN_EMAIL}" \
+      --password "${ADMIN_PASSWORD}"
 fi
 {{- else }}
 echo "Skipping admin creation (init.createAdmin=false)"
