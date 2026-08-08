@@ -61,9 +61,13 @@ export const CloseButton = styled.button`
     border: none;
     border-right: solid 1px ${theme.colorBorder};
     padding: 0;
-    outline: none;
+    outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring with global baseline */
     border-bottom-left-radius: 3px;
     border-top-left-radius: 3px;
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px ${theme.colorPrimary};
+    }
   `}
 `;
 
