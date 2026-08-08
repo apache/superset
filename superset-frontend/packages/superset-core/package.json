@@ -109,7 +109,6 @@
     "@types/lodash": "^4.17.24",
     "@types/react": "*",
     "@types/react-loadable": "*",
-    "@types/react-window": "^1.8.8",
     "@types/tinycolor2": "*",
     "typescript": "^5.0.0"
   },
