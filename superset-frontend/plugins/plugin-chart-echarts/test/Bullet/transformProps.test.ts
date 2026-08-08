@@ -256,3 +256,50 @@ test('splits into one bullet row per group value with shared markers', () => {
   // grouped bar tooltips name the row
   expect(series[0].tooltip.formatter({ dataIndex: 1 })).toContain('NY');
 });
+
+test('applies custom range_colors to their bands, matched by original (pre-sort) range order', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ rangeColors: ['#ff0000', '#00ff00', '#0000ff'] }),
+  );
+  const { series } = echartOptions as any;
+
+  // bands are drawn largest-threshold-first (300, 200, 100), but colors
+  // must stay pinned to their original range value (100 -> red, 200 ->
+  // green, 300 -> blue), not to the post-sort draw order.
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  expect(bandColors).toEqual(['#0000ff', '#00ff00', '#ff0000']);
+});
+
+test('falls back to the default theme-token ramp when range_colors is absent (backward compatibility)', () => {
+  const { echartOptions } = transformProps(chartProps());
+  const { series } = echartOptions as any;
+
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  expect(bandColors).toEqual([
+    supersetTheme.colorFillQuaternary,
+    supersetTheme.colorFillTertiary,
+    supersetTheme.colorFillSecondary,
+  ]);
+});
+
+test('falls back to the default ramp for individual ranges left unset in range_colors', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ rangeColors: ['', '#00ff00', ''] }),
+  );
+  const { series } = echartOptions as any;
+
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  // draw order is 300, 200, 100 -> only the 200 threshold (index 1) has a
+  // custom color; the other two fall back to the ramp at their draw index.
+  expect(bandColors).toEqual([
+    supersetTheme.colorFillQuaternary,
+    '#00ff00',
+    supersetTheme.colorFillSecondary,
+  ]);
+});
