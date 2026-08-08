@@ -34,7 +34,6 @@ import {
   getChartDataRequest,
   handleChartDataResponse,
 } from 'src/components/Chart/chartAction';
-import { getQuerySettings } from 'src/explore/exploreUtils';
 import type { Dataset } from 'src/components/Chart/types';
 import type { ExplorePageState } from 'src/explore/types';
 import { selectVersionPreview, versionPreviewApplied } from './reducer';
@@ -176,15 +175,10 @@ export default function ChartVersionPreview() {
         datasourceId,
         datasourceType,
       );
-      const [useLegacyApi] = getQuerySettings(previewFormData);
       const { response, json } = await getChartDataRequest({
         formData: previewFormData,
       });
-      const result = await handleChartDataResponse(
-        response,
-        json,
-        useLegacyApi,
-      );
+      const result = await handleChartDataResponse(response, json);
       if (fetchId !== fetchIdRef.current) {
         return;
       }
