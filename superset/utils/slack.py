@@ -139,6 +139,25 @@ def get_channels(
     return _get_channels(cache_key, team_id=team_id, **kwargs)
 
 
+_AUTH_ERROR_CODES = frozenset(
+    {"not_authed", "invalid_auth", "account_inactive", "token_revoked", "token_expired"}
+)
+
+
+def _get_slack_error_code(ex: SlackApiError) -> str:
+    """
+    Extract the Slack error code (e.g. ``invalid_auth``, ``ratelimited``) from a
+    ``SlackApiError``. ``response`` is normally a ``SlackResponse`` whose payload
+    lives in ``.data``, but the SDK (and our tests) can also hand back a plain
+    dict, so read the error code in either shape.
+    """
+    response = getattr(ex, "response", None)
+    data = getattr(response, "data", None)
+    if not isinstance(data, dict):
+        data = response if isinstance(response, dict) else {}
+    return data.get("error", "")
+
+
 @cache_util.memoized_func(
     key="{cache_key}",
     cache=cache_manager.cache,
@@ -185,12 +204,24 @@ def _get_channels(
         )
         return channels
     except SlackApiError as ex:
-        logger.error(
-            "Failed to fetch Slack channels after %d pages: %s",
-            page_count,
-            str(ex),
-            exc_info=True,
-        )
+        # Only bot-token auth failures (invalid/revoked/deactivated) are the
+        # expected, already-handled multi-tenant condition this is meant to
+        # quiet down. Rate limits and Slack server/API errors are actionable
+        # outages, so they keep ERROR-level logging with a traceback.
+        error_code = _get_slack_error_code(ex)
+        if error_code in _AUTH_ERROR_CODES:
+            logger.warning(
+                "Failed to fetch Slack channels after %d pages: %s",
+                page_count,
+                str(ex),
+            )
+        else:
+            logger.error(
+                "Failed to fetch Slack channels after %d pages: %s",
+                page_count,
+                str(ex),
+                exc_info=True,
+            )
         raise
 
 
@@ -285,14 +316,7 @@ def should_use_v2_api() -> bool:
         # scope. We still fall back to v1 in both cases so a transient probe
         # failure doesn't break sends — operators get an actionable log either
         # way.
-        # `response` is normally a SlackResponse whose payload lives in `.data`,
-        # but the SDK (and our tests) can also hand back a plain dict. Read the
-        # error code in either shape so the scope-missing branch isn't missed.
-        response = getattr(ex, "response", None)
-        data = getattr(response, "data", None)
-        if not isinstance(data, dict):
-            data = response if isinstance(response, dict) else {}
-        error_code = data.get("error", "")
+        error_code = _get_slack_error_code(ex)
         if error_code in _SCOPE_MISSING_ERROR_CODES:
             # The DeprecationWarning fires once per process, but the actionable
             # log line fires every send so operators see it in their report logs.
