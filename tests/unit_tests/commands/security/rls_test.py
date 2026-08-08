@@ -107,6 +107,88 @@ def test_create_regular_rls_rule_requires_subjects() -> None:
     assert "subjects" in exc.value.messages
 
 
+def test_create_rls_rule_rejects_duplicate_name() -> None:
+    with patch(
+        "superset.commands.security.create.RLSDAO.validate_uniqueness",
+        return_value=False,
+    ) as validate_uniqueness:
+        command = CreateRLSRuleCommand({"name": "dup", "tables": [1], "subjects": []})
+        with pytest.raises(ValidationError) as exc:
+            command.validate()
+
+    validate_uniqueness.assert_called_once_with("dup")
+    assert "name" in exc.value.messages
+
+
+def test_create_rls_rule_allows_unique_name() -> None:
+    tables = _mock_tables(1)
+
+    with (
+        _patch_query("superset.commands.security.create", tables),
+        patch(
+            "superset.commands.security.create.RLSDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
+    ):
+        command = CreateRLSRuleCommand(
+            {"name": "unique", "tables": [1], "subjects": []}
+        )
+        command.validate()
+
+
+def test_update_rls_rule_rejects_duplicate_name() -> None:
+    rule = MagicMock()
+    rule.id = 1
+
+    with (
+        patch(
+            "superset.commands.security.update.RLSDAO.find_by_id",
+            return_value=rule,
+        ),
+        patch(
+            "superset.commands.security.update.RLSDAO.validate_uniqueness",
+            return_value=False,
+        ) as validate_uniqueness,
+    ):
+        command = UpdateRLSRuleCommand(1, {"name": "dup"})
+        with pytest.raises(ValidationError) as exc:
+            command.validate()
+
+    # The rule being updated is excluded from the uniqueness check.
+    validate_uniqueness.assert_called_once_with("dup", 1)
+    assert "name" in exc.value.messages
+
+
+def test_update_rls_rule_allows_unchanged_name() -> None:
+    """Saving a rule without renaming it must not be rejected as a duplicate."""
+    rule = MagicMock()
+    rule.id = 1
+    rule.tables = _mock_tables(1)
+
+    with (
+        patch(
+            "superset.commands.security.update.RLSDAO.find_by_id",
+            return_value=rule,
+        ),
+        patch(
+            "superset.commands.security.update.RLSDAO.validate_uniqueness",
+            return_value=True,
+        ) as validate_uniqueness,
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
+    ):
+        command = UpdateRLSRuleCommand(1, {"name": "same"})
+        command.validate()
+
+    validate_uniqueness.assert_called_once_with("same", 1)
+
+
 def test_update_rls_rule_forbidden_when_no_datasource_access() -> None:
     tables = _mock_tables(1)
 
@@ -182,6 +264,10 @@ def test_update_rls_rule_partial_update_preserves_tables_and_subjects() -> None:
         patch(
             "superset.commands.security.update.populate_subject_list",
         ) as populate_subject_list,
+        patch(
+            "superset.commands.security.update.RLSDAO.validate_uniqueness",
+            return_value=True,
+        ),
         patch("superset.commands.security.update.db.session.query") as query,
         patch(
             "superset.commands.security.utils.security_manager.can_access_datasource",
@@ -240,6 +326,10 @@ def test_update_rls_rule_partial_update_enforces_access_on_existing_tables() -> 
         patch(
             "superset.commands.security.update.RLSDAO.find_by_id",
             return_value=rule,
+        ),
+        patch(
+            "superset.commands.security.update.RLSDAO.validate_uniqueness",
+            return_value=True,
         ),
         patch("superset.commands.security.update.db.session.query") as query,
         patch(
