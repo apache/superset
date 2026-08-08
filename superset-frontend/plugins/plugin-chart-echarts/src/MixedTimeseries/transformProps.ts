@@ -79,6 +79,7 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
+  addLabelMapToVerboseMap,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
@@ -141,7 +142,7 @@ export default function transformProps(
   let focusedSeries: string | null = null;
 
   const {
-    verboseMap = {},
+    verboseMap: originalVerboseMap = {},
     currencyFormats = {},
     columnFormats = {},
     currencyCodeColumn,
@@ -154,6 +155,16 @@ export default function transformProps(
     label_map: rawLabelMapB,
     detected_currency: backendDetectedCurrencyB,
   } = queriesData[1] as TimeseriesChartDataResponseResult;
+
+  const verboseMapWithLabelMap = addLabelMapToVerboseMap(
+    rawLabelMap,
+    originalVerboseMap,
+  );
+  const verboseMap = addLabelMapToVerboseMap(
+    rawLabelMapB,
+    verboseMapWithLabelMap,
+  );
+
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);
