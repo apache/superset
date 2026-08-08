@@ -955,8 +955,13 @@ LIMIT 100
     statement = SQLScript(sql, "starrocks").statements[0]
     formatted = statement.format()
 
-    assert "/*+ SET_VAR(query_timeout = 3000) */" in formatted
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
     assert "SET_VAR(query_timeout /*" not in formatted
+    # the trailing comment must survive, and land outside (after) the hint
+    # block rather than being dropped or relocated into it
+    hint_end = formatted.index(hint) + len(hint)
+    assert "increase timeout for large scans" in formatted[hint_end:]
 
 
 @pytest.mark.xfail(
@@ -982,8 +987,11 @@ LIMIT 100;
     statement = SQLScript(sql, "starrocks").statements[0]
     formatted = statement.format()
 
-    assert "/*+ SET_VAR(query_timeout = 3000) */" in formatted
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
     assert "SET_VAR(query_timeout /*" not in formatted
+    hint_end = formatted.index(hint) + len(hint)
+    assert "increase timeout for large scans" in formatted[hint_end:]
 
 
 @pytest.mark.parametrize(
