@@ -1729,6 +1729,9 @@ class TestRolePermission(SupersetTestCase):
             ["Superset", "welcome"],
             ["SecurityApi", "login"],
             ["SecurityApi", "refresh"],
+            # Intentionally public: lets clients discover SSO providers / login
+            # URLs before authenticating (see SecurityRestApi.auth_providers).
+            ["SecurityRestApi", "auth_providers"],
             ["SupersetIndexView", "index"],
             ["SupersetIndexView", "patch_flask_locale"],
             ["DatabaseRestApi", "oauth2"],
