@@ -39,6 +39,14 @@ def _setup_chart_mocks(
     datasource = mocker.MagicMock()
     datasource.get_query_str.return_value = sql
     datasource.database = mocker.MagicMock()
+
+    # Pass-through mutator so the raw SQL string flows unchanged into the
+    # streaming path in existing tests. Individual tests can override
+    # ``return_value`` to exercise specific mutation behavior.
+    def _passthrough_mutator(query: str) -> str:
+        return query
+
+    datasource.database.mutate_sql_based_on_config.side_effect = _passthrough_mutator
     datasource.catalog = catalog
     datasource.schema = schema
     query_context.datasource = datasource
@@ -296,3 +304,50 @@ def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
         catalog="my_catalog",
         schema="my_schema",
     )
+
+
+def test_streaming_sql_is_mutated_before_execute(mocker: MockerFixture) -> None:
+    """Regression test for #40465.
+
+    The streaming export path must route SQL through
+    ``database.mutate_sql_based_on_config`` so engine-spec/config transforms
+    (e.g. stripping trailing semicolons that Trino rejects) are applied —
+    matching SQL Lab and the non-streaming chart-data flow.
+    """
+    raw_sql = "SELECT * FROM t LIMIT 100;"
+    mutated_sql = "SELECT * FROM t LIMIT 100"
+
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker, sql=raw_sql)
+
+    # Override the helper's pass-through with a real mutation so we can prove
+    # the executed SQL came out of ``mutate_sql_based_on_config``.
+    datasource.database.mutate_sql_based_on_config = mocker.MagicMock(
+        return_value=mutated_sql
+    )
+
+    mock_result = mocker.MagicMock()
+    mock_result.keys.return_value = ["col1"]
+    mock_result.fetchmany.side_effect = [[]]
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = mocker.MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingCSVExportCommand(query_context)
+    list(command.run()())
+
+    # mutate_sql_based_on_config must be called with the raw SQL...
+    datasource.database.mutate_sql_based_on_config.assert_called_once_with(raw_sql)
+
+    # ...and the *mutated* SQL must be what the connection actually executes.
+    executed_clause = mock_connection.execution_options.return_value.execute.call_args[
+        0
+    ][0]
+    assert str(executed_clause) == mutated_sql

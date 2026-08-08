@@ -223,6 +223,14 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
 
+            # NOTE: ``sql`` reaches this shared path pre-mutated by whichever
+            # concrete command is producing it. The chart streaming command
+            # applies ``mutate_sql_based_on_config`` to its raw
+            # ``get_query_str`` output before handing it off; the SQL Lab
+            # streaming command reads ``executed_sql`` which was already
+            # mutated back at execution time. Mutating here would double-
+            # transform the SQL Lab payload for any mutator that isn't
+            # idempotent (e.g. one that appends a per-call tag). See #40465.
             with merged_database.get_sqla_engine(
                 catalog=catalog, schema=schema
             ) as engine:
