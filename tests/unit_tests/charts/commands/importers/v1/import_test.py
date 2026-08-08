@@ -25,6 +25,7 @@ import pytest
 import yaml
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 
 from superset import security_manager
@@ -506,3 +507,54 @@ def test_import_tag_logic_for_charts(session_with_schema: Session):
             .all()
         )
         assert len(associated_tags) == 0
+
+
+def test_import_tag_savepoint_keeps_session_usable(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    When a single tag operation fails with a SQLAlchemyError (e.g. a unique
+    constraint violation from a concurrent import), the per-tag SAVEPOINT
+    isolates the failure so the session is not left in a pending-rollback
+    state, and the remaining tags still import successfully.
+    """
+    contents = {
+        "tags.yaml": yaml.dump(
+            {
+                "tags": [
+                    {"tag_name": "tag_1", "description": "Description for tag_1"},
+                    {"tag_name": "tag_2", "description": "Description for tag_2"},
+                ]
+            }
+        )
+    }
+
+    object_id = 1
+    object_type = "chart"
+
+    # Simulate a unique-constraint violation on the first TaggedObject insert.
+    # The second tag must still be imported, and the session must not be left
+    # in a pending-rollback state (which would raise PendingRollbackError on
+    # the next operation).
+    original_add = session_with_schema.add
+    add_count = 0
+
+    def flaky_add(obj: object) -> None:
+        nonlocal add_count
+        if isinstance(obj, TaggedObject):
+            add_count += 1
+            if add_count == 1:
+                raise SQLAlchemyError("UNIQUE constraint failed: tagged_object")
+        original_add(obj)
+
+    mocker.patch.object(session_with_schema, "add", side_effect=flaky_add)
+
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
+        new_tag_ids = import_tag(
+            ["tag_1", "tag_2"], contents, object_id, object_type, session_with_schema
+        )
+
+    # tag_1 failed on the unique violation, but tag_2 succeeded.
+    assert len(new_tag_ids) == 1
+    # The session is still usable — no PendingRollbackError.
+    assert session_with_schema.query(TaggedObject).count() == 1
