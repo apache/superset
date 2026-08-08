@@ -16,7 +16,7 @@
 # under the License.
 from pandas import DataFrame
 
-from superset.utils.pandas_postprocessing import histogram
+from superset.utils.pandas_postprocessing.histogram import histogram
 
 data = DataFrame(
     {
@@ -207,3 +207,13 @@ def test_histogram_with_no_groupby_and_all_null_values():
 
     result = histogram(data_with_no_groupby_and_all_nulls, "a", [], bins)
     assert result.empty
+
+
+def test_histogram_no_setting_with_copy_warning():
+    import warnings
+    from pandas.errors import SettingWithCopyWarning
+    source = DataFrame({"a": [1, 2, None, 4, 5], "b": list(range(5))})
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        histogram(source.loc[source["b"] >= 0], "a", [], 3)
+    assert not any(issubclass(x.category, SettingWithCopyWarning) for x in w)
