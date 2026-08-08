@@ -41,6 +41,7 @@ export const FaveStar = ({
   itemId,
   isStarred,
   showTooltip,
+  overlayClassName,
   saveFaveStar,
   fetchFaveStar,
 }: FaveStarProps) => {
@@ -87,6 +88,7 @@ export const FaveStar = ({
       <Tooltip
         id="fave-unfave-tooltip"
         title={t('Click to favorite/unfavorite')}
+        overlayClassName={overlayClassName}
       >
         {content}
       </Tooltip>
