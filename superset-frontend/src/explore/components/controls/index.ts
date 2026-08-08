@@ -59,6 +59,7 @@ import NumberControl from './NumberControl';
 import TimeRangeControl from './TimeRangeControl';
 import ColorBreakpointsControl from './ColorBreakpointsControl';
 import IntervalColorsControl from './IntervalColorsControl';
+import BulletRangeColorsControl from './BulletRangeColorsControl';
 import MatrixifyDimensionControl from './MatrixifyDimensionControl';
 import JSEditorControl from './JSEditorControl';
 import SwitchControl from './SwitchControl';
@@ -90,6 +91,7 @@ const controlMap = {
   FixedOrMetricControl,
   ColorBreakpointsControl,
   IntervalColorsControl,
+  BulletRangeColorsControl,
   HiddenControl,
   JSEditorControl,
   LayerConfigsControl,
