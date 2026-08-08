@@ -27,7 +27,7 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { SaveActionType } from 'src/explore/types';
+import { CompatibilityResult, SaveActionType } from 'src/explore/types';
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export function updateFormDataByDatasource(
@@ -182,12 +182,8 @@ export function updateExploreChartState(
 }
 
 export const SET_COMPATIBILITY = 'SET_COMPATIBILITY';
-export function setCompatibility(payload: {
-  compatibleMetrics: string[] | null;
-  compatibleDimensions: string[] | null;
-  compatibilityLoading: boolean;
-}) {
-  return { type: SET_COMPATIBILITY, ...payload };
+export function setCompatibility(compatibility: CompatibilityResult) {
+  return { type: SET_COMPATIBILITY, compatibility };
 }
 
 let compatibilityRequestSeq = 0;
@@ -213,23 +209,11 @@ export function fetchCompatibility(
     const requestSeq = compatibilityRequestSeq;
 
     if (datasourceType !== 'semantic_view') {
-      dispatch(
-        setCompatibility({
-          compatibleMetrics: null,
-          compatibleDimensions: null,
-          compatibilityLoading: false,
-        }),
-      );
+      dispatch(setCompatibility({ status: 'idle' }));
       return;
     }
 
-    dispatch(
-      setCompatibility({
-        compatibleMetrics: null,
-        compatibleDimensions: null,
-        compatibilityLoading: true,
-      }),
-    );
+    dispatch(setCompatibility({ status: 'loading' }));
 
     try {
       const { json } = await SupersetClient.post({
@@ -244,23 +228,19 @@ export function fetchCompatibility(
       }
       dispatch(
         setCompatibility({
-          compatibleMetrics: json.result.compatible_metrics,
-          compatibleDimensions: json.result.compatible_dimensions,
-          compatibilityLoading: false,
+          status: 'verified',
+          metrics: json.result.compatible_metrics ?? [],
+          dimensions: json.result.compatible_dimensions ?? [],
         }),
       );
     } catch {
-      // On error fall back to no filtering so the user is never blocked.
+      // A failed request must stay distinguishable from loading and from a
+      // valid empty result; consumers fall back to no filtering so the user
+      // is never blocked.
       if (requestSeq !== compatibilityRequestSeq) {
         return;
       }
-      dispatch(
-        setCompatibility({
-          compatibleMetrics: null,
-          compatibleDimensions: null,
-          compatibilityLoading: false,
-        }),
-      );
+      dispatch(setCompatibility({ status: 'failed' }));
     }
   };
 }
