@@ -48,6 +48,7 @@ import {
   SortColumn,
   CardSortSelectOption,
   ViewModeType,
+  ListViewFilterControls,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
 
@@ -321,10 +322,7 @@ export interface ListViewProps<T extends object = any> {
   enableBulkTag?: boolean;
   bulkTagResourceName?: string;
   /** Optional ref exposed to callers for programmatic filter control. */
-  filtersRef?: React.RefObject<{
-    clearFilters: () => void;
-    clearFilterById: (id: string) => void;
-  }>;
+  filtersRef?: React.RefObject<ListViewFilterControls>;
   /** Optional expandable row configuration, passed through to antd Table. */
   expandable?: Record<string, unknown>;
   /** Content rendered between the filter bar and the table/card body. */
@@ -403,10 +401,7 @@ export function ListView<T extends object = any>({
     });
   }
 
-  const filterControlsRef = useRef<{
-    clearFilters: () => void;
-    clearFilterById: (id: string) => void;
-  }>(null);
+  const filterControlsRef = useRef<ListViewFilterControls>(null);
 
   const hasActiveFilters = internalFilters.some(f => {
     if (f.value === null || f.value === undefined || f.value === '')

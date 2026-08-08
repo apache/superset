@@ -14,11 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    core,
-    dashboard_folder,
-    dynamic_plugins,
-    purge_audit_log,
-    sql_lab,
-    user_attributes,
-)
+"""merge dashboard folders with latest migration head
+
+Revision ID: 5e4f420bcd74
+Revises: ('a41c9e7d2f10', 'b8d2f4a6c901')
+Create Date: 2026-08-07 03:30:00.000000
+
+"""
+
+revision: str = "5e4f420bcd74"
+down_revision: tuple[str, str] = ("a41c9e7d2f10", "b8d2f4a6c901")
+
+
+def upgrade() -> None:
+    pass
+
+
+def downgrade() -> None:
+    pass
