@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any, cast
 
 from sqlalchemy import union_all
@@ -34,6 +35,88 @@ logger = logging.getLogger(__name__)
 
 _dataset_schema = DatasetListSchema()
 _semantic_view_schema = SemanticViewListSchema()
+
+
+@dataclass
+class _Filters:
+    source_type: str = "all"
+    name_filter: str | None = None
+    sql_filter: bool | None = None
+    type_filter: str | None = None
+    database_id: int | None = None
+    semantic_layer_uuid: str | None = None
+    schema_filter: str | None = None
+    owners_filter: list[int] | None = None
+    changed_by_filter: int | None = None
+    certified_filter: bool | None = None
+
+
+def _apply_owners_filter(value: Any) -> list[int] | None:
+    if isinstance(value, list):
+        try:
+            return [int(v) for v in value if v is not None]
+        except (TypeError, ValueError):
+            return None
+    if value is not None:
+        try:
+            return [int(value)]
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _apply_query_filter(
+    result: _Filters,
+    col: str | None,
+    opr: str | None,
+    value: Any,
+) -> None:
+    if col == "source_type":
+        result.source_type = value or "all"
+    elif col == "table_name" and opr == "ct":
+        result.name_filter = value
+    elif col == "sql":
+        if opr == "dataset_is_null_or_empty" and value == "semantic_view":
+            result.type_filter = "semantic_view"
+        elif opr == "dataset_is_null_or_empty" and isinstance(value, bool):
+            result.sql_filter = value
+
+
+def _apply_entity_filter(
+    result: _Filters,
+    col: str | None,
+    opr: str | None,
+    value: Any,
+) -> None:
+    if col == "database" and value is not None:
+        try:
+            result.database_id = int(value)
+        except (TypeError, ValueError):
+            pass
+    elif col == "semantic_layer_uuid" and value is not None:
+        result.semantic_layer_uuid = str(value)
+    elif col == "schema" and opr == "eq":
+        result.schema_filter = value
+
+
+def _apply_access_filter(
+    result: _Filters,
+    col: str | None,
+    opr: str | None,
+    value: Any,
+) -> None:
+    if col == "owners" and opr == "rel_m_m":
+        parsed = _apply_owners_filter(value)
+        if parsed is not None:
+            result.owners_filter = parsed
+    elif col == "changed_by" and opr == "rel_o_m" and value is not None:
+        try:
+            result.changed_by_filter = int(value)
+        except (TypeError, ValueError):
+            pass
+    elif col == "id" and opr == "dataset_is_certified":
+        if isinstance(value, bool):
+            result.certified_filter = value
 
 
 class GetCombinedDatasourceListCommand(BaseCommand):
@@ -61,34 +144,21 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         page_size = self._args.get("page_size", 25)
         order_column = self._args.get("order_column", "changed_on")
         order_direction = self._args.get("order_direction", "desc")
-        filters = self._args.get("filters", [])
+        filters = self._parse_filters(self._args.get("filters", []))
 
-        (
-            source_type,
-            name_filter,
-            sql_filter,
-            type_filter,
-            database_id,
-            semantic_layer_uuid,
-        ) = self._parse_filters(filters)
-
-        source_type = self._resolve_connection_source_type(
-            source_type,
-            database_id,
-            semantic_layer_uuid,
+        filters.source_type = self._resolve_connection_source_type(
+            filters.source_type,
+            filters.database_id,
+            filters.semantic_layer_uuid,
         )
-        source_type = self._resolve_source_type(source_type, sql_filter, type_filter)
+        filters.source_type = self._resolve_source_type(
+            filters.source_type, filters.sql_filter, filters.type_filter
+        )
 
-        if source_type == "empty":
+        if filters.source_type == "empty":
             return {"count": 0, "result": []}
 
-        combined = self._build_combined_query(
-            source_type,
-            name_filter,
-            sql_filter,
-            database_id,
-            semantic_layer_uuid,
-        )
+        combined = self._build_combined_query(filters)
         total_count, rows = DatasourceDAO.paginate_combined_query(
             combined, order_column, order_direction, page, page_size
         )
@@ -116,19 +186,23 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         return source_type
 
     @staticmethod
-    def _build_combined_query(
-        source_type: str,
-        name_filter: str | None,
-        sql_filter: bool | None,
-        database_id: int | None,
-        semantic_layer_uuid: str | None,
-    ) -> Any:
-        ds_q = DatasourceDAO.build_dataset_query(name_filter, sql_filter, database_id)
-        sv_q = DatasourceDAO.build_semantic_view_query(name_filter, semantic_layer_uuid)
+    def _build_combined_query(filters: _Filters) -> Any:
+        ds_q = DatasourceDAO.build_dataset_query(
+            name_filter=filters.name_filter,
+            sql_filter=filters.sql_filter,
+            database_id=filters.database_id,
+            schema_filter=filters.schema_filter,
+            owners_filter=filters.owners_filter,
+            changed_by_filter=filters.changed_by_filter,
+            certified_filter=filters.certified_filter,
+        )
+        sv_q = DatasourceDAO.build_semantic_view_query(
+            filters.name_filter, filters.semantic_layer_uuid
+        )
 
-        if source_type == "database":
+        if filters.source_type == "database":
             return ds_q.subquery()
-        if source_type == "semantic_layer":
+        if filters.source_type == "semantic_layer":
             return sv_q.subquery()
         return union_all(ds_q, sv_q).subquery()
 
@@ -214,55 +288,45 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         return source_type
 
     @staticmethod
+    def _apply_filter(result: _Filters, f: dict[str, Any]) -> None:
+        col = f.get("col")
+        opr = f.get("opr")
+        value = f.get("value")
+
+        if col in ("source_type", "table_name", "sql"):
+            _apply_query_filter(result, col, opr, value)
+        elif col in ("database", "semantic_layer_uuid", "schema"):
+            _apply_entity_filter(result, col, opr, value)
+        elif col in ("owners", "changed_by", "id"):
+            _apply_access_filter(result, col, opr, value)
+
+    @staticmethod
     def _parse_filters(
         filters: list[dict[str, Any]],
-    ) -> tuple[str, str | None, bool | None, str | None, int | None, str | None]:
+    ) -> _Filters:
         """
         Translate raw rison filter dicts into typed query parameters.
 
-        Returns:
-            source_type:        "all" | "database" | "semantic_layer"
+        Returns a ``_Filters`` dataclass with the following fields:
+
+            source_type:        ``"all"`` | ``"database"`` | ``"semantic_layer"``
             name_filter:        substring to match against name/table_name
-            sql_filter:         True → physical only, False → virtual only, None → both
-            type_filter:        "semantic_view" when caller wants only
-                                semantic views
+            sql_filter:         ``True`` → physical only, ``False`` → virtual only,
+                                ``None`` → both
+            type_filter:        ``"semantic_view"`` when caller wants only semantic
+                                views
             database_id:        filter datasets to a specific database ID
-            semantic_layer_uuid: filter semantic views to a specific semantic layer UUID
+            semantic_layer_uuid: filter semantic views to a specific semantic layer
+                                UUID
+            schema_filter:      filter datasets by schema name
+            owners_filter:      filter datasets by owner user IDs
+            changed_by_filter:  filter datasets by last-modified user ID
+            certified_filter:   ``True`` → certified only, ``False`` → uncertified
+                                only, ``None`` → both
         """
-        source_type = "all"
-        name_filter: str | None = None
-        sql_filter: bool | None = None
-        type_filter: str | None = None
-        database_id: int | None = None
-        semantic_layer_uuid: str | None = None
+        result = _Filters()
 
         for f in filters:
-            col = f.get("col")
-            opr = f.get("opr")
-            value = f.get("value")
+            GetCombinedDatasourceListCommand._apply_filter(result, f)
 
-            if col == "source_type":
-                source_type = value or "all"
-            elif col == "table_name" and f.get("opr") == "ct":
-                name_filter = value
-            elif col == "sql":
-                if opr == "dataset_is_null_or_empty" and value == "semantic_view":
-                    type_filter = "semantic_view"
-                elif opr == "dataset_is_null_or_empty" and isinstance(value, bool):
-                    sql_filter = value
-            elif col == "database" and value is not None:
-                try:
-                    database_id = int(value)
-                except (TypeError, ValueError):
-                    pass
-            elif col == "semantic_layer_uuid" and value is not None:
-                semantic_layer_uuid = str(value)
-
-        return (
-            source_type,
-            name_filter,
-            sql_filter,
-            type_filter,
-            database_id,
-            semantic_layer_uuid,
-        )
+        return result
