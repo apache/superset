@@ -34,10 +34,14 @@ class KeyValueEntry(CoreKeyValue, AuditMixinNullable, ImportExportMixin):
     resource = Column(String(32), nullable=False)
     value = Column(LargeBinary(length=VALUE_MAX_SIZE), nullable=False)
     created_on = Column(DateTime, nullable=True)
-    created_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
+    created_by_fk = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
+    )
     changed_on = Column(DateTime, nullable=True)
     expires_on = Column(DateTime, nullable=True)
-    changed_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
+    changed_by_fk = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
+    )
     created_by = relationship(security_manager.user_model, foreign_keys=[created_by_fk])
     changed_by = relationship(security_manager.user_model, foreign_keys=[changed_by_fk])
 
