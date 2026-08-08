@@ -102,10 +102,10 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ]
 
     ExportTagsCommand = mocker.patch(  # noqa: N806
-        "superset.commands.export.assets.ExportTagsCommand.export"
+        "superset.commands.export.assets.ExportTagsCommand"
     )
 
-    ExportTagsCommand.return_value = [
+    ExportTagsCommand.return_value.run.return_value = [
         ("tags.yaml", lambda: "<TAGS CONTENTS>"),
     ]
 

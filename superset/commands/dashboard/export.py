@@ -393,9 +393,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
             yield from command.run()
             command.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                yield from ExportTagsCommand.export(
+                yield from ExportTagsCommand(
                     dashboard_ids=dashboard_ids, chart_ids=chart_ids
-                )
+                ).run()
 
             # Export related theme
             if model.theme:
