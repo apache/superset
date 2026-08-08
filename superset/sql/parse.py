@@ -1282,6 +1282,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         Modify the `LIMIT` or `TOP` value of the SQL statement inplace.
         """
         if method == LimitMethod.FORCE_LIMIT:
+            # `SHOW` statements (`SHOW TABLES`, `SHOW DATABASES`, `SHOW CREATE
+            # TABLE`, etc.) have no real `LIMIT` slot in sqlglot's expression
+            # tree: setting `args["limit"]` doesn't get rejected, it renders a
+            # malformed statement with two `LIMIT` keywords, which engines
+            # like StarRocks reject outright. Leave them untouched.
+            if isinstance(self._parsed, exp.Show):
+                return
             self._parsed.args["limit"] = exp.Limit(
                 expression=exp.Literal(this=str(limit), is_string=False)
             )
