@@ -1264,3 +1264,46 @@ def test_validate_stored_expression_rejects_subquery_around_jinja(
             None,
             "(SELECT password FROM ab_user LIMIT 1) {# x #}",
         )
+
+
+def test_dttm_cols_excludes_column_after_temporal_flag_removed(
+    session: Session,
+) -> None:
+    """
+    Regression for #30510: when a column is mistakenly marked temporal, set as the
+    dataset's default datetime (``main_dttm_col``) and saved, then later has its
+    ``is_dttm`` flag removed, the dataset must stop treating that column as temporal.
+
+    Otherwise ``dttm_cols`` (which feeds time-column selection and the default time
+    filter for every chart built on the dataset) keeps returning a non-temporal
+    column, corrupting the dataset with a time filter that cannot be removed.
+    """
+    Database.metadata.create_all(session.bind)
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    # A column the user mistakenly marks as temporal ("Is Temporal") and then picks
+    # as the dataset "Default Datetime" (``main_dttm_col``).
+    column = TableColumn(column_name="not_really_a_date", type="VARCHAR", is_dttm=True)
+    dataset = SqlaTable(
+        database=database,
+        table_name="my_table",
+        columns=[column],
+        main_dttm_col="not_really_a_date",
+    )
+    session.add(dataset)
+    session.commit()
+
+    # While flagged temporal, the column is (expectedly) exposed as a datetime column.
+    assert dataset.dttm_cols == ["not_really_a_date"]
+
+    # The user realizes the mistake and unchecks "Is Temporal", then saves. Persisting
+    # the update clears ``is_dttm`` on the column.
+    column.is_dttm = False
+    session.commit()
+
+    # The column is no longer temporal...
+    assert column.is_temporal is False
+    # ...so it must no longer be reported as a datetime column. On master
+    # ``main_dttm_col`` is never cleared, so ``dttm_cols`` still contains the stale,
+    # non-temporal column and this assertion fails (bug reproduced).
+    assert "not_really_a_date" not in dataset.dttm_cols
