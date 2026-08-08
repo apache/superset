@@ -261,6 +261,41 @@ describe('isUserEditorOrAdmin', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('recognizes a user in the configured custom admin role', async () => {
+    document.body.innerHTML =
+      '<div id="app" data-bootstrap=\'{"common":{"conf":{"AUTH_ROLE_ADMIN":"SuperAdmin"}}}\'></div>';
+
+    jest.resetModules();
+    const { isUserAdmin: isUserAdminWithCustomRole } =
+      await import('./permissionUtils');
+
+    expect(
+      isUserAdminWithCustomRole({
+        username: 'super-admin',
+        permissions: {},
+        roles: { SuperAdmin: [['can_write', 'Dashboard']] },
+      }),
+    ).toEqual(true);
+  });
+
+  test('does not throw and falls back to the default role when bootstrap data has no conf', async () => {
+    document.body.innerHTML =
+      '<div id="app" data-bootstrap=\'{"common":{}}\'></div>';
+
+    jest.resetModules();
+    const { isUserAdmin: isUserAdminWithoutConf } =
+      await import('./permissionUtils');
+
+    expect(isUserAdminWithoutConf(adminUser)).toEqual(true);
+  });
+});
+
 test('userHasPermission always returns true for admin user', () => {
   arbitraryPermissions.forEach(permissionView => {
     expect(
