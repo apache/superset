@@ -672,6 +672,29 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       }
     }
 
+    // Build the "all records" percent-metric denominator query AFTER all
+    // filter mutations (interactive group-by, search, AG Grid WHERE/HAVING)
+    // above, so its denominator reflects the same filtered result set as the
+    // main query instead of a stale pre-filter snapshot.
+    const calculationMode = formData.percent_metric_calculation || 'row_limit';
+
+    if (
+      calculationMode === 'all_records' &&
+      percentMetrics &&
+      percentMetrics.length > 0
+    ) {
+      extraQueries.push({
+        ...queryObject,
+        columns: [],
+        metrics: percentMetrics,
+        post_processing: [],
+        row_limit: 0,
+        row_offset: 0,
+        orderby: [],
+        is_timeseries: false,
+      });
+    }
+
     // Create totals query AFTER all filters (including AG Grid filters) are applied
     // This ensures we can properly exclude AG Grid WHERE filters from the totals
     // In raw records mode the summary is a SUM over the numeric columns primed
@@ -696,33 +719,21 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
     );
 
     if (showAggregateTotals || rawSummaryColumns.length > 0) {
-      // Create a copy of extras without the AG Grid WHERE clause
-      // AG Grid filters in extras.where can reference calculated columns
-      // which aren't available in the totals subquery
-      const totalsExtras = { ...queryObject.extras };
-      if (ownState.agGridComplexWhere) {
-        // Remove AG Grid WHERE clause from totals query
-        const whereClause = totalsExtras.where;
-        if (whereClause) {
-          // Remove the AG Grid filter part from the WHERE clause using string methods
-          const agGridWhere = ownState.agGridComplexWhere;
-          let newWhereClause = whereClause;
-
-          // Try to remove with " AND " before
-          newWhereClause = newWhereClause.replace(` AND ${agGridWhere}`, '');
-          // Try to remove with " AND " after
-          newWhereClause = newWhereClause.replace(`${agGridWhere} AND `, '');
-          // If it's the only clause, remove it entirely
-          if (newWhereClause === agGridWhere) {
-            newWhereClause = '';
-          }
-
-          if (newWhereClause.trim()) {
-            totalsExtras.where = newWhereClause;
-          } else {
-            delete totalsExtras.where;
-          }
-        }
+      // Start from the original, pre-filter extras (captured before any
+      // AG Grid WHERE/HAVING or download sqlClauses were merged in above)
+      // rather than trying to subtract those fragments back out of the
+      // now-combined `queryObject.extras` string. AG Grid filters can
+      // reference calculated columns that aren't available once the
+      // totals subquery drops all grouping columns (columns: []), and that
+      // applies to HAVING just as much as WHERE, and to the download
+      // sqlClauses path just as much as the live agGridComplexWhere path —
+      // starting clean avoids having to special-case each source.
+      const totalsExtras = { ...extras };
+      if (!totalsExtras.where) {
+        delete totalsExtras.where;
+      }
+      if (!totalsExtras.having) {
+        delete totalsExtras.having;
       }
 
       extraQueries.push({
@@ -736,7 +747,7 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
             label: columnName,
           })),
         }),
-        extras: totalsExtras, // Use extras with AG Grid WHERE removed
+        extras: totalsExtras, // Chart-level extras only, no interactive filters
         row_limit: 0,
         row_offset: 0,
         // Reapply only the percent-metric contribution rule so the totals row

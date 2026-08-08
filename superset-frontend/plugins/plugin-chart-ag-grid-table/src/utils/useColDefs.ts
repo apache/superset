@@ -42,7 +42,7 @@ import htmlTextFilterValueGetter, {
   htmlTextComparator,
 } from './htmlTextFilterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
-import DateWithFormatter from './DateWithFormatter';
+import DateWithFormatter, { isEmptyDateInput } from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
@@ -128,7 +128,7 @@ const getFilterType = (col: InputColumn) => {
 
 /**
  * Filter value getter for temporal columns.
- * Returns null for DateWithFormatter objects with null input,
+ * Returns null for DateWithFormatter objects with null/empty input,
  * enabling AG Grid's blank filter to correctly identify null dates.
  */
 const dateFilterValueGetter = (params: {
@@ -136,8 +136,8 @@ const dateFilterValueGetter = (params: {
   colDef: { field?: string };
 }) => {
   const value = params.data?.[params.colDef.field as string];
-  // Return null for DateWithFormatter with null input so AG Grid blank filter works
-  if (value instanceof DateWithFormatter && value.input === null) {
+  // Return null for DateWithFormatter with null/empty input so AG Grid blank filter works
+  if (value instanceof DateWithFormatter && isEmptyDateInput(value.input)) {
     return null;
   }
   return value;
@@ -240,6 +240,14 @@ export const useColDefs = ({
   slice_id,
 }: UseColDefsProps) => {
   const theme = useTheme();
+  // transformProps.ts computes these fresh on every call (no memoization),
+  // so a reference-based dependency here would recreate getCommonColProps -
+  // and therefore colDefs - on every render regardless of whether the
+  // formatting actually changed. Compare by content instead.
+  const stringifiedColumnColorFormatters = JSON.stringify(
+    columnColorFormatters,
+  );
+  const stringifiedBasicColorFormatters = JSON.stringify(basicColorFormatters);
   const getCommonColProps = useCallback(
     (
       col: InputColumn,
@@ -424,8 +432,8 @@ export const useColDefs = ({
       columns,
       data,
       defaultAlignPN,
-      columnColorFormatters,
-      basicColorFormatters,
+      stringifiedColumnColorFormatters,
+      stringifiedBasicColorFormatters,
       showCellBars,
       colorPositiveNegative,
       isUsingTimeComparison,

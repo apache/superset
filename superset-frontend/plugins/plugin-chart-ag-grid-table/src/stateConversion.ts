@@ -354,6 +354,13 @@ export function convertFilterModel(
 export function convertAgGridStateToOwnState(
   agGridState: AgGridChartState,
 ): Partial<BackendOwnState> {
+  // In client mode, AG Grid handles sort/filter/pagination locally and none
+  // of it needs to reach the backend query, so folding it into ownState only
+  // triggers an unnecessary requery/remount.
+  if (!agGridState.serverPagination) {
+    return {};
+  }
+
   const ownState: Partial<BackendOwnState> = {};
 
   const sortBy = convertSortModel(agGridState.sortModel);

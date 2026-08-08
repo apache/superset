@@ -39,6 +39,8 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  ConditionalFormattingConfig,
+  ObjectFormattingEnum,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
@@ -192,6 +194,23 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   rerender: ['groupby', 'metrics'],
   default: [],
   validators: [],
+};
+
+const percentMetricCalculationControl: ControlConfig<'SelectControl'> = {
+  type: 'SelectControl',
+  label: t('Percentage metric calculation'),
+  description: t(
+    'Row Limit: percentages are calculated based on the subset of data retrieved, respecting the row limit. ' +
+      'All Records: Percentages are calculated based on the total dataset, ignoring the row limit.',
+  ),
+  default: 'row_limit',
+  clearable: false,
+  choices: [
+    ['row_limit', t('Row limit')],
+    ['all_records', t('All records')],
+  ],
+  visibility: isAggMode,
+  renderTrigger: false,
 };
 
 /*
@@ -425,6 +444,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'percent_metric_calculation',
+            config: percentMetricCalculationControl,
+          },
+        ],
       ],
     },
     {
@@ -538,11 +563,14 @@ const config: ControlPanelConfig = {
                   const updatedColtypes: GenericDataType[] = [];
 
                   colnames
+                    .map(
+                      (colname, index) => [colname, index] as [string, number],
+                    )
                     .filter(
-                      colname =>
+                      ([colname]) =>
                         last(colname.split('__')) !== timeComparisonValue,
                     )
-                    .forEach((colname, index) => {
+                    .forEach(([colname, originalIndex]) => {
                       if (
                         shouldSkipMetricColumn({
                           colname,
@@ -579,7 +607,12 @@ const config: ControlPanelConfig = {
                         });
                       } else {
                         updatedColnames.push(colname);
-                        updatedColtypes.push(coltypes[index]);
+                        // Look up by the column's original position in
+                        // colnames/coltypes, not its position after the
+                        // filter above — those diverge whenever any
+                        // earlier column is a comparison-suffixed one that
+                        // got filtered out.
+                        updatedColtypes.push(coltypes[originalIndex]);
                         childColumnMap[colname] = false;
                         timeComparisonColumnMap[colname] = false;
                       }
@@ -714,24 +747,70 @@ const config: ControlPanelConfig = {
                   : [];
 
                 const chartStatus = chart?.chartStatus;
+                // Normalize legacy `toAllRow`/`toTextColor` flags saved before
+                // `columnFormatting`/`objectFormatting` existed, so "entire row"
+                // formatters set under the old schema keep working.
+                const value = _?.value ?? [];
+                if (value && Array.isArray(value)) {
+                  value.forEach(
+                    (item: ConditionalFormattingConfig, index, array) => {
+                      if (
+                        item.colorScheme &&
+                        !['Green', 'Red'].includes(item.colorScheme)
+                      ) {
+                        if (item.columnFormatting === undefined) {
+                          // eslint-disable-next-line no-param-reassign
+                          array[index] = {
+                            ...item,
+                            ...(item.toTextColor === true && {
+                              objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                            }),
+                            ...(item.toAllRow === true && {
+                              columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                            }),
+                          };
+                        }
+                      }
+                    },
+                  );
+                }
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
-                const numericColumns =
-                  Array.isArray(colnames) && Array.isArray(coltypes)
-                    ? colnames
-                        .filter(
-                          (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.Numeric,
-                        )
-                        .map((colname: string) => ({
-                          value: colname,
-                          label: Array.isArray(verboseMap)
-                            ? colname
-                            : (verboseMap[colname] ?? colname),
-                          dataType:
-                            colnames && coltypes[colnames?.indexOf(colname)],
-                        }))
-                    : [];
+                const hasColumns =
+                  Array.isArray(colnames) && Array.isArray(coltypes);
+                const allColumns = hasColumns
+                  ? [
+                      {
+                        value: ObjectFormattingEnum.ENTIRE_ROW,
+                        label: t('entire row'),
+                        dataType: GenericDataType.String,
+                      },
+                      ...colnames.map((colname: string, index: number) => ({
+                        value: colname,
+                        label: Array.isArray(verboseMap)
+                          ? colname
+                          : (verboseMap?.[colname] ?? colname),
+                        dataType: coltypes[index],
+                      })),
+                    ]
+                  : [];
+                const numericColumns = hasColumns
+                  ? colnames
+                      .filter(
+                        (colname: string, index: number) =>
+                          coltypes[index] === GenericDataType.Numeric,
+                      )
+                      .map((colname: string) => ({
+                        value: colname,
+                        label: Array.isArray(verboseMap)
+                          ? colname
+                          : (verboseMap?.[colname] ?? colname),
+                        // Every entry here already passed the Numeric filter
+                        // above, so the type is always Numeric — no need to
+                        // re-look it up (which breaks on duplicate colnames).
+                        dataType: GenericDataType.Numeric,
+                      }))
+                  : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
                       numericColumns || [],
@@ -743,6 +822,7 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
+                  allColumns,
                   extraColorChoices,
                 };
               },
