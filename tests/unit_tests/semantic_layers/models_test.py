@@ -25,6 +25,7 @@ from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
 import pytest
+from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
     Grains,
@@ -223,6 +224,48 @@ def test_semantic_layer_repr_without_name() -> None:
     test_uuid = uuid.uuid4()
     layer.uuid = test_uuid
     assert repr(layer) == str(test_uuid)
+
+
+def test_semantic_layer_raise_for_access_all_datasources(
+    mocker: "MockerFixture",
+) -> None:
+    """A user with access to all datasources passes the check."""
+    layer = SemanticLayer()
+    layer.perm = "[db].[schema].[layer]"
+    mocker.patch(
+        "superset.security_manager.can_access_all_datasources", return_value=True
+    )
+    can_access = mocker.patch("superset.security_manager.can_access")
+    layer.raise_for_access()  # no raise
+    can_access.assert_not_called()
+
+
+def test_semantic_layer_raise_for_access_granted_perm(
+    mocker: "MockerFixture",
+) -> None:
+    """A user granted datasource_access on the layer's perm passes the check."""
+    layer = SemanticLayer()
+    layer.perm = "[db].[schema].[layer]"
+    mocker.patch(
+        "superset.security_manager.can_access_all_datasources", return_value=False
+    )
+    can_access = mocker.patch("superset.security_manager.can_access", return_value=True)
+    layer.raise_for_access()  # no raise
+    can_access.assert_called_once_with("datasource_access", "[db].[schema].[layer]")
+
+
+def test_semantic_layer_raise_for_access_denied(mocker: "MockerFixture") -> None:
+    """A user without access to the layer's perm is denied."""
+    from superset.exceptions import SupersetSecurityException
+
+    layer = SemanticLayer()
+    layer.perm = "[db].[schema].[layer]"
+    mocker.patch(
+        "superset.security_manager.can_access_all_datasources", return_value=False
+    )
+    mocker.patch("superset.security_manager.can_access", return_value=False)
+    with pytest.raises(SupersetSecurityException):
+        layer.raise_for_access()
 
 
 def test_semantic_layer_implementation_not_implemented() -> None:
