@@ -204,17 +204,33 @@ rather than a fully automatic one-to-one restoration.
 
 ## Open questions
 
-- Is the `BaseEngineSpec.get_aggregate_sql(...)` shape the right
-  extensibility point, or should this live in the `superset/sql/dialects/`
-  sqlglot-based layer that already has some precedent for engine-specific
-  function-support flags (`SUPPORTS_MEDIAN` on the Vertica dialect today,
-  though currently only used for SQL parsing, not chart-metric query
-  building)?
-- How aggressively should `MEDIAN` degrade on engines without a native or
-  exact equivalent? Silently falling back to an approximate function (for
-  example Trino/Presto's `approx_percentile`) changes the semantics of what
-  a user asked for; should that require an explicit opt-in, a UI warning, or
-  simply be disallowed on those engines for now?
-- Should the two duplicate `sqla_aggregations` dicts
-  (`connectors/sqla/models.py` and `models/helpers.py`) be consolidated as
-  part of this change, or is that a separate refactor to avoid scope creep?
+- **Resolved for this PR, worth confirming as the community's preferred
+  shape:** implemented as `BaseEngineSpec._extended_aggregations` (a
+  `{aggregate_name: sqla_column -> sqla_column}` dict) plus a
+  `get_extended_aggregation_func` accessor, set on the concrete or shared
+  base engine spec class per engine (e.g. on `PostgresBaseEngineSpec` so
+  Redshift inherits it, but *not* on `PrestoBaseEngineSpec` so Hive/Spark/
+  Databricks don't silently inherit unverified behavior, mirroring how
+  `supports_grouping_sets` is opted into per-concrete-engine there today).
+  Did not route through the `superset/sql/dialects/` sqlglot-based layer;
+  that layer is for SQL Lab parsing, wiring it into chart-metric query
+  building felt like a separate, larger change from this SIP's scope.
+- **Still open, not addressed in this PR:** how aggressively should
+  `MEDIAN` degrade on engines without a native or exact equivalent?
+  Trino/Presto/Hive were left unimplemented (unsupported) specifically to
+  avoid silently answering this with an approximate function
+  (`approx_percentile`) that changes the semantics of what a user asked
+  for. If someone wants `MEDIAN` on those engines, this needs a real
+  decision: require explicit opt-in, show a UI warning, or keep it
+  disallowed.
+- **Resolved for this PR:** left the two `sqla_aggregations` dicts
+  (`connectors/sqla/models.py` and `models/helpers.py`) unconsolidated,
+  both now separately wired to the same new `get_extended_aggregation_func`
+  hook. Consolidating them into one source of truth is real but unrelated
+  cleanup, not bundled here to keep the diff reviewable.
+- **New, from implementation:** only Postgres, MySQL (partial), DuckDB, and
+  Redshift (by inheritance, unverified) ship enabled. BigQuery, Snowflake,
+  Trino, Presto, Hive, Spark, Databricks, Oracle, and T-SQL all have
+  documented (not live-verified) support per the table above but are not
+  yet wired up, each needs the same live-instance verification treatment
+  before being enabled, this PR intentionally didn't guess.
