@@ -438,6 +438,7 @@ class DashboardRestApi(
         "changed_by",
         "dashboard_title",
         "id",
+        "is_managed_externally",
         "uuid",
         "editors",
         "viewers",
