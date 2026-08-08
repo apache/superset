@@ -64,10 +64,12 @@ export class Theme {
    * @param config - The theme configuration
    * @param baseTheme - Optional base theme to apply under the config
    */
-  static fromConfig(
+  // Merge a config over an optional base theme (arrays replace rather than
+  // deep-merge; a colorPrimary override without colorLink aligns colorLink).
+  private static mergeConfig(
     config?: AnyThemeConfig,
     baseTheme?: AnyThemeConfig,
-  ): Theme {
+  ): AnyThemeConfig | undefined {
     let mergedConfig: AnyThemeConfig | undefined = config;
 
     if (baseTheme && config) {
@@ -76,9 +78,9 @@ export class Theme {
       );
 
       // In Ant Design v5, colorLink derives from colorInfo, not colorPrimary.
-      // Currently we expectlinks to follow the brand/primary color. When the user
-      // overrides colorPrimary without explicitly setting colorLink, update the
-      // merged colorLink so links match the new primary palette.
+      // We expect links to follow the brand/primary color, so when a config
+      // overrides colorPrimary without setting colorLink, align the merged
+      // colorLink with the new primary palette.
       if (config.token?.colorPrimary && !config.token?.colorLink) {
         const mToken = mergedConfig?.token;
         if (mToken) {
@@ -89,7 +91,14 @@ export class Theme {
       mergedConfig = baseTheme;
     }
 
-    return new Theme({ config: mergedConfig });
+    return mergedConfig;
+  }
+
+  static fromConfig(
+    config?: AnyThemeConfig,
+    baseTheme?: AnyThemeConfig,
+  ): Theme {
+    return new Theme({ config: Theme.mergeConfig(config, baseTheme) });
   }
 
   private static getFilteredAntdTheme(
@@ -110,12 +119,15 @@ export class Theme {
   }
 
   /**
-   * Update the theme using any theme configuration
-   * Automatically handles both AntdThemeConfig and SerializableThemeConfig
-   * Dark mode should be specified via the algorithm property in the config
+   * Update the theme using any theme configuration, optionally merged over a
+   * base theme. Automatically handles both AntdThemeConfig and
+   * SerializableThemeConfig. Dark mode should be specified via the algorithm
+   * property in the config.
    */
-  setConfig(config: AnyThemeConfig): void {
-    const antdConfig = normalizeThemeConfig(config);
+  setConfig(config: AnyThemeConfig, baseTheme?: AnyThemeConfig): void {
+    const antdConfig = normalizeThemeConfig(
+      Theme.mergeConfig(config, baseTheme) ?? config,
+    );
 
     if (antdConfig.token?.colorPrimary && !antdConfig.token?.colorLink) {
       antdConfig.token.colorLink = antdConfig.token.colorPrimary;
