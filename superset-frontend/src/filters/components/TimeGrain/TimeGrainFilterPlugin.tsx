@@ -22,7 +22,8 @@ import {
   ExtraFormData,
   TimeGranularity,
 } from '@superset-ui/core';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactReduxContext } from 'react-redux';
 import {
   FormItem,
   type FormItemProps,
@@ -50,6 +51,11 @@ export default function PluginFilterTimegrain(
   } = props;
   const { defaultValue } = formData;
 
+  const reduxContext = useContext(ReactReduxContext);
+  const dashboardTimeGrainAllowlist: string[] | undefined =
+    reduxContext?.store?.getState?.()?.dashboardInfo?.metadata
+      ?.time_grain_allowlist;
+
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
   const durationMap = useMemo(
     () =>
@@ -63,34 +69,27 @@ export default function PluginFilterTimegrain(
     [JSON.stringify(data)],
   );
 
-  const handleChange = (values: string[] | string | undefined | null) => {
-    const resultValue: string[] = ensureIsArray<string>(values);
-    const [timeGrain] = resultValue;
-    const label = timeGrain ? durationMap[timeGrain] : undefined;
+  const handleChange = useCallback(
+    (values: string[] | string | undefined | null) => {
+      const resultValue: string[] = ensureIsArray<string>(values);
+      const [timeGrain] = resultValue;
+      const label = timeGrain ? durationMap[timeGrain] : undefined;
 
-    const extraFormData: ExtraFormData = {};
-    if (timeGrain) {
-      extraFormData.time_grain_sqla = timeGrain as TimeGranularity;
-    }
-    setValue(resultValue);
-    setDataMask({
-      extraFormData,
-      filterState: {
-        label,
-        value: resultValue.length ? resultValue : null,
-      },
-    });
-  };
-
-  useEffect(() => {
-    handleChange(defaultValue ?? []);
-    // I think after Config Modal update some filter it re-creates default value for all other filters
-    // so we can process it like this `JSON.stringify` or start to use `Immer`
-  }, [JSON.stringify(defaultValue)]);
-
-  useEffect(() => {
-    handleChange(filterState.value ?? []);
-  }, [JSON.stringify(filterState.value)]);
+      const extraFormData: ExtraFormData = {};
+      if (timeGrain) {
+        extraFormData.time_grain_sqla = timeGrain as TimeGranularity;
+      }
+      setValue(resultValue);
+      setDataMask({
+        extraFormData,
+        filterState: {
+          label,
+          value: resultValue.length ? resultValue : null,
+        },
+      });
+    },
+    [durationMap, setDataMask],
+  );
 
   const formItemData: FormItemProps = {};
   if (filterState.validateMessage) {
@@ -101,22 +100,52 @@ export default function PluginFilterTimegrain(
     );
   }
 
-  const options = (data || [])
-    .map((row: { name: string; duration: string }) => {
-      const { name, duration } = row;
-      return {
-        label: name,
-        value: duration,
-      };
-    })
-    // Apply allowlist filter if timeGrains is configured, but keep current selection visible
-    .filter(option => {
-      const allowlist = formData.timeGrains;
-      if (!allowlist || allowlist.length === 0) {
-        return true;
-      }
-      return allowlist.includes(option.value) || value.includes(option.value);
-    });
+  const options = useMemo(() => {
+    const allOptions = (data || [])
+      .map((row: { name: string; duration: string }) => {
+        const { name, duration } = row;
+        return {
+          label: name,
+          value: duration,
+        };
+      });
+
+    const allowlist =
+      dashboardTimeGrainAllowlist?.length > 0
+        ? dashboardTimeGrainAllowlist
+        : formData.timeGrains;
+
+    if (!allowlist || allowlist.length === 0) {
+      return allOptions;
+    }
+
+    const allowedSet = new Set(allowlist);
+    return allOptions.filter(option => allowedSet.has(option.value) || value.includes(option.value));
+  }, [data, dashboardTimeGrainAllowlist, formData.timeGrains, JSON.stringify(value)]);
+
+  const validValue = useMemo(() => {
+    if (options.length === 0) return [];
+    const optionValues = new Set(options.map(o => o.value));
+    return value.filter(v => optionValues.has(v));
+  }, [value, options]);
+
+  const hasInitRef = useRef(false);
+  useEffect(() => {
+    if (hasInitRef.current) return;
+    if (options.length === 0) return;
+
+    const optionValues = new Set(options.map(o => o.value));
+    const target = ensureIsArray<string>(defaultValue).filter(v =>
+      optionValues.has(v),
+    );
+
+    hasInitRef.current = true;
+
+    if (value.length > 0) return;
+    if (target.length > 0) {
+      handleChange(target);
+    }
+  }, [options, defaultValue, handleChange]);
 
   const placeholderText =
     options.length === 0
@@ -129,7 +158,7 @@ export default function PluginFilterTimegrain(
         <Select
           name={formData.nativeFilterId}
           allowClear
-          value={value}
+          value={validValue}
           placeholder={placeholderText}
           // @ts-expect-error
           onChange={handleChange}
