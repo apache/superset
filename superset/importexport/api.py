@@ -89,6 +89,7 @@ class ImportExportRestApi(BaseSupersetApi):
             mimetype="application/zip",
             as_attachment=True,
             download_name=filename,
+            max_age=0,
         )
         return response
 
