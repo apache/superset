@@ -225,7 +225,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==1.5.4
+duckdb==1.5.5
     # via
     #   apache-superset
     #   duckdb-engine
@@ -242,9 +242,9 @@ et-xmlfile==2.0.0
     #   openpyxl
 exceptiongroup==1.3.0
     # via fastmcp-slim
-fastmcp==3.4.4
+fastmcp==3.4.5
     # via apache-superset
-fastmcp-slim==3.4.4
+fastmcp-slim==3.4.5
     # via fastmcp
 filelock==3.20.3
     # via
@@ -340,7 +340,7 @@ geopy==2.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-gevent==26.4.0
+gevent==26.7.0
     # via apache-superset
 google-api-core==2.33.0
     # via
@@ -934,7 +934,7 @@ s3transfer==0.16.0
     # via boto3
 secretstorage==3.5.0
     # via keyring
-selenium==4.45.0
+selenium==4.46.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
