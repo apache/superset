@@ -129,7 +129,16 @@ def test_connect_convert_dttm(
             GenericDataType.STRING,
             False,
         ),
-        ("Array(UInt8)", String, None, GenericDataType.STRING, False),
+        ("Array(UInt8)", String, None, GenericDataType.MULTI_VALUE, False),
+        ("Array(String)", String, None, GenericDataType.MULTI_VALUE, False),
+        ("Array(UInt64)", String, None, GenericDataType.MULTI_VALUE, False),
+        (
+            "Array(LowCardinality(String))",
+            String,
+            None,
+            GenericDataType.MULTI_VALUE,
+            False,
+        ),
         ("Enum('hello', 'world')", String, None, GenericDataType.STRING, False),
         ("Enum('UInt32', 'Bool')", String, None, GenericDataType.STRING, False),
         (
@@ -616,3 +625,62 @@ def test_use_equality_for_boolean_filters_property() -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
 
     assert ClickHouseBaseEngineSpec.use_equality_for_boolean_filters is True
+
+
+def _compile(expr) -> str:
+    return str(expr.compile(compile_kwargs={"literal_binds": True}))
+
+
+def test_clickhouse_supports_multivalue_columns() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    assert spec.supports_multivalue_columns is True
+
+
+def test_multivalue_contains_any_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_any(column("skills"), ["Driver", "Cook"])
+    assert _compile(expr) == "hasAny(skills, array('Driver', 'Cook'))"
+
+
+def test_multivalue_contains_all_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_all(column("skills"), ["Driver", "Cook"])
+    assert _compile(expr) == "hasAll(skills, array('Driver', 'Cook'))"
+
+
+def test_multivalue_contains_binds_parameters() -> None:
+    """Values must be bound parameters, not inlined (SQL-injection safety)."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_contains_any(column("skills"), ["Driver"])
+    compiled = expr.compile()
+    assert "Driver" not in str(compiled)
+    assert "Driver" in compiled.params.values()
+
+
+def test_multivalue_length_sql() -> None:
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_length(column("skills"))
+    assert _compile(expr) == "length(skills)"

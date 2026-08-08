@@ -26,8 +26,9 @@ from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import types
+from sqlalchemy import func, types
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.expression import ColumnElement
 from urllib3.exceptions import NewConnectionError
 
 from superset.databases.utils import make_url_safe
@@ -55,6 +56,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     time_groupby_inline = True
     supports_multivalues_insert = True
+    supports_multivalue_columns = True
 
     # ClickHouse doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
@@ -134,7 +136,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         (
             re.compile(r".*Array.*", re.IGNORECASE),
             types.String(),
-            GenericDataType.STRING,
+            GenericDataType.MULTI_VALUE,
         ),
         (
             re.compile(r".*UUID.*", re.IGNORECASE),
@@ -172,6 +174,27 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             GenericDataType.TEMPORAL,
         ),
     )
+
+    @classmethod
+    def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAny(arr, [v1, v2]) -> 1 if arr shares any element.
+        # func.array(*values) renders as array(v1, v2) == [v1, v2].
+        return func.hasAny(col, func.array(*values))
+
+    @classmethod
+    def array_contains_all(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAll(arr, [v1, v2]) -> 1 if arr contains all elements.
+        return func.hasAll(col, func.array(*values))
+
+    @classmethod
+    def array_length(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: length(arr) -> number of elements
+        return func.length(col)
+
+    @classmethod
+    def array_literal(cls, values: list[Any]) -> ColumnElement:
+        # ClickHouse: array(v1, v2) is equivalent to the literal [v1, v2].
+        return func.array(*values)
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

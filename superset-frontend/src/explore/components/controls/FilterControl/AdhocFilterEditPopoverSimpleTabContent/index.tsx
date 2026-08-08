@@ -32,6 +32,7 @@ import {
   isDefined,
   SupersetClient,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   Operators,
@@ -118,6 +119,8 @@ export const useSimpleTabFilterProps = (props: Props) => {
     const isColumnNumber =
       !!column && (column.type === 'INT' || column.type === 'INTEGER');
     const isColumnFunction = !!column && !!column.expression;
+    const isColumnMultiValue =
+      !!column && column.type_generic === GenericDataType.MultiValue;
 
     if (operator && operator === Operators.LatestPartition) {
       const { partitionColumn } = props;
@@ -126,6 +129,35 @@ export const useSimpleTabFilterProps = (props: Props) => {
     if (operator && operator === Operators.TemporalRange) {
       // hide the TEMPORAL_RANGE operator
       return false;
+    }
+    // Element-level array operators only apply to multi-value columns.
+    const arrayElementOperators = [
+      Operators.ContainsAny,
+      Operators.ContainsAll,
+      Operators.IsEmpty,
+      Operators.IsNotEmpty,
+      Operators.LengthEquals,
+      Operators.LengthGreaterThan,
+      Operators.LengthLessThan,
+      Operators.LengthGreaterThanOrEqual,
+      Operators.LengthLessThanOrEqual,
+    ];
+    if (arrayElementOperators.includes(operator)) {
+      return isColumnMultiValue;
+    }
+    if (isColumnMultiValue) {
+      // Array columns support whole-array operators (=, !=, In, Not in, null
+      // checks) plus the element-level operators above. Scalar-only operators
+      // (Like, <, >, <=, >=) are hidden because they aren't valid on an array.
+      return [
+        Operators.Equals,
+        Operators.NotEquals,
+        Operators.In,
+        Operators.NotIn,
+        Operators.IsNull,
+        Operators.IsNotNull,
+        ...arrayElementOperators,
+      ].includes(operator);
     }
     if (operator === Operators.IsTrue || operator === Operators.IsFalse) {
       return isColumnBoolean || isColumnNumber || isColumnFunction;
@@ -167,9 +199,19 @@ export const useSimpleTabFilterProps = (props: Props) => {
           ].operation
         : null;
     if (!isDefined(operator)) {
-      // if operator is `null`, use the `IN` and reset the comparator.
-      operator = Operators.In;
-      operatorId = Operators.In;
+      // The previous operator is not relevant for the new subject; pick a
+      // sensible default and reset the comparator. Multi-value (array) columns
+      // default to "Contains any" (element membership) rather than the
+      // scalar-only IN.
+      const newColumn = props.datasource.columns?.find(
+        col => col.column_name === subject,
+      );
+      const defaultOperator =
+        newColumn?.type_generic === GenericDataType.MultiValue
+          ? Operators.ContainsAny
+          : Operators.In;
+      operator = defaultOperator;
+      operatorId = defaultOperator;
       comparator = undefined;
     }
 

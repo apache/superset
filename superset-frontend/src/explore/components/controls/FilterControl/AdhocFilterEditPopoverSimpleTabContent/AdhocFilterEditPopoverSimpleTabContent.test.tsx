@@ -35,6 +35,7 @@ import {
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import fetchMock from 'fetch-mock';
 
 import { TestDataset, Dataset } from '@superset-ui/chart-controls';
@@ -250,6 +251,78 @@ test('shows boolean only operators when subject is number', () => {
     Operators.IsNull,
     Operators.IsNotNull,
   ].map(operator => expect(isOperatorRelevant(operator, 'value')).toBe(true));
+});
+
+test('shows array operators (tier 1 + tier 2) when subject is multi-value', () => {
+  const props = setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'skills',
+      operatorId: undefined,
+      operator: undefined,
+      comparator: undefined,
+      clause: undefined,
+    }),
+    datasource: {
+      columns: [
+        {
+          id: 3,
+          column_name: 'skills',
+          type: 'Array(String)',
+          type_generic: GenericDataType.MultiValue,
+        },
+      ],
+    },
+  });
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  // Tier 1 (whole-array) + Tier 2 (element-level) are all relevant.
+  [
+    Operators.Equals,
+    Operators.NotEquals,
+    Operators.In,
+    Operators.NotIn,
+    Operators.IsNull,
+    Operators.IsNotNull,
+    Operators.ContainsAny,
+    Operators.ContainsAll,
+    Operators.IsEmpty,
+    Operators.IsNotEmpty,
+  ].forEach(operator =>
+    expect(isOperatorRelevant(operator, 'skills')).toBe(true),
+  );
+  // scalar-only operators are hidden for array columns
+  [Operators.GreaterThan, Operators.LessThan, Operators.Like].forEach(
+    operator => expect(isOperatorRelevant(operator, 'skills')).toBe(false),
+  );
+});
+
+test('hides element-level array operators for non multi-value columns', () => {
+  const props = setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: undefined,
+      operator: undefined,
+      comparator: undefined,
+      clause: undefined,
+    }),
+    datasource: {
+      columns: [{ id: 3, column_name: 'value', type: 'STRING' }],
+    },
+  });
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  [
+    Operators.ContainsAny,
+    Operators.ContainsAll,
+    Operators.IsEmpty,
+    Operators.IsNotEmpty,
+  ].forEach(operator =>
+    expect(isOperatorRelevant(operator, 'value')).toBe(false),
+  );
 });
 
 test('will convert from individual comparator to array if the operator changes to multi', () => {
