@@ -369,6 +369,41 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
         return extra
 
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        # Local DuckDB has no user concept, and the base implementation's
+        # username-in-URL is passed by duckdb-engine as a connect() kwarg
+        # that duckdb rejects -- so never call it. Note that md: databases
+        # also resolve to this spec (spec lookup is by backend name only,
+        # and MotherDuck shares the duckdb:// scheme).
+        if username is None or not (url.database or "").startswith("md:"):
+            return url, engine_kwargs
+
+        # Identify the logged-in user to MotherDuck for per-user session
+        # attribution. The parameter is embedded in the md: path rather than
+        # the SQLAlchemy URL query: the setting must reach MotherDuck at
+        # connection initialization, and duckdb-engine applies unknown URL
+        # query parameters via SET after connecting, which is rejected.
+        # MotherDuck reads path parameter values literally (no URL decoding),
+        # so only the characters structural to the path are escaped.
+        session_name = (
+            username.replace("%", "%25").replace("&", "%26").replace("=", "%3D")
+        )
+        # The impersonated user replaces any session_name configured in the path.
+        base, _, params = url.database.partition("?")
+        kept = [p for p in params.split("&") if p and not p.startswith("session_name=")]
+        query = "&".join([*kept, f"session_name={session_name}"])
+        url = url.set(database=f"{base}?{query}")
+
+        return url, engine_kwargs
+
 
 class MotherDuckEngineSpec(DuckDBEngineSpec):
     """MotherDuck cloud analytics platform engine spec."""
