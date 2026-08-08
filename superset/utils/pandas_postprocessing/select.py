@@ -16,12 +16,17 @@
 # under the License.
 from typing import Optional
 
+from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset.utils.pandas_postprocessing.utils import validate_column_args
+from superset.exceptions import InvalidPostProcessingError
+from superset.utils.pandas_postprocessing.utils import (
+    scalar_to_sequence,
+    validate_column_args,
+)
 
 
-@validate_column_args("columns", "drop", "rename")
+@validate_column_args("columns", "exclude", "rename")
 def select(
     df: DataFrame,
     columns: Optional[list[str]] = None,
@@ -36,8 +41,9 @@ def select(
     :param columns: Columns which to select from the DataFrame, in the desired order.
                     If left undefined, all columns will be selected. If columns are
                     renamed, the original column name should be referenced here.
-    :param exclude: columns to exclude from selection. If columns are renamed, the new
-                    column name should be referenced here.
+    :param exclude: columns to exclude from selection. Applied after `columns` and
+                    before `rename`, so the original column name should be referenced
+                    here, and the column must survive the `columns` selection.
     :param rename: columns which to rename, mapping source column to target column.
                    For instance, `{'y': 'y2'}` will rename the column `y` to
                    `y2`.
@@ -48,6 +54,21 @@ def select(
     if columns:
         df_select = df_select[columns]
     if exclude:
+        # A bare column name is accepted as well as a sequence: `validate_column_args`
+        # normalises through `scalar_to_sequence` to validate, then hands the original
+        # value on. Normalise here too, so a string is not iterated character by
+        # character.
+        exclude = list(scalar_to_sequence(exclude))
+        # `exclude` is validated against the incoming DataFrame by the decorator, but
+        # a preceding `columns` selection may already have removed the column. Reject
+        # that as a validation error instead of letting pandas raise a bare KeyError.
+        if missing := [column for column in exclude if column not in df_select.columns]:
+            raise InvalidPostProcessingError(
+                _(
+                    "Referenced columns not available in DataFrame: %(columns)s",
+                    columns=", ".join(missing),
+                )
+            )
         df_select = df_select.drop(exclude, axis=1)
     if rename is not None:
         df_select = df_select.rename(columns=rename)

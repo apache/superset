@@ -16,10 +16,13 @@
 # under the License.
 from unittest.mock import call, patch
 
+import pytest
 from flask_appbuilder.security.sqla.models import User
+from pandas import DataFrame
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
+from superset.exceptions import InvalidPostProcessingError
 from superset.models.core import Database
 from superset.utils.core import override_user
 
@@ -371,3 +374,29 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
         ],
         any_order=True,
     )
+
+
+def test_exec_post_processing_unsupported_operation():
+    """
+    An unknown post processing operation must surface as
+    InvalidPostProcessingError, naming the offending operation.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[{"operation": "not_a_real_operation"}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError) as excinfo:
+        query_object.exec_post_processing(DataFrame({"y": [1, 2, 3]}))
+
+    assert "not_a_real_operation" in str(excinfo.value)
+
+
+def test_exec_post_processing_missing_operation():
+    """
+    A post processing entry without an `operation` key is a validation error.
+    """
+    query_object = QueryObject(row_limit=1, post_processing=[{"options": {}}])
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(DataFrame({"y": [1, 2, 3]}))
