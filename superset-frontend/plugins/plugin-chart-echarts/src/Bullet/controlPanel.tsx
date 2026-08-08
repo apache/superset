@@ -17,7 +17,10 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  ControlPanelState,
+} from '@superset-ui/chart-controls';
 
 // Control names match the legacy nvd3 bullet chart so saved charts keep
 // working without a form-data migration.
@@ -56,6 +59,25 @@ const config: ControlPanelConfig = {
                 'Comma-separated text labels, one per range value',
               ),
               visibility: ({ controls }) => Boolean(controls?.ranges?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'range_colors',
+            config: {
+              type: 'BulletRangeColorsControl',
+              label: t('Range colors'),
+              default: [],
+              renderTrigger: true,
+              description: t(
+                'Optional custom color for each range band, e.g. to match a brand palette. Bands left unset use the default shading.',
+              ),
+              visibility: ({ controls }) => Boolean(controls?.ranges?.value),
+              shouldMapStateToProps: () => true,
+              mapStateToProps: (state: ControlPanelState) => ({
+                ranges: state?.controls?.ranges?.value as string,
+              }),
             },
           },
         ],
