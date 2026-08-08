@@ -20,6 +20,7 @@ Unit tests for update_chart_preview MCP tool
 """
 
 import importlib
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -585,6 +586,131 @@ class TestUpdateChartPreview:
         )
 
         assert result is None
+
+    def test_preserves_generated_temporal_filter_with_cached_filters(self) -> None:
+        """Cached filters are merged without replacing the temporal binding."""
+        new_form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "comparator": "No filter",
+                    "expressionType": "SIMPLE",
+                    "operator": "TEMPORAL_RANGE",
+                    "subject": "ds",
+                }
+            ]
+        }
+        previous_form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "comparator": "North",
+                    "expressionType": "SIMPLE",
+                    "operator": "==",
+                    "subject": "region",
+                }
+            ]
+        }
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            previous_form_data,
+        )
+
+        assert [filter_["subject"] for filter_ in new_form_data["adhoc_filters"]] == [
+            "region",
+            "ds",
+        ]
+
+    def test_cached_temporal_filter_takes_precedence_over_generated_default(
+        self,
+    ) -> None:
+        """A cached chart-specific time range is not duplicated or reset."""
+        new_form_data = {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "comparator": "No filter",
+                    "expressionType": "SIMPLE",
+                    "operator": "TEMPORAL_RANGE",
+                    "subject": "ds",
+                }
+            ]
+        }
+        cached_temporal_filter = {
+            "clause": "WHERE",
+            "comparator": "Last month",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+        }
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [cached_temporal_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
+
+    def test_replaces_cached_temporal_filter_when_column_changes(self) -> None:
+        """A newly selected temporal column replaces the cached binding."""
+        new_temporal_filter = {
+            "clause": "WHERE",
+            "comparator": "No filter",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "created_at",
+        }
+        region_filter = {
+            "clause": "WHERE",
+            "comparator": "North",
+            "expressionType": "SIMPLE",
+            "operator": "==",
+            "subject": "region",
+        }
+        previous_temporal_filter = {
+            "clause": "WHERE",
+            "comparator": "Last month",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+        }
+        new_form_data = {"adhoc_filters": [new_temporal_filter]}
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [region_filter, previous_temporal_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [
+            region_filter,
+            new_temporal_filter,
+        ]
+
+    def test_removes_cached_temporal_filter_without_new_binding(self) -> None:
+        """A mapping without a temporal subject drops the cached binding."""
+        region_filter = {
+            "clause": "WHERE",
+            "comparator": "North",
+            "expressionType": "SIMPLE",
+            "operator": "==",
+            "subject": "region",
+        }
+        previous_temporal_filter = {
+            "clause": "WHERE",
+            "comparator": "Last month",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+        }
+        new_form_data: dict[str, Any] = {}
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [region_filter, previous_temporal_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [region_filter]
 
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)

@@ -140,6 +140,12 @@ class DatasetValidator:
         if column_error:
             return False, column_error
 
+        temporal_error = DatasetValidator._validate_temporal_column(
+            config, dataset_context
+        )
+        if temporal_error:
+            return False, temporal_error
+
         # Validate aggregation compatibility for every config that produced
         # column refs. ``_validate_aggregations`` is config-agnostic — gating
         # it to Table/XY would let pie / pivot table / mixed timeseries /
@@ -152,6 +158,40 @@ class DatasetValidator:
             return False, aggregation_errors[0]
 
         return True, None
+
+    @staticmethod
+    def _validate_temporal_column(
+        config: ChartConfig, dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Require an explicitly selected dashboard time column to be temporal."""
+        temporal_column = getattr(config, "temporal_column", None)
+        if not temporal_column:
+            return None
+
+        matching_column = next(
+            (
+                column
+                for column in dataset_context.available_columns
+                if column["name"].lower() == temporal_column.lower()
+            ),
+            None,
+        )
+        if matching_column is None or matching_column.get("is_temporal", False):
+            return None
+
+        return ChartGenerationError(
+            error_type="invalid_temporal_column",
+            message=f"Column '{temporal_column}' is not temporal",
+            details=(
+                "The temporal_column must reference a dataset column marked as "
+                "temporal so dashboard time-range filters can bind to the chart."
+            ),
+            suggestions=[
+                "Choose a temporal column from the dataset",
+                "Remove temporal_column to use the dataset's default time column",
+            ],
+            error_code="NON_TEMPORAL_COLUMN",
+        )
 
     @staticmethod
     def _validate_columns_exist(  # noqa: C901
@@ -290,7 +330,13 @@ class DatasetValidator:
             logger.warning("No plugin registered for chart_type=%r", chart_type)
             return []
 
-        return plugin.extract_column_refs(config)
+        refs = plugin.extract_column_refs(config)
+        temporal_column = getattr(config, "temporal_column", None)
+        if temporal_column and not any(
+            ref.name and ref.name.lower() == temporal_column.lower() for ref in refs
+        ):
+            refs.append(ColumnRef(name=temporal_column))
+        return refs
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:
@@ -424,7 +470,16 @@ class DatasetValidator:
             )
             return config
 
-        return plugin.normalize_column_refs(config, dataset_context)
+        normalized_config = plugin.normalize_column_refs(config, dataset_context)
+        if temporal_column := getattr(normalized_config, "temporal_column", None):
+            canonical_temporal_column = DatasetValidator.get_canonical_column_name(
+                temporal_column, dataset_context
+            )
+            if canonical_temporal_column != temporal_column:
+                normalized_config = normalized_config.model_copy(
+                    update={"temporal_column": canonical_temporal_column}
+                )
+        return normalized_config
 
     @staticmethod
     def _get_column_suggestions(
