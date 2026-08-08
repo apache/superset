@@ -33,6 +33,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _build_query_results,
     _coerce_row_limit,
     _GENERIC_TYPE_MAP,
     _MAX_RECOMMENDATIONS,
@@ -227,9 +228,9 @@ class TestBigNumberChartFallback:
                 "viz_type": viz_type,
             }
             metrics, _ = _extract_metrics_and_groupby(form_data)
-            assert metrics == [{"label": "plural_metric"}], (
-                f"{viz_type} should use plural metrics"
-            )
+            assert metrics == [
+                {"label": "plural_metric"}
+            ], f"{viz_type} should use plural metrics"
 
     def test_pop_kpi_uses_singular_metric(self):
         """Test that pop_kpi (BigNumberPeriodOverPeriod) uses singular metric."""
@@ -1258,9 +1259,9 @@ class TestChartLookupEagerLoading:
             call = mock_find.call_args
             assert call.args == (42,)
             query_options = call.kwargs.get("query_options")
-            assert query_options is not None, (
-                "Chart lookup must pass query_options for eager-loading."
-            )
+            assert (
+                query_options is not None
+            ), "Chart lookup must pass query_options for eager-loading."
             assert len(query_options) == 1
             load_path = _extract_metrics_load_path(query_options[0])
             assert load_path == [
@@ -1291,9 +1292,9 @@ class TestChartLookupEagerLoading:
             assert call.args == (uuid,)
             assert call.kwargs.get("id_column") == "uuid"
             query_options = call.kwargs.get("query_options")
-            assert query_options is not None, (
-                "UUID chart lookup must pass query_options for eager-loading."
-            )
+            assert (
+                query_options is not None
+            ), "UUID chart lookup must pass query_options for eager-loading."
             load_path = _extract_metrics_load_path(query_options[0])
             assert load_path == [
                 "table",
@@ -1684,6 +1685,121 @@ def test_bool_isinstance_check_before_int():
 def test_coerce_row_limit(value: Any, default: int, expected: int) -> None:
     """_coerce_row_limit tolerates str/None row_limits from chart.params."""
     assert _coerce_row_limit(value, default) == expected
+
+
+def test_mixed_timeseries_preserves_both_query_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mixed Timeseries data includes both its primary and secondary queries."""
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "sqlite",
+    )
+
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "metrics": ["primary_metric"],
+        "metrics_b": ["secondary_metric"],
+        "groupby": [],
+        "groupby_b": [],
+    }
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+    assert len(queries) == 2
+
+    results = _build_query_results(
+        [
+            {"colnames": ["primary"], "data": [{"primary": 1}], "rowcount": 1},
+            {
+                "colnames": ["secondary"],
+                "data": [{"secondary": 2}],
+                "rowcount": 1,
+            },
+        ],
+        limit=None,
+    )
+
+    assert results is not None
+    assert [result.query_index for result in results] == [0, 1]
+    assert results[0].data == [{"primary": 1}]
+    assert results[1].data == [{"secondary": 2}]
+
+
+def test_single_query_chart_keeps_legacy_shape() -> None:
+    """Single-query charts do not gain a redundant query_results payload."""
+    assert (
+        _build_query_results([{"colnames": ["metric"], "data": [{"metric": 1}]}], None)
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_unsaved_mixed_timeseries_returns_every_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The tool response must not collapse a multi-query command result."""
+    from unittest.mock import AsyncMock
+
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart_data_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+
+    class MultiQueryChartDataCommand:
+        def __init__(self, query_context: object) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "colnames": ["primary"],
+                        "data": [{"primary": 1}],
+                        "rowcount": 1,
+                    },
+                    {
+                        "colnames": ["secondary"],
+                        "data": [{"secondary": 2}],
+                        "rowcount": 1,
+                    },
+                ]
+            }
+
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: object(),
+    )
+    monkeypatch.setattr(
+        get_data_command_module, "ChartDataCommand", MultiQueryChartDataCommand
+    )
+    request = GetChartDataRequest(form_data_key="mixed-chart")
+    response = await _query_from_form_data(
+        {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "row_limit": 10,
+        },
+        request,
+        AsyncMock(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.data == [{"primary": 1}]
+    assert response.query_results is not None
+    assert [result.data for result in response.query_results] == [
+        [{"primary": 1}],
+        [{"secondary": 2}],
+    ]
 
 
 def _make_chart_data(**overrides: Any) -> ChartData:
