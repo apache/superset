@@ -23,8 +23,11 @@ export const AGGREGATES = {
   COUNT: 'COUNT',
   COUNT_DISTINCT: 'COUNT_DISTINCT',
   MAX: 'MAX',
+  MEDIAN: 'MEDIAN',
   MIN: 'MIN',
+  STDDEV_SAMP: 'STDDEV_SAMP',
   SUM: 'SUM',
+  VAR_SAMP: 'VAR_SAMP',
 };
 export const AGGREGATES_OPTIONS = Object.values(AGGREGATES);
 
