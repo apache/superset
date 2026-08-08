@@ -447,3 +447,80 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
 
   fetchMock.removeRoute('post-fail');
 });
+
+// ---------------------------------------------------------------------------
+// Error Handling section tests
+// ---------------------------------------------------------------------------
+
+test('Error Handling section is visible and Enable Retries checkbox is unchecked by default', () => {
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  expect(screen.getByText('Error Handling')).toBeInTheDocument();
+  const enableRetriesCheckbox = screen.getByRole('checkbox', {
+    name: /enable retries/i,
+  });
+  expect(enableRetriesCheckbox).not.toBeChecked();
+});
+
+test('conditional retry fields are hidden when Enable Retries is unchecked', () => {
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  expect(screen.queryByText('Maximum Retry Attempts')).not.toBeInTheDocument();
+  expect(screen.queryByText('Send Failed Reports')).not.toBeInTheDocument();
+  expect(screen.queryByText('Failure Notifications')).not.toBeInTheDocument();
+});
+
+test('conditional retry fields appear when Enable Retries is checked', async () => {
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  const enableRetriesCheckbox = screen.getByRole('checkbox', {
+    name: /enable retries/i,
+  });
+  await userEvent.click(enableRetriesCheckbox);
+
+  await waitFor(() => {
+    expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
+    expect(screen.getByText('Send Failed Reports')).toBeInTheDocument();
+    expect(screen.getByText('Failure Notifications')).toBeInTheDocument();
+  });
+});
+
+test('retry fields are included in the POST body when Enable Retries is enabled', async () => {
+  fetchMock.post(REPORT_ENDPOINT, { result: {} }, { name: 'post-retry' });
+  const store = createStore({}, reducerIndex);
+  render(
+    <ReportModal
+      {...defaultProps}
+      dashboardId={undefined}
+      chart={{ sliceFormData: { viz_type: 'bar' } } as any}
+      creationMethod="charts"
+    />,
+    { useRedux: true, store },
+  );
+
+  // Enable retries
+  const enableRetriesCheckbox = screen.getByRole('checkbox', {
+    name: /enable retries/i,
+  });
+  await userEvent.click(enableRetriesCheckbox);
+
+  // Submit
+  const addButton = screen.getByRole('button', { name: /add/i });
+  await userEvent.click(addButton);
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('post-retry');
+    const lastCall = calls[calls.length - 1];
+    const body = JSON.parse(lastCall.options.body as string);
+    expect(body.retry_on_failure).toBe(true);
+    expect(typeof body.retry_max_attempts).toBe('number');
+    expect(typeof body.send_failed_reports).toBe('boolean');
+    expect(typeof body.retry_notify_owners).toBe('boolean');
+    expect(typeof body.retry_notify_recipients).toBe('boolean');
+  });
+
+  fetchMock.removeRoute('post-retry');
+});

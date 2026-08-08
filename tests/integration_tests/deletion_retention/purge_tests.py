@@ -47,6 +47,7 @@ from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.reports.models import ReportSchedule
 from superset.tags.models import ObjectType, Tag, TaggedObject
+from superset.tasks import deletion_retention as deletion_retention_task
 from superset.tasks.deletion_retention import _purge_impl
 
 from ._base import DeletionRetentionTestBase
@@ -275,6 +276,80 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             .one()
         )
         assert row.status == audit.STATUS_BLOCKED
+
+    def test_repeated_report_blocker_preserves_counts_and_suppresses_noise(
+        self,
+    ) -> None:
+        chart: Slice = self.make_chart("reported_repeatedly")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_repeated_report",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        chart_uuid: str = str(chart.uuid)
+        self.soft_delete(chart, days_ago=90)
+
+        incr: MagicMock
+        gauge: MagicMock
+        with (
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "incr"
+            ) as incr,
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "gauge"
+            ) as gauge,
+        ):
+            first_result: dict[str, Any] = _purge(window=30)
+            second_result: dict[str, Any] = _purge(window=30)
+
+        assert first_result["blocked_by_reference"] == 1
+        assert second_result["blocked_by_reference"] == 1
+        assert (
+            db.session.query(audit.PurgeAuditLog)
+            .filter_by(
+                entity_uuid=chart_uuid,
+                trigger=audit.TRIGGER_RETENTION,
+                status=audit.STATUS_BLOCKED,
+            )
+            .count()
+            == 1
+        )
+        incr.assert_called_once_with("deletion_retention.blocked_audit_suppressed")
+        assert gauge.call_count == 2
+        gauge.assert_called_with("deletion_retention.blocked_by_reference", 1)
+
+    def test_blocked_audit_fallback_is_counted_without_changing_task_result(
+        self,
+    ) -> None:
+        chart: Slice = self.make_chart("reported_fallback")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_fallback_report",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        self.soft_delete(chart, days_ago=90)
+
+        incr: MagicMock
+        with (
+            patch.object(
+                audit,
+                "finalize_retention_blocked",
+                return_value="fallback",
+            ),
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "incr"
+            ) as incr,
+        ):
+            result: dict[str, Any] = _purge(window=30)
+
+        assert result["blocked_by_reference"] == 1
+        incr.assert_called_once_with("deletion_retention.blocked_audit_dedupe_fallback")
 
     def test_restrictive_fk_blocks_dashboard_without_rewriting_referrer(self) -> None:
         """A welcome-dashboard FK remains authoritative during retention."""

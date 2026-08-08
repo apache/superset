@@ -34,7 +34,6 @@ import {
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
-import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import SuperChart from './SuperChart';
 
@@ -281,9 +280,6 @@ export default function StatefulChart(props: StatefulChartProps) {
       }
       finalFormData.viz_type = vizType;
 
-      // Get chart metadata
-      const { useLegacyApi } = getChartMetadataRegistry().get(vizType) || {};
-
       // Build query using the chart's buildQuery function
       const buildQuery = await getChartBuildQueryRegistry().get(vizType);
       let queryContext;
@@ -295,31 +291,20 @@ export default function StatefulChart(props: StatefulChartProps) {
         queryContext = buildQueryContext(finalFormData);
       }
 
-      // Ensure query_context is properly formatted for new API
-      if (!useLegacyApi && !queryContext.queries) {
+      // Ensure query_context is properly formatted for the API
+      if (!queryContext.queries) {
         queryContext = { queries: [queryContext] };
       }
-      const endpoint = useLegacyApi ? '/explore_json/' : '/api/v1/chart/data';
 
       const requestConfig: RequestConfig = {
-        endpoint,
+        endpoint: '/api/v1/chart/data',
         signal: controller.signal,
         ...(timeout && { timeout: timeout * 1000 }),
-      };
-
-      if (useLegacyApi) {
-        requestConfig.postPayload = {
-          form_data: {
-            ...finalFormData,
-            ...(force && { force: true }),
-          },
-        };
-      } else {
-        requestConfig.jsonPayload = {
+        jsonPayload: {
           ...queryContext,
           ...(force && { force: true }),
-        };
-      }
+        },
+      };
 
       const clientResponse =
         await chartClientRef.current!.client.post(requestConfig);
@@ -347,18 +332,10 @@ export default function StatefulChart(props: StatefulChartProps) {
               'the async handler or disable GLOBAL_ASYNC_QUERIES for this chart.',
           );
         }
-        // The async handler (handleChartDataResponse) expects the V1 chart data
-        // response signature. The legacy endpoint returns a flat body, so wrap
-        // it as { result: [body] } exactly like legacyChartDataRequest does for
-        // the standard chart path; the V1 body is already correctly shaped.
-        const asyncPayload = useLegacyApi
-          ? ({ result: [clientResponse.json] } as JsonObject)
-          : (clientResponse.json as JsonObject);
         responseData = ensureIsArray(
           await hooks.handleAsyncChartData(
             rawResponse,
-            asyncPayload,
-            useLegacyApi,
+            clientResponse.json as JsonObject,
             controller.signal,
           ),
         );
@@ -374,10 +351,8 @@ export default function StatefulChart(props: StatefulChartProps) {
             : [clientResponse.json]
         ) as JsonObject[];
 
-        // Handle the nested result structure from the new API
-        responseData = (
-          !useLegacyApi && rows[0]?.result ? rows[0].result : rows
-        ) as QueryData[];
+        // Handle the nested result structure from the API
+        responseData = (rows[0]?.result ? rows[0].result : rows) as QueryData[];
       }
 
       // Don't pair this request's data with newer props or fire a stale onLoad
