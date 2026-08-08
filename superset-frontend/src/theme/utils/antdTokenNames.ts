@@ -17,6 +17,25 @@
  * under the License.
  */
 import { theme } from 'antd';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+/**
+ * Custom token names registered by the deployment via the EXTRA_THEME_TOKENS
+ * config (shipped in the common bootstrap payload). Lets deployments and plugins
+ * validate their own theme tokens without forking this list.
+ *
+ * Snapshotted once so the cached valid-token set (isValidTokenName) and the live
+ * reads (isSupersetCustomToken, getAllValidTokenNames) all derive from the same
+ * list, rather than depending on getBootstrapData's memoization to stay in sync.
+ */
+let extraThemeTokensCache: readonly string[] | undefined;
+function getExtraThemeTokens(): readonly string[] {
+  if (extraThemeTokensCache === undefined) {
+    extraThemeTokensCache =
+      getBootstrapData()?.common?.extra_theme_tokens ?? [];
+  }
+  return extraThemeTokensCache;
+}
 
 /**
  * Superset-specific custom tokens that extend Ant Design's token system.
@@ -125,10 +144,11 @@ function getValidTokenNames(): Set<string> {
     const antdTokens = theme.getDesignToken();
     const antdTokenNames = Object.keys(antdTokens);
 
-    // Combine with Superset custom tokens
+    // Combine with Superset custom tokens + deployment-registered extras
     validTokenNamesCache = new Set([
       ...antdTokenNames,
       ...SUPERSET_CUSTOM_TOKENS,
+      ...getExtraThemeTokens(),
     ]);
   }
   return validTokenNamesCache;
@@ -149,7 +169,10 @@ export function isValidTokenName(tokenName: string): boolean {
  * @returns true if it's a Superset-specific token
  */
 export function isSupersetCustomToken(tokenName: string): boolean {
-  return SUPERSET_CUSTOM_TOKENS.has(tokenName);
+  return (
+    SUPERSET_CUSTOM_TOKENS.has(tokenName) ||
+    getExtraThemeTokens().includes(tokenName)
+  );
 }
 
 /**
@@ -165,7 +188,9 @@ export function getAllValidTokenNames(): {
   const antdTokens = Array.from(allTokens).filter(
     t => !isSupersetCustomToken(t),
   );
-  const supersetTokens: string[] = Array.from(SUPERSET_CUSTOM_TOKENS);
+  const supersetTokens: string[] = Array.from(
+    new Set([...SUPERSET_CUSTOM_TOKENS, ...getExtraThemeTokens()]),
+  );
 
   return {
     antdTokens,
