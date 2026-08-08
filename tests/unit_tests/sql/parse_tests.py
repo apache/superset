@@ -959,6 +959,33 @@ LIMIT 100
     assert "SET_VAR(query_timeout /*" not in formatted
 
 
+@pytest.mark.xfail(
+    reason=(
+        "#38189 is not fully fixed: a `;`-terminated statement still hits "
+        "the comment-relocation branch and corrupts the hint block. Only "
+        "the no-semicolon form from the original repro was fixed."
+    ),
+    strict=True,
+)
+def test_sqlscript_format_preserves_optimizer_hint_block_with_semicolon() -> None:
+    """
+    Same as `test_sqlscript_format_preserves_optimizer_hint_block`, but with
+    a terminating `;` on the statement -- this still reproduces #38189: the
+    trailing `--` comment gets injected inside the `/*+ SET_VAR(...) */`
+    hint block, corrupting it for StarRocks/MySQL-style engines.
+    """
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100;
+
+-- increase timeout for large scans"""
+    statement = SQLScript(sql, "starrocks").statements[0]
+    formatted = statement.format()
+
+    assert "/*+ SET_VAR(query_timeout = 3000) */" in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+
+
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
