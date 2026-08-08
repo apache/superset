@@ -532,9 +532,9 @@ msgstr "No se pudo agregar la(s) %s vista(s) semántica(s)"
 msgid "%s semantic view(s) failed to add: %s"
 msgstr "Error al agregar %s vista(s) semántica(s): %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s tab selected"
-msgstr "%s seleccionado"
+msgstr "Pestaña %s seleccionada"
 
 #, python-format
 msgid "%s updated"
@@ -1075,13 +1075,11 @@ msgstr ""
 "          Estos valores intermedios pueden basarse en el tiempo o en la "
 "categoría."
 
-#, fuzzy
 msgid "A-Z"
-msgstr "clave a-z"
+msgstr "A-Z"
 
-#, fuzzy
 msgid "AND"
-msgstr "aleatorio"
+msgstr "Y"
 
 #, fuzzy
 msgid "API Key Created"
@@ -2727,9 +2725,8 @@ msgstr "Básico"
 msgid "Basic conditional formatting"
 msgstr "Formato condicional básico"
 
-#, fuzzy
 msgid "Basic information about the chart"
-msgstr "Información básica"
+msgstr "Información básica sobre el gráfico"
 
 #, python-format
 msgid "Batch editing %d filters:"
@@ -2753,9 +2750,8 @@ msgstr "Número grande con línea de tendencia"
 msgid "Bins"
 msgstr "Contenedores"
 
-#, fuzzy
 msgid "Blanks"
-msgstr "BOOLEANO"
+msgstr "En blanco"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy, python-format
@@ -3799,9 +3795,8 @@ msgstr "Haz clic para ordenar de forma descendente"
 msgid "Client ID"
 msgstr "Anchura de la línea"
 
-#, fuzzy
 msgid "Client Secret"
-msgstr "Selección de columna"
+msgstr "Secreto de cliente"
 
 msgid "Close"
 msgstr "Cerrar"
@@ -4281,9 +4276,8 @@ msgstr "La conexión ha fallado; revisa la configuración de tu conexión"
 msgid "Connection looks good!"
 msgstr ""
 
-#, fuzzy
 msgid "Contains"
-msgstr "Continuo"
+msgstr "Contiene"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4932,9 +4926,8 @@ msgstr "Datos"
 msgid "Data Connections"
 msgstr "Conexiones de la base de datos"
 
-#, fuzzy
 msgid "Data Export Options"
-msgstr "Opciones del gráfico"
+msgstr "Opciones de exportación de datos"
 
 msgid "Data Table"
 msgstr "Tabla de datos"
@@ -5458,9 +5451,9 @@ msgstr[1] "Retrasado (se omitieron %s actualizaciones)"
 msgid "Delete"
 msgstr "Eliminar"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Delete %s"
-msgstr "Se ha eliminado%s"
+msgstr "Eliminar %s"
 
 #, python-format
 msgid "Delete %s?"
@@ -5627,7 +5620,7 @@ msgstr[1] "Se han eliminado%(num)d conjuntos de datos"
 
 #, python-format
 msgid "Deleted %s"
-msgstr "Se ha eliminado%s"
+msgstr "Se ha eliminado %s"
 
 #, python-format
 msgid "Deleted %s item(s)"
@@ -6234,9 +6227,8 @@ msgstr "Función de agregación dinámica"
 msgid "Dynamic Section Label"
 msgstr "Direccional"
 
-#, fuzzy
 msgid "Dynamic group by"
-msgstr "NO AGRUPADO POR"
+msgstr "Agrupación dinámica"
 
 #, fuzzy
 msgid "Dynamic section description"
@@ -6444,9 +6436,8 @@ msgstr ""
 msgid "Either the username or the password is wrong."
 msgstr "El nombre de usuario o la contraseña son incorrectos."
 
-#, fuzzy
 msgid "Elapsed"
-msgstr "Volver a cargar"
+msgstr "Transcurrido"
 
 msgid "Elevation"
 msgstr "Elevación"
@@ -6611,9 +6602,8 @@ msgstr "Fecha final excluida del rango de tiempo"
 msgid "End date must be after start date"
 msgstr "La fecha final debe ser posterior a la fecha inicial"
 
-#, fuzzy
 msgid "Ends With"
-msgstr "Anchura del borde"
+msgstr "Termina con"
 
 #, python-format
 msgid "Ends with (ILIKE %x)"
@@ -6719,9 +6709,8 @@ msgstr "Tamaños de fecha iguales"
 msgid "Equal to (=)"
 msgstr "Igual a (=)"
 
-#, fuzzy
 msgid "Equals"
-msgstr "Secuencial"
+msgstr "Igual a"
 
 msgid "Error"
 msgstr "Error"
@@ -6982,13 +6971,11 @@ msgstr "Explorar el conjunto de resultados en la vista de exploración de datos"
 msgid "Export"
 msgstr "Exportar"
 
-#, fuzzy
 msgid "Export All Data"
-msgstr "Borrar todos los datos"
+msgstr "Exportar todos los datos"
 
-#, fuzzy
 msgid "Export Current View"
-msgstr "Invertir página actual"
+msgstr "Exportar la vista actual"
 
 msgid "Export Data to Excel"
 msgstr ""
@@ -6996,9 +6983,8 @@ msgstr ""
 msgid "Export Images to Excel"
 msgstr ""
 
-#, fuzzy
 msgid "Export YAML"
-msgstr "Nombre del informe"
+msgstr "Exportar YAML"
 
 #, fuzzy
 msgid "Export as Example"
@@ -7339,16 +7325,14 @@ msgstr ""
 "Usando CSV como alternativa; la biblioteca de exportación a Excel no está"
 " disponible."
 
-#, fuzzy
 msgid "False"
-msgstr "Es falso"
+msgstr "Falso"
 
 msgid "Favorite"
 msgstr "Favorito"
 
-#, fuzzy
 msgid "Feature Not Enabled"
-msgstr "El túnel SSH no está habilitado"
+msgstr "Función no habilitada"
 
 msgid "Featured"
 msgstr "Destacado"
@@ -7922,9 +7906,8 @@ msgstr "Tamaño de la cuadrícula"
 msgid "Grid view"
 msgstr "Tamaño de la cuadrícula"
 
-#, fuzzy
 msgid "Group"
-msgstr "Agrupar por"
+msgstr "Grupo"
 
 msgid "Group By"
 msgstr "Agrupar por"
@@ -8232,9 +8215,8 @@ msgstr "En"
 msgid "In Progress"
 msgstr "Progreso"
 
-#, fuzzy
 msgid "In Range"
-msgstr "Intervalo de tiempo"
+msgstr "En el intervalo"
 
 msgid ""
 "In order to connect to non-public sheets you need to either provide a "
@@ -10084,9 +10066,8 @@ msgstr "No se han conservado los ajustes del formulario"
 msgid "No global filters are currently added"
 msgstr "Actualmente no se han añadido filtros globales"
 
-#, fuzzy
 msgid "No groups"
-msgstr "NO AGRUPADO POR"
+msgstr "Sin grupos"
 
 #, fuzzy
 msgid "No groups yet"
@@ -10226,9 +10207,8 @@ msgstr "Normalizar nombres de columnas"
 msgid "Normalized"
 msgstr "Normalizado"
 
-#, fuzzy
 msgid "Not Contains"
-msgstr "Denunciar un contenido"
+msgstr "No contiene"
 
 #, fuzzy
 msgid "Not Equal"
@@ -10402,9 +10382,8 @@ msgstr "OCT"
 msgid "OK"
 msgstr "OK"
 
-#, fuzzy
 msgid "OR"
-msgstr "o"
+msgstr "O"
 
 #. do-not-translate
 msgid "OVERWRITE"
@@ -10878,9 +10857,8 @@ msgstr "Establecer intervalo de actualización automática"
 msgid "Pending"
 msgstr "pendiente"
 
-#, fuzzy
 msgid "Per user caching"
-msgstr "Porcentaje de cambio"
+msgstr "Caché por usuario"
 
 msgid "Percent Change"
 msgstr "Porcentaje de cambio"
@@ -11607,9 +11585,8 @@ msgstr "Consulta la"
 msgid "Referenced columns not available in DataFrame."
 msgstr "Las columnas referenciadas no están disponibles en el marco de datos."
 
-#, fuzzy
 msgid "Referrer"
-msgstr "Actualizar"
+msgstr "Referrer"
 
 msgid "Refetch results"
 msgstr "Volver a obtener resultados"
@@ -11709,9 +11686,8 @@ msgstr "Eliminar"
 msgid "Remove System Dark Theme"
 msgstr "Eliminar tema oscuro del sistema"
 
-#, fuzzy
 msgid "Remove System Default Theme"
-msgstr "Actualizar los valores predeterminados"
+msgstr "Eliminar tema predeterminado del sistema"
 
 msgid "Remove cross-filter"
 msgstr "Eliminar filtro cruzado"
@@ -12310,9 +12286,8 @@ msgstr "Los parámetros del túnel SSH no son válidos."
 msgid "SSH Tunneling is not enabled"
 msgstr "El túnel SSH no está habilitado"
 
-#, fuzzy
 msgid "SSL"
-msgstr "sql"
+msgstr "SSL"
 
 msgid "SSL Mode \"require\" will be used."
 msgstr "Se utilizará el modo SSL «requerido»."
@@ -12638,9 +12613,8 @@ msgstr "Seguridad adicional"
 msgid "Security"
 msgstr "Seguridad"
 
-#, fuzzy
 msgid "See "
-msgstr "series"
+msgstr "Ver "
 
 #, python-format
 msgid "See all %(tableName)s"
@@ -12668,9 +12642,8 @@ msgstr "Selecciona %s o escribe para buscar %s"
 msgid "Select ..."
 msgstr "Seleccionar …"
 
-#, fuzzy
 msgid "Select All"
-msgstr "Deseleccionar todo"
+msgstr "Seleccionar todo"
 
 #, fuzzy
 msgid "Select Database and Schema"
@@ -12787,9 +12760,8 @@ msgstr "Selecciona un tipo de visualización"
 msgid "Select aggregate options"
 msgstr "Selecciona las opciones de agregación"
 
-#, fuzzy
 msgid "Select all"
-msgstr "Deseleccionar todo"
+msgstr "Seleccionar todo"
 
 msgid "Select all data"
 msgstr "Seleccionar todos los datos"
@@ -13732,9 +13704,8 @@ msgstr "Muestra una lista de todas las series disponibles en ese momento"
 msgid "Shows or hides markers for the time series"
 msgstr "Muestra u oculta marcadores para la serie temporal"
 
-#, fuzzy
 msgid "Sign in"
-msgstr "No está en"
+msgstr "Iniciar sesión"
 
 #, fuzzy
 msgid "Sign in with"
@@ -14158,13 +14129,11 @@ msgstr ""
 msgid "Started"
 msgstr "Iniciado"
 
-#, fuzzy
 msgid "Starts With"
-msgstr "Anchura del gráfico"
+msgstr "Empieza con"
 
-#, fuzzy
 msgid "Starts with (ILIKE x%)"
-msgstr "Anchura del gráfico"
+msgstr "Empieza con (ILIKE x%)"
 
 msgid "State"
 msgstr "Estado"
@@ -17085,9 +17054,8 @@ msgstr "Activar alerta si..."
 msgid "Trigger now"
 msgstr ""
 
-#, fuzzy
 msgid "True"
-msgstr "MAR"
+msgstr "Verdadero"
 
 msgid "Truncate Axis"
 msgstr ""
@@ -17248,17 +17216,14 @@ msgstr ""
 "estén configurados: «bigquery.readsessions.create», "
 "«bigquery.readsessions.getData»."
 
-#, fuzzy
 msgid ""
 "Unable to connect. Verify that the following roles are set on the service"
 " account: \"Cloud Datastore Viewer\", \"Cloud Datastore User\", \"Cloud "
 "Datastore Creator\""
 msgstr ""
-"No se ha podido conectar. Comprueba si los siguientes roles están "
-"configurados en la cuenta de servicio: «BigQuery Data Viewer», «BigQuery "
-"Metadata Viewer», «BigQuery Job User»; y que los siguientes permisos "
-"estén configurados: «bigquery.readsessions.create», "
-"«bigquery.readsessions.getData»."
+"No se ha podido conectar. Comprueba que los siguientes roles estén "
+"configurados en la cuenta de servicio: «Cloud Datastore Viewer», «Cloud "
+"Datastore User», «Cloud Datastore Creator»"
 
 msgid "Unable to create chart without a query id."
 msgstr "No se puede crear un gráfico sin un ID de consulta."
@@ -17800,9 +17765,8 @@ msgstr "Valor"
 msgid "Value Aggregation"
 msgstr "Agregación"
 
-#, fuzzy
 msgid "Value Columns"
-msgstr "Columnas de la tabla"
+msgstr "Columnas de valores"
 
 msgid "Value Domain"
 msgstr "Dominio del valor"
@@ -19142,9 +19106,8 @@ msgstr "Su sesión ha finalizado. Por favor, inicie sesión de nuevo."
 msgid "Your user information"
 msgstr "Información general"
 
-#, fuzzy
 msgid "Z-A"
-msgstr "clave z-a"
+msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "El archivo ZIP contiene varios tipos de archivos"
@@ -20139,9 +20102,8 @@ msgstr "Hora/fecha"
 msgid "timestamp"
 msgstr "Mostrar marca de tiempo"
 
-#, fuzzy
 msgid "to"
-msgstr "arriba"
+msgstr "a"
 
 msgid "top"
 msgstr "arriba"

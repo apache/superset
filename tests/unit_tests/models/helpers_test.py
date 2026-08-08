@@ -2899,6 +2899,51 @@ def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
     )
 
 
+def test_adhoc_column_type_probe_propagates_db_error(database: Database) -> None:
+    """
+    Regression test for SUPERSET-PYTHON-WE6.
+
+    A real DB/connectivity failure during the type-probe (surfaced by
+    get_columns_description as a SupersetGenericDBErrorException) must propagate
+    unchanged. It must NOT be relabeled as ColumnNotFoundException, which would
+    cause the calling adhoc-filter code in models/helpers.py to silently drop
+    the filter as if the column didn't exist.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import (
+        ColumnNotFoundException,
+        SupersetGenericDBErrorException,
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    db_error_message = "SSL error: unexpected eof while reading"
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=SupersetGenericDBErrorException(db_error_message),
+    ):
+        with pytest.raises(SupersetGenericDBErrorException) as excinfo:
+            table.adhoc_column_to_sqla(adhoc_col, force_type_check=True)
+
+    assert db_error_message in str(excinfo.value)
+    assert not isinstance(excinfo.value, ColumnNotFoundException)
+
+
 def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
     database: Database,
 ) -> None:
