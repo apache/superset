@@ -148,7 +148,7 @@ flask-migrate==4.1.0
     # via apache-superset (pyproject.toml)
 flask-session==0.8.0
     # via apache-superset (pyproject.toml)
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -171,7 +171,6 @@ greenlet==3.5.4
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
-    #   sqlalchemy
 gunicorn==26.0.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
@@ -400,7 +399,7 @@ sniffio==1.3.1
     # via trio
 sortedcontainers==2.4.0
     # via trio
-sqlalchemy==1.4.54
+sqlalchemy==2.0.51
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
@@ -445,6 +444,7 @@ typing-extensions==4.16.0
     #   referencing
     #   selenium
     #   shillelagh
+    #   sqlalchemy
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic
