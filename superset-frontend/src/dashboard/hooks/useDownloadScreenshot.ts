@@ -17,9 +17,10 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { last } from 'lodash-es';
+import { useDashboardStateStore } from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import rison from 'rison';
 import { parse as parseContentDisposition } from 'content-disposition';
 import { t } from '@apache-superset/core/translation';
@@ -29,7 +30,6 @@ import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
 } from 'src/logger/LogUtils';
-import { RootState } from 'src/dashboard/types';
 import { getDashboardUrlParams } from 'src/utils/urlUtils';
 import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
@@ -40,16 +40,11 @@ export const useDownloadScreenshot = (
   dashboardId: number,
   logEvent?: Function,
 ) => {
-  const activeTabs = useSelector(
-    (state: RootState) => state.dashboardState.activeTabs || undefined,
-  );
-  const anchor = useSelector(
-    (state: RootState) =>
-      last(state.dashboardState.directPathToChild) || undefined,
-  );
-  const dataMask = useSelector(
-    (state: RootState) => state.dataMask || undefined,
-  );
+  const activeTabsRaw = useDashboardStateStore(s => s.activeTabs);
+  const activeTabs = activeTabsRaw || undefined;
+  const directPathToChild = useDashboardStateStore(s => s.directPathToChild);
+  const anchor = last(directPathToChild) || undefined;
+  const dataMask = useDataMaskStore(s => s.dataMask);
 
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
 

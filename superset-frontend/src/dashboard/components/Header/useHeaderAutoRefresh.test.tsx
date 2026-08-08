@@ -21,6 +21,8 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import { ReactNode } from 'react';
 import { LOG_ACTIONS_FORCE_REFRESH_DASHBOARD } from 'src/logger/LogUtils';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
 
 jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
@@ -79,6 +81,10 @@ const renderHeaderAutoRefresh = (
     logEvent: jest.fn(),
     ...overrides,
   };
+  // The stagger config is read from the Zustand dashboard-info store, not Redux.
+  useDashboardInfoStore.setState({
+    dashboardInfo: { common: { conf } } as unknown as DashboardInfo,
+  });
   const { result } = renderHook(() => useHeaderAutoRefresh(props), {
     wrapper: createWrapper(conf),
   });

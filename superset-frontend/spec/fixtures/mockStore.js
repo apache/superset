@@ -18,6 +18,11 @@
  */
 import { setupStore } from 'src/views/store';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import {
+  useNativeFiltersStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
 
 import mockState from './mockState';
 import {
@@ -28,11 +33,28 @@ import { sliceId } from './mockChartQueries';
 import { dashboardFilters } from './mockDashboardFilters';
 import { nativeFilters, dataMaskWith2Filters } from './mockNativeFilters';
 
-export const storeWithState = state =>
-  setupStore({
+// dashboardInfo and the filter system read from Zustand, not Redux. Mirror the
+// mock initialState into those stores so fixture-based tests render with the
+// same state they pass to setupStore.
+export const seedZustandStores = state => {
+  useDataMaskStore.setState({ dataMask: state.dataMask || {} });
+  useNativeFiltersStore.setState({
+    filters: state.nativeFilters?.filters || {},
+    focusedFilterId: state.nativeFilters?.focusedFilterId,
+    hoveredFilterId: state.nativeFilters?.hoveredFilterId,
+    hoveredChartCustomizationId:
+      state.nativeFilters?.hoveredChartCustomizationId,
+  });
+  useDashboardInfoStore.setState({ dashboardInfo: state.dashboardInfo || {} });
+};
+
+export const storeWithState = state => {
+  seedZustandStores(state);
+  return setupStore({
     disableDebugger: true,
     initialState: state,
   });
+};
 
 export const getMockStore = overrideState =>
   setupStore({
@@ -97,11 +119,13 @@ export const stateWithFilters = {
 // has one chart with a filter that has been applied,
 // one chart with a filter that has been rejected,
 // and one chart with no filters set.
-export const getMockStoreWithFilters = () =>
-  setupStore({
+export const getMockStoreWithFilters = () => {
+  seedZustandStores(stateWithFilters);
+  return setupStore({
     disableDebugger: true,
     initialState: stateWithFilters,
   });
+};
 
 export const stateWithNativeFilters = {
   ...mockState,
@@ -131,22 +155,26 @@ export const stateWithNativeFilters = {
   },
 };
 
-export const getMockStoreWithNativeFilters = () =>
-  setupStore({
+export const getMockStoreWithNativeFilters = () => {
+  seedZustandStores(stateWithNativeFilters);
+  return setupStore({
     disableDebugger: true,
     initialState: stateWithNativeFilters,
   });
+};
 
 export const stateWithNativeFiltersButNoValues = {
   ...stateWithNativeFilters,
   dataMask: {},
 };
 
-export const getMockStoreWithNativeFiltersButNoValues = () =>
-  setupStore({
+export const getMockStoreWithNativeFiltersButNoValues = () => {
+  seedZustandStores(stateWithNativeFiltersButNoValues);
+  return setupStore({
     disableDebugger: true,
     initialState: stateWithNativeFiltersButNoValues,
   });
+};
 
 export const stateWithoutNativeFilters = {
   ...mockState,

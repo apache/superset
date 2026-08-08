@@ -20,9 +20,12 @@ import { useState, useMemo, useCallback, useEffect, useRef, memo } from 'react';
 
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
-import { useSelector } from 'react-redux';
 import { css, useTheme } from '@apache-superset/core/theme';
-import { LayoutItem, RootState } from 'src/dashboard/types';
+import { LayoutItem } from 'src/dashboard/types';
+import {
+  useDirectPathToChild,
+  useDirectPathLastUpdated,
+} from 'src/dashboard/stores';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -110,12 +113,8 @@ const ChartHolder = ({
   const chartHolderRef = useRef<HTMLDivElement | null>(null);
 
   const focusHighlightStyles = useFilterFocusHighlightStyles(chartId ?? 0);
-  const directPathToChild = useSelector(
-    (state: RootState) => state.dashboardState.directPathToChild,
-  );
-  const directPathLastUpdated = useSelector(
-    (state: RootState) => state.dashboardState.directPathLastUpdated ?? 0,
-  );
+  const directPathToChild = useDirectPathToChild();
+  const directPathLastUpdated = useDirectPathLastUpdated() ?? 0;
 
   const [extraControls, setExtraControls] = useState<Record<string, unknown>>(
     {},

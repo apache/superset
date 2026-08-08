@@ -18,6 +18,11 @@
  */
 import type { AnyAction, Store } from 'redux';
 import { act, render } from 'spec/helpers/testing-library';
+import {
+  useDashboardInfoStore,
+  useDashboardStateStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import type { VersionHistoryState } from './types';
 import { useVersionActivity } from './useVersionActivity';
 import DashboardVersionHistory from './DashboardVersionHistory';
@@ -78,15 +83,31 @@ interface TestState {
 
 /** Minimal recording store: dispatched actions are captured, never reduced,
  * so tests drive state transitions explicitly via setState. */
+// The component reads dashboardInfo/dashboardState from Zustand, so mirror
+// those slices into the Zustand stores whenever the recording store is seeded
+// or updated. versionHistory stays in Redux and is read from `state`.
+function syncZustandDashboardSlices(partial: Partial<TestState>) {
+  if (partial.dashboardInfo) {
+    useDashboardInfoStore.setState({
+      dashboardInfo: partial.dashboardInfo as unknown as DashboardInfo,
+    });
+  }
+  if (partial.dashboardState) {
+    useDashboardStateStore.setState(partial.dashboardState);
+  }
+}
+
 function makeTestStore(initial: TestState) {
   let state = initial;
   const actions: AnyAction[] = [];
   const listeners = new Set<() => void>();
+  syncZustandDashboardSlices(initial);
   return {
     actions,
     getState: () => state,
     setState(partial: Partial<TestState>) {
       state = { ...state, ...partial };
+      syncZustandDashboardSlices(partial);
       listeners.forEach(listener => listener());
     },
     dispatch(action: AnyAction) {

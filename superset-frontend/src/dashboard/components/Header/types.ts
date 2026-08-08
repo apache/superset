@@ -81,9 +81,6 @@ export interface HeaderProps {
   isPublished: boolean;
   onChange: () => void;
   onSave: (...args: unknown[]) => unknown;
-  fetchFaveStar: () => void;
-  saveFaveStar: () => void;
-  savePublished: (dashboardId: number, isPublished: boolean) => void;
   updateDashboardTitle: (nextTitle: string) => void;
   editMode: boolean;
   setEditMode: () => void;

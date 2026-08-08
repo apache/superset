@@ -16,41 +16,56 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { bindActionCreators, Dispatch, AnyAction } from 'redux';
-import { connect } from 'react-redux';
-import { fetchSlices, updateSlices } from '../actions/sliceEntities';
-import SliceAdder from '../components/SliceAdder';
-import { RootState } from 'src/dashboard/types';
+import { useEffect, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import {
+  useDashboardStateStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
+import { useSlicesQuery, type SlicesListParams } from '../queries';
+import SliceAdder, { DEFAULT_SORT_KEY } from '../components/SliceAdder';
 
-interface OwnProps {
-  height?: number;
-}
+export default function SliceAdderContainer() {
+  const editMode = useDashboardStateStore(s => s.editMode);
+  const sliceIds = useDashboardStateStore(s => s.sliceIds);
+  const dashboardInfo = useDashboardInfoStore(s => s.dashboardInfo);
+  const { addDangerToast } = useToasts();
+  const userId = +dashboardInfo.userId;
 
-function mapStateToProps(
-  { sliceEntities, dashboardInfo, dashboardState }: RootState,
-  ownProps: OwnProps,
-) {
-  return {
-    height: ownProps.height,
-    userId: +dashboardInfo.userId,
-    dashboardId: dashboardInfo.id,
-    selectedSliceIds: dashboardState.sliceIds,
-    slices: sliceEntities.slices,
-    isLoading: sliceEntities.isLoading,
-    errorMessage: sliceEntities.errorMessage,
-    lastUpdated: sliceEntities.lastUpdated,
-    editMode: dashboardState.editMode,
-  };
-}
+  const [queryParams, setQueryParams] = useState<SlicesListParams>(() => ({
+    userId: getItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, true)
+      ? userId
+      : undefined,
+    filterValue: '',
+    sortColumn: DEFAULT_SORT_KEY,
+  }));
 
-function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
-  return bindActionCreators(
-    {
-      fetchSlices,
-      updateSlices,
-    } as any,
-    dispatch,
+  const {
+    data: slices,
+    isFetching,
+    dataUpdatedAt,
+    error,
+  } = useSlicesQuery(queryParams);
+
+  useEffect(() => {
+    if (error) {
+      addDangerToast(t('Could not fetch all saved charts'));
+    }
+  }, [error, addDangerToast]);
+
+  return (
+    <SliceAdder
+      setQueryParams={setQueryParams}
+      userId={userId}
+      dashboardId={dashboardInfo.id}
+      selectedSliceIds={sliceIds}
+      slices={slices ?? {}}
+      isLoading={isFetching}
+      errorMessage={error ? t('Could not fetch all saved charts') : ''}
+      lastUpdated={dataUpdatedAt}
+      editMode={editMode}
+    />
   );
 }
-
-export default connect(mapStateToProps, mapDispatchToProps)(SliceAdder as any);
