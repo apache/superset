@@ -52,6 +52,8 @@ def apply_rls(
     method = database.db_engine_spec.get_rls_method()
 
     # collect all RLS predicates for all tables in the query
+    default_catalog = database.get_default_catalog()
+    default_schema = database.get_default_schema(catalog)
     predicates: dict[Table, list[Any]] = {}
     for table in parsed_statement.tables:
         table = table.qualify(catalog=catalog, schema=schema)
@@ -60,7 +62,8 @@ def apply_rls(
             for predicate in get_predicates_for_table(
                 table,
                 database,
-                database.get_default_catalog(),
+                default_catalog,
+                default_schema,
                 exclude_dataset_id=exclude_dataset_id,
             )
             if predicate
@@ -75,6 +78,7 @@ def get_predicates_for_table(
     table: Table,
     database: Database,
     default_catalog: str | None,
+    default_schema: str | None = None,
     exclude_dataset_id: int | None = None,
 ) -> list[str]:
     """
@@ -95,10 +99,21 @@ def get_predicates_for_table(
             SqlaTable.catalog.is_(None),
         )
 
+    # if the dataset in the RLS has null schema, match it when using the default
+    # schema (mirrors the catalog handling above); a dataset stored without an
+    # explicit schema is scoped to the default schema, so a query that resolves
+    # to that same schema must still pick up its predicates
+    schema_predicate = SqlaTable.schema == table.schema
+    if table.schema and table.schema == default_schema:
+        schema_predicate = or_(
+            schema_predicate,
+            SqlaTable.schema.is_(None),
+        )
+
     filters = [
         SqlaTable.database_id == database.id,
         catalog_predicate,
-        SqlaTable.schema == table.schema,
+        schema_predicate,
         SqlaTable.table_name == table.table,
     ]
     # When applying RLS to a virtual dataset's inner SQL, skip a match against
@@ -168,6 +183,7 @@ def collect_rls_predicates_for_sql(
             for table in statement.tables
         }
         default_catalog = database.get_default_catalog()
+        default_schema = database.get_default_schema(catalog)
         return sorted(
             {
                 predicate
@@ -176,6 +192,7 @@ def collect_rls_predicates_for_sql(
                     table,
                     database,
                     default_catalog,
+                    default_schema,
                     exclude_dataset_id=exclude_dataset_id,
                 )
             }
