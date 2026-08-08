@@ -949,6 +949,58 @@ def test_oauth2_error(
             ),
         ),
         (
+            # an unset schema stringified by a broken client must be treated
+            # as absent (see #36305)
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "undefined",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
             {
                 "type": "csv",
                 "file": (create_csv_file(), "out.csv"),
@@ -1043,6 +1095,38 @@ def test_csv_upload(
     assert response.json == {"message": "OK"}
     init_mock.assert_called_with(*upload_called_with)
     reader_mock.assert_called_with(*reader_called_with)
+
+
+@pytest.mark.parametrize(
+    "schema_in,schema_out",
+    [
+        ("", None),
+        ("  ", None),
+        ("undefined", None),
+        ("null", None),
+        (None, None),
+        # only the exact JS stringification artifacts are dropped — a quoted
+        # schema actually named ``NULL``/``Undefined`` or an identifier with
+        # surrounding whitespace is preserved verbatim
+        ("NULL", "NULL"),
+        ("Undefined", "Undefined"),
+        (" public ", " public "),
+        ("myschema", "myschema"),
+    ],
+)
+def test_upload_post_schema_normalizes_schema(
+    schema_in: str | None,
+    schema_out: str | None,
+) -> None:
+    """
+    Empty/whitespace-only values and the exact stringified-unset artifacts
+    ("undefined"/"null") are dropped; every other value is preserved verbatim.
+    """
+    from superset.databases.schemas import UploadPostSchema
+
+    data = {} if schema_in is None else {"schema": schema_in}
+    result = UploadPostSchema().load(data, partial=True)
+    assert result.get("schema") == schema_out
 
 
 @pytest.mark.parametrize(
