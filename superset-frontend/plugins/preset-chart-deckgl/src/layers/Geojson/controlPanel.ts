@@ -44,6 +44,18 @@ import {
 import { dndGeojsonColumn } from '../../utilities/sharedDndControls';
 import { BLACK_COLOR } from '../../utilities/controls';
 
+// The shared fillColorPicker is only shown when a `color_scheme_type` control is
+// set to "fixed color". The GeoJSON layer has no such control - features carry
+// their own colors and this picker acts as an override (set the opacity to 0 to
+// fall back to the feature's own fillColor) - so the gate is dropped here.
+const geojsonFillColorPicker = {
+  ...fillColorPicker,
+  config: {
+    ...fillColorPicker.config,
+    visibility: () => true,
+  },
+};
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -71,7 +83,7 @@ const config: ControlPanelConfig = {
     {
       label: t('GeoJson Settings'),
       controlSetRows: [
-        [fillColorPicker, strokeColorPicker],
+        [geojsonFillColorPicker, strokeColorPicker],
         [filled, stroked],
         [extruded],
         [
