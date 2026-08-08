@@ -69,6 +69,7 @@ class QueryCacheManager:
         cache_value: dict[str, Any] | None = None,
         sql_rowcount: int | None = None,
         queried_dttm: str | None = None,
+        semantic_cache_hit: bool | None = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -86,6 +87,7 @@ class QueryCacheManager:
         self.cache_value = cache_value
         self.sql_rowcount = sql_rowcount
         self.queried_dttm = queried_dttm
+        self.semantic_cache_hit: bool | None = semantic_cache_hit
         self.bq_memory_limited: bool = False
         self.bq_memory_limited_row_count: int = 0
 
@@ -112,6 +114,7 @@ class QueryCacheManager:
             self.error_message = query_result.error_message
             self.df = query_result.df
             self.sql_rowcount = query_result.sql_rowcount
+            self.semantic_cache_hit = query_result.semantic_cache_hit
             self.annotation_data = {} if annotation_data is None else annotation_data
             self.queried_dttm = (
                 datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat()
@@ -142,6 +145,7 @@ class QueryCacheManager:
                 "rejected_filter_columns": self.rejected_filter_columns,
                 "annotation_data": self.annotation_data,
                 "sql_rowcount": self.sql_rowcount,
+                "semantic_cache_hit": self.semantic_cache_hit,
                 "queried_dttm": self.queried_dttm,
                 "dttm": self.queried_dttm,  # Backwards compatibility
                 "bq_memory_limited": self.bq_memory_limited,
@@ -208,6 +212,9 @@ class QueryCacheManager:
                 query_cache.is_loaded = True
                 query_cache.is_cached = True
                 query_cache.sql_rowcount = cache_value.get("sql_rowcount", None)
+                # This request was served by the ordinary result cache. Do not
+                # replay how the cached value was produced by an earlier request.
+                query_cache.semantic_cache_hit = False
                 query_cache.cache_dttm = cache_value["dttm"]
                 query_cache.queried_dttm = cache_value.get(
                     "queried_dttm", cache_value.get("dttm")
