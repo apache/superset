@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { SupersetTheme } from '@apache-superset/core/theme';
+import { ColorSchemeEnum } from '@superset-ui/chart-controls';
 import {
   headerFontSize,
   subheaderFontSize,
@@ -74,3 +76,75 @@ export const getHeaderFontSize = (proportionValue: number) =>
 export const getComparisonFontSize = (proportionValue: number) =>
   comparisonFontSizesMapping[proportionValue] ??
   sharedFontSizes[sharedFontSizes.length - 1];
+
+export interface ComparisonColorTokens {
+  /** Color for the arrow indicator and (when the symbol is index 0) text. */
+  text: string;
+  /** Background color for the increase/decrease pill. */
+  background: string;
+  /** Foreground color for the increase/decrease pill's text. */
+  strongText: string;
+}
+
+/**
+ * Resolves the increase/decrease colors to use for rendering, given the
+ * chart's current `increaseColor` / `decreaseColor` (from the
+ * `ColorPickerControl`s added after this became customizable) and the
+ * legacy `comparisonColorScheme` field.
+ *
+ * Charts saved before `increaseColor` / `decreaseColor` existed only have
+ * `comparisonColorScheme`, a 2-choice select ('Green' | 'Red') where 'Green'
+ * meant "green for increase, red for decrease" and 'Red' meant the reverse.
+ * Both legacy choices map onto the same 'Green' | 'Red' semantic token names
+ * used by the new controls' presets, so resolving through it here
+ * reproduces the exact old behavior (including the reversed case) without a
+ * data migration.
+ */
+export const resolveComparisonColorKeys = (
+  comparisonColorScheme: string | undefined,
+  increaseColor: string | undefined,
+  decreaseColor: string | undefined,
+): { increaseColor: string; decreaseColor: string } => {
+  const legacyReversed = comparisonColorScheme === ColorSchemeEnum.Red;
+  return {
+    increaseColor:
+      increaseColor ??
+      (legacyReversed ? ColorSchemeEnum.Red : ColorSchemeEnum.Green),
+    decreaseColor:
+      decreaseColor ??
+      (legacyReversed ? ColorSchemeEnum.Green : ColorSchemeEnum.Red),
+  };
+};
+
+/**
+ * Resolves a single color value (semantic token name or literal hex from
+ * the color picker) to the (arrow/text, background, strong-text) triad used
+ * across the comparison pills. 'Green' / 'Red' keep using the paired
+ * success/error theme tokens exactly as before these colors were
+ * customizable; any other value is a literal hex, in which case the
+ * background is a light (~10% opacity) tint of that same color.
+ */
+export const getComparisonColorTokens = (
+  colorValue: string,
+  theme: SupersetTheme,
+): ComparisonColorTokens => {
+  if (colorValue === ColorSchemeEnum.Green) {
+    return {
+      text: theme.colorSuccess,
+      background: theme.colorSuccessBg,
+      strongText: theme.colorSuccessText,
+    };
+  }
+  if (colorValue === ColorSchemeEnum.Red) {
+    return {
+      text: theme.colorError,
+      background: theme.colorErrorBg,
+      strongText: theme.colorErrorText,
+    };
+  }
+  return {
+    text: colorValue,
+    background: `${colorValue}1A`,
+    strongText: colorValue,
+  };
+};

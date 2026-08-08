@@ -27,12 +27,12 @@ import {
 import ControlHeader from '../ControlHeader';
 import { useTheme, type SupersetTheme } from '@apache-superset/core/theme';
 
-const SPECIAL_COLORS = {
+export const SPECIAL_COLORS = {
   Red: { r: 150, g: 0, b: 0, a: 0.2 },
   Green: { r: 0, g: 150, b: 0, a: 0.2 },
 } as const;
 
-type SpecialColorKey = keyof typeof SPECIAL_COLORS;
+export type SpecialColorKey = keyof typeof SPECIAL_COLORS;
 export type ColorPickerValue = RGBColor | SpecialColorKey | string;
 export type ColorOutputFormat = 'hex' | 'rgb';
 
