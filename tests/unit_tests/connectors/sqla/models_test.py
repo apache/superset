@@ -1264,3 +1264,40 @@ def test_validate_stored_expression_rejects_subquery_around_jinja(
             None,
             "(SELECT password FROM ab_user LIMIT 1) {# x #}",
         )
+
+
+def test_has_extra_cache_key_calls_scans_guest_token_rls(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Guest-token RLS clauses are templated when the query is built, so a macro
+    appearing only in a guest-token RLS clause must still trigger extra cache
+    key extraction; otherwise its value never reaches the cache key and two
+    guests can share a cache entry.
+    """
+    mocker.patch(
+        "superset.connectors.sqla.models.is_feature_enabled",
+        side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        return_value=[],
+    )
+    get_guest_rls = mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        return_value=[
+            {"clause": "tenant = '{{ get_guest_user_attribute(\"tenant\") }}'"}
+        ],
+    )
+
+    table = SqlaTable(
+        table_name="tenanted",
+        sql="SELECT 1 AS tenant",
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+    )
+    query_obj: QueryObjectDict = {"metrics": [], "columns": [], "extras": {}}
+
+    assert table.has_extra_cache_key_calls(query_obj) is True
+
+    get_guest_rls.return_value = [{"clause": "tenant = 'acme'"}]
+    assert table.has_extra_cache_key_calls(query_obj) is False
