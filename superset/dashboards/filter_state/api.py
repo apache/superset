@@ -24,7 +24,13 @@ from superset.commands.dashboard.filter_state.create import CreateFilterStateCom
 from superset.commands.dashboard.filter_state.delete import DeleteFilterStateCommand
 from superset.commands.dashboard.filter_state.get import GetFilterStateCommand
 from superset.commands.dashboard.filter_state.update import UpdateFilterStateCommand
+from superset.commands.temporary_cache.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheResourceNotFoundError,
+)
+from superset.commands.temporary_cache.parameters import CommandParameters
 from superset.extensions import event_logger
+from superset.key_value.types import JsonKeyValueCodec
 from superset.temporary_cache.api import TemporaryCacheRestApi
 from superset.views.base import api
 
@@ -253,7 +259,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
             name: key
           responses:
             200:
-              description: Returns the stored value.
+              description: Returns the stored value and name.
               content:
                 application/json:
                   schema:
@@ -262,6 +268,11 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
                       value:
                         type: string
                         description: The stored value
+                      name:
+                        type: string
+                        nullable: true
+                        description: >
+                          The filter name (extracted from the value's id field)
             400:
               $ref: '#/components/responses/400'
             401:
@@ -273,7 +284,16 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        return super().get(pk, key)
+        try:
+            args = CommandParameters(resource_id=pk, key=key, codec=JsonKeyValueCodec())
+            result = self.get_get_command()(args).get_with_name(args)
+            if not result:
+                return self.response_404()
+            return self.response(200, **result)
+        except TemporaryCacheAccessDeniedError as ex:
+            return self.response(403, message=str(ex))
+        except TemporaryCacheResourceNotFoundError as ex:
+            return self.response(404, message=str(ex))
 
     @expose("/<int:pk>/filter_state/<string:key>", methods=("DELETE",))
     @protect()
