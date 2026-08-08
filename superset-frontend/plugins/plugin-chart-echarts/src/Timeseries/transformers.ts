@@ -467,9 +467,13 @@ export function transformSeries(
           return formatter(numericValue);
         }
         if (!onlyTotal) {
+          // A zero value occupies no space in a stacked series, so its label
+          // would render on top of the adjacent segment's label. Skip it
+          // regardless of the threshold.
           if (
+            numericValue !== 0 &&
             numericValue >=
-            (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
+              (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
           ) {
             return formatter(numericValue);
           }
