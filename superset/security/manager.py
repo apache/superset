@@ -3852,6 +3852,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from flask import current_app
 
         from superset import is_feature_enabled
+        from superset.common.db_query_status import QueryStatus
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
@@ -3873,6 +3874,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     get_user_id(),
                 )
                 return
+
+        # An ephemeral Query built below from a raw `sql=` string always
+        # stamps the *current* user as its `user_id`, since there's no real
+        # query to attribute authorship to yet -- that must not be confused
+        # with a genuine, previously-persisted Query the caller fetched by
+        # id (e.g. from SQL Lab history), whose authorship bypass further
+        # down is meant to reward a query that was already run and stored.
+        is_ephemeral_query = bool(sql and database)
 
         if sql and database:
             query = Query(
@@ -3899,6 +3908,47 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             default_catalog = database.get_default_catalog()
 
             if self.can_access_database(database):
+                return
+
+            # A SQL Lab query's own author should be able to explore/chart
+            # the exact query they already ran without an additional
+            # dataset-level ``datasource_access`` grant on every table it
+            # happens to touch. This mirrors the ownership bypass already
+            # granted to dataset owners via ``is_editor`` further below in
+            # this same method; the query path had no equivalent authorship
+            # bypass.
+            #
+            # Scoped to ``not force_dataset_match``: that flag is set by the
+            # call sites that execute a query or return its row data (SQL
+            # Lab execute, results/export, MetaDB), where every SQL Lab
+            # query's author trivially equals the current user and an
+            # unscoped bypass would erase the per-table
+            # catalog/schema/datasource_access checks below entirely. It is
+            # left unset only by the explore/form-data path this bypass is
+            # meant to cover.
+            #
+            # Does not apply to the ephemeral query built above either:
+            # that one's ``user_id`` is always the current user by
+            # construction, which would trivially bypass the very check
+            # being performed on a brand new, never-before-run SQL string.
+            #
+            # Also requires ``status == SUCCESS``: SQL Lab persists a Query
+            # row (stamped with the current user's id) *before* running the
+            # strict ``force_dataset_match`` check at execute time, and
+            # marks it FAILED rather than deleting it when that check
+            # denies the statement. Without this guard, authorship alone
+            # would let that same user replay the denied SQL through this
+            # non-strict path merely by revisiting the failed query's id,
+            # defeating the very check that just rejected it.
+            if (
+                query
+                and not is_ephemeral_query
+                and not force_dataset_match
+                and hasattr(query, "user_id")
+                and (user_id := get_user_id()) is not None
+                and query.user_id == user_id
+                and getattr(query, "status", None) == QueryStatus.SUCCESS
+            ):
                 return
 
             # Type narrow: this path only applies to SQL Lab Query objects
