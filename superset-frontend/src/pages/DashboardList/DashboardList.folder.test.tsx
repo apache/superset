@@ -27,13 +27,46 @@ import {
   mockAdminUser,
   getLatestDashboardApiCall,
 } from 'src/pages/DashboardList/DashboardList.testHelpers';
-import { screen, selectOption, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  screen,
+  selectOption,
+  waitFor,
+} from 'spec/helpers/testing-library';
+
+const mockMoveActionHandlers: Array<() => void> = [];
 
 jest.setTimeout(30000);
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
+}));
+
+jest.mock('@superset-ui/core/components/ActionButton', () => ({
+  ActionButton: ({
+    label,
+    onClick,
+    disabled,
+  }: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+  }) => {
+    if (label === 'Move to folder' && !disabled) {
+      mockMoveActionHandlers.push(onClick);
+    }
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        {label}
+      </button>
+    );
+  },
 }));
 
 jest.mock('src/utils/export', () => ({
@@ -44,6 +77,31 @@ jest.mock('src/utils/export', () => ({
 jest.mock('src/utils/getBootstrapData', () =>
   mockUserSubjectsBootstrapData([1]),
 );
+
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: <Props extends object>(Component: React.ComponentType<Props>) =>
+    Component,
+}));
+
+jest.mock('./MoveDashboardFolderModal', () => ({
+  MoveDashboardFolderModal: ({
+    onHide,
+    onMove,
+  }: {
+    onHide: () => void;
+    onMove: (folderId: string | null) => void;
+  }) => (
+    <dialog open>
+      <button type="button" onClick={() => onMove('finance')}>
+        Move
+      </button>
+      <button type="button" onClick={onHide}>
+        Cancel
+      </button>
+    </dialog>
+  ),
+}));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
@@ -71,6 +129,14 @@ const folderAdmin = {
   },
 };
 
+function renderFolderDashboardList(props: Record<string, unknown> = {}) {
+  return renderDashboardList(folderAdmin, {
+    addDangerToast: jest.fn(),
+    addSuccessToast: jest.fn(),
+    ...props,
+  });
+}
+
 function mockFolderList() {
   fetchMock.removeRoutes({
     names: [API_ENDPOINTS.DASHBOARD_FOLDERS, API_ENDPOINTS.CATCH_ALL],
@@ -92,6 +158,7 @@ function mockFolderList() {
 }
 
 beforeEach(() => {
+  mockMoveActionHandlers.length = 0;
   setupMocks();
   mockFolderList();
   mockIsFeatureEnabled.mockReturnValue(false);
@@ -103,7 +170,7 @@ afterEach(() => {
 });
 
 test('synchronizes folder tree selection with the list filter', async () => {
-  renderDashboardList(folderAdmin);
+  renderFolderDashboardList();
 
   await userEvent.click(await screen.findByText('Finance'));
 
@@ -117,13 +184,89 @@ test('synchronizes folder tree selection with the list filter', async () => {
   });
 });
 
+test('shows an error when dashboard folders cannot be loaded', async () => {
+  const addDangerToast = jest.fn();
+  fetchMock.removeRoutes({
+    names: [API_ENDPOINTS.DASHBOARD_FOLDERS, API_ENDPOINTS.CATCH_ALL],
+  });
+  fetchMock.get(
+    API_ENDPOINTS.DASHBOARD_FOLDERS,
+    { status: 500, body: {} },
+    { name: API_ENDPOINTS.DASHBOARD_FOLDERS },
+  );
+
+  renderFolderDashboardList({ addDangerToast });
+
+  await waitFor(() =>
+    expect(addDangerToast).toHaveBeenCalledWith(
+      'Failed to load dashboard folders',
+    ),
+  );
+});
+
+test('moves a dashboard to a selected folder and refreshes the list', async () => {
+  const addSuccessToast = jest.fn();
+  fetchMock.put('glob:*/api/v1/dashboard_folder/dashboard/1', {
+    message: 'ok',
+  });
+  renderFolderDashboardList({ addSuccessToast });
+
+  const moveButtons = await screen.findAllByRole('button', {
+    name: 'Move to folder',
+  });
+  expect(moveButtons[0]).toBeEnabled();
+  act(() => mockMoveActionHandlers[0]());
+  await userEvent.click(await screen.findByRole('button', { name: 'Move' }));
+
+  await waitFor(() => {
+    const moveCalls = fetchMock.callHistory.calls(
+      /dashboard_folder\/dashboard\/1$/,
+      { method: 'PUT' },
+    );
+    expect(moveCalls).toHaveLength(1);
+    expect(JSON.parse(moveCalls[0].options.body as string)).toEqual({
+      folder_id: 'finance',
+    });
+    expect(addSuccessToast).toHaveBeenCalledWith('Dashboard moved');
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DASHBOARD_FOLDERS, {
+        method: 'GET',
+      }),
+    ).toHaveLength(2);
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DASHBOARDS, { method: 'GET' }),
+    ).toHaveLength(2);
+  });
+});
+
+test('closes the move dialog without moving the dashboard', async () => {
+  renderFolderDashboardList();
+
+  const moveButtons = await screen.findAllByRole('button', {
+    name: 'Move to folder',
+  });
+  expect(moveButtons[0]).toBeEnabled();
+  act(() => mockMoveActionHandlers[0]());
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+  );
+  expect(
+    fetchMock.callHistory.calls(/dashboard_folder\/dashboard\//, {
+      method: 'PUT',
+    }),
+  ).toHaveLength(0);
+});
+
 test('completes folder creation, rename, and deletion from the list', async () => {
   fetchMock.post('glob:*/api/v1/dashboard_folder/', { id: 'new-folder' });
   fetchMock.put('glob:*/api/v1/dashboard_folder/finance', { id: 'finance' });
   fetchMock.delete('glob:*/api/v1/dashboard_folder/finance', {
     message: 'ok',
   });
-  renderDashboardList(folderAdmin);
+  renderFolderDashboardList();
 
   await screen.findByText('Finance');
   await userEvent.click(screen.getByLabelText('Create dashboard folder'));

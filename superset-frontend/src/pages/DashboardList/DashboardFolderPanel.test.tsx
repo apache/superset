@@ -229,6 +229,29 @@ test('selects an empty top-level folder when its expand arrow is clicked', async
   expect(onSelect).toHaveBeenCalledWith('parent');
 });
 
+test('clears the selected folder when its expand arrow is collapsed', async () => {
+  const onSelect = jest.fn();
+  const { container } = render(
+    <DashboardFolderPanel
+      folders={folders}
+      selectedFolderId="parent"
+      canCreate
+      onSelect={onSelect}
+      onCreate={jest.fn()}
+      onRename={jest.fn()}
+      onDelete={jest.fn()}
+    />,
+  );
+
+  await userEvent.click(
+    container.querySelector(
+      '.ant-tree-switcher:not(.ant-tree-switcher-noop)',
+    ) as Element,
+  );
+
+  expect(onSelect).toHaveBeenCalledWith(null);
+});
+
 test('clears the folder filter when selecting the active folder again', async () => {
   const onSelect = jest.fn();
   render(
@@ -296,6 +319,30 @@ test('submits the new name when renaming a folder', async () => {
   await waitFor(() =>
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
   );
+});
+
+test('closes the delete modal without deleting the folder', async () => {
+  const onDelete = jest.fn();
+  render(
+    <DashboardFolderPanel
+      folders={folders}
+      selectedFolderId={null}
+      canCreate
+      onSelect={jest.fn()}
+      onCreate={jest.fn()}
+      onRename={jest.fn()}
+      onDelete={onDelete}
+    />,
+  );
+
+  await userEvent.click(screen.getByLabelText('Delete folder'));
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+  await waitFor(() =>
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+  );
+  expect(onDelete).not.toHaveBeenCalled();
 });
 
 test('keeps the uncategorized entry switchable with the list filter', async () => {

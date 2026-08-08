@@ -29,7 +29,7 @@ from superset.dashboard_folders.schemas import (
 
 
 def test_folder_api_uses_granular_permissions() -> None:
-    """验证每个写操作都使用独立的 FAB 权限。"""
+    """Verify that every write operation uses a dedicated FAB permission."""
     permissions = DashboardFolderRestApi.method_permission_name
 
     assert permissions["get_list"] == "read"

@@ -28,7 +28,7 @@ from tests.integration_tests.constants import ADMIN_USERNAME
 
 
 class TestDashboardFolderApi(SupersetTestCase):
-    """验证文件夹 API 的完整读写流程和错误响应。"""
+    """Verify dashboard folder API workflows and error responses."""
 
     def test_folder_crud_and_dashboard_move(self) -> None:
         admin = self.get_user(ADMIN_USERNAME)

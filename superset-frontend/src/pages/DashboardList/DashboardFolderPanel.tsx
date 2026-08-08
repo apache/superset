@@ -385,7 +385,7 @@ export function DashboardFolderPanel({
               </FolderTitle>
             ),
             children: childNodes.length ? childNodes : undefined,
-            // 顶层文件夹是可承载子文件夹的父容器，即使暂时为空也显示展开箭头。
+            // Top-level folders can contain children, so keep their expand control visible.
             isLeaf: parentId === null ? false : childNodes.length === 0,
           };
         });
