@@ -23,7 +23,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-import backoff
+import backon
 from flask import current_app
 from flask_babel import gettext as _
 from sqlalchemy import and_, desc, func, LargeBinary
@@ -494,8 +494,8 @@ class ExtensionStorageDAO(BaseDAO[ExtensionStorage]):
     # ── Write (upsert) ────────────────────────────────────────────────────────
 
     @staticmethod
-    @backoff.on_exception(
-        backoff.expo,
+    @backon.on_exception(
+        backon.expo,
         AcquireDistributedLockFailedException,
         factor=0.1,
         base=2,
