@@ -185,6 +185,8 @@ export default function transformProps(
     xTicksLayout,
     xAxisTimeFormat,
     showLegend,
+    showXAxis = true,
+    showYAxis = true,
     yAxisLabel,
     xAxisLabel,
     yAxisFormat,
@@ -443,6 +445,7 @@ export default function transformProps(
       data: [legendNames.INCREASE, legendNames.DECREASE, legendNames.TOTAL],
     },
     xAxis: {
+      show: showXAxis,
       data: xAxisData,
       type: 'category',
       name: xAxisLabel,
@@ -454,6 +457,7 @@ export default function transformProps(
     },
     yAxis: {
       ...defaultYAxis,
+      show: showYAxis,
       type: 'value',
       nameTextStyle: {
         padding: [0, 0, theme.sizeUnit * 5, 0],

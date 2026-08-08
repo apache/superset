@@ -166,3 +166,38 @@ test('hide totals', () => {
     ['-', '-'],
   ]);
 });
+
+const buildAxes = (extraFormData: Record<string, unknown>) => {
+  const chartProps = new ChartProps({
+    formData: { ...formData, ...extraFormData },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+  });
+  const transformedProps = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  return {
+    xAxis: transformedProps.echartOptions.xAxis as any,
+    yAxis: transformedProps.echartOptions.yAxis as any,
+  };
+};
+
+test('shows both axes by default', () => {
+  const { xAxis, yAxis } = buildAxes({});
+  expect(xAxis.show).not.toBe(false);
+  expect(yAxis.show).not.toBe(false);
+});
+
+test('hides the whole X axis when showXAxis is false', () => {
+  const { xAxis } = buildAxes({ showXAxis: false });
+  // echarts hides the axis line, ticks, labels, name, and gridlines when
+  // `show` is false — a single flag rather than a set of sub-flags.
+  expect(xAxis.show).toBe(false);
+});
+
+test('hides the whole Y axis when showYAxis is false', () => {
+  const { yAxis } = buildAxes({ showYAxis: false });
+  expect(yAxis.show).toBe(false);
+});
