@@ -117,11 +117,20 @@ def test_clock_uses_now_not_utcnow() -> None:
     purge.assert_called_once_with(Slice, now - timedelta(days=30), False)
 
 
-def test_default_config_is_safe() -> None:
+def test_default_config_purges_for_real_after_the_retention_window() -> None:
+    """The shipped defaults make the docs' retention promise true.
+
+    Superseding ``test_default_config_is_safe``: dry-run was the
+    introducing release's posture, deliberately opt-in so operators could
+    validate ``would_purge`` counts against production first. Purging is
+    live by default, and ``SOFT_DELETE_PURGE_DRY_RUN`` is retained as the
+    operational lever to put it back. Pinned so a default change is a
+    deliberate edit here rather than a silent one.
+    """
     from superset import config
 
     assert config.SOFT_DELETE_RETENTION_DAYS == 30
-    assert config.SOFT_DELETE_PURGE_DRY_RUN is True
+    assert config.SOFT_DELETE_PURGE_DRY_RUN is False
 
 
 def test_default_celery_config_registers_daily_purge() -> None:
