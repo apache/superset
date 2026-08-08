@@ -58,6 +58,7 @@ def tool(
     class_permission_name: str | None = None,
     method_permission_name: str | None = None,
     annotations: ToolAnnotations | None = None,
+    meta: dict[str, Any] | None = None,
 ) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
     Decorator to register an MCP tool with optional authentication.
