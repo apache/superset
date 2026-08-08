@@ -22,7 +22,6 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
@@ -1951,12 +1950,12 @@ class SQLScript:
         return len(self.statements) == 1 and self.statements[0].is_select()
 
 
-def extract_tables_from_statement(
+def _find_table_sources(
     statement: exp.Expression,
     dialect: Dialects | None,
-) -> set[Table]:
+) -> list[exp.Table]:
     """
-    Extract all table references in a single statement.
+    Find every table reference (occurrence, not deduplicated) in a statement.
 
     Please note that this is not trivial; consider the following queries:
 
@@ -1966,42 +1965,70 @@ def extract_tables_from_statement(
 
     See the unit tests for other tricky cases.
     """
-    sources: Iterable[exp.Table]
-
     if isinstance(statement, exp.Describe):
         # A `DESCRIBE` query has no sources in sqlglot, so we need to explicitly
         # query for all tables.
-        sources = statement.find_all(exp.Table)
-    elif isinstance(statement, exp.Command):
+        return list(statement.find_all(exp.Table))
+    if isinstance(statement, exp.Command):
         # Commands, like `SHOW COLUMNS FROM foo`, have to be converted into a
         # `SELECT` statetement in order to extract tables.
         literal = statement.find(exp.Literal)
         if not literal:
-            return set()
+            return []
 
         pseudo_sql = f"SELECT {literal.this}"
         try:
             _check_script_length(pseudo_sql, None)
             pseudo_query = sqlglot.parse_one(pseudo_sql, dialect=dialect)
         except (ParseError, SupersetParseError):
-            return set()
-        sources = pseudo_query.find_all(exp.Table)
-    else:
-        sources = [
-            source
-            for scope in traverse_scope(statement)
-            for source in scope.sources.values()
-            if isinstance(source, exp.Table) and not is_cte(source, scope)
-        ]
+            return []
+        return list(pseudo_query.find_all(exp.Table))
 
+    return [
+        source
+        for scope in traverse_scope(statement)
+        for source in scope.sources.values()
+        if isinstance(source, exp.Table) and not is_cte(source, scope)
+    ]
+
+
+def extract_tables_from_statement(
+    statement: exp.Expression,
+    dialect: Dialects | None,
+) -> set[Table]:
+    """
+    Extract all distinct table references in a single statement.
+    """
     return {
         Table(
             source.name,
             source.db if source.db != "" else None,
             source.catalog if source.catalog != "" else None,
         )
-        for source in sources
+        for source in _find_table_sources(statement, dialect)
     }
+
+
+def count_referenced_tables(statement: str, dialect: Dialects | str | None) -> int:
+    """
+    Count the table references in a raw SQL string.
+
+    This counts occurrences, not distinct tables, so a self-join referencing
+    the same physical table twice (via two aliases) is still counted as 2 -
+    callers use this count to decide whether a statement is a join, and a
+    self-join needs the same treatment as a join across different tables.
+
+    Falls back to a conservative count of 1 (i.e. "not multi-table") if the
+    statement can't be parsed, since callers gating multi-table-only behavior
+    on this count should default to treating an unparseable statement as a
+    single table.
+    """
+    try:
+        _check_script_length(statement, str(dialect) if dialect else None)
+        parsed = sqlglot.parse_one(statement, dialect=dialect)
+        return len(_find_table_sources(parsed, dialect))
+    except Exception:  # pylint: disable=broad-except
+        return 1
 
 
 def is_cte(source: exp.Table, scope: Scope) -> bool:

@@ -29,6 +29,7 @@ from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
     BaseSQLStatement,
+    count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
     has_aggregate,
@@ -232,6 +233,68 @@ def test_extract_tables_from_sql() -> None:
     assert extract_tables_from_sql(
         "select * from (select * from forbidden_table) forbidden_table"
     ) == {Table("forbidden_table")}
+
+
+def test_count_referenced_tables() -> None:
+    """
+    Test that ``count_referenced_tables`` counts table reference occurrences
+    (not distinct tables), ignoring dotted quoted aliases, and falls back to
+    1 for unparseable SQL.
+    """
+    assert count_referenced_tables('SELECT * FROM "db.table1"', Dialects.SQLITE) == 1
+    assert (
+        count_referenced_tables(
+            'SELECT COUNT(id) AS "metric.value" FROM "db.table1"', Dialects.SQLITE
+        )
+        == 1
+    )
+    assert (
+        count_referenced_tables(
+            'SELECT t1.b, t2.b FROM "db.table1" AS t1 '
+            'JOIN "db.table2" AS t2 ON t1.a = t2.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    assert count_referenced_tables("this is not valid sql (((", Dialects.SQLITE) == 1
+
+
+def test_count_referenced_tables_self_join() -> None:
+    """
+    A self-join references the same physical table twice via two aliases;
+    it must still count as 2 (a join), not 1 (deduplicated to a single
+    table), or the caller's multi-table detection would incorrectly treat
+    it as single-table.
+    """
+    assert (
+        count_referenced_tables(
+            'SELECT l.a, r.a FROM "db.table1" AS l JOIN "db.table1" AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_referenced_tables_respects_parse_length_cap(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``count_referenced_tables`` must not bypass ``SQL_MAX_PARSE_LENGTH``: an
+    oversized statement should fail the length check before reaching
+    sqlglot, and fall back to the conservative single-table count. The
+    statement references two tables so that bypassing the guard (and
+    reaching sqlglot) would produce a different, detectable result.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    padding = "1, " * 50
+    statement = (
+        'SELECT * FROM "db.table1" AS t1 '  # noqa: S608
+        'JOIN "db.table2" AS t2 ON t1.a = t2.a '
+        f"WHERE t1.a IN ({padding}1)"
+    )
+    assert len(statement.encode("utf-8")) > 100
+    assert count_referenced_tables(statement, Dialects.SQLITE) == 1
 
 
 def test_extract_tables_subselect() -> None:
