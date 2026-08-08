@@ -263,6 +263,87 @@ async def test_get_dashboard_layout_not_found(mock_find, mcp_server):
     assert data["error_type"] == "not_found"
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@pytest.mark.asyncio
+async def test_get_dashboard_layout_resolves_shared_permalink(
+    mock_permalink, mock_find, mcp_server
+):
+    mock_permalink.return_value = (
+        "shared-key",
+        {
+            "dashboardId": "42",
+            "state": {
+                "activeTabs": ["TAB-2"],
+                "dataMask": {"FILTER-1": {"filterState": {"value": "EMEA"}}},
+            },
+        },
+    )
+    mock_find.return_value = _build_dashboard_mock(
+        dashboard_id=42, position_json=_tabbed_layout()
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout",
+            {
+                "request": {
+                    "identifier": "https://example.test/superset/dashboard/p/shared-key/"
+                }
+            },
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["id"] == 42
+    assert data["permalink_key"] == "shared-key"
+    assert data["is_permalink_state"] is True
+    assert data["filter_state"]["activeTabs"] == [_wrapped("TAB-2")]
+    assert mock_find.call_args_list[-1].args == (42,)
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@pytest.mark.asyncio
+async def test_get_dashboard_layout_invalid_permalink_is_actionable(
+    mock_permalink, mcp_server
+):
+    mock_permalink.return_value = None
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout", {"request": {"permalink_key": "expired-key"}}
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "permalink_not_found"
+    assert "fresh shared dashboard link" in data["error"]
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@pytest.mark.asyncio
+async def test_get_dashboard_layout_identifier_takes_precedence_over_permalink(
+    mock_permalink, mock_find, mcp_server
+):
+    mock_permalink.return_value = (
+        "dashboard-20-key",
+        {"dashboardId": "20", "state": {"activeTabs": ["TAB-20"]}},
+    )
+    mock_find.return_value = _build_dashboard_mock(
+        dashboard_id=10, position_json=_tabbed_layout()
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout",
+            {"request": {"identifier": 10, "permalink_key": "dashboard-20-key"}},
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["id"] == 10
+    assert data["is_permalink_state"] is False
+    mock_find.assert_called_once_with(10, query_options=None)
+
+
 def test_extract_layout_handles_invalid_json():
     tabs, charts = _extract_layout_from_position("{ not json")
     assert tabs == []
