@@ -28,6 +28,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import {
   calculateLowerLogTick,
   dedupSeries,
+  extractDataTotalValues,
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
@@ -1748,4 +1749,50 @@ test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => 
   expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
     midAreaSize,
   );
+});
+
+describe('extractDataTotalValues', () => {
+  const data: DataRecord[] = [
+    { __timestamp: 1704067200000, A: 32, B: 0, Sort: 2 },
+  ];
+
+  test('excludes extra metrics from the stacked total', () => {
+    const { totalStackedValues } = extractDataTotalValues(data, {
+      stack: true,
+      percentageThreshold: 0,
+      xAxisCol: '__timestamp',
+      extraMetricLabels: ['Sort'],
+    });
+    expect(totalStackedValues).toEqual([32]);
+  });
+
+  test('includes every metric column when there are no extra metrics', () => {
+    const { totalStackedValues } = extractDataTotalValues(data, {
+      stack: true,
+      percentageThreshold: 0,
+      xAxisCol: '__timestamp',
+    });
+    expect(totalStackedValues).toEqual([34]);
+  });
+
+  test('still honors legendState when excluding extra metrics', () => {
+    const { totalStackedValues } = extractDataTotalValues(data, {
+      stack: true,
+      percentageThreshold: 0,
+      xAxisCol: '__timestamp',
+      legendState: { A: false, B: true },
+      extraMetricLabels: ['Sort'],
+    });
+    expect(totalStackedValues).toEqual([0]);
+  });
+
+  test('derives thresholdValues from the total excluding extra metrics', () => {
+    const { thresholdValues } = extractDataTotalValues(data, {
+      stack: true,
+      percentageThreshold: 50,
+      xAxisCol: '__timestamp',
+      extraMetricLabels: ['Sort'],
+    });
+    expect(thresholdValues).toEqual([16]);
+  });
 });

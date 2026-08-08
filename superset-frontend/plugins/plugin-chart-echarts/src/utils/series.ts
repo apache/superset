@@ -387,6 +387,7 @@ export function extractDataTotalValues(
     percentageThreshold: number;
     xAxisCol: string;
     legendState?: LegendState;
+    extraMetricLabels?: string[];
   },
 ): {
   totalStackedValues: number[];
@@ -394,11 +395,23 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol, legendState } = opts;
+  const {
+    stack,
+    percentageThreshold,
+    xAxisCol,
+    legendState,
+    extraMetricLabels = [],
+  } = opts;
+  // Extra metrics, such as a sort metric, are present in the data but are not
+  // rendered as series, so they must not contribute to the stacked total.
+  const extraMetricLabelsSet = new Set(extraMetricLabels);
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
         if (curr === xAxisCol) {
+          return prev;
+        }
+        if (extraMetricLabelsSet.has(curr)) {
           return prev;
         }
         if (legendState && !legendState[curr]) {
