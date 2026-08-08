@@ -40,7 +40,7 @@ from superset.daos.database import DatabaseDAO
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils.backports import StrEnum
-from superset.utils.core import get_user
+from superset.utils.core import get_user, parse_js_uri_path_item
 from superset.utils.decorators import on_error, transaction
 from superset.views.database.validators import schema_allows_file_upload
 
@@ -158,6 +158,14 @@ class UploadCommand(BaseCommand):
 
     @transaction(on_error=partial(on_error, reraise=DatabaseUploadSaveMetadataFailed))
     def run(self) -> None:
+        self._schema = parse_js_uri_path_item(
+            self._schema,
+            eval_undefined=True,
+        )
+        if self._schema is None:
+            logger.warning(
+                "File upload: schema was empty or undefined, using database default"
+            )
         self.validate()
         if not self._model:
             return
