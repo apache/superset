@@ -141,7 +141,7 @@ describe('Pie transformProps', () => {
     ]);
   });
 
-  test('falls back to scroll for plain legends with overlong labels', () => {
+  test('honors an explicit List selection for plain legends with overlong labels', () => {
     const longLegendChartProps = new ChartProps({
       formData: {
         colorScheme: 'bnbColors',
@@ -182,7 +182,7 @@ describe('Pie transformProps', () => {
     );
 
     expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
+      LegendType.Plain,
     );
   });
 });

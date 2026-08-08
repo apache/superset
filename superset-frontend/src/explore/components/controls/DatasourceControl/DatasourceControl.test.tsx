@@ -462,6 +462,8 @@ test('should set the default temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       'test-default',
+      undefined,
+      { programmatic: true },
     );
   });
 });
@@ -498,6 +500,8 @@ test('should set the first available temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       'test-first',
+      undefined,
+      { programmatic: true },
     );
   });
 });
@@ -534,8 +538,52 @@ test('should not set the temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       null,
+      undefined,
+      { programmatic: true },
     );
   });
+});
+
+test('editing a dataset still emits a dirty signal for the restore gate', async () => {
+  // The derived granularity_sqla write is programmatic, so it is invisible to
+  // the version-history session log. On the *swap* route that is fine —
+  // ChangeDatasourceModal's own onChange emits a recorded control change. The
+  // Edit Dataset route has no such change, so the reconciliation dispatched by
+  // changeDatasource is the only thing standing between an edited chart and a
+  // restore that silently discards the reconciled value.
+  const props = createProps();
+  const overrideProps = {
+    ...props,
+    form_data: { granularity_sqla: 'test-col' },
+    datasource: {
+      ...props.datasource,
+      main_dttm_col: 'test-default',
+      columns: [
+        { column_name: 'test-col', is_dttm: false },
+        { column_name: 'test-default', is_dttm: true },
+      ],
+    },
+  };
+  render(<DatasourceControl {...props} {...overrideProps} />, {
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await openAndSaveChanges(overrideProps.datasource);
+
+  await waitFor(() => {
+    expect(props.actions.setControlValue).toHaveBeenCalledWith(
+      'granularity_sqla',
+      'test-default',
+      undefined,
+      { programmatic: true },
+    );
+  });
+  // changeDatasource dispatches UPDATE_FORM_DATA_BY_DATASOURCE (pinned in
+  // datasourcesActions.test.ts), which the session-log middleware records.
+  expect(props.actions.changeDatasource).toHaveBeenCalledWith(
+    expect.objectContaining({ id: overrideProps.datasource.id }),
+  );
 });
 
 test('should show missing params state', () => {

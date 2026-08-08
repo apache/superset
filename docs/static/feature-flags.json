@@ -89,9 +89,9 @@
       },
       {
         "name": "SOFT_DELETE",
-        "default": false,
+        "default": true,
         "lifecycle": "development",
-        "description": "Temporary rollout / kill-switch gate for soft delete (default off = legacy hard delete). An emergency stop, not a clean rollback: flipping ON->OFF resurrects already-soft-deleted rows. Removed (along with its two gate points \u2014 BaseDAO.delete routing and the do_orm_execute visibility listener) once soft delete is stable."
+        "description": "Temporary rollout / kill-switch gate for soft delete (off = legacy hard delete). An emergency stop, not a clean rollback: flipping ON->OFF resurrects already-soft-deleted rows. Retained through this release as the move-back lever; removed (along with its two gate points \u2014 BaseDAO.delete routing and the do_orm_execute visibility listener) once post-flip confidence is established."
       },
       {
         "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
@@ -104,6 +104,12 @@
         "default": false,
         "lifecycle": "development",
         "description": "Enables the tagging system for organizing assets"
+      },
+      {
+        "name": "VERSION_HISTORY",
+        "default": true,
+        "lifecycle": "development",
+        "description": "Enables the version history panel on Explore and Dashboard pages. History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on; with capture off the panel renders but stays empty, so the two ship with matching defaults and should be changed together."
       }
     ],
     "testing": [
