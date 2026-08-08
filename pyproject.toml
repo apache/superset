@@ -68,7 +68,7 @@ dependencies = [
     # not just a connection-pool quirk. Needs dedicated investigation, not a
     # driver-compat-prep bump; revisit alongside the actual SQLAlchemy 2.0
     # core bump (discussion #40273, step 6).
-    "flask-sqlalchemy>=2.5.1, <4.0",
+    "flask-sqlalchemy>=3.1.1, <4.0",
     "flask-wtf>=1.3.0, <2.0",
     "geopy",
     "greenlet<=3.5.4, >=3.5.4",
