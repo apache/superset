@@ -50,7 +50,7 @@ dependencies = [
     "flask-cors>=6.0.5, <7.0",
     "croniter>=6.2.4",
     "cron-descriptor",
-    "cryptography>=49.0.0, <50.0.0",
+    "cryptography>=50.0.0, <51.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <4.0.0",
     "flask-appbuilder>=5.2.2, <6.0.0",
