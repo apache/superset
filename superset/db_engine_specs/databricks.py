@@ -43,6 +43,7 @@ from superset.db_engine_specs.base import (
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error
+from superset.models.sql_lab import Query
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
 from superset.utils.network import is_hostname_valid, is_port_open
@@ -775,6 +776,11 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
 
     parameters_schema = DatabricksPythonConnectorSchema()
 
+    # The driver only populates `cursor.active_command_id` once a statement has
+    # actually been executed, so the cancel id can't be captured up front like
+    # it can for engines where it's tied to the session rather than the query.
+    has_query_id_before_execute = False
+
     sqlalchemy_uri_placeholder = (
         "databricks://token:{access_token}@{host}:{port}?http_path={http_path}"
         "&catalog={default_catalog}&schema={default_schema}"
@@ -956,6 +962,66 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             uri = uri.update_query_dict({"schema": schema})
 
         return uri, connect_args
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
+        """
+        Capture a cancel id for the query that was just executed on ``cursor``.
+
+        Cancellation is only supported when the connection uses Databricks'
+        Statement Execution API (SEA) backend, i.e. ``use_sea=True`` was set in
+        the database's connection parameters. A SEA statement id is a plain
+        string that can be cancelled later from a brand-new cursor/connection,
+        which matches how Superset issues cancellation (a fresh connection, not
+        the one that ran the query).
+
+        The default (Thrift) backend has no equivalent public mechanism: the
+        driver can only cancel a Thrift command via the live ``CommandId`` held
+        by the executing cursor, which includes a secret that's never exposed
+        through any public/documented accessor (``cursor.query_id`` only
+        returns the operation's GUID). Rather than reconstructing that secret
+        from the driver's private internals, this returns ``None`` for
+        Thrift-backed connections so the "stop query" action fails explicitly
+        instead of silently no-oping.
+
+        :param cursor: Cursor instance in which the query was just executed
+        :param query: Query instance
+        :return: SEA statement id, or None if cancellation isn't supported
+        """
+        command_id = getattr(cursor, "active_command_id", None)
+        if command_id is None:
+            return None
+
+        session = getattr(getattr(cursor, "connection", None), "session", None)
+        if not getattr(session, "use_sea", False):
+            return None
+
+        return command_id.to_sea_statement_id()
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel a query in the underlying database.
+
+        Only implemented for SEA (Statement Execution API) connections; see
+        ``get_cancel_query_id``. Any error raised while attempting the cancel
+        (e.g. the fresh cursor/connection itself failing) is allowed to
+        propagate rather than being reported as a successful or failed cancel.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: SEA statement id, as returned by
+            ``get_cancel_query_id``
+        :return: True if the cancel request was submitted successfully
+        """
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9-]+$"):
+            return False
+
+        from databricks.sql.backend.types import CommandId
+
+        cursor.active_command_id = CommandId.from_sea_statement_id(cancel_query_id)
+        cursor.cancel()
+        return True
 
 
 # TODO: remove once we've upgraded to SQLAlchemy>=2.0 and databricks-sql-python>=3.x
