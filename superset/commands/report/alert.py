@@ -190,7 +190,7 @@ class AlertCommand(BaseCommand):
         """
         database = self._report_schedule.database
         script = SQLScript(rendered_sql, engine=database.backend)
-        if len(script.statements) > 1:
+        if len(script.statements) != 1:
             raise AlertQueryError(message=_("Alert query must be a single statement"))
         if script.has_mutation() and not database.allow_dml:
             raise AlertQueryError(message=_("Alert query must be read-only"))
@@ -241,6 +241,7 @@ class AlertCommand(BaseCommand):
                     security_manager.raise_for_access(
                         database=self._report_schedule.database,
                         sql=rendered_sql,
+                        force_dataset_match=True,
                     )
                 except SupersetSecurityException as ex:
                     raise AlertQueryError(

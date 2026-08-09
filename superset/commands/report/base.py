@@ -93,14 +93,16 @@ class BaseReportScheduleCommand(BaseCommand):
                     )
                 )
             return
-        if len(script.statements) > 1:
+        if len(script.statements) != 1:
             exceptions.append(AlertQueryMultipleStatementsValidationError())
             return
         if script.has_mutation() and not database.allow_dml:
             exceptions.append(AlertQueryDMLNotAllowedValidationError())
             return
         try:
-            security_manager.raise_for_access(database=database, sql=sql)
+            security_manager.raise_for_access(
+                database=database, sql=sql, force_dataset_match=True
+            )
         except SupersetSecurityException as ex:
             exceptions.append(AlertQueryDataAccessValidationError(ex.error.message))
         except SupersetParseError as ex:
