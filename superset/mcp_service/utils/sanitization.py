@@ -390,6 +390,15 @@ def sanitize_user_input(
     # checks below (mirrors sanitize_sql_expression's ordering).
     value = _remove_dangerous_unicode(value)
 
+    # Canonicalization above can reduce a truthy input (e.g. a lone
+    # zero-width character) to "" — recheck emptiness so that case still
+    # honors the documented non-empty / allow_empty contract instead of
+    # silently returning "".
+    if not value:
+        if allow_empty:
+            return None
+        raise ValueError(f"{field_name} cannot be empty")
+
     # Strip all HTML tags using nh3
     value = _strip_html_tags(value)
 
@@ -531,6 +540,15 @@ def sanitize_sql_expression(  # noqa: C901
         prev = value
         value = html.unescape(value)
         iterations += 1
+
+    # Canonicalization above can reduce a truthy input (e.g. a lone
+    # zero-width character) to "" — recheck emptiness so that case still
+    # honors the documented non-empty / allow_empty contract instead of
+    # silently returning "".
+    if not value:
+        if allow_empty:
+            return None
+        raise ValueError(f"{field_name} cannot be empty")
 
     if _HTML_TAG_LIKE_RE.search(value):
         raise ValueError(
