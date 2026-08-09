@@ -371,3 +371,65 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
         ],
         any_order=True,
     )
+
+
+def test_post_processing_drops_unsupported_options():
+    """
+    An option that the operation no longer accepts is dropped, not passed on.
+
+    A chart saved by an older version of Superset stores `flatten_columns` in
+    the options of its `pivot` operation. `pivot` lost that parameter when
+    flattening became its own operation, so replaying the stored query_context
+    raised `TypeError: pivot() got an unexpected keyword argument
+    'flatten_columns'`.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "pivot",
+                "options": {
+                    "index": ["__timestamp"],
+                    "columns": ["genre"],
+                    "aggregates": {"count": {"operator": "mean"}},
+                    "drop_missing_columns": False,
+                    "flatten_columns": True,
+                    "reset_index": True,
+                },
+            }
+        ],
+    )
+
+    options = query_object.post_processing[0]["options"]
+    assert "flatten_columns" not in options
+    assert "reset_index" not in options
+    assert options["drop_missing_columns"] is False
+    assert options["index"] == ["__timestamp"]
+
+
+def test_post_processing_keeps_supported_options():
+    """Options the operation accepts are left alone."""
+    post_processing = [
+        {
+            "operation": "pivot",
+            "options": {"index": ["__timestamp"], "aggregates": {}},
+        }
+    ]
+    query_object = QueryObject(row_limit=1, post_processing=post_processing)
+
+    assert query_object.post_processing == post_processing
+
+
+def test_post_processing_keeps_unknown_operation():
+    """
+    An unknown operation is kept, so that `exec_post_processing` can report it
+    as an `InvalidPostProcessingError` rather than being silently dropped here.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[{"operation": "does_not_exist", "options": {"a": 1}}, None],
+    )
+
+    assert query_object.post_processing == [
+        {"operation": "does_not_exist", "options": {"a": 1}}
+    ]
