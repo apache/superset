@@ -63,7 +63,10 @@ def get_default_position(title: str) -> dict[str, Any]:
 
 
 def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any]:
-    chart_hashes = [f"CHART-{str(chart.uuid)}" for chart in charts]
+    # Materialize the set into a list once so chart_hashes and the zip below
+    # iterate the exact same ordering and can never desynchronize.
+    chart_list = list(charts)
+    chart_hashes = [f"CHART-{str(chart.uuid)}" for chart in chart_list]
 
     # if we have ROOT_ID/GRID_ID, append orphan charts to a new row inside the grid
     row_hash = None
@@ -78,7 +81,7 @@ def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any
             "parents": ["ROOT_ID", "GRID_ID"],
         }
 
-    for chart_hash, chart in zip(chart_hashes, charts, strict=False):
+    for chart_hash, chart in zip(chart_hashes, chart_list, strict=False):
         position[chart_hash] = {
             "children": [],
             "id": chart_hash,
