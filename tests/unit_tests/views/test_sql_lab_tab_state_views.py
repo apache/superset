@@ -60,18 +60,16 @@ def _create_tab_state_and_query(
     return tab_state, query
 
 
-def test_delete_query_updates_another_users_tab_state_pointer(
+def test_delete_query_rejects_update_from_non_owning_user(
     session: Session, mocker
 ) -> None:
     """
-    ``delete_query`` scopes the ``Query`` row deletion to
-    ``Query.user_id == get_user_id()``, but the preceding update of the
-    owning ``TabState.latest_query_id`` pointer (used to keep the tab's
-    "last run query" reference consistent) is filtered only by
-    ``TabState.id`` and the current value of ``latest_query_id`` -- not by
-    the tab's ``user_id``. A caller who is not the tab's owner can still
-    trigger that update as long as they supply the tab's id and the
-    client_id currently stored in ``latest_query_id``.
+    ``delete_query`` checks tab ownership via ``_get_tab_user_id`` before
+    touching the owning ``TabState.latest_query_id`` pointer (used to keep
+    the tab's "last run query" reference consistent), matching every other
+    mutating method on this view. A caller who is not the tab's owner is
+    rejected before either the ``TabState`` update or the ``Query`` row
+    deletion happens.
     """
     TabState.metadata.create_all(session.get_bind())  # pylint: disable=no-member
 
@@ -91,17 +89,15 @@ def test_delete_query_updates_another_users_tab_state_pointer(
         view, tab_state.id, "owner-query-1"
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 403
 
     session.expire_all()
     refreshed_tab_state = session.query(TabState).filter_by(id=tab_state.id).one()
-    # The pointer was mutated even though `other_user_id` does not own the
-    # tab and no ownership check was performed before the update.
-    assert refreshed_tab_state.latest_query_id != "owner-query-1"
+    # The pointer is untouched -- the ownership check rejects the request
+    # before the TabState update runs.
+    assert refreshed_tab_state.latest_query_id == "owner-query-1"
 
-    # The Query row deletion is correctly scoped to the caller's own user_id,
-    # so the owner's Query row is left in place -- only the TabState update
-    # is unguarded.
+    # The owner's Query row is left in place too.
     still_present = session.query(Query).filter_by(client_id="owner-query-1").first()
     assert still_present is not None
     assert still_present.id == query.id
