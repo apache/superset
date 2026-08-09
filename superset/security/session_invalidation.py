@@ -187,6 +187,23 @@ def invalidate_user_sessions(connection: Any, user_id: int) -> None:
         _stamp_existing()
 
 
+def invalidate_sessions_for_user(user_id: int) -> None:
+    """Stamp the invalidation epoch for ``user_id`` from ordinary application code.
+
+    Convenience wrapper around ``invalidate_user_sessions`` for callers that
+    don't have the raw ``Connection`` the ``after_update`` event listener
+    receives -- e.g. a password-change flow. The stamp is written through the
+    current session's own connection, so it participates in whatever
+    transaction the caller's other pending changes belong to; it is not
+    committed here, so the caller's own commit (or the next flush that
+    triggers one) is what makes it durable.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.extensions import db
+
+    invalidate_user_sessions(db.session.connection(), user_id)
+
+
 def _stamp_epoch_on_disable(_mapper: Any, connection: Any, target: Any) -> None:
     history = inspect(target).attrs.active.history
     # Only act when ``active`` actually changed to False — ignore the

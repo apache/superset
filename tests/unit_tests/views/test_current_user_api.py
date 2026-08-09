@@ -27,8 +27,10 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import patch
 
+import pytest
 from flask_appbuilder.security.sqla.models import User
-from werkzeug.security import check_password_hash
+from marshmallow import ValidationError
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from superset import db
 from superset.daos.user import UserDAO
@@ -51,32 +53,63 @@ def _run_update_me(user: User, data: dict[str, Any]) -> None:
         UserDAO.update(item=user, attributes=data)
 
 
-def test_current_user_put_schema_has_no_current_password_field() -> None:
-    """The payload schema for ``PUT /api/v1/me/`` carries no field for proving
-    knowledge of the existing password -- a ``password`` key alone is enough
-    to change it.
+def test_current_user_put_schema_has_current_password_field() -> None:
+    """The payload schema for ``PUT /api/v1/me/`` carries a field for proving
+    knowledge of the existing password, required whenever ``password`` is
+    supplied.
     """
-    fields = CurrentUserPutSchema().fields
+    schema = CurrentUserPutSchema()
 
-    assert "password" in fields
-    assert "current_password" not in fields
-    assert "old_password" not in fields
+    assert "password" in schema.fields
+    assert "current_password" in schema.fields
+
+    with pytest.raises(ValidationError):
+        schema.load({"password": "BrandNewPassw0rd!"})
+
+    # Present alongside "password", it loads fine (the schema only checks
+    # that it was *supplied*; whether it's actually correct is verified
+    # against the database in ``CurrentUserRestApi.pre_update``).
+    loaded = schema.load(
+        {"password": "BrandNewPassw0rd!", "current_password": "OldPassw0rd!"}
+    )
+    assert loaded["current_password"] == "OldPassw0rd!"  # noqa: S105
 
 
-def test_update_me_changes_password_without_proof_of_current_password(
+def test_update_me_rejects_password_change_without_correct_current_password(
     admin_user: User,  # noqa: F811
     after_each: None,  # noqa: F811
 ) -> None:
-    """A caller with an authenticated session can change the password by
-    supplying only the new value -- no current-password (or other fresh-auth)
-    field is read or checked anywhere in the update path.
+    """A caller can no longer change the password by supplying only the new
+    value: an account with an existing password must prove knowledge of it
+    via ``current_password`` -- omitting the field, or getting it wrong, both
+    reject the change and leave the stored password untouched. Supplying the
+    correct current password lets the change through.
     """
-    original_password = admin_user.password
+    original_hash = generate_password_hash("OldPassw0rd!")
+    admin_user.password = original_hash
 
-    _run_update_me(admin_user, {"password": "BrandNewPassw0rd!"})
+    with pytest.raises(ValidationError):
+        _run_update_me(admin_user, {"password": "BrandNewPassw0rd!"})
+    assert admin_user.password == original_hash
+
+    with pytest.raises(ValidationError):
+        _run_update_me(
+            admin_user,
+            {
+                "password": "BrandNewPassw0rd!",
+                "current_password": "WrongPassw0rd!",
+            },
+        )
+    assert admin_user.password == original_hash
+
+    _run_update_me(
+        admin_user,
+        {"password": "BrandNewPassw0rd!", "current_password": "OldPassw0rd!"},
+    )
     db.session.flush()
 
-    assert admin_user.password != original_password
+    assert admin_user.password != original_hash
+    assert check_password_hash(admin_user.password, "BrandNewPassw0rd!")
 
 
 def test_update_me_password_change_persists_a_hash_not_plaintext(
@@ -84,12 +117,15 @@ def test_update_me_password_change_persists_a_hash_not_plaintext(
     after_each: None,  # noqa: F811
 ) -> None:
     """``pre_update`` computes ``generate_password_hash(data["password"])`` and
-    assigns it to the user, but ``UserDAO.update`` is then called with the
-    *same* ``data`` dict as ``attributes`` -- and that dict still has the
-    plaintext ``password`` key. ``BaseDAO.update`` blindly ``setattr``s every
-    key in ``attributes``, so the plaintext overwrites the hash that was just
-    computed, and the plaintext password is what actually reaches the
-    database.
+    assigns it to the user, and ``UserDAO.update`` is then called with the
+    *same* ``data`` dict as ``attributes``. ``BaseDAO.update`` blindly
+    ``setattr``s every key in ``attributes``, so ``pre_update`` must remove
+    the plaintext ``password`` key (and any ``current_password``) from that
+    dict once it's done with them, or the plaintext would overwrite the hash
+    that was just computed and reach the database instead of it.
+
+    ``admin_user`` starts with no password set, so this exercises the
+    first-password-set path, which requires no proof of a prior password.
     """
     new_password = "BrandNewPassw0rd!"  # noqa: S105
 
