@@ -385,6 +385,11 @@ def sanitize_user_input(
             f"Maximum allowed length is {max_length} characters."
         )
 
+    # Remove dangerous Unicode characters BEFORE any check so zero-widths
+    # smuggled inside a denylisted keyword can't slip past the pattern
+    # checks below (mirrors sanitize_sql_expression's ordering).
+    value = _remove_dangerous_unicode(value)
+
     # Strip all HTML tags using nh3
     value = _strip_html_tags(value)
 
@@ -394,9 +399,6 @@ def sanitize_user_input(
     # SQL keyword and shell metacharacter checks (for column names, etc.)
     if check_sql_keywords:
         _check_sql_patterns(value, field_name)
-
-    # Remove dangerous Unicode characters
-    value = _remove_dangerous_unicode(value)
 
     return value
 
@@ -433,6 +435,11 @@ def sanitize_filter_value(
             f"Maximum allowed length is {max_length} characters."
         )
 
+    # Remove dangerous Unicode characters BEFORE any check so zero-widths
+    # smuggled inside a denylisted pattern can't slip past the pattern
+    # checks below (mirrors sanitize_sql_expression's ordering).
+    value = _remove_dangerous_unicode(value)
+
     # Strip all HTML tags using nh3
     value = _strip_html_tags(value)
 
@@ -465,9 +472,6 @@ def sanitize_filter_value(
     # Check for hex encoding
     if re.search(r"\\x[0-9a-fA-F]{2}", value):
         raise ValueError("Filter value contains hex encoding which is not allowed.")
-
-    # Remove dangerous Unicode characters
-    value = _remove_dangerous_unicode(value)
 
     return value
 
