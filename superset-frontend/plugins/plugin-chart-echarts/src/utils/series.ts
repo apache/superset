@@ -405,7 +405,11 @@ export function extractDataTotalValues(
         if (legendState && !legendState[curr]) {
           return prev;
         }
-        if (extraMetricLabels?.includes(curr)) {
+        if (
+          extraMetricLabels?.some(
+            label => curr === label || curr.startsWith(`${label}__`),
+          )
+        ) {
           return prev;
         }
         const value = datum[curr] || 0;

@@ -318,9 +318,9 @@ export default function transformProps(
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
-    getMetricLabel,
-  );
+  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
+    .map(getMetricLabel)
+    .map(label => verboseMap[label] ?? label);
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
