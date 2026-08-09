@@ -17,21 +17,21 @@
 """
 Traces how ``sync_database_permissions_task`` binds an acting identity.
 
-The Celery task only ever receives a ``username`` string (the async
-enqueue-to-execute boundary does not carry the enqueuing user's immutable
-id). At execution time it resolves that string to a user record via
-``security_manager.get_user_by_username`` and binds the result to
-``flask.g.user`` for the duration of the sync. Whoever currently holds that
-username at *execution* time -- not whoever held it at *enqueue* time -- is
-the identity the rest of the sync runs under.
+The Celery task receives the immutable ``id`` of the user who enqueued it
+(captured at enqueue time by ``SyncPermissionsCommand.validate``), not a
+mutable username string. At execution time it resolves that id to a user
+record via ``security_manager.get_user_by_id`` and binds the result to
+``flask.g.user`` for the duration of the sync. Because resolution is by id,
+a username change between enqueue and execution has no effect on which user
+record the task acts as.
 
 That identity is not just used for logging: ``Database._get_sqla_engine``
 reads ``g.user.id`` to look up a per-user OAuth2 access token, and, for
 databases with ``impersonate_user`` enabled, ``Database.get_effective_user``
 reads ``g.user.username`` (via ``get_username()``) to pick the identity the
 outgoing connection impersonates at the external database. These tests pin
-down both halves of that chain: the mutable-username resolution in the task,
-and the fact that the resolved user is what a privileged, identity-sensitive
+down both halves of that chain: the id-based resolution in the task, and the
+fact that the resolved user is what a privileged, identity-sensitive
 codepath consumes downstream.
 """
 
@@ -48,33 +48,25 @@ from superset.commands.database.sync_permissions import (
 from superset.models.core import Database
 
 
-def test_task_binds_g_user_to_whoever_currently_holds_the_username(
+def test_task_binds_g_user_to_whoever_held_the_id_at_enqueue_time(
     mocker: MockerFixture,
 ) -> None:
     """
-    The task resolves its acting identity from the username string at
-    execution time. If a different user now holds that username than the
-    one who held it when the task was enqueued, the task binds ``g.user``
-    to that *different*, current user -- not to any identity captured at
-    enqueue time (no user id ever crosses the enqueue/execute boundary).
+    The task resolves its acting identity from the user id captured at
+    enqueue time, via ``security_manager.get_user_by_id``. A username change
+    that happens between enqueue and execution has no effect on which user
+    record the task binds ``g.user`` to, because the id -- not the mutable
+    username -- is what crosses the enqueue/execute boundary.
     """
-    # Whoever enqueued the task saw this identity for "alice" at enqueue
-    # time. It is never passed to the task -- only the string "alice" is.
-    original_alice = MagicMock()
-    original_alice.id = 101
-    original_alice.username = "alice"
-
-    # By the time the task executes, "alice" resolves to a different user
-    # record (e.g. the original account was renamed and the username was
-    # subsequently reassigned).
-    reassigned_alice = MagicMock()
-    reassigned_alice.id = 999
-    reassigned_alice.username = "alice"
+    # Whoever enqueued the task saw this identity at enqueue time. Its id is
+    # what's passed to the task.
+    enqueuing_user = MagicMock()
+    enqueuing_user.id = 101
+    enqueuing_user.username = "alice"
 
     get_user_mock = mocker.patch(
-        "superset.commands.database.sync_permissions.security_manager"
-        ".get_user_by_username",
-        return_value=reassigned_alice,
+        "superset.commands.database.sync_permissions.security_manager.get_user_by_id",
+        return_value=enqueuing_user,
     )
 
     mock_db_connection = MagicMock()
@@ -97,14 +89,19 @@ def test_task_binds_g_user_to_whoever_currently_holds_the_username(
         side_effect=capture_g_user,
     )
 
-    sync_database_permissions_task(1, "alice", "old_db_name")
+    # By the time the task executes, "alice" has been renamed (and the
+    # username could even have been reassigned to someone else) -- but the
+    # task was enqueued with id 101, so the rename doesn't affect resolution.
+    enqueuing_user.username = "alice_renamed"
 
-    # Resolution happened purely off the mutable username string...
-    get_user_mock.assert_called_once_with("alice")
-    # ...and the sync ran under whichever user currently holds "alice" at
-    # execution time -- the reassigned user, not the original enqueuer.
-    assert observed_g_user == [reassigned_alice]
-    assert observed_g_user[0].id != original_alice.id
+    sync_database_permissions_task(1, 101, "old_db_name")
+
+    # Resolution happened purely off the immutable id...
+    get_user_mock.assert_called_once_with(101)
+    # ...and the sync ran under the same user captured at enqueue time,
+    # regardless of the username change in between.
+    assert observed_g_user == [enqueuing_user]
+    assert observed_g_user[0].id == 101
 
 
 def test_g_user_bound_by_the_task_drives_external_db_impersonation_identity(
@@ -115,10 +112,9 @@ def test_g_user_bound_by_the_task_drives_external_db_impersonation_identity(
     decide which identity an outgoing, ``impersonate_user``-enabled
     connection impersonates at the external database -- reads
     ``g.user.username``. Whatever user object the task bound to ``g.user``
-    (per the previous test, the *current* holder of the username, which can
-    differ from the task's original enqueuer) is therefore the identity
-    used to connect to the external database, not a fixed identity captured
-    when the task was queued.
+    (per the previous test, the user resolved from the id captured at
+    enqueue time) is therefore the identity used to connect to the external
+    database.
     """
     database = MagicMock(spec=Database)
     database.impersonate_user = True
@@ -135,8 +131,8 @@ def test_g_user_bound_by_the_task_drives_external_db_impersonation_identity(
     mocker.patch("superset.utils.core.g", MagicMock(user=user_a))
     assert Database.get_effective_user(database, object_url) == "user_a"
 
-    # A different user bound to g.user (as would happen if the task
-    # resolved a reassigned username) changes the impersonated identity
+    # A different user bound to g.user (as would happen if a different id
+    # had been captured at enqueue time) changes the impersonated identity
     # for the exact same database configuration and target URL.
     user_b = MagicMock()
     user_b.username = "user_b"
