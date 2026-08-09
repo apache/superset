@@ -117,7 +117,7 @@ function toDisplayHex(
   return rgbaToHex(value).toLowerCase();
 }
 
-export const extractThemeColors = (
+const extractThemeColors = (
   theme: SupersetTheme | undefined | null,
 ): Record<string, string> => {
   if (!theme || typeof theme !== 'object') {

@@ -129,22 +129,22 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
       : (linearColorScale(d.metric) ?? '');
   });
 
+  const regionMap = useMemo(
+    () => new Map(data.map(region => [region.country_id, region])),
+    [data],
+  );
+
   const colorFn = (feature: GeoFeature): string => {
     if (!feature?.properties) return '#d9d9d9';
-    const regionData = data.find(
-      region => region.country_id === feature.properties.ISO,
-    );
+    const regionData = regionMap.get(feature.properties.ISO);
 
     if (regionData && formatters?.length > 0) {
       for (const formatter of formatters) {
         const cfColor = formatter.getColorFromValue(regionData.metric);
-        if (cfColor) {
-          return cfColor;
-        }
+        if (cfColor) return cfColor;
       }
     }
-    const iso = feature.properties.ISO;
-    return colorMap[iso] || '#d9d9d9';
+    return colorMap[feature.properties.ISO] || '#d9d9d9';
   };
 
   // Check if dashboard is in edit mode
