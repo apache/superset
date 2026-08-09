@@ -36,7 +36,7 @@ from urllib.parse import quote
 
 from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
@@ -392,8 +392,11 @@ class SupersetUserApi(UserApi):
     """
     Overriding the UserApi to sync Subject rows, filter excluded users,
     handle deletion constraints, and add audit logging.
-    UserApi has custom post/put that bypass hooks, so we override them
-    and sync after the parent method succeeds.
+
+    The Subject sync happens in ``pre_add``/``pre_update``, which FAB calls
+    *before* the commit that ``self.datamodel.add``/``edit`` issues -- so the
+    sync rides that same commit rather than needing one of its own after the
+    fact.
     """
 
     base_filters = [["username", ExcludeUsersFilter, lambda: []]]
@@ -413,6 +416,34 @@ class SupersetUserApi(UserApi):
         "changed_on",
     ]
 
+    def pre_add(self, item: Model) -> None:
+        """Hash the password (FAB's own ``pre_add``), then sync the user's
+        ``Subject`` row before FAB's own commit.
+
+        ``UserApi.post`` calls ``pre_add`` *before* ``self.datamodel.add``,
+        which is what actually issues the commit -- so flushing the new user
+        here (to obtain its id) and syncing its ``Subject`` row alongside it
+        means both writes ride the same transaction and commit together,
+        instead of the subject sync needing a second, separate commit after
+        the fact.
+        """
+        super().pre_add(item)
+        from superset.daos.user import UserDAO
+
+        self.datamodel.session.add(item)
+        self.datamodel.session.flush()
+        UserDAO._sync_subject(item)
+
+    def pre_update(self, item: Model, data: dict[str, Any]) -> None:
+        """Same reasoning as ``pre_add``: ``UserApi.put`` calls ``pre_update``
+        before ``self.datamodel.edit`` commits, so the subject sync lands in
+        that same transaction.
+        """
+        super().pre_update(item, data)
+        from superset.daos.user import UserDAO
+
+        UserDAO._sync_subject(item)
+
     @expose("/", methods=["POST"])
     @protect()
     @safe
@@ -428,17 +459,7 @@ class SupersetUserApi(UserApi):
             500:
               description: Server error
         """
-        response = super().post()
-        if response.status_code == 201:
-            from superset.daos.user import UserDAO
-
-            user_id = response.json.get("id")
-            if user_id:
-                user = self.datamodel.session.get(self.datamodel.obj, user_id)
-                if user:
-                    UserDAO._sync_subject(user)
-                    self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
-        return response
+        return super().post()
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
@@ -462,15 +483,42 @@ class SupersetUserApi(UserApi):
             500:
               description: Server error
         """
-        response = super().put(pk)
-        if response.status_code == 200:
-            from superset.daos.user import UserDAO
+        return super().put(pk)
 
-            user = self.datamodel.get(pk, self._base_filters)
-            if user:
-                UserDAO._sync_subject(user)
-                self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
-        return response
+    @expose("/<int:pk>/sessions", methods=["DELETE"])
+    @protect()
+    @permission_name("put")
+    @safe
+    def terminate_sessions(self, pk: int) -> Response:
+        """Terminate a user's outstanding sessions without disabling their account.
+        ---
+        delete:
+          parameters:
+            - in: path
+              name: pk
+              schema:
+                type: integer
+          responses:
+            200:
+              description: Sessions terminated
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        from superset.security.session_invalidation import invalidate_sessions_for_user
+
+        user = self.datamodel.get(pk, self._base_filters)
+        if not user:
+            return self.response_404()
+
+        invalidate_sessions_for_user(user.id)
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
+        _log_audit_event(
+            "UserSessionsTerminated",
+            {"target_username": user.username, "target_user_id": user.id},
+        )
+        return self.response(200, message="User sessions terminated.")
 
     def pre_delete(self, item: Model) -> None:
         from superset.daos.user import UserDAO
@@ -1553,8 +1601,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         bypassed. We distinguish the two by comparing the acting user
         (``g.user``) against the target ``userid``: they match for a
         self-service reset and differ for an admin reset.
+
+        Also stamps the session-invalidation epoch for the target user, so
+        any session for the account that predates this reset stops working --
+        regardless of which of the two paths triggered it.
         """
         super().reset_password(userid, password)
+
+        # pylint: disable=import-outside-toplevel
+        from superset import db
+        from superset.security.session_invalidation import invalidate_sessions_for_user
+
+        invalidate_sessions_for_user(int(userid))
+        # ``super().reset_password`` (FAB's ``update_user``) already committed
+        # its own change in a separate transaction, so the epoch stamp above
+        # needs its own commit too, rather than riding an existing one.
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         acting_user = getattr(g, "user", None)
         acting_user_id = getattr(acting_user, "id", None)

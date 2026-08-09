@@ -14,13 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""``SupersetUserApi.post``/``put`` commit the FAB user write, then sync the
-corresponding ``Subject`` row in a *separate* transaction. These tests show
-that when the second commit fails, the already-committed user is left
-without a compensating rollback: the ``@safe`` decorator on the endpoint
-catches the failure and turns it into a generic 500 response, and nothing
-deletes the user or retries the sync -- so the user row exists with no
-matching ``Subject`` row, and the only visible trace is a 500.
+"""``SupersetUserApi`` syncs the ``Subject`` row that mirrors each ``User``.
+
+``UserApi.post``/``put`` call ``self.pre_add``/``self.pre_update`` *before*
+the write that actually commits (``self.datamodel.add``/``edit``). Overriding
+those hooks -- instead of syncing after the fact, in a second commit issued
+once ``post``/``put`` have already returned -- means the subject sync rides
+the same transaction as the user write: one commit persists both, and a
+failure of that commit rolls both back together instead of leaving an
+orphaned user with no matching ``Subject`` row.
+
+These tests exercise ``pre_add``/``pre_update`` directly, plus the exact call
+pairs FAB's ``UserApi.post``/``put`` make (``pre_add``/``pre_update`` followed
+by the real ``SQLAInterface.add``/``edit``), to confirm that pairing shares a
+single commit and a single rollback.
 """
 
 from __future__ import annotations
@@ -28,9 +35,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from flask_appbuilder.security.sqla.apis.user.api import UserApi
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.exc import IntegrityError
 
 from superset import db, security_manager
 from superset.security.manager import SupersetUserApi
@@ -39,132 +45,185 @@ from superset.subjects.types import SubjectType
 from tests.unit_tests.fixtures.common import after_each  # noqa: F401
 
 
-def _make_user(username: str) -> User:
-    role = db.session.query(security_manager.role_model).filter_by(name="Admin").one()
+def _admin_role() -> object:
+    return db.session.query(security_manager.role_model).filter_by(name="Admin").one()
+
+
+def _make_pending_user(username: str) -> User:
+    """A transient ``User``, not yet added to the session.
+
+    Mirrors what FAB's ``UserApi.post()`` builds (``model = User()``, with
+    attributes set from the request payload) just before it calls
+    ``self.pre_add(model)`` and then ``self.datamodel.add(model)``.
+    """
+    return User(
+        first_name="New",
+        last_name="Guy",
+        email=f"{username}@example.org",
+        username=username,
+        roles=[_admin_role()],
+        password="irrelevant-pre-hash-value",  # noqa: S106
+    )
+
+
+def _make_persisted_user(username: str) -> User:
+    """A ``User`` already committed, standing in for one an earlier request
+    created -- the starting point for a ``put``/``pre_update`` flow.
+    """
     user = User(
         first_name="New",
         last_name="Guy",
         email=f"{username}@example.org",
         username=username,
-        roles=[role],
+        roles=[_admin_role()],
     )
     db.session.add(user)
-    db.session.commit()  # simulate FAB's UserApi.post/put already committing
+    db.session.commit()
     return user
 
 
-def test_post_leaves_user_without_subject_when_sync_commit_fails(
-    after_each: None,  # noqa: F811
-) -> None:
-    """If the subject-sync commit in ``SupersetUserApi.post`` fails, the
-    ``@safe`` decorator on the endpoint catches the exception and turns it
-    into a generic 500 -- there is no ``except`` clause in ``post`` itself
-    that would delete the just-created user or otherwise compensate.
-    """
-    user = _make_user("new_guy_post")
-
-    fake_response = SimpleNamespace(status_code=201, json={"id": user.id})
+def _api_for(session=db.session) -> SupersetUserApi:  # noqa: ANN001
     api = SupersetUserApi()
-    api.datamodel = SimpleNamespace(session=db.session, obj=User)
+    api.datamodel = SQLAInterface(User, session)
+    # FAB's own ``pre_update`` (which ``SupersetUserApi.pre_update`` calls via
+    # ``super()``) reads ``self.appbuilder.sm.current_user.id`` to stamp
+    # ``changed_by_fk`` -- stand in for the acting admin so that lookup
+    # succeeds outside of a real request/login context.
+    api.appbuilder = SimpleNamespace(
+        sm=SimpleNamespace(current_user=SimpleNamespace(id=1))
+    )
+    return api
 
-    with (
-        patch.object(UserApi, "post", return_value=fake_response),
-        patch.object(security_manager, "has_access", return_value=True),
-        patch.object(
-            db.session,
-            "commit",
-            side_effect=IntegrityError("stmt", {}, Exception("boom")),
-        ),
-    ):
-        response = api.post()
 
-    # The failure is swallowed into a generic 500 by the ``@safe`` decorator
-    # -- not surfaced as e.g. a 422 tied to the user that was actually
-    # created, and definitely not retried or compensated.
-    assert response.status_code == 500
-
-    db.session.rollback()
-
-    # The user row from the (separate, already-succeeded) FAB commit is
-    # still there ...
-    assert db.session.query(User).filter_by(id=user.id).one_or_none() is not None
-    # ... but the Subject row the failed commit was supposed to persist is
-    # not, since nothing compensates for the failed sync.
-    assert (
+def _subject_for(user_id: int) -> Subject | None:
+    return (
         db.session.query(Subject)
-        .filter_by(user_id=user.id, type=SubjectType.USER)
+        .filter_by(user_id=user_id, type=SubjectType.USER)
         .one_or_none()
-        is None
     )
 
 
-def test_put_leaves_user_without_subject_when_sync_commit_fails(
+def test_pre_add_syncs_subject_without_committing(
     after_each: None,  # noqa: F811
 ) -> None:
-    """Same gap as ``post``, for ``SupersetUserApi.put``."""
-    user = _make_user("new_guy_put")
-
-    fake_response = SimpleNamespace(status_code=200)
-    api = SupersetUserApi()
-    api.datamodel = SimpleNamespace(
-        session=db.session,
-        obj=User,
-        get=lambda pk, base_filters=None: user,
-    )
-    api._base_filters = None
-
-    with (
-        patch.object(UserApi, "put", return_value=fake_response),
-        patch.object(security_manager, "has_access", return_value=True),
-        patch.object(
-            db.session,
-            "commit",
-            side_effect=IntegrityError("stmt", {}, Exception("boom")),
-        ),
-    ):
-        response = api.put(user.id)
-
-    assert response.status_code == 500
-
-    db.session.rollback()
-
-    assert db.session.query(User).filter_by(id=user.id).one_or_none() is not None
-    assert (
-        db.session.query(Subject)
-        .filter_by(user_id=user.id, type=SubjectType.USER)
-        .one_or_none()
-        is None
-    )
-
-
-def test_post_success_path_still_syncs_subject_in_a_second_commit(
-    after_each: None,  # noqa: F811
-) -> None:
-    """Baseline/control: on the happy path the subject row is created, via a
-    ``self.datamodel.session.commit()`` distinct from the one FAB's
-    ``UserApi.post`` already issued for the user row -- i.e. two commits, not
-    one atomic transaction.
+    """``pre_add`` flushes the new user (to obtain its id) and syncs its
+    ``Subject`` row, but does not commit -- that's still FAB's job, in
+    ``self.datamodel.add``, which runs right after.
     """
-    user = _make_user("new_guy_ok")
-    fake_response = SimpleNamespace(status_code=201, json={"id": user.id})
-    api = SupersetUserApi()
-    api.datamodel = SimpleNamespace(session=db.session, obj=User)
+    user = _make_pending_user("new_guy_pre_add")
+    api = _api_for()
 
     real_commit = db.session.commit
     commit_calls = MagicMock(wraps=real_commit)
+    with patch.object(db.session, "commit", commit_calls):
+        api.pre_add(user)
 
-    with (
-        patch.object(UserApi, "post", return_value=fake_response),
-        patch.object(security_manager, "has_access", return_value=True),
-        patch.object(db.session, "commit", commit_calls),
-    ):
-        response = api.post()
+    assert commit_calls.call_count == 0
+    assert user.id is not None
+    assert _subject_for(user.id) is not None
 
-    assert response is fake_response
-    assert commit_calls.call_count == 1  # the sync's own, separate commit
-    subject = (
-        db.session.query(Subject)
-        .filter_by(user_id=user.id, type=SubjectType.USER)
-        .one_or_none()
-    )
+
+def test_pre_add_and_datamodel_add_share_a_single_commit(
+    after_each: None,  # noqa: F811
+) -> None:
+    """The exact pair of calls FAB's ``UserApi.post()`` makes --
+    ``self.pre_add(model)`` then ``self.datamodel.add(model)`` -- persist the
+    user and its ``Subject`` row together, via exactly one commit.
+    """
+    user = _make_pending_user("new_guy_shared_commit")
+    api = _api_for()
+
+    real_commit = db.session.commit
+    commit_calls = MagicMock(wraps=real_commit)
+    with patch.object(db.session, "commit", commit_calls):
+        api.pre_add(user)
+        api.datamodel.add(user)
+
+    assert commit_calls.call_count == 1
+    subject = _subject_for(user.id)
     assert subject is not None
+
+
+def test_pre_add_failure_rolls_back_user_and_subject_together(
+    after_each: None,  # noqa: F811
+) -> None:
+    """If the commit that follows ``pre_add`` fails (standing in: FAB's own
+    ``self.datamodel.add`` raising), the new user and the ``Subject`` row
+    flushed alongside it roll back together -- there is no window where the
+    user persists without a matching ``Subject``.
+    """
+    user = _make_pending_user("new_guy_pre_add_fail")
+    api = _api_for()
+
+    api.pre_add(user)
+    user_id = user.id
+    assert user_id is not None
+    assert _subject_for(user_id) is not None  # flushed, visible pre-rollback
+
+    db.session.rollback()  # stands in for the follow-up commit failing
+
+    assert db.session.query(User).filter_by(id=user_id).one_or_none() is None
+    assert _subject_for(user_id) is None
+
+
+def test_pre_update_syncs_subject_without_committing(
+    after_each: None,  # noqa: F811
+) -> None:
+    """Same reasoning as ``pre_add``, for an edit: ``pre_update`` syncs the
+    ``Subject`` row without committing, ahead of FAB's own
+    ``self.datamodel.edit``.
+    """
+    user = _make_persisted_user("new_guy_pre_update")
+    api = _api_for()
+
+    real_commit = db.session.commit
+    commit_calls = MagicMock(wraps=real_commit)
+    with patch.object(db.session, "commit", commit_calls):
+        api.pre_update(user, {})
+
+    assert commit_calls.call_count == 0
+    assert _subject_for(user.id) is not None
+
+
+def test_pre_update_and_datamodel_edit_share_a_single_commit(
+    after_each: None,  # noqa: F811
+) -> None:
+    """The exact pair of calls FAB's ``UserApi.put()`` makes --
+    ``self.pre_update(model, item)`` then ``self.datamodel.edit(model)`` --
+    persist the edit and the ``Subject`` sync together, via exactly one
+    commit.
+    """
+    user = _make_persisted_user("new_guy_shared_commit_put")
+    api = _api_for()
+
+    real_commit = db.session.commit
+    commit_calls = MagicMock(wraps=real_commit)
+    with patch.object(db.session, "commit", commit_calls):
+        api.pre_update(user, {})
+        api.datamodel.edit(user)
+
+    assert commit_calls.call_count == 1
+    assert _subject_for(user.id) is not None
+
+
+def test_pre_update_failure_rolls_back_subject_sync_without_orphaning(
+    after_each: None,  # noqa: F811
+) -> None:
+    """If the commit that follows ``pre_update`` fails, the ``Subject`` row it
+    flushed rolls back too -- the previously-persisted user row (created by
+    an earlier, already-successful request) is left exactly as it was, with
+    no half-applied sync attached to it.
+    """
+    user = _make_persisted_user("new_guy_pre_update_fail")
+    user_id = user.id
+    api = _api_for()
+
+    api.pre_update(user, {})
+    assert _subject_for(user_id) is not None  # flushed, visible pre-rollback
+
+    db.session.rollback()  # stands in for the follow-up commit failing
+
+    # The user itself predates this (failed) request and survives.
+    assert db.session.query(User).filter_by(id=user_id).one_or_none() is not None
+    # But the subject sync this request attempted never landed.
+    assert _subject_for(user_id) is None

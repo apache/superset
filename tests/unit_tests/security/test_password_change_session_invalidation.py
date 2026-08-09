@@ -17,18 +17,19 @@
 """Password-change paths and the session-invalidation epoch.
 
 ``UserAttribute.sessions_invalidated_at`` (see
-``superset.security.session_invalidation``) is the only mechanism that forces
-outstanding sessions to log out; it is currently stamped exclusively by the
+``superset.security.session_invalidation``) is the mechanism that forces
+outstanding sessions to log out. Originally it was stamped exclusively by the
 ``after_update`` listener that fires when an account's ``active`` flag flips
-to ``False``. These tests document that none of the password-change paths --
-self-service reset, admin-initiated reset, or the ``PUT /api/v1/me/``
-self-service update -- stamp that epoch, so a session stolen before a
-password change remains valid after it.
+to ``False``; these tests now cover the additional password-change paths --
+self-service reset, admin-initiated reset, and the ``PUT /api/v1/me/``
+self-service update -- which also stamp that epoch, so a session authenticated
+before a password change stops working after it.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -37,6 +38,7 @@ from flask_appbuilder.security.sqla.models import User
 from superset import db, security_manager
 from superset.daos.user import UserDAO
 from superset.models.user_attributes import UserAttribute
+from superset.security.manager import SupersetUserApi
 from superset.views.users.api import CurrentUserRestApi
 from tests.unit_tests.fixtures.common import admin_user, after_each  # noqa: F401
 
@@ -85,13 +87,13 @@ def two_admins() -> Iterator[tuple[User, User]]:
     db.session.commit()
 
 
-def test_self_service_password_reset_does_not_invalidate_other_sessions(
+def test_self_service_password_reset_invalidates_other_sessions(
     two_admins: tuple[User, User],
 ) -> None:
     """``SupersetSecurityManager.reset_password`` used for a self-service
-    reset (acting user resets their own password) leaves the session epoch
-    untouched, so any other outstanding session for the account keeps working
-    after the password changes.
+    reset (acting user resets their own password) stamps the session epoch,
+    so any other outstanding session for the account stops working after the
+    password changes.
     """
     target, _actor = two_admins
 
@@ -99,16 +101,16 @@ def test_self_service_password_reset_does_not_invalidate_other_sessions(
         mock_g.user = target
         security_manager.reset_password(target.id, "BrandNewPassw0rd!")
 
-    assert _invalidated_at(target.id) is None
+    assert _invalidated_at(target.id) is not None
 
 
-def test_admin_password_reset_does_not_invalidate_target_sessions(
+def test_admin_password_reset_invalidates_target_sessions(
     two_admins: tuple[User, User],
 ) -> None:
-    """An admin-initiated reset of *another* user's password -- the closest
-    existing action to "terminate that user's sessions" -- also leaves the
-    epoch untouched. There is no admin action that forces a target user's
-    outstanding sessions to log out short of disabling their account.
+    """An admin-initiated reset of *another* user's password also stamps the
+    epoch, so the target's outstanding sessions stop working -- this is the
+    closest existing action to an explicit "terminate that user's sessions",
+    short of disabling the account.
     """
     target, actor = two_admins
 
@@ -116,16 +118,17 @@ def test_admin_password_reset_does_not_invalidate_target_sessions(
         mock_g.user = actor  # differs from target: an admin-initiated reset
         security_manager.reset_password(target.id, "TemporaryPassw0rd!")
 
-    assert _invalidated_at(target.id) is None
+    assert _invalidated_at(target.id) is not None
 
 
-def test_update_me_password_change_does_not_invalidate_other_sessions(
+def test_update_me_password_change_invalidates_other_sessions(
     admin_user: User,  # noqa: F811
     after_each: None,  # noqa: F811
 ) -> None:
     """The ``PUT /api/v1/me/`` self-service password change (``pre_update`` +
-    ``UserDAO.update`` in ``CurrentUserRestApi.update_me``) also never stamps
-    the session-invalidation epoch.
+    ``UserDAO.update`` in ``CurrentUserRestApi.update_me``) also stamps the
+    session-invalidation epoch. ``admin_user`` starts with no password set, so
+    no ``current_password`` proof is required for this change to go through.
     """
     api = CurrentUserRestApi()
     data = {"password": "BrandNewPassw0rd!"}
@@ -136,4 +139,67 @@ def test_update_me_password_change_does_not_invalidate_other_sessions(
         UserDAO.update(item=admin_user, attributes=data)
     db.session.flush()
 
-    assert _invalidated_at(admin_user.id) is None
+    assert _invalidated_at(admin_user.id) is not None
+
+
+def _make_api_for_target(user: User) -> SupersetUserApi:
+    """A ``SupersetUserApi`` instance wired to a fake ``datamodel`` that
+    resolves any pk lookup to ``user`` -- enough to exercise
+    ``terminate_sessions`` without going through HTTP/auth plumbing, mirroring
+    the pattern used in ``test_superset_user_api_subject_sync.py``.
+    """
+    api = SupersetUserApi()
+    api.datamodel = SimpleNamespace(
+        session=db.session,
+        obj=User,
+        get=lambda pk, base_filters=None: user,
+    )
+    api._base_filters = None
+    return api
+
+
+def test_terminate_sessions_action_stamps_target_epoch_without_disabling_account(
+    after_each: None,  # noqa: F811
+) -> None:
+    """``SupersetUserApi.terminate_sessions`` -- the direct, explicit
+    "terminate this user's sessions" admin action -- stamps the epoch for the
+    target user without flipping ``active`` or otherwise touching the account,
+    unlike the only other action that has this effect (disabling the user).
+    """
+    role = db.session.query(security_manager.role_model).filter_by(name="Admin").one()
+    user = User(
+        first_name="Target",
+        last_name="User",
+        email="terminate_sessions_target@example.org",
+        username="terminate_sessions_target",
+        roles=[role],
+    )
+    db.session.add(user)
+    db.session.flush()
+
+    with patch.object(security_manager, "has_access", return_value=True):
+        response = _make_api_for_target(user).terminate_sessions(user.id)
+
+    assert response.status_code == 200
+    assert _invalidated_at(user.id) is not None
+    assert user.active
+
+
+def test_terminate_sessions_action_404s_for_unknown_user(
+    after_each: None,  # noqa: F811
+) -> None:
+    """A pk that doesn't resolve to a user (or is filtered out by
+    ``base_filters``) 404s rather than stamping anything.
+    """
+    api = SupersetUserApi()
+    api.datamodel = SimpleNamespace(
+        session=db.session,
+        obj=User,
+        get=lambda pk, base_filters=None: None,
+    )
+    api._base_filters = None
+
+    with patch.object(security_manager, "has_access", return_value=True):
+        response = api.terminate_sessions(999999)
+
+    assert response.status_code == 404
