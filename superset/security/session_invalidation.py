@@ -41,7 +41,7 @@ from typing import Any, Optional
 from flask import flash, session
 from flask_babel import gettext as __
 from flask_login import current_user, logout_user
-from sqlalchemy import event, inspect
+from sqlalchemy import event, inspect, or_
 from sqlalchemy.exc import IntegrityError
 from werkzeug.wrappers import Response
 
@@ -163,9 +163,20 @@ def invalidate_user_sessions(connection: Any, user_id: int) -> None:
     )
 
     def _stamp_existing() -> int:
+        # Guard against two concurrent writers regressing the epoch: a
+        # transaction that computed an earlier ``now`` can reach this UPDATE
+        # after one with a later ``now`` has already committed. Only apply
+        # the write when it would advance (or initialize) the stored value,
+        # so the epoch is monotonic regardless of commit order.
         return connection.execute(
             table.update()
             .where(table.c.user_id == user_id)
+            .where(
+                or_(
+                    table.c.sessions_invalidated_at.is_(None),
+                    table.c.sessions_invalidated_at < now,
+                )
+            )
             .values(sessions_invalidated_at=now, changed_on=now)
         ).rowcount
 

@@ -59,8 +59,10 @@ class CurrentUserRestApi(BaseSupersetApi):
             # external auth backend) has nothing to prove knowledge of; for
             # every other account, the caller must confirm the existing
             # password before it can be replaced.
-            proof_ok = current_password and check_password_hash(
-                item.password, current_password
+            proof_ok = (
+                item.password
+                and current_password
+                and check_password_hash(item.password, current_password)
             )
             if item.password and not proof_ok:
                 raise ValidationError(
