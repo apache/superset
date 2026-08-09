@@ -510,6 +510,8 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     jwt_verifier: Any | None = None
 
     if auth_enabled:
+        validate_multi_issuer_user_resolver(app)
+
         jwks_uri = app.config.get("MCP_JWKS_URI")
         public_key = app.config.get("MCP_JWT_PUBLIC_KEY")
         secret = app.config.get("MCP_JWT_SECRET")
@@ -566,6 +568,41 @@ def _is_mcp_guest_auth_enabled(app: Flask) -> bool:
             )
             return False
     return True
+
+
+def validate_multi_issuer_user_resolver(app: Flask) -> None:
+    """Reject a multi-issuer JWT trust config that has no issuer-aware resolver.
+
+    ``default_user_resolver`` maps token claims to Superset users by
+    username/email without binding the token's ``iss`` claim. When more than
+    one issuer is trusted (``MCP_JWT_ISSUER`` configured as a list/tuple/set),
+    that lookup is not issuer-scoped: distinct issuers minting the same
+    username or email claim would resolve to the identical Superset user.
+    Single-issuer deployments are unaffected — the issuer is already pinned
+    by the verifier, so the username space is unambiguous.
+
+    Operators trusting more than one issuer must supply an issuer-aware
+    ``MCP_USER_RESOLVER`` (e.g. one that derives a compound iss+sub identity)
+    before the service will consider that configuration usable.
+    """
+    configured_issuer = app.config.get("MCP_JWT_ISSUER")
+    if (
+        isinstance(configured_issuer, (list, tuple, set))
+        and len(configured_issuer) > 1
+        and not app.config.get("MCP_USER_RESOLVER")
+    ):
+        # MCPAuthConfigError specifically: callers re-raise this type to
+        # refuse startup / fail closed rather than silently proceeding with
+        # an identity lookup that is not scoped to the trusted issuer.
+        raise MCPAuthConfigError(
+            "MCP_JWT_ISSUER trusts multiple issuers but no MCP_USER_RESOLVER "
+            "is configured. The default user resolver maps token claims to "
+            "Superset users by username/email without binding the issuer, so "
+            "distinct trusted issuers minting the same username/email would "
+            "resolve to the same Superset user. Configure an issuer-aware "
+            "MCP_USER_RESOLVER (e.g. deriving a compound iss+sub identity) "
+            "before trusting more than one issuer."
+        )
 
 
 def _validate_guest_config(app: Flask) -> None:

@@ -16,27 +16,30 @@
 # under the License.
 
 """Identity-binding behavior of ``_resolve_user_from_jwt_context`` when more
-than one JWT issuer is trusted (``MCP_JWT_ISSUER`` configured as a list) and
-no custom ``MCP_USER_RESOLVER`` is provided.
+than one JWT issuer is trusted (``MCP_JWT_ISSUER`` configured as a list).
 
 The default resolver (``default_user_resolver``) derives a Superset username
 from token claims (``preferred_username`` / ``username`` / ``email`` / ``sub``)
-without folding the token's ``iss`` claim into the lookup key. These tests
-pin down what that means in practice: two tokens with different ``iss``
-values but the same username claim resolve to the identical Superset user,
-with the DB lookup performed on username alone.
+without folding the token's ``iss`` claim into the lookup key. Without an
+issuer-aware ``MCP_USER_RESOLVER``, two tokens minted by different trusted
+issuers but sharing a username claim would otherwise resolve to the
+identical Superset user, since the DB lookup would be performed on username
+alone.
 
-The module emits a WARNING in this configuration (see
-``test_auth_user_resolution.test_multi_issuer_warns_without_custom_resolver``)
-but does not change the resolution behavior. These tests intentionally assert
-the current (pre-fix) behavior so that a later change binding identity to
-``iss`` (e.g. a compound iss+sub key, or failing closed when no issuer-aware
-resolver is configured) will need this test updated alongside it.
+To prevent that, ``_resolve_user_from_jwt_context`` fails closed (raises
+``MCPAuthConfigError``) when more than one issuer is trusted and no custom
+``MCP_USER_RESOLVER`` is configured, instead of proceeding with a lookup that
+isn't scoped to the trusted issuer. An operator-supplied, issuer-aware
+resolver (e.g. one deriving a compound iss+sub identity) is unaffected and
+continues to resolve normally.
 """
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.mcp_service.auth import _resolve_user_from_jwt_context
+from superset.mcp_service.mcp_config import MCPAuthConfigError
 
 
 def _make_mock_user(username: str = "alice") -> MagicMock:
@@ -57,20 +60,12 @@ def _make_access_token(claims: dict[str, str]) -> MagicMock:
     return token
 
 
-def test_same_username_from_different_trusted_issuers_resolves_to_same_user(
-    app,
-) -> None:
-    """Two trusted issuers minting the same username claim are not
-    distinguished by the default resolver: both resolve to one Superset
-    user, and the DB lookup is performed by username only (no ``iss``
-    component), when ``MCP_JWT_ISSUER`` is a multi-issuer list and no
-    ``MCP_USER_RESOLVER`` override is configured."""
-    shared_user = _make_mock_user("alice")
-    token_from_issuer_a = _make_access_token(
+def test_multi_issuer_without_custom_resolver_fails_closed(app) -> None:
+    """Multiple trusted issuers with no issuer-aware ``MCP_USER_RESOLVER``
+    refuses to resolve an identity rather than performing a username-only
+    lookup that isn't scoped to the trusted issuer."""
+    token = _make_access_token(
         claims={"sub": "alice", "iss": "https://issuer-a.example.com"}
-    )
-    token_from_issuer_b = _make_access_token(
-        claims={"sub": "alice", "iss": "https://issuer-b.example.com"}
     )
 
     with app.app_context():
@@ -79,6 +74,41 @@ def test_same_username_from_different_trusted_issuers_resolves_to_same_user(
             "https://issuer-b.example.com",
         ]
         app.config.pop("MCP_USER_RESOLVER", None)
+        try:
+            with patch(
+                "fastmcp.server.dependencies.get_access_token",
+                return_value=token,
+            ):
+                with pytest.raises(MCPAuthConfigError):
+                    _resolve_user_from_jwt_context(app)
+        finally:
+            app.config.pop("MCP_JWT_ISSUER", None)
+
+
+def test_multi_issuer_with_custom_resolver_resolves_normally(app) -> None:
+    """An operator-supplied, issuer-aware ``MCP_USER_RESOLVER`` is unaffected
+    by the multi-issuer guard: legitimate multi-issuer deployments that
+    provide their own resolver continue to resolve users normally."""
+    shared_user = _make_mock_user("alice")
+    token_from_issuer_a = _make_access_token(
+        claims={"sub": "alice", "iss": "https://issuer-a.example.com"}
+    )
+    token_from_issuer_b = _make_access_token(
+        claims={"sub": "alice", "iss": "https://issuer-b.example.com"}
+    )
+
+    # A stand-in issuer-aware resolver: derives a compound iss+sub identity
+    # instead of the default username/email-only lookup.
+    def _issuer_aware_resolver(_app: object, access_token: MagicMock) -> str:
+        claims = access_token.claims
+        return f"{claims['iss']}:{claims['sub']}"
+
+    with app.app_context():
+        app.config["MCP_JWT_ISSUER"] = [
+            "https://issuer-a.example.com",
+            "https://issuer-b.example.com",
+        ]
+        app.config["MCP_USER_RESOLVER"] = _issuer_aware_resolver
         try:
             with (
                 patch(
@@ -105,46 +135,13 @@ def test_same_username_from_different_trusted_issuers_resolves_to_same_user(
                 result_b = _resolve_user_from_jwt_context(app)
         finally:
             app.config.pop("MCP_JWT_ISSUER", None)
+            app.config.pop("MCP_USER_RESOLVER", None)
 
-    # Both issuers resolve to the exact same Superset identity.
     assert result_a is shared_user
     assert result_b is shared_user
 
-    # The lookup key passed to the DB layer is username-only: neither call
-    # includes the token's `iss` claim, confirming resolution is not
-    # issuer-scoped for this (unsupported but reachable) configuration.
-    mock_load_a.assert_called_once_with("alice")
-    mock_load_b.assert_called_once_with("alice")
-
-
-def test_multi_issuer_without_custom_resolver_does_not_fail_closed(app) -> None:
-    """The module logs a warning about the unbound multi-issuer configuration
-    (see test_auth_user_resolution.py) but still returns a resolved user
-    rather than refusing to authenticate the request."""
-    mock_user = _make_mock_user("alice")
-    token = _make_access_token(
-        claims={"sub": "alice", "iss": "https://issuer-a.example.com"}
-    )
-
-    with app.app_context():
-        app.config["MCP_JWT_ISSUER"] = [
-            "https://issuer-a.example.com",
-            "https://issuer-b.example.com",
-        ]
-        app.config.pop("MCP_USER_RESOLVER", None)
-        try:
-            with (
-                patch(
-                    "fastmcp.server.dependencies.get_access_token",
-                    return_value=token,
-                ),
-                patch(
-                    "superset.mcp_service.auth.load_user_with_relationships",
-                    return_value=mock_user,
-                ),
-            ):
-                result = _resolve_user_from_jwt_context(app)
-        finally:
-            app.config.pop("MCP_JWT_ISSUER", None)
-
-    assert result is mock_user
+    # The custom resolver's compound iss+sub key is what reaches the DB
+    # lookup, not a bare username — confirming the guard doesn't interfere
+    # with a resolver that already binds identity to the issuer.
+    mock_load_a.assert_called_once_with("https://issuer-a.example.com:alice")
+    mock_load_b.assert_called_once_with("https://issuer-b.example.com:alice")
