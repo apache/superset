@@ -248,8 +248,17 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         ):
             return post_proc
 
+        # `exec_post_processing` calls the operation as `operation(df, **options)`,
+        # so the first parameter receives the DataFrame positionally and can never
+        # be supplied as an option, and neither can a positional-only parameter.
+        keyword_parameters = {
+            name
+            for position, (name, parameter) in enumerate(parameters.items())
+            if position > 0 and parameter.kind is not inspect.Parameter.POSITIONAL_ONLY
+        }
+
         options = post_proc.get("options") or {}
-        unsupported = {key for key in options if key not in parameters}
+        unsupported = {key for key in options if key not in keyword_parameters}
         if not unsupported:
             return post_proc
 
@@ -263,7 +272,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         return {
             **post_proc,
             "options": {
-                key: value for key, value in options.items() if key in parameters
+                key: value
+                for key, value in options.items()
+                if key in keyword_parameters
             },
         }
 

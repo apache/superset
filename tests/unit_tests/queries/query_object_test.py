@@ -21,6 +21,7 @@ from flask_appbuilder.security.sqla.models import User
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.utils import pandas_postprocessing
 from superset.utils.core import override_user
 
 
@@ -433,3 +434,50 @@ def test_post_processing_keeps_unknown_operation():
     assert query_object.post_processing == [
         {"operation": "does_not_exist", "options": {"a": 1}}
     ]
+
+
+def test_post_processing_drops_the_dataframe_parameter():
+    """
+    The DataFrame parameter is not an option.
+
+    `exec_post_processing` calls `operation(df, **options)`, so an option named
+    after the first parameter would raise `TypeError: pivot() got multiple
+    values for argument 'df'`.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "pivot",
+                "options": {"df": "malformed", "index": ["a"], "aggregates": {}},
+            }
+        ],
+    )
+
+    options = query_object.post_processing[0]["options"]
+    assert "df" not in options
+    assert options["index"] == ["a"]
+
+
+def test_post_processing_keeps_options_of_a_variadic_operation():
+    """An operation that accepts `**kwargs` accepts every option."""
+
+    def variadic(df, **kwargs):
+        return df
+
+    post_processing = [{"operation": "variadic", "options": {"anything": 1}}]
+    with patch.object(pandas_postprocessing, "variadic", variadic, create=True):
+        query_object = QueryObject(row_limit=1, post_processing=post_processing)
+
+    assert query_object.post_processing == post_processing
+
+
+def test_post_processing_keeps_an_entry_without_an_operation():
+    """
+    An entry that names no operation is kept, so that `exec_post_processing`
+    reports it as an `InvalidPostProcessingError`.
+    """
+    post_processing = [{"options": {"a": 1}}]
+    query_object = QueryObject(row_limit=1, post_processing=post_processing)
+
+    assert query_object.post_processing == post_processing
