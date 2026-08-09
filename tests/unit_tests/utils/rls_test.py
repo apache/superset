@@ -17,14 +17,15 @@
 """
 Traces the exact scope of the fallback in
 ``superset.utils.rls.collect_rls_predicates_for_sql``: a SQL-parse failure
-there makes that function return ``[]``, but this module is wired in as a
-*cache-key* input only (``SqlaTable.get_extra_cache_keys``), not as part of
-the code path that actually attaches RLS predicates to a query's WHERE
-clause (``BaseDatasource.get_sqla_row_level_filters``, consumed directly by
-``get_sqla_query``). These tests pin down that separation so a parse
-failure in the cache-key helper is understood as "two differently-RLS-scoped
-virtual-dataset queries can compute the same cache key contribution", not as
-"RLS predicates stop being applied to the query".
+there makes that function return a per-user marker instead of the real
+predicates, but this module is wired in as a *cache-key* input only
+(``SqlaTable.get_extra_cache_keys``), not as part of the code path that
+actually attaches RLS predicates to a query's WHERE clause
+(``BaseDatasource.get_sqla_row_level_filters``, consumed directly by
+``get_sqla_query``). These tests pin down that separation: a parse failure
+in the cache-key helper only ever affects the cache key contribution (kept
+distinct per user via the marker), and never "RLS predicates stop being
+applied to the query".
 """
 
 from __future__ import annotations
@@ -47,16 +48,21 @@ def mock_database() -> MagicMock:
     return database
 
 
-def test_collect_rls_predicates_for_sql_returns_empty_list_on_parse_failure(
+def test_collect_rls_predicates_for_sql_returns_per_user_sentinel_on_parse_failure(
     mock_database: MagicMock,
 ) -> None:
     """
     A SQL-parse exception inside ``collect_rls_predicates_for_sql`` is
-    swallowed and the function returns ``[]`` instead of propagating.
+    swallowed, and the function returns a marker derived from the current
+    user's id instead of propagating the exception or silently returning an
+    empty list.
     """
-    with patch(
-        "superset.sql.parse.SQLScript",
-        side_effect=ValueError("cannot parse"),
+    with (
+        patch(
+            "superset.sql.parse.SQLScript",
+            side_effect=ValueError("cannot parse"),
+        ),
+        patch("superset.utils.rls.get_user_id", return_value=42),
     ):
         result = collect_rls_predicates_for_sql(
             "SELECT * FROM some_table",
@@ -65,20 +71,20 @@ def test_collect_rls_predicates_for_sql_returns_empty_list_on_parse_failure(
             schema="public",
         )
 
-    assert result == []
+    assert result == ["rls-predicate-parse-failed-for-user-42"]
 
 
-def test_parse_failure_collapses_differently_scoped_rls_into_same_cache_contribution(
+def test_parse_failure_produces_different_cache_contributions_for_different_users(
     mock_database: MagicMock,
 ) -> None:
     """
     Two virtual datasets whose underlying RLS predicates differ (one has a
     predicate, the other has none) would normally contribute different
     strings to the cache key. If SQL parsing fails before predicates are
-    even collected, both calls collapse to the same ``[]`` contribution,
-    regardless of what predicates would otherwise have differentiated them.
-    This is the mechanism behind the cache-key-collision concern: the
-    fallback erases the very information the cache key exists to capture.
+    even collected, the actual predicate difference never gets a chance to
+    be collected -- but each user still contributes a marker scoped to their
+    own id, so the two calls don't collapse onto the same cache key
+    contribution.
     """
     with (
         patch(
@@ -89,14 +95,18 @@ def test_parse_failure_collapses_differently_scoped_rls_into_same_cache_contribu
             "superset.utils.rls.get_predicates_for_table",
             side_effect=[["tenant_id = 1"], []],
         ) as mock_get_predicates,
+        patch(
+            "superset.utils.rls.get_user_id",
+            side_effect=[1, 2],
+        ),
     ):
-        result_scoped_user = collect_rls_predicates_for_sql(
+        result_user_one = collect_rls_predicates_for_sql(
             "SELECT * FROM some_table",
             mock_database,
             catalog=None,
             schema="public",
         )
-        result_unscoped_user = collect_rls_predicates_for_sql(
+        result_user_two = collect_rls_predicates_for_sql(
             "SELECT * FROM some_table",
             mock_database,
             catalog=None,
@@ -107,7 +117,9 @@ def test_parse_failure_collapses_differently_scoped_rls_into_same_cache_contribu
     # first, so the per-user predicate difference never had a chance to be
     # collected in the first place.
     mock_get_predicates.assert_not_called()
-    assert result_scoped_user == [] == result_unscoped_user
+    assert result_user_one != result_user_two
+    assert result_user_one == ["rls-predicate-parse-failed-for-user-1"]
+    assert result_user_two == ["rls-predicate-parse-failed-for-user-2"]
 
 
 def test_real_rls_enforcement_does_not_go_through_the_cache_key_helper(
