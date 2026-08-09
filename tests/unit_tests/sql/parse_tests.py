@@ -408,10 +408,29 @@ def test_extract_tables_illdefined() -> None:
 def test_extract_tables_show_tables_from() -> None:
     """
     Test `SHOW TABLES FROM`.
+
+    No individual table target is extractable, so the statement must be
+    flagged as unparseable for authorization purposes instead of passing
+    strict scoping with an empty table set.
     """
     assert (
         extract_tables_from_sql("SHOW TABLES FROM s1 like '%order%'", "mysql") == set()
     )
+    assert SQLScript(
+        "SHOW TABLES FROM s1 like '%order%'", "mysql"
+    ).has_unparseable_statement
+
+
+def test_extract_tables_show_create_table() -> None:
+    """
+    Test `SHOW CREATE TABLE`.
+
+    The target table must enter table-level authorization.
+    """
+    assert extract_tables_from_sql("SHOW CREATE TABLE s1.t1", "mysql") == {
+        Table("t1", "s1")
+    }
+    assert not SQLScript("SHOW CREATE TABLE s1.t1", "mysql").has_unparseable_statement
 
 
 def test_format_show_tables() -> None:
@@ -1544,6 +1563,37 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
     Global tests for `is_mutating`, covering all supported engines.
     """
     assert SQLStatement(sql, engine).is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        # Opaque `exp.Command` fallbacks must fail closed on every dialect,
+        # not only PostgreSQL.
+        ("CALL evil_proc()", "mysql"),
+        ("LOAD '/tmp/x.so'", "postgres"),
+        ("EXEC dbo.evil_proc", "mssql"),
+        # The EXPLAIN ANALYZE unwrap must handle the parenthesized
+        # option-list, whitespace, alternate-spelling, and leading-comment
+        # forms: PostgreSQL executes the inner DML for all of them.
+        ("EXPLAIN (ANALYZE) UPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN (ANALYZE, BUFFERS) DELETE FROM t", "postgresql"),
+        ("EXPLAIN ANALYZE\nUPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN ANALYSE UPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN /* c */ (ANALYZE) UPDATE t SET x = 1", "postgresql"),
+        # A bare COMMIT persists every prior write on the connection even
+        # when the execution layer skips its own commit call.
+        ("COMMIT", "postgresql"),
+        ("COMMIT", "mysql"),
+    ],
+)
+def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> None:
+    """
+    `is_mutating` must fail closed on statements that slip past node-type
+    matching: non-PostgreSQL command fallbacks, normalized `EXPLAIN ANALYZE`
+    variants, and structured `COMMIT`.
+    """
+    assert SQLStatement(sql, engine).is_mutating()
 
 
 @pytest.mark.parametrize(
@@ -3438,6 +3488,7 @@ def test_sqlstatement_format_preserves_multi_arg_distinct(engine: str) -> None:
     assert "CASE WHEN" not in formatted
 
 
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
 @pytest.mark.parametrize(
     "engine",
     [
@@ -3466,12 +3517,12 @@ def test_sqlstatement_format_preserves_multi_arg_distinct(engine: str) -> None:
             {Table(table="bar", schema="foo")},
         ),
         (
-            "latest_partition('foo.%s'|format(str('bar')))",
-            set(),
+            "latest_partitions('foo.bar')",
+            {Table(table="bar", schema="foo")},
         ),
         (
-            "latest_partition('foo.{}'.format('bar'))",
-            set(),
+            "first_latest_partition('foo.bar')",
+            {Table(table="bar", schema="foo")},
         ),
     ],
 )
@@ -3488,6 +3539,39 @@ def test_extract_tables_from_jinja_sql(
         ).tables
         == expected
     )
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "hive",
+        "presto",
+        "trino",
+    ],
+)
+@pytest.mark.parametrize(
+    "macro",
+    [
+        "latest_partition('foo.%s'|format(str('bar')))",
+        "latest_partition('foo.{}'.format('bar'))",
+        "latest_partitions('foo.{}'.format('bar'))",
+    ],
+)
+def test_extract_tables_from_jinja_sql_fails_closed(
+    mocker: MockerFixture,
+    engine: str,
+    macro: str,
+) -> None:
+    """
+    A partition macro whose table reference cannot be evaluated statically
+    must fail closed, as the macro would otherwise execute against a table
+    that never entered the authorization check.
+    """
+    with pytest.raises(SupersetParseError):
+        process_jinja_sql(
+            sql=f"'{{{{ {engine}.{macro} }}}}'",
+            database=mocker.MagicMock(backend=engine),
+        )
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
@@ -3577,6 +3661,31 @@ def test_process_jinja_sql_template_params_parameter(mocker: MockerFixture) -> N
     # Verify the function accepts the parameter without error
     assert isinstance(result, JinjaSQLResult)
     assert result.tables == {Table("table_name")}
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_process_jinja_sql_renders_exactly_once(mocker: MockerFixture) -> None:
+    """
+    The authorization path must validate exactly the SQL that executes.
+
+    A template whose first render emits Jinja comment markers inside SQL
+    comments used to be rendered a second time, which stripped the markers
+    and everything between them from the validated SQL while the executed
+    SQL (rendered once) kept the extra statement text.
+    """
+    database = mocker.MagicMock(backend="postgresql")
+    database.db_engine_spec.engine = "postgresql"
+
+    result = process_jinja_sql(
+        sql=(
+            'SELECT * FROM granted /*{{ "{#" }}*/ '
+            'UNION SELECT * FROM restricted /*{{ "#}" }}*/'
+        ),
+        database=database,
+    )
+
+    assert Table("restricted") in result.tables
+    assert Table("granted") in result.tables
 
 
 @pytest.mark.parametrize(
@@ -4119,6 +4228,45 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
     `set_config`) without misclassifying unrelated `SET` statements.
     """
     assert SQLStatement(sql, "postgresql").changes_search_path() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # `USE` rebinds the schema for every later statement on the cursor.
+        ("USE tenant_b; SELECT * FROM orders", "mysql", True),
+        ("use `tenant_b`", "mysql", True),
+        ("USE SCHEMA tenant_b", "snowflake", True),
+        # Warehouse selection changes compute, not name resolution.
+        ("USE WAREHOUSE compute_wh", "snowflake", False),
+        # Search-path changes are schema rebinds too.
+        ("SET search_path = tenant_b", "postgresql", True),
+        (
+            "SELECT set_config('search_path', 'tenant_b', false)",
+            "postgresql",
+            True,
+        ),
+        # A `set_config()` with a computed setting name fails closed.
+        (
+            "SELECT set_config('search' || '_path', 'tenant_b', false)",
+            "postgresql",
+            True,
+        ),
+        # `SET SCHEMA` is an alias for a search-path rebind on Postgres and
+        # a schema rebind on DB2-family engines.
+        ("SET SCHEMA 'tenant_b'", "postgresql", True),
+        ("SELECT * FROM orders", "mysql", False),
+        ("SET statement_timeout = 10", "postgresql", False),
+    ],
+)
+def test_changes_default_schema(sql: str, engine: str, expected: bool) -> None:
+    """
+    `changes_default_schema` detects statements that rebind unqualified-name
+    resolution (`USE`, `SET SCHEMA`, search-path changes) so the SQL Lab
+    authorization path can reject the script before qualifying tables with
+    the schema the user selected.
+    """
+    assert SQLScript(sql, engine).changes_default_schema() == expected
 
 
 @pytest.mark.parametrize(
