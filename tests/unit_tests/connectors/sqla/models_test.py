@@ -1645,6 +1645,33 @@ def test_get_sqla_col_catches_subquery_beside_unparseable_syntax(
         tc.get_sqla_col()
 
 
+def test_get_sqla_col_revalidates_rendered_jinja_expression(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Jinja block that renders into a sub-query must be rejected at query
+    time: save-time validation only sees the block as a placeholder, so the
+    rendered expression is re-validated before it is embedded via
+    ``literal_column``.
+    """
+    # A real Database (not a MagicMock) so the ORM relationship assignment on
+    # SqlaTable has a valid instance state; sqlite gives a concrete backend.
+    database = Database(database_name="t", sqlalchemy_uri="sqlite://")
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    table = SqlaTable(table_name="t", database=database)
+    tbl_column = TableColumn(
+        column_name="c",
+        expression='{{ "(SELECT password FROM ab_user LIMIT 1)" }}',
+        table=table,
+    )
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.return_value = (
+        "(SELECT password FROM ab_user LIMIT 1)"
+    )
+    with pytest.raises(SupersetSecurityException):
+        tbl_column.get_sqla_col(template_processor=template_processor)
+
+
 def test_has_extra_cache_key_calls_scans_guest_token_rls(
     mocker: MockerFixture,
 ) -> None:

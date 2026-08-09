@@ -104,6 +104,7 @@ from superset.models.helpers import (
     SoftDeleteMixin,
     SQLA_QUERY_KEYS,
     validate_adhoc_subquery,
+    validate_rendered_expression,
     validate_stored_expression_at_query_time,
 )
 from superset.models.slice import Slice
@@ -1216,6 +1217,14 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
                             msg=msg,
                         )
                     ) from ex
+                if expression != self.expression:
+                    # Re-check the rendered expression before embedding it.
+                    expression = validate_rendered_expression(
+                        expression,
+                        self.database,
+                        self.table.catalog if self.table else None,
+                        self.table.schema if self.table else None,
+                    )
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
@@ -1264,6 +1273,14 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
                             msg=msg,
                         )
                     ) from ex
+                if expression != self.expression:
+                    # Re-check the rendered expression before embedding it.
+                    expression = validate_rendered_expression(
+                        expression,
+                        self.database,
+                        self.table.catalog if self.table else None,
+                        self.table.schema if self.table else None,
+                    )
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
@@ -1369,6 +1386,14 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
                         msg=msg,
                     )
                 ) from ex
+            if expression != self.expression:
+                # Re-check the rendered expression before embedding it.
+                expression = validate_rendered_expression(
+                    expression,
+                    self.table.database,
+                    self.table.catalog,
+                    self.table.schema,
+                )
 
         if expression:
             expression = self._validate_stored_expression(expression)
