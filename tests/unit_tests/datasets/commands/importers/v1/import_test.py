@@ -2239,3 +2239,28 @@ def test_import_restore_blocked_by_active_twin_at_incoming_identity(
     assert "another active dataset" in str(excinfo.value)
     # Check-before-mutate: the failed import leaves the row soft-deleted.
     assert existing.deleted_at is not None
+
+
+def test_peer_validating_connection_blocks_rebound_peer() -> None:
+    """
+    The import fetch validates the connected peer address, so a hostname that
+    passes ``is_safe_host`` and then re-resolves to an internal address (DNS
+    rebinding) is rejected before any request bytes are sent.
+    """
+    from http.client import HTTPConnection
+    from unittest.mock import MagicMock, patch
+
+    from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
+    from superset.commands.dataset.importers.v1.utils import (
+        _PeerValidatingHTTPConnection,
+    )
+
+    sock = MagicMock()
+    sock.getpeername.return_value = ("169.254.169.254", 80)
+
+    with patch.object(
+        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
+    ):
+        conn = _PeerValidatingHTTPConnection("rebinder.example.com")
+        with pytest.raises(DatasetForbiddenDataURI):
+            conn.connect()

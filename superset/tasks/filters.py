@@ -37,16 +37,22 @@ class TaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
     def apply(self, query: Query, value: Any) -> Query:
         """Apply the filter to the query."""
-        from sqlalchemy import and_, select
+        from flask import has_request_context
+        from sqlalchemy import and_, false, select
 
         from superset import security_manager
         from superset.models.task_subscribers import TaskSubscriber
         from superset.models.tasks import Task
 
-        # If user is admin or no user_id, return unfiltered query.
-        # This typically applies to background tasks and system operations
         user_id = get_user_id()
-        if not user_id or security_manager.is_admin():
+        if not user_id:
+            # Within a request, a principal without a user id gets no tasks;
+            # background jobs run outside a request context and are unfiltered.
+            if has_request_context():
+                return query.filter(false())
+            return query
+
+        if security_manager.is_admin():
             return query
 
         is_subscribed = (
