@@ -122,6 +122,66 @@ def test_parse_failure_produces_different_cache_contributions_for_different_user
     assert result_user_two == ["rls-predicate-parse-failed-for-user-2"]
 
 
+def test_parse_failure_sentinel_distinguishes_guest_tokens_by_rls_scope(
+    mock_database: MagicMock,
+) -> None:
+    """
+    ``get_user_id()`` always returns ``None`` for guest users, so keying the
+    parse-failure sentinel on it alone would collapse every guest token onto
+    the same cache contribution regardless of the RLS rules baked into each
+    token. Guest sessions must instead be distinguished by (a hash of) their
+    own token's ``rls_rules``, so two guests with different row-level scopes
+    never share a cache entry, while two guests with the *same* scope do.
+    """
+
+    def _guest_user(rls_rules: list[dict[str, str]]) -> MagicMock:
+        guest_user = MagicMock()
+        guest_user.guest_token = {"rls_rules": rls_rules}
+        return guest_user
+
+    scope_a = [{"dataset": "1", "clause": "tenant_id = 1"}]
+    scope_b = [{"dataset": "1", "clause": "tenant_id = 2"}]
+
+    with (
+        patch(
+            "superset.sql.parse.SQLScript",
+            side_effect=ValueError("cannot parse"),
+        ),
+        patch(
+            "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+            side_effect=[
+                _guest_user(scope_a),
+                _guest_user(scope_b),
+                _guest_user(scope_a),
+            ],
+        ),
+    ):
+        result_guest_scope_a = collect_rls_predicates_for_sql(
+            "SELECT * FROM some_table",
+            mock_database,
+            catalog=None,
+            schema="public",
+        )
+        result_guest_scope_b = collect_rls_predicates_for_sql(
+            "SELECT * FROM some_table",
+            mock_database,
+            catalog=None,
+            schema="public",
+        )
+        result_guest_scope_a_again = collect_rls_predicates_for_sql(
+            "SELECT * FROM some_table",
+            mock_database,
+            catalog=None,
+            schema="public",
+        )
+
+    assert result_guest_scope_a[0].startswith(
+        "rls-predicate-parse-failed-for-user-guest-"
+    )
+    assert result_guest_scope_a != result_guest_scope_b
+    assert result_guest_scope_a == result_guest_scope_a_again
+
+
 def test_real_rls_enforcement_does_not_go_through_the_cache_key_helper(
     app: Flask,
 ) -> None:
