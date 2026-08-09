@@ -312,6 +312,59 @@ def test_save_non_editor_with_editors_field_is_rejected(
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
 
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_repoints_database_id_without_checking_new_database_access(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    ``save`` lets a dataset editor supply a different ``database.id`` in the
+    request body. The ORM object's ``database_id`` is reassigned to the
+    caller-supplied value before (and independent of) the only permission
+    check performed, ``raise_for_editorship``, which verifies ownership of
+    the *dataset* being edited but never checks whether the caller has
+    access to the *new* database being pointed at.
+    """
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    # Caller owns the dataset, so the only check performed here passes.
+    mock_security_manager.raise_for_editorship.return_value = None
+
+    from flask import Flask
+
+    raw_save = _get_view_func("save")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    # database id 999 stands in for a database the caller
+                    # has no explicit grant on.
+                    "database": {"id": 999},
+                    "columns": [],
+                }
+            )
+        },
+    ):
+        raw_save(_view_self())
+
+    # The ORM object was repointed to the caller-supplied database id.
+    assert mock_orm.database_id == 999
+    # Ownership of the dataset was checked...
+    mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
+    # ...but nothing checked whether the caller may access database 999.
+    mock_security_manager.raise_for_access.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # Datasource.samples
 # ---------------------------------------------------------------------------
