@@ -96,10 +96,14 @@ class Datasource(BaseSupersetView):
             try:
                 security_manager.raise_for_access(
                     database=new_database,
+                    # Check access against the table/schema/catalog the
+                    # request is repointing to, not the dataset's current
+                    # values -- update_from_object (below) applies whatever
+                    # table_name/schema/catalog the request supplies.
                     table=Table(
-                        orm_datasource.table_name,
-                        orm_datasource.schema,
-                        orm_datasource.catalog,
+                        datasource_dict.get("table_name", orm_datasource.table_name),
+                        datasource_dict.get("schema", orm_datasource.schema),
+                        datasource_dict.get("catalog", orm_datasource.catalog),
                     ),
                 )
             except SupersetSecurityException as ex:
