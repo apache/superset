@@ -23,6 +23,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   getStandardizedControls,
+  Dataset,
 } from '@superset-ui/chart-controls';
 import { countryOptions } from './countries';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -85,8 +86,13 @@ const config: ControlPanelConfig = {
               shouldMapStateToProps() {
                 return true;
               },
-              mapStateToProps(_, chart) {
+              mapStateToProps(explore, _, chart) {
                 const chartStatus = chart?.chartStatus;
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : (explore?.datasource?.columns ?? {});
                 const columnOptions = [
                   {
                     value: 'metric',
@@ -97,6 +103,7 @@ const config: ControlPanelConfig = {
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
+                  verboseMap,
                 };
               },
             },
