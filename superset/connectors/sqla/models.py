@@ -81,6 +81,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
+    QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetParseError,
     SupersetSecurityException,
@@ -1780,7 +1781,24 @@ class SqlaTable(
                 fetch_values_predicate
             )
         try:
+            # Re-validate the rendered predicate with the same parser policy
+            # as stored column and metric expressions before embedding it.
+            validate_stored_expression(
+                self.database, self.catalog, self.schema, fetch_values_predicate
+            )
             return self.text(fetch_values_predicate)
+        except (SupersetSecurityException, QueryClauseValidationException) as ex:
+            message = (
+                ex.error.message
+                if isinstance(ex, SupersetSecurityException)
+                else ex.message
+            )
+            raise QueryObjectValidationError(
+                _(
+                    "Fetch values predicate failed SQL validation: %(msg)s",
+                    msg=message,
+                )
+            ) from ex
         except (TemplateError, SupersetSyntaxErrorException) as ex:
             msg = getattr(ex, "message", str(ex))
             raise QueryObjectValidationError(

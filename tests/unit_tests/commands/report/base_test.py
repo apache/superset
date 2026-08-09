@@ -318,3 +318,30 @@ def test_validate_report_frequency_using_callable() -> None:
         "1,6 * * * *",
         ReportScheduleType.REPORT,
     )
+
+
+def test_validate_alert_query_rejects_multi_statement_sql() -> None:
+    """
+    Alert SQL is validated at save time; multi-statement SQL cannot be
+    persisted for later raw execution by the alert runner.
+    """
+    from unittest.mock import MagicMock
+
+    from marshmallow import ValidationError
+
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        AlertQueryMultipleStatementsValidationError,
+    )
+
+    database = MagicMock()
+    database.backend = "sqlite"
+    database.allow_dml = False
+
+    exceptions: list[ValidationError] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "SELECT 1; DROP TABLE ab_user", exceptions
+    )
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], AlertQueryMultipleStatementsValidationError)

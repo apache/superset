@@ -130,6 +130,15 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             if not (new_db_connection := DatasetDAO.get_database_by_id(database_id)):
                 exceptions.append(DatabaseNotFoundValidationError())
         db = new_db_connection or self._model.database
+        database_changed = new_db_connection is not None
+
+        # Detect a caller-supplied change to the source binding, inspected
+        # before the catalog normalization below injects derived values.
+        source_changed = database_changed or any(
+            field in self._properties
+            and self._properties[field] != getattr(self._model, field)
+            for field in ("catalog", "schema", "table_name")
+        )
         default_catalog = db.get_default_catalog()
 
         # If multi-catalog is disabled, and catalog provided is not
@@ -183,7 +192,18 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         ):
             exceptions.append(DatasetExistsValidationError(table))
 
-        self._validate_sql_access(db, catalog, schema, exceptions)
+        # Repointing a physical dataset (or converting a virtual dataset to a
+        # physical one) runs the same data-access check as the create path.
+        sql = self._properties.get("sql", self._model.sql)
+        if not sql and (
+            source_changed or ("sql" in self._properties and self._model.sql)
+        ):
+            try:
+                security_manager.raise_for_access(database=db, table=table)
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+
+        self._validate_sql_access(db, catalog, schema, exceptions, database_changed)
 
     def _validate_sql_access(
         self,
@@ -191,13 +211,14 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         catalog: str | None,
         schema: str | None,
         exceptions: list[ValidationError],
+        database_changed: bool,
     ) -> None:
-        """Validate SQL query access if SQL is being updated."""
+        """Validate SQL query access if the SQL or its database binding changes."""
         # we know we have a valid model
         self._model = cast(SqlaTable, self._model)
 
-        sql = self._properties.get("sql")
-        if sql and sql != self._model.sql:
+        sql = self._properties.get("sql", self._model.sql)
+        if sql and (sql != self._model.sql or database_changed):
             try:
                 security_manager.raise_for_access(
                     database=db,
@@ -225,6 +246,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         if metrics := self._properties.get("metrics"):
             self._validate_metrics(metrics, exceptions)
             self._validate_expressions(metrics, "metrics", exceptions)
+
+        if predicate := self._properties.get("fetch_values_predicate"):
+            self._validate_fetch_values_predicate(predicate, exceptions)
 
         if folders := self._properties.get("folders"):
             valid_uuids: set[UUID] = set()
@@ -333,6 +357,34 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                         field_name=f"{label}.{idx}.expression",
                     )
                 )
+
+    def _validate_fetch_values_predicate(
+        self,
+        predicate: str,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """
+        Validate ``fetch_values_predicate`` with the same parser-based
+        validator used for stored column and metric expressions.
+        """
+        self._model = cast(SqlaTable, self._model)
+        database = self._properties.get("database") or self._model.database
+        catalog = self._properties.get("catalog", self._model.catalog)
+        schema = self._properties.get("schema", self._model.schema)
+        try:
+            validate_stored_expression(database, catalog, schema, predicate)
+        except (SupersetSecurityException, QueryClauseValidationException) as ex:
+            message = (
+                ex.error.message
+                if isinstance(ex, SupersetSecurityException)
+                else ex.message
+            )
+            exceptions.append(
+                ValidationError(
+                    message,
+                    field_name="fetch_values_predicate",
+                )
+            )
 
     @staticmethod
     def _get_duplicates(data: list[dict[str, Any]], key: str) -> list[str]:
