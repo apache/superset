@@ -625,10 +625,15 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
 
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
-    handlers: list[type[request.BaseHandler]] = [_ValidatingRedirectHandler]
+    handlers: list[request.BaseHandler | type[request.BaseHandler]] = [
+        _ValidatingRedirectHandler
+    ]
     if not app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"]:
         # Also enforce the policy at the socket layer: re-check the peer of
-        # every connection, including each redirect hop.
+        # every connection, including each redirect hop. Disable proxies so the
+        # connection is made directly to the destination and the peer check
+        # validates the destination address rather than a proxy's.
+        handlers.append(request.ProxyHandler({}))
         handlers.extend([_PeerValidatingHTTPHandler, _PeerValidatingHTTPSHandler])
     opener = request.build_opener(*handlers)
     data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310

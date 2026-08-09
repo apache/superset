@@ -261,8 +261,10 @@ class TaskManager:
         def get_task() -> "Task | None":
             if app and not has_app_context():
                 with app.app_context():
-                    return TaskDAO.find_one_or_none(uuid=task_uuid)
-            return TaskDAO.find_one_or_none(uuid=task_uuid)
+                    return TaskDAO.find_one_or_none(
+                        uuid=task_uuid, skip_base_filter=True
+                    )
+            return TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
 
         # Check current state first
         task = get_task()
@@ -478,7 +480,7 @@ class TaskManager:
         """
         from superset.daos.tasks import TaskDAO
 
-        task = TaskDAO.find_one_or_none(uuid=task_uuid)
+        task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
         return task is not None and task.status in ABORT_STATES
 
     @classmethod

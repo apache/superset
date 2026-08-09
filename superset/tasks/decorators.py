@@ -378,7 +378,7 @@ class TaskWrapper(Generic[P]):
                 task.uuid,
             )
             # Return task in current state (caller can check status)
-            refreshed = TaskDAO.find_one_or_none(uuid=task.uuid)
+            refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
             return refreshed if refreshed else task
 
     def _execute_inline(
@@ -422,7 +422,7 @@ class TaskWrapper(Generic[P]):
                 set_ended_at=True,
             ).run()
             # Refresh to get updated task
-            refreshed = TaskDAO.find_one_or_none(uuid=task.uuid)
+            refreshed = TaskDAO.find_one_or_none(uuid=task.uuid, skip_base_filter=True)
             return refreshed if refreshed else task
 
         # Atomic transition: PENDING → IN_PROGRESS (set started_at for duration
@@ -441,7 +441,7 @@ class TaskWrapper(Generic[P]):
                 self.name,
                 task_uuid,
             )
-            refreshed = TaskDAO.find_one_or_none(uuid=task_uuid)
+            refreshed = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
             return refreshed if refreshed else task
 
         # Update cached status (no DB read needed - we just wrote IN_PROGRESS)
@@ -520,7 +520,7 @@ class TaskWrapper(Generic[P]):
                     )
 
             # Refresh once at end to return current state
-            final_task = TaskDAO.find_one_or_none(uuid=task_uuid)
+            final_task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
             return final_task if final_task else task
 
         except Exception as ex:
@@ -542,7 +542,7 @@ class TaskWrapper(Generic[P]):
             )
 
             # Refresh once at end to return current state
-            final_task = TaskDAO.find_one_or_none(uuid=task_uuid)
+            final_task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
             return final_task if final_task else task
 
         finally:
@@ -552,7 +552,9 @@ class TaskWrapper(Generic[P]):
             # Publish completion notification for any waiters
             # Use final_task if set by try/except, otherwise refresh (fallback)
             if final_task is None:
-                final_task = TaskDAO.find_one_or_none(uuid=task_uuid)
+                final_task = TaskDAO.find_one_or_none(
+                    uuid=task_uuid, skip_base_filter=True
+                )
             if final_task and final_task.status in TERMINAL_STATES:
                 TaskManager.publish_completion(task_uuid, final_task.status)
 
