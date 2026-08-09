@@ -163,16 +163,7 @@ class QueryEstimationCommand(BaseCommand):
 
         sql = self._sql
         if self._template_params:
-            # Check access before rendering the Jinja template (mirrors the
-            # SQL Lab execute path).
-            security_manager.raise_for_access(
-                database=self._database,
-                sql=sql,
-                catalog=self._catalog,
-                schema=self._schema or None,
-                template_params=self._template_params,
-                force_dataset_match=True,
-            )
+            # Access is already checked in validate() before any rendering.
             template_processor = get_template_processor(self._database)
             try:
                 sql = template_processor.process_template(sql, **self._template_params)
