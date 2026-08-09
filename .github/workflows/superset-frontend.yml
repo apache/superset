@@ -182,11 +182,6 @@ jobs:
           docker run --rm $TAG bash -c \
           "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
 
-      - name: Build Plugins Packages
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run plugins:build"
-
   test-storybook:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
