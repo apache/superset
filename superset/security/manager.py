@@ -3952,6 +3952,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if query in self.session:
                 self.session.expunge(query)
 
+        # When only ``database`` is provided, enforce database-level access
+        # here so the call is not a no-op.
+        if database and not (table or query):
+            if not self.can_access_database(database):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                        message=_(
+                            "You need access to the following database: %(name)s",
+                            name=database.database_name,
+                        ),
+                        level=ErrorLevel.WARNING,
+                    )
+                )
+
         if database and table or query:
             if query:
                 # Type narrow: only SQL Lab Query objects have .database attribute
