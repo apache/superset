@@ -673,7 +673,16 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         if operator_enum == ColumnOperatorEnum.eq:
             return query.filter(column.any(related_pk == value))
         if operator_enum == ColumnOperatorEnum.ne:
-            # "no related row has id == value"
+            # "no related row has id == value". `value` must be scalar: a
+            # list/tuple would silently compile to `related_pk == [...]`,
+            # which behaves unpredictably across backends instead of
+            # failing fast. Use `nin` to exclude multiple related ids.
+            if isinstance(value, (list, tuple)):
+                raise ValueError(
+                    f"Operator 'ne' on relationship column '{col_name}' "
+                    f"requires a scalar value, got {type(value).__name__}. "
+                    f"Use 'nin' to exclude multiple related ids."
+                )
             return query.filter(~column.any(related_pk == value))
         if operator_enum == ColumnOperatorEnum.in_:
             values = value if isinstance(value, (list, tuple)) else [value]
