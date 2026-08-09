@@ -1585,6 +1585,13 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
         # when the execution layer skips its own commit call.
         ("COMMIT", "postgresql"),
         ("COMMIT", "mysql"),
+        # Further EXPLAIN ANALYZE edge forms: a leading line comment before
+        # the option, a VERBOSE qualifier, an empty option list, and an
+        # inner statement that cannot be parsed all fail closed as mutating.
+        ("EXPLAIN --c\nANALYZE UPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN ANALYZE VERBOSE UPDATE t SET x = 1", "postgresql"),
+        ("EXPLAIN (ANALYZE)", "postgresql"),
+        ("EXPLAIN ANALYZE )))", "postgresql"),
     ],
 )
 def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> None:
@@ -3555,6 +3562,9 @@ def test_extract_tables_from_jinja_sql(
         "latest_partition('foo.%s'|format(str('bar')))",
         "latest_partition('foo.{}'.format('bar'))",
         "latest_partitions('foo.{}'.format('bar'))",
+        # A partition macro with the wrong number of arguments cannot be
+        # resolved to a single table, so it must also fail closed.
+        "latest_partition('foo.bar', 'extra')",
     ],
 )
 def test_extract_tables_from_jinja_sql_fails_closed(
@@ -4257,6 +4267,21 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         ("SET SCHEMA 'tenant_b'", "postgresql", True),
         ("SELECT * FROM orders", "mysql", False),
         ("SET statement_timeout = 10", "postgresql", False),
+        # A structured `SET current_schema = ...` rebinds resolution through
+        # a setting rather than a search path.
+        ("SET current_schema = foo", "postgresql", True),
+        # `SET CATALOG`/`SET SCHEMA` that fall back to an opaque command are
+        # schema rebinds, including the `CURRENT` spelling; an unrelated `SET`
+        # command (e.g. `SET ROLE`) is not.
+        ("SET CATALOG tenant_b", "postgresql", True),
+        ("SET CURRENT SCHEMA foo", "postgresql", True),
+        ("SET ROLE admin", "postgresql", False),
+        # A `set_config()` whose setting name is a column reference rather than
+        # a literal is treated conservatively as a schema change.
+        ("SELECT set_config(schema_col, 'tenant_b', false)", "postgresql", True),
+        # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
+        # resolution through these forms.
+        ("print x = 1", "kustokql", False),
     ],
 )
 def test_changes_default_schema(sql: str, engine: str, expected: bool) -> None:
