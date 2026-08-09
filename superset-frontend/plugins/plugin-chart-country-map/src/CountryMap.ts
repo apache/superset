@@ -28,6 +28,7 @@ import {
   ValueFormatter,
   getSequentialSchemeRegistry,
 } from '@superset-ui/core';
+import { ColorFormatters } from '@superset-ui/chart-controls';
 import countries, { countryOptions } from './countries';
 
 /**
@@ -81,6 +82,7 @@ interface CountryMapProps {
     };
   };
   entity?: string;
+  formatters?: ColorFormatters[];
 }
 
 const maps: Record<string, GeoData> = {};
@@ -105,6 +107,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     emitCrossFilters,
     onContextMenu,
     setDataMask,
+    formatters,
   } = props;
 
   const container = element;
@@ -128,6 +131,18 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
 
   const colorFn = (feature: GeoFeature): string => {
     if (!feature?.properties) return '#d9d9d9';
+    const regionData = data.find(
+      region => region.country_id === feature.properties.ISO,
+    );
+
+    if (regionData && formatters?.length > 0) {
+      for (const formatter of formatters) {
+        const cfColor = formatter.getColorFromValue(regionData.metric);
+        if (cfColor) {
+          return cfColor;
+        }
+      }
+    }
     const iso = feature.properties.ISO;
     return colorMap[iso] || '#d9d9d9';
   };

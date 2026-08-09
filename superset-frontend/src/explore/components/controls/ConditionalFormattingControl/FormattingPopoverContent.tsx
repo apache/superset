@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useTheme,styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Comparator,
@@ -46,7 +46,7 @@ import {
   formattingOptions,
   colorScheme,
 } from './constants';
-import ColorPickerControl from '../ColorPickerControl';
+import ColorPickerControl, { extractThemeColors } from '../ColorPickerControl';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -320,8 +320,29 @@ export const FormattingPopoverContent = ({
     () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
     [allColumns],
   );
-  const defaultColorToken = colors[0]?.colors?.[0];
 
+  const effectiveColumn = columns[0]?.value;
+  const columnMetricFlag = effectiveColumn === 'metric';
+
+  const theme = useTheme();
+  const themeColors = useMemo<Record<string, string>>(
+    () => extractThemeColors(theme),
+    [theme],
+  );
+  const resolvedColors = useMemo(() => {
+    const tokens = colorScheme();
+
+    return tokens.map(group => ({
+      label: group.label,
+      colors: group.colors.map(token => 
+        themeColors[token] || token
+      ),
+    }));
+  }, [themeColors]);
+
+  const defaultColorToken = columnMetricFlag
+    ? resolvedColors[0]?.colors?.[0]
+    : colors[0]?.colors?.[0];
   const visibleUseGradient = useMemo(
     () =>
       numericColumns.length > 0
@@ -389,7 +410,7 @@ export const FormattingPopoverContent = ({
             name="column"
             label={t('Column')}
             rules={rulesRequired}
-            initialValue={columns[0]?.value}
+            initialValue={effectiveColumn}
           >
             <Select
               ariaLabel={t('Select column')}
@@ -412,7 +433,7 @@ export const FormattingPopoverContent = ({
               ariaLabel={t('Color scheme')}
               onChange={event => handleChange(event)}
               presets={[...colors, ...extraColorChoices]}
-              resolveThemeTokens
+              resolveThemeTokens={!columnMetricFlag}
               outputFormat="hex"
             />
           </FormItem>
@@ -461,7 +482,7 @@ export const FormattingPopoverContent = ({
           </Col>
         </Row>
       ) : null}
-      {visibleUseGradient && (
+      {(columnMetricFlag || visibleUseGradient) && (
         <Row gutter={20}>
           <Col span={1}>
             <FormItem
