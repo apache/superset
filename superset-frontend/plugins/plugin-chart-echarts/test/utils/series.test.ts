@@ -28,6 +28,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import {
   calculateLowerLogTick,
   dedupSeries,
+  extractDataTotalValues,
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
@@ -50,7 +51,7 @@ import {
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
-import { NULL_STRING } from '../../src/constants';
+import { NULL_STRING, StackControlsValue } from '../../src/constants';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -1477,6 +1478,106 @@ describe('dedupSeries', () => {
 describe('sanitizeHtml', () => {
   test('should remove html tags from series name', () => {
     expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
+  });
+});
+
+describe('extractDataTotalValues', () => {
+  test('should sum all metric columns when there are no extra metrics', () => {
+    expect(
+      extractDataTotalValues([{ __timestamp: 1, Sales: 10, Profit: 5 }], {
+        stack: StackControlsValue.Stack,
+        percentageThreshold: 0,
+        xAxisCol: '__timestamp',
+      }),
+    ).toEqual({
+      totalStackedValues: [15],
+      thresholdValues: [0],
+    });
+  });
+
+  test('should exclude sort-only metrics from the total', () => {
+    expect(
+      extractDataTotalValues(
+        [{ __timestamp: 1, Sales: 10, Profit: 5, SortMetric: 100 }],
+        {
+          stack: StackControlsValue.Stack,
+          percentageThreshold: 0,
+          xAxisCol: '__timestamp',
+          extraMetricLabels: ['SortMetric'],
+        },
+      ),
+    ).toEqual({
+      totalStackedValues: [15],
+      thresholdValues: [0],
+    });
+  });
+
+  test('should exclude time-comparison variants of sort-only metrics', () => {
+    expect(
+      extractDataTotalValues(
+        [
+          {
+            __timestamp: 1,
+            Sales: 10,
+            SortMetric: 100,
+            'SortMetric__1 year ago': 200,
+          },
+        ],
+        {
+          stack: StackControlsValue.Stack,
+          percentageThreshold: 0,
+          xAxisCol: '__timestamp',
+          extraMetricLabels: ['SortMetric'],
+        },
+      ),
+    ).toEqual({
+      totalStackedValues: [10],
+      thresholdValues: [0],
+    });
+  });
+
+  test('should not exclude metrics that merely share a prefix', () => {
+    expect(
+      extractDataTotalValues([{ __timestamp: 1, Sort: 10, SortTotal: 5 }], {
+        stack: StackControlsValue.Stack,
+        percentageThreshold: 0,
+        xAxisCol: '__timestamp',
+        extraMetricLabels: ['Sort'],
+      }),
+    ).toEqual({
+      totalStackedValues: [5],
+      thresholdValues: [0],
+    });
+  });
+
+  test('should compute threshold values from the adjusted total', () => {
+    expect(
+      extractDataTotalValues(
+        [{ __timestamp: 1, Sales: 10, Profit: 10, SortMetric: 80 }],
+        {
+          stack: StackControlsValue.Stack,
+          percentageThreshold: 50,
+          xAxisCol: '__timestamp',
+          extraMetricLabels: ['SortMetric'],
+        },
+      ),
+    ).toEqual({
+      totalStackedValues: [20],
+      thresholdValues: [10],
+    });
+  });
+
+  test('should return empty arrays when not stacked', () => {
+    expect(
+      extractDataTotalValues([{ __timestamp: 1, Sales: 10 }], {
+        stack: false,
+        percentageThreshold: 0,
+        xAxisCol: '__timestamp',
+      }),
+    ).toEqual({
+      totalStackedValues: [],
+      thresholdValues: [],
+    });
   });
 });
 
