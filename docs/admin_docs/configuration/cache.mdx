@@ -301,6 +301,24 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 }
 ```
 
+By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` (as well as
+`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, which uses the same `RedisCache`/`RedisSentinelCache`
+backend) have no socket timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
+`CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, both in seconds:
+
+```python
+DISTRIBUTED_COORDINATION_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_SOCKET_TIMEOUT": 5,  # seconds
+    "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT": 5,  # seconds
+}
+```
+
+These apply to `RedisSentinelCache` connections as well, covering both the sentinel-node
+connections and the resolved master connection.
+
 ### Distributed Lock TTL
 
 You can configure the default lock TTL (time-to-live) in seconds. Locks automatically expire after
