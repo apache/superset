@@ -284,32 +284,22 @@ Send to: security@apache.org
 - `api`: REST API
 - `security`: Security related
 
-### Status Labels
-- `needs-triage`: Awaiting review
-- `confirmed`: Bug confirmed
-- `in-progress`: Being worked on
-- `blocked`: Blocked by dependency
-- `stale`: No activity for 30+ days
-
 ## Issue Lifecycle
 
 ### 1. Creation
 - User creates issue with template
-- Auto-labeled as `needs-triage`
 
 ### 2. Triage
-- Maintainer reviews within 7 days
+- Maintainer reviews issue
 - Labels applied (priority, type, component)
 - Questions asked if needed
 
 ### 3. Confirmation
 - Bug reproduced or feature discussed
-- Label changed to `confirmed`
 - Assigned to milestone if applicable
 
 ### 4. Development
 - Contributor claims issue
-- Label changed to `in-progress`
 - PR linked to issue
 
 ### 5. Resolution
@@ -333,12 +323,6 @@ Could someone please take a look?
 Update: I found that this only happens when [condition].
 Here's additional debugging information: [details]
 ```
-
-### Issue Staleness
-
-- Bot marks stale after 30 days of inactivity
-- Closes after 7 more days without activity
-- To keep open: Comment with updates
 
 ## Tips for Success
 
