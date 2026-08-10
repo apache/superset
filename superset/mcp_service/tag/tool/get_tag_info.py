@@ -97,6 +97,9 @@ async def get_tag_info(request: GetTagInfoRequest, ctx: Context) -> TagInfo | Ta
         return result
 
     except Exception as e:
+        logger.exception(
+            "Tag information retrieval failed: identifier=%s", request.identifier
+        )
         await ctx.error(
             "Tag information retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (request.identifier, str(e), type(e).__name__)

@@ -60,21 +60,21 @@ const StatusThing = styled.div`
 export const InfoThing = styled(StatusThing)`
   background: blue;
   &::before {
-    content: "ℹ️";
+    content: 'ℹ️';
   }
 `;
 
 export const WarningThing = styled(StatusThing)`
   background: orange;
   &::before {
-    content: "⚠️";
+    content: '⚠️';
   }
 `;
 
 export const TerribleThing = styled(StatusThing)`
   background: red;
   &::before {
-    content: "🔥";
+    content: '🔥';
   }
 `;
 ```
@@ -138,14 +138,20 @@ function FakeGlobalNav(props) {
   const menuItemStyles = css`
     display: block;
     border-bottom: 1px solid cadetblue;
-    font-family: "Comic Sans", cursive;
+    font-family: 'Comic Sans', cursive;
   `;
 
   return (
     <Nav>
-      <a css={menuItemStyles} href="#">One link</a>
-      <Link css={menuItemStyles} to={url}>Another link</Link>
-      <div css={menuItemStyles} onClick={() => alert('clicked')}>Another link</div>
+      <a css={menuItemStyles} href="#">
+        One link
+      </a>
+      <Link css={menuItemStyles} to={url}>
+        Another link
+      </Link>
+      <div css={menuItemStyles} onClick={() => alert('clicked')}>
+        Another link
+      </div>
     </Nav>
   );
 }
@@ -158,21 +164,29 @@ function FakeGlobalNav(props) {
 By default the `css` prop uses the object syntax with JS style definitions, like so:
 
 ```jsx
-<div css={{
-  borderRadius: 10,
-  marginTop: 10,
-  backgroundColor: '#00FF00'
-}}>Howdy</div>
+<div
+  css={{
+    borderRadius: 10,
+    marginTop: 10,
+    backgroundColor: '#00FF00',
+  }}
+>
+  Howdy
+</div>
 ```
 
 But you can use the `css` interpolator as well to get away from icky JS styling syntax. Doesn't this look cleaner?
 
 ```jsx
-<div css={css`
-  border-radius: 10px;
-  margin-top: 10px;
-  background-color: #00FF00;
-`}>Howdy</div>
+<div
+  css={css`
+    border-radius: 10px;
+    margin-top: 10px;
+    background-color: #00ff00;
+  `}
+>
+  Howdy
+</div>
 ```
 
 You might say "whatever… I can read and write JS syntax just fine." Well, that's great. But… let's say you're migrating in some of our legacy LESS styles… now it's copy/paste! Or if you want to migrate to or from `styled` syntax… also copy/paste!
@@ -261,9 +275,7 @@ AntD uses a cool trick called compound components. For example, the `Menu` compo
 Let's say you want to override an AntD component called `Foo`, and have `Foo.Bar` display some custom CSS for the `Bar` compound component. You can do it effectively like so:
 
 ```jsx
-import {
-  Foo as AntdFoo,
-} from 'antd';
+import { Foo as AntdFoo } from 'antd';
 
 export const StyledBar = styled(AntdFoo.Bar)`
   border-radius: ${({ theme }) => theme.borderRadius}px;

@@ -74,6 +74,10 @@ name_description = "The report schedule name."
 # :)
 description_description = "Use a nice description to give context to this Alert/Report"
 email_subject_description = "The report schedule subject line"
+include_cta_description = (
+    "Whether to include the call-to-action link back to Superset "
+    "(e.g. 'Explore in Superset') in the delivered notifications"
+)
 context_markdown_description = "Markdown description"
 crontab_description = (
     "A CRON expression."
@@ -269,6 +273,11 @@ class ReportSchedulePostSchema(Schema):
         dump_default=None,
     )
     force_screenshot = fields.Boolean(dump_default=False)
+    include_cta = fields.Boolean(
+        dump_default=True,
+        allow_none=True,
+        metadata={"description": include_cta_description},
+    )
     custom_width = fields.Integer(
         metadata={
             "description": _("Custom width of the screenshot in pixels"),
@@ -277,6 +286,35 @@ class ReportSchedulePostSchema(Schema):
         allow_none=True,
         required=False,
         dump_default=None,
+    )
+    retry_on_failure = fields.Boolean(
+        metadata={"description": _("Enable automatic retries on report failure")},
+        load_default=False,
+    )
+    retry_max_attempts = fields.Integer(
+        metadata={
+            "description": _("Maximum number of retry attempts (1–10)"),
+            "example": 3,
+        },
+        load_default=3,
+        required=False,
+        validate=[Range(min=1, max=10, error=_("Must be between 1 and 10"))],
+    )
+    send_failed_reports = fields.Boolean(
+        metadata={
+            "description": _(
+                "Send the failed report to all recipients after retries are exhausted"
+            )
+        },
+        load_default=False,
+    )
+    retry_notify_owners = fields.Boolean(
+        metadata={"description": _("Notify report owners on each retry attempt")},
+        load_default=True,
+    )
+    retry_notify_recipients = fields.Boolean(
+        metadata={"description": _("Notify report recipients on each retry attempt")},
+        load_default=False,
     )
 
     @validates("custom_width")
@@ -310,6 +348,28 @@ class ReportSchedulePostSchema(Schema):
                 raise ValidationError(
                     {"database": ["Database reference is not allowed on a report"]}
                 )
+
+    @validates_schema
+    def validate_retry_config(  # pylint: disable=unused-argument
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> None:
+        if data.get("send_failed_reports") and not data.get("retry_on_failure"):
+            raise ValidationError(
+                {
+                    "send_failed_reports": [
+                        _("send_failed_reports requires retry_on_failure to be enabled")
+                    ]
+                }
+            )
+        # Retry is only supported for reports, not alerts.
+        if data.get("type") == ReportScheduleType.ALERT and data.get(
+            "retry_on_failure"
+        ):
+            raise ValidationError(
+                {"retry_on_failure": [_("Retries are not supported for alerts")]}
+            )
 
 
 class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
@@ -431,6 +491,11 @@ class ReportSchedulePutSchema(Schema):
     )
     extra = fields.Dict(dump_default=None)
     force_screenshot = fields.Boolean(dump_default=False)
+    include_cta = fields.Boolean(
+        dump_default=True,
+        allow_none=True,
+        metadata={"description": include_cta_description},
+    )
 
     custom_width = fields.Integer(
         metadata={
@@ -440,6 +505,34 @@ class ReportSchedulePutSchema(Schema):
         allow_none=True,
         required=False,
         dump_default=None,
+    )
+    retry_on_failure = fields.Boolean(
+        metadata={"description": _("Enable automatic retries on report failure")},
+        required=False,
+    )
+    retry_max_attempts = fields.Integer(
+        metadata={
+            "description": _("Maximum number of retry attempts (1–10)"),
+            "example": 3,
+        },
+        required=False,
+        validate=[Range(min=1, max=10, error=_("Must be between 1 and 10"))],
+    )
+    send_failed_reports = fields.Boolean(
+        metadata={
+            "description": _(
+                "Send the failed report to all recipients after retries are exhausted"
+            )
+        },
+        required=False,
+    )
+    retry_notify_owners = fields.Boolean(
+        metadata={"description": _("Notify report owners on each retry attempt")},
+        required=False,
+    )
+    retry_notify_recipients = fields.Boolean(
+        metadata={"description": _("Notify report recipients on each retry attempt")},
+        required=False,
     )
 
     @validates("custom_width")

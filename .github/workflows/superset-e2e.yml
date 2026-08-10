@@ -57,19 +57,13 @@ jobs:
       pull-requests: read
     strategy:
       # when one test fails, DO NOT cancel the other
-      # parallel_id, because this will kill Cypress processes
+      # app_root variant, because this will kill Cypress processes
       # leaving the Dashboard hanging ...
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        parallel_id: [0, 1]
         browser: ["chrome"]
         app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
-        # The /app/prefix variant (push events only) is smoke-tested on a single
-        # shard rather than the full matrix, so exclude it from the other shards.
-        exclude:
-          - parallel_id: 1
-            app_root: "/app/prefix"
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -148,8 +142,6 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
-          PARALLEL_ID: ${{ matrix.parallel_id }}
-          PARALLELISM: 2
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
@@ -167,7 +159,7 @@ jobs:
         if: failure()
         with:
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
-          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
 
   playwright-tests:
     needs: changes
@@ -264,6 +256,21 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: playwright-run "${{ matrix.app_root }}"
+      - name: Run Playwright (Soft-delete Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step: each playwright-run boots its own gunicorn
+          # with the step's env, so the Required Tests server above keeps
+          # master's Flask configuration while this one runs with SOFT_DELETE
+          # on — the same isolation pattern as the Embedded step in
+          # superset-playwright.yml. Without a flag-on server the
+          # recently-archived specs skip themselves everywhere and ship zero
+          # executed E2E coverage; in the Required run above they are
+          # collected and skipped, which is expected.
+          SUPERSET_FEATURE_SOFT_DELETE: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" recently-archived/
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
@@ -340,3 +347,14 @@ jobs:
             exit 1
           fi
           echo "playwright-tests result: $RESULT (changes: $CHANGES)"
+
+  actions-timeline:
+    needs: [cypress-matrix, playwright-tests, cypress-matrix-required, playwright-tests-required]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

@@ -170,3 +170,14 @@ jobs:
             ${{ github.workspace }}/superset-frontend/playwright-results/
             ${{ github.workspace }}/superset-frontend/test-results/
           name: playwright-experimental-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+
+  actions-timeline:
+    needs: playwright-tests-experimental
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

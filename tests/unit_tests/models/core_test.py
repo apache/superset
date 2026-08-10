@@ -26,6 +26,7 @@ from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy import (
     Column,
+    create_engine,
     Integer,
     MetaData,
     select,
@@ -37,6 +38,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
@@ -573,15 +575,24 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(database_name="my_db", sqlalchemy_uri="trino://")
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"source": "Apache Superset"},
         future=True,
+    )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
     )
 
 
@@ -609,17 +620,29 @@ def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
         "superset.models.core.security_manager.find_user",
         return_value=None,
     )
-    create_engine = mocker.patch("superset.models.core.create_engine")
-
-    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
-    database.id = 1  # Cache is keyed on id; skipped for unsaved instances.
-    database._get_sqla_engine()
-    database._get_sqla_engine()
-
-    assert create_engine.call_count == 1, (
-        "Database._get_sqla_engine should reuse the engine for the same URL "
-        f"(create_engine called {create_engine.call_count} times)"
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
     )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
+
+    try:
+        database = Database(database_name="my_db", sqlalchemy_uri="trino://")
+        database.id = 1  # Cache is keyed on id; skipped for unsaved instances.
+        database._get_sqla_engine()
+        database._get_sqla_engine()
+
+        assert create_engine_mock.call_count == 1, (
+            "Database._get_sqla_engine should reuse the engine for the same URL "
+            f"(create_engine called {create_engine_mock.call_count} times)"
+        )
+        listen.assert_any_call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        )
+    finally:
+        _ENGINE_CACHE.clear()
 
 
 def test_get_sqla_engine_does_not_cache_unsaved_instances(
@@ -637,12 +660,33 @@ def test_get_sqla_engine_does_not_cache_unsaved_instances(
         "superset.models.core.security_manager.find_user",
         return_value=None,
     )
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     Database(database_name="db_a", sqlalchemy_uri="trino://")._get_sqla_engine()
     Database(database_name="db_b", sqlalchemy_uri="trino://")._get_sqla_engine()
 
-    assert create_engine.call_count == 2
+    assert create_engine_mock.call_count == 2
+    handle_error_calls = [
+        call
+        for call in listen.call_args_list
+        if len(call.args) > 1 and call.args[1] == "handle_error"
+    ]
+    assert handle_error_calls == [
+        mocker.call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        ),
+        mocker.call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        ),
+    ]
     assert _ENGINE_CACHE == {}
 
 
@@ -690,7 +734,11 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(
         database_name="my_db",
@@ -699,10 +747,15 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     )
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice", "source": "Apache Superset"},
         future=True,
+    )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
     )
 
 
@@ -746,7 +799,11 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(
         database_name="my_db",
@@ -755,10 +812,15 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
         future=True,
+    )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
     )
 
 
@@ -1419,6 +1481,96 @@ def test_purge_oauth2_tokens(session: Session) -> None:
     # make sure database was not deleted... just in case
     database = session.query(Database).filter_by(id=database1.id).one()
     assert database.name == "my_oauth2_db"
+
+
+def test_purge_oauth2_tokens_scoped_by_database_id(session: Session) -> None:
+    """
+    Ensure `purge_oauth2_tokens` filters by ``database_id``, not by the
+    token-table primary key.
+
+    The existing ``test_purge_oauth2_tokens`` case inserts a single token per
+    database in an empty schema, so token PKs and database PKs align 1:1 by
+    coincidence. This regression test inserts several tokens on ``database1``
+    first so token PKs advance past 1, then creates ``database2`` and purges
+    it. All of ``database1``'s tokens must remain untouched.
+    """
+    from flask_appbuilder.security.sqla.models import Role, User  # noqa: F401
+
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe2@example.org",
+        username="adoe2",
+    )
+    session.add(user)
+    session.flush()
+
+    database1 = Database(database_name="db1_pk_drift", sqlalchemy_uri="sqlite://")
+    session.add(database1)
+    session.flush()
+
+    # Insert several tokens on database1 so token PKs advance past 1 and drift
+    # away from any single database PK.
+    for i in range(5):
+        session.add(
+            DatabaseUserOAuth2Tokens(
+                user_id=user.id,
+                database_id=database1.id,
+                access_token=f"db1_access_{i}",  # noqa: S106
+                access_token_expiration=datetime(2023, 1, 1),
+                refresh_token=f"db1_refresh_{i}",  # noqa: S106
+            )
+        )
+    session.flush()
+
+    database2 = Database(database_name="db2_pk_drift", sqlalchemy_uri="sqlite://")
+    session.add(database2)
+    session.flush()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 5
+    )
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .count()
+        == 0
+    )
+
+    # Purging database2 must not touch database1's tokens, even though one
+    # of database1's token PKs will collide with database2's PK.
+    database2.purge_oauth2_tokens()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 5
+    )
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .count()
+        == 0
+    )
+
+    # Purging database1 must delete all of its tokens. Filtering by the
+    # token PK instead of `database_id` would delete at most one row here.
+    database1.purge_oauth2_tokens()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 0
+    )
 
 
 def test_compile_sqla_query_no_optimization(query: Select) -> None:

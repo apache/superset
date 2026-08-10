@@ -19,6 +19,7 @@ from __future__ import annotations
 import copy
 import logging
 import re
+import time
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
@@ -26,9 +27,14 @@ from flask import current_app
 from flask_babel import gettext as _
 
 from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data_timing import (
+    QueryAcquisitionResult,
+    QueryAcquisitionTiming,
+    QueryContextExecutionResult,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import grouping_marker_label
-from superset.common.query_actions import get_query_results
+from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
@@ -56,8 +62,6 @@ from superset.utils.core import (
     is_adhoc_metric,
 )
 from superset.utils.pandas_postprocessing.utils import unescape_separator
-from superset.views.utils import get_viz
-from superset.viz import viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -86,7 +90,14 @@ class QueryContextProcessor:
     def get_df_payload(
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> dict[str, Any]:
-        """Handles caching around the df payload retrieval"""
+        """Return the historical dataframe payload without timing metadata."""
+        return self.get_df_payload_result(query_obj, force_cached).payload
+
+    def get_df_payload_result(
+        self, query_obj: QueryObject, force_cached: bool | None = False
+    ) -> QueryAcquisitionResult:
+        """Acquire a dataframe and return timing as a typed sidecar."""
+        query_planning_start_ns = time.perf_counter_ns()
         if query_obj:
             # Always validate the query object before generating cache key
             # This ensures sanitize_clause() is called and extras are normalized
@@ -95,6 +106,9 @@ class QueryContextProcessor:
         cache_key = self.query_cache_key(query_obj)
         timeout = self.get_cache_timeout()
         force_query = self._query_context.force or timeout == CACHE_DISABLED_TIMEOUT
+        query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
+
+        cache_resolution_start_ns = time.perf_counter_ns()
         cache = QueryCacheManager.get(
             key=cache_key,
             region=CacheRegion.DATA,
@@ -114,7 +128,11 @@ class QueryContextProcessor:
         ):
             cache.is_loaded = False
 
+        cache_resolution_ns = max(0, time.perf_counter_ns() - cache_resolution_start_ns)
+
+        data_acquisition_ns: int | None = None
         if query_obj and cache_key and not cache.is_loaded:
+            data_acquisition_start_ns = time.perf_counter_ns()
             try:
                 if invalid_columns := [
                     col
@@ -134,6 +152,15 @@ class QueryContextProcessor:
 
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
+            except QueryObjectValidationError as ex:
+                cache.error_message = str(ex)
+                cache.status = QueryStatus.FAILED
+            finally:
+                data_acquisition_ns = max(
+                    0, time.perf_counter_ns() - data_acquisition_start_ns
+                )
+
+            if cache.status != QueryStatus.FAILED:
                 cache.set_query_result(
                     key=cache_key,
                     query_result=query_result,
@@ -143,10 +170,8 @@ class QueryContextProcessor:
                     datasource_uid=self._qc_datasource.uid,
                     region=CacheRegion.DATA,
                 )
-            except QueryObjectValidationError as ex:
-                cache.error_message = str(ex)
-                cache.status = QueryStatus.FAILED
 
+        payload_assembly_start_ns = time.perf_counter_ns()
         # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
         # the result DataFrame columns should be unescaped
@@ -206,7 +231,7 @@ class QueryContextProcessor:
                 row_count=f"{row_count:,}",
             )
 
-        return {
+        payload = {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
             "queried_dttm": cache.queried_dttm,
@@ -228,6 +253,15 @@ class QueryContextProcessor:
             "label_map": label_map,
             "warning": warning,
         }
+        timing = QueryAcquisitionTiming(
+            query_planning_ns=query_planning_ns,
+            cache_resolution_ns=cache_resolution_ns,
+            data_acquisition_ns=data_acquisition_ns,
+            payload_assembly_ns=max(
+                0, time.perf_counter_ns() - payload_assembly_start_ns
+            ),
+        )
+        return QueryAcquisitionResult(payload=payload, timing=timing)
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
@@ -425,6 +459,20 @@ class QueryContextProcessor:
         force_cached: bool = False,
     ) -> dict[str, Any]:
         """Returns the query results with both metadata and data"""
+        result = self.get_payload_result(cache_query_context, force_cached)
+        return_value: dict[str, Any] = {
+            "queries": [query.payload for query in result.queries],
+        }
+        if result.cache_key is not None:
+            return_value["cache_key"] = result.cache_key
+        return return_value
+
+    def get_payload_result(
+        self,
+        cache_query_context: bool | None = False,
+        force_cached: bool = False,
+    ) -> QueryContextExecutionResult:
+        """Return query results with timing kept outside query payloads."""
 
         queries_needing_totals, totals_idx = self._prepare_contribution_totals()
 
@@ -447,18 +495,17 @@ class QueryContextProcessor:
                 )
             ]
 
-        query_results = [
-            get_query_results(
+        query_results = tuple(
+            get_query_results_with_timing(
                 query_obj.result_type or self._query_context.result_type,
                 self._query_context,
                 query_obj,
                 force_cached,
             )
             for query_obj in self._query_context.queries
-        ]
+        )
 
-        return_value = {"queries": query_results}
-
+        cache_key = None
         if cache_query_context:
             cache_key = self.cache_key()
             set_and_log_cache(
@@ -475,9 +522,8 @@ class QueryContextProcessor:
                 },
                 self.get_cache_timeout(),
             )
-            return_value["cache_key"] = cache_key  # type: ignore
 
-        return return_value
+        return QueryContextExecutionResult(queries=query_results, cache_key=cache_key)
 
     def get_cache_timeout(self) -> int:
         """
@@ -632,29 +678,6 @@ class QueryContextProcessor:
             )
 
         try:
-            if chart.viz_type in viz_types:
-                if not chart.datasource:
-                    raise QueryObjectValidationError(
-                        _(
-                            f"""The dataset for chart ID {chart.id} (referenced by
-                            annotation layer '{annotation_layer["name"]}') was
-                            not found. Please check that the dataset exists and
-                            is accessible."""
-                        )
-                    )
-
-                form_data = chart.form_data.copy()
-                form_data.update(annotation_layer.get("overrides", {}))
-
-                payload = get_viz(
-                    datasource_type=chart.datasource.type,
-                    datasource_id=chart.datasource.id,
-                    form_data=form_data,
-                    force=force,
-                ).get_payload()
-
-                return payload["data"]
-
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
                     _(
