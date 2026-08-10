@@ -172,6 +172,7 @@ class WebhookNotification(BaseNotification):
         self._validate_webhook_url(wh_url)
         payload = self._get_req_payload()
         files = self._get_files()
+        timeout = current_app.config["ALERT_REPORTS_WEBHOOK_TIMEOUT"]
 
         try:
             if files:
@@ -186,12 +187,12 @@ class WebhookNotification(BaseNotification):
                     wh_url,
                     data=data,
                     files=files,
-                    timeout=60,
+                    timeout=timeout,
                     allow_redirects=False,
                 )
             else:
                 response = requests.post(
-                    wh_url, json=payload, timeout=60, allow_redirects=False
+                    wh_url, json=payload, timeout=timeout, allow_redirects=False
                 )
 
             logger.info(
