@@ -75,25 +75,30 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
     keys = []
     table_missing = False
     try:
-        columns = database.get_columns(table)
-        primary_key = database.get_pk_constraint(table)
-        foreign_keys = get_foreign_keys_metadata(database, table)
-        indexes = get_indexes_metadata(database, table)
-        table_comment = database.get_table_comment(table)
-    except NoSuchTableError:
-        # SQLAlchemy 2.0's sqlite dialect raises NoSuchTableError from
-        # reflection (get_columns/get_pk_constraint/etc.) for a table that
+        # get_columns is the table-existence check: SQLAlchemy 2.0's sqlite
+        # dialect raises NoSuchTableError from reflection for a table that
         # doesn't exist - 1.4's sqlite dialect silently returned empty
         # results instead, which this API has always relied on to answer
         # with an empty-but-200 payload for sqlite specifically (other
         # backends' dialects already raised on missing tables pre-2.0, so
         # they're unaffected and still surface as the 422 below). Only
         # sqlite gets the graceful fallback, matching that pre-existing,
-        # dialect-driven difference in behavior between backends.
+        # dialect-driven difference in behavior between backends. Only this
+        # first call is guarded, so a NoSuchTableError raised later while
+        # reflecting fks/indexes/comments for a table confirmed to exist
+        # still propagates instead of being mistaken for a missing table.
+        columns = database.get_columns(table)
+    except NoSuchTableError:
         if database.backend != "sqlite":
             raise
         table_missing = True
         columns = []
+    if not table_missing:
+        primary_key = database.get_pk_constraint(table)
+        foreign_keys = get_foreign_keys_metadata(database, table)
+        indexes = get_indexes_metadata(database, table)
+        table_comment = database.get_table_comment(table)
+    else:
         primary_key = {"constrained_columns": None, "name": None}
         foreign_keys = []
         indexes = []
