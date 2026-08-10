@@ -36,6 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
@@ -494,7 +495,7 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;

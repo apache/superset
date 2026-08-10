@@ -188,6 +188,10 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
 
     email_subject = Column(String(255))
 
+    # (Alerts/Reports) Include the call-to-action link back to Superset in
+    # notifications? NULL is treated as True.
+    include_cta = Column(Boolean, default=True, nullable=True)
+
     def __repr__(self) -> str:
         return str(self.name)
 
