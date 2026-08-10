@@ -572,7 +572,9 @@ describe('PropertiesModal', () => {
     expect(submitCall.certificationDetails).toBe('Sample certification');
 
     expect(put).toHaveBeenCalled();
-    const putBody = JSON.parse(put.mock.calls[0][0].body);
+    const putRequest = put.mock.calls[0][0];
+    expect(typeof putRequest.body).toBe('string');
+    const putBody = JSON.parse(putRequest.body as string);
     expect(putBody.certified_by).toBe('John Doe');
     expect(putBody.certification_details).toBe('Sample certification');
   });
