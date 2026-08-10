@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import asyncio
 import json
 import logging
 import os
@@ -33,6 +34,14 @@ except ImportError:
     def get_sqla_class() -> Any:
         return SQLAlchemy
 
+
+# The identity ``flask-sqlalchemy`` scopes ``db.session`` on by default (same
+# import guard as the library itself), kept as the fallback of
+# _session_scope_ident() below for everything running off the event loop.
+try:
+    from greenlet import getcurrent as _greenlet_ident
+except ImportError:
+    from threading import get_ident as _greenlet_ident
 
 from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
@@ -145,6 +154,28 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
         app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)
 
 
+def _session_scope_ident() -> Any:
+    """Identify the owner of the current ``db.session``.
+
+    ``flask-sqlalchemy`` scopes the session on ``greenlet.getcurrent()``, which
+    does not tell asyncio tasks apart: they all run in the same greenlet on the
+    event loop thread. Concurrent MCP tool calls therefore share a single
+    session, and the first Flask app context to be torn down removes it from
+    under the calls still in flight — every one of them is left holding
+    detached instances.
+
+    Scoping on the running task gives each call its own session, and mirrors
+    what the thread pool already does for sync tool calls. Off the event loop
+    the greenlet identity is kept, so the WSGI web tier, Celery workers and the
+    MCP thread pool behave exactly as before.
+    """
+    try:
+        task = asyncio.current_task()
+    except RuntimeError:  # no running event loop
+        return _greenlet_ident()
+    return task if task is not None else _greenlet_ident()
+
+
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
 appbuilder = AppBuilder(update_perms=False)
 async_query_manager_factory = AsyncQueryManagerFactory()
@@ -154,7 +185,7 @@ async_query_manager: AsyncQueryManager = LocalProxy(
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
-db = get_sqla_class()()
+db = get_sqla_class()(session_options={"scopefunc": _session_scope_ident})
 
 # make_versioned() MUST be called immediately after db is constructed and before
 # any versioned model class is defined.  Continuum patches the SQLAlchemy
