@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from superset.commands.security.create import CreateRLSRuleCommand
 from superset.commands.security.delete import DeleteRLSRuleCommand
@@ -93,25 +94,43 @@ def test_create_rls_rule_forbidden_if_any_datasource_denied() -> None:
 
 
 def test_create_regular_rls_rule_requires_subjects() -> None:
-    command = CreateRLSRuleCommand(
-        {
-            "filter_type": RowLevelSecurityFilterType.REGULAR.value,
-            "tables": [1],
-            "subjects": [],
-        }
-    )
+    tables = _mock_tables(1)
 
-    with pytest.raises(ValidationError) as exc:
-        command.validate()
+    with (
+        _patch_query("superset.commands.security.create", tables),
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
+    ):
+        command = CreateRLSRuleCommand(
+            {
+                "filter_type": RowLevelSecurityFilterType.REGULAR.value,
+                "tables": [1],
+                "subjects": [],
+            }
+        )
+
+        with pytest.raises(ValidationError) as exc:
+            command.validate()
 
     assert "subjects" in exc.value.messages
 
 
 def test_create_rls_rule_rejects_duplicate_name() -> None:
-    with patch(
-        "superset.commands.security.create.RLSDAO.validate_uniqueness",
-        return_value=False,
-    ) as validate_uniqueness:
+    tables = _mock_tables(1)
+
+    with (
+        _patch_query("superset.commands.security.create", tables),
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            return_value=True,
+        ),
+        patch(
+            "superset.commands.security.create.RLSDAO.validate_uniqueness",
+            return_value=False,
+        ) as validate_uniqueness,
+    ):
         command = CreateRLSRuleCommand({"name": "dup", "tables": [1], "subjects": []})
         with pytest.raises(ValidationError) as exc:
             command.validate()
@@ -138,6 +157,47 @@ def test_create_rls_rule_allows_unique_name() -> None:
             {"name": "unique", "tables": [1], "subjects": []}
         )
         command.validate()
+
+
+def test_create_rls_rule_translates_concurrent_duplicate_name() -> None:
+    """A unique-constraint violation surfaced at flush time (e.g. from a
+    concurrent request that slipped past the preflight check) must be
+    translated into the same descriptive validation error, not left as an
+    opaque database error.
+    """
+    command = CreateRLSRuleCommand({"name": "dup", "tables": [1], "subjects": []})
+
+    with (
+        patch.object(command, "validate"),
+        patch("superset.commands.security.create.RLSDAO.create"),
+        patch(
+            "superset.commands.security.create.db.session.flush",
+            side_effect=IntegrityError("stmt", {}, Exception("duplicate name")),
+        ),
+    ):
+        with pytest.raises(ValidationError) as exc:
+            command.run.__wrapped__(command)
+
+    assert "name" in exc.value.messages
+
+
+def test_update_rls_rule_translates_concurrent_duplicate_name() -> None:
+    """Same as the create-command race, but for the update path."""
+    command = UpdateRLSRuleCommand(1, {"name": "dup"})
+    command._model = MagicMock()
+
+    with (
+        patch.object(command, "validate"),
+        patch("superset.commands.security.update.RLSDAO.update"),
+        patch(
+            "superset.commands.security.update.db.session.flush",
+            side_effect=IntegrityError("stmt", {}, Exception("duplicate name")),
+        ),
+    ):
+        with pytest.raises(ValidationError) as exc:
+            command.run.__wrapped__(command)
+
+    assert "name" in exc.value.messages
 
 
 def test_update_rls_rule_rejects_duplicate_name() -> None:
