@@ -125,6 +125,13 @@ interface CreateDashboardWithChartsOptions {
   /** Dashboard title prefix: `${dashboardTitlePrefix}_${suffix}`. */
   dashboardTitlePrefix: string;
   chartSpecs: DashboardChartSpec[];
+  /**
+   * Grid width per chart, passed through to `buildSingleRowDashboardLayout`.
+   * Defaults to `GRID_DEFAULT_CHART_WIDTH` (4) -- lower this when `chartSpecs`
+   * has enough entries that the default width would exceed the 12-column
+   * single-row grid.
+   */
+  chartWidth?: number;
 }
 
 /**
@@ -168,7 +175,7 @@ export async function createDashboardWithCharts(
     expect(resp.ok()).toBe(true);
     const chartId = await extractIdFromResponse(resp);
     testAssets.trackChart(chartId);
-    charts.push({ id: chartId, sliceName });
+    charts.push({ id: chartId, sliceName, width: options.chartWidth });
   }
 
   // Lay all charts out in a single row.
