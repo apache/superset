@@ -88,7 +88,9 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
 
-const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
+const isDashboardHydrated = () => Boolean(store?.getState()?.dashboardInfo?.id);
+
+const applyDataMask = (dataMask: DataMaskStateWithId) => {
   // The dashboard's own data mask holds an entry for every native filter and
   // every cross-filter-capable chart, so it doubles as the set of filter ids
   // this dashboard can accept. Anything else — a filter id from a different
@@ -111,6 +113,30 @@ const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
     applicable.forEach(([filterId, mask]) => {
       store?.dispatch(updateDataMask(filterId, mask));
     });
+  });
+};
+
+// A mask requested before the dashboard hydrates cannot be applied yet: the
+// store holds no filter entries to validate the ids against, and hydration
+// would replace anything dispatched in the meantime. Hold the request and
+// replay it once hydration lands.
+let queuedDataMask: DataMaskStateWithId | undefined;
+let unsubscribeFromHydration: (() => void) | undefined;
+
+const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
+  if (isDashboardHydrated()) {
+    applyDataMask(dataMask);
+    return;
+  }
+
+  queuedDataMask = { ...queuedDataMask, ...dataMask };
+  unsubscribeFromHydration ??= store?.subscribe(() => {
+    if (!isDashboardHydrated()) return;
+    unsubscribeFromHydration?.();
+    unsubscribeFromHydration = undefined;
+    const pending = queuedDataMask;
+    queuedDataMask = undefined;
+    if (pending) applyDataMask(pending);
   });
 };
 

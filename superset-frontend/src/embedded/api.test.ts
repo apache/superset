@@ -26,7 +26,7 @@ jest.mock('@apache-superset/core/utils', () => ({
 }));
 
 jest.mock('../views/store', () => ({
-  store: { dispatch: jest.fn(), getState: jest.fn() },
+  store: { dispatch: jest.fn(), getState: jest.fn(), subscribe: jest.fn() },
 }));
 
 // eslint-disable-next-line import/first
@@ -44,8 +44,11 @@ const mockGetState = mockStore.getState;
 const nativeFilterMask = { filterState: { value: ['CA'] } };
 const crossFilterMask = { filterState: { value: [2024] } };
 
+// `dashboardInfo.id` is only set once HYDRATE_DASHBOARD lands, so it doubles as
+// the "dashboard is hydrated" signal setDataMask waits for.
 function stateWithFilters(filterIds: string[]) {
   return {
+    dashboardInfo: { id: 1 },
     dataMask: Object.fromEntries(filterIds.map(id => [id, { id }])),
   };
 }
@@ -124,4 +127,29 @@ test('setDataMask dispatches nothing when no filter id is known', () => {
 
   expect(mockDispatch).not.toHaveBeenCalled();
   expect(mockLogging.warn).toHaveBeenCalled();
+});
+
+test('setDataMask queues the mask until the dashboard hydrates', () => {
+  let notifyStoreSubscribers = () => {};
+  mockStore.subscribe.mockImplementation((listener: () => void) => {
+    notifyStoreSubscribers = listener;
+    return jest.fn();
+  });
+  mockGetState.mockReturnValue({ dataMask: {} });
+
+  embeddedApi.setDataMask({
+    dataMask: {
+      'NATIVE_FILTER-1': nativeFilterMask,
+    } as unknown as DataMaskStateWithId,
+  });
+
+  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(mockLogging.warn).not.toHaveBeenCalled();
+
+  mockGetState.mockReturnValue(stateWithFilters(['NATIVE_FILTER-1']));
+  notifyStoreSubscribers();
+
+  expect(mockDispatch).toHaveBeenCalledWith(
+    updateDataMask('NATIVE_FILTER-1', nativeFilterMask),
+  );
 });

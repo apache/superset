@@ -89,7 +89,7 @@ describe("embedDashboard", () => {
     vi.restoreAllMocks();
   });
 
-  test("setDataMask emits dataMask to iframe", async () => {
+  test("setDataMask sends dataMask to iframe", async () => {
     const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
     const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
     const testDataMask = {
@@ -109,12 +109,12 @@ describe("embedDashboard", () => {
 
     dashboard.setDataMask(testDataMask);
 
-    expect(mockSwitchboard.emit).toHaveBeenCalledWith("setDataMask", {
+    expect(mockSwitchboard.get).toHaveBeenCalledWith("setDataMask", {
       dataMask: testDataMask,
     });
   });
 
-  test("setDataMask emits empty dataMask", async () => {
+  test("setDataMask sends empty dataMask", async () => {
     const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
     const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
     const emptyDataMask = {};
@@ -128,7 +128,7 @@ describe("embedDashboard", () => {
 
     dashboard.setDataMask(emptyDataMask);
 
-    expect(mockSwitchboard.emit).toHaveBeenCalledWith("setDataMask", {
+    expect(mockSwitchboard.get).toHaveBeenCalledWith("setDataMask", {
       dataMask: emptyDataMask,
     });
   });
@@ -155,14 +155,14 @@ describe("embedDashboard", () => {
 
     dashboard.setDataMask(observedMask);
 
-    expect(mockSwitchboard.emit).toHaveBeenCalledWith("setDataMask", {
+    expect(mockSwitchboard.get).toHaveBeenCalledWith("setDataMask", {
       dataMask: {
         "NATIVE_FILTER-1": observedMask["NATIVE_FILTER-1"],
       },
     });
   });
 
-  test("setDataMask emits complex dataMask with multiple filters", async () => {
+  test("setDataMask sends complex dataMask with multiple filters", async () => {
     const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
     const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
     const complexDataMask = {
@@ -187,8 +187,27 @@ describe("embedDashboard", () => {
 
     dashboard.setDataMask(complexDataMask);
 
-    expect(mockSwitchboard.emit).toHaveBeenCalledWith("setDataMask", {
+    expect(mockSwitchboard.get).toHaveBeenCalledWith("setDataMask", {
       dataMask: complexDataMask,
     });
+  });
+
+  test("setDataMask rejects when the embedded page does not support it", async () => {
+    const fakeToken = makeFakeJWT({ exp: Date.now() / 1000 + 300 });
+    const mockFetchGuestToken = vi.fn().mockResolvedValue(fakeToken);
+    vi.mocked(mockSwitchboard.get).mockRejectedValue(
+      new Error('Method "setDataMask" is not defined'),
+    );
+
+    const dashboard = await embedDashboard({
+      id: "test-id",
+      supersetDomain: "https://superset.example.com",
+      mountPoint,
+      fetchGuestToken: mockFetchGuestToken,
+    });
+
+    await expect(dashboard.setDataMask({})).rejects.toThrow(
+      'Method "setDataMask" is not defined',
+    );
   });
 });
