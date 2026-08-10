@@ -287,8 +287,8 @@ Alternatively, perform a fresh install. This is a one-time migration; subsequent
 | supersetMcp.podAnnotations | object | `{}` | Annotations to be added to supersetMcp pods |
 | supersetMcp.podDisruptionBudget | object | `{"enabled":false,"maxUnavailable":null,"minAvailable":1}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetMcp pods |
 | supersetMcp.podDisruptionBudget.enabled | bool | `false` | Whether the pod disruption budget should be created |
-| supersetMcp.podDisruptionBudget.maxUnavailable | string | `nil` | If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/\#specifying-a-poddisruptionbudget |
-| supersetMcp.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/\#specifying-a-poddisruptionbudget |
+| supersetMcp.podDisruptionBudget.maxUnavailable | string | `nil` | If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
+| supersetMcp.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetMcp.podLabels | object | `{}` | Labels to be added to supersetMcp pods |
 | supersetMcp.podSecurityContext | object | `{}` |  |
 | supersetMcp.priorityClassName | string | `nil` | Set priorityClassName for supersetMcp pods |

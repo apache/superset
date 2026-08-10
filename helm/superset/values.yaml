@@ -999,9 +999,9 @@ supersetMcp:
   podDisruptionBudget:
     # -- Whether the pod disruption budget should be created
     enabled: false
-    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/\#specifying-a-poddisruptionbudget
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     minAvailable: 1
-    # -- If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/\#specifying-a-poddisruptionbudget
+    # -- If set, minAvailable must be unset (`minAvailable: ~`) - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
     maxUnavailable: ~
   # -- Command
   # @default -- a `superset mcp run` command
