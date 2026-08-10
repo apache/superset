@@ -193,11 +193,17 @@ def _resolve_query_context(chart: Any) -> dict[str, Any] | None:
     # The hook receives the chart's form data and must return ``None`` — not a
     # partial/stub context — whenever it can't build the chart faithfully, so we
     # fall through to the built-in rebuild (which handles the allowlisted viz types
-    # well). Any hook failure falls through too, preserving "builder problem →
-    # rebuild, don't fail the export".
+    # well). A hook failure falls through too, preserving "builder problem →
+    # rebuild, don't fail the export" — the one exception being a task-level
+    # timeout, which has to abort the whole export rather than this chart.
     if builder := current_app.config.get("EXCEL_EXPORT_QUERY_CONTEXT_BUILDER"):
         try:
             built = builder(chart.form_data)
+        except SoftTimeLimitExceeded:
+            # A soft timeout is a task-level signal, not a builder failure: let it
+            # propagate to _build_workbook so the export aborts cleanly instead of
+            # continuing on to rebuild this chart and start the next one.
+            raise
         except Exception:  # pylint: disable=broad-except
             logger.warning(
                 "EXCEL_EXPORT_QUERY_CONTEXT_BUILDER failed for chart %s; "

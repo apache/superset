@@ -383,6 +383,21 @@ def test_builder_hook_exception_falls_through() -> None:
     assert result["queries"][0]["metrics"] == ["count"]
 
 
+def test_builder_hook_soft_time_limit_propagates() -> None:
+    # A soft timeout raised while the builder is in flight is a task-level signal,
+    # not a builder failure: it must escape _resolve_query_context so the export
+    # aborts cleanly, rather than being swallowed by the broad fall-through guard.
+    from superset.tasks import export_dashboard_excel as module
+
+    builder = mock.MagicMock(side_effect=SoftTimeLimitExceeded())
+    chart = _rebuildable_chart(viz_type="table")
+
+    with _builder_hook(builder), pytest.raises(SoftTimeLimitExceeded):
+        module._resolve_query_context(chart)
+
+    builder.assert_called_once_with(chart.form_data)
+
+
 def test_no_builder_hook_leaves_builtin_behavior_unchanged() -> None:
     # With no builder configured, an allowlisted chart is rebuilt and an
     # ineligible one is skipped — identical to the pre-hook behavior.
