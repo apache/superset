@@ -85,6 +85,40 @@ def test_multi_issuer_without_custom_resolver_fails_closed(app) -> None:
             app.config.pop("MCP_JWT_ISSUER", None)
 
 
+def test_duplicate_issuer_entries_do_not_fail_closed(app) -> None:
+    """A list/tuple naming the same issuer more than once is one logical
+    issuer, not a multi-issuer trust configuration -- deduplicate before
+    counting so ``MCP_JWT_ISSUER = ["a", "a"]`` doesn't trigger the guard
+    the way ``["a", "b"]`` correctly does."""
+    token = _make_access_token(
+        claims={"sub": "alice", "iss": "https://issuer-a.example.com"}
+    )
+    shared_user = _make_mock_user("alice")
+
+    with app.app_context():
+        app.config["MCP_JWT_ISSUER"] = [
+            "https://issuer-a.example.com",
+            "https://issuer-a.example.com",
+        ]
+        app.config.pop("MCP_USER_RESOLVER", None)
+        try:
+            with (
+                patch(
+                    "fastmcp.server.dependencies.get_access_token",
+                    return_value=token,
+                ),
+                patch(
+                    "superset.mcp_service.auth.load_user_with_relationships",
+                    return_value=shared_user,
+                ),
+            ):
+                result = _resolve_user_from_jwt_context(app)
+        finally:
+            app.config.pop("MCP_JWT_ISSUER", None)
+
+    assert result is shared_user
+
+
 def test_multi_issuer_with_custom_resolver_resolves_normally(app) -> None:
     """An operator-supplied, issuer-aware ``MCP_USER_RESOLVER`` is unaffected
     by the multi-issuer guard: legitimate multi-issuer deployments that

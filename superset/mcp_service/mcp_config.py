@@ -581,14 +581,18 @@ def validate_multi_issuer_user_resolver(app: Flask) -> None:
     Single-issuer deployments are unaffected — the issuer is already pinned
     by the verifier, so the username space is unambiguous.
 
-    Operators trusting more than one issuer must supply an issuer-aware
-    ``MCP_USER_RESOLVER`` (e.g. one that derives a compound iss+sub identity)
-    before the service will consider that configuration usable.
+    Operators trusting more than one issuer must supply an ``MCP_USER_RESOLVER``
+    that derives its identity from the token's ``iss`` claim (e.g. a compound
+    iss+sub identity), not merely one that returns a username or email, before
+    the service will consider that configuration usable. This function can only
+    confirm that a resolver is configured -- it cannot verify an arbitrary
+    operator-supplied callable actually binds the issuer; enforcing that is the
+    operator's responsibility.
     """
     configured_issuer = app.config.get("MCP_JWT_ISSUER")
     if (
         isinstance(configured_issuer, (list, tuple, set))
-        and len(configured_issuer) > 1
+        and len(set(configured_issuer)) > 1
         and not app.config.get("MCP_USER_RESOLVER")
     ):
         # MCPAuthConfigError specifically: callers re-raise this type to
@@ -599,9 +603,12 @@ def validate_multi_issuer_user_resolver(app: Flask) -> None:
             "is configured. The default user resolver maps token claims to "
             "Superset users by username/email without binding the issuer, so "
             "distinct trusted issuers minting the same username/email would "
-            "resolve to the same Superset user. Configure an issuer-aware "
-            "MCP_USER_RESOLVER (e.g. deriving a compound iss+sub identity) "
-            "before trusting more than one issuer."
+            "resolve to the same Superset user. This check only confirms a "
+            "resolver is configured, not that it binds the issuer -- the "
+            "configured MCP_USER_RESOLVER MUST derive its identity from the "
+            "token's iss claim (e.g. a compound iss+sub identity), not just "
+            "username/email, or the same collision risk persists under a "
+            "custom resolver that happens to be username/email-only too."
         )
 
 

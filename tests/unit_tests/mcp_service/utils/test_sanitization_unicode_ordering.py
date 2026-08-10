@@ -17,16 +17,20 @@
 
 """
 Ordering of the zero-width-character removal step relative to the
-keyword/pattern denylist checks in ``sanitize_user_input`` and
-``sanitize_filter_value``.
+keyword/pattern denylist checks and HTML-entity decoding in
+``sanitize_user_input``, ``sanitize_filter_value``, and
+``sanitize_sql_expression``.
 
-Both functions now run ``_remove_dangerous_unicode`` *before* their
-regex-based denylist checks, matching ``sanitize_sql_expression``'s existing
-order. Zero-width characters (e.g. U+200B ZERO WIDTH SPACE) can sit in the
-middle of a denylisted keyword and break a ``\\b(KEYWORD)\\b`` style match;
-canonicalizing first means the reconstructed keyword is what the denylist
-checks see, so a keyword split by such a character is caught rather than
-slipping through and being silently reassembled in the returned value.
+All three functions now run ``_remove_dangerous_unicode`` *both* before and
+after HTML-entity decoding happens (entity decoding is internal to
+``_strip_html_tags`` for the first two functions, and an explicit loop in
+the third). Zero-width characters (e.g. U+200B ZERO WIDTH SPACE) can sit in
+the middle of a denylisted keyword and break a ``\\b(KEYWORD)\\b`` style
+match, whether they appear as a raw character or as an HTML entity
+(``&#8203;`` / ``&#x200b;``) that only becomes the raw character after
+decoding. Stripping only before decoding catches the raw form but lets an
+entity-encoded one survive decoding and reach the denylist checks intact;
+stripping again after decoding closes that gap.
 """
 
 import pytest
@@ -42,6 +46,14 @@ ZERO_WIDTH_CHARS = [
     "‌",  # ZERO WIDTH NON-JOINER
     "‍",  # ZERO WIDTH JOINER
     "﻿",  # ZERO WIDTH NO-BREAK SPACE / BOM
+]
+
+# Decimal and hex HTML entity encodings of ZERO WIDTH SPACE (U+200B) --
+# distinct textual forms that both decode to the same raw character.
+ZERO_WIDTH_SPACE_ENTITIES = [
+    "&#8203;",
+    "&#x200b;",
+    "&#x200B;",
 ]
 
 
@@ -69,6 +81,35 @@ def test_sanitize_user_input_rejects_split_keyword_payload(zwc):
         sanitize_user_input(obfuscated, "Column name", check_sql_keywords=True)
 
 
+@pytest.mark.parametrize("entity", ZERO_WIDTH_SPACE_ENTITIES)
+def test_sanitize_user_input_rejects_entity_encoded_split_keyword_payload(entity):
+    """
+    An HTML-entity-encoded zero-width character only becomes the raw
+    character once ``_strip_html_tags`` decodes it -- if nothing re-checks
+    for dangerous Unicode after that decoding step, the reconstructed
+    keyword reaches the denylist check without ever having been
+    canonicalized, and the entity-encoded payload slips through where the
+    raw-character form (above) is caught. Stripping again after decoding
+    closes that gap.
+    """
+    obfuscated = f"DR{entity}OP TABLE users"
+
+    with pytest.raises(ValueError, match="unsafe SQL keywords"):
+        sanitize_user_input(obfuscated, "Column name", check_sql_keywords=True)
+
+
+def test_sanitize_user_input_still_removes_a_raw_dangerous_unicode_char():
+    """
+    Regression check: the second Unicode-strip pass must not stop the
+    function from silently removing a dangerous character that arrives
+    HTML-entity-encoded and isn't part of a denylisted keyword -- e.g.
+    U+2028 LINE SEPARATOR, a statement terminator on some SQL drivers per
+    this module's own docstring. This should sanitize to plain text, not
+    raise, matching the documented "removes dangerous Unicode" contract.
+    """
+    assert sanitize_user_input("a&#8232;b", "Column name") == "ab"
+
+
 # --- sanitize_filter_value ---
 
 
@@ -92,19 +133,43 @@ def test_sanitize_filter_value_rejects_split_union_select_payload(zwc):
         sanitize_filter_value(obfuscated)
 
 
-# --- sanitize_sql_expression (reference case: this ordering already existed here) ---
+@pytest.mark.parametrize("entity", ZERO_WIDTH_SPACE_ENTITIES)
+def test_sanitize_filter_value_rejects_entity_encoded_split_union_select_payload(
+    entity,
+):
+    """Entity-encoded counterpart of the raw zero-width case above."""
+    obfuscated = f"UNI{entity}ON SELECT password FROM users"  # noqa: S608
+
+    with pytest.raises(ValueError, match="malicious SQL patterns"):
+        sanitize_filter_value(obfuscated)
+
+
+# --- sanitize_sql_expression ---
 
 
 def test_sanitize_sql_expression_rejects_same_split_keyword_payload():
     """
-    ``sanitize_sql_expression`` has always removed dangerous unicode *before*
-    running its keyword/pattern checks — the ordering the two functions above
-    were brought in line with — so the same zero-width obfuscation technique
-    does not defeat it: the value is canonicalized first and the
-    reconstructed ``DROP`` keyword is then caught by the denylist check as
-    normal.
+    ``sanitize_sql_expression`` strips dangerous Unicode both before and
+    after decoding HTML entities, so the same zero-width obfuscation
+    technique used against the two functions above does not defeat it
+    either: the value is canonicalized, decoded, then canonicalized again,
+    and the reconstructed ``DROP`` keyword is caught by the denylist check
+    as normal.
     """
     obfuscated = f"DR{ZERO_WIDTH_CHARS[0]}OP TABLE users"
+
+    with pytest.raises(ValueError, match="disallowed SQL keyword"):
+        sanitize_sql_expression(obfuscated, "SQL expression")
+
+
+@pytest.mark.parametrize("entity", ZERO_WIDTH_SPACE_ENTITIES)
+def test_sanitize_sql_expression_rejects_entity_encoded_split_keyword_payload(entity):
+    """
+    Entity-encoded counterpart of the raw zero-width case above: decoding
+    happens between the two Unicode-strip passes, so a zero-width character
+    that only exists as an HTML entity until decoded is still caught.
+    """
+    obfuscated = f"DR{entity}OP TABLE users"
 
     with pytest.raises(ValueError, match="disallowed SQL keyword"):
         sanitize_sql_expression(obfuscated, "SQL expression")
