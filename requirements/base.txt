@@ -55,7 +55,6 @@ celery==5.6.3
 certifi==2026.5.20
     # via
     #   requests
-    #   selenium
 cffi==2.0.0
     # via
     #   cryptography
@@ -380,8 +379,6 @@ rpds-py==0.25.0
     # via
     #   jsonschema
     #   referencing
-selenium==4.46.0
-    # via apache-superset (pyproject.toml)
 setuptools==80.9.0
     # via -r requirements/base.in
 shillelagh==1.4.5
@@ -428,10 +425,7 @@ tabulate==0.10.0
     # via apache-superset (pyproject.toml)
 trio==0.33.0
     # via
-    #   selenium
     #   trio-websocket
-trio-websocket==0.12.2
-    # via selenium
 typing-extensions==4.16.0
     # via
     #   apache-superset (pyproject.toml)
@@ -443,7 +437,6 @@ typing-extensions==4.16.0
     #   pydantic-core
     #   pyopenssl
     #   referencing
-    #   selenium
     #   shillelagh
     #   typing-inspection
 typing-inspection==0.4.2
@@ -461,7 +454,6 @@ urllib3==2.7.0
     #   -r requirements/base.in
     #   requests
     #   requests-cache
-    #   selenium
 vine==5.1.0
     # via
     #   amqp
@@ -471,8 +463,6 @@ watchdog==6.0.0
     # via apache-superset (pyproject.toml)
 wcwidth==0.2.13
     # via prompt-toolkit
-websocket-client==1.8.0
-    # via selenium
 werkzeug==3.1.6
     # via
     #   -r requirements/base.in

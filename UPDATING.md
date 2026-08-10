@@ -27,6 +27,32 @@ assists people when migrating to a new version.
 - [42935](https://github.com/apache/superset/pull/42935): The MCP service now refuses to start (`MCPAuthConfigError`) when `MCP_JWT_ISSUER` trusts more than one issuer and no `MCP_USER_RESOLVER` is configured, instead of only logging a warning. This was already a documented misconfiguration (the default resolver isn't issuer-scoped, so distinct trusted issuers minting the same username/email would resolve to the same Superset user); deployments trusting multiple issuers must configure an `MCP_USER_RESOLVER` that derives its identity from the token's `iss` claim before upgrading. Single-issuer deployments are unaffected.
 - [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
 
+### Selenium support removed — Playwright is now required for screenshots
+
+Selenium support has been removed. **Playwright is now required** for all
+report and thumbnail screenshot generation. Install it with:
+
+```bash
+pip install playwright && playwright install chromium
+```
+
+**Breaking config changes:**
+
+- `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag removed (Playwright is the only backend now)
+- `WEBDRIVER_TYPE` config key removed (Playwright always uses Chromium)
+- `WEBDRIVER_CONFIGURATION` config key removed (Selenium-only)
+- `SCREENSHOT_PAGE_LOAD_WAIT` config key removed (Selenium-only)
+- `SCREENSHOT_SELENIUM_RETRIES` config key removed (Selenium-only)
+- `SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE` config key removed (Selenium-only)
+- `SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE` config key removed (Selenium-only)
+- `MachineAuthProvider.authenticate_webdriver()` removed; use `authenticate_browser_context()` instead
+
+**What operators should do before upgrading:**
+
+1. Install Playwright: `pip install playwright && playwright install chromium`
+2. Remove any references to the removed config keys from custom `superset_config.py`
+3. If you subclassed `MachineAuthProvider`, remove any `authenticate_webdriver` override and migrate auth logic to `authenticate_browser_context`
+
 ### Soft delete is on by default, and purging is live
 
 `SOFT_DELETE` now ships **on** (`DEFAULT_FEATURE_FLAGS`), so deleting a

@@ -38,7 +38,7 @@ from superset.tasks.native_filter_cache import (
     get_eligible_native_filters,
 )
 from superset.utils.date_parser import parse_human_datetime
-from superset.utils.webdriver import WebDriverSelenium
+from superset.utils.webdriver import WebDriverPlaywright
 
 logger: logging.Logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -397,21 +397,17 @@ def cache_warmup(
 
         return results
 
-    wd: WebDriverSelenium = WebDriverSelenium(
-        current_app.config["WEBDRIVER_TYPE"], user=user
+    wd: WebDriverPlaywright = WebDriverPlaywright(
+        "", current_app.config["WEBDRIVER_WINDOW"]["dashboard"]
     )
 
-    try:
-        for url in strategy.get_urls():
-            try:
-                logger.info("Fetching %s", url)
-                wd.get_screenshot(url, "grid-container")
-                results["success"].append(url)
-            except Exception:  # noqa: BLE001
-                logger.exception("Error warming up cache for %s", url)
-                results["errors"].append(url)
-    finally:
-        # Ensure WebDriver is properly cleaned up
-        wd.destroy()
+    for url in strategy.get_urls():
+        try:
+            logger.info("Fetching %s", url)
+            wd.get_screenshot(url, "grid-container", user=user)
+            results["success"].append(url)
+        except Exception:  # noqa: BLE001
+            logger.exception("Error warming up cache for %s", url)
+            results["errors"].append(url)
 
     return results

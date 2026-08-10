@@ -122,7 +122,6 @@ certifi==2026.5.20
     #   httpcore
     #   httpx
     #   requests
-    #   selenium
 cffi==2.0.0
     # via
     #   -c requirements/base-constraint.txt
@@ -934,10 +933,6 @@ s3transfer==0.16.0
     # via boto3
 secretstorage==3.5.0
     # via keyring
-selenium==4.46.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 semver==3.0.4
     # via apache-superset-extensions-cli
 setuptools==80.9.0
@@ -1042,12 +1037,7 @@ trino==0.338.0
 trio==0.33.0
     # via
     #   -c requirements/base-constraint.txt
-    #   selenium
     #   trio-websocket
-trio-websocket==0.12.2
-    # via
-    #   -c requirements/base-constraint.txt
-    #   selenium
 typing-extensions==4.16.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1067,7 +1057,6 @@ typing-extensions==4.16.0
     #   pydantic-core
     #   pyopenssl
     #   referencing
-    #   selenium
     #   shillelagh
     #   starlette
     #   typing-inspection
@@ -1100,7 +1089,6 @@ urllib3==2.7.0
     #   docker
     #   requests
     #   requests-cache
-    #   selenium
 uvicorn==0.37.0
     # via
     #   fastmcp-slim
@@ -1124,10 +1112,6 @@ wcwidth==0.2.13
     # via
     #   -c requirements/base-constraint.txt
     #   prompt-toolkit
-websocket-client==1.8.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   selenium
 websockets==15.0.1
     # via fastmcp-slim
 werkzeug==3.1.6

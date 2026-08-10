@@ -20,7 +20,9 @@ from unittest import mock
 
 def _fake_app(config: Optional[dict[str, Any]] = None) -> mock.MagicMock:
     """Build a stand-in for ``current_app`` with a controllable config dict."""
-    base: dict[str, Any] = {"WEBDRIVER_TYPE": "chrome"}
+    base: dict[str, Any] = {
+        "WEBDRIVER_WINDOW": {"dashboard": (1600, 1200)},
+    }
     if config:
         base.update(config)
     app: mock.MagicMock = mock.MagicMock()
@@ -32,7 +34,7 @@ def test_cache_warmup_unknown_strategy(app_context: None) -> None:
     """An unknown strategy name returns an explanatory message and warms nothing."""
     from superset.tasks.cache import cache_warmup
 
-    with mock.patch("superset.tasks.cache.WebDriverSelenium") as mock_wd:
+    with mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd:
         result: dict[str, list[str]] | str = cache_warmup("does_not_exist")
 
     assert result == "No strategy does_not_exist found!"
@@ -48,7 +50,7 @@ def test_cache_warmup_missing_config(app_context: None) -> None:
             "superset.tasks.cache.current_app",
             _fake_app({"SUPERSET_CACHE_WARMUP_USER": None}),
         ),
-        mock.patch("superset.tasks.cache.WebDriverSelenium") as mock_wd,
+        mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
     ):
         result: dict[str, list[str]] | str = cache_warmup("dummy")
 
@@ -67,7 +69,7 @@ def test_cache_warmup_user_not_found(app_context: None) -> None:
             _fake_app({"SUPERSET_CACHE_WARMUP_USER": "bot"}),
         ),
         mock.patch("superset.tasks.cache.security_manager") as mock_sm,
-        mock.patch("superset.tasks.cache.WebDriverSelenium") as mock_wd,
+        mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
     ):
         mock_sm.find_user = mock.MagicMock(return_value=None)
         result: dict[str, list[str]] | str = cache_warmup("dummy")
@@ -91,7 +93,7 @@ def test_cache_warmup_happy_path(app_context: None) -> None:
             _fake_app({"SUPERSET_CACHE_WARMUP_USER": "bot"}),
         ),
         mock.patch("superset.tasks.cache.security_manager") as mock_sm,
-        mock.patch("superset.tasks.cache.WebDriverSelenium") as mock_wd,
+        mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
         mock.patch("superset.tasks.cache.DummyStrategy.get_urls", return_value=urls),
     ):
         mock_sm.find_user = mock.MagicMock(return_value=user)
@@ -99,9 +101,8 @@ def test_cache_warmup_happy_path(app_context: None) -> None:
         result: dict[str, list[str]] | str = cache_warmup("dummy")
 
     assert result == {"success": urls, "errors": []}
-    mock_wd.assert_called_once_with("chrome", user=user)
+    mock_wd.assert_called_once_with("", (1600, 1200))
     assert driver.get_screenshot.call_count == len(urls)
-    driver.destroy.assert_called_once_with()
 
 
 def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
@@ -111,7 +112,7 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
     urls: list[str] = ["http://localhost/dash/ok", "http://localhost/dash/boom"]
     user: mock.MagicMock = mock.MagicMock()
 
-    def side_effect(url: str, _element: str) -> None:
+    def side_effect(url: str, _element: str, **kwargs: Any) -> None:
         if url.endswith("boom"):
             raise Exception("screenshot failed")
 
@@ -121,7 +122,7 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
             _fake_app({"SUPERSET_CACHE_WARMUP_USER": "bot"}),
         ),
         mock.patch("superset.tasks.cache.security_manager") as mock_sm,
-        mock.patch("superset.tasks.cache.WebDriverSelenium") as mock_wd,
+        mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
         mock.patch("superset.tasks.cache.DummyStrategy.get_urls", return_value=urls),
     ):
         mock_sm.find_user = mock.MagicMock(return_value=user)
@@ -133,7 +134,6 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
         "success": ["http://localhost/dash/ok"],
         "errors": ["http://localhost/dash/boom"],
     }
-    driver.destroy.assert_called_once_with()
 
 
 def test_native_filter_options_strategy_returns_tasks_for_eligible_filters() -> None:
