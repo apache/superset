@@ -65,9 +65,16 @@ def _register_views_with_mock_appbuilder(
     """
     from flask import current_app
 
-    current_app.config["AUTH_TYPE"] = auth_type
-    current_app.config["AUTH_USER_REGISTRATION"] = False
-    current_app.config["AUTH_RATE_LIMITED"] = False
+    # patch.dict restores the previous config values on teardown, so these
+    # overrides don't leak into other tests sharing the module-scoped app.
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AUTH_TYPE": auth_type,
+            "AUTH_USER_REGISTRATION": False,
+            "AUTH_RATE_LIMITED": False,
+        },
+    )
 
     mock_appbuilder = mocker.MagicMock()
     mock_appbuilder.baseviews = []
