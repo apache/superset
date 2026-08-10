@@ -2644,7 +2644,6 @@ DEFAULT_RELATIVE_END_TIME = "today"
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
-    "postgresql": "PostgreSQLValidator",
     # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
     # SQLiteSQLValidator, but it requires the optional syntaqlite package:
     #

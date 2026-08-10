@@ -86,7 +86,6 @@ from tests.integration_tests.fixtures.users import (
 
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
-    "postgresql": "PostgreSQLValidator",
 }
 
 PRESTO_SQL_VALIDATORS_BY_ENGINE = {
@@ -4118,8 +4117,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend != "presto":
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4144,8 +4143,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend not in ("presto",):
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4304,8 +4303,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend not in ("presto",):
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4339,8 +4338,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend not in ("presto",):
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4378,8 +4377,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend not in ("presto",):
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
