@@ -125,10 +125,7 @@ testWithAssets(
         chartDataSubmitStatus = response.status();
         return;
       }
-      if (
-        request.method() === 'GET' &&
-        url.includes('/api/v1/async_event/')
-      ) {
+      if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
         sawAsyncEventPoll = true;
         return;
       }
@@ -231,10 +228,7 @@ testWithAssets(
         chartDataSubmitStatus = response.status();
         return;
       }
-      if (
-        request.method() === 'GET' &&
-        url.includes('/api/v1/async_event/')
-      ) {
+      if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
         sawAsyncEventPoll = true;
         return;
       }
@@ -355,10 +349,7 @@ testWithAssets(
         chartDataSubmitStatus = response.status();
         return;
       }
-      if (
-        request.method() === 'GET' &&
-        url.includes('/api/v1/async_event/')
-      ) {
+      if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
         sawAsyncEventPoll = true;
       }
     });
@@ -554,6 +545,16 @@ testWithAssets(
     await dashboard.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
+    // Learn "girl"'s real count up front, sequentially and with no delay, so
+    // the race assertions below can check for this specific value instead of
+    // a bare "some digit is on screen" -- the pre-filter total already
+    // contains a digit, so a bare regex would pass even if "girl"'s request
+    // never completed.
+    await selectGenderFilterOption(page, 'girl');
+    await clickApplyFilters(page);
+    await expect(value).toHaveText(/\d/, { timeout: TIMEOUT.CHART_RENDER });
+    const expectedGirlText = await value.textContent();
+
     // Delay only the first chart-data submission this route sees (the
     // upcoming "boy" selection) so it's still in-flight when "girl" fires
     // right after it -- a real race instead of two sequential updates.
@@ -578,9 +579,10 @@ testWithAssets(
     await selectGenderFilterOption(page, 'girl');
     await clickApplyFilters(page);
 
-    // "girl" wasn't delayed, so it should resolve well before "boy"'s
-    // artificial delay elapses.
-    await expect(value).toHaveText(/\d/, {
+    // "girl" wasn't delayed, so it should resolve to its known real value
+    // well before "boy"'s artificial delay elapses -- not just "some digit",
+    // which the pre-existing screen contents could already satisfy.
+    await expect(value).toHaveText(expectedGirlText ?? '', {
       timeout: RACE_DELAY_MS - 500,
     });
     const raceResultText = await value.textContent();
@@ -599,7 +601,7 @@ testWithAssets(
     // the race resolved to the *right* value.
     await selectGenderFilterOption(page, 'boy');
     await clickApplyFilters(page);
-    await expect(value).not.toHaveText(raceResultText ?? '', {
+    await expect(value).not.toHaveText(expectedGirlText ?? '', {
       timeout: TIMEOUT.CHART_RENDER,
     });
   },
@@ -689,6 +691,15 @@ testWithAssets(
       ),
     );
 
+    // Each chart's own name filter is baked into its query, so its initial
+    // count is a stable ground truth to check the post-refresh value
+    // against -- a swap between two charts wouldn't be visible in "are the
+    // values not all identical", only in "does chart N still show chart N's
+    // own count".
+    const expectedValues = await Promise.all(
+      valueLocators.map(locator => locator.textContent()),
+    );
+
     const chartIds = new Set(charts.map(chart => chart.id));
     const submitStatusBySliceId = new Map<number, number>();
     let asyncEventPollCount = 0;
@@ -709,7 +720,10 @@ testWithAssets(
         asyncEventPollCount += 1;
         return;
       }
-      if (request.method() === 'GET' && /\/api\/v1\/chart\/data\/qc-/.test(url)) {
+      if (
+        request.method() === 'GET' &&
+        /\/api\/v1\/chart\/data\/qc-/.test(url)
+      ) {
         finalFetchCount += 1;
       }
     });
@@ -739,13 +753,23 @@ testWithAssets(
       ).toBeGreaterThanOrEqual(charts.length);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
 
+    // Sanity-check the ground truth itself: if these 8 names didn't actually
+    // produce distinct counts, a swap between charts would be undetectable
+    // below no matter how the assertion is written.
+    expect(
+      new Set(expectedValues).size,
+      'each chart filters on a different name, so their pre-refresh counts should not all collapse to the same number',
+    ).toBeGreaterThan(1);
+
     const displayedValues = await Promise.all(
       valueLocators.map(locator => locator.textContent()),
     );
-    expect(
-      new Set(displayedValues).size,
-      'each chart filters on a different name, so their counts should not all collapse to the same number (a sign of misrouted/cross-contaminated results)',
-    ).toBeGreaterThan(1);
+    for (const [index, chart] of charts.entries()) {
+      expect(
+        displayedValues[index],
+        `chart ${chart.id} (${chart.sliceName}) should show its own count (${expectedValues[index]}) after the refresh, not another chart's result`,
+      ).toBe(expectedValues[index]);
+    }
   },
 );
 
@@ -953,11 +977,22 @@ testWithAssets(
     // (prepopulated example queries settle in ~1-2s) -- a real top-level
     // navigation, not an in-app route change, so any in-flight query's JS
     // context is genuinely torn down mid-flight.
+    //
+    // forceRefresh() only awaits the menu click, not the resulting request,
+    // so wait for the chart-data submission to actually go out before
+    // navigating away -- otherwise navigation could win the race and this
+    // test would leave before a request was ever in flight.
+    const refreshRequestPromise = page.waitForRequest(
+      request =>
+        request.method() === 'POST' &&
+        request.url().includes('/api/v1/chart/data'),
+    );
     await dashboard.forceRefresh();
+    await refreshRequestPromise;
     await page.goto('/superset/welcome/');
-    await expect(
-      page.getByRole('button', { name: /Recents/i }),
-    ).toBeVisible({ timeout: TIMEOUT.PAGE_LOAD });
+    await expect(page.getByRole('button', { name: /Recents/i })).toBeVisible({
+      timeout: TIMEOUT.PAGE_LOAD,
+    });
 
     // Navigate back and confirm a clean re-fetch/re-render, not a stuck
     // spinner or stale data left over from the abandoned job.
@@ -1142,6 +1177,14 @@ testWithAssets(
     await dashboard.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await dashboard.waitForChartsToLoad();
 
+    // Unlike chart data, a native filter's value options are fetched once as
+    // part of the filter panel's own initialization (confirmed via trace:
+    // the POST/poll/fetch cycle completes before the dropdown is ever
+    // clicked) and are then served from client state on open -- there is no
+    // separate, click-triggered request to wait for here. The listener
+    // attached above (before navigation) is what actually observes this
+    // fetch; opening the dropdown below only confirms the already-fetched
+    // options rendered correctly.
     const filterCombobox = page
       .locator('[data-test="form-item-value"]')
       .first()
