@@ -31,6 +31,7 @@ import {
 } from '@superset-ui/core';
 
 import {
+  getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
@@ -350,6 +351,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       extraQueries.push({
         ...queryObject,
         columns: [],
+        metrics: getTotalsMetrics(metrics, formData.totals_aggregate ?? 'SUM'),
         row_limit: 0,
         row_offset: 0,
         // Reapply only the percent-metric contribution rule so the totals row

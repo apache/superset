@@ -35,6 +35,7 @@ import {
   BuildQuery,
 } from '@superset-ui/core';
 import {
+  getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
@@ -694,6 +695,7 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate,
     );
+    const totalsAggregate = formData.totals_aggregate ?? 'SUM';
 
     if (showAggregateTotals || rawSummaryColumns.length > 0) {
       // Create a copy of extras without the AG Grid WHERE clause
@@ -728,14 +730,18 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       extraQueries.push({
         ...queryObject,
         columns: [],
-        ...(rawSummaryColumns.length > 0 && {
-          metrics: rawSummaryColumns.map(columnName => ({
-            expressionType: 'SIMPLE' as const,
-            aggregate: 'SUM' as const,
-            column: { column_name: columnName },
-            label: columnName,
-          })),
-        }),
+        ...(rawSummaryColumns.length > 0
+          ? {
+              metrics: rawSummaryColumns.map(columnName => ({
+                expressionType: 'SIMPLE' as const,
+                aggregate: totalsAggregate,
+                column: { column_name: columnName },
+                label: columnName,
+              })),
+            }
+          : showAggregateTotals
+            ? { metrics: getTotalsMetrics(metrics ?? [], totalsAggregate) }
+            : {}),
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
