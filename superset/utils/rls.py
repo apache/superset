@@ -53,7 +53,6 @@ def apply_rls(
 
     # collect all RLS predicates for all tables in the query
     default_catalog = database.get_default_catalog()
-    default_schema = database.get_default_schema(catalog)
     predicates: dict[Table, list[Any]] = {}
     for table in parsed_statement.tables:
         table = table.qualify(catalog=catalog, schema=schema)
@@ -63,7 +62,6 @@ def apply_rls(
                 table,
                 database,
                 default_catalog,
-                default_schema,
                 exclude_dataset_id=exclude_dataset_id,
             )
             if predicate
@@ -78,7 +76,6 @@ def get_predicates_for_table(
     table: Table,
     database: Database,
     default_catalog: str | None,
-    default_schema: str | None = None,
     exclude_dataset_id: int | None = None,
 ) -> list[str]:
     """
@@ -99,21 +96,9 @@ def get_predicates_for_table(
             SqlaTable.catalog.is_(None),
         )
 
-    # if the dataset in the RLS has null schema, match it when using the default
-    # schema (mirrors the catalog handling above); a dataset stored without an
-    # explicit schema is scoped to the default schema, so a query that resolves
-    # to that same schema must still pick up its predicates
-    schema_predicate = SqlaTable.schema == table.schema
-    if table.schema and table.schema == default_schema:
-        schema_predicate = or_(
-            schema_predicate,
-            SqlaTable.schema.is_(None),
-        )
-
     filters = [
         SqlaTable.database_id == database.id,
         catalog_predicate,
-        schema_predicate,
         SqlaTable.table_name == table.table,
     ]
     # When applying RLS to a virtual dataset's inner SQL, skip a match against
@@ -124,7 +109,27 @@ def get_predicates_for_table(
     if exclude_dataset_id is not None:
         filters.append(SqlaTable.id != exclude_dataset_id)
 
-    dataset = db.session.query(SqlaTable).filter(and_(*filters)).one_or_none()
+    def lookup(schema_predicate: Any) -> Any:
+        return (
+            db.session.query(SqlaTable)
+            .filter(and_(*filters, schema_predicate))
+            .one_or_none()
+        )
+
+    dataset = lookup(SqlaTable.schema == table.schema)
+    if not dataset and table.schema:
+        # A dataset stored without a schema is scoped to the database's default
+        # schema, so a query resolving to that same schema must still pick up its
+        # predicates. This mirrors the null-catalog fallback above.
+        #
+        # The fallback is a second lookup rather than an ``OR`` on the first so that
+        # an exact schema match always wins and neither query can match more than
+        # one dataset. Resolving the default schema probes the analytic database, so
+        # it is deferred until a null-schema dataset is known to exist.
+        dataset = lookup(SqlaTable.schema.is_(None))
+        if dataset and table.schema != database.get_default_schema(table.catalog):
+            dataset = None
+
     if not dataset:
         return []
 
@@ -183,7 +188,6 @@ def collect_rls_predicates_for_sql(
             for table in statement.tables
         }
         default_catalog = database.get_default_catalog()
-        default_schema = database.get_default_schema(catalog)
         return sorted(
             {
                 predicate
@@ -192,7 +196,6 @@ def collect_rls_predicates_for_sql(
                     table,
                     database,
                     default_catalog,
-                    default_schema,
                     exclude_dataset_id=exclude_dataset_id,
                 )
             }
