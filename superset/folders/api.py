@@ -31,11 +31,12 @@ from flask_appbuilder.api import (
     rison as parse_rison,
     safe,
 )
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset import security_manager
 from superset.commands.folder.assets import (
+    _resolve_asset_name,
     AddFolderAssetsCommand,
     UpdateFolderAssetsCommand,
 )
@@ -51,9 +52,9 @@ from superset.commands.folder.exceptions import (
 )
 from superset.commands.folder.update import UpdateFolderCommand
 from superset.daos.folder import FolderDAO, ResolvedAsset
-from superset.folders.activity import log_folder_activity
 from superset.daos.folder_permissions import FolderPermissionDAO
 from superset.extensions import db, event_logger
+from superset.folders.activity import log_folder_activity
 from superset.folders.constants import ASSET_TYPE_CONFIGS, DEFAULT_FOLDER_TYPE
 from superset.folders.models import Folder, FolderActivity
 from superset.folders.schemas import (
@@ -72,8 +73,8 @@ from superset.folders.schemas import (
     FolderSubjectPutSchema,
 )
 from superset.folders.utils import can_manage_folders
-from superset.utils.core import get_user_id
 from superset.utils import json as json_utils
+from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -149,9 +150,7 @@ def serialize_folder(
         "changed_by": _serialize_user(folder.changed_by),
         "user_permission": _get_user_permission(folder),
         "inherits_permissions": _get_inherits_permissions(folder),
-        "owners": [
-            _serialize_user(u) for u in (folder.editors or [])
-        ],
+        "owners": [_serialize_user(u) for u in (folder.editors or [])],
     }
     if include_breakdown:
         data["asset_breakdown"] = FolderDAO.get_asset_breakdown(folder.id)
@@ -207,10 +206,7 @@ def serialize_rows_with_paths(
 def serialize_asset(asset_type: str, asset: Any) -> dict[str, Any]:
     """Serialize a single asset (dashboard/chart/dataset) with column data."""
     config = ASSET_TYPE_CONFIGS[asset_type]
-    owners = [
-        _serialize_user(o)
-        for o in (getattr(asset, "owners", None) or [])
-    ]
+    owners = [_serialize_user(o) for o in (getattr(asset, "owners", None) or [])]
     return {
         "type": asset_type,
         "id": asset.id,
@@ -225,18 +221,22 @@ def serialize_asset(asset_type: str, asset: Any) -> dict[str, Any]:
         "viz_type": getattr(asset, "viz_type", None),
         "datasource_name": (
             asset.datasource_name_text()
-            if asset_type == "chart" and callable(
-                getattr(asset, "datasource_name_text", None)
-            )
+            if asset_type == "chart"
+            and callable(getattr(asset, "datasource_name_text", None))
             else None
         ),
         "datasource_url": (
             asset.datasource_url()
-            if asset_type == "chart" and callable(getattr(asset, "datasource_url", None))
+            if asset_type == "chart"
+            and callable(getattr(asset, "datasource_url", None))
             else None
         ),
         "tags": [
-            {"id": t.id, "name": t.name, "type": t.type.value if hasattr(t.type, "value") else t.type}
+            {
+                "id": t.id,
+                "name": t.name,
+                "type": t.type.value if hasattr(t.type, "value") else t.type,
+            }
             for t in getattr(asset, "tags", []) or []
         ],
     }
@@ -332,9 +332,7 @@ def _parse_rison_args(rison_args: dict[str, Any]) -> dict[str, Any]:
                 int(v) for v in (val if isinstance(val, list) else [val])
             ]
         elif col == "tags" and opr == "rel_m_m":
-            result["tags"] = [
-                int(v) for v in (val if isinstance(val, list) else [val])
-            ]
+            result["tags"] = [int(v) for v in (val if isinstance(val, list) else [val])]
     return result
 
 
@@ -993,6 +991,13 @@ class FolderRestApi(BaseSupersetApi):
         ):
             return self.response(400, message="Invalid assets format")
         FolderDAO.remove_assets(folder, assets)
+        for asset in assets:
+            log_folder_activity(
+                folder.id,
+                "asset_removed",
+                target_type=asset["type"],
+                target_name=_resolve_asset_name(asset["type"], asset["id"]),
+            )
         return self.response(200, message="OK")
 
     # ------------------------------------------------------------------ #
@@ -1217,17 +1222,21 @@ class FolderRestApi(BaseSupersetApi):
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         try:
-            permission = "editor" if data["permission"] == "admin" else data["permission"]
+            permission = (
+                "editor" if data["permission"] == "admin" else data["permission"]
+            )
             FolderDAO.add_subject(folder.id, data["user_id"], permission)
         except ValueError as ex:
             return self.response(422, message=str(ex))
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
+        subject = db.session.get(User, data["user_id"])
+        subject_email = subject.email if subject else str(data["user_id"])
         log_folder_activity(
             folder.id,
             "permission_changed",
             target_type="user",
-            target_name=str(data["user_id"]),
+            target_name=subject_email,
             details={"action": "added", "permission": permission},
         )
         return self.response(201, message="OK")
@@ -1284,11 +1293,13 @@ class FolderRestApi(BaseSupersetApi):
         FolderDAO.update_subject(folder.id, user_id, permission)
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
+        subject = db.session.get(User, user_id)
+        subject_email = subject.email if subject else str(user_id)
         log_folder_activity(
             folder.id,
             "permission_changed",
             target_type="user",
-            target_name=str(user_id),
+            target_name=subject_email,
             details={"action": "updated", "permission": permission},
         )
         return self.response(200, message="OK")
@@ -1328,6 +1339,8 @@ class FolderRestApi(BaseSupersetApi):
             self._raise_for_folder_edit(folder)
         except FolderForbiddenError:
             return self.response_403()
+        subject = db.session.get(User, user_id)
+        subject_email = subject.email if subject else str(user_id)
         FolderDAO.remove_subject(folder.id, user_id)
         FolderPermissionDAO.mark_permissions_explicit(folder.id)
         FolderPermissionDAO.push_down_permissions(folder.id)
@@ -1335,7 +1348,7 @@ class FolderRestApi(BaseSupersetApi):
             folder.id,
             "permission_changed",
             target_type="user",
-            target_name=str(user_id),
+            target_name=subject_email,
             details={"action": "removed"},
         )
         return self.response(200, message="OK")
@@ -1426,13 +1439,78 @@ class FolderRestApi(BaseSupersetApi):
             count=total,
         )
 
+    @expose("/activity", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    def get_all_activity(self) -> Response:
+        """Get activity log across all folders.
+        ---
+        get:
+          summary: Get all folder activity
+          parameters:
+          - in: query
+            name: page
+            schema:
+              type: integer
+              default: 0
+          - in: query
+            name: page_size
+            schema:
+              type: integer
+              default: 25
+          responses:
+            200:
+              description: Paginated activity log
+        """
+        page = _positive_int("page", 0)
+        page_size = _positive_int("page_size", 25)
+
+        query = (
+            db.session.query(FolderActivity, User, Folder)
+            .outerjoin(User, User.id == FolderActivity.user_id)
+            .outerjoin(Folder, Folder.id == FolderActivity.folder_id)
+            .order_by(FolderActivity.created_on.desc())
+        )
+        total = query.count()
+        rows = query.offset(page * page_size).limit(page_size).all()
+
+        result = []
+        for activity, user, folder in rows:
+            result.append(
+                {
+                    "id": activity.id,
+                    "action": activity.action,
+                    "target_type": activity.target_type,
+                    "target_name": activity.target_name,
+                    "details": json.loads(activity.details)
+                    if activity.details
+                    else None,
+                    "created_on": activity.created_on.isoformat()
+                    if activity.created_on
+                    else None,
+                    "folder_name": folder.name if folder else None,
+                    "folder_uuid": str(folder.uuid) if folder else None,
+                    "user": {
+                        "id": user.id,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                    }
+                    if user
+                    else None,
+                }
+            )
+
+        return self.response(200, result=result, count=total)
+
     @expose("/<folder_uuid>/activity", methods=("GET",))
     @protect()
     @safe
     @permission_name("read")
     @statsd_metrics
     def get_activity(self, folder_uuid: str) -> Response:
-        """Get activity log for a folder.
+        """Get activity log for a specific folder.
         ---
         get:
           summary: Get folder activity log
@@ -1480,18 +1558,26 @@ class FolderRestApi(BaseSupersetApi):
 
         result = []
         for activity, user in rows:
-            result.append({
-                "id": activity.id,
-                "action": activity.action,
-                "target_type": activity.target_type,
-                "target_name": activity.target_name,
-                "details": json.loads(activity.details) if activity.details else None,
-                "created_on": activity.created_on.isoformat() if activity.created_on else None,
-                "user": {
-                    "id": user.id,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                } if user else None,
-            })
+            result.append(
+                {
+                    "id": activity.id,
+                    "action": activity.action,
+                    "target_type": activity.target_type,
+                    "target_name": activity.target_name,
+                    "details": json.loads(activity.details)
+                    if activity.details
+                    else None,
+                    "created_on": activity.created_on.isoformat()
+                    if activity.created_on
+                    else None,
+                    "user": {
+                        "id": user.id,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                    }
+                    if user
+                    else None,
+                }
+            )
 
         return self.response(200, result=result, count=total)

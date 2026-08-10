@@ -100,18 +100,38 @@ class FolderDAO(BaseDAO[Folder]):
 
     @classmethod
     def get_asset_breakdown(cls, folder_id: int) -> dict[str, int]:
-        """Count assets in a folder grouped by type (which FK column is set)."""
+        """Count assets and subfolders recursively across all descendants."""
+        # Recursive CTE to collect this folder + all descendants
+        descendants = (
+            select(Folder.id)
+            .where(Folder.id == folder_id)
+            .cte(name="descendants", recursive=True)
+        )
+        descendants = descendants.union_all(
+            select(Folder.id).where(Folder.parent_id == descendants.c.id)
+        )
+        desc_ids = select(descendants.c.id)
+
         result = (
             db.session.query(
                 func.count(FolderObject.dashboard_id).label("dashboards"),
                 func.count(FolderObject.chart_id).label("charts"),
             )
-            .filter(FolderObject.folder_id == folder_id)
+            .filter(FolderObject.folder_id.in_(desc_ids))
             .one()
         )
+
+        # Count descendant subfolders (exclude the folder itself)
+        subfolder_count = (
+            db.session.query(func.count())
+            .filter(Folder.id.in_(desc_ids), Folder.id != folder_id)
+            .scalar()
+        )
+
         return {
             "dashboards": result.dashboards,
             "charts": result.charts,
+            "subfolders": subfolder_count,
         }
 
     @classmethod
@@ -247,27 +267,24 @@ class FolderDAO(BaseDAO[Folder]):
             model = ASSET_TYPE_CONFIGS[name].model
             fk_col = getattr(FolderObject, ASSET_TYPE_CONFIGS[name].fk_column)
             if name == "chart":
-                aq = (
-                    select(
-                        literal(1).label("kind_order"),
-                        literal(name).label("item_type"),
-                        model.id.label("item_id"),
-                        model.changed_on.label("changed_on"),
-                        title_attrs[name].label("sort_name"),
-                        func.coalesce(
-                            func.concat(
-                                func.coalesce(SqlaTable.schema, ""),
-                                case(
-                                    (SqlaTable.schema.isnot(None), "."),
-                                    else_="",
-                                ),
-                                func.coalesce(SqlaTable.table_name, ""),
+                aq = select(
+                    literal(1).label("kind_order"),
+                    literal(name).label("item_type"),
+                    model.id.label("item_id"),
+                    model.changed_on.label("changed_on"),
+                    title_attrs[name].label("sort_name"),
+                    func.coalesce(
+                        func.concat(
+                            func.coalesce(SqlaTable.schema, ""),
+                            case(
+                                (SqlaTable.schema.isnot(None), "."),
+                                else_="",
                             ),
-                            "",
-                        ).label("sort_datasource"),
-                    )
-                    .outerjoin(SqlaTable, Slice.datasource_id == SqlaTable.id)
-                )
+                            func.coalesce(SqlaTable.table_name, ""),
+                        ),
+                        "",
+                    ).label("sort_datasource"),
+                ).outerjoin(SqlaTable, Slice.datasource_id == SqlaTable.id)
             else:
                 aq = select(
                     literal(1).label("kind_order"),
@@ -327,31 +344,29 @@ class FolderDAO(BaseDAO[Folder]):
                 )
                 aq = aq.where(model.id.in_(tagged))
             if editors:
-                fk_col_filter = getattr(FolderObject, ASSET_TYPE_CONFIGS[name].fk_column)
-                editor_asset_ids = (
-                    select(fk_col_filter)
-                    .where(
-                        FolderObject.folder_id.in_(
-                            select(folder_editors.c.folder_id).where(
-                                folder_editors.c.user_id.in_(editors)
-                            )
-                        ),
-                        fk_col_filter.isnot(None),
-                    )
+                fk_col_filter = getattr(
+                    FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
+                )
+                editor_asset_ids = select(fk_col_filter).where(
+                    FolderObject.folder_id.in_(
+                        select(folder_editors.c.folder_id).where(
+                            folder_editors.c.user_id.in_(editors)
+                        )
+                    ),
+                    fk_col_filter.isnot(None),
                 )
                 aq = aq.where(model.id.in_(editor_asset_ids))
             if viewers:
-                fk_col_filter = getattr(FolderObject, ASSET_TYPE_CONFIGS[name].fk_column)
-                viewer_asset_ids = (
-                    select(fk_col_filter)
-                    .where(
-                        FolderObject.folder_id.in_(
-                            select(folder_viewers.c.folder_id).where(
-                                folder_viewers.c.user_id.in_(viewers)
-                            )
-                        ),
-                        fk_col_filter.isnot(None),
-                    )
+                fk_col_filter = getattr(
+                    FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
+                )
+                viewer_asset_ids = select(fk_col_filter).where(
+                    FolderObject.folder_id.in_(
+                        select(folder_viewers.c.folder_id).where(
+                            folder_viewers.c.user_id.in_(viewers)
+                        )
+                    ),
+                    fk_col_filter.isnot(None),
                 )
                 aq = aq.where(model.id.in_(viewer_asset_ids))
 
@@ -464,7 +479,9 @@ class FolderDAO(BaseDAO[Folder]):
                 .correlate(unioned)
                 .scalar_subquery()
             )
-            pin_order = func.coalesce(pin_position, literal(4) + literal(0)).label("pin_order")
+            pin_order = func.coalesce(pin_position, literal(4) + literal(0)).label(
+                "pin_order"
+            )
 
         page_rows = db.session.execute(
             select(unioned.c.item_type, unioned.c.item_id)

@@ -16,7 +16,7 @@
 # under the License.
 """Add folder_activity table
 
-Revision ID: a1b2c3d4e5f6
+Revision ID: 82f514fd03f7
 Revises: 4567cf3d03cc
 Create Date: 2026-08-04 12:00:00.000000
 """
@@ -25,7 +25,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "a1b2c3d4e5f6"
+revision = "82f514fd03f7"
 down_revision = "4567cf3d03cc"
 
 
@@ -51,12 +51,8 @@ def upgrade():
             server_default=sa.func.now(),
         ),
     )
-    op.create_index(
-        "ix_folder_activity_folder_id", "folder_activity", ["folder_id"]
-    )
-    op.create_index(
-        "ix_folder_activity_created_on", "folder_activity", ["created_on"]
-    )
+    op.create_index("ix_folder_activity_folder_id", "folder_activity", ["folder_id"])
+    op.create_index("ix_folder_activity_created_on", "folder_activity", ["created_on"])
 
 
 def downgrade():

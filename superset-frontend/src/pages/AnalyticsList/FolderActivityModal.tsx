@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { Drawer } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { StandardModal } from 'src/components/Modal';
 
 interface ActivityEvent {
   id: number;
@@ -30,24 +30,19 @@ interface ActivityEvent {
   target_name: string | null;
   details: Record<string, unknown> | null;
   created_on: string | null;
+  folder_name: string | null;
+  folder_uuid: string | null;
   user: { id: number; first_name: string; last_name: string } | null;
 }
 
-interface FolderActivityModalProps {
-  folderUuid: string;
-  folderName: string;
-  show: boolean;
-  onHide: () => void;
+interface FolderActivityDrawerProps {
+  open: boolean;
+  onClose: () => void;
 }
 
 const Timeline = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    flex-direction: column;
-    gap: ${theme.sizeUnit}px;
-    max-height: 400px;
-    overflow-y: auto;
-  `}
+  display: flex;
+  flex-direction: column;
 `;
 
 const EventRow = styled.div`
@@ -55,7 +50,7 @@ const EventRow = styled.div`
     display: flex;
     align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
-    padding: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 2}px 0;
     border-bottom: 1px solid ${theme.colorBorderSecondary};
 
     &:last-child {
@@ -87,6 +82,36 @@ const EventDescription = styled.div`
   `}
 `;
 
+const AssetTag = styled.a`
+  ${({ theme }) => `
+    display: inline-flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit}px;
+    border: 1px solid ${theme.colorBorderSecondary};
+    border-radius: ${theme.borderRadius}px;
+    background: ${theme.colorBgContainer};
+    color: ${theme.colorText};
+    text-decoration: none;
+    max-width: 180px;
+    font-size: ${theme.fontSizeSM}px;
+    vertical-align: middle;
+    cursor: pointer;
+    transition: border-color 0.2s;
+
+    &:hover {
+      border-color: ${theme.colorPrimary};
+      color: ${theme.colorPrimary};
+    }
+  `}
+`;
+
+const TagName = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 const EventMeta = styled.div`
   ${({ theme }) => `
     font-size: ${theme.fontSizeXS}px;
@@ -103,40 +128,176 @@ const EmptyState = styled.div`
   `}
 `;
 
-const ACTION_LABELS: Record<string, string> = {
-  created: 'created this folder',
-  renamed: 'renamed this folder',
-  moved: 'moved this folder',
-  deleted: 'deleted a subfolder',
-  permission_changed: 'changed permissions',
-};
+const LoadMoreButton = styled.div`
+  ${({ theme }) => `
+    text-align: center;
+    padding: ${theme.sizeUnit * 2}px;
+    color: ${theme.colorPrimary};
+    cursor: pointer;
 
-function describeEvent(event: ActivityEvent): string {
+    &:hover {
+      text-decoration: underline;
+    }
+  `}
+`;
+
+function assetIcon(type: string | null) {
+  switch (type) {
+    case 'dashboard':
+      return <Icons.LayoutOutlined iconSize="s" />;
+    case 'chart':
+    case 'slice':
+      return <Icons.LineChartOutlined iconSize="s" />;
+    default:
+      return <Icons.FolderOutlined iconSize="s" />;
+  }
+}
+
+function folderTag(name: string, uuid: string | null) {
+  return (
+    <AssetTag href={uuid ? `/analytics/${uuid}/` : '#'}>
+      <Icons.FolderOutlined iconSize="s" />
+      <TagName>{name}</TagName>
+    </AssetTag>
+  );
+}
+
+function targetTag(type: string | null, name: string | null) {
+  if (!name) return null;
+  return (
+    <AssetTag as="span">
+      {assetIcon(type)}
+      <TagName>{name}</TagName>
+    </AssetTag>
+  );
+}
+
+function describeEvent(event: ActivityEvent): React.ReactNode {
   const userName = event.user
     ? `${event.user.first_name} ${event.user.last_name}`
     : t('Unknown user');
-  const actionLabel = ACTION_LABELS[event.action] ?? event.action;
 
-  let suffix = '';
-  if (event.target_name && event.action === 'renamed') {
-    const oldName = event.details?.old_name;
-    suffix = oldName ? ` from "${oldName}" to "${event.target_name}"` : '';
-  } else if (event.target_name && event.action === 'deleted') {
-    suffix = ` "${event.target_name}"`;
-  } else if (event.action === 'permission_changed' && event.details) {
-    const detail = event.details;
-    if (detail.action === 'added') {
-      suffix = ` (added user as ${detail.permission})`;
-    } else if (detail.action === 'updated') {
-      suffix = ` (changed to ${detail.permission})`;
-    } else if (detail.action === 'removed') {
-      suffix = ' (removed user)';
-    } else if (detail.sync_permissions) {
-      suffix = ' (synced with parent)';
+  const folder = event.folder_name
+    ? folderTag(event.folder_name, event.folder_uuid)
+    : null;
+
+  switch (event.action) {
+    case 'created':
+      return (
+        <>
+          {userName} {t('created folder')} {folder}
+        </>
+      );
+    case 'renamed': {
+      const oldName = event.details?.old_name as string | undefined;
+      return oldName ? (
+        <>
+          {userName} {t('renamed')} {folderTag(oldName, null)} {t('to')}{' '}
+          {folder}
+        </>
+      ) : (
+        <>
+          {userName} {t('renamed folder')} {folder}
+        </>
+      );
     }
+    case 'moved':
+      return (
+        <>
+          {userName} {t('moved folder')} {folder}
+        </>
+      );
+    case 'deleted':
+      return (
+        <>
+          {userName} {t('deleted subfolder')}{' '}
+          {targetTag('folder', event.target_name)}
+          {folder && (
+            <>
+              {' '}
+              {t('in')} {folder}
+            </>
+          )}
+        </>
+      );
+    case 'permission_changed': {
+      const detail = event.details;
+      if (detail?.sync_permissions) {
+        return (
+          <>
+            {userName} {t('synced permissions with parent on')} {folder}
+          </>
+        );
+      }
+      const targetEmail = event.target_name;
+      if (detail?.action === 'added') {
+        return (
+          <>
+            {userName} {t('added')} {targetEmail} {t('as')}{' '}
+            {String(detail.permission)} {t('on')} {folder}
+          </>
+        );
+      }
+      if (detail?.action === 'updated') {
+        return (
+          <>
+            {userName} {t('changed')} {targetEmail} {t('to')}{' '}
+            {String(detail.permission)} {t('on')} {folder}
+          </>
+        );
+      }
+      if (detail?.action === 'removed') {
+        return (
+          <>
+            {userName} {t('removed')} {targetEmail} {t('from')} {folder}
+          </>
+        );
+      }
+      return (
+        <>
+          {userName} {t('changed permissions on')} {folder}
+        </>
+      );
+    }
+    case 'asset_added':
+      return (
+        <>
+          {userName} {t('added')}{' '}
+          {targetTag(event.target_type, event.target_name)}
+          {folder && (
+            <>
+              {' '}
+              {t('to')} {folder}
+            </>
+          )}
+        </>
+      );
+    case 'asset_removed':
+      return (
+        <>
+          {userName} {t('removed')}{' '}
+          {targetTag(event.target_type, event.target_name)}
+          {folder && (
+            <>
+              {' '}
+              {t('from')} {folder}
+            </>
+          )}
+        </>
+      );
+    case 'description_updated':
+      return (
+        <>
+          {userName} {t('updated the description of')} {folder}
+        </>
+      );
+    default:
+      return (
+        <>
+          {userName} {event.action} {folder}
+        </>
+      );
   }
-
-  return `${userName} ${actionLabel}${suffix}`;
 }
 
 function formatTime(dateStr: string | null): string {
@@ -154,46 +315,41 @@ function formatTime(dateStr: string | null): string {
   return date.toLocaleDateString();
 }
 
-export default function FolderActivityModal({
-  folderUuid,
-  folderName,
-  show,
-  onHide,
-}: FolderActivityModalProps) {
+export default function FolderActivityDrawer({
+  open,
+  onClose,
+}: FolderActivityDrawerProps) {
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
 
-  const fetchActivity = useCallback(
-    (pageNum: number) => {
-      setLoading(true);
-      SupersetClient.get({
-        endpoint: `/api/v1/folders/${folderUuid}/activity?page=${pageNum}&page_size=25`,
-      }).then(
-        ({ json }) => {
-          const newEvents = (json?.result ?? []) as ActivityEvent[];
-          setEvents(prev =>
-            pageNum === 0 ? newEvents : [...prev, ...newEvents],
-          );
-          setTotal(json?.count ?? 0);
-          setLoading(false);
-        },
-        () => {
-          setLoading(false);
-        },
-      );
-    },
-    [folderUuid],
-  );
+  const fetchActivity = useCallback((pageNum: number) => {
+    setLoading(true);
+    SupersetClient.get({
+      endpoint: `/api/v1/folders/activity?page=${pageNum}&page_size=25`,
+    }).then(
+      ({ json }) => {
+        const newEvents = (json?.result ?? []) as ActivityEvent[];
+        setEvents(prev =>
+          pageNum === 0 ? newEvents : [...prev, ...newEvents],
+        );
+        setTotal(json?.count ?? 0);
+        setLoading(false);
+      },
+      () => {
+        setLoading(false);
+      },
+    );
+  }, []);
 
   useEffect(() => {
-    if (show && folderUuid) {
+    if (open) {
       setPage(0);
       setEvents([]);
       fetchActivity(0);
     }
-  }, [show, folderUuid, fetchActivity]);
+  }, [open, fetchActivity]);
 
   const handleLoadMore = () => {
     const nextPage = page + 1;
@@ -204,18 +360,16 @@ export default function FolderActivityModal({
   const hasMore = events.length < total;
 
   return (
-    <StandardModal
-      title={`${folderName} — ${t('Activity')}`}
-      icon={<Icons.HistoryOutlined />}
-      show={show}
-      onHide={onHide}
-      onSave={onHide}
-      saveText={t('Close')}
-      contentLoading={loading && events.length === 0}
-      width={600}
+    <Drawer
+      title={t('Activity')}
+      placement="right"
+      width={420}
+      open={open}
+      onClose={onClose}
+      destroyOnClose
     >
       {events.length === 0 && !loading ? (
-        <EmptyState>{t('No activity recorded for this folder')}</EmptyState>
+        <EmptyState>{t('No activity recorded')}</EmptyState>
       ) : (
         <Timeline>
           {events.map(event => (
@@ -228,17 +382,12 @@ export default function FolderActivityModal({
             </EventRow>
           ))}
           {hasMore && (
-            <EventRow
-              style={{ cursor: 'pointer', justifyContent: 'center' }}
-              onClick={handleLoadMore}
-            >
-              <EventDescription>
-                {loading ? t('Loading...') : t('Load more')}
-              </EventDescription>
-            </EventRow>
+            <LoadMoreButton onClick={handleLoadMore}>
+              {loading ? t('Loading...') : t('Load more')}
+            </LoadMoreButton>
           )}
         </Timeline>
       )}
-    </StandardModal>
+    </Drawer>
   );
 }

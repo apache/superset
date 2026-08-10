@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -38,6 +38,7 @@ const RecentBarWrapper = styled.div`
     align-items: center;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 2}px;
     overflow-x: auto;
     white-space: nowrap;
 
@@ -100,7 +101,7 @@ const TimeAgo = styled.span`
 export default function RecentBar() {
   const [items, setItems] = useState<RecentItem[]>([]);
 
-  useEffect(() => {
+  const fetchRecent = useCallback(() => {
     const q = rison.encode({
       page: 0,
       page_size: 10,
@@ -116,6 +117,17 @@ export default function RecentBar() {
       () => {},
     );
   }, []);
+
+  useEffect(() => {
+    fetchRecent();
+  }, [fetchRecent]);
+
+  // Refetch when the user navigates back to this page
+  useEffect(() => {
+    const onFocus = () => fetchRecent();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [fetchRecent]);
 
   if (items.length === 0) {
     return null;

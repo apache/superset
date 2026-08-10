@@ -20,11 +20,9 @@ from functools import partial
 from typing import Any
 
 from marshmallow import ValidationError
+
 from superset import security_manager
 from superset.commands.base import BaseCommand
-from superset.utils.core import get_user_id
-from superset.utils.decorators import on_error, transaction
-
 from superset.commands.folder.exceptions import (
     FolderAssetNotFoundValidationError,
     FolderAssetTypeValidationError,
@@ -33,10 +31,25 @@ from superset.commands.folder.exceptions import (
     FolderNotFoundError,
     FolderUpdateFailedError,
 )
-from superset.folders.constants import ASSET_TYPE_CONFIGS, asset_types_for_folder_type
 from superset.daos.folder import FolderDAO
-from superset.folders.models import Folder
 from superset.daos.folder_permissions import FolderPermissionDAO
+from superset.extensions import db as _db
+from superset.folders.activity import log_folder_activity
+from superset.folders.constants import ASSET_TYPE_CONFIGS, asset_types_for_folder_type
+from superset.folders.models import Folder
+from superset.utils.core import get_user_id
+from superset.utils.decorators import on_error, transaction
+
+
+def _resolve_asset_name(asset_type: str, asset_id: int) -> str:
+    """Look up the display name for an asset by type and id."""
+    config = ASSET_TYPE_CONFIGS.get(asset_type)
+    if not config:
+        return str(asset_id)
+    obj = _db.session.get(config.model, asset_id)
+    if not obj:
+        return str(asset_id)
+    return getattr(obj, config.title_attr, None) or str(asset_id)
 
 
 def _validate_folder_assets(
@@ -68,10 +81,8 @@ def _validate_folder_assets(
                 FolderAssetNotFoundValidationError(asset_type, asset["id"])
             )
         elif not is_admin:
-            from superset.extensions import db
-
             config = ASSET_TYPE_CONFIGS[asset_type]
-            asset_obj = db.session.get(config.model, asset["id"])
+            asset_obj = _db.session.get(config.model, asset["id"])
             if asset_obj:
                 try:
                     if asset_type == "dashboard":
@@ -105,6 +116,13 @@ class UpdateFolderAssetsCommand(BaseCommand):
         self.validate()
         assert self._model
         FolderDAO.set_assets(self._model, self._assets)
+        for asset in self._assets:
+            log_folder_activity(
+                self._model.id,
+                "asset_added",
+                target_type=asset["type"],
+                target_name=_resolve_asset_name(asset["type"], asset["id"]),
+            )
         return self._model
 
     def validate(self) -> None:
@@ -129,6 +147,13 @@ class AddFolderAssetsCommand(BaseCommand):
         self.validate()
         assert self._model
         FolderDAO.assign_assets(self._model, self._assets)
+        for asset in self._assets:
+            log_folder_activity(
+                self._model.id,
+                "asset_added",
+                target_type=asset["type"],
+                target_name=_resolve_asset_name(asset["type"], asset["id"]),
+            )
         return self._model
 
     def validate(self) -> None:

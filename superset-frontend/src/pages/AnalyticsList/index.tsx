@@ -77,7 +77,7 @@ import DeleteFolderModal from './DeleteFolderModal';
 import DashboardCharts from './DashboardCharts';
 import RecentBar from './RecentBar';
 import FolderInfoModal from './FolderInfoModal';
-import FolderActivityModal from './FolderActivityModal';
+import FolderActivityDrawer from './FolderActivityModal';
 import type { ContentItem } from './types';
 
 /** A location in the drill path; the root has a null uuid. */
@@ -217,8 +217,7 @@ function AnalyticsList({
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [folderToShowInfo, setFolderToShowInfo] =
     useState<ContentItem | null>(null);
-  const [folderToShowActivity, setFolderToShowActivity] =
-    useState<ContentItem | null>(null);
+  const [showActivityDrawer, setShowActivityDrawer] = useState(false);
   const [folderToManagePerms, setFolderToManagePerms] =
     useState<ContentItem | null>(null);
   const [folderToRename, setFolderToRename] = useState<ContentItem | null>(
@@ -974,16 +973,6 @@ function AnalyticsList({
                     <Icons.InfoCircleOutlined iconSize="l" />
                   </span>
                 </Tooltip>
-                <Tooltip title={t('Activity')} placement="bottom">
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={() => setFolderToShowActivity(original)}
-                  >
-                    <Icons.HistoryOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
                 {canEdit && (
                   <Tooltip title={t('Manage permissions')} placement="bottom">
                     <span
@@ -1268,6 +1257,11 @@ function AnalyticsList({
     name: t('Analytics'),
     buttons: [
       {
+        name: t('Activity'),
+        buttonStyle: 'secondary',
+        onClick: () => setShowActivityDrawer(true),
+      },
+      {
         name: bulkSelectEnabled ? t('Cancel') : t('Bulk select'),
         buttonStyle: 'secondary',
         onClick: () => setBulkSelectEnabled(prev => !prev),
@@ -1342,14 +1336,10 @@ function AnalyticsList({
           onHide={() => setFolderToShowInfo(null)}
         />
       )}
-      {folderToShowActivity && (
-        <FolderActivityModal
-          folderUuid={folderToShowActivity.uuid ?? ''}
-          folderName={folderToShowActivity.name}
-          show
-          onHide={() => setFolderToShowActivity(null)}
-        />
-      )}
+      <FolderActivityDrawer
+        open={showActivityDrawer}
+        onClose={() => setShowActivityDrawer(false)}
+      />
       {showCreateFolder && (
         <CreateFolderModal
           show
@@ -1472,7 +1462,7 @@ function AnalyticsList({
               disableBulkSelect={() => setBulkSelectEnabled(false)}
               headerContent={
                 isAtRoot ? (
-                  <RecentBar />
+                  <RecentBar key={refreshKey} />
                 ) : (
                   <BreadcrumbWrap>
                     <FolderBreadcrumb items={breadcrumbItems} />

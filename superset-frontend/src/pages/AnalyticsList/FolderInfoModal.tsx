@@ -35,6 +35,7 @@ interface FolderDetails {
   asset_breakdown: {
     dashboards: number;
     charts: number;
+    subfolders: number;
   };
 }
 
@@ -44,13 +45,29 @@ interface FolderInfoModalProps {
   onHide: () => void;
 }
 
+const StyledInfoModal = styled(StandardModal)`
+  .ant-modal-header {
+    border-bottom: none;
+  }
+`;
+
+const ModalContent = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
+  `}
+`;
+
 const InfoSection = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 2}px 0;
     border-bottom: 1px solid ${theme.colorBorderSecondary};
 
+    &:first-child {
+      padding-top: 0;
+    }
     &:last-child {
       border-bottom: none;
+      padding-bottom: 0;
     }
   `}
 `;
@@ -60,7 +77,9 @@ const InfoLabel = styled.div`
     font-weight: ${theme.fontWeightStrong};
     font-size: ${theme.fontSizeSM}px;
     color: ${theme.colorTextSecondary};
-    margin-bottom: ${theme.sizeUnit / 2}px;
+    margin-bottom: ${theme.sizeUnit}px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   `}
 `;
 
@@ -68,13 +87,14 @@ const InfoValue = styled.div`
   ${({ theme }) => `
     font-size: ${theme.fontSize}px;
     color: ${theme.colorText};
+    line-height: 1.5;
   `}
 `;
 
 const SizeGrid = styled.div`
   ${({ theme }) => `
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: ${theme.sizeUnit * 2}px;
   `}
 `;
@@ -82,9 +102,10 @@ const SizeGrid = styled.div`
 const SizeCard = styled.div`
   ${({ theme }) => `
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: ${theme.sizeUnit}px;
-    padding: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px;
     background: ${theme.colorBgLayout};
     border-radius: ${theme.borderRadius}px;
   `}
@@ -153,21 +174,22 @@ export default function FolderInfoModal({
 
   const breakdown = details?.asset_breakdown;
   const totalAssets =
-    (details?.asset_count ?? 0) + (details?.children_count ?? 0);
+    (breakdown?.dashboards ?? 0) +
+    (breakdown?.charts ?? 0) +
+    (breakdown?.subfolders ?? 0);
 
   return (
-    <StandardModal
+    <StyledInfoModal
       title={details?.name ?? t('Folder Information')}
-      icon={<Icons.FolderOutlined />}
       show={show}
       onHide={onHide}
       onSave={onHide}
       saveText={t('Close')}
       contentLoading={loading}
-      width={500}
+      width={480}
     >
       {details && (
-        <>
+        <ModalContent>
           {details.description && (
             <InfoSection>
               <InfoLabel>{t('Description')}</InfoLabel>
@@ -178,16 +200,14 @@ export default function FolderInfoModal({
           <InfoSection>
             <InfoLabel>{t('Created by')}</InfoLabel>
             <InfoValue>
-              {formatUser(details.created_by)} —{' '}
-              {formatDate(details.created_on)}
+              {formatUser(details.created_by)} — {formatDate(details.created_on)}
             </InfoValue>
           </InfoSection>
 
           <InfoSection>
             <InfoLabel>{t('Last modified by')}</InfoLabel>
             <InfoValue>
-              {formatUser(details.changed_by)} —{' '}
-              {formatDate(details.changed_on)}
+              {formatUser(details.changed_by)} — {formatDate(details.changed_on)}
             </InfoValue>
           </InfoSection>
 
@@ -196,32 +216,26 @@ export default function FolderInfoModal({
             <SizeGrid>
               <SizeCard>
                 <Icons.LayoutOutlined iconSize="l" />
-                <div>
-                  <SizeNumber>{breakdown?.dashboards ?? 0}</SizeNumber>{' '}
-                  <SizeLabel>{t('Dashboards')}</SizeLabel>
-                </div>
+                <SizeNumber>{breakdown?.dashboards ?? 0}</SizeNumber>
+                <SizeLabel>{t('Dashboards')}</SizeLabel>
               </SizeCard>
               <SizeCard>
                 <Icons.LineChartOutlined iconSize="l" />
-                <div>
-                  <SizeNumber>{breakdown?.charts ?? 0}</SizeNumber>{' '}
-                  <SizeLabel>{t('Charts')}</SizeLabel>
-                </div>
+                <SizeNumber>{breakdown?.charts ?? 0}</SizeNumber>
+                <SizeLabel>{t('Charts')}</SizeLabel>
               </SizeCard>
               <SizeCard>
                 <Icons.FolderOutlined iconSize="l" />
-                <div>
-                  <SizeNumber>{details.children_count}</SizeNumber>{' '}
-                  <SizeLabel>{t('Subfolders')}</SizeLabel>
-                </div>
+                <SizeNumber>{breakdown?.subfolders ?? 0}</SizeNumber>
+                <SizeLabel>{t('Subfolders')}</SizeLabel>
               </SizeCard>
             </SizeGrid>
             <TotalRow>
-              {t('Total')}: {totalAssets} {t('assets')}
+              {t('Total: %s assets', totalAssets)}
             </TotalRow>
           </InfoSection>
-        </>
+        </ModalContent>
       )}
-    </StandardModal>
+    </StyledInfoModal>
   );
 }
