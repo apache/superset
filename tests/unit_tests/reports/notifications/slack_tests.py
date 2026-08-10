@@ -550,6 +550,104 @@ def test_slack_mixin_get_body_truncates_large_table(
     assert "(table was truncated)" in body
 
 
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_slackv2_body_omits_cta_when_include_cta_is_false(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    flask_global_mock.logs_context = {}
+    content = NotificationContent(
+        name="test alert",
+        header_data=mock_header_data,
+        description="desc",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+    )
+    notification = SlackV2Notification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACKV2,
+            recipient_config_json='{"target": "some_channel"}',
+        ),
+        content=content,
+    )
+    body = notification._get_body(content=content)
+    assert "Explore in Superset" not in body
+    assert "http://example.com/superset/dashboard/1/" not in body
+    assert "*test alert*" in body
+    assert "desc" in body
+
+
+@patch("superset.reports.notifications.slack.g")
+@patch("superset.reports.notifications.slack.get_slack_client")
+def test_slack_body_omits_cta_when_include_cta_is_false(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.slack import SlackNotification
+
+    flask_global_mock.logs_context = {}
+    content = NotificationContent(
+        name="test alert",
+        header_data=mock_header_data,
+        description="desc",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+    )
+    notification = SlackNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACK,
+            recipient_config_json='{"target": "some_channel"}',
+        ),
+        content=content,
+    )
+    body = notification._get_body(content=content)
+    assert "Explore in Superset" not in body
+    assert "http://example.com/superset/dashboard/1/" not in body
+    assert "*test alert*" in body
+    assert "desc" in body
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_slack_mixin_truncated_body_omits_cta_when_include_cta_is_false(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    flask_global_mock.logs_context = {}
+    # Create a large DataFrame that exceeds the 4000-char message limit
+    large_df = pd.DataFrame({"col_" + str(i): range(100) for i in range(10)})
+    content = NotificationContent(
+        name="test",
+        header_data=mock_header_data,
+        embedded_data=large_df,
+        description="desc",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+    )
+    notification = SlackV2Notification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACKV2,
+            recipient_config_json='{"target": "some_channel"}',
+        ),
+        content=content,
+    )
+    body = notification._get_body(content=content)
+    assert "(table was truncated)" in body
+    assert "Explore in Superset" not in body
+
+
 # ---------------------------------------------------------------------------
 # Bulletproof v2 send-path coverage
 #

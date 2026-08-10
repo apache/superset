@@ -126,6 +126,7 @@ export function OAuth2RedirectMessage({
             { type: 'Schemas', id: 'LIST' },
             { type: 'Catalogs', id: 'LIST' },
             'Tables',
+            'TableMetadatas',
           ]),
         );
       } else {
@@ -199,6 +200,7 @@ export function OAuth2RedirectMessage({
       message={subtitle}
       type={level}
       description={body}
+      descriptionPre={false}
       closable={closable}
     />
   );

@@ -41,11 +41,16 @@ from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
 
 from superset.extensions import machine_auth_provider_factory
+from superset.utils.report_execution import (
+    ReportExecutionContext,
+)
 from superset.utils.retries import retry_call
 from superset.utils.screenshot_utils import (
     CHART_CONTAINER_READY_JS,
+    CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
     FIND_CHART_HOLDER_STATES_JS,
+    REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
     ScreenshotTaskBudgetExceededError,
     take_tiled_screenshot,
@@ -217,6 +222,7 @@ class WebDriverProxy(ABC):
         element_name: str,
         user: User | None = None,
         log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
         """
         Run webdriver and return a screenshot
@@ -234,14 +240,17 @@ class WebDriverPlaywright(WebDriverProxy):
         )
 
     @staticmethod
-    def find_unexpected_errors(page: Page) -> list[str]:
+    def find_unexpected_errors(page: Page, log_context: str | None = None) -> list[str]:
         error_messages = []
+        context_suffix = f" [{log_context}]" if log_context else ""
 
         try:
             alert_divs = page.get_by_role("alert").all()
 
             logger.debug(
-                "%i alert elements have been found in the screenshot", len(alert_divs)
+                "%i alert elements have been found in the screenshot%s",
+                len(alert_divs),
+                context_suffix,
             )
 
             for alert_div in alert_divs:
@@ -271,27 +280,39 @@ class WebDriverPlaywright(WebDriverProxy):
                         [error_as_html],
                     )
                 except PlaywrightError:
-                    logger.exception("Failed to update error messages using alert_div")
+                    logger.exception(
+                        "Failed to update error messages using alert_div%s",
+                        context_suffix,
+                    )
         except PlaywrightError:
-            logger.exception("Failed to capture unexpected errors")
+            logger.exception("Failed to capture unexpected errors%s", context_suffix)
 
         return error_messages
 
     @staticmethod
-    def _get_screenshot(page: Page, element: Locator, element_name: str) -> bytes:
+    def _get_screenshot(
+        page: Page,
+        element: Locator,
+        element_name: str,
+        timeout_seconds: float | None = None,
+    ) -> bytes:
+        timeout_kwargs = (
+            {"timeout": timeout_seconds * 1000} if timeout_seconds is not None else {}
+        )
         if element_name == "standalone":
-            return page.screenshot(full_page=True)
+            return page.screenshot(full_page=True, **timeout_kwargs)
         else:
-            return element.screenshot()
+            return element.screenshot(**timeout_kwargs)
 
     @staticmethod
-    def _wait_for_charts_ready(
+    def _wait_for_charts_ready(  # noqa: C901
         page: Page,
         url: str,
         load_wait: int,
         element_name: str,
         log_context: str | None = None,
         screenshot_started_at: float | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> None:
         """
         Wait for every viewport-visible chart holder to reach a terminal state
@@ -313,6 +334,10 @@ class WebDriverPlaywright(WebDriverProxy):
         placeholders below the fold haven't mounted anything real yet by
         design and must not block this wait.
         """
+        task_budget: float | None
+        remaining_budget: float | None
+        if report_execution_context:
+            log_context = report_execution_context.log_context
         context_suffix = f" [{log_context}]" if log_context else ""
         ready_states = {"rendered", "empty", "error", "virtualized"}
         initial_chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
@@ -321,16 +346,47 @@ class WebDriverPlaywright(WebDriverProxy):
             for holder in initial_chart_holder_states
             if holder.get("state") not in ready_states
         ]
-        logger.debug(
-            "Chart holder states before readiness polling at url %s%s: %s",
+        expected_holders = (
+            report_execution_context.expected_chart_count
+            if report_execution_context
+            else None
+        )
+        initial_mounted_holders = len(initial_chart_holder_states)
+        initial_ready_holders = sum(
+            holder.get("state") in ready_states
+            for holder in initial_chart_holder_states
+        )
+        deadline = (
+            report_execution_context.deadline if report_execution_context else None
+        )
+        deadline_elapsed = deadline.elapsed_seconds if deadline else None
+        deadline_remaining = deadline.remaining_seconds if deadline else None
+        logger.info(
+            "report_readiness_poll url=%s expected_holders=%s mounted_holders=%s "
+            "ready_holders=%s elapsed_seconds=%s remaining_seconds=%s%s states=%s",
             url,
+            expected_holders,
+            initial_mounted_holders,
+            initial_ready_holders,
+            f"{deadline_elapsed:.2f}" if deadline_elapsed is not None else None,
+            f"{deadline_remaining:.2f}" if deadline_remaining is not None else None,
             context_suffix,
             initial_chart_holder_states,
         )
         if element_name == "standalone" and not initial_chart_holder_states:
-            logger.warning(
-                "dashboard capture proceeding with zero chart holders — "
-                "readiness gate inactive"
+            logger.info(
+                "report_readiness_waiting_for_mount url=%s expected_holders=%s "
+                "mounted_holders=0 ready_holders=0 elapsed_seconds=%s "
+                "remaining_seconds=%s%s",
+                url,
+                expected_holders,
+                f"{deadline_elapsed:.2f}" if deadline_elapsed is not None else None,
+                (
+                    f"{deadline_remaining:.2f}"
+                    if deadline_remaining is not None
+                    else None
+                ),
+                context_suffix,
             )
         if initial_unready_chart_holders:
             logger.info(
@@ -339,36 +395,47 @@ class WebDriverPlaywright(WebDriverProxy):
                 context_suffix,
                 initial_unready_chart_holders,
             )
-        task_budget = resolve_screenshot_task_budget_seconds(log_context)
-        elapsed = (
-            max(0.0, time.monotonic() - screenshot_started_at)
-            if task_budget is not None and screenshot_started_at is not None
-            else 0.0
-        )
-        remaining_budget = task_budget - elapsed if task_budget is not None else None
-        effective_load_wait = (
-            min(float(load_wait), remaining_budget)
-            if remaining_budget is not None
-            else float(load_wait)
-        )
-        if remaining_budget is not None and effective_load_wait <= 0:
-            logger.warning(
-                "Screenshot task budget exhausted before chart readiness wait "
-                "at url %s%s (%.2fs elapsed of %.2fs safe budget); unready chart "
-                "holders (chart id, state): %s; all chart holder states: %s. "
-                "Aborting before capture so cleanup and cache error transition "
-                "can complete.",
-                url,
-                context_suffix,
-                elapsed,
-                task_budget,
-                initial_unready_chart_holders,
-                initial_chart_holder_states,
+        if report_execution_context:
+            effective_load_wait = report_execution_context.deadline.timeout_seconds(
+                "chart_readiness",
+                reserve_seconds=report_execution_context.readiness_reserve_seconds,
             )
-            raise ScreenshotTaskBudgetExceededError(
-                f"Screenshot task budget of {task_budget:.2f}s exhausted "
-                "before chart readiness"
+            task_budget = report_execution_context.deadline.total_seconds
+            elapsed = report_execution_context.deadline.elapsed_seconds
+            remaining_budget = report_execution_context.deadline.remaining_seconds
+        else:
+            task_budget = resolve_screenshot_task_budget_seconds(log_context)
+            elapsed = (
+                max(0.0, time.monotonic() - screenshot_started_at)
+                if task_budget is not None and screenshot_started_at is not None
+                else 0.0
             )
+            remaining_budget = (
+                task_budget - elapsed if task_budget is not None else None
+            )
+            effective_load_wait = (
+                min(float(load_wait), remaining_budget)
+                if remaining_budget is not None
+                else float(load_wait)
+            )
+            if remaining_budget is not None and effective_load_wait <= 0:
+                logger.warning(
+                    "Screenshot task budget exhausted before chart readiness wait "
+                    "at url %s%s (%.2fs elapsed of %.2fs safe budget); unready chart "
+                    "holders (chart id, state): %s; all chart holder states: %s. "
+                    "Aborting before capture so cleanup and cache error transition "
+                    "can complete.",
+                    url,
+                    context_suffix,
+                    elapsed,
+                    task_budget,
+                    initial_unready_chart_holders,
+                    initial_chart_holder_states,
+                )
+                raise ScreenshotTaskBudgetExceededError(
+                    f"Screenshot task budget of {task_budget:.2f}s exhausted "
+                    "before chart readiness"
+                )
         logger.debug(
             "Waiting for all chart holders to reach a terminal state at "
             "url: %s (SCREENSHOT_LOAD_WAIT=%ss, effective_wait=%.2fs, "
@@ -380,40 +447,125 @@ class WebDriverPlaywright(WebDriverProxy):
             elapsed,
             context_suffix,
         )
-        readiness_predicate = (
-            CHART_CONTAINER_READY_JS
-            if element_name == "chart-container"
-            else CHART_HOLDERS_READY_JS
-        )
+        if element_name == "chart-container":
+            readiness_predicate = CHART_CONTAINER_READY_JS
+        elif report_execution_context:
+            readiness_predicate = REPORT_CHART_HOLDERS_READY_JS
+        else:
+            # Preserve the thumbnail behavior introduced by #42253. The
+            # stricter zero-holder gate is report-specific because an empty
+            # dashboard thumbnail is still a valid cache artifact.
+            readiness_predicate = CHART_HOLDERS_READY_JS
         try:
             page.wait_for_function(
                 readiness_predicate,
                 timeout=effective_load_wait * 1000,
             )
         except PlaywrightTimeout:
+            if element_name == "chart-container":
+                # Chart captures have no dashboard grid holders; the holder
+                # counters below would read as vacuous zeros. Log the actual
+                # `.chart-container` state instead.
+                logger.warning(
+                    "report_readiness_terminal url=%s target=chart-container "
+                    "container_state=%s elapsed_seconds=%.2f "
+                    "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                    "terminal_reason=readiness_timeout; "
+                    "aborting before capture or delivery",
+                    url,
+                    page.evaluate(CHART_CONTAINER_STATE_JS),
+                    deadline.elapsed_seconds if deadline else elapsed,
+                    (
+                        f"{deadline.remaining_seconds:.2f}"
+                        if deadline
+                        else (
+                            f"{remaining_budget:.2f}"
+                            if remaining_budget is not None
+                            else None
+                        )
+                    ),
+                    effective_load_wait,
+                    context_suffix,
+                )
+                raise
             chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
             unready_chart_holders = [
                 holder
                 for holder in chart_holder_states
                 if holder.get("state") not in ready_states
             ]
+            mounted_holders = len(chart_holder_states)
+            ready_holders = sum(
+                holder.get("state") in ready_states for holder in chart_holder_states
+            )
+            deadline_elapsed = deadline.elapsed_seconds if deadline else elapsed
+            deadline_remaining = (
+                deadline.remaining_seconds if deadline else remaining_budget
+            )
             logger.warning(
-                "Timed out waiting for %s chart container(s) to become ready "
-                "at url %s (SCREENSHOT_LOAD_WAIT=%ss, effective_wait=%.2fs)%s; "
-                "unready chart "
-                "holders (chart id, state): %s; all chart holder states: %s. "
-                "Aborting screenshot rather "
-                "than capturing a blank or partially-loaded dashboard.",
-                len(unready_chart_holders),
+                "report_readiness_terminal url=%s expected_holders=%s "
+                "mounted_holders=%s ready_holders=%s elapsed_seconds=%.2f "
+                "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                "terminal_reason=readiness_timeout unready_holders=%s states=%s; "
+                "aborting before capture or delivery",
                 url,
-                load_wait,
+                expected_holders,
+                mounted_holders,
+                ready_holders,
+                deadline_elapsed,
+                (
+                    f"{deadline_remaining:.2f}"
+                    if deadline_remaining is not None
+                    else None
+                ),
                 effective_load_wait,
                 context_suffix,
                 unready_chart_holders,
                 chart_holder_states,
             )
             raise
-        logger.debug("All chart holders ready at url: %s%s", url, context_suffix)
+        if element_name == "chart-container":
+            # Chart captures have no dashboard grid holders; the holder
+            # counters below would read as vacuous zeros. Log the actual
+            # `.chart-container` state instead.
+            logger.info(
+                "report_readiness_ready url=%s target=chart-container "
+                "container_state=%s elapsed_seconds=%.2f remaining_seconds=%s%s",
+                url,
+                page.evaluate(CHART_CONTAINER_STATE_JS),
+                deadline.elapsed_seconds if deadline else elapsed,
+                (
+                    f"{deadline.remaining_seconds:.2f}"
+                    if deadline
+                    else (
+                        f"{remaining_budget:.2f}"
+                        if remaining_budget is not None
+                        else None
+                    )
+                ),
+                context_suffix,
+            )
+            return
+        chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+        mounted_holders = len(chart_holder_states)
+        ready_holders = sum(
+            holder.get("state") in ready_states for holder in chart_holder_states
+        )
+        deadline_elapsed = deadline.elapsed_seconds if deadline else elapsed
+        deadline_remaining = (
+            deadline.remaining_seconds if deadline else remaining_budget
+        )
+        logger.info(
+            "report_readiness_ready url=%s expected_holders=%s mounted_holders=%s "
+            "ready_holders=%s elapsed_seconds=%.2f remaining_seconds=%s%s",
+            url,
+            expected_holders,
+            mounted_holders,
+            ready_holders,
+            deadline_elapsed,
+            (f"{deadline_remaining:.2f}" if deadline_remaining is not None else None),
+            context_suffix,
+        )
 
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self,
@@ -421,14 +573,23 @@ class WebDriverPlaywright(WebDriverProxy):
         element_name: str,
         user: User | None = None,
         log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
         screenshot_started_at = time.monotonic()
+        if report_execution_context:
+            log_context = report_execution_context.log_context
+            report_execution_context.deadline.available_seconds(
+                "browser_setup",
+                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+            )
+        context_suffix = f" [{log_context}]" if log_context else ""
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
                 "Playwright not available - falling back to Selenium. "
                 "Note: WebGL/Canvas charts may not render correctly with Selenium. "
-                "%s",
+                "%s%s",
                 PLAYWRIGHT_INSTALL_MESSAGE,
+                context_suffix,
             )
             return None
 
@@ -452,45 +613,114 @@ class WebDriverPlaywright(WebDriverProxy):
         img: bytes | None = None
         try:
             try:
+                navigation_timeout = (
+                    report_execution_context.deadline.timeout_seconds(
+                        "browser_navigation",
+                        reserve_seconds=(
+                            report_execution_context.readiness_reserve_seconds
+                        ),
+                    )
+                    if report_execution_context
+                    else None
+                )
                 page.goto(
                     url,
                     wait_until=app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                    **(
+                        {"timeout": navigation_timeout * 1000}
+                        if navigation_timeout is not None
+                        else {}
+                    ),
                 )
             except PlaywrightTimeout:
                 logger.exception(
-                    "Web event %s not detected. Page %s might not have been fully loaded",  # noqa: E501
+                    "Web event %s not detected. Page %s might not have been fully loaded%s",  # noqa: E501
                     app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                     url,
+                    context_suffix,
                 )
 
             selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
-            logger.debug("Sleeping for %i seconds", selenium_headstart)
+            if report_execution_context:
+                selenium_headstart = min(
+                    selenium_headstart,
+                    report_execution_context.deadline.available_seconds(
+                        "browser_headstart",
+                        reserve_seconds=(
+                            report_execution_context.readiness_reserve_seconds
+                        ),
+                    ),
+                )
+            logger.debug(
+                "Sleeping for %i seconds%s", selenium_headstart, context_suffix
+            )
             page.wait_for_timeout(selenium_headstart * 1000)
             element: Locator
             try:
                 try:
                     # page didn't load
                     logger.debug(
-                        "Wait for the presence of %s at url: %s", element_name, url
+                        "Wait for the presence of %s at url: %s%s",
+                        element_name,
+                        url,
+                        context_suffix,
                     )
                     element = page.locator(f".{element_name}")
-                    element.wait_for()
+                    element_wait_timeout = (
+                        report_execution_context.deadline.timeout_seconds(
+                            "dashboard_mount",
+                            reserve_seconds=(
+                                report_execution_context.readiness_reserve_seconds
+                            ),
+                        )
+                        if report_execution_context
+                        else None
+                    )
+                    element.wait_for(
+                        **(
+                            {"timeout": element_wait_timeout * 1000}
+                            if element_wait_timeout is not None
+                            else {}
+                        )
+                    )
                 except PlaywrightTimeout:
-                    logger.exception("Timed out requesting url %s", url)
+                    logger.exception(
+                        "Timed out requesting url %s%s", url, context_suffix
+                    )
                     raise
 
                 slice_container_elems: list[Locator] = []
                 rendered_chart_count = 0
                 try:
                     # chart containers didn't render
-                    logger.debug("Wait for chart containers to draw at url: %s", url)
+                    logger.debug(
+                        "Wait for chart containers to draw at url: %s%s",
+                        url,
+                        context_suffix,
+                    )
                     slice_container_locator = page.locator(".chart-container")
                     # One-time snapshot: containers mounting after this point
                     # are neither waited on nor counted, so the progress
                     # numbers below describe the snapshot, not the final DOM.
                     slice_container_elems = slice_container_locator.all()
                     for slice_container_elem in slice_container_elems:
-                        slice_container_elem.wait_for()
+                        slice_wait_timeout = (
+                            report_execution_context.deadline.timeout_seconds(
+                                "chart_mount",
+                                reserve_seconds=(
+                                    report_execution_context.readiness_reserve_seconds
+                                ),
+                            )
+                            if report_execution_context
+                            else None
+                        )
+                        slice_container_elem.wait_for(
+                            **(
+                                {"timeout": slice_wait_timeout * 1000}
+                                if slice_wait_timeout is not None
+                                else {}
+                            )
+                        )
                         rendered_chart_count += 1
                 except PlaywrightTimeout:
                     # Customer-side chart loading is often just slow, not a
@@ -499,10 +729,11 @@ class WebDriverPlaywright(WebDriverProxy):
                     # it still fails the screenshot; see the `raise` below.
                     logger.warning(
                         "Timed out waiting for chart containers to draw at url %s "
-                        "(%s of %s chart containers rendered before the timeout)",
+                        "(%s of %s chart containers rendered before the timeout)%s",
                         url,
                         rendered_chart_count,
                         len(slice_container_elems),
+                        context_suffix,
                         exc_info=True,
                     )
                     raise
@@ -510,20 +741,32 @@ class WebDriverPlaywright(WebDriverProxy):
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
                 ]
                 if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
-                    unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
+                    unexpected_errors = WebDriverPlaywright.find_unexpected_errors(
+                        page, log_context=log_context
+                    )
                     if unexpected_errors:
                         logger.warning(
-                            "%i errors found in the screenshot. URL: %s. Errors are: %s",  # noqa: E501
+                            "%i errors found in the screenshot. URL: %s. Errors are: %s%s",  # noqa: E501
                             len(unexpected_errors),
                             url,
                             unexpected_errors,
+                            context_suffix,
                         )
                 # Detect large dashboards and use tiled screenshots if enabled
                 tiled_enabled = app.config.get("SCREENSHOT_TILED_ENABLED", False)
 
                 if tiled_enabled:
-                    chart_count = page.evaluate(
+                    mounted_chart_count = page.evaluate(
                         'document.querySelectorAll(".chart-container").length'
+                    )
+                    expected_chart_count = (
+                        report_execution_context.expected_chart_count
+                        if report_execution_context
+                        else None
+                    )
+                    chart_count = max(
+                        mounted_chart_count,
+                        expected_chart_count or 0,
                     )
                     dashboard_height = page.evaluate(
                         f"""() => {{
@@ -560,13 +803,14 @@ class WebDriverPlaywright(WebDriverProxy):
                         )
                         log_fn(
                             "Could not determine dashboard height for element %s "
-                            "at url %s (%s chart containers found); %s",
+                            "at url %s (%s chart containers found); %s%s",
                             element_name,
                             url,
                             chart_count,
                             "attempting tiled screenshot anyway"
                             if likely_large_dashboard
                             else "falling back to standard screenshot behavior",
+                            context_suffix,
                         )
 
                     # Use tiled screenshots for large dashboards
@@ -576,10 +820,15 @@ class WebDriverPlaywright(WebDriverProxy):
 
                     if use_tiled:
                         logger.info(
-                            "Large dashboard detected: %s charts, %spx height. "
-                            "Using tiled screenshots.",
+                            "Large dashboard detected: expected_charts=%s "
+                            "mounted_chart_containers=%s effective_chart_count=%s "
+                            "height_px=%s url=%s%s; using tiled screenshots",
+                            expected_chart_count,
+                            mounted_chart_count,
                             chart_count,
                             dashboard_height,
+                            url,
+                            f" [{log_context}]" if log_context else "",
                         )
                         # set viewport height to tile height for easier calculations
                         page.set_viewport_size(
@@ -592,6 +841,9 @@ class WebDriverPlaywright(WebDriverProxy):
                             load_wait=self._screenshot_load_wait,
                             animation_wait=selenium_animation_wait,
                             log_context=log_context,
+                            report_execution_context=report_execution_context,
+                            url=url,
+                            screenshot_started_at=screenshot_started_at,
                         )
                         if not img:
                             # _get_screenshot() has no wait/readiness logic at
@@ -599,28 +851,35 @@ class WebDriverPlaywright(WebDriverProxy):
                             # silently delivering a screenshot of spinners or
                             # a blank dashboard. Fail the capture loudly
                             # (report error, thumbnail cache ERROR) instead of
-                            # guessing at a "safer" fallback.
+                            # guessing at a "safer" fallback (#42273) -- for
+                            # thumbnails too, since the caller treats the
+                            # raise as a clean cache-ERROR, never caching or
+                            # serving a blank.
                             logger.warning(
-                                "Tiled screenshot failed for url %s and no "
-                                "safe fallback exists; failing the capture",
+                                "Tiled screenshot failed for url %s%s and no safe "
+                                "fallback exists; "
+                                "terminal_reason=tiled_capture_failed",
                                 url,
+                                f" [{log_context}]" if log_context else "",
                             )
                             raise PlaywrightTimeout(
                                 f"Tiled screenshot failed for url {url}"
                             )
                         logger.debug(
-                            "Tiled screenshot result: %d bytes for url: %s",
+                            "Tiled screenshot result: %d bytes for url: %s%s",
                             len(img),
                             url,
+                            context_suffix,
                         )
                     else:
                         logger.debug(
                             "Dashboard below tiling threshold "
                             "(%s charts, %spx height); using standard screenshot "
-                            "for url: %s",
+                            "for url: %s%s",
                             chart_count,
                             dashboard_height,
                             url,
+                            context_suffix,
                         )
                         # Standard screenshot captures the full element including
                         # below-the-fold content, so wait for all viewport-visible
@@ -632,31 +891,59 @@ class WebDriverPlaywright(WebDriverProxy):
                             element_name,
                             log_context=log_context,
                             screenshot_started_at=screenshot_started_at,
+                            report_execution_context=report_execution_context,
                         )
                         if selenium_animation_wait > 0:
+                            if report_execution_context:
+                                selenium_animation_wait = min(
+                                    selenium_animation_wait,
+                                    report_execution_context.deadline.available_seconds(
+                                        "chart_animation",
+                                        reserve_seconds=(
+                                            report_execution_context.readiness_reserve_seconds
+                                        ),
+                                    ),
+                                )
                             logger.debug(
-                                "Wait %i seconds for chart animation",
+                                "Wait %i seconds for chart animation%s",
                                 selenium_animation_wait,
+                                context_suffix,
                             )
                             page.wait_for_timeout(selenium_animation_wait * 1000)
                         logger.debug(
-                            "Taking screenshot of url %s as user %s",
+                            "Taking screenshot of url %s as user %s%s",
                             url,
                             user.username if user else "None",
+                            context_suffix,
+                        )
+                        capture_timeout = (
+                            report_execution_context.deadline.timeout_seconds(
+                                "screenshot_capture",
+                                reserve_seconds=(
+                                    report_execution_context.post_capture_reserve_seconds
+                                ),
+                            )
+                            if report_execution_context
+                            else None
                         )
                         img = WebDriverPlaywright._get_screenshot(
-                            page, element, element_name
+                            page,
+                            element,
+                            element_name,
+                            timeout_seconds=capture_timeout,
                         )
                         logger.debug(
-                            "Screenshot result: %d bytes for url: %s",
+                            "Screenshot result: %d bytes for url: %s%s",
                             len(img) if img else 0,
                             url,
+                            context_suffix,
                         )
                 else:
                     logger.debug(
                         "Tiled screenshots disabled; using standard screenshot "
-                        "for url: %s",
+                        "for url: %s%s",
                         url,
+                        context_suffix,
                     )
                     # Standard screenshot captures the full element including
                     # below-the-fold content, so wait for all viewport-visible
@@ -668,32 +955,61 @@ class WebDriverPlaywright(WebDriverProxy):
                         element_name,
                         log_context=log_context,
                         screenshot_started_at=screenshot_started_at,
+                        report_execution_context=report_execution_context,
                     )
                     if selenium_animation_wait > 0:
+                        if report_execution_context:
+                            selenium_animation_wait = min(
+                                selenium_animation_wait,
+                                report_execution_context.deadline.available_seconds(
+                                    "chart_animation",
+                                    reserve_seconds=(
+                                        report_execution_context.readiness_reserve_seconds
+                                    ),
+                                ),
+                            )
                         logger.debug(
-                            "Wait %i seconds for chart animation",
+                            "Wait %i seconds for chart animation%s",
                             selenium_animation_wait,
+                            context_suffix,
                         )
                         page.wait_for_timeout(selenium_animation_wait * 1000)
                     logger.debug(
-                        "Taking screenshot of url %s as user %s",
+                        "Taking screenshot of url %s as user %s%s",
                         url,
                         user.username if user else "None",
+                        context_suffix,
+                    )
+                    capture_timeout = (
+                        report_execution_context.deadline.timeout_seconds(
+                            "screenshot_capture",
+                            reserve_seconds=(
+                                report_execution_context.post_capture_reserve_seconds
+                            ),
+                        )
+                        if report_execution_context
+                        else None
                     )
                     img = WebDriverPlaywright._get_screenshot(
-                        page, element, element_name
+                        page,
+                        element,
+                        element_name,
+                        timeout_seconds=capture_timeout,
                     )
                     logger.debug(
-                        "Screenshot result: %d bytes for url: %s",
+                        "Screenshot result: %d bytes for url: %s%s",
                         len(img) if img else 0,
                         url,
+                        context_suffix,
                     )
 
             except PlaywrightTimeout:
                 raise
             except PlaywrightError:
                 logger.exception(
-                    "Encountered an unexpected error when requesting url %s", url
+                    "Encountered an unexpected error when requesting url %s%s",
+                    url,
+                    context_suffix,
                 )
         finally:
             context.close()
@@ -897,13 +1213,18 @@ class WebDriverSelenium(WebDriverProxy):
         self._driver = None
 
     @staticmethod
-    def find_unexpected_errors(driver: WebDriver) -> list[str]:
+    def find_unexpected_errors(
+        driver: WebDriver, log_context: str | None = None
+    ) -> list[str]:
         error_messages = []
+        context_suffix = f" [{log_context}]" if log_context else ""
 
         try:
             alert_divs = driver.find_elements(By.XPATH, "//div[@role = 'alert']")
             logger.debug(
-                "%i alert elements have been found in the screenshot", len(alert_divs)
+                "%i alert elements have been found in the screenshot%s",
+                len(alert_divs),
+                context_suffix,
             )
 
             for alert_div in alert_divs:
@@ -946,9 +1267,12 @@ class WebDriverSelenium(WebDriverProxy):
                         f"arguments[0].innerHTML = '{error_as_html}'", alert_div
                     )
                 except WebDriverException:
-                    logger.exception("Failed to update error messages using alert_div")
+                    logger.exception(
+                        "Failed to update error messages using alert_div%s",
+                        context_suffix,
+                    )
         except WebDriverException:
-            logger.exception("Failed to capture unexpected errors")
+            logger.exception("Failed to capture unexpected errors%s", context_suffix)
 
         return error_messages
 
@@ -958,7 +1282,26 @@ class WebDriverSelenium(WebDriverProxy):
         element_name: str,
         user: User | None = None,
         log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
+        if report_execution_context:
+            log_context = report_execution_context.log_context
+
+        def phase_timeout(
+            phase: str,
+            requested_seconds: float | None,
+            reserve_seconds: float = 0.0,
+        ) -> float:
+            if report_execution_context:
+                return report_execution_context.deadline.timeout_seconds(
+                    phase,
+                    requested_seconds=requested_seconds,
+                    reserve_seconds=reserve_seconds,
+                )
+            return float(requested_seconds or self._screenshot_load_wait)
+
+        context_suffix = f" [{log_context}]" if log_context else ""
+
         # If a user is passed explicitly and differs from the stored user,
         # update and re-authenticate
         if user and user != self._user:
@@ -966,10 +1309,27 @@ class WebDriverSelenium(WebDriverProxy):
             if self._driver:
                 self._destroy()
         driver = self.driver
+        if report_execution_context:
+            driver.set_page_load_timeout(
+                phase_timeout(
+                    "browser_navigation",
+                    None,
+                    report_execution_context.readiness_reserve_seconds,
+                )
+            )
         driver.get(url)
         img: bytes | None = None
         selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
-        logger.debug("Sleeping for %i seconds", selenium_headstart)
+        if report_execution_context:
+            selenium_headstart = min(
+                selenium_headstart,
+                phase_timeout(
+                    "browser_headstart",
+                    None,
+                    report_execution_context.readiness_reserve_seconds,
+                ),
+            )
+        logger.debug("Sleeping for %i seconds%s", selenium_headstart, context_suffix)
         sleep(selenium_headstart)
 
         # WebDriver cleanup is intentionally not performed in this method. When the
@@ -980,96 +1340,255 @@ class WebDriverSelenium(WebDriverProxy):
             try:
                 # page didn't load
                 logger.debug(
-                    "Wait for the presence of %s at url: %s", element_name, url
-                )
-                element = WebDriverWait(driver, self._screenshot_locate_wait).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, element_name))
-                )
-            except TimeoutException:
-                logger.warning(
-                    "Selenium timed out requesting url %s", url, exc_info=True
-                )
-                raise
-
-            try:
-                # chart containers didn't render
-                logger.debug("Wait for chart containers to draw at url: %s", url)
-                WebDriverWait(driver, self._screenshot_locate_wait).until(
-                    EC.visibility_of_all_elements_located(
-                        (By.CLASS_NAME, "chart-container")
-                    )
-                )
-            except TimeoutException:
-                logger.info("Timeout Exception caught")
-                # Fallback to allow a screenshot of an empty dashboard
-                try:
-                    WebDriverWait(driver, 0).until(
-                        EC.visibility_of_all_elements_located(
-                            (By.CLASS_NAME, "grid-container")
-                        )
-                    )
-                except Exception:
-                    logger.warning(
-                        "Selenium timed out waiting for dashboard to draw at url %s",
-                        url,
-                        exc_info=True,
-                    )
-                    raise
-
-            try:
-                # charts took too long to load
-                logger.debug(
-                    "Wait for loading element of charts to be gone at url: %s", url
-                )
-                WebDriverWait(driver, self._screenshot_load_wait).until_not(
-                    EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
-                )
-            except TimeoutException:
-                logger.warning(
-                    "Selenium timed out waiting for charts to load at url %s",
+                    "Wait for the presence of %s at url: %s%s",
+                    element_name,
                     url,
+                    context_suffix,
+                )
+                element = WebDriverWait(
+                    driver,
+                    phase_timeout(
+                        "dashboard_mount",
+                        self._screenshot_locate_wait,
+                        (
+                            report_execution_context.readiness_reserve_seconds
+                            if report_execution_context
+                            else 0.0
+                        ),
+                    ),
+                ).until(EC.presence_of_element_located((By.CLASS_NAME, element_name)))
+            except TimeoutException:
+                logger.warning(
+                    "Selenium timed out requesting url %s%s",
+                    url,
+                    context_suffix,
                     exc_info=True,
                 )
                 raise
 
+            if report_execution_context and element_name in {
+                "standalone",
+                "chart-container",
+            }:
+                readiness_predicate = (
+                    REPORT_CHART_HOLDERS_READY_JS
+                    if element_name == "standalone"
+                    else CHART_CONTAINER_READY_JS
+                )
+                readiness_timeout = phase_timeout(
+                    "chart_readiness",
+                    None,
+                    report_execution_context.readiness_reserve_seconds,
+                )
+                try:
+                    WebDriverWait(driver, readiness_timeout).until(
+                        lambda webdriver: webdriver.execute_script(
+                            f"return ({readiness_predicate})()"
+                        )
+                    )
+                    holder_states = (
+                        driver.execute_script(
+                            f"return ({FIND_CHART_HOLDER_STATES_JS})()"
+                        )
+                        if element_name == "standalone"
+                        else [
+                            {
+                                "chartId": report_execution_context.chart_id,
+                                "state": "rendered",
+                            }
+                        ]
+                    )
+                    ready_states = {"rendered", "empty", "error", "virtualized"}
+                    deadline = report_execution_context.deadline
+                    logger.info(
+                        "report_readiness_ready url=%s expected_holders=%s "
+                        "mounted_holders=%s ready_holders=%s elapsed_seconds=%s "
+                        "remaining_seconds=%s%s",
+                        url,
+                        report_execution_context.expected_chart_count,
+                        len(holder_states),
+                        sum(
+                            holder.get("state") in ready_states
+                            for holder in holder_states
+                        ),
+                        f"{deadline.elapsed_seconds:.2f}",
+                        f"{deadline.remaining_seconds:.2f}",
+                        f" [{log_context}]" if log_context else "",
+                    )
+                except TimeoutException:
+                    holder_states = (
+                        driver.execute_script(
+                            f"return ({FIND_CHART_HOLDER_STATES_JS})()"
+                        )
+                        if element_name == "standalone"
+                        else [
+                            {
+                                "chartId": report_execution_context.chart_id,
+                                "state": "not_ready",
+                            }
+                        ]
+                    )
+                    ready_states = {"rendered", "empty", "error", "virtualized"}
+                    ready_holders = sum(
+                        holder.get("state") in ready_states for holder in holder_states
+                    )
+                    deadline = report_execution_context.deadline
+                    logger.warning(
+                        "report_readiness_terminal url=%s expected_holders=%s "
+                        "mounted_holders=%s ready_holders=%s elapsed_seconds=%s "
+                        "remaining_seconds=%s effective_wait_seconds=%.2f%s "
+                        "terminal_reason=readiness_timeout states=%s; "
+                        "aborting before capture or delivery",
+                        url,
+                        report_execution_context.expected_chart_count,
+                        len(holder_states),
+                        ready_holders,
+                        f"{deadline.elapsed_seconds:.2f}",
+                        f"{deadline.remaining_seconds:.2f}",
+                        readiness_timeout,
+                        f" [{log_context}]" if log_context else "",
+                        holder_states,
+                    )
+                    raise
+            else:
+                try:
+                    # chart containers didn't render
+                    logger.debug("Wait for chart containers to draw at url: %s", url)
+                    WebDriverWait(
+                        driver,
+                        phase_timeout(
+                            "chart_mount",
+                            self._screenshot_locate_wait,
+                            (
+                                report_execution_context.readiness_reserve_seconds
+                                if report_execution_context
+                                else 0.0
+                            ),
+                        ),
+                    ).until(
+                        EC.visibility_of_all_elements_located(
+                            (By.CLASS_NAME, "chart-container")
+                        )
+                    )
+                except TimeoutException:
+                    if element_name == "standalone":
+                        logger.info("Timeout Exception caught")
+                        # Preserve support for empty dashboard thumbnails. Report
+                        # dashboards use the positive holder gate above instead.
+                        try:
+                            WebDriverWait(driver, 0).until(
+                                EC.visibility_of_all_elements_located(
+                                    (By.CLASS_NAME, "grid-container")
+                                )
+                            )
+                        except Exception:
+                            logger.warning(
+                                "Selenium timed out waiting for dashboard to draw "
+                                "at url %s",
+                                url,
+                                exc_info=True,
+                            )
+                            raise
+                    else:
+                        logger.warning(
+                            "Selenium timed out waiting for chart to draw at url %s",
+                            url,
+                            exc_info=True,
+                        )
+                        raise
+
+                try:
+                    # charts took too long to load
+                    logger.debug(
+                        "Wait for loading element of charts to be gone at url: %s",
+                        url,
+                    )
+                    WebDriverWait(
+                        driver,
+                        phase_timeout(
+                            "chart_readiness",
+                            self._screenshot_load_wait,
+                            (
+                                report_execution_context.readiness_reserve_seconds
+                                if report_execution_context
+                                else 0.0
+                            ),
+                        ),
+                    ).until_not(
+                        EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
+                    )
+                except TimeoutException:
+                    logger.warning(
+                        "Selenium timed out waiting for charts to load at url %s%s",
+                        url,
+                        context_suffix,
+                        exc_info=True,
+                    )
+                    raise
+
             selenium_animation_wait = app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"]
-            logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
+            if report_execution_context:
+                selenium_animation_wait = min(
+                    selenium_animation_wait,
+                    phase_timeout(
+                        "chart_animation",
+                        None,
+                        report_execution_context.readiness_reserve_seconds,
+                    ),
+                )
+            logger.debug(
+                "Wait %i seconds for chart animation%s",
+                selenium_animation_wait,
+                context_suffix,
+            )
             sleep(selenium_animation_wait)
             logger.debug(
-                "Taking a PNG screenshot of url %s as user %s",
+                "Taking a PNG screenshot of url %s as user %s%s",
                 url,
                 self._user.username if self._user else "None",
+                context_suffix,
             )
 
             if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
-                unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver)
+                unexpected_errors = WebDriverSelenium.find_unexpected_errors(
+                    driver, log_context=log_context
+                )
                 if unexpected_errors:
                     logger.warning(
-                        "%i errors found in the screenshot. URL: %s. Errors are: %s",
+                        "%i errors found in the screenshot. URL: %s. Errors are: %s%s",
                         len(unexpected_errors),
                         url,
                         unexpected_errors,
+                        context_suffix,
                     )
 
+            if report_execution_context:
+                phase_timeout(
+                    "screenshot_capture",
+                    None,
+                    report_execution_context.post_capture_reserve_seconds,
+                )
             img = element.screenshot_as_png
         except TimeoutException:
             # Already logged at WARNING in the inner handlers above
             raise
         except StaleElementReferenceException:
             logger.warning(
-                "Selenium got a stale element while requesting url %s",
+                "Selenium got a stale element while requesting url %s%s",
                 url,
+                context_suffix,
                 exc_info=True,
             )
             raise
         except WebDriverException:
             logger.warning(
-                "Encountered an unexpected error when requesting url %s",
+                "Encountered an unexpected error when requesting url %s%s",
                 url,
+                context_suffix,
                 exc_info=True,
             )
             raise
         except Exception as ex:
-            logger.warning("exception in webdriver", exc_info=ex)
+            logger.warning("exception in webdriver%s", context_suffix, exc_info=ex)
             raise
         return img

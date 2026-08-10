@@ -98,8 +98,23 @@ export function setControlValue(
   controlName: string,
   value: any,
   validationErrors?: any[],
+  options?: {
+    /**
+     * Marks a dispatch that no user gesture produced — effects rewriting
+     * transferred controls, derived values set alongside another control,
+     * and similar. The version-history session log skips these so an
+     * untouched chart never reports unsaved changes the user didn't make.
+     */
+    programmatic?: boolean;
+  },
 ) {
-  return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
+  return {
+    type: SET_FIELD_VALUE,
+    controlName,
+    value,
+    validationErrors,
+    programmatic: options?.programmatic ?? false,
+  };
 }
 
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';

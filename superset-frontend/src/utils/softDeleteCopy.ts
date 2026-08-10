@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { escape } from 'lodash';
+import { escape } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -40,7 +40,8 @@ export interface ToastContent {
  */
 export function getSoftDeleteRetentionDays(): number {
   const conf = getBootstrapData()?.common?.conf as
-    Record<string, unknown> | undefined;
+    | Record<string, unknown>
+    | undefined;
   const raw = conf?.SOFT_DELETE_RETENTION_DAYS;
   if (raw === undefined || raw === null) {
     return 0;

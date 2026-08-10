@@ -46,32 +46,36 @@ const ButtonsContainer = styled.div<{ isVertical: boolean }>`
   ${({ theme, isVertical }) => css`
     display: flex;
 
-    ${isVertical
-      ? css`
-          flex-direction: column;
-          align-items: center;
-          position: sticky;
-          z-index: 100;
-          bottom: 0;
-          padding: ${theme.sizeUnit * 4}px;
-          padding-top: ${theme.sizeUnit * 6}px;
-          background: linear-gradient(
-            ${tinycolor(theme.colorBgLayout).setAlpha(0).toRgbString()},
-            ${theme.colorBgContainer} 20%
-          );
-        `
-      : css`
-          align-items: center;
-          margin-left: auto;
-        `}
+    ${
+      isVertical
+        ? css`
+            flex-direction: column;
+            align-items: center;
+            position: sticky;
+            z-index: 100;
+            bottom: 0;
+            padding: ${theme.sizeUnit * 4}px;
+            padding-top: ${theme.sizeUnit * 6}px;
+            background: linear-gradient(
+              ${tinycolor(theme.colorBgLayout).setAlpha(0).toRgbString()},
+              ${theme.colorBgContainer} 20%
+            );
+          `
+        : css`
+            align-items: center;
+            margin-left: auto;
+          `
+    }
   `}
 `;
 
 const applyButtonStyle = (theme: SupersetTheme, isVertical: boolean) => css`
-  ${isVertical &&
-  css`
-    margin-bottom: ${theme.sizeUnit * 3}px;
-  `}
+  ${
+    isVertical &&
+    css`
+      margin-bottom: ${theme.sizeUnit * 3}px;
+    `
+  }
 `;
 
 const clearAllButtonStyle = (theme: SupersetTheme, isVertical: boolean) => css`
@@ -88,11 +92,13 @@ const clearAllButtonStyle = (theme: SupersetTheme, isVertical: boolean) => css`
       color: ${theme.colorTextDisabled};
     }
 
-    ${!isVertical &&
-    css`
-      text-transform: capitalize;
-      font-weight: ${theme.fontWeightNormal};
-    `}
+    ${
+      !isVertical &&
+      css`
+        text-transform: capitalize;
+        font-weight: ${theme.fontWeightNormal};
+      `
+    }
   }
 `;
 
