@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any, Optional
 
+import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame
 
@@ -25,6 +26,90 @@ from superset.utils.pandas_postprocessing.utils import (
     _get_aggregate_funcs,
     validate_column_args,
 )
+
+_PERCENT_MODES = frozenset({"percent_row", "percent_col", "percent_total"})
+
+
+def _div_preserving_nan(numerator: DataFrame, denominator: Any, axis: int) -> DataFrame:
+    """Divide ``numerator`` by ``denominator``, preserving NaN numerators.
+
+    A genuine SQL NULL numerator must stay NaN (rendered blank) rather than
+    become ``0.0`` — matches the client-side #42810 semantics guarding
+    against measured "0.0%" values for values that should stay blank.
+    """
+    result = numerator.div(denominator, axis=axis)
+    return result.mask(numerator.isna(), other=float("nan"))
+
+
+def _apply_show_values_as(df: DataFrame, mode: str) -> DataFrame:
+    """Divide each metric cell by the appropriate rollup total.
+
+    Mirrors the client-side ``fractionOf`` semantic in
+    ``superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/utilities.ts:739``:
+
+    - ``percent_row``:   cell / row-total     (denominator: sum across the columns axis)
+    - ``percent_col``:   cell / column-total  (denominator: sum across the rows axis)
+    - ``percent_total``: cell / grand-total   (denominator: sum of the whole DataFrame)
+
+    On a multi-metric pivot (``MultiIndex`` columns) the totals are computed
+    *within each metric group* — never across metrics — so per-metric totals
+    stay separate, matching the client's ``metricAxis`` handling which never
+    conflates one metric's numerator with another metric's denominator.
+
+    A zero or NaN denominator produces NaN cells rather than
+    ``Infinity``/``NaN`` from division-by-zero, matching the client's
+    ``if (acc === null) return null`` guard.
+    """
+    is_multi_metric = isinstance(df.columns, pd.MultiIndex)
+
+    if mode == "percent_row":
+        if is_multi_metric:
+            return df.groupby(level=0, axis=1, group_keys=False).apply(
+                lambda g: _div_preserving_nan(
+                    g,
+                    g.sum(axis=PandasAxis.COLUMN, skipna=True).replace(0, float("nan")),
+                    axis=PandasAxis.ROW,
+                )
+            )
+        return _div_preserving_nan(
+            df,
+            df.sum(axis=PandasAxis.COLUMN, skipna=True).replace(0, float("nan")),
+            axis=PandasAxis.ROW,
+        )
+
+    if mode == "percent_col":
+        if is_multi_metric:
+            return df.groupby(level=0, axis=1, group_keys=False).apply(
+                lambda g: _div_preserving_nan(
+                    g,
+                    g.sum(axis=PandasAxis.ROW, skipna=True).replace(0, float("nan")),
+                    axis=PandasAxis.COLUMN,
+                )
+            )
+        return _div_preserving_nan(
+            df,
+            df.sum(axis=PandasAxis.ROW, skipna=True).replace(0, float("nan")),
+            axis=PandasAxis.COLUMN,
+        )
+
+    if mode == "percent_total":
+        if is_multi_metric:
+
+            def _per_metric_total(g: DataFrame) -> DataFrame:
+                grand = g.sum(skipna=True).sum(skipna=True)
+                if pd.isna(grand) or grand == 0:
+                    return g * float("nan")
+                return _div_preserving_nan(g, grand, axis=PandasAxis.ROW)
+
+            return df.groupby(level=0, axis=1, group_keys=False).apply(
+                _per_metric_total
+            )
+        grand = df.sum(skipna=True).sum(skipna=True)
+        if pd.isna(grand) or grand == 0:
+            return df * float("nan")
+        return _div_preserving_nan(df, grand, axis=PandasAxis.ROW)
+
+    return df
 
 
 def _restore_dropped_metric_columns(
@@ -77,7 +162,7 @@ def _restore_dropped_metric_columns(
 
 
 @validate_column_args("index", "columns")
-def pivot(  # pylint: disable=too-many-arguments
+def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
     df: DataFrame,
     index: list[str],
     aggregates: dict[str, dict[str, Any]],
@@ -88,6 +173,7 @@ def pivot(  # pylint: disable=too-many-arguments
     combine_value_with_metric: bool = False,
     marginal_distributions: Optional[bool] = None,
     marginal_distribution_name: Optional[str] = None,
+    show_values_as: Optional[str] = None,
 ) -> DataFrame:
     """
     Perform a pivot operation on a DataFrame.
@@ -111,6 +197,13 @@ def pivot(  # pylint: disable=too-many-arguments
     :param marginal_distributions: Add totals for row/column. Default to False
     :param marginal_distribution_name: Name of row/column with marginal distribution.
            Default to 'All'.
+    :param show_values_as: Optional post-pivot transform that expresses each
+           metric cell as a fraction of the row / column / grand total.
+           One of ``"percent_row"``, ``"percent_col"``, ``"percent_total"`` or
+           ``None`` / ``"actual"`` (no-op, default). Mirrors the pivot chart's
+           client-side ``fractionOf`` semantic so server-side rendering paths
+           (CSV / XLSX exports, scheduled reports) can reproduce the browser
+           output. See #42809.
     :return: A pivot table
     :raises InvalidPostProcessingError: If the request in incorrect
     """
@@ -167,5 +260,16 @@ def pivot(  # pylint: disable=too-many-arguments
         # dropna=False preserves restored all-NaN metric rows that would otherwise
         # be silently dropped by stack's default dropna=True behavior.
         df = df.stack(level=0, dropna=False).unstack()
+
+    if show_values_as and show_values_as != "actual":
+        if show_values_as not in _PERCENT_MODES:
+            raise InvalidPostProcessingError(
+                _(
+                    "Unsupported show_values_as value: %(mode)s. "
+                    "Expected one of: percent_row, percent_col, percent_total, actual.",
+                    mode=show_values_as,
+                )
+            )
+        df = _apply_show_values_as(df, show_values_as)
 
     return df

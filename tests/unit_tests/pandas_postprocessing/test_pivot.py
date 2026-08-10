@@ -446,3 +446,191 @@ def test_pivot_only_entirely_absent_metrics_are_restored():
     assert ("metric_partial", "A") in df.columns
     assert ("metric_partial", "B") not in df.columns
     assert df[("metric_partial", "A")].iloc[0] == 1.0
+
+
+# --- show_values_as regression tests (#42809) --------------------------------
+#
+# ``show_values_as`` expresses each metric cell as a fraction of the row,
+# column, or grand total after pivoting. Mirrors the client-side
+# ``fractionOf`` semantic in
+# ``plugin-chart-pivot-table/src/react-pivottable/utilities.ts:739`` so
+# server-side rendering paths (CSV / XLSX exports, scheduled reports)
+# match the browser output. See #42809.
+#
+# Fixture: a tiny 3-column DataFrame that keeps row/col/grand totals easy
+# to eyeball. Two rows (``r1``, ``r2``), two columns (``c1``, ``c2``),
+# single metric ``v``. Grand total is 100 so every percent-of-total
+# assertion is trivially checkable.
+
+
+def _show_values_as_fixture() -> DataFrame:
+    """Long-format input that pivots to::
+
+              v
+        col   c1   c2
+        row
+        r1    10   20
+        r2    30   40
+
+    row totals: r1=30, r2=70; col totals: c1=40, c2=60; grand=100.
+    """
+    return DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "v": [10, 20, 30, 40],
+        }
+    )
+
+
+def test_pivot_show_values_as_actual_is_noop() -> None:
+    """``show_values_as='actual'`` (and ``None``) leaves values unchanged."""
+    df = _show_values_as_fixture()
+    aggregates = {"v": {"operator": "sum"}}
+    baseline = pivot(df=df, index=["row"], columns=["col"], aggregates=aggregates)
+
+    for mode in (None, "actual"):
+        result = pivot(
+            df=df,
+            index=["row"],
+            columns=["col"],
+            aggregates=aggregates,
+            show_values_as=mode,
+        )
+        pd.testing.assert_frame_equal(result, baseline)
+
+
+def test_pivot_show_values_as_percent_row() -> None:
+    """Each cell = cell / row-total; each row sums to 1.0."""
+    result = pivot(
+        df=_show_values_as_fixture(),
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    # r1: 10/30, 20/30; r2: 30/70, 40/70
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(10 / 30)
+    assert result.loc["r1", ("v", "c2")] == pytest.approx(20 / 30)
+    assert result.loc["r2", ("v", "c1")] == pytest.approx(30 / 70)
+    assert result.loc["r2", ("v", "c2")] == pytest.approx(40 / 70)
+    assert result.sum(axis=1).tolist() == pytest.approx([1.0, 1.0])
+
+
+def test_pivot_show_values_as_percent_col() -> None:
+    """Each cell = cell / column-total; each column sums to 1.0."""
+    result = pivot(
+        df=_show_values_as_fixture(),
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_col",
+    )
+    # c1 total=40: 10/40, 30/40; c2 total=60: 20/60, 40/60
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(10 / 40)
+    assert result.loc["r2", ("v", "c1")] == pytest.approx(30 / 40)
+    assert result.loc["r1", ("v", "c2")] == pytest.approx(20 / 60)
+    assert result.loc["r2", ("v", "c2")] == pytest.approx(40 / 60)
+    assert result.sum(axis=0).tolist() == pytest.approx([1.0, 1.0])
+
+
+def test_pivot_show_values_as_percent_total() -> None:
+    """Each cell = cell / grand-total; the whole frame sums to 1.0."""
+    result = pivot(
+        df=_show_values_as_fixture(),
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_total",
+    )
+    # grand=100: each cell divided by 100
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(0.10)
+    assert result.loc["r1", ("v", "c2")] == pytest.approx(0.20)
+    assert result.loc["r2", ("v", "c1")] == pytest.approx(0.30)
+    assert result.loc["r2", ("v", "c2")] == pytest.approx(0.40)
+    assert result.values.sum() == pytest.approx(1.0)
+
+
+def test_pivot_show_values_as_preserves_nan_numerator() -> None:
+    """A NaN/NULL numerator stays NaN — matches the client-side #42810 guard
+    that a genuine SQL NULL should render blank, not "0.0%"."""
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "v": [10, np.nan, 30, 40],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    # The NaN numerator stays NaN — it did not become 0.0
+    assert pd.isna(result.loc["r1", ("v", "c2")])
+    # The other cells still divide correctly (r1 row total is now just 10)
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(1.0)
+
+
+def test_pivot_show_values_as_percent_total_zero_grand_total_yields_nan() -> None:
+    """Grand total of zero yields NaN cells rather than Infinity — matches the
+    client's ``if (acc === null) return null`` division-by-zero guard."""
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "v": [0, 0, 0, 0],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_total",
+    )
+    # No cell should be Infinity or a real number; all should be NaN.
+    assert result.isna().values.all()
+
+
+def test_pivot_show_values_as_percent_row_multi_metric_keeps_metrics_separate() -> None:
+    """On a multi-metric pivot (``MultiIndex`` columns), per-row totals are
+    computed *within each metric*. Metric A's percentages must sum to 1.0
+    per row independent of metric B's values."""
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "a": [10, 20, 30, 40],
+            "b": [1, 3, 5, 7],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"a": {"operator": "sum"}, "b": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    # Metric ``a``: row totals 30 and 70; each row of ``a`` sums to 1.
+    assert result["a"].sum(axis=1).tolist() == pytest.approx([1.0, 1.0])
+    # Metric ``b``: row totals 4 and 12; each row of ``b`` sums to 1.
+    assert result["b"].sum(axis=1).tolist() == pytest.approx([1.0, 1.0])
+    # Metric ``a`` percentages must not be contaminated by metric ``b`` values.
+    assert result.loc["r1", ("a", "c1")] == pytest.approx(10 / 30)
+    assert result.loc["r1", ("b", "c1")] == pytest.approx(1 / 4)
+
+
+def test_pivot_show_values_as_invalid_mode_raises() -> None:
+    """An unknown ``show_values_as`` value raises ``InvalidPostProcessingError``
+    rather than silently falling through to a no-op."""
+    with pytest.raises(InvalidPostProcessingError):
+        pivot(
+            df=_show_values_as_fixture(),
+            index=["row"],
+            columns=["col"],
+            aggregates={"v": {"operator": "sum"}},
+            show_values_as="percent_of_moon",
+        )
