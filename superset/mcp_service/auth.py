@@ -45,7 +45,7 @@ Configuration:
 """
 
 import logging
-from contextlib import AbstractContextManager, contextmanager, nullcontext
+from contextlib import AbstractContextManager, contextmanager
 from typing import Any, Callable, cast, Generator, TYPE_CHECKING, TypeAlias, TypeVar
 
 from flask import current_app, g, has_app_context, has_request_context
@@ -1029,7 +1029,8 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
 
     When a request context is present, external middleware (e.g.
     Preset's WorkspaceContextMiddleware) has already set ``g.user``
-    on a per-request app context — reuse it via ``nullcontext()``.
+    on a per-request app context — reuse it, but still tag the call
+    with a per-call session token (see ``_request_tool_call_context``).
 
     When only a bare app context exists (no request context), push a
     **new** app context so concurrent tool calls do not share one ``g``
@@ -1038,18 +1039,40 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
     When no context exists at all, push a fresh app context from the
     Flask singleton.
 
-    Pushing a new app context also tags the call with a per-call session
-    token (see session_scope.py) so each tool call gets its own SQLAlchemy
-    session — the app-context teardown would otherwise remove the single
-    greenlet-scoped session shared by all in-flight async calls.
+    Every path tags the call with a per-call session token (see
+    session_scope.py) so each tool call gets its own SQLAlchemy
+    session — otherwise all in-flight async calls on one greenlet
+    share the greenlet-scoped session, and one call's teardown
+    detaches the others' ORM instances.
 
     This is the single source of truth for context selection — called
     from both ``mcp_auth_hook`` (tool execution) and
     ``RBACToolVisibilityMiddleware`` (tools/list filtering).
     """
     if has_request_context():
-        return nullcontext()
+        return _request_tool_call_context()
     return _mcp_tool_call_context()
+
+
+@contextmanager
+def _request_tool_call_context() -> Generator[None, None, None]:
+    """Tag a request-backed tool call with a per-call session token.
+
+    The request context is reused as-is (middleware already populated
+    ``g.user``), so no new app context is pushed — but without the
+    token, concurrent tool calls on the request's greenlet would share
+    the greenlet-scoped SQLAlchemy session, the same race that
+    ``_mcp_tool_call_context()`` prevents on the no-request path.
+    """
+    token = _mcp_session_token.set(object())
+    try:
+        yield
+    finally:
+        # Deregister this call's session while the token still resolves
+        # the registry to it; the request's own greenlet-scoped session
+        # is left for the request lifecycle to tear down.
+        _remove_session_safe()
+        _mcp_session_token.reset(token)
 
 
 @contextmanager

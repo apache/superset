@@ -36,13 +36,12 @@ from superset.mcp_service.session_scope import (
     mcp_session_scopefunc,
 )
 
-# NOTE: these tests enter tool-call contexts via _mcp_tool_call_context()
-# directly rather than _get_app_context_manager(). The latter returns a
-# nullcontext() whenever a request context is active, which would skip the
-# per-call session token entirely — and earlier tests in the full unit-test
-# run can leak a request context into the worker process (e.g.
-# tests/unit_tests/sql_lab_test.py pushes one and never pops it), making
-# the outcome depend on suite ordering rather than on the code under test.
+# NOTE: most tests enter tool-call contexts via _mcp_tool_call_context()
+# directly rather than _get_app_context_manager(). The latter consults
+# Flask state (request/app context) to pick a context manager, while these
+# tests exercise the token mechanics in isolation. Request-backed tool
+# calls go through _request_tool_call_context(), covered by
+# test_request_context_tool_calls_get_isolated_sessions below.
 
 
 @pytest.fixture
@@ -180,3 +179,55 @@ async def test_nested_tool_calls_keep_separate_sessions(mcp_scoping: Any) -> Non
         # inner context popped: outer session untouched
         assert db.session() is outer
         outer.execute(text("SELECT 1"))
+
+
+@pytest.mark.asyncio
+async def test_request_context_tool_calls_get_isolated_sessions(
+    mcp_scoping: Any,
+) -> None:
+    """WorkspaceContextMiddleware path: with a request context active,
+    _get_app_context_manager() reuses it but must still give each tool
+    call its own session token — request-backed calls would otherwise
+    share the greenlet-scoped session, the same race fixed elsewhere.
+    Exiting a call removes only that call's session; the request's own
+    session belongs to the request lifecycle.
+    """
+    from superset.mcp_service.auth import _get_app_context_manager
+    from superset.mcp_service.flask_singleton import get_flask_app
+
+    app = get_flask_app()
+    with app.test_request_context(path="/mcp"):
+        request_session = db.session()
+        a_ready = asyncio.Event()
+        b_done = asyncio.Event()
+        outcome: dict[str, Any] = {}
+
+        async def call_a() -> None:
+            with _get_app_context_manager():
+                session_a = db.session()
+                outcome["a"] = session_a
+                a_ready.set()
+                await b_done.wait()
+                # B has fully torn down; A's session must still resolve.
+                assert db.session() is session_a
+                session_a.execute(text("SELECT 1"))
+                outcome["a_alive"] = True
+
+        async def call_b() -> None:
+            await a_ready.wait()
+            with _get_app_context_manager():
+                outcome["b"] = db.session()
+                outcome["b_key"] = mcp_session_scopefunc()
+            # Exiting deregistered B's per-call session from the registry.
+            outcome["b_removed"] = outcome["b_key"] not in db.session.registry.registry
+            b_done.set()
+
+        await asyncio.gather(call_a(), call_b())
+
+        assert outcome["a"] is not outcome["b"]
+        assert outcome["a"] is not request_session
+        assert outcome["b"] is not request_session
+        assert outcome.get("a_alive") is True
+        assert outcome["b_removed"] is True
+        # The request's own greenlet-scoped session is untouched.
+        assert db.session() is request_session
