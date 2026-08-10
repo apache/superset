@@ -287,6 +287,39 @@ def test_table_carries_time_grain() -> None:
     assert query["extras"]["time_grain_sqla"] == "P1M"
 
 
+def test_table_groupby_time_column_without_time_range_is_bucketed() -> None:
+    # Verified against a live export (dashboard Excel export, PR #42284): a table
+    # chart grouped by its own time column, with a time grain but no active
+    # time_range ("all-time totals by month" — a very ordinary configuration),
+    # must still bucket that column by its time grain. Confirmed live: the same
+    # chart with an explicit time_range instead of "No filter" correctly returns
+    # one row per year; with "No filter" it instead returns one row per *raw*
+    # timestamp (e.g. one per individual order date) — i.e. completely
+    # unaggregated data, not merely "the full history" the granularity comment
+    # in build_query_context_from_form_data anticipates. Gating ``granularity``
+    # on ``time_range != "No filter"`` conflates "should we apply a WHERE time
+    # filter" (legitimately time_range-dependent) with "should this selected
+    # column be truncated to its time grain" (not time_range-dependent at all —
+    # the real frontend's extractExtras.ts sets `granularity` unconditionally
+    # whenever granularity_sqla/granularity is present).
+    form_data = {
+        "groupby": ["order_date"],
+        "metrics": ["count"],
+        "granularity_sqla": "order_date",
+        "time_grain_sqla": "P1Y",
+        "time_range": "No filter",
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="table")[
+        "queries"
+    ][0]
+    assert query["columns"] == ["order_date"]
+    assert query["extras"]["time_grain_sqla"] == "P1Y"
+    # Currently fails: `granularity` is omitted whenever time_range == "No
+    # filter", so the backend selects `order_date` as a raw, un-truncated value
+    # (one row per distinct raw timestamp) instead of bucketing it by P1Y.
+    assert query.get("granularity") == "order_date"
+
+
 def test_simple_having_filter_converted_by_default_but_not_where_only() -> None:
     # Default: all SIMPLE filters convert (the behavior MCP relies on).
     # where_only=True: SIMPLE HAVING is dropped (matching the chart), which the
