@@ -52,12 +52,12 @@ class ExportTagsCommand(ExportModelsCommand):
 
         self.validate()
 
-        dashboard_ids: list[int] = (
+        dashboard_ids: list[Union[int, str]] = (
             [self.dashboard_ids]
             if isinstance(self.dashboard_ids, int)
             else list(self.dashboard_ids or [])
         )
-        chart_ids: list[int] = (
+        chart_ids: list[Union[int, str]] = (
             [self.chart_ids]
             if isinstance(self.chart_ids, int)
             else list(self.chart_ids or [])
