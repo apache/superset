@@ -19,7 +19,6 @@
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { partition } from 'lodash';
 import { batch } from 'react-redux';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
@@ -98,9 +97,9 @@ const applyDataMask = (dataMask: DataMaskStateWithId) => {
   // alongside the mask — would otherwise be inserted as a bogus filter and
   // treated as a globally scoped filter by the active-filter derivation.
   const knownFilterIds = new Set(Object.keys(getDataMask()));
-  const [applicable, ignored] = partition(Object.entries(dataMask), ([id]) =>
-    knownFilterIds.has(id),
-  );
+  const entries = Object.entries(dataMask);
+  const applicable = entries.filter(([id]) => knownFilterIds.has(id));
+  const ignored = entries.filter(([id]) => !knownFilterIds.has(id));
 
   if (ignored.length) {
     logging.warn(
