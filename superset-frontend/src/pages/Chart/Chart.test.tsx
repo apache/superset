@@ -19,11 +19,14 @@
 import fetchMock from 'fetch-mock';
 import { Link } from 'react-router-dom';
 import {
+  act,
+  createStore,
   render,
   waitFor,
   screen,
   fireEvent,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { getExploreFormData } from 'spec/fixtures/mockExploreFormData';
 import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -32,6 +35,8 @@ import { URL_PARAMS } from 'src/constants';
 import { JsonObject, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
+import { toChartStateHistoryState } from 'src/explore/exploreUtils/exploreHistory';
+import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as messageToastActions from 'src/components/MessageToasts/actions';
 import ChartPage from '.';
 
@@ -357,6 +362,150 @@ describe('ChartPage', () => {
       expect(screen.getByTestId('mock-explore-chart-panel')).toHaveTextContent(
         JSON.stringify({ show_cell_bars: true }).slice(1, -1),
       );
+    });
+
+    test('restores the chart state held by the entry on back-button navigation (POP)', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const formData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: true,
+      });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: formData },
+      });
+      fetchMock.post('glob:*/api/v1/chart/data*', { result: [] });
+      const setExploreControlsSpy = jest.spyOn(
+        exploreActions,
+        'setExploreControls',
+      );
+      render(
+        <>
+          <Link
+            to={{
+              pathname: '/',
+              search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
+              state: toChartStateHistoryState({
+                ...formData,
+                show_cell_bars: false,
+              }),
+            }}
+          >
+            Change the chart
+          </Link>
+          <Link to="/?slice_id=99">Navigate away</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      // an entry Explore pushed for a chart change, then navigation off it
+      fireEvent.click(screen.getByText('Change the chart'));
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(2),
+      );
+      fetchMock.clearHistory();
+      setExploreControlsSpy.mockClear();
+
+      window.history.back();
+      await waitFor(() =>
+        expect(setExploreControlsSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ show_cell_bars: false }),
+        ),
+      );
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(0);
+    });
+
+    test('re-fetches when the entry holds the state of another chart', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const formData = getExploreFormData({ viz_type: VizType.Table });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: formData },
+      });
+      const setExploreControlsSpy = jest.spyOn(
+        exploreActions,
+        'setExploreControls',
+      );
+      render(
+        <>
+          <Link
+            to={{
+              pathname: '/',
+              search: `?${URL_PARAMS.sliceId.name}=99`,
+              state: toChartStateHistoryState({ ...formData, slice_id: 99 }),
+            }}
+          >
+            Another chart
+          </Link>
+          <Link to="/?slice_id=100">Navigate away</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      fireEvent.click(screen.getByText('Another chart'));
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(2),
+      );
+      fetchMock.clearHistory();
+      setExploreControlsSpy.mockClear();
+
+      window.history.back();
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+      expect(setExploreControlsSpy).not.toHaveBeenCalled();
+    });
+
+    test('re-fetches when the dataset changed after the entry was pushed', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const loads = () =>
+        fetchMock.callHistory.calls(exploreApiRoute, { method: 'GET' }).length;
+      const formData = getExploreFormData({ viz_type: VizType.Table });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: formData },
+      });
+      const store = createStore({}, reducerIndex);
+      render(
+        <>
+          <Link
+            to={{
+              pathname: '/',
+              search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
+              state: toChartStateHistoryState(formData),
+            }}
+          >
+            Change the chart
+          </Link>
+          <Link to="/?slice_id=99">Navigate away</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true, store },
+      );
+      await waitFor(() => expect(loads()).toBe(1));
+      fireEvent.click(screen.getByText('Change the chart'));
+      fireEvent.click(screen.getByText('Navigate away'));
+      await waitFor(() => expect(loads()).toBe(2));
+      fetchMock.clearHistory();
+
+      // the entry predates the swap, so it can't be applied to the chart on screen
+      act(() => {
+        store.dispatch(
+          exploreActions.setExploreControls({
+            ...formData,
+            datasource: '3__table',
+          }),
+        );
+      });
+      window.history.back();
+      await waitFor(() => expect(loads()).toBe(1));
     });
   });
 

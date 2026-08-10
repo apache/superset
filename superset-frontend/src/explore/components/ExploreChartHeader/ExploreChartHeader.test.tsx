@@ -31,9 +31,11 @@ import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import {
   FeatureFlag,
+  QueryFormData,
   VizType,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
+import { toChartStateHistoryState } from 'src/explore/exploreUtils/exploreHistory';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader, { ExploreChartHeaderProps } from '.';
 import fs from 'fs';
@@ -386,6 +388,33 @@ describe('ExploreChartHeader', () => {
         hasUnsavedChanges: false,
       }),
     );
+  });
+
+  test('treats chart states of the same chart as in place transitions', async () => {
+    const formData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      slice_id: 318,
+    } as QueryFormData;
+    render(<ExploreHeader {...createProps({ formData })} />, {
+      useRedux: true,
+    });
+
+    const [{ isInPlaceTransition }] = (useUnsavedChangesPrompt as jest.Mock)
+      .mock.lastCall;
+
+    expect(
+      isInPlaceTransition(
+        toChartStateHistoryState({ ...formData, row_limit: 10 }),
+      ),
+    ).toBe(true);
+    expect(
+      isInPlaceTransition(
+        toChartStateHistoryState({ ...formData, slice_id: 42 }),
+      ),
+    ).toBe(false);
+    expect(isInPlaceTransition({ fromDashboard: true })).toBe(false);
+    expect(isInPlaceTransition(undefined)).toBe(false);
   });
 
   test('Save chart', async () => {

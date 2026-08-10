@@ -30,6 +30,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   config:
@@ -59,6 +60,10 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-26.04
     steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true
+
       - name: "Checkout ${{ github.event.workflow_run.head_sha || github.sha }}"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,7 +76,7 @@ jobs:
           node-version-file: "./docs/.nvmrc"
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: "zulu"
           java-version: "21"

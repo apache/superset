@@ -117,3 +117,24 @@ class TestConvertTemporalColumns:
 
         call_args = mock_logger.warning.call_args[0]
         assert call_args[1] == 2  # 2 out-of-bounds, 1 pre-existing null
+
+
+class TestLoadYaml:
+    def test_parser_error_raises_validation_error(self) -> None:
+        """A malformed flow sequence raises yaml.parser.ParserError."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_yaml
+
+        with pytest.raises(ValidationError):
+            load_yaml("test.yaml", "key: [unclosed")
+
+    def test_scanner_error_raises_validation_error(self) -> None:
+        """An unterminated quoted scalar raises yaml.scanner.ScannerError,
+        a sibling of ParserError under yaml.error.YAMLError."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_yaml
+
+        with pytest.raises(ValidationError):
+            load_yaml("test.yaml", 'key: "unterminated string')
