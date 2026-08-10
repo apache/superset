@@ -31,7 +31,6 @@ import yaml
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
-from superset.dashboards.api import DASHBOARD_DATASET_INACCESSIBLE_FIELDS
 from superset.exceptions import LockAlreadyHeldException
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
@@ -329,20 +328,40 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.dashboards.api.security_manager.can_access_datasource")
-    def test_get_dashboard_datasets_strips_definition_without_datasource_access(
+    def test_get_dashboard_datasets_only_returns_accessible_datasets(
         self, can_access_datasource_mock
     ):
-        can_access_datasource_mock.return_value = False
+        """
+        Dashboard API: the datasets endpoint returns only the datasets the
+        caller can access; a dataset the caller cannot access is omitted from
+        the list entirely (no identifying fields leak through).
+        """
+        dashboard = Dashboard.get("world_health")
+        dataset_ids = {s.datasource_id for s in dashboard.slices}
+
         self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
+
+        # When the caller can access the datasets, they are returned in full.
+        can_access_datasource_mock.return_value = True
         response = self.get_assert_metric(uri, "get_datasets")
         assert response.status_code == 200
-        data = json.loads(response.data.decode("utf-8"))
-        for dataset in data["result"]:
-            for excluded_key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
-                assert excluded_key not in dataset
-            # The identifying fields needed to render the dashboard are kept.
-            assert "id" in dataset
+        result = json.loads(response.data.decode("utf-8"))["result"]
+        returned_ids = {dataset["id"] for dataset in result}
+        assert returned_ids == dataset_ids
+        accessible = result[0]
+        assert "sql" in accessible
+        assert "columns" in accessible
+        assert "database" in accessible
+
+        # When the caller cannot access a dataset, it is omitted entirely: it is
+        # absent from the list and none of its fields (id, table_name, schema,
+        # datasource_name, ...) appear in any returned item.
+        can_access_datasource_mock.return_value = False
+        response = self.get_assert_metric(uri, "get_datasets")
+        assert response.status_code == 200
+        result = json.loads(response.data.decode("utf-8"))["result"]
+        assert result == []
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -460,15 +479,18 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.dashboards.api.security_manager.can_access_chart")
-    def test_get_dashboard_charts_strips_form_data_without_chart_access(
+    def test_get_dashboard_charts_only_returns_accessible_charts(
         self, can_access_chart_mock
     ):
         """
-        Dashboard API: chart config payload is only included for charts the
-        caller can access; identifying fields are kept for the rest.
+        Dashboard API: the charts endpoint returns only the charts the caller
+        can access; the rest are omitted from the list entirely.
         """
         dashboard = Dashboard.get("world_health")
         accessible_slice_id = dashboard.slices[0].id
+        all_slice_ids = {slc.id for slc in dashboard.slices}
+        # Only meaningful when the dashboard has more than one member chart.
+        assert len(all_slice_ids) > 1
 
         def can_access_chart(chart):
             return chart.id == accessible_slice_id
@@ -482,17 +504,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         data = json.loads(response.data.decode("utf-8"))
         results_by_id = {chart["id"]: chart for chart in data["result"]}
 
-        # Every member chart is still listed with its identifying fields.
-        for slc in dashboard.slices:
-            assert slc.id in results_by_id
-            assert results_by_id[slc.id]["slice_name"] == slc.slice_name
-
-        # The accessible chart keeps its config payload.
+        # Only the accessible chart is returned; the rest are absent.
+        assert set(results_by_id) == {accessible_slice_id}
+        # The accessible chart is fully present, config payload included.
         assert "form_data" in results_by_id[accessible_slice_id]
-        # Charts the caller cannot access do not expose the config payload.
-        for slice_id, chart in results_by_id.items():
-            if slice_id != accessible_slice_id:
-                assert "form_data" not in chart
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.dashboards.api.security_manager.can_access_chart")
