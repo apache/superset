@@ -40,6 +40,7 @@ from typing import (
     TypedDict,
     Union,
 )
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import dateutil.parser
 import humanize
@@ -1394,6 +1395,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         raise NotImplementedError()
 
+    def get_dataset_timezone(self) -> str | None:
+        """
+        Get the timezone configured for this dataset from the extra JSON field.
+
+        Returns an IANA timezone name (e.g., "Europe/Berlin", "America/New_York")
+        or None if not configured.
+
+        ``extra`` is arbitrary user-supplied JSON, so the ``timezone`` key could
+        hold a non-string value (a number, object, list, ...). Only a string is
+        ever a valid IANA name, so anything else is treated as "not configured"
+        rather than propagating a bad value on to ``ZoneInfo``.
+
+        ``extra_dict`` is provided by concrete datasources (e.g. ``SqlaTable``)
+        rather than this mixin, so read it defensively: subclasses without it
+        simply have no configured timezone.
+        """
+        extra = getattr(self, "extra_dict", None) or {}
+        dataset_timezone = extra.get("timezone")
+        return dataset_timezone if isinstance(dataset_timezone, str) else None
+
     def get_fetch_values_predicate(
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
@@ -1959,11 +1980,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         labels = self._collect_dttm_labels(query_object)
 
+        # ``get_dataset_timezone`` lives on ``ExploreMixin``; datasource doubles
+        # that bind only a subset of mixin methods onto a plain object (as some
+        # unit tests do) won't have it, so fall back to "not configured" rather
+        # than raising.
+        get_dataset_timezone = getattr(self, "get_dataset_timezone", None)
+        dataset_timezone = get_dataset_timezone() if get_dataset_timezone else None
         dttm_cols = [
             DateColumn(
                 timestamp_format=fmt,
                 offset=self.offset,
                 time_shift=query_object.time_shift,
+                timezone=dataset_timezone,
                 col_label=label,
             )
             for label, fmt in labels
@@ -1975,6 +2003,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     timestamp_format=self._python_date_format(query_object.granularity),
                     offset=self.offset,
                     time_shift=query_object.time_shift,
+                    timezone=dataset_timezone,
                 )
             )
 
@@ -3362,7 +3391,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
-    def get_time_filter(  # pylint: disable=too-many-arguments
+    def get_time_filter(  # pylint: disable=too-many-arguments  # noqa: C901
         self,
         time_col: "TableColumn",
         start_dttm: Optional[sa.DateTime],
@@ -3383,12 +3412,45 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
 
-        # Honor the dataset "Hour Offset". Result timestamps are displayed shifted
-        # by +offset hours (see normalize_df / DateColumn in superset.utils.core),
-        # but the time filter compares the raw stored values. Shifting the filter
-        # bounds by -offset keeps the filter consistent with what is displayed;
-        # otherwise a date selection lands on the wrong calendar day (#104810).
-        if offset_hours := getattr(self, "offset", 0) or 0:
+        # Resolve dataset-level time-boundary adjustments. A configured
+        # `extra.timezone` (an IANA name, DST-aware) takes precedence: naive UI
+        # boundaries are interpreted in that zone and converted to UTC for
+        # comparison with UTC-stored data. When no timezone is configured, fall
+        # back to the legacy "Hour Offset" field instead: displayed values are
+        # shifted by +offset hours (see normalize_df / DateColumn in
+        # superset.utils.core), but the time filter compares raw stored values, so
+        # bounds are shifted by -offset to stay consistent with what's displayed
+        # (#104810).
+        dataset_timezone = self.get_dataset_timezone()
+
+        if dataset_timezone and (start_dttm or end_dttm):
+            try:
+                tz = ZoneInfo(dataset_timezone)
+
+                # The datetimes from the UI are naive (no timezone info). We
+                # interpret them as being in the dataset's configured timezone and
+                # convert them to UTC for comparison with UTC-stored data.
+                if start_dttm is not None:
+                    start_dttm = (
+                        start_dttm.replace(tzinfo=tz)
+                        .astimezone(timezone.utc)
+                        .replace(tzinfo=None)
+                    )
+                if end_dttm is not None:
+                    end_dttm = (
+                        end_dttm.replace(tzinfo=tz)
+                        .astimezone(timezone.utc)
+                        .replace(tzinfo=None)
+                    )
+            except (ZoneInfoNotFoundError, TypeError):
+                logger.warning(
+                    "Invalid timezone %r in dataset extra; falling back to Hour "
+                    "Offset if configured",
+                    dataset_timezone,
+                )
+                dataset_timezone = None
+
+        if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
             if start_dttm is not None:
                 start_dttm = start_dttm - timedelta(hours=offset_hours)
             if end_dttm is not None:
@@ -4246,6 +4308,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
                         )
+
+                    # Normalize mixed int/float values before binding, since
+                    # SQLAlchemy may infer the bind parameter type from the
+                    # first element and silently truncate other values
+                    # (see #33206)
+                    if target_generic_type == utils.GenericDataType.NUMERIC and any(
+                        isinstance(v, float) for v in eq
+                    ):
+                        eq = [
+                            float(v) if isinstance(v, (int, float)) else v for v in eq
+                        ]
+
                     if len(eq) > len(
                         eq_without_none := [x for x in eq if x is not None]
                     ):
@@ -4256,6 +4330,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             cond = is_null_cond
                     else:
                         cond = sqla_col.in_(eq)
+
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
                     target_clause_list.append(cond)

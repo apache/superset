@@ -95,7 +95,7 @@ const parseInterval = (label: string) => {
 export type LegendProps = {
   format: string | null;
   forceCategorical?: boolean;
-  position?: null | 'tl' | 'tr' | 'bl' | 'br';
+  position?: null | 'none' | 'tl' | 'tr' | 'bl' | 'br';
   categories: Record<string, { enabled: boolean; color: Color | undefined }>;
   toggleCategory?: (key: string) => void;
   showSingleCategory?: (key: string) => void;
@@ -142,7 +142,16 @@ const Legend = ({
     return format(k);
   };
 
-  if (Object.keys(categoriesObject).length === 0 || position === null) {
+  // Hide the legend when there are no categories, or when Legend Position is
+  // "None". "None" is the 'none' sentinel from the control; null/'' are also
+  // treated as hidden so charts saved under the older null-valued choice keep
+  // working. An unset position (undefined) keeps the 'tr' default so layers
+  // without a Legend Position control (e.g. Hex, Path) still show their legend.
+  if (
+    Object.keys(categoriesObject).length === 0 ||
+    !position ||
+    position === 'none'
+  ) {
     return null;
   }
 

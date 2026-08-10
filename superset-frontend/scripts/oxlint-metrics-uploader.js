@@ -79,11 +79,18 @@ async function runOxlintAndProcess() {
   try {
     // Run OXC with JSON format
     console.log('Running OXC linter...');
-    const oxlintOutput = execSync('npx oxlint --format json', {
-      encoding: 'utf8',
-      maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
-      stdio: ['pipe', 'pipe', 'ignore'], // Ignore stderr to avoid error output
-    });
+    // `oxlint.json` is not the `.oxlintrc.json` oxlint auto-discovers, so the
+    // config has to be passed explicitly or the run reports oxlint's defaults
+    // instead of the project's ruleset. Matches the `lint` scripts in
+    // package.json.
+    const oxlintOutput = execSync(
+      'npx oxlint --config oxlint.json --format json',
+      {
+        encoding: 'utf8',
+        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
+        stdio: ['pipe', 'pipe', 'ignore'], // Ignore stderr to avoid error output
+      },
+    );
 
     const results = JSON.parse(oxlintOutput);
 
