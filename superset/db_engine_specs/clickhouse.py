@@ -47,6 +47,7 @@ from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.sql.parse import Table
 
 logger = logging.getLogger(__name__)
 
@@ -383,6 +384,10 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     default_driver = "connect"
     _function_names: list[str] = []
 
+    # The clickhouse-connect driver supports inserting data, so re-enable the
+    # file upload flow that the parent ClickHouseEngineSpec disables.
+    supports_file_upload = True
+
     sqlalchemy_uri_placeholder = (
         "clickhousedb://user:password@host[:port][/dbname][?secure=value&=value...]"
     )
@@ -531,6 +536,136 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     def get_datatype(cls, type_code: str) -> str:
         # keep it lowercase, as ClickHouse types aren't typical SHOUTCASE ANSI SQL
         return type_code
+
+    @classmethod
+    def df_to_sql(
+        cls,
+        database: Database,
+        table: Table,
+        df: Any,
+        to_sql_kwargs: dict[str, Any],
+    ) -> None:
+        """Upload a DataFrame to ClickHouse.
+
+        ClickHouse requires every table to declare a table engine, which the
+        `CREATE TABLE` that pandas' ``to_sql`` emits does not — so instead of
+        letting pandas create the table we create it ourselves with a MergeTree
+        engine and then append the rows.
+
+        The engine can be tuned per database through its ``extra`` JSON::
+
+            {"clickhouse_file_upload": {
+                "order_by": ["col1", "col2"],
+                "partition_by": "toYYYYMM(col1)",
+                "primary_key": "col1",
+                "settings": {"index_granularity": 8192}
+            }}
+
+        ``order_by`` defaults to ``tuple()`` (no sort key) so any upload works
+        without configuration.
+        """
+        # pylint: disable=import-outside-toplevel, import-error
+        import pandas as pd
+        from clickhouse_connect.cc_sqlalchemy.ddl.tableengine import MergeTree
+        from sqlalchemy import (
+            Column,
+            inspect,
+            MetaData,
+            Table as SqlaTable,
+            text,
+            types as sqltypes,
+        )
+
+        if_exists = to_sql_kwargs.get("if_exists", "fail")
+
+        if to_sql_kwargs.get("index"):
+            # Fold the index into columns so the table we create matches what
+            # gets inserted; we always append with index=False below. Preserve
+            # the uploader's requested index_label as the new column name(s).
+            df = df.reset_index(names=to_sql_kwargs.get("index_label"))
+
+        config = (database.get_extra() or {}).get("clickhouse_file_upload", {})
+        order_by = config.get("order_by")
+        if order_by:
+            key_columns = set(
+                order_by if isinstance(order_by, (list, tuple)) else [order_by]
+            )
+            engine_kwargs: dict[str, Any] = {"order_by": order_by}
+        else:
+            # MergeTree still requires an ORDER BY; an empty tuple means "none".
+            key_columns = set()
+            engine_kwargs = {"order_by": text("tuple()")}
+        for key in ("partition_by", "primary_key", "settings"):
+            if config.get(key):
+                engine_kwargs[key] = config[key]
+
+        def _column_type(series: Any) -> sqltypes.TypeEngine:
+            dtype = series.dtype
+            if pd.api.types.is_bool_dtype(dtype):
+                return sqltypes.Boolean()
+            if pd.api.types.is_integer_dtype(dtype):
+                return sqltypes.BigInteger()
+            if pd.api.types.is_float_dtype(dtype):
+                return sqltypes.Float()
+            if pd.api.types.is_datetime64_any_dtype(dtype):
+                return sqltypes.DateTime()
+            # Object columns may still hold temporal values (e.g. parsed dates),
+            # so map those to DateTime to keep date operations working. Anything
+            # else falls back to String, matching pandas' default to_sql mapping.
+            if pd.api.types.infer_dtype(series, skipna=True) in {
+                "datetime",
+                "datetime64",
+                "date",
+            }:
+                return sqltypes.DateTime()
+            return sqltypes.String()
+
+        with cls.get_engine(
+            database, catalog=table.catalog, schema=table.schema
+        ) as engine:
+            has_table = inspect(engine).has_table(table.table, schema=table.schema)
+            if has_table and if_exists == "fail":
+                # Raise ValueError so the uploader surfaces its friendly
+                # "table already exists" message (see UploadCommand).
+                raise ValueError(f"Table {table.table} already exists.")
+            if has_table and if_exists == "replace":
+                SqlaTable(table.table, MetaData(), schema=table.schema).drop(
+                    engine, checkfirst=True
+                )
+                has_table = False
+
+            if not has_table:
+                columns = [
+                    Column(
+                        str(name),
+                        _column_type(df[name]),
+                        nullable=str(name) not in key_columns,
+                    )
+                    for name in df.columns
+                ]
+                SqlaTable(
+                    table.table,
+                    MetaData(),
+                    *columns,
+                    schema=table.schema,
+                    clickhouse_engine=MergeTree(**engine_kwargs),
+                ).create(engine, checkfirst=True)
+
+            insert_kwargs = {
+                **to_sql_kwargs,
+                "name": table.table,
+                "if_exists": "append",
+                "index": False,
+            }
+            insert_kwargs.pop("index_label", None)
+            if table.schema:
+                insert_kwargs["schema"] = table.schema
+            if (
+                engine.dialect.supports_multivalues_insert
+                or cls.supports_multivalues_insert
+            ):
+                insert_kwargs["method"] = "multi"
+            df.to_sql(con=engine, **insert_kwargs)
 
     @classmethod
     def build_sqlalchemy_uri(
