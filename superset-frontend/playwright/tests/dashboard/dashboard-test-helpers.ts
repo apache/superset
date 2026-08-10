@@ -255,19 +255,13 @@ interface CreateDashboardWithChartsOptions {
   /** Dashboard title prefix: `${dashboardTitlePrefix}_${suffix}`. */
   dashboardTitlePrefix: string;
   chartSpecs: DashboardChartSpec[];
-  /** Custom dashboard layout; defaults to placing every chart in one row. */
-  buildLayout?: (
-    charts: readonly DashboardLayoutChart[],
-  ) => DashboardPositionJson;
   /**
-   * Dashboard `json_metadata` (e.g. native filters via
-   * `buildFilterJsonMetadata`); omitted when not provided. Receives the created
-   * charts and the resolved dataset id so filters can target both.
+   * Grid width per chart, passed through to `buildSingleRowDashboardLayout`.
+   * Defaults to `GRID_DEFAULT_CHART_WIDTH` (4) -- lower this when `chartSpecs`
+   * has enough entries that the default width would exceed the 12-column
+   * single-row grid.
    */
-  buildJsonMetadata?: (context: {
-    charts: readonly DashboardLayoutChart[];
-    datasetId: number;
-  }) => Record<string, unknown>;
+  chartWidth?: number;
 }
 
 /**
@@ -310,7 +304,7 @@ export async function createDashboardWithCharts(
     expect(resp.ok()).toBe(true);
     const chartId = await extractIdFromResponse(resp);
     testAssets.trackChart(chartId);
-    charts.push({ id: chartId, sliceName });
+    charts.push({ id: chartId, sliceName, width: options.chartWidth });
   }
 
   const positionJson = options.buildLayout
