@@ -551,6 +551,7 @@ LANGUAGES = {
     "fi": {"flag": "fi", "name": "Finnish"},
     "th": {"flag": "th", "name": "Thai"},
     "tr": {"flag": "tr", "name": "Turkish"},
+    "ta": {"flag": "in", "name": "Tamil"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -1062,6 +1063,12 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
+
+# EXTRA_THEME_TOKENS lets a deployment register additional custom theme token
+# names so they validate cleanly in the theme editor instead of being flagged as
+# unknown Ant Design tokens. Deployments and plugins that consume their own
+# tokens via useTheme add them here. This is merely a default.
+EXTRA_THEME_TOKENS: list[str] = []
 
 # -----------------------------------------------------------------------------
 # Theme System Configuration
@@ -2095,7 +2102,16 @@ TROUBLESHOOTING_LINK = ""
 WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 
 # This link should lead to a page with instructions on how to gain access to a
-# Datasource. It will be placed at the bottom of permissions errors.
+# Datasource. It is surfaced as a "Request Access" link on data-permission
+# errors (e.g. when a viewer opens a chart whose dataset they cannot access).
+# The URL may include any of these placeholders, which are substituted with
+# URL-encoded values so the link can deep-link into an access-request system:
+#   {datasource_id}    - id of the denied dataset (datasource errors)
+#   {datasource_name}  - name of the denied dataset (datasource errors)
+#   {table_names}      - comma-separated denied table names (table/SQL errors)
+#   {username}         - the requesting user's username
+# A URL with no placeholders is used as-is. Example:
+#   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your

@@ -36,7 +36,7 @@
     "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.8.0",
+    "globals": "^17.9.0",
     "oxfmt": "^0.61.0",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
