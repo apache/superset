@@ -24,7 +24,7 @@ Create Date: 2022-04-04 15:04:05.606340
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -44,7 +44,7 @@ class Slice(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(Slice.params.like("%time_range_endpoints%")):
         params = json.loads(slc.params)

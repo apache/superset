@@ -162,16 +162,22 @@ const SaveQuery = ({
     <Form layout="vertical">
       <Row>
         <Col xs={24}>
-          <FormItem label={t('Name')}>
-            <Input type="text" value={label} onChange={onLabelChange} />
+          <FormItem label={t('Name')} htmlFor="save-query-name">
+            <Input
+              id="save-query-name"
+              type="text"
+              value={label}
+              onChange={onLabelChange}
+            />
           </FormItem>
         </Col>
       </Row>
       <br />
       <Row>
         <Col xs={24}>
-          <FormItem label={t('Description')}>
+          <FormItem label={t('Description')} htmlFor="save-query-description">
             <Input.TextArea
+              id="save-query-description"
               rows={4}
               value={description}
               onChange={onDescriptionChange}

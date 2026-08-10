@@ -61,10 +61,10 @@ export default function webpackExtendPlugin(): Plugin<void> {
         );
       });
 
-      // Add YAML loader rule directly to existing rules
+      // Load YAML file as raw text string
       config.module?.rules?.push({
         test: /\.ya?ml$/,
-        use: 'js-yaml-loader',
+        type: 'asset/source',
       });
 
       // Add swc-loader rule for superset-frontend files

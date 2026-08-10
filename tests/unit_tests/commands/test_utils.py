@@ -22,12 +22,9 @@ import pytest
 
 from superset.commands.exceptions import TagForbiddenError, TagNotFoundValidationError
 from superset.commands.utils import (
-    compute_owner_list,
-    populate_owner_list,
     Tag,
     TagType,
     update_tags,
-    User,
     validate_tags,
 )
 from superset.tags.models import ObjectType
@@ -56,8 +53,8 @@ MOCK_TAGS = [
     ),
     Tag(
         id=4,
-        name="owner:1",
-        type=TagType.owner,
+        name="editor:1",
+        type=TagType.editor,
     ),
     Tag(
         id=4,
@@ -65,137 +62,6 @@ MOCK_TAGS = [
         type=TagType.favorited_by,
     ),
 ]
-
-
-@patch("superset.commands.utils.g")
-def test_populate_owner_list_default_to_user(mock_user):
-    """
-    Test the ``populate_owner_list`` method when no owners are provided
-    and default_to_user is True (non-admin).
-    """
-    owner_list = populate_owner_list([], True)
-    assert owner_list == [mock_user.user]
-
-
-@patch("superset.commands.utils.g")
-def test_populate_owner_list_default_to_user_handle_none(mock_user):
-    """
-    Test the ``populate_owner_list`` method when owners is None
-    and default_to_user is True (non-admin).
-    """
-    owner_list = populate_owner_list(None, True)
-    assert owner_list == [mock_user.user]
-
-
-@patch("superset.commands.utils.g")
-@patch("superset.commands.utils.security_manager")
-@patch("superset.commands.utils.get_user_id")
-def test_populate_owner_list_admin_user(mock_user_id, mock_sm, mock_g):
-    """
-    Test the ``populate_owner_list`` method when an admin is setting
-    another user as an owner and default_to_user is False.
-    """
-    test_user = User(id=1, first_name="First", last_name="Last")
-    mock_g.user = User(id=4, first_name="Admin", last_name="User")
-    mock_user_id.return_value = 4
-    mock_sm.is_admin = MagicMock(return_value=True)
-    mock_sm.get_user_by_id = MagicMock(return_value=test_user)
-
-    owner_list = populate_owner_list([1], False)
-    assert owner_list == [test_user]
-
-
-@patch("superset.commands.utils.g")
-@patch("superset.commands.utils.security_manager")
-@patch("superset.commands.utils.get_user_id")
-def test_populate_owner_list_admin_user_empty_list(mock_user_id, mock_sm, mock_g):
-    """
-    Test the ``populate_owner_list`` method when an admin is setting an empty list
-    of owners.
-    """
-    mock_g.user = User(id=4, first_name="Admin", last_name="User")
-    mock_user_id.return_value = 4
-    mock_sm.is_admin = MagicMock(return_value=True)
-    owner_list = populate_owner_list([], False)
-    assert owner_list == []
-
-
-@patch("superset.commands.utils.g")
-@patch("superset.commands.utils.security_manager")
-@patch("superset.commands.utils.get_user_id")
-def test_populate_owner_list_non_admin(mock_user_id, mock_sm, mock_g):
-    """
-    Test the ``populate_owner_list`` method when a non admin is adding
-    another user as an owner and default_to_user is False (both get added).
-    """
-    test_user = User(id=1, first_name="First", last_name="Last")
-    mock_g.user = User(id=4, first_name="Non", last_name="admin")
-    mock_user_id.return_value = 4
-    mock_sm.is_admin = MagicMock(return_value=False)
-    mock_sm.get_user_by_id = MagicMock(return_value=test_user)
-
-    owner_list = populate_owner_list([1], False)
-    assert owner_list == [mock_g.user, test_user]
-
-
-@patch("superset.commands.utils.populate_owner_list")
-def test_compute_owner_list_new_owners(mock_populate_owner_list):
-    """
-    Test the ``compute_owner_list`` method when replacing the owner list.
-    """
-    current_owners = [User(id=1), User(id=2), User(id=3)]
-    new_owners = [4, 5, 6]
-
-    compute_owner_list(current_owners, new_owners)
-    mock_populate_owner_list.assert_called_once_with(new_owners, default_to_user=False)
-
-
-@patch("superset.commands.utils.populate_owner_list")
-def test_compute_owner_list_no_new_owners(mock_populate_owner_list):
-    """
-    Test the ``compute_owner_list`` method when replacing new_owners is None.
-    """
-    current_owners = [User(id=1), User(id=2), User(id=3)]
-    new_owners = None
-
-    compute_owner_list(current_owners, new_owners)
-    mock_populate_owner_list.assert_called_once_with([1, 2, 3], default_to_user=False)
-
-
-@patch("superset.commands.utils.populate_owner_list")
-def test_compute_owner_list_new_owner_empty_list(mock_populate_owner_list):
-    """
-    Test the ``compute_owner_list`` method when new_owners is an empty list.
-    """
-    current_owners = [User(id=1), User(id=2), User(id=3)]
-    new_owners = []
-
-    compute_owner_list(current_owners, new_owners)
-    mock_populate_owner_list.assert_called_once_with(new_owners, default_to_user=False)
-
-
-@patch("superset.commands.utils.populate_owner_list")
-def test_compute_owner_list_no_owners(mock_populate_owner_list):
-    """
-    Test the ``compute_owner_list`` method when current ownership is an empty list.
-    """
-    current_owners = []
-    new_owners = [4, 5, 6]
-
-    compute_owner_list(current_owners, new_owners)
-    mock_populate_owner_list.assert_called_once_with(new_owners, default_to_user=False)
-
-
-@patch("superset.commands.utils.populate_owner_list")
-def test_compute_owner_list_no_owners_handle_none(mock_populate_owner_list):
-    """
-    Test the ``compute_owner_list`` method when current ownership is None.
-    """
-    current_owners = None
-    new_owners = [4, 5, 6]
-
-    compute_owner_list(current_owners, new_owners)
-    mock_populate_owner_list.assert_called_once_with(new_owners, default_to_user=False)
 
 
 @pytest.mark.parametrize("object_type", OBJECT_TYPES)

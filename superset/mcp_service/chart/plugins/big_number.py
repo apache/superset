@@ -151,7 +151,7 @@ class BigNumberChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        return map_big_number_config(config)
+        return map_big_number_config(config, dataset_id=dataset_id)
 
     def post_map_validate(
         self,

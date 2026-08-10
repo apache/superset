@@ -35,6 +35,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import type { ColumnObject } from 'src/features/datasets/types';
+import type Subject from 'src/types/Subject';
 import DatasourceControl from '.';
 
 // Mock DatasourceEditor to avoid mounting the full 2500+ line editor tree.
@@ -95,14 +96,9 @@ interface TestDatasource {
   columns?: Partial<ColumnObject>[];
   type?: DatasourceType;
   main_dttm_col?: string | null;
-  owners?: Array<{
-    first_name: string;
-    last_name: string;
-    id: number;
-    username?: string;
-  }>;
   sql?: string;
   metrics?: Array<{ id: number; metric_name: string }>;
+  editors?: Subject[];
   [key: string]: unknown;
 }
 
@@ -117,8 +113,8 @@ const mockDatasource: TestDatasource = {
   datasource_name: 'channels',
   type: DatasourceType.Table,
   columns: [],
-  owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   sql: 'SELECT * FROM mock_datasource_sql',
+  editors: [{ id: 1, label: 'john doe', type: 1 }],
 };
 
 // Use type assertion for test props since the component is wrapped with withTheme
@@ -317,7 +313,7 @@ test('Click on Edit dataset', async () => {
 test('Edit dataset should be disabled when user is not admin', async () => {
   const props = createProps();
   props.user.roles = {};
-  props.datasource.owners = [];
+  props.datasource.editors = [];
 
   render(<DatasourceControl {...props} />, {
     useRedux: true,
@@ -466,6 +462,8 @@ test('should set the default temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       'test-default',
+      undefined,
+      { programmatic: true },
     );
   });
 });
@@ -502,6 +500,8 @@ test('should set the first available temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       'test-first',
+      undefined,
+      { programmatic: true },
     );
   });
 });
@@ -538,8 +538,52 @@ test('should not set the temporal column', async () => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
       null,
+      undefined,
+      { programmatic: true },
     );
   });
+});
+
+test('editing a dataset still emits a dirty signal for the restore gate', async () => {
+  // The derived granularity_sqla write is programmatic, so it is invisible to
+  // the version-history session log. On the *swap* route that is fine —
+  // ChangeDatasourceModal's own onChange emits a recorded control change. The
+  // Edit Dataset route has no such change, so the reconciliation dispatched by
+  // changeDatasource is the only thing standing between an edited chart and a
+  // restore that silently discards the reconciled value.
+  const props = createProps();
+  const overrideProps = {
+    ...props,
+    form_data: { granularity_sqla: 'test-col' },
+    datasource: {
+      ...props.datasource,
+      main_dttm_col: 'test-default',
+      columns: [
+        { column_name: 'test-col', is_dttm: false },
+        { column_name: 'test-default', is_dttm: true },
+      ],
+    },
+  };
+  render(<DatasourceControl {...props} {...overrideProps} />, {
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await openAndSaveChanges(overrideProps.datasource);
+
+  await waitFor(() => {
+    expect(props.actions.setControlValue).toHaveBeenCalledWith(
+      'granularity_sqla',
+      'test-default',
+      undefined,
+      { programmatic: true },
+    );
+  });
+  // changeDatasource dispatches UPDATE_FORM_DATA_BY_DATASOURCE (pinned in
+  // datasourcesActions.test.ts), which the session-log middleware records.
+  expect(props.actions.changeDatasource).toHaveBeenCalledWith(
+    expect.objectContaining({ id: overrideProps.datasource.id }),
+  );
 });
 
 test('should show missing params state', () => {

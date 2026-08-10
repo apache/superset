@@ -52,10 +52,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
-import {
-  canUserEditDashboard,
-  isUserAdmin,
-} from 'src/dashboard/util/permissionUtils';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import {
   SaveActionType,
@@ -68,6 +65,7 @@ import {
   updateChartState,
 } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
+import { canOverwriteSlice as canOverwriteSliceFor } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { TabNode, TabTreeNode } from '../types';
 import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
 
@@ -229,10 +227,7 @@ const SaveModal = ({
 
   const canOverwriteSlice = useCallback(
     (): boolean =>
-      (can_overwrite ||
-        isUserAdmin(user) ||
-        slice?.owners?.includes(user.userId)) &&
-      !slice?.is_managed_externally,
+      canOverwriteSliceFor({ slice, user, canOverwrite: can_overwrite }),
     [can_overwrite, slice, user],
   );
 
@@ -642,9 +637,9 @@ const SaveModal = ({
             value: search,
           },
           {
-            col: 'owners',
-            opr: 'rel_m_m',
-            value: user.userId,
+            col: 'id',
+            opr: 'is_editable',
+            value: true,
           },
         ],
         page,
@@ -666,7 +661,7 @@ const SaveModal = ({
         totalCount: count,
       };
     },
-    [user.userId],
+    [],
   );
 
   const onTabChange = useCallback(
@@ -737,7 +732,7 @@ const SaveModal = ({
                     "This chart is managed externally and can't be overwritten in Superset.",
                   )
                 : t(
-                    'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+                    'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
                   )}
             </Typography.Text>
           </div>

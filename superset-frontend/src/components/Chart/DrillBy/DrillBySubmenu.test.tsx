@@ -68,7 +68,7 @@ const mockDataset = {
   changed_on_humanized: '1 day ago',
   created_on_humanized: '2 days ago',
   description: 'Test dataset',
-  owners: [],
+  editors: [{ id: 1, label: 'Test User', type: 1 }],
   changed_by: { first_name: 'Test', last_name: 'User' },
   created_by: { first_name: 'Test', last_name: 'User' },
 };
@@ -129,7 +129,6 @@ getChartMetadataRegistry().registerValue(
   new ChartMetadata({
     name: 'fake pie',
     thumbnail: '.png',
-    useLegacyApi: false,
     behaviors: [Behavior.DrillBy],
   }),
 );

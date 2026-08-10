@@ -19,8 +19,6 @@
  */
 const typescriptEslintParser = require('@typescript-eslint/parser');
 const typescriptEslintPlugin = require('@typescript-eslint/eslint-plugin');
-const eslintConfigPrettier = require('eslint-config-prettier');
-const prettierEslintPlugin = require('eslint-plugin-prettier');
 const js = require('@eslint/js');
 const ts = require('typescript-eslint');
 const react = require('eslint-plugin-react');
@@ -34,7 +32,6 @@ module.exports = defineConfig([
   globalIgnores(['build/**/*', '.docusaurus/**/*', 'node_modules/**/*']),
   js.configs.recommended,
   ...ts.configs.recommended,
-  eslintConfigPrettier,
   {
     files: ['eslint.config.js'],
     rules: {
@@ -59,7 +56,6 @@ module.exports = defineConfig([
     plugins: {
       typescript: typescriptEslintPlugin,
       react,
-      prettier: prettierEslintPlugin,
     },
     rules: {
       'react/react-in-jsx-scope': 'off',

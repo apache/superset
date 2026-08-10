@@ -23,15 +23,22 @@ import pytest
 from pydantic import ValidationError
 
 from superset.mcp_service.chart.schemas import (
+    AxisConfig,
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
     GenerateChartRequest,
     GenerateChartResponse,
+    GetChartDataRequest,
+    GetChartInfoRequest,
+    GetChartPreviewRequest,
+    GetChartSqlRequest,
+    ListChartsRequest,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    UpdateChartRequest,
     XYChartConfig,
 )
 
@@ -699,11 +706,20 @@ class TestUnknownFieldDetection:
             )
 
     def test_known_aliases_not_flagged_as_unknown(self) -> None:
-        """Test that known aliases pass validation without errors."""
+        """Test that known aliases pass validation without errors.
+
+        Uses ``x_column`` rather than ``x_axis`` to set the X column:
+        ``x_axis`` is ambiguous between that alias on ``x`` and the
+        unrelated ``x_axis: AxisConfig`` field of the same name, and
+        pydantic resolves the collision in favor of the real field name.
+        Now that nested models reject unknown fields (#42626), routing a
+        column dict through ``x_axis`` here would raise, not silently
+        no-op into ``AxisConfig`` the way it used to.
+        """
         config = XYChartConfig.model_validate(
             {
                 "chart_type": "xy",
-                "x_axis": {"name": "category"},
+                "x_column": {"name": "category"},
                 "metrics": [{"name": "sales", "aggregate": "SUM"}],
                 "groupby": [{"name": "region"}],
                 "stack": True,
@@ -713,6 +729,19 @@ class TestUnknownFieldDetection:
         assert config.stacked is True
         assert config.row_limit == 10000
         assert config.group_by is not None
+
+    def test_unknown_field_nested_one_level_down_is_rejected(self) -> None:
+        """
+        Regression for #42626: only the top-level chart config models
+        inherit UnknownFieldCheckMixin. Nested models like AxisConfig are
+        plain BaseModel, so a typo'd field one level down (e.g. inside
+        x_axis) is silently dropped by pydantic's default extra="ignore"
+        instead of raising the same "did you mean?" error a top-level typo
+        gets -- an MCP client (or the LLM driving it) gets no signal that
+        its setting was ignored.
+        """
+        with pytest.raises(ValidationError, match="Unknown field"):
+            AxisConfig.model_validate({"title": "State", "sort_by": "metric"})
 
 
 class TestColumnRefSavedMetric:
@@ -1137,3 +1166,64 @@ class TestSqlMetricLlmContextWrapping:
         assert "<UNTRUSTED-CONTENT>" in metric["label"]
         assert metric["expressionType"] == "SQL"
         assert "<UNTRUSTED-CONTENT>" not in metric["optionName"]
+
+
+class TestRequestSchemaAliasChoices:
+    """Test that LLM-friendly field name variants are accepted on the
+    chart MCP tool request schemas, so callers sending 'id'/'chart_id'
+    instead of 'identifier' (or 'columns' instead of 'select_columns')
+    don't silently have the field dropped."""
+
+    def test_get_chart_info_identifier_id_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate({"id": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_info_identifier_chart_id_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate({"chart_id": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_info_identifier_still_works(self) -> None:
+        req = GetChartInfoRequest.model_validate({"identifier": 42})
+        assert req.identifier == 42
+
+    def test_get_chart_info_select_columns_columns_alias(self) -> None:
+        req = GetChartInfoRequest.model_validate(
+            {"id": 42, "columns": ["id", "slice_name"]}
+        )
+        assert req.select_columns == ["id", "slice_name"]
+
+    def test_get_chart_data_identifier_id_alias(self) -> None:
+        req = GetChartDataRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_data_identifier_chart_id_alias(self) -> None:
+        req = GetChartDataRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_preview_identifier_id_alias(self) -> None:
+        req = GetChartPreviewRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_preview_identifier_chart_id_alias(self) -> None:
+        req = GetChartPreviewRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_sql_identifier_id_alias(self) -> None:
+        req = GetChartSqlRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_get_chart_sql_identifier_chart_id_alias(self) -> None:
+        req = GetChartSqlRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_update_chart_identifier_id_alias(self) -> None:
+        req = UpdateChartRequest.model_validate({"id": 7})
+        assert req.identifier == 7
+
+    def test_update_chart_identifier_chart_id_alias(self) -> None:
+        req = UpdateChartRequest.model_validate({"chart_id": 7})
+        assert req.identifier == 7
+
+    def test_list_charts_select_columns_columns_alias(self) -> None:
+        req = ListChartsRequest.model_validate({"columns": ["id", "slice_name"]})
+        assert req.select_columns == ["id", "slice_name"]

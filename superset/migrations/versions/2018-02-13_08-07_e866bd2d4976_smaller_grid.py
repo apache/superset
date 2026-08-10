@@ -23,7 +23,7 @@ Create Date: 2018-02-13 08:07:40.766277
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -46,7 +46,7 @@ class Dashboard(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
@@ -68,7 +68,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):

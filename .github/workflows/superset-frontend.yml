@@ -21,13 +21,19 @@ permissions:
 
 jobs:
   frontend-build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
+    # The change detector reads the PR's file list, which needs
+    # `pull-requests: read`. Public repos serve that endpoint without it;
+    # private forks return 403.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -51,7 +57,7 @@ jobs:
           git show -s --format=raw HEAD
           docker buildx build \
             -t $TAG \
-            --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-trixie \
+            --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
             --target superset-node-ci \
             .
 
@@ -74,7 +80,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
       fail-fast: false
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
@@ -104,13 +110,13 @@ jobs:
   report-coverage:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       id-token: write
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -122,31 +128,19 @@ jobs:
           pattern: coverage-artifacts-*
           path: coverage/
 
-      - name: Reorganize test result reports
-        run: |
-          find coverage/
-          for i in {1..8}; do
-            mv coverage/coverage-artifacts-${i}/coverage-final.json coverage/coverage-shard-${i}.json
-          done
-        shell: bash
-
-      - name: Merge Code Coverage
-        run: npx nyc merge coverage/ merged-output/coverage-summary.json
-
       - name: Upload Code Coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: javascript
           use_oidc: true
           verbose: true
-          disable_search: true
-          files: merged-output/coverage-summary.json
+          directory: coverage
           slug: apache/superset
 
   lint-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
@@ -171,7 +165,7 @@ jobs:
   validate-frontend:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Download Docker Image Artifact
@@ -183,15 +177,15 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
-      - name: Build Plugins Packages
+      - name: Validate dependency tree
         run: |
           docker run --rm $TAG bash -c \
-          "npm run plugins:build"
+          "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
 
   test-storybook:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - name: Download Docker Image Artifact
@@ -207,3 +201,14 @@ jobs:
         run: |
           docker run --rm $TAG bash -c \
           "npm run build-storybook && npx playwright install-deps && npx playwright install chromium && npm run test-storybook:ci"
+
+  actions-timeline:
+    needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

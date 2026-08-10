@@ -29,6 +29,8 @@ import {
   Tooltip,
   Button,
   ModalTrigger,
+  RlsBadge,
+  type RlsFilterSummary,
 } from '@superset-ui/core/components';
 import {
   ChangeDatasourceModal,
@@ -52,12 +54,13 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import { Link } from 'react-router-dom';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 // Extended Datasource interface with all properties used in this component
 interface ExtendedDatasource extends Datasource {
   sql?: string;
   select_star?: string;
-  owners?: Array<{
+  editors?: Array<{
     id: number;
     first_name: string;
     last_name: string;
@@ -66,6 +69,7 @@ interface ExtendedDatasource extends Datasource {
   extra?: string;
   health_check_message?: string;
   cache_timeout?: number | null;
+  rls_filters?: RlsFilterSummary[];
   database?: {
     id: number;
     database_name: string;
@@ -81,7 +85,12 @@ interface User {
 
 interface DatasourceControlActions {
   changeDatasource: (datasource: ExtendedDatasource) => void;
-  setControlValue: (name: string, value: unknown) => void;
+  setControlValue: (
+    name: string,
+    value: unknown,
+    validationErrors?: unknown[],
+    options?: { programmatic?: boolean },
+  ) => void;
 }
 
 interface FormData {
@@ -220,7 +229,6 @@ const preventRouterLinkWhileMetaClicked = (evt: React.MouseEvent) => {
 export default function DatasourceControl({
   actions,
   onChange = () => {},
-  value = null,
   datasource,
   form_data,
   isEditable = true,
@@ -259,7 +267,15 @@ export default function DatasourceControl({
         const temporalColumn = isDefaultTemporal
           ? defaultTemporalColumn
           : temporalColumns?.[0];
-        actions.setControlValue('granularity_sqla', temporalColumn || null);
+        actions.setControlValue(
+          'granularity_sqla',
+          temporalColumn || null,
+          undefined,
+          {
+            // Derived alongside the datasource change, not a gesture of its own.
+            programmatic: true,
+          },
+        );
       }
 
       if (onDatasourceSave) {
@@ -341,9 +357,12 @@ export default function DatasourceControl({
     }
   }
 
+  const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
   const allowEdit =
-    datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
-    isUserAdmin(user);
+    datasource.editors?.some(o => {
+      const subjectId = o.id ?? o.value;
+      return subjectId !== undefined && userSubjects.includes(subjectId);
+    }) || isUserAdmin(user);
 
   const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
 
@@ -359,7 +378,7 @@ export default function DatasourceControl({
       label: !allowEdit ? (
         <Tooltip
           title={t(
-            'You must be a %s owner in order to edit. Please reach out to a %s owner to request modifications or edit access.',
+            'You must be a %s editor in order to edit. Please reach out to a %s editor to request modifications or edit access.',
             datasetLabelLower(),
             datasetLabelLower(),
           )}
@@ -485,6 +504,9 @@ export default function DatasourceControl({
         )}
         {extra?.warning_markdown && (
           <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
+        )}
+        {datasource.rls_filters && datasource.rls_filters.length > 0 && (
+          <RlsBadge rlsFilters={datasource.rls_filters} />
         )}
         <Dropdown
           popupRender={() =>

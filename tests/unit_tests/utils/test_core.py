@@ -28,12 +28,15 @@ from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
+    build_email_attachment,
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
+    extract_dataframe_dtypes,
     FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
+    generic_find_uq_constraint_name,
     get_datasource_full_name,
     get_query_source_from_request,
     get_stacktrace,
@@ -67,6 +70,43 @@ EXTRA_FILTER: QueryObjectFilterClause = {
     "val": "bar",
     "isExtra": True,
 }
+
+
+@pytest.mark.parametrize(
+    ("name", "body", "expected_payload", "content_type"),
+    [
+        (
+            "report.xlsx",
+            b"attachment",
+            b"attachment",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ),
+        (
+            "report.zip",
+            "архив".encode("utf-8"),
+            "архив".encode("utf-8"),
+            "application/zip",
+        ),
+        (
+            "report.csv",
+            "город,value\nМосква,1",
+            "город,value\nМосква,1".encode("utf-8"),
+            "application/octet-stream",
+        ),
+    ],
+)
+def test_build_email_attachment(
+    name: str,
+    body: bytes | str,
+    expected_payload: bytes,
+    content_type: str,
+) -> None:
+    """Email attachments should expose the expected MIME type and filename."""
+    attachment = build_email_attachment(name, body)
+
+    assert attachment.get_content_type() == content_type
+    assert attachment.get_filename() == name
+    assert attachment.get_payload(decode=True) == expected_payload
 
 
 @dataclass
@@ -234,6 +274,22 @@ def test_normalize_dttm_col() -> None:
     assert df["__time"].astype(str).tolist() == ["2017-07-01"]
 
 
+def test_normalize_dttm_col_mismatched_format_keeps_values() -> None:
+    """A datetime format that coerces every value to NaT is a mismatch (e.g. an
+    epoch-millis column that inherited a ``%Y`` string format when used as a
+    chart's granularity); applying it would silently blank the whole column, so
+    the original values are kept instead of being nulled. Regression for the
+    Samples pane showing N/A for such columns."""
+    df = pd.DataFrame({"year": [1136073600000, 473385600000]})  # epoch ms
+    before = df["year"].tolist()
+
+    normalize_dttm_col(df, (DateColumn(col_label="year", timestamp_format="%Y"),))
+
+    # not blanked to NaT/None
+    assert df["year"].notna().all()
+    assert df["year"].tolist() == before
+
+
 def test_normalize_dttm_col_epoch_seconds() -> None:
     """Test conversion of epoch seconds."""
     df = pd.DataFrame(
@@ -304,6 +360,46 @@ def test_normalize_dttm_col_with_offset() -> None:
     assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 03:00:00"
 
 
+def test_normalize_dttm_col_second_precision_no_offset_matches_source() -> None:
+    """Regression test for #37925: second-precision timestamps with no
+    dataset offset configured ("UTC", i.e. offset=0) and no time shift must
+    pass through ``normalize_dttm_col`` unchanged and identically to their
+    source values, with no per-row drift.
+
+    The issue reports charts showing datetimes shifted by inconsistent,
+    non-uniform amounts versus the same data in SQL Lab, with the reporter's
+    own examples showing each shift exactly equal to that row's own
+    time-of-day (e.g. 16:30:00 shifted by +16h30m, 10:00:00 by +10h,
+    14:20:00 by +14h20m). ``normalize_dttm_col`` applies a single
+    ``_col.offset``/``_col.time_shift`` uniformly via ``timedelta(...)`` to
+    the whole column (see ``test_normalize_dttm_col_with_offset`` above,
+    already green), which cannot structurally produce a shift that varies
+    per row based on that row's own value, so this function is not the
+    mechanism the issue describes. This test locks in the specific
+    reported config (offset=0, no time_shift, second-level grain, multiple
+    distinct timestamps) end to end to make that explicit.
+    """
+    source_values = [
+        "2026-02-15 16:30:00",
+        "2026-02-15 10:00:00",
+        "2026-02-11 14:20:00",
+    ]
+    df = pd.DataFrame({"dttm": source_values})
+    dttm_cols = (
+        DateColumn(
+            col_label="dttm",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            offset=0,
+            time_shift=None,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["dttm"])
+    assert df["dttm"].dt.strftime("%Y-%m-%d %H:%M:%S").tolist() == source_values
+
+
 def test_normalize_dttm_col_with_time_shift() -> None:
     """Test with time shift."""
     df = pd.DataFrame({"date_col": ["2020-01-01", "2021-01-01", "2022-01-01"]})
@@ -339,6 +435,78 @@ def test_normalize_dttm_col_with_offset_and_time_shift() -> None:
     assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 04:00:00"
     assert df["date_col"][1].strftime("%Y-%m-%d %H:%M:%S") == "2021-01-01 04:00:00"
     assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 04:00:00"
+
+
+def test_normalize_dttm_col_with_timezone() -> None:
+    """UTC-stored values are converted to the dataset's configured timezone."""
+    # Winter date: Europe/Berlin is UTC+1, so 00:00 UTC renders as 01:00 local.
+    df = pd.DataFrame({"date_col": ["2020-01-01 00:00:00"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            timezone="Europe/Berlin",
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    # tz-naive after conversion (display value), shifted by the zone offset.
+    assert df["date_col"][0].tzinfo is None
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 01:00:00"
+
+
+def test_normalize_dttm_col_timezone_handles_dst() -> None:
+    """The timezone path respects DST, unlike a fixed hour offset."""
+    # Summer date: Europe/Berlin is UTC+2 (CEST), so 00:00 UTC renders as 02:00.
+    df = pd.DataFrame({"date_col": ["2020-07-01 00:00:00"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            timezone="Europe/Berlin",
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-07-01 02:00:00"
+
+
+def test_normalize_dttm_col_timezone_takes_precedence_over_offset() -> None:
+    """When both timezone and offset are set, the timezone conversion wins."""
+    df = pd.DataFrame({"date_col": ["2020-01-01 00:00:00"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            timezone="Europe/Berlin",
+            offset=10,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    # +1h from the Berlin (winter) conversion, NOT +10h from the offset.
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 01:00:00"
+
+
+def test_normalize_dttm_col_invalid_timezone_falls_back_to_offset() -> None:
+    """An unknown timezone falls back to the plain hour offset."""
+    df = pd.DataFrame({"date_col": ["2020-01-01 00:00:00"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            timezone="Not/AZone",
+            offset=3,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 03:00:00"
 
 
 def test_normalize_dttm_col_invalid_date_coerced() -> None:
@@ -605,6 +773,71 @@ def test_generic_find_fk_constraint_none_exist():
     assert result is None
 
 
+def test_generic_find_uq_constraint_accepts_list():
+    """Regression pin for the ``list == set`` foot-gun (sc-112173).
+
+    Migration ``df3d7e2eb9a4`` passed a list and silently never matched,
+    because the helper compared it with ``==`` against a set. The helper
+    coerces its ``columns`` argument, so a list argument MUST find the
+    constraint."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "_customer_location_uc",
+            "column_names": ["database_id", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        ["database_id", "schema", "table_name"],  # deliberately a list
+        insp_mock,
+    )
+
+    assert result == "_customer_location_uc"
+
+
+def test_generic_find_uq_constraint_with_set():
+    """The documented set-shaped argument keeps working unchanged."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "_customer_location_uc",
+            "column_names": ["database_id", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        {"database_id", "schema", "table_name"},
+        insp_mock,
+    )
+
+    assert result == "_customer_location_uc"
+
+
+def test_generic_find_uq_constraint_no_partial_match():
+    """A 3-column lookup MUST NOT match a 4-column constraint: the
+    take-2 drop migration relies on exact set equality so the model's
+    intended ``(database_id, catalog, schema, table_name)`` constraint is
+    never at risk."""
+    insp_mock = MagicMock()
+    insp_mock.get_unique_constraints.return_value = [
+        {
+            "name": "uq_tables_database_id",
+            "column_names": ["database_id", "catalog", "schema", "table_name"],
+        },
+    ]
+
+    result = generic_find_uq_constraint_name(
+        "tables",
+        {"database_id", "schema", "table_name"},
+        insp_mock,
+    )
+
+    assert result is None
+
+
 def test_get_datasource_full_name():
     """
     Test the `get_datasource_full_name` function.
@@ -693,8 +926,9 @@ def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
 
 @with_config(
     {
-        "USER_AGENT_FUNC": lambda database,
-        source: f"{database.database_name} {source.name}"
+        "USER_AGENT_FUNC": lambda database, source: (
+            f"{database.database_name} {source.name}"
+        )
     }
 )
 def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None:
@@ -1847,3 +2081,10 @@ def test_sanitize_cookie_token_accepts_valid(token: str) -> None:
 )
 def test_sanitize_cookie_token_rejects_invalid(token: Optional[str]) -> None:
     assert sanitize_cookie_token(token) is None
+
+
+def test_extract_dataframe_dtypes_with_duplicate_columns() -> None:
+    """extract_dataframe_dtypes should not crash on duplicate column names."""
+    df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
+    result = extract_dataframe_dtypes(df)
+    assert len(result) == 3

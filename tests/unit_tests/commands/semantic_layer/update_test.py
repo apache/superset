@@ -80,8 +80,8 @@ def test_update_semantic_view_forbidden(mocker: MockerFixture) -> None:
     sm = mocker.patch(
         "superset.commands.semantic_layer.update.security_manager",
     )
-    # Use a regular MagicMock for raise_for_ownership to avoid AsyncMock issues
-    sm.raise_for_ownership = MagicMock(
+    # Use a regular MagicMock for raise_for_editorship to avoid AsyncMock issues
+    sm.raise_for_editorship = MagicMock(
         side_effect=SupersetSecurityException(MagicMock()),
     )
 

@@ -63,6 +63,7 @@ const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
 const VALIDATE_PARAMS_ENDPOINT = 'glob:*/api/v1/database/validate_parameters*';
 const DATABASE_CONNECT_ENDPOINT = 'glob:*/api/v1/database/';
+const IMPORT_DB_ENDPOINT = 'glob:*/api/v1/database/import/';
 
 const databaseFixture: DatabaseObject = {
   id: 123,
@@ -1600,6 +1601,59 @@ describe('DatabaseModal', () => {
         expect(importDbButton.files?.item(0)).toStrictEqual(testFile);
         expect(importDbButton.files).toHaveLength(1);
       });
+
+      test('resets the upload entry after an invalid file error', async () => {
+        fetchMock.post(IMPORT_DB_ENDPOINT, {
+          status: 422,
+          body: {
+            errors: [
+              {
+                message:
+                  'Could not find a valid command to import file. Please re-export your file and try importing again',
+                error_type: 'GENERIC_COMMAND_ERROR',
+                level: 'warning',
+                extra: { issue_codes: [] },
+              },
+            ],
+          },
+        });
+
+        // jsdom does not implement scrollIntoView, which the modal calls
+        // once the importing filename renders
+        Element.prototype.scrollIntoView = jest.fn();
+
+        setup();
+
+        await screen.findByTestId('import-database-btn');
+        const fileInput = document.querySelector(
+          'input[type="file"]',
+        ) as HTMLInputElement;
+        // rc-upload spreads e.target.files, so pass a real iterable
+        fireEvent.change(fileInput, {
+          target: {
+            files: [new File([new ArrayBuffer(1)], 'invalid_export.zip')],
+          },
+        });
+
+        await screen.findByText(/could not find a valid command to import/i);
+
+        const uploadItem = document.querySelector('.ant-upload-list-item');
+        expect(uploadItem).toBeInTheDocument();
+        // the spinner must settle rather than spin forever
+        expect(uploadItem).not.toHaveClass('ant-upload-list-item-uploading');
+
+        const removeButton = (uploadItem as HTMLElement).querySelector(
+          'button',
+        ) as HTMLButtonElement;
+        expect(removeButton).toBeInTheDocument();
+        fireEvent.click(removeButton);
+
+        await waitFor(() =>
+          expect(
+            document.querySelector('.ant-upload-list-item'),
+          ).not.toBeInTheDocument(),
+        );
+      });
     });
   });
 
@@ -1804,8 +1858,14 @@ describe('DatabaseModal', () => {
 
     userEvent.click(screen.getByTestId('sqla-connect-btn'));
 
-    expect(await screen.findByTestId('database-name-input')).toBeVisible();
-    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeVisible();
+    // assert on presence rather than visibility: the SQLAlchemy form mounts
+    // inside an animated tab pane, and rc-motion's animation state in jsdom
+    // is nondeterministic, so toBeVisible flakes while the form is in fact
+    // rendered (see the animated={{ tabPane: true }} Tabs in DatabaseModal)
+    expect(
+      await screen.findByTestId('database-name-input'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
   });
 
   test.each([
@@ -1935,7 +1995,7 @@ test('validates fix by testing all form field types clear validation errors', ()
     mockClearError();
   };
 
-  const handleChangeWithValidation = (actionType: any, payload: any) => {
+  const handleChangeWithValidation = (_actionType: any, _payload: any) => {
     handleClearValidationErrors();
   };
 
@@ -2153,6 +2213,71 @@ describe('dbReducer', () => {
       ...databaseFixture,
       masked_encrypted_extra: '{"other":"keep-me"}',
     });
+  });
+
+  test('ExtraInputChange stores a non-negative schema_cache_timeout', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'schema_cache_timeout', value: '600' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"metadata_cache_timeout":{"schema_cache_timeout":600}}',
+    });
+  });
+
+  test('ExtraInputChange clears schema_cache_timeout back to unset on empty input', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'schema_cache_timeout', value: '' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        extra: JSON.stringify({
+          metadata_cache_timeout: { schema_cache_timeout: 600 },
+        }),
+      },
+      action,
+    );
+
+    // Empty input drops the key so JSON.stringify omits it, returning the
+    // cache to unset/global default rather than pinning it to 0 (never expire).
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"metadata_cache_timeout":{}}',
+    });
+  });
+
+  test('InputChange stores cache_timeout, allowing -1 (bypass cache)', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.InputChange,
+      payload: { name: 'cache_timeout', value: '-1' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      cache_timeout: '-1',
+    });
+  });
+
+  test('InputChange clears cache_timeout back to unset on empty input', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.InputChange,
+      payload: { name: 'cache_timeout', value: '' },
+    };
+    const currentState = dbReducer(
+      { ...databaseFixture, cache_timeout: '600' },
+      action,
+    );
+
+    // Number('') is 0, not NaN, so the empty string is mapped to NaN first;
+    // that falls through to undefined and clears back to the global default.
+    expect(currentState?.cache_timeout).toBeUndefined();
+    expect(currentState).toEqual({ ...databaseFixture });
   });
 
   test.each([

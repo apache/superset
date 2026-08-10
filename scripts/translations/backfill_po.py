@@ -138,6 +138,22 @@ def _lang_name(code: str) -> str:
     return LANGUAGE_NAMES.get(code, code)
 
 
+# An ISO 639-1/639-2 code, optionally followed by an ISO 3166 region
+# (``_BR``, two uppercase) or an ISO 15924 script (``_Latn``, titlecase). The
+# script subtag matters for catalogs like ``sr_Latn`` (Serbian in Latin script);
+# without it the code was rejected and the catalog silently skipped.
+_LANG_CODE_RE: re.Pattern[str] = re.compile(r"[a-z]{2,3}(_([A-Z]{2}|[A-Z][a-z]{3}))?")
+
+
+def _is_valid_lang_code(lang: str) -> bool:
+    """Validate a language code before it lands, unsanitized, in a filesystem path.
+
+    Guards against path traversal while allowing the region and script subtags
+    Superset actually ships (e.g. ``pt_BR``, ``sr_Latn``).
+    """
+    return bool(_LANG_CODE_RE.fullmatch(lang))
+
+
 def _plural_key(msgid: str, msgid_plural: str) -> str:
     """Build the translation index key used for pluralized entries."""
     return f"{msgid}\x00{msgid_plural}"
@@ -150,6 +166,60 @@ def _is_missing(entry: polib.POEntry) -> bool:
     if entry.msgid_plural:
         return not any(v for v in entry.msgstr_plural.values())
     return not entry.msgstr
+
+
+# Canonical registry of msgids that must never be machine-translated: literal
+# tokens compared against source (SQL keywords, confirmation words), enum values
+# (d3 interpolation modes), icon names (e.g. "bolt" -> the ⚡ Explore control
+# icon), API field names, code constants, and example placeholders. Translating
+# them can break icon lookups, enum matching, or API contracts, or is simply
+# meaningless (proper nouns, example values). apply_do_not_translate.py stamps
+# these msgids in messages.pot with a `#. do-not-translate`
+# extracted comment that propagates to every catalog on `pybabel update`.
+DO_NOT_TRANSLATE_REGISTRY: Path = TRANSLATIONS_DIR / "do-not-translate.txt"
+
+
+def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[str]:
+    """Load the do-not-translate msgids (skips comment/blank lines).
+
+    Lines are stripped before the blank/comment checks, matching the parsing in
+    apply_do_not_translate.py, so trailing whitespace or an indented comment
+    never yields a msgid that fails to match a catalog entry.
+    """
+    if not path.exists():
+        return frozenset()
+    return frozenset(
+        stripped
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if (stripped := line.strip()) and not stripped.startswith("#")
+    )
+
+
+DO_NOT_TRANSLATE: frozenset[str] = _load_do_not_translate()
+
+# An explicit do-not-translate marker on an entry, matched in either the
+# extracted comment (`#. do-not-translate`, the standard propagated
+# from the .pot) or a translator comment (e.g. the ru catalog's legacy
+# "# Не переводить"). Honored so a human's deliberate decision is never
+# overridden even if a msgid is missing from the registry.
+_DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
+    r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
+    re.IGNORECASE,
+)
+
+
+def _is_do_not_translate(entry: polib.POEntry) -> bool:
+    """Return True if an entry must be left for a human (never machine-filled).
+
+    Either its msgid is in the do-not-translate registry, or the entry carries
+    an explicit do-not-translate marker in its extracted or translator comment.
+    """
+    if entry.msgid in DO_NOT_TRANSLATE:
+        return True
+    return any(
+        comment and _DO_NOT_TRANSLATE_COMMENT.search(comment)
+        for comment in (entry.comment, entry.tcomment)
+    )
 
 
 def _context_langs(
@@ -613,13 +683,11 @@ def backfill(
     mark_fuzzy: bool = True,
 ) -> None:
     """Backfill missing translations in the target language's .po file."""
-    # Defense against path traversal: ``lang`` lands in a filesystem path
-    # without further sanitization, so reject anything that isn't an
-    # ISO 639-1/639-2 code with an optional ISO 3166 region (e.g. ``pt_BR``).
-    if not re.fullmatch(r"[a-z]{2,3}(_[A-Z]{2})?", lang):
+    if not _is_valid_lang_code(lang):
         print(
             f"Invalid language code: {lang!r} "
-            "(expected ISO 639 code, optionally with _<REGION>, e.g. 'fr' or 'pt_BR')",
+            "(expected ISO 639 code, optionally with a _<REGION> or _<Script> "
+            "subtag, e.g. 'fr', 'pt_BR', or 'sr_Latn')",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -646,6 +714,15 @@ def backfill(
 
     missing: list[polib.POEntry] = [e for e in cat if e.msgid and _is_missing(e)]
     print(f"Found {len(missing)} untranslated entries for '{lang}'.", file=sys.stderr)
+
+    skipped_dnt: list[polib.POEntry] = [e for e in missing if _is_do_not_translate(e)]
+    if skipped_dnt:
+        missing = [e for e in missing if not _is_do_not_translate(e)]
+        print(
+            f"Skipping {len(skipped_dnt)} do-not-translate entries (literal "
+            f"tokens / translator-marked); they are left untranslated.",
+            file=sys.stderr,
+        )
 
     if min_context > 0:
         before = len(missing)

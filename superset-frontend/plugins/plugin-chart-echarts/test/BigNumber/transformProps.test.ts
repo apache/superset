@@ -134,10 +134,34 @@ describe('BigNumberWithTrendline', () => {
       // bigNumberFallback is only set when bigNumber is null after aggregation
       expect(transformed.bigNumberFallback).toBeNull();
 
-      // should successfully formatTime by granularity
+      // granularity (QUARTER) is honored, so the default format renders the
+      // full quarter range rather than only the start date
       // @ts-expect-error
       expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
-        '2020-01-01 00:00:00',
+        '2020 Q1',
+      );
+    });
+
+    test('should format the week range with a custom date format', () => {
+      // Regression test for #35636: a custom date format combined with a Week
+      // time grain should render the full week range, not just the start date.
+      const propsWithWeekGranularity = {
+        ...props,
+        rawFormData: {
+          ...rawFormData,
+          time_grain_sqla: TimeGranularity.WEEK,
+        },
+        formData: {
+          ...props.formData,
+          timeGrainSqla: TimeGranularity.WEEK,
+          timeFormat: '%d-%m-%Y',
+        },
+      } as unknown as BigNumberWithTrendlineChartProps;
+
+      const transformed = transformProps(propsWithWeekGranularity);
+      // @ts-expect-error
+      expect(transformed.formatTime(new Date('2025-10-13'))).toStrictEqual(
+        '13-10-2025 — 19-10-2025',
       );
     });
 

@@ -50,8 +50,8 @@ class DeleteDatasetColumnCommand(BaseCommand):
         self._model = DatasetDAO.find_dataset_column(self._dataset_id, self._model_id)
         if not self._model:
             raise DatasetColumnNotFoundError()
-        # Check ownership
+        # Check editorship
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DatasetColumnForbiddenError() from ex

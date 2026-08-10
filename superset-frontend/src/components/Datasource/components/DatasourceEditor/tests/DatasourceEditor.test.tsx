@@ -410,7 +410,7 @@ test('shows the default datetime column in dropdown', async () => {
 
   // Verify the current value is 'ds' (from main_dttm_col in props)
   const selectedValue = await screen.findByText('ds', {
-    selector: '.ant-select-selection-item',
+    selector: '.ant-select-content-has-value, .ant-select-selection-item',
   });
   expect(selectedValue).toBeInTheDocument();
 });

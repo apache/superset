@@ -176,7 +176,7 @@ class TestRelationshipFilterDiscovery:
         wider discovery output."""
         filterable = _SliceDAONoRelationships.get_filterable_columns_and_operators()
         assert "dashboards" not in filterable
-        assert "owners" not in filterable
+        assert "editors" not in filterable
         assert "tags" not in filterable
 
     def test_only_opted_in_relationships_advertised(self):
@@ -184,10 +184,10 @@ class TestRelationshipFilterDiscovery:
         exactly those, even if the model has additional collection
         relationships SQLAlchemy could reflect on."""
         filterable = _SliceDAO.get_filterable_columns_and_operators()
-        # Slice has many collection relationships (owners, tags, dashboards,
+        # Slice has many collection relationships (editors, tags, dashboards,
         # ...). Only the opted-in one appears in discovery.
         assert "dashboards" in filterable
-        assert "owners" not in filterable
+        assert "editors" not in filterable
         assert "tags" not in filterable
 
     def test_chart_dao_opts_into_dashboards(self):
@@ -199,5 +199,5 @@ class TestRelationshipFilterDiscovery:
         filterable = ChartDAO.get_filterable_columns_and_operators()
         assert "dashboards" in filterable
         # Other relationships on Slice must not leak into discovery.
-        assert "owners" not in filterable
+        assert "editors" not in filterable
         assert "tags" not in filterable

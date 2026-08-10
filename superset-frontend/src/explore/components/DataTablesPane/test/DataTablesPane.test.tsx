@@ -19,7 +19,12 @@
 import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
 import * as copyUtils from 'src/utils/copy';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
@@ -87,6 +92,48 @@ describe('DataTablesPane', () => {
       await screen.findByText('0 rows', undefined, { timeout: 5000 }),
     ).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
+  });
+
+  test('Hides Samples tab when datasource opts out via supports_samples=false', async () => {
+    const props = createDataTablesPaneProps(0);
+    const propsWithoutSamples = {
+      ...props,
+      datasource: { ...props.datasource, supports_samples: false },
+    };
+    render(<DataTablesPane {...propsWithoutSamples} />, { useRedux: true });
+    expect(await screen.findByText('Results')).toBeVisible();
+    expect(screen.queryByText('Samples')).not.toBeInTheDocument();
+  });
+
+  test('Falls back to Results when active Samples tab disappears mid-session', async () => {
+    // Regression for codeant Major finding on PR #41509: a datasource swap
+    // that hides the Samples tab while it was the active tab used to leave
+    // ``activeTabKey === 'samples'`` orphaned, rendering a blank panel.
+    const props = createDataTablesPaneProps(0);
+    const { rerender } = render(<DataTablesPane {...props} />, {
+      useRedux: true,
+    });
+
+    // Open the panel and pick the Samples tab.
+    userEvent.click(screen.getByLabelText('Expand data panel'));
+    userEvent.click(await screen.findByText('Samples'));
+    expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
+
+    // Swap to a datasource that doesn't support samples (e.g. a semantic
+    // view). The Samples tab should disappear and the panel should land on
+    // Results with content still rendered.
+    rerender(
+      <DataTablesPane
+        {...props}
+        datasource={{ ...props.datasource, supports_samples: false }}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.queryByText('Samples')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Results')).toBeVisible();
+    // Panel stays expanded and renders Results content rather than going blank.
+    expect(screen.getByLabelText('Collapse data panel')).toBeVisible();
   });
 
   test('Should copy data table content correctly', async () => {

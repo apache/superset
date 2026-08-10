@@ -386,6 +386,16 @@ async def _handle_chart_sql_request(
     request: GetChartSqlRequest, ctx: Context
 ) -> ChartSql | ChartError:
     """Core logic for get_chart_sql, extracted for complexity."""
+    from superset import security_manager
+
+    # A chart's SQL exposes tables/columns/joins; deny guests (like get_dataset_info)
+    # explicitly so it holds even with MCP_RBAC_ENABLED off.
+    if security_manager.is_guest_user():
+        return ChartError(
+            error="Chart SQL is not available to embedded guests.",
+            error_type="Forbidden",
+        )
+
     # Handle unsaved chart (form_data_key only, no identifier)
     if not request.identifier and request.form_data_key:
         return await _handle_unsaved_chart_sql(request.form_data_key, ctx)
@@ -411,7 +421,7 @@ async def _handle_chart_sql_request(
     )
 
     # Validate the chart's dataset is accessible
-    validation_result = validate_chart_dataset(chart, check_access=True)
+    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)

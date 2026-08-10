@@ -25,6 +25,7 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import logging
@@ -59,6 +60,7 @@ from superset.constants import (
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
+from superset.subjects.types import SubjectType
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
@@ -224,6 +226,20 @@ SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
+# Manual dashboard refresh can stagger chart data requests across this many
+# milliseconds so they do not all hit the backend at the same instant. This
+# defaults to 0, which preserves the original behavior where every chart
+# request fires at the same time when the user clicks the Refresh dashboard
+# button. Set a positive value to opt in to staggering; the frontend then
+# uses the larger of this value and the dashboard's stagger_time metadata,
+# which itself defaults to 5000 ms when it is not set explicitly. A dashboard
+# with stagger_refresh set to false in its metadata skips staggering on the
+# manual refresh path entirely, even when this value is positive.
+# If the backend does not provide this value at all (an older backend that
+# predates the key, or it is set to None), the frontend falls back to a
+# built-in default of 5000 ms.
+SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
+
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -349,7 +365,6 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
     "superset.dashboards.api.cache_dashboard_screenshot",
-    "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
     "flask_appbuilder.security.views.acs",
@@ -454,6 +469,13 @@ FAB_API_SWAGGER_UI = utils.cast_to_boolean(
     os.environ.get("SUPERSET_ENABLE_SWAGGER_UI", False)
 )
 
+# Enables an APPLICATION_ROOT-aware Swagger UI and OpenAPI spec, for Superset
+# deployments served behind a URL prefix (reverse proxy). When True, the spec
+# is exposed at ``/api/<version>/_openapi`` and the Swagger UI resolves it
+# through APPLICATION_ROOT. Defaults to False (standard FAB Swagger UI).
+# ex: http://localhost:8080/<prefix>/swagger/v1
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
+
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
 # ----------------------------------------------------
@@ -523,6 +545,13 @@ LANGUAGES = {
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
     "ro": {"flag": "ro", "name": "Romanian"},
+    "ar": {"flag": "sa", "name": "Arabic"},
+    "ca": {"flag": "es", "name": "Catalan"},
+    "fa": {"flag": "ir", "name": "Persian"},
+    "fi": {"flag": "fi", "name": "Finnish"},
+    "th": {"flag": "th", "name": "Thai"},
+    "tr": {"flag": "tr", "name": "Turkish"},
+    "ta": {"flag": "in", "name": "Tamil"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -660,13 +689,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
-    # Temporary rollout / kill-switch gate for soft delete (default off = legacy
-    # hard delete). An emergency stop, not a clean rollback: flipping ON->OFF
-    # resurrects already-soft-deleted rows. Removed (along with its two gate
-    # points — BaseDAO.delete routing and the do_orm_execute visibility listener)
-    # once soft delete is stable.
+    # Temporary rollout / kill-switch gate for soft delete (off = legacy hard
+    # delete). An emergency stop, not a clean rollback: flipping ON->OFF
+    # resurrects already-soft-deleted rows. Retained through this release as
+    # the move-back lever; removed (along with its two gate points —
+    # BaseDAO.delete routing and the do_orm_execute visibility listener) once
+    # post-flip confidence is established.
     # @lifecycle: development
-    "SOFT_DELETE": False,
+    "SOFT_DELETE": True,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
@@ -692,6 +722,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
+    # Enables the version history panel on Explore and Dashboard pages.
+    # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
+    # with capture off the panel renders but stays empty, so the two ship
+    # with matching defaults and should be changed together.
+    # @lifecycle: development
+    "VERSION_HISTORY": True,
     # =================================================================
     # IN TESTING
     # =================================================================
@@ -705,9 +741,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "ALERT_REPORTS": False,
-    # Enables Slack V2 integration for Alerts and Reports
+    # Enables Slack V2 integration for Alerts and Reports.
+    # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
+    # in the next major release. Operators must grant the Slack bot both the
+    # `channels:read` and `groups:read` scopes so existing v1 recipients can be
+    # auto-upgraded on their next send. Without those scopes, file uploads fail
+    # (Slack retired the `files.upload` endpoint in 2025) and only text-only
+    # `chat_postMessage` sends will continue to work via the legacy path.
     # @lifecycle: testing
-    "ALERT_REPORT_SLACK_V2": False,
+    "ALERT_REPORT_SLACK_V2": True,
     # Enables webhook integration for Alerts and Reports
     # @lifecycle: testing
     "ALERT_REPORT_WEBHOOK": False,
@@ -809,11 +851,20 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "CSS_TEMPLATES": True,
-    # Role-based access control for dashboards
-    # @lifecycle: stable
-    # @category: runtime_config
-    # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
-    "DASHBOARD_RBAC": False,
+    # Subject-based viewer access control for dashboards and charts.
+    # When enabled, resources can have explicit viewer Subject assignments.
+    # @lifecycle: testing
+    # @category: security
+    "ENABLE_VIEWERS": False,
+    # Share a newly created dashboard or chart read-only with every group its
+    # creator belongs to, unless the create payload names viewers explicitly.
+    # Requires ENABLE_VIEWERS. Narrows access: an asset with no viewers falls
+    # back to datasource permissions; one with viewers is limited to its editors
+    # and viewers, and dashboards must also be published before those viewers
+    # gain access.
+    # @lifecycle: testing
+    # @category: security
+    "ASSIGN_CREATOR_GROUPS_AS_VIEWERS": False,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
@@ -899,15 +950,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These flags default to True and will be removed in a future major
     # release. Set to True in your config to avoid unexpected changes.
     # -----------------------------------------------------------------
-    # Avoid color collisions in charts by using distinct colors
-    # @lifecycle: deprecated
-    "AVOID_COLORS_COLLISION": True,
     # Enable drill-to-detail functionality in charts
     # @lifecycle: deprecated
     "DRILL_TO_DETAIL": True,
-    # Allow JavaScript in chart controls. WARNING: XSS security vulnerability!
-    # @lifecycle: deprecated
-    "ENABLE_JAVASCRIPT_CONTROLS": False,
 }
 
 # ------------------------------
@@ -958,6 +1003,13 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
+
+# Retention policy for soft-deleted dashboards, charts, and datasets. A value of
+# zero disables scheduled purging. Purging is live by default, so the retention
+# promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
+# to True to have the task log ``would_purge`` counts without deleting anything.
+SOFT_DELETE_RETENTION_DAYS: int = 30
+SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
@@ -1011,6 +1063,12 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
+
+# EXTRA_THEME_TOKENS lets a deployment register additional custom theme token
+# names so they validate cleanly in the theme editor instead of being flagged as
+# unknown Ant Design tokens. Deployments and plugins that consume their own
+# tokens via useTheme add them here. This is merely a default.
+EXTRA_THEME_TOKENS: list[str] = []
 
 # -----------------------------------------------------------------------------
 # Theme System Configuration
@@ -1122,6 +1180,9 @@ def sync_theme_logo_href(
 # Enable UI-based theme administration for admins
 ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via UI
 
+# Default theme mode for sessions without a saved user preference.
+THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
+
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
 
@@ -1152,17 +1213,20 @@ THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # User used to execute cache warmup tasks
-# By default, the cache is warmed up using the primary owner. To fall back to using
-# a fixed user (admin in this example), use the following configuration:
+# By default, the cache is warmed up using a physical user represented by the
+# editors (giving priority to the last modifier, then the creator, then the first
+# direct user editor, then a deterministic user from editor role/group subjects).
+# To fall back to using a fixed user (admin in this example), use the following
+# configuration:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
-# CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+# CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR, FixedExecutor("admin")]
 #
 # NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
 # It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
 # (defined below). This setting is retained for other executor-based code paths.
-CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
+CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR]
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -1210,12 +1274,40 @@ THUMBNAIL_COMPUTING_CACHE_TTL = int(timedelta(seconds=360).total_seconds())
 # Celery task. Intentionally defaults to None so operators pick a dedicated
 # least-privilege user rather than inadvertently running warmup as "admin".
 SUPERSET_CACHE_WARMUP_USER: str | None = None
+# To warm up native filter option queries, use the `native_filter_options` strategy.
+# This strategy pre-populates the cache for Value-type native filter dropdowns by
+# executing the same chart-data queries the UI sends when a user opens a filter.
+#
+# Cache entries are warmed under SUPERSET_CACHE_WARMUP_USER. Without the shared
+# cache key optimization (not included in this PR), entries are scoped to the
+# warm-up user's normal cache partition. Users with different role sets may still
+# experience cache misses on first load.
+#
+# Example Celery beat configuration:
+#
+#     beat_schedule = {
+#         "cache-warmup-native-filters": {
+#             "task": "cache-warmup",
+#             "schedule": crontab(minute=0, hour=3),  # daily at 03:00
+#             "kwargs": {
+#                 "strategy_name": "native_filter_options",
+#                 "dashboard_ids": [1, 2, 3],
+#             },
+#         },
+#     }
+#
+# Requirements:
+# - SUPERSET_CACHE_WARMUP_USER must be set to a user with access to the
+#   dashboards and datasets referenced by the native filters.
+# - DATA_CACHE_CONFIG must be configured (Redis recommended).
+# - Celery beat must be running.
+# - Cascade/dependent filters and search-term variants are not warmed in this
+#   version; only base option queries are supported.
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
-# Time before selenium times out after waiting for all DOM class elements named
-# "loading" are gone.
+# Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
 # Maximum time (in seconds) selenium waits for an initial page navigation
 # (driver.get) to complete. Without it the navigation blocks indefinitely when
@@ -1278,6 +1370,19 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
+# Upper bound, in bytes, on the serialized size of a single value written to the
+# data cache (chart and SQL query results). When a result's pickled size exceeds
+# this threshold the value is NOT written to the cache: the chart still renders,
+# but the next load re-queries the datasource instead of getting a cache hit. This
+# protects the cache backend (e.g. Redis/Memcached) from being flooded by very
+# large result sets. Set to ``None`` to disable the check (the default). Example:
+# 10 * 1024 * 1024 for a 10 MB limit.
+DATA_CACHE_MAX_VALUE_SIZE: int | None = None
+
+# Include per-query lifecycle timing in /api/v1/chart/data JSON responses.
+# The default keeps the public response contract unchanged.
+CHART_DATA_INCLUDE_TIMING: bool = False
+
 # Cache for dashboard filter state. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
 # that stores the values in the key-value table in the Superset metastore, as it's
 # required for Superset to operate correctly, but can be replaced by any
@@ -1306,8 +1411,57 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CODEC": JsonKeyValueCodec(),
 }
 
+# Extension Tier 2: Ephemeral State - Server-side cache with TTL.
+# Short-lived KV storage that automatically expires. Not guaranteed to
+# survive server restarts. Use for temporary state like job progress,
+# intermediate results, or cross-request state. Can be replaced by any
+# `Flask-Caching` backend (e.g. RedisCache for production).
+EXTENSIONS_EPHEMERAL_STORAGE: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    # Maximum TTL (in seconds) that clients may request. Requests exceeding
+    # this value are rejected. Defaults to 7 days.
+    "MAX_TTL": int(timedelta(days=7).total_seconds()),
+    # Maximum size (in bytes) of a single stored value. Requests exceeding
+    # this value are rejected. Defaults to 100 KB.
+    "MAX_VALUE_SIZE": 100 * 1024,
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
+}
+
+# Extension Tier 3: Persistent State - Database storage.
+# Durable KV storage backed by a dedicated database table (`extension_storage`).
+# Survives server restarts, cache evictions, and browser clears.
+EXTENSIONS_PERSISTENT_STORAGE: dict[str, Any] = {
+    # Maximum storage quota per extension in bytes (default: 100 MB)
+    "QUOTA_PER_EXTENSION": 100 * 1024 * 1024,
+    # Maximum size (in bytes) of a single stored value. Requests exceeding
+    # this value are rejected. Defaults to 1 MB.
+    "MAX_VALUE_SIZE": 1024 * 1024,
+    # Maximum combined value size (in bytes) that a single `list()` page may
+    # return. Requests whose page would exceed this are rejected rather than
+    # silently truncated. Defaults to 10 MB.
+    # NOTE: this response is consumed as JSON by the browser (REST API and
+    # frontend SDK), not just backend code — raising this substantially
+    # above the default risks client-side memory/parse-time issues.
+    "MAX_LIST_PAYLOAD_SIZE": 10 * 1024 * 1024,
+}
+
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+# Cache timeout (in seconds) specifically for native dashboard filter option queries.
+# Native filter queries use `DATA_CACHE_CONFIG` as their backend, but their TTL can be
+# configured independently here because they often require fresher data (e.g., for
+# datasets whose visible values change frequently, including RLS-constrained datasets).
+#
+# Valid values:
+#   None : Preserve the existing cache timeout resolution chain.
+#   -1   : Completely disable cache writes for native filter options.
+#   0    : Passed directly to the underlying cache backend. Backend-specific
+#          behavior may vary. Do not use 0 to disable caching; use -1 instead.
+#   >0   : Cache filter options for the specified number of seconds.
+NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT: int | None = None
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
@@ -1317,7 +1471,11 @@ CORS_OPTIONS: dict[Any, Any] = {
     "origins": [
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
-    ]
+    ],
+    # Make the entity-version-history `ETag` header readable by cross-origin
+    # browser clients. Without this, `fetch()` callers cannot read the header
+    # even when CORS is otherwise permissive.
+    "expose_headers": ["ETag"],
 }
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -1371,6 +1529,27 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 # method.
 # note: index option should not be overridden
 EXCEL_EXPORT: dict[str, Any] = {}
+
+# ---------------------------------------------------
+# Dashboard "Export Data to Excel" (async, S3-backed)
+# ---------------------------------------------------
+# Destination S3 bucket for generated dashboard .xlsx exports. The feature is
+# disabled until this is set: the export endpoint returns 501 when it is None.
+EXCEL_EXPORT_S3_BUCKET: str | None = None
+# Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
+EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"
+# Lifetime (seconds) of the pre-signed download URL emailed to the user (24h).
+# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds); larger
+# values are rejected by S3, so keep this at or below that when using AWS.
+EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
+# Extra kwargs passed to boto3.client("s3", ...) — e.g. region_name, or an
+# endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
+# otherwise resolve through the standard boto3 chain.
+EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
+# Viz types treated as tables in the "Export Images to Excel" mode: these charts
+# stay tabular (one worksheet of data) while every other viz type is embedded as
+# a rendered image. Set to None to fall back to the built-in default.
+EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
 # ---------------------------------------------------
 # Time grain configurations
@@ -1497,6 +1676,64 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
+# Master switch for entity-version-history capture. Capture is enabled by
+# default, so saves write shadow rows and a ``version_transaction`` /
+# ``version_changes`` record. Set this to a falsy value in
+# ``superset_config.py`` (or via the environment variable of the same name) to
+# disable the before-flush listeners while keeping the /versions/ endpoints
+# available read-only.
+# Capture ships on. It is an operational escape hatch — set the environment
+# variable to a falsy value when a versioning-induced regression needs a
+# 30-second recovery instead of revert-and-redeploy — not a feature flag,
+# and it remains permanently as the kill-switch rather than being removed
+# with the rollout toggles.
+ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
+)
+
+# Retention window (days) for entity version history. Version rows
+# whose owning ``version_transaction.issued_at`` is older than this
+# value are pruned by the ``version_history.prune_old_versions``
+# Celery beat task (registered below in ``CeleryConfig.beat_schedule``).
+# If any row anchored at a transaction is live
+# (``end_transaction_id IS NULL``), that entire transaction is preserved.
+# Baseline rows (``operation_type=0``) and closed historical rows otherwise
+# age out alongside the rest. Any non-positive value disables pruning.
+# Read from environment variable of the same name.
+_DEFAULT_VERSION_HISTORY_RETENTION_DAYS: int = 30
+# Keep cutoff arithmetic comfortably inside ``datetime``'s supported range
+# while allowing retention windows far beyond any practical deployment age.
+_MAX_VERSION_HISTORY_RETENTION_DAYS: int = 36_500
+
+
+def _parse_version_history_retention_days() -> int:
+    """Parse the retention window without making invalid input fatal."""
+    value: str | None = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+    if value is None:
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    try:
+        retention_days = int(value)
+    except ValueError:
+        logger.warning(
+            "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
+            value,
+            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
+        )
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
+        logger.warning(
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum "
+            "of %d; using %d",
+            value,
+            _MAX_VERSION_HISTORY_RETENTION_DAYS,
+            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
+        )
+        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    return retention_days
+
+
+SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
@@ -1529,7 +1766,7 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 
 # Performance optimization: Return only custom tags in dashboard list API
 # When enabled, filters out implicit tags (owner, type, favorited_by) at SQL JOIN level
-# Reduces response payload and query time for dashboards with many owners
+# Reduces response payload and query time for dashboards with many editors
 DASHBOARD_LIST_CUSTOM_TAGS_ONLY: bool = False
 
 # This is used as a workaround for the alerts & reports scheduler task to get the time
@@ -1545,10 +1782,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = (
         "superset.sql_lab",
+        "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
+        "superset.tasks.export_dashboard_excel",
+        "superset.tasks.version_history_retention",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -1566,6 +1806,17 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
+            "schedule": crontab(minute=0, hour=0),
+        },
+        # Entity version-history retention. Daily at 03:00; the task
+        # itself short-circuits when SUPERSET_VERSION_HISTORY_RETENTION_DAYS
+        # is non-positive (disabled).
+        "version_history.prune_old_versions": {
+            "task": "version_history.prune_old_versions",
+            "schedule": crontab(minute=0, hour=3),
+        },
+        "deletion_retention.purge_soft_deleted": {
+            "task": "deletion_retention.purge_soft_deleted",
             "schedule": crontab(minute=0, hour=0),
         },
         # Uncomment to enable pruning of the query table
@@ -1851,7 +2102,16 @@ TROUBLESHOOTING_LINK = ""
 WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 
 # This link should lead to a page with instructions on how to gain access to a
-# Datasource. It will be placed at the bottom of permissions errors.
+# Datasource. It is surfaced as a "Request Access" link on data-permission
+# errors (e.g. when a viewer opens a chart whose dataset they cannot access).
+# The URL may include any of these placeholders, which are substituted with
+# URL-encoded values so the link can deep-link into an access-request system:
+#   {datasource_id}    - id of the denied dataset (datasource errors)
+#   {datasource_name}  - name of the denied dataset (datasource errors)
+#   {table_names}      - comma-separated denied table names (table/SQL errors)
+#   {username}         - the requesting user's username
+# A URL with no placeholders is used as-is. Example:
+#   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your
@@ -2136,6 +2396,9 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
 # An example use case is if data has role based access controls, and you want to apply
 # a SET ROLE statement alongside every user query. Changing this variable maintains
 # functionality for both the SQL_Lab and Charts.
+# This applies consistently in SQL Lab: with MUTATE_AFTER_SPLIT = True the mutator runs
+# on each individual statement, and with MUTATE_AFTER_SPLIT = False it runs once on the
+# un-split query block.
 MUTATE_AFTER_SPLIT = False
 
 
@@ -2153,7 +2416,7 @@ def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noq
 
 
 # Define a list of usernames to be excluded from all dropdown lists of users
-# Owners, filters for created_by, etc.
+# Editors, filters for created_by, etc.
 # The users can also be excluded by overriding the get_exclude_users_from_lists method
 # in security manager
 EXCLUDE_USERS_FROM_LISTS: list[str] | None = None
@@ -2178,25 +2441,27 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# execute as the primary owner of the alert/report (giving priority to the last
-# modifier and then the creator if either is contained within the list of owners,
-# otherwise the first owner will be used).
+# execute as a physical user represented by the alert/report editors (giving
+# priority to the last modifier and then the creator if either is an editor,
+# otherwise the first direct user editor, then a deterministic user from editor
+# role/group subjects). Editor resolution checks both direct user-type subjects
+# and indirect membership through role/group subjects.
 #
-# To first try to execute as the creator in the owners list (if present), then fall
-# back to the creator, then the last modifier in the owners list (if present), then the
-# last modifier, then an owner and finally the "admin" user, set as follows:
+# To first try to execute as the creator if they're an editor (directly or via
+# role/group), then fall back to the creator, then the last modifier if they're an
+# editor, then the last modifier, then any editor, and finally the "admin" user:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # ALERT_REPORTS_EXECUTORS = [
-#     ExecutorType.CREATOR_OWNER,
+#     ExecutorType.CREATOR_EDITOR,
 #     ExecutorType.CREATOR,
-#     ExecutorType.MODIFIER_OWNER,
+#     ExecutorType.MODIFIER_EDITOR,
 #     ExecutorType.MODIFIER,
-#     ExecutorType.OWNER,
+#     ExecutorType.EDITOR,
 #     FixedExecutor("admin"),
 # ]
-ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.OWNER]
+ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -2205,8 +2470,43 @@ ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
 ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds())
 # Default values that user using when creating alert
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
+# End-to-end wall-clock budget for a scheduled report execution. A single
+# monotonic deadline derived from this value is shared by browser setup,
+# readiness, capture/PDF generation, and notification delivery. The effective
+# budget for a given schedule is min(this value, the schedule's
+# working_timeout), so the per-schedule field keeps its historical meaning as
+# a user-facing cap. The default matches the historical effective ceiling
+# (the working_timeout model default of one hour), so upgrading changes no
+# default behavior; deployments with tighter SLAs should lower it. Alerts
+# retain their per-schedule ``working_timeout`` + lag behavior because query
+# evaluation and grace handling have different runtime characteristics.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = int(timedelta(hours=1).total_seconds())
+# Capacity inside the execution budget reserved from chart-readiness polling
+# for image capture/PDF construction, notification delivery, and the terminal
+# execution-log transition, respectively. Their sum must be less than the total;
+# unused capacity flows to later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = int(
+    timedelta(minutes=1).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = int(
+    timedelta(minutes=2).total_seconds()
+)
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
+# Celery raises the soft timeout at the execution deadline when
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL is enabled. The application deadline is
+# enforced independently. The hard timeout leaves this additional window for
+# the soft-timeout handler to persist ERROR.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = int(
+    timedelta(seconds=30).total_seconds()
+)
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
+# Retry backoff: first retry waits base seconds, each subsequent retry doubles.
+ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS = 60
+# Maximum delay between retries (cap for exponential backoff).
+ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS = 3600
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
@@ -2262,6 +2562,11 @@ SLACK_PROXY = None
 # ignored for workspace-level tokens, so leaving it as None preserves the default
 # single-workspace behavior.
 SLACK_TEAM_ID: Callable[[], str] | str | None = None
+# How long the fetched channel list is cached. The Alerts & Reports recipient
+# picker serves channels from this cache, so on very large workspaces (tens of
+# thousands of channels) schedule the ``slack.cache_channels`` Celery task to
+# warm the cache ahead of the TTL — enumerating that many channels inside a
+# single interactive request will otherwise hit Slack rate limits and time out.
 SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # Maximum number of retries when Slack API returns rate limit errors
@@ -2754,8 +3059,8 @@ ENVIRONMENT_TAG_CONFIG = {
 
 
 # Extra related query filters make it possible to limit which objects are shown
-# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
-# the "Owners" dropdowns, you could add the following in your config:
+# in the UI. For example, to only show "admin" or users starting with the letter "b"
+# in subject dropdowns, you could add the following in your config:
 # def user_filter(query: Query, *args, *kwargs):
 #     from superset import security_manager
 #
@@ -2768,14 +3073,35 @@ ENVIRONMENT_TAG_CONFIG = {
 #
 #  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
 #
-# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
-# filter callback for the "role" key.
+# Similarly, to restrict the roles or groups in their respective dropdowns you can
+# provide custom filter callbacks for the "role" and "group" keys.
 class ExtraRelatedQueryFilters(TypedDict, total=False):
     role: Callable[[Query], Query]
     user: Callable[[Query], Query]
+    group: Callable[[Query], Query]
 
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
+# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks.
+# Only effective when ENABLE_VIEWERS is on.
+VIEWER_PROMISCUOUS_MODE = False
+
+# Default Subject types shown in editor/viewer/subject pickers.
+# Entity-specific SUBJECTS_RELATED_TYPES_* settings can replace this default.
+# None = show all types (USER, ROLE, GROUP).
+SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.GROUP,
+]
+
+# Per-entity overrides for the default SUBJECTS_RELATED_TYPES picker behavior.
+# When set, the entity-specific list completely replaces the global default.
+# None = inherit global behavior.
+SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown
@@ -2812,9 +3138,9 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
-# Resolve extra owners for a resource. Also used for ownership checks and
-# to skip auto-adding the current user to owners on create.
-EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+# Resolve additional editor subjects for a resource. Also used for editorship
+# checks and lockout-prevention logic.
+EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 
@@ -2928,20 +3254,50 @@ TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 # -------------------------------------------------------------------
 # Don't add config values below this line since local configs won't be
 # able to override them.
+
+
+def _config_fingerprint(source: bytes | None) -> str:
+    """
+    A short digest of the config file's bytes, as read at import time.
+
+    Auto-reloaders (e.g. werkzeug's) re-import this module when the config
+    file changes, and on some filesystems (notably macOS Docker mounts) the
+    re-read can race the write and observe stale content while still
+    "loading successfully". Logging the digest of the exact bytes that were
+    executed (rather than reopening the file afterward, which can observe
+    different bytes than the ones that were actually loaded) makes that skew
+    diagnosable: compare it against ``md5 <path>`` on the host.
+    """
+    if source is None:
+        return "unreadable"
+    return hashlib.md5(source).hexdigest()[:12]  # noqa: S324
+
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
     cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
         module = sys.modules[__name__]
+        with open(cfg_path, "rb") as fh:
+            config_source = fh.read()
         spec = importlib.util.spec_from_file_location("superset_config", cfg_path)
         override_conf = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(override_conf)
+        # Execute the exact bytes that were just read, rather than letting the
+        # loader re-read the file, so the fingerprint below always matches
+        # what was actually loaded into `override_conf`.
+        exec(  # noqa: S102
+            compile(config_source, cfg_path, "exec"), override_conf.__dict__
+        )
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
 
-        click.secho(f"Loaded your LOCAL configuration at [{cfg_path}]", fg="cyan")
+        click.secho(
+            f"Loaded your LOCAL configuration at [{cfg_path}] "
+            f"(md5:{_config_fingerprint(config_source)})",
+            fg="cyan",
+        )
     except Exception:
         logger.exception(
             "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
@@ -2953,8 +3309,15 @@ elif importlib.util.find_spec("superset_config"):
         import superset_config
         from superset_config import *  # noqa: F403, F401
 
+        try:
+            with open(superset_config.__file__, "rb") as fh:
+                config_source = fh.read()
+        except OSError:
+            config_source = None
+
         click.secho(
-            f"Loaded your LOCAL configuration at [{superset_config.__file__}]",
+            f"Loaded your LOCAL configuration at [{superset_config.__file__}] "
+            f"(md5:{_config_fingerprint(config_source)})",
             fg="cyan",
         )
     except Exception:

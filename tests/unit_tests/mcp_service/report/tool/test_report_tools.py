@@ -57,7 +57,7 @@ def create_mock_report(
     report.last_eval_dttm = last_eval_dttm
     report.last_state = last_state
     report.creation_method = creation_method
-    report.owners = []
+    report.editors = []
     report.changed_on = None
     report.created_on = None
     return report
@@ -204,8 +204,8 @@ async def test_list_reports_with_type_filter(mock_list, mcp_server):
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
 @pytest.mark.asyncio
-async def test_list_reports_does_not_expose_owners(mock_list, mcp_server):
-    """Test that owners field is stripped by privacy controls."""
+async def test_list_reports_does_not_expose_editors(mock_list, mcp_server):
+    """Test that editors are stripped by privacy controls."""
     report = create_mock_report()
     mock_list.return_value = ([report], 1)
 
@@ -213,18 +213,17 @@ async def test_list_reports_does_not_expose_owners(mock_list, mcp_server):
         request = ListReportsRequest(
             page=1,
             page_size=10,
-            select_columns=["id", "name", "owners"],
+            select_columns=["id", "name", "editors"],
         )
         result = await client.call_tool(
             "list_reports", {"request": request.model_dump()}
         )
         data = json.loads(result.content[0].text)
-        # owners is filtered by USER_DIRECTORY_FIELDS
-        assert "owners" not in data.get("columns_requested", [])
-        assert "owners" not in data.get("columns_loaded", [])
+        assert "editors" not in data.get("columns_requested", [])
+        assert "editors" not in data.get("columns_loaded", [])
         # verify privacy filter removed the field from actual report payloads
         assert len(data["reports"]) == 1
-        assert "owners" not in data["reports"][0]
+        assert "editors" not in data["reports"][0]
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
@@ -291,7 +290,7 @@ async def test_get_report_info_basic(mock_find, mcp_server):
         assert data["type"] == "Report"
         assert data["active"] is True
         assert data["crontab"] == "0 9 * * *"
-        assert "owners" not in data
+        assert "editors" not in data
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
@@ -440,19 +439,19 @@ async def test_get_report_info_humanized_timestamps(mock_find, mcp_server):
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
 @pytest.mark.asyncio
-async def test_list_reports_owned_by_me_passed_to_dao(mock_list, mcp_server):
-    """owned_by_me=True is forwarded to the DAO layer."""
+async def test_list_reports_edited_by_me_passed_to_dao(mock_list, mcp_server):
+    """edited_by_me=True is forwarded to the DAO layer."""
     mock_list.return_value = ([], 0)
 
     async with Client(mcp_server) as client:
-        request = ListReportsRequest(page=1, page_size=10, owned_by_me=True)
+        request = ListReportsRequest(page=1, page_size=10, edited_by_me=True)
         await client.call_tool("list_reports", {"request": request.model_dump()})
 
     mock_list.assert_called_once()
     _, kwargs = mock_list.call_args
     filters_arg = kwargs.get("column_operators", [])
-    assert any(getattr(f, "col", None) == "owners.id" for f in filters_arg), (
-        "owned_by_me should inject an owners.id filter into the DAO call"
+    assert any(getattr(f, "col", None) == "editor" for f in filters_arg), (
+        "edited_by_me should inject an editor filter into the DAO call"
     )
 
 
@@ -532,13 +531,13 @@ def test_serialize_report_object_none():
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
 @pytest.mark.asyncio
-async def test_list_reports_both_owned_and_created_by_me(mock_list, mcp_server):
-    """Both flags together inject a created_by_fk_or_owner OR filter."""
+async def test_list_reports_both_edited_and_created_by_me(mock_list, mcp_server):
+    """Both flags together inject a created_by_fk_or_editor OR filter."""
     mock_list.return_value = ([], 0)
 
     async with Client(mcp_server) as client:
         request = ListReportsRequest(
-            page=1, page_size=10, owned_by_me=True, created_by_me=True
+            page=1, page_size=10, edited_by_me=True, created_by_me=True
         )
         result = await client.call_tool(
             "list_reports", {"request": request.model_dump()}
@@ -549,8 +548,8 @@ async def test_list_reports_both_owned_and_created_by_me(mock_list, mcp_server):
     _, kwargs = mock_list.call_args
     filters_arg = kwargs.get("column_operators", [])
     assert any(
-        getattr(f, "col", None) == "created_by_fk_or_owner" for f in filters_arg
-    ), "combined flags should use created_by_fk_or_owner OR filter"
+        getattr(f, "col", None) == "created_by_fk_or_editor" for f in filters_arg
+    ), "combined flags should use created_by_fk_or_editor OR filter"
     assert data["reports"] == []
     assert data["filters_applied"] == []
 

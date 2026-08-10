@@ -258,6 +258,16 @@ export interface SupersetSpecificTokens {
   dashboardTileBorder?: string;
   dashboardTileBorderRadius?: number;
   dashboardTileBoxShadow?: string;
+
+  /**
+   * Results grid customization tokens.
+   * Control the appearance of AG Grid-backed result tables (e.g. SQL Lab).
+   */
+  resultsGridRowHeight?: number;
+  resultsGridHeaderFontWeight?: number;
+  resultsGridHeaderFontSize?: number;
+  resultsGridBorderRadius?: number;
+  resultsGridNoStriping?: boolean;
 }
 
 /**

@@ -190,7 +190,7 @@ class TagDAO(BaseDAO[Tag]):
                         "created_by": obj.created_by_fk,
                         "creator": obj.creator(),
                         "tags": obj.tags,
-                        "owners": obj.owners,
+                        "editors": obj.editors,
                     }
                     for obj in DashboardDAO.find_by_ids(tagged_dashboards)
                 )
@@ -213,7 +213,7 @@ class TagDAO(BaseDAO[Tag]):
                         "created_by": obj.created_by_fk,
                         "creator": obj.creator(),
                         "tags": obj.tags,
-                        "owners": obj.owners,
+                        "editors": obj.editors,
                     }
                     for obj in ChartDAO.find_by_ids(tagged_charts)
                 )
@@ -236,7 +236,7 @@ class TagDAO(BaseDAO[Tag]):
                         "created_by": obj.created_by_fk,
                         "creator": obj.creator(),
                         "tags": obj.tags,
-                        "owners": [obj.creator()],
+                        "editors": [],
                     }
                     for obj in SavedQueryDAO.find_by_ids(tagged_queries)
                 )

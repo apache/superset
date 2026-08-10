@@ -25,7 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
-from io import StringIO
+from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
 import numpy as np
@@ -35,7 +35,7 @@ from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.extensions import event_logger
-from superset.utils import csv
+from superset.utils import csv, excel
 from superset.utils.core import (
     extract_dataframe_dtypes,
     get_column_names,
@@ -310,6 +310,35 @@ post_processors = {
 }
 
 
+def _is_default_index_column(series: pd.Series) -> bool:
+    return series.tolist() == list(range(len(series)))
+
+
+def _read_excel_for_client_processing(
+    data: bytes,
+    form_data: dict[str, Any],
+) -> pd.DataFrame:
+    df = pd.read_excel(BytesIO(data))
+    if len(df.columns) == 0:
+        return df
+
+    first_column = df.columns[0]
+    expected_columns = {
+        *get_column_names(form_data.get("columns")),
+        *get_column_names(form_data.get("groupbyRows")),
+        *get_column_names(form_data.get("groupbyColumns")),
+        *get_metric_names(form_data.get("metrics")),
+    }
+
+    if first_column in expected_columns:
+        return df
+
+    if _is_default_index_column(df.iloc[:, 0]):
+        return df.iloc[:, 1:].reset_index(drop=True)
+
+    return df.set_index(first_column)
+
+
 @event_logger.log_this
 def apply_client_processing(  # noqa: C901
     result: dict[Any, Any],
@@ -357,6 +386,8 @@ def apply_client_processing(  # noqa: C901
                 sep=sep,
                 decimal=decimal,
             )
+        elif query["result_format"] == ChartDataResultFormat.XLSX:
+            df = _read_excel_for_client_processing(data, form_data)
 
         # convert all columns to verbose (label) name
         if datasource:
@@ -372,7 +403,7 @@ def apply_client_processing(  # noqa: C901
         # Check if the DataFrame has a default RangeIndex, which should not be shown
         show_default_index = not isinstance(processed_df.index, pd.RangeIndex)
 
-        # Flatten hierarchical columns/index since they are represented as
+        # Flatten hierarchical columns since they are represented as
         # `Tuple[str]`. Otherwise encoding to JSON later will fail because
         # maps cannot have tuples as their keys in JSON.
         processed_df.columns = [
@@ -383,14 +414,40 @@ def apply_client_processing(  # noqa: C901
             )
             for column in processed_df.columns
         ]
-        processed_df.index = [
-            (
-                " ".join(str(name) for name in index).strip()
-                if isinstance(index, tuple)
-                else index
-            )
-            for index in processed_df.index
-        ]
+
+        if query["result_format"] == ChartDataResultFormat.JSON:
+            # JSON object keys must be strings, so a hierarchical (multi-level)
+            # row index has to be flattened into a single string per row.
+            processed_df.index = [
+                (
+                    " ".join(str(name) for name in index).strip()
+                    if isinstance(index, tuple)
+                    else index
+                )
+                for index in processed_df.index
+            ]
+        elif (
+            isinstance(processed_df.index, pd.MultiIndex)
+            and processed_df.index.nlevels > 1
+        ):
+            # For tabular formats (CSV/XLSX) keep each "Rows" field as its own
+            # column instead of collapsing them into a single joined string.
+            # Previously, when a pivot table had multiple "Rows" fields, they
+            # were merged into a single column on export; pandas natively
+            # writes a MultiIndex as one column per level when serializing to
+            # CSV/Excel. See: https://github.com/apache/superset/issues/32369
+            processed_df.index.names = [
+                name if name is not None else "" for name in processed_df.index.names
+            ]
+        else:
+            processed_df.index = [
+                (
+                    " ".join(str(name) for name in index).strip()
+                    if isinstance(index, tuple)
+                    else index
+                )
+                for index in processed_df.index
+            ]
 
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
@@ -402,6 +459,15 @@ def apply_client_processing(  # noqa: C901
                 processed_df,
                 index=show_default_index,
                 **current_app.config["CSV_EXPORT"],
+            )
+        elif query["result_format"] == ChartDataResultFormat.XLSX:
+            excel.apply_column_types(processed_df, query["coltypes"])
+            query["data"] = excel.df_to_excel(
+                processed_df,
+                **{
+                    **current_app.config["EXCEL_EXPORT"],
+                    "index": show_default_index,
+                },
             )
 
     return result

@@ -65,6 +65,7 @@ export const FilterableTable = ({
   expandedColumns = [],
   allowHTML = true,
   striped,
+  themeOverrides,
 }: FilterableTableProps) => {
   const getCellContent = useCellContentParser({
     columnKeys: orderedColumnKeys,
@@ -131,6 +132,7 @@ export const FilterableTable = ({
         striped={striped}
         enableActions
         columnReorderable
+        themeOverrides={themeOverrides}
       />
     </div>
   );

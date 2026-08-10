@@ -273,7 +273,7 @@ def test_per_query_class_bypass_returns_soft_deleted_rows(
     """Per-query bypass set on ``execution_options`` (scoped to a specific
     class) makes that class's soft-deleted rows visible. Used by
     ``BaseDAO.find_by_id(skip_visibility_filter=True)``,
-    ``find_existing_for_import``, and ``raise_for_ownership``.
+    ``find_existing_for_import``, and ``raise_for_editorship``.
     """
     obj = _SoftDeletable(name="soon_deleted")
     session.add(obj)
@@ -361,7 +361,7 @@ def test_per_query_bypass_via_get_finds_soft_deleted_row(
     app_context: None, session: Session
 ) -> None:
     """Per-query class bypass propagates through ``Query.get()`` — the
-    path ``security_manager.raise_for_ownership`` relies on. Identity-map
+    path ``security_manager.raise_for_editorship`` relies on. Identity-map
     cleared via ``session.expunge_all()`` to force SQL through the
     listener.
     """

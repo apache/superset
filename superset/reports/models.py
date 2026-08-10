@@ -32,19 +32,18 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
-    Table,
     Text,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
-from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
+from superset.subjects.models import report_schedule_editors, Subject
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
 
@@ -78,13 +77,20 @@ class ReportState(StrEnum):
     ERROR = "Error"
     NOOP = "Not triggered"
     GRACE = "On Grace"
+    RETRYING = "Retrying"
 
 
 class ReportDataFormat(StrEnum):
     PDF = "PDF"
     PNG = "PNG"
     CSV = "CSV"
+    XLSX = "XLSX"
     TEXT = "TEXT"
+
+    @classmethod
+    def tabular(cls: type["ReportDataFormat"]) -> set["ReportDataFormat"]:
+        """Formats produced from tabular chart data via the chart export path."""
+        return {cls.CSV, cls.XLSX}
 
 
 class ReportCreationMethod(StrEnum):
@@ -96,24 +102,6 @@ class ReportCreationMethod(StrEnum):
 class ReportSourceFormat(StrEnum):
     CHART = "chart"
     DASHBOARD = "dashboard"
-
-
-report_schedule_user = Table(
-    "report_schedule_user",
-    metadata,
-    Column(
-        "user_id",
-        Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "report_schedule_id",
-        Integer,
-        ForeignKey("report_schedule.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-)
 
 
 class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
@@ -148,9 +136,9 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     # (Alerts) M-O to database
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     database = relationship(Database, foreign_keys=[database_id])
-    owners = relationship(
-        security_manager.user_model,
-        secondary=report_schedule_user,
+    editors = relationship(
+        Subject,
+        secondary=report_schedule_editors,
         passive_deletes=True,
     )
 
@@ -177,9 +165,32 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     custom_width = Column(Integer, nullable=True)
     custom_height = Column(Integer, nullable=True)
 
+    # Retry configuration — user-configurable
+    retry_on_failure = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+    retry_max_attempts = Column(Integer, default=3, nullable=False, server_default="3")
+    send_failed_reports = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+    retry_notify_owners = Column(
+        Boolean, default=True, nullable=False, server_default="1"
+    )
+    retry_notify_recipients = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+
+    # Retry state — written by the execution engine, not user-configurable
+    retry_attempt = Column(Integer, default=0, nullable=False, server_default="0")
+    retry_scheduled_dttm = Column(DateTime, nullable=True)
+
     extra: ReportScheduleExtra  # type: ignore
 
     email_subject = Column(String(255))
+
+    # (Alerts/Reports) Include the call-to-action link back to Superset in
+    # notifications? NULL is treated as True.
+    include_cta = Column(Boolean, default=True, nullable=True)
 
     def __repr__(self) -> str:
         return str(self.name)
@@ -381,7 +392,15 @@ class ReportRecipients(Model, AuditMixinNullable):
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("recipients", cascade="all,delete,delete-orphan"),
+        backref=backref(
+            "recipients",
+            cascade="all,delete,delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `recipient.report_schedule`
+            # no longer cascades the ReportRecipients into the
+            # ReportSchedule's session; callers must add objects to a
+            # session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[report_schedule_id],
     )
 
@@ -417,7 +436,15 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("logs", cascade="all,delete,delete-orphan"),
+        backref=backref(
+            "logs",
+            cascade="all,delete,delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `log.report_schedule` no
+            # longer cascades the ReportExecutionLog into the
+            # ReportSchedule's session; callers must add objects to a
+            # session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[report_schedule_id],
     )
 

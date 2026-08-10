@@ -71,6 +71,7 @@ export const TableCatalog = ({
               />
               {tableCatalog?.length > 1 && (
                 <Icons.CloseOutlined
+                  aria-label={t('Remove sheet')}
                   css={(theme: SupersetTheme) => css`
                     align-self: center;
                     background: ${theme.colorFillSecondary};
