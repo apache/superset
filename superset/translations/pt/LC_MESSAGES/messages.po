@@ -2444,7 +2444,7 @@ msgid "Bad formula."
 msgstr "Fórmula ruim."
 
 msgid "Bad spatial key"
-msgstr "Bad spatial key"
+msgstr "Chave espacial inválida"
 
 msgid "Bar"
 msgstr "Barra"
@@ -3367,10 +3367,10 @@ msgid "Choose the format for legend values"
 msgstr "Escolha o formato dos valores de legenda"
 
 msgid "Choose the position of the legend"
-msgstr "Choose the position of the legend"
+msgstr "Escolha a posição da legenda"
 
 msgid "Choose the source of your annotations"
-msgstr "Choose the source of your annotations"
+msgstr "Escolha a fonte das suas anotações"
 
 msgid ""
 "Choose values that should be treated as null. Warning: Hive database "
@@ -5731,34 +5731,38 @@ msgid "Draw split lines for minor y-axis ticks"
 msgstr "Desenhar linhas de divisão para os ticks menores do eixo y"
 
 msgid "Drill by"
-msgstr "Drill by"
+msgstr "Detalhar por (Drill by)"
 
 msgid "Drill by is not available for this data point"
-msgstr "Drill by não está disponível para este ponto de dados"
+msgstr ""
+"O detalhamento por (Drill by) não está disponível para este ponto de dados"
 
 msgid "Drill by is not yet supported for this chart type"
-msgstr "Drill by não é suportado para esse tipo de gráfico"
+msgstr ""
+"O detalhamento por (Drill by) ainda não é suportado para este tipo de "
+"gráfico"
 
 #, python-format
 msgid "Drill by: %s"
-msgstr "Drill by: %s"
+msgstr "Detalhar por: %s"
 
 msgid "Drill to detail"
-msgstr "Drill to detail"
+msgstr "Detalhar dados (Drill to detail)"
 
 msgid "Drill to detail by"
-msgstr "Drill to detail por"
+msgstr "Detalhar dados por"
 
 msgid "Drill to detail by value is not yet supported for this chart type."
 msgstr ""
-"Drill to detail por valor ainda não é suportado para esse tipo de gráfico."
+"O detalhamento de dados por valor ainda não é suportado para este tipo de "
+"gráfico."
 
 msgid ""
 "Drill to detail is disabled because this chart does not group data by "
 "dimension value."
 msgstr ""
-"Drill to detail está desabilitado porque esse gráfico não agrupar dados por "
-"valor da dimensão."
+"O detalhamento de dados está desabilitado porque este gráfico não agrupa "
+"dados por valor de dimensão."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -5771,7 +5775,7 @@ msgstr ""
 
 #, python-format
 msgid "Drill to detail: %s"
-msgstr "Drill to detail: %s"
+msgstr "Detalhar dados: %s"
 
 msgid "Drop a column here or click"
 msgid_plural "Drop columns here or click"
@@ -14268,7 +14272,7 @@ msgstr ""
 "como -1 para ignorar o cache."
 
 msgid "The encoding format of the lines"
-msgstr "The encoding format of the lines"
+msgstr "O formato de codificação das linhas"
 
 msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
