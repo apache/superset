@@ -19,7 +19,7 @@
 import logging
 import uuid as uuid_module
 from typing import Any, Optional, Callable
-from collections.abc import Iterator
+from collections.abc import Collection, Iterator
 
 import yaml
 
@@ -62,9 +62,11 @@ def get_default_position(title: str) -> dict[str, Any]:
     }
 
 
-def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any]:
-    # Materialize the set into a list once so chart_hashes and the zip below
-    # iterate the exact same ordering and can never desynchronize.
+def append_charts(
+    position: dict[str, Any], charts: Collection[Slice]
+) -> dict[str, Any]:
+    # Materialize the collection into a list once so chart_hashes and the zip
+    # below iterate the exact same ordering and can never desynchronize.
     chart_list = list(charts)
     chart_hashes = [f"CHART-{str(chart.uuid)}" for chart in chart_list]
 
