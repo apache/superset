@@ -249,12 +249,18 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return post_proc
 
         # `exec_post_processing` calls the operation as `operation(df, **options)`,
-        # so the first parameter receives the DataFrame positionally and can never
-        # be supplied as an option, and neither can a positional-only parameter.
+        # so an option can only reach a parameter that a caller may fill by
+        # keyword. That excludes the first parameter, which receives the
+        # DataFrame positionally, and any positional-only or `*args` parameter.
         keyword_parameters = {
             name
             for position, (name, parameter) in enumerate(parameters.items())
-            if position > 0 and parameter.kind is not inspect.Parameter.POSITIONAL_ONLY
+            if position > 0
+            and parameter.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            )
         }
 
         options = post_proc.get("options") or {}
@@ -262,7 +268,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         if not unsupported:
             return post_proc
 
-        logger.warning(
+        # Logged at info: a chart saved before the option was removed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
+        logger.info(
             "Dropping unsupported option(s) %s of post-processing operation "
             "`%s`. The chart's stored query_context predates the current "
             "signature of that operation.",

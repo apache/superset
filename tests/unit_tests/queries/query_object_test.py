@@ -472,6 +472,37 @@ def test_post_processing_keeps_options_of_a_variadic_operation():
     assert query_object.post_processing == post_processing
 
 
+def test_post_processing_drops_a_variadic_positional_option():
+    """
+    A `*args` parameter cannot be filled by a keyword argument.
+
+    `exec_post_processing` calls the operation as `operation(df, **options)`,
+    so an option named after a `*args` parameter would raise `TypeError:
+    variadic_positional() got an unexpected keyword argument 'args'` even
+    though the name appears in the signature.
+    """
+
+    def variadic_positional(df, *args, index=None):  # pylint: disable=unused-argument
+        return df
+
+    with patch.object(
+        pandas_postprocessing, "variadic_positional", variadic_positional, create=True
+    ):
+        query_object = QueryObject(
+            row_limit=1,
+            post_processing=[
+                {
+                    "operation": "variadic_positional",
+                    "options": {"args": [1], "index": ["a"]},
+                }
+            ],
+        )
+
+    options = query_object.post_processing[0]["options"]
+    assert "args" not in options
+    assert options["index"] == ["a"]
+
+
 def test_post_processing_keeps_an_entry_without_an_operation():
     """
     An entry that names no operation is kept, so that `exec_post_processing`
