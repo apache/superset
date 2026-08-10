@@ -164,7 +164,14 @@ Requirements and limitations:
 
 - `SUPERSET_CACHE_WARMUP_USER` must be set to a user with access to the dashboards and datasets
   referenced by the native filters.
-- `DATA_CACHE_CONFIG` must be configured (Redis recommended).
+- `DATA_CACHE_CONFIG` must use a backend that actually persists entries (Redis recommended); the
+  default `NullCache` discards writes, so warming has nothing to warm. The effective timeout also
+  needs to be positive — `NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT = -1` disables cache writes for these
+  queries entirely, even with a working backend.
+- Schedule the warm-up at least as often as the effective native filter cache timeout (whichever of
+  `NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT`, the chart/dataset/database timeout, or `DATA_CACHE_CONFIG`'s
+  default applies). A looser schedule still leaves a window of cold, unwarmed queries between expiry
+  and the next run — the daily example above assumes a TTL of a day or more.
 - Cache entries are warmed under the warm-up user's own cache partition, the same entry that user
   would create by opening the filter dropdown manually. Users with a different role set or row-level
   security context may still see a cache miss on first load.
