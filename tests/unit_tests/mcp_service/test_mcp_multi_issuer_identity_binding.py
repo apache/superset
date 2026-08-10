@@ -39,7 +39,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.auth import _resolve_user_from_jwt_context
-from superset.mcp_service.mcp_config import MCPAuthConfigError
+from superset.mcp_service.mcp_config import (
+    MCPAuthConfigError,
+    validate_multi_issuer_user_resolver,
+)
 
 
 def _make_mock_user(username: str = "alice") -> MagicMock:
@@ -117,6 +120,23 @@ def test_duplicate_issuer_entries_do_not_fail_closed(app) -> None:
             app.config.pop("MCP_JWT_ISSUER", None)
 
     assert result is shared_user
+
+
+def test_unhashable_issuer_entries_fail_closed_not_typeerror(app) -> None:
+    """A malformed ``MCP_JWT_ISSUER`` containing unhashable entries (e.g. a
+    nested list from a bad config template) must still fail closed with
+    ``MCPAuthConfigError``, not raise a bare ``TypeError`` from ``set()``.
+    A plain ``TypeError`` isn't caught by the ``except MCPAuthConfigError``
+    re-raise in ``_create_auth_provider``, so it would be swallowed by the
+    trailing ``except Exception`` there and start the server unauthenticated."""
+    with app.app_context():
+        app.config["MCP_JWT_ISSUER"] = [["issuer-a"], ["issuer-b"]]
+        app.config.pop("MCP_USER_RESOLVER", None)
+        try:
+            with pytest.raises(MCPAuthConfigError):
+                validate_multi_issuer_user_resolver(app)
+        finally:
+            app.config.pop("MCP_JWT_ISSUER", None)
 
 
 def test_multi_issuer_with_custom_resolver_resolves_normally(app) -> None:

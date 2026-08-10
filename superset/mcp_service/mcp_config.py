@@ -592,7 +592,12 @@ def validate_multi_issuer_user_resolver(app: Flask) -> None:
     configured_issuer = app.config.get("MCP_JWT_ISSUER")
     if (
         isinstance(configured_issuer, (list, tuple, set))
-        and len(set(configured_issuer)) > 1
+        # str()-normalize before deduplicating: a plain set() would raise
+        # TypeError on unhashable entries (e.g. an accidental nested list),
+        # and that TypeError is not MCPAuthConfigError, so the caller's
+        # except MCPAuthConfigError / except Exception split would swallow
+        # it and fail OPEN (start unauthenticated) instead of fail closed.
+        and len({str(issuer) for issuer in configured_issuer}) > 1
         and not app.config.get("MCP_USER_RESOLVER")
     ):
         # MCPAuthConfigError specifically: callers re-raise this type to

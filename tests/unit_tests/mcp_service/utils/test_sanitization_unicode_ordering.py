@@ -110,6 +110,23 @@ def test_sanitize_user_input_still_removes_a_raw_dangerous_unicode_char():
     assert sanitize_user_input("a&#8232;b", "Column name") == "ab"
 
 
+def test_sanitize_user_input_tag_only_payload_reduces_to_empty_string():
+    """
+    Regression check: a tag-heavy input that nh3 legitimately strips down
+    to "" (e.g. "<script>...</script>") must sanitize to an empty string,
+    not raise -- there is deliberately no emptiness recheck immediately
+    after ``_strip_html_tags`` (only before it), since reducing to "" here
+    is the correct sanitized result of intentionally-stripped content, not
+    an error case like an all-zero-width input would be.
+    """
+    assert (
+        sanitize_user_input(
+            "<script>alert(1)</script>", "Column name", allow_empty=True
+        )
+        == ""
+    )
+
+
 # --- sanitize_filter_value ---
 
 
