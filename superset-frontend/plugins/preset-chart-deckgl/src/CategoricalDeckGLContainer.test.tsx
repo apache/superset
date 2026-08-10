@@ -20,6 +20,7 @@ import { QueryFormData } from '@superset-ui/core';
 import { getCategories } from './CategoricalDeckGLContainer';
 import { addColorToFeatures } from './utils/addColor';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
+import { NULL_CATEGORY_KEY } from './utils';
 
 // Record every (label, sliceId) pair the categorical color scale is asked to
 // resolve, so we can assert the legend and point-color paths key the scale on
@@ -65,4 +66,26 @@ test('legend and point colors resolve from the same slice_id', () => {
   expect(categories.A.color).toEqual(features[0].color);
   expect(categories.B.color).toEqual(features[1].color);
   expect(features[0].color).not.toEqual(features[1].color);
+});
+
+test('rows with a null dimension get their own legend category', () => {
+  const fd = {
+    datasource: '1__table',
+    viz_type: 'deck_scatter',
+    color_scheme_type: COLOR_SCHEME_TYPES.categorical_palette,
+    color_scheme: 'supersetColors',
+    dimension: 'category',
+    slice_id: 42,
+    color_picker: { r: 0, g: 0, b: 0, a: 1 },
+  } as unknown as QueryFormData;
+  const data = [{ cat_color: 'A' }, { cat_color: NULL_CATEGORY_KEY }];
+
+  const categories = getCategories(fd, data);
+
+  expect(categories[NULL_CATEGORY_KEY]?.enabled).toBe(true);
+  expect(categories[NULL_CATEGORY_KEY]?.color).toBeDefined();
+
+  // Without a category entry the container drops the feature entirely, which is
+  // how null-dimension rows used to disappear from the map.
+  expect(data.filter(d => categories[d.cat_color]?.enabled)).toHaveLength(2);
 });

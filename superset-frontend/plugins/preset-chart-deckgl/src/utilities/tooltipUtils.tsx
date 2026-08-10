@@ -23,6 +23,7 @@ import { useMemo, memo } from 'react';
 import { HandlebarsRenderer } from './HandlebarsRenderer';
 import TooltipRow from '../TooltipRow';
 import { createDefaultTemplateWithLimits } from './multiValueUtils';
+import { formatNullCategory } from '../utils';
 
 const MemoizedHandlebarsRenderer = memo(HandlebarsRenderer);
 
@@ -58,7 +59,7 @@ export const CommonTooltipRows = {
     o.object?.cat_color ? (
       <TooltipRow
         label={`${t('Category')}: `}
-        value={`${o.object.cat_color}`}
+        value={formatNullCategory(`${o.object.cat_color}`)}
       />
     ) : null,
 

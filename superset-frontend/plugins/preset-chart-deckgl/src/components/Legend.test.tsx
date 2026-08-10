@@ -22,7 +22,9 @@ import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import type { ReactElement } from 'react';
+import { Constants } from '@superset-ui/core/components';
 import Legend from './Legend';
+import { NULL_CATEGORY_KEY } from '../utils';
 
 const renderWithTheme = (component: ReactElement) =>
   render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
@@ -68,6 +70,18 @@ test('leaves labels untouched when no format is provided', () => {
   );
 
   expect(screen.getByText('[1, 81)')).toBeInTheDocument();
+});
+
+test('shows the null category as N/A instead of its internal key', () => {
+  renderWithTheme(
+    <Legend
+      format=",.2f"
+      categories={{ [NULL_CATEGORY_KEY]: { enabled: true, color: [0, 0, 0] } }}
+    />,
+  );
+
+  expect(screen.getByText(Constants.NULL_DISPLAY)).toBeInTheDocument();
+  expect(screen.queryByText(NULL_CATEGORY_KEY)).not.toBeInTheDocument();
 });
 
 test('clicking a legend item toggles the category without triggering anchor navigation', () => {
