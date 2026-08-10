@@ -48,6 +48,8 @@ import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 
 export type RowProps = {
   id: string;
@@ -155,7 +157,10 @@ const Row = memo((props: RowProps) => {
   } = props;
 
   const [isFocused, setIsFocused] = useState(false);
-  const [isInView, setIsInView] = useState(false);
+  // In print mode, treat all rows as in-view so charts render immediately.
+  // This bypasses the IntersectionObserver virtualization entirely.
+  const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+  const [isInView, setIsInView] = useState(isPrintMode);
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -171,7 +176,9 @@ const Row = memo((props: RowProps) => {
     let observerEnabler: IntersectionObserver | undefined;
     let observerDisabler: IntersectionObserver | undefined;
 
+    // Skip IntersectionObserver in print mode — all charts must render
     if (
+      !isPrintMode &&
       isFeatureEnabled(FeatureFlag.DashboardVirtualization) &&
       !isCurrentUserBot()
     ) {

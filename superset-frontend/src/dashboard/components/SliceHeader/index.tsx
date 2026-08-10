@@ -40,6 +40,8 @@ import {
 } from '@apache-superset/core/theme';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
@@ -229,7 +231,10 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               0,
           );
 
-    const canExplore = !editMode && supersetCanExplore;
+    const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+    // In print mode chart titles must be plain text, not links —
+    // PDF viewers treat <a href> as clickable, which is confusing.
+    const canExplore = !editMode && supersetCanExplore && !isPrintMode;
     const showRowLimitWarning =
       shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0;
 

@@ -115,6 +115,10 @@ export const URL_PARAMS = {
     name: 'version_history',
     type: 'boolean',
   },
+  print: {
+    name: 'print',
+    type: 'number',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [

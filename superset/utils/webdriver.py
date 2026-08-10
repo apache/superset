@@ -50,6 +50,7 @@ from superset.utils.screenshot_utils import (
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
     FIND_CHART_HOLDER_STATES_JS,
+    PRINT_ALL_CHART_HOLDERS_READY_JS,
     REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
     ScreenshotTaskBudgetExceededError,
@@ -978,6 +979,95 @@ class WebDriverPlaywright(WebDriverProxy):
         finally:
             context.close()
         return img
+
+    def get_print_pdf(
+        self,
+        url: str,
+        user: "User | None" = None,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
+    ) -> bytes | None:
+        """
+        Render the dashboard in print-ready mode and call page.pdf().
+
+        Uses PRINT_ALL_CHART_HOLDERS_READY_JS (all holders, not just
+        viewport-visible) to detect readiness, then calls Playwright's
+        native page.pdf() instead of page.screenshot().
+
+        Returns None (never raises) so the caller can fall back to
+        the existing screenshot path.
+        """
+        if not PLAYWRIGHT_AVAILABLE:
+            return None
+        browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
+        browser = _browser_manager.get_browser(browser_args)
+        pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+        context = browser.new_context(
+            bypass_csp=True,
+            viewport={"height": self._window[1], "width": self._window[0]},
+            device_scale_factor=pixel_density,
+        )
+        context.set_default_timeout(
+            app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
+        )
+        if user:
+            self.auth(user, context)
+        page = context.new_page()
+        pdf_bytes: bytes | None = None
+        try:
+            page.goto(
+                url,
+                wait_until=app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+            )
+            page.wait_for_timeout(app.config["SCREENSHOT_SELENIUM_HEADSTART"] * 1000)
+
+            # Wait for standalone element to confirm dashboard has mounted
+            page.locator(".standalone").wait_for()
+
+            # Determine readiness timeout from budget context or config
+            load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
+            if report_execution_context:
+                effective_wait = report_execution_context.deadline.timeout_seconds(
+                    "chart_readiness",
+                    reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                )
+            else:
+                effective_wait = float(load_wait)
+
+            # Wait for ALL chart holders (not just viewport-visible)
+            page.wait_for_function(
+                PRINT_ALL_CHART_HOLDERS_READY_JS,
+                timeout=effective_wait * 1000,
+            )
+
+            # Native browser print — produces a real vector PDF
+            pdf_bytes = page.pdf(
+                format="A4",
+                print_background=True,
+                margin={
+                    "top": "10mm",
+                    "bottom": "10mm",
+                    "left": "10mm",
+                    "right": "10mm",
+                },
+            )
+            logger.info(
+                "browser_print_pdf_success url=%s bytes=%d log_context=%s",
+                url,
+                len(pdf_bytes) if pdf_bytes else 0,
+                log_context or "",
+            )
+        except (PlaywrightTimeout, PlaywrightError, Exception):  # noqa: BLE001
+            logger.exception(
+                "browser_print_pdf_failed url=%s log_context=%s; "
+                "caller should fall back to screenshot path",
+                url,
+                log_context or "",
+            )
+            return None
+        finally:
+            context.close()
+        return pdf_bytes
 
 
 class WebDriverSelenium(WebDriverProxy):

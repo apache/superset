@@ -1,0 +1,1014 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SIP-212 Browser-Print PDF — Design Document (Verified)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    margin: 0;
+    padding: 32px 16px 64px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+  h2 { font-size: 17px; font-weight: 600; margin: 36px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #e5e7eb; color: #1f2328; }
+  h3 { font-size: 14px; font-weight: 600; margin: 22px 0 8px; color: #1f2328; }
+  h4 { font-size: 13px; font-weight: 600; margin: 16px 0 6px; color: #57606a; }
+
+  .meta { color: #57606a; font-size: 13px; margin-bottom: 24px; }
+  .meta span { margin-right: 20px; }
+
+  p { margin: 8px 0 12px; }
+
+  pre {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 12px 14px;
+    font-size: 12px;
+    font-family: "SFMono-Regular", "Consolas", monospace;
+    overflow-x: auto;
+    margin: 8px 0 14px;
+    line-height: 1.5;
+    white-space: pre;
+  }
+  code {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 12px;
+    font-family: "SFMono-Regular", "Consolas", monospace;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 10px 0 18px;
+  }
+  th {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    padding: 7px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #1f2328;
+  }
+  td {
+    border: 1px solid #e5e7eb;
+    padding: 7px 10px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  .callout {
+    border-left: 3px solid #3b82d4;
+    background: #f0f6ff;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 13px;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout.warn {
+    border-left-color: #c07d00;
+    background: #fffbf0;
+  }
+  .callout.critical {
+    border-left-color: #cf2213;
+    background: #fff0f0;
+  }
+  .callout.ok {
+    border-left-color: #1a7d3c;
+    background: #f0fff5;
+  }
+  .callout.fix {
+    border-left-color: #7c5cd8;
+    background: #f5f0ff;
+  }
+  .callout strong { display: block; margin-bottom: 3px; }
+
+  .phase-block {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 14px 0;
+  }
+  .phase-block h3 { margin-top: 0; color: #3b82d4; font-size: 14px; }
+  .phase-block ul { margin: 6px 0; padding-left: 18px; }
+  .phase-block li { margin: 4px 0; }
+
+  .flow-diagram {
+    font-family: "SFMono-Regular", monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 10px 0 16px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  ul, ol { padding-left: 20px; margin: 8px 0 12px; }
+  li { margin: 4px 0; }
+
+  .file-ref {
+    font-family: "SFMono-Regular", monospace;
+    font-size: 12px;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #7c5cd8;
+  }
+
+  .toc { margin-bottom: 30px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 3px 0; }
+  .toc a { color: #3b82d4; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    font-size: 11px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .badge-new { background: #d0f0d8; color: #1a5c30; }
+  .badge-reuse { background: #d8e8ff; color: #1a3c70; }
+  .badge-extend { background: #ffefd0; color: #7c4500; }
+  .badge-noop { background: #f7f8fa; color: #57606a; border: 1px solid #e5e7eb; }
+
+  .correction-box {
+    border: 1px solid #7c5cd8;
+    border-radius: 4px;
+    background: #f9f7ff;
+    padding: 8px 12px;
+    margin: 6px 0 12px;
+    font-size: 12.5px;
+  }
+  .correction-box strong { color: #7c5cd8; }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 12px;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>SIP-212: Browser-Print PDF Dashboard Reports</h1>
+  <h1 style="font-weight:400;font-size:16px;margin-top:2px;color:#57606a">Comprehensive Implementation Design Document — Verified &amp; Corrected</h1>
+  <div class="meta">
+    <span><strong>Scope:</strong> Demo-scoped proof-of-concept (Phases A–C)</span>
+    <span><strong>Status:</strong> Pre-implementation design</span>
+    <span><strong>Version:</strong> v2 — re-verified line-by-line against live code</span>
+  </div>
+
+  <div class="callout fix">
+    <strong>Corrections applied in this version (v2)</strong>
+    Five factual errors from v1 were found during re-verification and corrected below. Each correction is marked with a purple annotation where it appears.
+    <ol style="margin:6px 0;padding-left:18px">
+      <li><strong>WEBDRIVER_WINDOW dashboard default</strong>: v1 stated <code>(1600, 1200)</code>. Actual value in config.py:2579 is <code>(1600, 2000)</code>.</li>
+      <li><strong>DEFAULT_DASHBOARD_WINDOW_SIZE</strong>: v1 stated <code>(1600, 1200)</code>. Actual value in screenshots.py:63 is <code>(1600, 1200)</code> — this <em>is</em> correct — but the WEBDRIVER_WINDOW config value that overrides it is <code>(1600, 2000)</code>. Both are now correctly noted.</li>
+      <li><strong>ReportSchedulePdfFailedError import</strong>: v1 stated this exception is imported in execute.py. It is NOT — it is only used in its docstring comment (<code>:raises: ReportSchedulePdfFailedError</code>) and lives in exceptions.py. <code>_get_pdf()</code> does NOT explicitly raise it; only <code>build_pdf_from_screenshots()</code> inside pdf.py raises it. The new wrapper must not artificially import it.</li>
+      <li><strong>Virtualization mechanism</strong>: v1 stated "pass <code>isInView={true}</code> to all chart components" and referenced <code>isComponentVisible</code> on DashboardGrid as the injection point. The actual mechanism is: <code>DashboardVirtualization</code> flag → <code>Row.tsx</code> uses <code>IntersectionObserver</code> to set local <code>isInView</code> state → passes it as <code>isInView</code> to <code>ChartHolder</code> → which passes it to <code>Chart</code> (gridComponents/Chart) → which passes it to <code>src/components/Chart/Chart.tsx</code> where <code>shouldRenderChart()</code> checks <code>isInView || !isFeatureEnabled(FeatureFlag.DashboardVirtualization)</code>. The correct fix for print mode is in <code>Row.tsx</code>: initialize <code>isInView</code> to <code>true</code> when <code>?print=1</code> is active (bypassing the IntersectionObserver), not at DashboardGrid/DashboardBuilder level.</li>
+      <li><strong>Selenium ALSO uses REPORT_CHART_HOLDERS_READY_JS</strong>: v1 implied readiness predicates were Playwright-only. In fact <code>WebDriverSelenium.get_screenshot()</code> (webdriver.py:1317–1336) also calls <code>REPORT_CHART_HOLDERS_READY_JS</code> when <code>report_execution_context</code> is set. The new <code>PRINT_CHART_HOLDERS_READY_JS</code> predicate is still only needed in the Playwright print path, but this nuance should be noted.</li>
+    </ol>
+  </div>
+
+  <div class="toc">
+    <strong>Table of Contents</strong>
+    <ol>
+      <li><a href="#s1">Verified Investigation Findings</a></li>
+      <li><a href="#s2">Current Architecture — Verified As-Is</a></li>
+      <li><a href="#s3">What Exists vs. What Must Be Built</a></li>
+      <li><a href="#s4">Decision Points and Chosen Approaches</a></li>
+      <li><a href="#s5">Phase A — Print-Ready Rendering Mode (Frontend)</a></li>
+      <li><a href="#s6">Phase B — Readiness Signal (Frontend → Backend Bridge)</a></li>
+      <li><a href="#s7">Phase C — Worker-Side Integration (Backend)</a></li>
+      <li><a href="#s8">Fallback and Safety Design</a></li>
+      <li><a href="#s9">File-Level Change Map</a></li>
+      <li><a href="#s10">Configuration Reference</a></li>
+      <li><a href="#s11">Risk Register</a></li>
+      <li><a href="#s12">Open Questions</a></li>
+      <li><a href="#s13">Out-of-Scope Items (Future Work)</a></li>
+    </ol>
+  </div>
+
+  
+  <h2 id="s1">1. Verified Investigation Findings</h2>
+
+  <h3>1.1 — Report Execution Flow (Backend)</h3>
+  <p>The current PDF path is in <span class="file-ref">superset/commands/report/execute.py</span>. The call chain for a PDF dashboard report:</p>
+  <div class="flow-diagram">BaseReportState._get_notification_content()            [line 1232]
+  → checks report_schedule.report_format == ReportDataFormat.PDF
+  → calls _get_pdf()                                         [line 862]
+     → calls _get_screenshots() → list[bytes]                [line 745]
+          → builds DashboardScreenshot objects for each URL
+          → calls screenshot.get_screenshot(user, ...)
+             → BaseScreenshot.get_screenshot()               [screenshots.py:240]
+                → chooses WebDriverPlaywright or WebDriverSelenium
+                → calls driver.get_screenshot(url, element, user, ...)
+                   → WebDriverPlaywright.get_screenshot()    [webdriver.py:564]
+                      → new browser context + page
+                      → page.goto(url)
+                      → wait for .standalone element
+                      → wait for .chart-container elements
+                      → _wait_for_charts_ready()             [webdriver.py:302]
+                      → page.screenshot(full_page=True)      [webdriver.py:297]
+     → build_pdf_from_screenshots(screenshots)               [pdf.py:30]
+          → PIL Image.open each PNG
+          → images[0].save(new_pdf, "PDF", save_all=True)
+  → NotificationContent with pdf= field set
+  → _send() dispatches to email/Slack/webhook</div>
+
+  <div class="callout fix">
+    <strong>Correction (v2):</strong> <code>ReportSchedulePdfFailedError</code> is <strong>not imported in execute.py</strong>. It is defined in <span class="file-ref">superset/commands/report/exceptions.py:209</span> and raised only from within <span class="file-ref">superset/utils/pdf.py:44</span> (inside <code>build_pdf_from_screenshots()</code>). The docstring in <code>_get_pdf()</code> references it, but the exception is not imported or raised directly in execute.py. The new code must not add a spurious import.
+  </div>
+
+  <div class="callout ok">
+    <strong>Verified:</strong> Today's "PDF" is PNG raster screenshots stitched by PIL into a PDF container. Playwright's <code>page.pdf()</code> is available on the <code>Page</code> object but never called today.
+  </div>
+
+  <h3>1.2 — Dashboard Standalone / Report-Rendering URL Mode</h3>
+  <p>The standalone mode is a numeric URL query parameter <code>?standalone=N</code>. Both backend and frontend define the enum identically:</p>
+  <table>
+    <tr><th>Value</th><th>Backend (webdriver.py:199)</th><th>Frontend (constants.ts:76)</th><th>Effect</th></tr>
+    <tr><td>0</td><td>—</td><td>None</td><td>Normal interactive dashboard</td></tr>
+    <tr><td>1</td><td>HIDE_NAV</td><td>HideNav</td><td>Hides top navigation bar only</td></tr>
+    <tr><td>2</td><td>HIDE_NAV_AND_TITLE</td><td>HideNavAndTitle</td><td>Hides nav + dashboard title</td></tr>
+    <tr><td>3</td><td>REPORT</td><td>Report</td><td>Hides header + filter bar, disables auto-refresh, one-shot render mode</td></tr>
+  </table>
+  <p><span class="file-ref">DashboardScreenshot.__init__</span> (screenshots.py:469) calls <code>modify_url_query(url, standalone=DashboardStandaloneMode.REPORT.value)</code> which sets <code>?standalone=3</code>. The frontend in <span class="file-ref">DashboardBuilder.tsx:510</span> reads this as <code>isReport = standaloneMode === DashboardStandaloneMode.Report</code> and conditionally hides the filter bar (line 518), dashboard header (lines 519–522), and prevents auto-refresh timer (line 615). The element Playwright waits on is <code>.standalone</code> (the CSS class name on the root div in standalone mode).</p>
+
+  <h3>1.3 — Frontend Chart Render-Status Tracking</h3>
+  <p>Chart status is tracked in the Redux store via <span class="file-ref">superset-frontend/src/components/Chart/chartReducer.ts</span>. The <code>ChartStatus</code> type (explore/types.ts:43):</p>
+  <pre>'loading' | 'rendered' | 'failed' | 'stopped' | 'success'</pre>
+  <p>Terminal states per <span class="file-ref">childChartsDidLoad.ts:48</span>: <code>'stopped', 'failed', 'rendered'</code> — not <code>'success'</code>, which is intermediate (data fetched, rendering not yet confirmed).</p>
+  <p>The backend readiness predicates in <span class="file-ref">screenshot_utils.py</span> are <em>DOM-based</em>, not Redux-based. They check for CSS class presence: <code>.slice_container</code> (rendered), <code>[role="alert"]</code> (error), <code>.ant-empty</code> (empty), <code>.missing-chart-container</code> (missing), with absence of <code>.loading</code>.</p>
+  <p>The internal <code>ready_states</code> set used by <code>_wait_for_charts_ready()</code> at webdriver.py:336 is: <code>{"rendered", "empty", "error", "virtualized"}</code>.</p>
+
+  <div class="callout warn">
+    <strong>Critical nuance for SIP-212:</strong> <code>REPORT_CHART_HOLDERS_READY_JS</code> is viewport-scoped — it only checks chart holders whose <code>getBoundingClientRect()</code> intersects the current viewport. Holders outside the viewport are classified as <code>'virtualized'</code> and excluded from the readiness check. For browser print (which renders the full DOM), all chart holders must be terminal regardless of scroll position. This is the main gap the new predicate must close.
+  </div>
+
+  <h3>1.4 — Feature Flags: Declaration and Usage Conventions</h3>
+  <p><strong>Backend:</strong> Add to <span class="file-ref">superset/config.py</span> inside <code>DEFAULT_FEATURE_FLAGS</code> dict (line 658), defaulting to <code>False</code>, with <code>@lifecycle: development</code> comment. Check via <code>feature_flag_manager.is_feature_enabled("FLAG_NAME")</code>.</p>
+  <p><strong>Frontend:</strong> Add enum member to <span class="file-ref">superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts</span> inside the <code>FeatureFlag</code> enum. Check via <code>isFeatureEnabled(FeatureFlag.FlagName)</code>. The string value must exactly match the Python config key.</p>
+  <p>New flag name: <code>DASHBOARD_REPORTS_BROWSER_PRINT_PDF</code></p>
+
+  <h3>1.5 — Headless Browser Tooling</h3>
+  <p>Playwright (Chromium) is the preferred path, gated by <code>PLAYWRIGHT_REPORTS_AND_THUMBNAILS</code> flag and <code>PLAYWRIGHT_AVAILABLE</code> runtime check.</p>
+  <table>
+    <tr><th>Aspect</th><th>Playwright path</th><th>Selenium path</th></tr>
+    <tr><td>Class</td><td>WebDriverPlaywright (webdriver.py:235)</td><td>WebDriverSelenium (webdriver.py:983)</td></tr>
+    <tr><td>Browser</td><td>Chromium via _PlaywrightBrowserManager (process-level singleton)</td><td>Firefox or Chrome</td></tr>
+    <tr><td>Screenshot call</td><td><code>page.screenshot(full_page=True)</code> (webdriver.py:297)</td><td>driver.save_screenshot()</td></tr>
+    <tr><td>PDF call</td><td><code>page.pdf()</code> — available but unused today</td><td>Not available</td></tr>
+    <tr><td>Readiness check</td><td><code>page.wait_for_function()</code> with JS predicates</td><td><code>WebDriverWait(...).until(lambda: execute_script(predicate))</code></td></tr>
+  </table>
+  <div class="correction-box">
+    <strong>Verified (Selenium also uses readiness predicates):</strong> <code>WebDriverSelenium.get_screenshot()</code> (webdriver.py:1317–1336) also evaluates <code>REPORT_CHART_HOLDERS_READY_JS</code> when <code>report_execution_context</code> is present. The new <code>PRINT_CHART_HOLDERS_READY_JS</code> predicate is only used in the new Playwright print path — but the architectural pattern is not Playwright-exclusive.
+  </div>
+  <div class="callout ok">
+    <strong>Conclusion:</strong> <code>page.pdf()</code> requires zero new dependencies — it is already on the Playwright Page object. The new path requires Playwright; Selenium cannot produce native print PDFs.
+  </div>
+
+  
+  <h2 id="s2">2. Current Architecture — Verified As-Is</h2>
+
+  <div class="flow-diagram">REPORT TRIGGERED (Celery)
+    ↓
+AsyncExecuteReportScheduleCommand.run()
+    ↓
+ReportScheduleStateMachine → BaseReportState.next()
+    ↓
+_get_notification_content()
+    ↓  (report_format == ReportDataFormat.PDF)
+_get_pdf()                                                    [execute.py:862]
+    ↓
+_get_screenshots() → [PNG bytes, ...]                         [execute.py:745]
+    ↓   (for each DashboardScreenshot)
+DashboardScreenshot.__init__:
+    modify_url_query(url, standalone=3)                        [screenshots.py:469]
+    self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE=(1600,1200)
+    (but execute.py passes WEBDRIVER_WINDOW["dashboard"]=(1600,2000) as window_size)
+    ↓
+BaseScreenshot.get_screenshot(user)                            [screenshots.py:240]
+    ↓
+[PLAYWRIGHT_REPORTS_AND_THUMBNAILS=True + Playwright available]
+WebDriverPlaywright.get_screenshot(url, "standalone", user)    [webdriver.py:564]
+    ↓
+    browser context: viewport (1600×2000), pixel_density=1
+    auth cookie injected
+    page.goto(url, wait_until="domcontentloaded")
+    page.wait_for_timeout(SCREENSHOT_SELENIUM_HEADSTART=3s)
+    page.locator(".standalone").wait_for()
+    for each .chart-container: wait_for()
+    _wait_for_charts_ready(... report_execution_context=ctx)
+       → predicate = REPORT_CHART_HOLDERS_READY_JS
+       → page.wait_for_function(predicate, timeout=effective_wait_ms)
+       → [viewport-scoped only — off-screen holders skipped as 'virtualized']
+    [if SCREENSHOT_TILED_ENABLED: may use tiled screenshots for large dashboards]
+    page.screenshot(full_page=True)                            [webdriver.py:297]
+    context.close()
+    ↓
+build_pdf_from_screenshots([PNG bytes])                        [pdf.py:30]
+    ↓
+PIL: Image.open(PNG) → .save(out, "PDF", save_all=True)
+    ↓
+NotificationContent(pdf=bytes)  →  email/Slack/webhook</div>
+
+  <div class="correction-box">
+    <strong>Correction (v2) — window sizes:</strong>
+    <code>DEFAULT_DASHBOARD_WINDOW_SIZE</code> in screenshots.py:63 = <code>(1600, 1200)</code> (fallback if no window_size arg).
+    But execute.py:774 passes <code>app.config["WEBDRIVER_WINDOW"]["dashboard"]</code> explicitly, which in config.py:2579 defaults to <code>(1600, 2000)</code>.
+    So in the actual report execution flow, the viewport is <strong>1600×2000</strong>, not 1600×1200.
+  </div>
+
+  
+  <h2 id="s3">3. What Exists vs. What Must Be Built</h2>
+  <table>
+    <tr><th>Component</th><th>Status</th><th>Location</th><th>Notes</th></tr>
+    <tr>
+      <td>Headless browser (Playwright + Chromium)</td>
+      <td><span class="badge badge-reuse">REUSE</span></td>
+      <td>webdriver.py:235, screenshots.py:224</td>
+      <td>Process-level browser manager already handles context lifecycle</td>
+    </tr>
+    <tr>
+      <td>Authenticated browser context</td>
+      <td><span class="badge badge-reuse">REUSE</span></td>
+      <td>webdriver.py:603, WebDriverPlaywright.auth()</td>
+      <td>Cookie injection via machine_auth_provider_factory</td>
+    </tr>
+    <tr>
+      <td>Report standalone URL mode (standalone=3)</td>
+      <td><span class="badge badge-reuse">REUSE</span></td>
+      <td>screenshots.py:469, DashboardStandaloneMode.REPORT</td>
+      <td>Already strips filter bar, header, auto-refresh</td>
+    </tr>
+    <tr>
+      <td>Viewport-scoped readiness detection (REPORT_CHART_HOLDERS_READY_JS)</td>
+      <td><span class="badge badge-reuse">REUSE</span></td>
+      <td>screenshot_utils.py:222, webdriver.py:447, webdriver.py:1322</td>
+      <td>Works for screenshot path; must be extended with a non-viewport variant for print</td>
+    </tr>
+    <tr>
+      <td>Report artifact storage + notification delivery</td>
+      <td><span class="badge badge-reuse">REUSE</span></td>
+      <td>execute.py:1303, _send()</td>
+      <td><code>NotificationContent.pdf</code> field already exists and is handled</td>
+    </tr>
+    <tr>
+      <td>Feature flag infrastructure</td>
+      <td><span class="badge badge-reuse">REUSE</span></td>
+      <td>config.py:658, feature_flag_manager.py, featureFlags.ts</td>
+      <td>Add one entry to each; conventions well-established</td>
+    </tr>
+    <tr>
+      <td>page.pdf() call</td>
+      <td><span class="badge badge-new">NEW</span></td>
+      <td>webdriver.py (new method on WebDriverPlaywright)</td>
+      <td>API already on Playwright Page object; just not called anywhere today</td>
+    </tr>
+    <tr>
+      <td>Print-specific CSS</td>
+      <td><span class="badge badge-new">NEW</span></td>
+      <td>New CSS file, body class .print-mode gated on ?print=1</td>
+      <td>Single-column layout, hide drag handles, expand table overflow</td>
+    </tr>
+    <tr>
+      <td>Force-render all charts (disable DashboardVirtualization in print mode)</td>
+      <td><span class="badge badge-new">NEW</span></td>
+      <td>Row.tsx — override IntersectionObserver isInView initialization</td>
+      <td>See §4.4 for the exact mechanism; not at DashboardGrid/Builder level</td>
+    </tr>
+    <tr>
+      <td>Readiness predicate for all charts (not just viewport)</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>screenshot_utils.py — new PRINT_CHART_HOLDERS_READY_JS constant</td>
+      <td>Remove getBoundingClientRect viewport filter from REPORT predicate variant</td>
+    </tr>
+    <tr>
+      <td>Worker decision router (flag on → new path, fallback → screenshot)</td>
+      <td><span class="badge badge-new">NEW</span></td>
+      <td>execute.py — extend _get_pdf(), add _get_browser_print_pdf()</td>
+      <td>Thin wrapper; existing _get_screenshots() is not touched</td>
+    </tr>
+    <tr>
+      <td>DashboardPrintScreenshot class</td>
+      <td><span class="badge badge-new">NEW</span></td>
+      <td>screenshots.py — subclass of DashboardScreenshot</td>
+      <td>Appends ?print=1 to URL; adds get_print_pdf() method</td>
+    </tr>
+  </table>
+
+  
+  <h2 id="s4">4. Decision Points and Chosen Approaches</h2>
+
+  <h3>4.1 — Readiness Signal: DOM-based (extends existing pattern)</h3>
+  <p>The backend already polls DOM state via JS predicates using <code>page.wait_for_function()</code>. The existing <code>REPORT_CHART_HOLDERS_READY_JS</code> is close to what we need but is viewport-scoped.</p>
+  <p><strong>Decision:</strong> Add a new constant <code>PRINT_CHART_HOLDERS_READY_JS</code> to <span class="file-ref">screenshot_utils.py</span>. Identical to <code>REPORT_CHART_HOLDERS_READY_JS</code> but without the <code>getBoundingClientRect()</code> viewport filter — all chart holders in the DOM must be terminal. This is the minimum change, fully consistent with existing patterns.</p>
+
+  <h3>4.2 — Print-Ready URL Mode: Reuse standalone=3 + add ?print=1</h3>
+  <p><code>?standalone=3</code> (REPORT) already strips header, filter bar, edit controls, and disables auto-refresh. The gap is CSS (layout, table expansion) and forced chart rendering.</p>
+  <p><strong>Decision:</strong> Reuse <code>standalone=3</code>. Add a separate <code>?print=1</code> parameter that the new <code>DashboardPrintScreenshot</code> class appends, which the frontend reads to apply print-mode CSS and override virtualization. This does not affect existing embedded SDK consumers who use <code>standalone=3</code>.</p>
+
+  <h3>4.3 — Decision Point Location</h3>
+  <p><strong>Decision:</strong> Extend <code>_get_pdf()</code> in <span class="file-ref">execute.py</span>: add a flag check at the top that routes to a new <code>_get_browser_print_pdf()</code> helper, with the existing screenshot-based body as the fallback branch. The existing <code>_get_screenshots()</code> is completely untouched.</p>
+
+  <h3>4.4 — Force-Rendering All Charts: Targeting Row.tsx IntersectionObserver</h3>
+  <div class="correction-box">
+    <strong>Correction from v1:</strong> The virtualization mechanism is <strong>not</strong> controlled by <code>isComponentVisible</code> on DashboardGrid or DashboardBuilder. The actual mechanism is:
+    <br /><br />
+    <code>Row.tsx:170–216</code> — when <code>FeatureFlag.DashboardVirtualization</code> is enabled, sets up an <code>IntersectionObserver</code> that calls <code>setIsInView(true)</code> only when the row enters the viewport. Initial state of <code>isInView</code> is <code>false</code> (line 158: <code>const [isInView, setIsInView] = useState(false)</code>).
+    <br /><br />
+    This <code>isInView</code> is passed as a prop to → <code>ChartHolder</code> (ChartHolder.tsx:329) → <code>Chart</code> (gridComponents/Chart/Chart.tsx) → as prop to <code>src/components/Chart/Chart.tsx:186</code> → where <code>shouldRenderChart()</code> at line 220 returns <code>isInView || !isFeatureEnabled(FeatureFlag.DashboardVirtualization) || isCurrentUserBot()</code>.
+    <br /><br />
+    <strong>Correct fix:</strong> In <code>Row.tsx</code>, initialize <code>isInView</code> to <code>true</code> when <code>?print=1</code> is detected, bypassing the IntersectionObserver entirely for the print path:
+  </div>
+  <pre>// Row.tsx — initialize isInView based on print mode
+const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+const [isInView, setIsInView] = useState(isPrintMode ? true : false);
+
+// Existing observer effect already guards on DashboardVirtualization flag,
+// so it will not override isInView when isPrintMode=true if we also guard:
+useEffect(() =&gt; {
+  if (isPrintMode) return; // skip virtualization in print mode
+  if (!isFeatureEnabled(FeatureFlag.DashboardVirtualization) || isCurrentUserBot()) return;
+  // ... existing IntersectionObserver setup ...
+}, []);</pre>
+
+  <h3>4.5 — Table Expansion (Demo Scope)</h3>
+  <p>CSS-based expansion (<code>@media print</code> + <code>overflow: visible; max-height: none</code> on scroll containers) is sufficient for the demo. The more complex Phase D server-side data fetch is deferred.</p>
+
+  
+  <h2 id="s5">5. Phase A — Print-Ready Rendering Mode (Frontend)</h2>
+
+  <h3>5.1 — New URL Parameter: <code>?print=1</code></h3>
+  <p>Add to <span class="file-ref">superset-frontend/src/constants.ts</span> inside <code>URL_PARAMS</code>:</p>
+  <pre>print: {
+  name: 'print',
+  type: 'number',
+},</pre>
+  <p>The backend's new <code>DashboardPrintScreenshot</code> class appends <code>?standalone=3&amp;print=1</code> to the URL.</p>
+
+  <h3>5.2 — Print-Mode CSS</h3>
+  <p>Create <span class="file-ref">superset-frontend/src/dashboard/styles/printMode.ts</span>. CSS applies only when <code>body.print-mode</code> class is present (added by a <code>useEffect</code> in DashboardBuilder.tsx). This ensures it never affects interactive or embedded uses of <code>standalone=3</code>.</p>
+  <pre>/* Applied when body has .print-mode class (only when ?print=1 is in URL) */
+body.print-mode {
+  /* Hide all interactive chrome */
+  .dashboard-header-container { display: none !important; }
+  .filter-bar { display: none !important; }
+  .drag-handle { display: none !important; }
+  .resizable-add-col { display: none !important; }
+  .ant-dropdown-trigger { display: none !important; }
+
+  /* Single vertical column layout (override flex-direction: row in grid rows) */
+  .dragdroppable-row {
+    display: block !important;
+    width: 100% !important;
+  }
+  .dragdroppable-column {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Expand scroll-clipped containers (tables, long text) */
+  .table-viz {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+  .dt-global-filter,
+  .pagination-container { display: none !important; }
+  .dataTable {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  /* Prevent charts from collapsing to zero height in a block flow */
+  .chart-container {
+    min-height: 200px;
+  }
+}</pre>
+
+  <h3>5.3 — body class injection in DashboardBuilder.tsx</h3>
+  <pre>// DashboardBuilder.tsx — add near the standaloneMode reads
+const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+
+useEffect(() =&gt; {
+  if (isPrintMode) {
+    document.body.classList.add('print-mode');
+    return () =&gt; document.body.classList.remove('print-mode');
+  }
+  return undefined;
+}, [isPrintMode]);</pre>
+
+  <h3>5.4 — Force-render all charts in print mode (Row.tsx)</h3>
+  <p>As described in §4.4, the fix is in <span class="file-ref">superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx</span>:</p>
+  <pre>// Row.tsx — around line 158
+const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+// In print mode, always treat all rows as in-view so charts render immediately.
+// Skip the IntersectionObserver virtualization entirely.
+const [isInView, setIsInView] = useState(isPrintMode);
+
+useEffect(() =&gt; {
+  if (isPrintMode) return; // bypass IntersectionObserver in print mode
+  if (
+    !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
+    isCurrentUserBot()
+  ) return;
+  // ... existing IntersectionObserver setup (unchanged) ...
+}, []);</pre>
+
+  
+  <h2 id="s6">6. Phase B — Readiness Signal (Backend)</h2>
+
+  <h3>6.1 — New JS Predicate: All-Charts (Non-Viewport)</h3>
+  <p>Add to <span class="file-ref">superset/utils/screenshot_utils.py</span> after the existing <code>REPORT_CHART_HOLDERS_READY_JS</code>:</p>
+  <pre># Like REPORT_CHART_HOLDERS_READY_JS, but scoped to ALL chart holders,
+# not just viewport-visible ones. Required for browser-print mode where
+# page.pdf() renders the full DOM, not just the visible viewport.
+# The getBoundingClientRect() viewport filter is intentionally removed.
+PRINT_ALL_CHART_HOLDERS_READY_JS_BODY = f"""
+    const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
+    const unready = [];
+    for (const holder of holders) {{
+        const hasSliceContainer = holder.querySelector(
+            '{SLICE_CONTAINER_SELECTOR}'
+        ) !== null;
+        const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
+        const isReady = holder.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+        if (stillLoading || !isReady) {{
+            const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
+            unready.push({{ chartId: chartIdMatch ? chartIdMatch[1] : null }});
+        }}
+    }}
+"""
+
+PRINT_ALL_CHART_HOLDERS_READY_JS = (
+    f"() =&gt; {{ {PRINT_ALL_CHART_HOLDERS_READY_JS_BODY} "
+    "return holders.length &gt; 0 &amp;&amp; unready.length === 0; }"
+)</pre>
+  <p>Export this constant from <span class="file-ref">screenshot_utils.py</span> and import it in <span class="file-ref">webdriver.py</span> alongside the existing imports at line 48–57.</p>
+
+  
+  <h2 id="s7">7. Phase C — Worker-Side Integration (Backend)</h2>
+
+  <h3>7.1 — New Feature Flag</h3>
+  <p>Add to <span class="file-ref">superset/config.py</span> inside <code>DEFAULT_FEATURE_FLAGS</code>, in the IN DEVELOPMENT section (around line 698):</p>
+  <pre># Enable browser-native print (page.pdf()) for dashboard PDF reports.
+# When enabled, the dashboard is rendered in a print-ready mode and
+# Playwright's page.pdf() is used instead of screenshot-to-image-to-PDF.
+# Falls back to the existing screenshot path on any failure.
+# Requires PLAYWRIGHT_REPORTS_AND_THUMBNAILS to also be enabled.
+# @lifecycle: development
+"DASHBOARD_REPORTS_BROWSER_PRINT_PDF": False,</pre>
+  <p>Add to the <code>FeatureFlag</code> enum in <span class="file-ref">superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts</span>:</p>
+  <pre>DashboardReportsBrowserPrintPdf = 'DASHBOARD_REPORTS_BROWSER_PRINT_PDF',</pre>
+
+  <h3>7.2 — DashboardPrintScreenshot class (screenshots.py)</h3>
+  <pre>class DashboardPrintScreenshot(DashboardScreenshot):
+    """
+    Extends DashboardScreenshot for the browser-print PDF path.
+    Appends ?print=1 to trigger print-mode CSS and force all
+    charts to render regardless of viewport position.
+    """
+
+    def __init__(
+        self,
+        url: str,
+        digest: str | None,
+        window_size: WindowSize | None = None,
+        thumb_size: WindowSize | None = None,
+    ):
+        # DashboardScreenshot.__init__ already adds standalone=3
+        super().__init__(url, digest, window_size, thumb_size)
+        # Add print=1 so the frontend applies print-mode CSS and
+        # bypasses DashboardVirtualization for all chart rows.
+        self.url = modify_url_query(self.url, print=1)
+
+    def get_print_pdf(
+        self,
+        user: "User",
+        window_size: WindowSize | None = None,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
+    ) -&gt; bytes | None:
+        """
+        Use Playwright's page.pdf() for native print output.
+        Returns None on any failure so callers can fall back.
+        """
+        if not feature_flag_manager.is_feature_enabled(
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
+        ):
+            return None
+        if not PLAYWRIGHT_AVAILABLE:
+            return None
+        driver = WebDriverPlaywright(
+            self.driver_type, window_size or self.window_size
+        )
+        return driver.get_print_pdf(
+            self.url,
+            user,
+            log_context=log_context,
+            report_execution_context=report_execution_context,
+        )</pre>
+
+  <h3>7.3 — get_print_pdf() method on WebDriverPlaywright (webdriver.py)</h3>
+  <pre>def get_print_pdf(
+    self,
+    url: str,
+    user: "User | None" = None,
+    log_context: str | None = None,
+    report_execution_context: ReportExecutionContext | None = None,
+) -&gt; bytes | None:
+    """
+    Render the dashboard in print-ready mode and call page.pdf().
+
+    Uses PRINT_ALL_CHART_HOLDERS_READY_JS (all holders, not just
+    viewport-visible) to detect readiness, then calls Playwright's
+    native page.pdf() instead of page.screenshot().
+
+    Returns None (never raises) so the caller can fall back to
+    the existing screenshot path.
+    """
+    if not PLAYWRIGHT_AVAILABLE:
+        return None
+    browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
+    browser = _browser_manager.get_browser(browser_args)
+    pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+    context = browser.new_context(
+        bypass_csp=True,
+        viewport={"height": self._window[1], "width": self._window[0]},
+        device_scale_factor=pixel_density,
+    )
+    context.set_default_timeout(
+        app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
+    )
+    if user:
+        self.auth(user, context)
+    page = context.new_page()
+    pdf_bytes: bytes | None = None
+    try:
+        page.goto(
+            url,
+            wait_until=app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+        )
+        page.wait_for_timeout(app.config["SCREENSHOT_SELENIUM_HEADSTART"] * 1000)
+
+        # Wait for standalone element to confirm dashboard has mounted
+        page.locator(".standalone").wait_for()
+
+        # Determine readiness timeout from budget context or config
+        load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
+        if report_execution_context:
+            effective_wait = report_execution_context.deadline.timeout_seconds(
+                "chart_readiness",
+                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+            )
+        else:
+            effective_wait = float(load_wait)
+
+        # Wait for ALL chart holders (not just viewport-visible)
+        page.wait_for_function(
+            PRINT_ALL_CHART_HOLDERS_READY_JS,
+            timeout=effective_wait * 1000,
+        )
+
+        # Native browser print — produces a real vector PDF
+        pdf_bytes = page.pdf(
+            format="A4",
+            print_background=True,
+            margin={
+                "top": "10mm",
+                "bottom": "10mm",
+                "left": "10mm",
+                "right": "10mm",
+            },
+        )
+        logger.info(
+            "browser_print_pdf_success url=%s bytes=%d log_context=%s",
+            url,
+            len(pdf_bytes) if pdf_bytes else 0,
+            log_context or "",
+        )
+    except (PlaywrightTimeout, PlaywrightError, Exception):  # noqa: BLE001
+        logger.exception(
+            "browser_print_pdf_failed url=%s log_context=%s; "
+            "caller should fall back to screenshot path",
+            url,
+            log_context or "",
+        )
+        return None
+    finally:
+        context.close()
+    return pdf_bytes</pre>
+
+  <h3>7.4 — Decision Point in execute.py (_get_pdf)</h3>
+  <p>The import at execute.py:100 already imports <code>DashboardScreenshot</code> from <code>superset.utils.screenshots</code>. Add <code>DashboardPrintScreenshot</code> to that same import. Do NOT add a <code>ReportSchedulePdfFailedError</code> import — it is not used directly in execute.py today and the new code should not use it either.</p>
+  <pre>def _get_pdf(self) -&gt; bytes:
+    """
+    Get chart or dashboard pdf.
+    When DASHBOARD_REPORTS_BROWSER_PRINT_PDF is enabled, attempt
+    the native browser-print path first; fall back to the existing
+    screenshot-based path on any failure or if the flag is off.
+    :raises: ReportSchedulePdfFailedError
+    """
+    # NEW: attempt browser-print path when flag is on
+    if (
+        feature_flag_manager.is_feature_enabled(
+            "DASHBOARD_REPORTS_BROWSER_PRINT_PDF"
+        )
+        and self._report_schedule.dashboard  # dashboard reports only (not charts)
+    ):
+        try:
+            pdf_bytes = self._get_browser_print_pdf()
+            if pdf_bytes:
+                logger.info(
+                    "browser_print_pdf_used %s", self._log_context
+                )
+                return pdf_bytes
+            logger.warning(
+                "browser_print_pdf_none %s; falling back to screenshot path",
+                self._log_context,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "browser_print_pdf_exception %s; falling back to screenshot path",
+                self._log_context,
+            )
+
+    # EXISTING PATH — unmodified
+    screenshots = self._get_screenshots()
+    reserve_seconds = (
+        self._report_execution_context.post_capture_reserve_seconds
+        if self._report_execution_context
+        else 0.0
+    )
+    self._phase_timeout("pdf_generation", reserve_seconds=reserve_seconds)
+    pdf = build_pdf_from_screenshots(screenshots)
+    self._phase_timeout("pdf_generation", reserve_seconds=reserve_seconds)
+    return pdf
+
+def _get_browser_print_pdf(self) -&gt; bytes | None:
+    """
+    Attempt browser-native PDF generation for a dashboard report.
+    Returns None (does not raise) on any failure so the caller
+    falls back to the screenshot path.
+    """
+    urls = self.get_dashboard_urls()
+    user, _ = resolve_executor_user(self._report_schedule)
+    window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
+    max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+    width = min(max_width, self._report_schedule.custom_width or window_width)
+    height = self._report_schedule.custom_height or window_height
+    window_size = (width, height)
+
+    # Multi-tab dashboards deferred — fall back to screenshot path
+    if len(urls) != 1:
+        logger.info(
+            "browser_print_pdf_skipped_multi_tab %s url_count=%d; "
+            "falling back to screenshot path",
+            self._log_context,
+            len(urls),
+        )
+        return None
+
+    screenshot = DashboardPrintScreenshot(
+        urls[0],
+        self._report_schedule.dashboard.digest,
+        window_size=window_size,
+        thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+    )
+    return screenshot.get_print_pdf(
+        user=user,
+        log_context=self._log_context,
+        report_execution_context=self._report_execution_context,
+    )</pre>
+
+  <div class="callout ok">
+    <strong>Invariant:</strong> <code>_get_screenshots()</code> is <em>not modified</em>. When the flag is off, <code>_get_pdf()</code> behaves exactly as before. When the flag is on and the new path returns <code>None</code> or raises, the existing screenshot path runs identically.
+  </div>
+
+  
+  <h2 id="s8">8. Fallback and Safety Design</h2>
+  <div class="flow-diagram">REPORT TRIGGERED
+      ↓
+_get_notification_content() → report_format == PDF
+      ↓
+_get_pdf()
+      ↓
+DASHBOARD_REPORTS_BROWSER_PRINT_PDF enabled?
+      ├─ NO ──────────────────────────────────────────→ [EXISTING PATH]
+      │                                                  _get_screenshots() unchanged
+      └─ YES                                             build_pdf_from_screenshots()
+           ↓
+      Is this a dashboard (not a chart) report?
+           ├─ NO (chart) ──────────────────────────→ [EXISTING PATH]
+           └─ YES
+                ↓
+           Is it a single-URL dashboard (not multi-tab)?
+                ├─ NO (multi-tab) ──────────────────→ [EXISTING PATH]
+                └─ YES
+                     ↓
+                _get_browser_print_pdf()
+                DashboardPrintScreenshot.get_print_pdf()
+                     ↓
+                PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled
+                AND PLAYWRIGHT_AVAILABLE?
+                     ├─ NO ──────────────────────→ returns None → [EXISTING PATH]
+                     └─ YES
+                          ↓
+                     page.goto() + .standalone wait
+                          ↓
+                     PRINT_ALL_CHART_HOLDERS_READY_JS
+                     within SCREENSHOT_LOAD_WAIT timeout?
+                          ├─ TIMEOUT → PlaywrightTimeout
+                          │    └──────────────────→ returns None → [EXISTING PATH]
+                          └─ READY
+                               ↓
+                          page.pdf() succeeds?
+                               ├─ Exception → returns None → [EXISTING PATH]
+                               └─ bytes ✓
+                                    ↓
+                               return pdf_bytes (native print PDF)</div>
+
+  
+  <h2 id="s9">9. File-Level Change Map</h2>
+  <table>
+    <tr><th>File</th><th>Change</th><th>What Changes</th></tr>
+    <tr>
+      <td class="file-ref">superset/config.py</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Add <code>DASHBOARD_REPORTS_BROWSER_PRINT_PDF: False</code> to DEFAULT_FEATURE_FLAGS in development section</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset/utils/screenshot_utils.py</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Add <code>PRINT_ALL_CHART_HOLDERS_READY_JS_BODY</code> and <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> constants. No existing code changed.</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset/utils/screenshots.py</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Add <code>DashboardPrintScreenshot</code> class (subclass of <code>DashboardScreenshot</code>). No existing class or method modified.</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset/utils/webdriver.py</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Import <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code>. Add <code>get_print_pdf()</code> method to <code>WebDriverPlaywright</code>. No existing methods modified.</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset/commands/report/execute.py</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Add <code>DashboardPrintScreenshot</code> to import on line 100. Wrap existing <code>_get_pdf()</code> body with flag-check + try/except at top. Add new <code>_get_browser_print_pdf()</code> method. Existing body of <code>_get_pdf()</code> moves to fallback branch, line-for-line identical.</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Add <code>DashboardReportsBrowserPrintPdf = 'DASHBOARD_REPORTS_BROWSER_PRINT_PDF'</code> to <code>FeatureFlag</code> enum.</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset-frontend/src/constants.ts</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Add <code>print: { name: 'print', type: 'number' }</code> to <code>URL_PARAMS</code>.</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Read <code>URL_PARAMS.print</code>. Initialize <code>isInView</code> to <code>true</code> when print mode active. Guard existing IntersectionObserver <code>useEffect</code> to skip when print mode active. Import <code>URL_PARAMS</code> and <code>getUrlParam</code> (if not already imported).</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</td>
+      <td><span class="badge badge-extend">EXTEND</span></td>
+      <td>Read <code>URL_PARAMS.print</code>, add <code>useEffect</code> to set/unset <code>body.print-mode</code> CSS class. <code>URL_PARAMS</code> and <code>getUrlParam</code> are already imported here.</td>
+    </tr>
+    <tr>
+      <td class="file-ref">superset-frontend/src/dashboard/styles/printMode.ts (new)</td>
+      <td><span class="badge badge-new">NEW</span></td>
+      <td>Print-mode CSS rules scoped to <code>body.print-mode</code>.</td>
+    </tr>
+    <tr>
+      <td class="file-ref">DEMO-NOTES.md (new at repo root)</td>
+      <td><span class="badge badge-new">NEW</span></td>
+      <td>Verification findings, flag setup instructions, demo script, known limitations.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>Files explicitly NOT modified:</strong>
+    <code>superset/utils/pdf.py</code>,
+    <code>chartReducer.ts</code>,
+    <code>childChartsDidLoad.ts</code>,
+    all existing screenshot tests. The existing <code>_get_screenshots()</code> and Selenium path are <em>unchanged</em>.
+  </div>
+
+  
+  <h2 id="s10">10. Configuration Reference</h2>
+  <table>
+    <tr><th>Key</th><th>Default</th><th>File:Line</th><th>Role in new path</th></tr>
+    <tr><td>DASHBOARD_REPORTS_BROWSER_PRINT_PDF</td><td>False</td><td>config.py (new)</td><td>Master gate</td></tr>
+    <tr><td>PLAYWRIGHT_REPORTS_AND_THUMBNAILS</td><td>False</td><td>config.py:797</td><td>Must also be True; new path requires Playwright</td></tr>
+    <tr><td>SCREENSHOT_LOAD_WAIT</td><td>60 s</td><td>config.py:1302</td><td>Chart readiness wait timeout in new path</td></tr>
+    <tr><td>SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT</td><td>60,000 ms</td><td>config.py:1326</td><td>Context default timeout; covers page.pdf() call</td></tr>
+    <tr><td>SCREENSHOT_PLAYWRIGHT_WAIT_EVENT</td><td>"domcontentloaded"</td><td>config.py:1324</td><td>page.goto() wait event, reused</td></tr>
+    <tr><td>SCREENSHOT_SELENIUM_HEADSTART</td><td>3 s</td><td>config.py:1312</td><td>Initial page settle wait, reused</td></tr>
+    <tr><td>WEBDRIVER_WINDOW["dashboard"]</td><td>(1600, 2000)</td><td>config.py:2579</td><td>Viewport size for print rendering</td></tr>
+    <tr><td>WEBDRIVER_OPTION_ARGS</td><td>["--headless"]</td><td>config.py:2597</td><td>Browser launch args, reused</td></tr>
+    <tr><td>ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH</td><td>2400</td><td>config.py:2506</td><td>Max width cap applied to print viewport too</td></tr>
+  </table>
+
+  <h3>Minimum config to enable for demo:</h3>
+  <pre>FEATURE_FLAGS = {
+    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": True,    # prerequisite
+    "DASHBOARD_REPORTS_BROWSER_PRINT_PDF": True,  # new flag
+}</pre>
+
+  
+  <h2 id="s11">11. Risk Register</h2>
+  <table>
+    <tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr>
+    <tr>
+      <td>Off-screen charts render as blank (DashboardVirtualization isInView=false)</td>
+      <td>High if DashboardVirtualization flag is enabled</td>
+      <td>High — blank chart areas in PDF</td>
+      <td>Phase A §5.4: initialize isInView=true in Row.tsx when ?print=1; bypasses IntersectionObserver entirely</td>
+    </tr>
+    <tr>
+      <td>PRINT_ALL_CHART_HOLDERS_READY_JS never resolves — a chart holder mounts but never reaches a terminal state</td>
+      <td>Medium</td>
+      <td>Medium — hangs until SCREENSHOT_LOAD_WAIT timeout</td>
+      <td>PlaywrightTimeout caught in get_print_pdf() → returns None → fallback to screenshot path</td>
+    </tr>
+    <tr>
+      <td>page.pdf() output quality: canvas/SVG ECharts charts may look different under print media</td>
+      <td>Medium</td>
+      <td>Low for demo (Table viz is the focus)</td>
+      <td>print_background=True in page.pdf() call; CSS scoped to not break chart rendering</td>
+    </tr>
+    <tr>
+      <td>Multi-tab dashboards not supported</td>
+      <td>Low (demo scope is single-tab)</td>
+      <td>Low — guard in _get_browser_print_pdf() falls back gracefully</td>
+      <td>Explicit check len(urls) != 1 → log + return None → fallback</td>
+    </tr>
+    <tr>
+      <td>Print CSS breaks interactive embedded SDK consumers using standalone=3</td>
+      <td>Low</td>
+      <td>High</td>
+      <td>Print CSS is gated strictly on body.print-mode class, which is only added when ?print=1 is in URL — standalone=3 alone does NOT trigger it</td>
+    </tr>
+    <tr>
+      <td>page.pdf() not available if Playwright package is very old</td>
+      <td>Very low</td>
+      <td>Medium — AttributeError at runtime</td>
+      <td>The broad except clause in get_print_pdf() catches AttributeError and returns None → fallback</td>
+    </tr>
+  </table>
+
+  
+  <h2 id="s12">12. Open Questions</h2>
+  <ol>
+    <li><strong>DashboardVirtualizationDeferData flag interaction:</strong> <code>src/components/Chart/Chart.tsx:230</code> also gates data fetching on <code>shouldRenderChart()</code> when <code>DashboardVirtualizationDeferData</code> is enabled. If this flag is on, charts outside the viewport won't even fetch data. The Row.tsx fix (isInView=true) propagates through ChartHolder to Chart and should set <code>shouldRenderChart()=true</code>, resolving this. Verify in testing.</li>
+    <li><strong>Page format configurability:</strong> Should A4 be configurable via a new config key? For the demo, A4 is hard-coded in the method. Configurable format is noted as a future hardening item.</li>
+    <li><strong>Multi-tab dashboards:</strong> Deferred. Would require separate page.pdf() calls per tab and PDF merge (e.g. pypdf). Phase 5 optional item.</li>
+    <li><strong>Budget accounting for new path:</strong> <code>report_execution_context.deadline.timeout_seconds("chart_readiness")</code> is used for the wait. The page.pdf() call uses context default timeout. Full budget integration (separate phase slots for print capture) is a hardening item.</li>
+    <li><strong>Row.tsx getUrlParam import:</strong> Verify Row.tsx doesn't already import getUrlParam/URL_PARAMS. It currently imports from superset-ui/core and src/dashboard packages — a fresh import from <code>src/utils/urlUtils</code> and <code>src/constants</code> will be needed.</li>
+  </ol>
+
+  
+  <h2 id="s13">13. Out-of-Scope Items (Future Work)</h2>
+  <table>
+    <tr><th>Item</th><th>Reason Deferred</th><th>Phase to Revisit</th></tr>
+    <tr><td>Multi-tab dashboard PDF (per-tab page.pdf() + PDF merge)</td><td>Requires PDF merge library; not needed for demo</td><td>Phase 5 (SIP optional)</td></tr>
+    <tr><td>Server-side table data fetch path (Phase D / hybrid table rendering)</td><td>CSS-based overflow expansion sufficient for moderate tables</td><td>Phase 3 of full SIP roadmap</td></tr>
+    <tr><td>Production safety limits (max pages, max output file size)</td><td>SCREENSHOT_LOAD_WAIT provides a basic guard; tuning deferred</td><td>Phase 4 (hardening)</td></tr>
+    <tr><td>Chart type allow-list enforcement</td><td>Demo focused on Table viz; other types degrade gracefully</td><td>Phase 4 (hardening)</td></tr>
+    <tr><td>Selenium print PDF equivalent</td><td>Selenium has no page.pdf() equivalent; Playwright is a hard requirement</td><td>N/A</td></tr>
+    <tr><td>Chart-level (non-dashboard) print report</td><td>Demo focused on dashboard PDF</td><td>Future extension</td></tr>
+    <tr><td>Cleanup of existing screenshot code path</td><td>Explicitly prohibited: existing path must remain fully intact as the fallback</td><td>Never</td></tr>
+  </table>
+
+  <footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

@@ -223,6 +223,31 @@ REPORT_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
 )
+
+# Like REPORT_CHART_HOLDERS_READY_JS, but scoped to ALL chart holders, not just
+# viewport-visible ones. Required for browser-print mode where page.pdf()
+# renders the full DOM. The getBoundingClientRect() viewport filter from
+# UNREADY_CHART_HOLDERS_JS_BODY is intentionally absent here.
+PRINT_ALL_CHART_HOLDERS_READY_JS_BODY = f"""
+    const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
+    const unready = [];
+    for (const holder of holders) {{
+        const hasSliceContainer = holder.querySelector(
+            '{SLICE_CONTAINER_SELECTOR}'
+        ) !== null;
+        const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
+        const isReady = holder.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+        if (stillLoading || !isReady) {{
+            const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
+            unready.push({{ chartId: chartIdMatch ? chartIdMatch[1] : null }});
+        }}
+    }}
+"""
+
+PRINT_ALL_CHART_HOLDERS_READY_JS = (
+    f"() => {{ {PRINT_ALL_CHART_HOLDERS_READY_JS_BODY} "
+    "return holders.length > 0 && unready.length === 0; }"
+)
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )

@@ -97,7 +97,11 @@ from superset.utils.report_execution import (
     ReportExecutionDeadline,
     resolve_report_execution_budget_seconds,
 )
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardPrintScreenshot,
+    DashboardScreenshot,
+)
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
 
@@ -861,9 +865,37 @@ class BaseReportState:
 
     def _get_pdf(self) -> bytes:
         """
-        Get chart or dashboard pdf
+        Get chart or dashboard pdf.
+        When DASHBOARD_REPORTS_BROWSER_PRINT_PDF is enabled, attempt
+        the native browser-print path first; fall back to the existing
+        screenshot-based path on any failure or if the flag is off.
         :raises: ReportSchedulePdfFailedError
         """
+        # NEW: attempt browser-print path when flag is on
+        if (
+            feature_flag_manager.is_feature_enabled(
+                "DASHBOARD_REPORTS_BROWSER_PRINT_PDF"
+            )
+            and self._report_schedule.dashboard  # dashboard reports only (not charts)
+        ):
+            try:
+                pdf_bytes = self._get_browser_print_pdf()
+                if pdf_bytes:
+                    logger.info(
+                        "browser_print_pdf_used %s", self._log_context
+                    )
+                    return pdf_bytes
+                logger.warning(
+                    "browser_print_pdf_none %s; falling back to screenshot path",
+                    self._log_context,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "browser_print_pdf_exception %s; falling back to screenshot path",
+                    self._log_context,
+                )
+
+        # EXISTING PATH — unmodified
         screenshots = self._get_screenshots()
         reserve_seconds = (
             self._report_execution_context.post_capture_reserve_seconds
@@ -881,6 +913,42 @@ class BaseReportState:
         )
 
         return pdf
+
+    def _get_browser_print_pdf(self) -> bytes | None:
+        """
+        Attempt browser-native PDF generation for a dashboard report.
+        Returns None (does not raise) on any failure so the caller
+        falls back to the screenshot path.
+        """
+        urls = self.get_dashboard_urls()
+        user, _ = resolve_executor_user(self._report_schedule)
+        window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
+        max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+        width = min(max_width, self._report_schedule.custom_width or window_width)
+        height = self._report_schedule.custom_height or window_height
+        window_size = (width, height)
+
+        # Multi-tab dashboards deferred — fall back to screenshot path
+        if len(urls) != 1:
+            logger.info(
+                "browser_print_pdf_skipped_multi_tab %s url_count=%d; "
+                "falling back to screenshot path",
+                self._log_context,
+                len(urls),
+            )
+            return None
+
+        screenshot = DashboardPrintScreenshot(
+            urls[0],
+            self._report_schedule.dashboard.digest,
+            window_size=window_size,
+            thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+        )
+        return screenshot.get_print_pdf(
+            user=user,
+            log_context=self._log_context,
+            report_execution_context=self._report_execution_context,
+        )
 
     def _get_chart_data_request_payload(
         self,

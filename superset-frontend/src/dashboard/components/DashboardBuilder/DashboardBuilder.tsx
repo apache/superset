@@ -90,6 +90,7 @@ import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
+import { PRINT_MODE_CSS } from 'src/dashboard/styles/printMode';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
@@ -508,6 +509,22 @@ const DashboardBuilder = () => {
       : undefined;
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.Report;
+  const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+
+  useEffect(() => {
+    if (isPrintMode) {
+      document.body.classList.add('print-mode');
+      const styleEl = document.createElement('style');
+      styleEl.id = 'superset-print-mode-css';
+      styleEl.textContent = PRINT_MODE_CSS;
+      document.head.appendChild(styleEl);
+      return () => {
+        document.body.classList.remove('print-mode');
+        document.head.removeChild(styleEl);
+      };
+    }
+    return undefined;
+  }, [isPrintMode]);
   // Report mode (standalone=3) hides the filter bar by default, since it's used
   // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK
   // consumers also use standalone=3 to hide the title/tabs/nav, but may still

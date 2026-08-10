@@ -491,3 +491,51 @@ class DashboardScreenshot(BaseScreenshot):
             "permalink_key": permalink_key,
         }
         return hash_from_dict(args)
+
+
+class DashboardPrintScreenshot(DashboardScreenshot):
+    """
+    Extends DashboardScreenshot for the browser-print PDF path.
+    Appends ?print=1 to trigger print-mode CSS and force all
+    charts to render regardless of viewport position.
+    """
+
+    def __init__(
+        self,
+        url: str,
+        digest: str | None,
+        window_size: WindowSize | None = None,
+        thumb_size: WindowSize | None = None,
+    ):
+        # DashboardScreenshot.__init__ already adds standalone=3
+        super().__init__(url, digest, window_size, thumb_size)
+        # Add print=1 so the frontend applies print-mode CSS and
+        # bypasses DashboardVirtualization for all chart rows.
+        self.url = modify_url_query(self.url, print=1)
+
+    def get_print_pdf(
+        self,
+        user: "User",
+        window_size: WindowSize | None = None,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
+    ) -> bytes | None:
+        """
+        Use Playwright's page.pdf() for native print output.
+        Returns None on any failure so callers can fall back.
+        """
+        if not feature_flag_manager.is_feature_enabled(
+            "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
+        ):
+            return None
+        if not PLAYWRIGHT_AVAILABLE:
+            return None
+        driver = WebDriverPlaywright(
+            self.driver_type, window_size or self.window_size
+        )
+        return driver.get_print_pdf(
+            self.url,
+            user=user,
+            log_context=log_context,
+            report_execution_context=report_execution_context,
+        )

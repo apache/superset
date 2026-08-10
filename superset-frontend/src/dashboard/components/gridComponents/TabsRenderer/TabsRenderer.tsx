@@ -94,6 +94,8 @@ export interface TabItem {
   label: ReactElement;
   closeIcon: ReactElement;
   children?: ReactElement;
+  /** Force-render the tab panel even when inactive (used in print mode). */
+  forceRender?: boolean;
 }
 
 export interface TabsComponent {

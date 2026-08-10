@@ -696,6 +696,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # once soft delete is stable.
     # @lifecycle: development
     "SOFT_DELETE": False,
+    # Enable browser-native print (page.pdf()) for dashboard PDF reports.
+    # When enabled, the dashboard is rendered in a print-ready mode and
+    # Playwright's page.pdf() is used instead of screenshot-to-image-to-PDF.
+    # Falls back to the existing screenshot path on any failure.
+    # Requires PLAYWRIGHT_REPORTS_AND_THUMBNAILS to also be enabled.
+    # @lifecycle: development
+    "DASHBOARD_REPORTS_BROWSER_PRINT_PDF": False,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
