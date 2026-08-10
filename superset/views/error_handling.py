@@ -46,7 +46,6 @@ from superset.exceptions import (
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
 from superset.utils.error_sanitization import (
-    SAFE_STATUSES,
     sanitize_error_message,
     sanitize_superset_errors,
 )
@@ -88,11 +87,7 @@ def json_error_response(
             for error in sanitize_superset_errors(error_details)
         ]
     elif isinstance(error_details, str):
-        payload["error"] = (
-            error_details
-            if status in SAFE_STATUSES
-            else sanitize_error_message(error_details)
-        )
+        payload["error"] = sanitize_error_message(error_details, status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),

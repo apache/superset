@@ -112,12 +112,15 @@ Behavior changes to be aware of:
 ### Embedded (guest token) API responses no longer echo database errors
 
 API responses served to a guest-token principal now carry a generic
-`An error occurred while fetching the data.` in place of the underlying error,
-and drop the `stacktrace` and error `extra` payloads. Engine errors routinely
-quote catalog, schema, table and column names of the warehouse, which embedded
+`An error occurred while fetching the data.` in place of the underlying error
+(`You don't have permission to access this resource.` on a 401/403), and drop
+the `stacktrace` and error `extra` payloads. Engine errors routinely quote
+catalog, schema, table and column names of the warehouse, which embedded
 viewers should not see. Errors Superset authors itself — access denials, OAuth2
-redirects, timeouts, payload validation — are unchanged, as are responses to
-every non-guest principal. The full error is still logged server-side.
+redirects, timeouts, payload validation — keep their message and type, though
+their `extra` is still reduced to the fields the client needs. Responses to
+every non-guest principal are unchanged, and the full error is still logged
+server-side.
 
 ### Principal listing APIs now honour related-field filters
 

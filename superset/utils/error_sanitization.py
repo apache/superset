@@ -34,6 +34,7 @@ from flask_babel import lazy_gettext as _
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
 GENERIC_ERROR_MESSAGE = _("An error occurred while fetching the data.")
+GENERIC_ACCESS_MESSAGE = _("You don't have permission to access this resource.")
 
 # Error types Superset raises on its own, describing an access decision, a
 # malformed payload or a client-side condition. Their messages are written by
@@ -62,9 +63,16 @@ SAFE_ERROR_TYPES = frozenset(
     }
 )
 
-# Statuses that report an authentication, authorization or routing decision
-# rather than a query failure, so their bare-string messages survive redaction.
-SAFE_STATUSES = frozenset({401, 403, 404, 429})
+# Keys an allowlisted error may keep. ``issue_codes`` is Superset's own generic
+# guidance; the OAuth2 trio drives the redirect dance in
+# ``OAuth2RedirectMessage.tsx``. Everything else is dropped -- notably the
+# upstream provider response ``OAuth2TokenRefreshError`` stores under
+# ``extra["error"]``, which reaches the client under an allowlisted type.
+SAFE_EXTRA_KEYS = frozenset({"issue_codes", "url", "tab_id", "redirect_uri"})
+
+# Statuses reporting an authentication or authorization decision. The message is
+# still replaced, but with one that reads as a denial rather than a data error.
+ACCESS_STATUSES = frozenset({401, 403})
 
 
 def is_sanitization_required() -> bool:
@@ -77,12 +85,19 @@ def is_sanitization_required() -> bool:
     return security_manager.is_guest_user()
 
 
-def sanitize_error_message(message: str) -> str:
+def sanitize_error_message(message: str, status: int | None = None) -> str:
     """
     Replace an error message with a generic one for embedded guest viewers.
+
+    A message is never kept on the strength of its status alone: an unstructured
+    string carries no error type, so there is no way to tell an authorization
+    denial from an engine error that happens to be reported as a 404. `status`
+    only selects which generic message reads correctly.
     """
     if not is_sanitization_required():
         return message
+    if status in ACCESS_STATUSES:
+        return str(GENERIC_ACCESS_MESSAGE)
     return str(GENERIC_ERROR_MESSAGE)
 
 
@@ -91,10 +106,24 @@ def sanitize_superset_error(error: SupersetError) -> SupersetError:
     Replace a ``SupersetError`` with a generic one for embedded guest viewers.
 
     ``extra`` is dropped along with the message: it carries engine names and, for
-    some error types, the offending SQL.
+    some error types, the offending SQL. An allowlisted error keeps its message
+    and type, but its ``extra`` is still filtered to `SAFE_EXTRA_KEYS` -- an
+    allowlisted type is not a promise that everything hanging off it is safe.
     """
-    if not is_sanitization_required() or error.error_type in SAFE_ERROR_TYPES:
+    if not is_sanitization_required():
         return error
+    if error.error_type in SAFE_ERROR_TYPES:
+        if not error.extra:
+            return error
+        extra = {k: v for k, v in error.extra.items() if k in SAFE_EXTRA_KEYS}
+        if extra == error.extra:
+            return error
+        return SupersetError(
+            message=error.message,
+            error_type=error.error_type,
+            level=error.level,
+            extra=extra or None,
+        )
     return SupersetError(
         message=str(GENERIC_ERROR_MESSAGE),
         error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,

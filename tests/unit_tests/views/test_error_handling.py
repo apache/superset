@@ -29,7 +29,10 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+from superset.utils.error_sanitization import (
+    GENERIC_ACCESS_MESSAGE,
+    GENERIC_ERROR_MESSAGE,
+)
 from superset.views.error_handling import (
     handle_api_exception,
     json_error_response,
@@ -234,7 +237,18 @@ class TestGuestErrorSanitization:
 
         assert payload["error"] == str(GENERIC_ERROR_MESSAGE)
 
-    def test_access_denial_is_kept_for_guest_users(self, app):
+    def test_access_denial_reads_as_a_denial_for_guest_users(self, app: Flask) -> None:
         payload = self._response_payload("Forbidden", 403, app)
 
-        assert payload["error"] == "Forbidden"
+        assert payload["error"] == str(GENERIC_ACCESS_MESSAGE)
+
+    def test_not_found_is_replaced_for_guest_users(self, app: Flask) -> None:
+        """
+        A 404 message is no safer than any other: `warm_up_cache` reports a
+        missing table as "Table %(table)s wasn't found in the database %(db)s".
+        """
+        payload = self._response_payload(
+            "Table my_table wasn't found in the database my_db", 404, app
+        )
+
+        assert payload["error"] == str(GENERIC_ERROR_MESSAGE)

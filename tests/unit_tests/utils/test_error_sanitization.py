@@ -23,6 +23,7 @@ import pytest
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.error_sanitization import (
+    GENERIC_ACCESS_MESSAGE,
     GENERIC_ERROR_MESSAGE,
     sanitize_error_dicts,
     sanitize_error_message,
@@ -125,3 +126,53 @@ def test_untyped_serialized_errors_are_replaced_for_guest_users(
     """Async jobs report plain strings and bare ``{"message": ...}`` dicts."""
     sanitized = sanitize_error_dicts([DB_ERROR, {"message": DB_ERROR}])
     assert [error["message"] for error in sanitized] == [str(GENERIC_ERROR_MESSAGE)] * 2
+
+
+def test_allowlisted_error_keeps_only_safe_extra_keys(
+    app: SupersetApp, guest: None
+) -> None:
+    """
+    ``OAuth2TokenRefreshError`` carries the upstream provider's response body in
+    ``extra["error"]`` under an allowlisted type, so an allowlisted type alone
+    can't vouch for everything hanging off it.
+    """
+    sanitized = sanitize_superset_error(
+        SupersetError(
+            message="OAuth2 token refresh failed, re-authentication required.",
+            error_type=SupersetErrorType.OAUTH2_REDIRECT,
+            level=ErrorLevel.WARNING,
+            extra={"error": "invalid_grant: token revoked by admin@example.com"},
+        )
+    )
+    assert (
+        sanitized.message == "OAuth2 token refresh failed, re-authentication required."
+    )
+    assert sanitized.error_type == SupersetErrorType.OAUTH2_REDIRECT
+    assert "error" not in (sanitized.extra or {})
+
+
+def test_allowlisted_error_keeps_the_oauth2_redirect_payload(
+    app: SupersetApp, guest: None
+) -> None:
+    """The redirect dance in OAuth2RedirectMessage.tsx needs these three."""
+    extra = {
+        "url": "https://accounts.example.com/o/oauth2/v2/auth?...",
+        "tab_id": "tab-123",
+        "redirect_uri": "https://superset.example.com/oauth2/redirect",
+    }
+    sanitized = sanitize_superset_error(
+        SupersetError(
+            message="You don't have permission to access the data.",
+            error_type=SupersetErrorType.OAUTH2_REDIRECT,
+            level=ErrorLevel.WARNING,
+            extra=dict(extra),
+        )
+    )
+    assert sanitized.extra == extra
+
+
+def test_access_status_selects_the_denial_message(
+    app: SupersetApp, guest: None
+) -> None:
+    assert sanitize_error_message("Forbidden", 403) == str(GENERIC_ACCESS_MESSAGE)
+    assert sanitize_error_message(DB_ERROR, 404) == str(GENERIC_ERROR_MESSAGE)
