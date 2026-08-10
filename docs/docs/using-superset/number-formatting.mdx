@@ -28,6 +28,8 @@ under the License.
 
 Most chart types expose a **Number format** control (labeled **D3 Format**, **Y Axis Format**, or similar depending on the chart) wherever a metric or numeric axis can be formatted. This is available from the **Customize** tab, or from the metric's popover editor, depending on the chart type. Selecting one of the built-in presets below applies that formatting to the values Superset renders in the chart.
 
+When an axis format control's chart has **Comparison display** set to **Percentage** (e.g. period-over-period comparisons), that control's choices are narrowed to percentage-only presets, hiding `SMART_NUMBER`, `~g`, and the duration/memory/length presets.
+
 You can also type a custom [D3 format string](https://github.com/d3/d3-format) directly into the control if none of the presets fit your needs.
 
 ## Built-in presets
@@ -37,7 +39,7 @@ You can also type a custom [D3 format string](https://github.com/d3/d3-format) d
 | Key | Description |
 | --- | --- |
 | `SMART_NUMBER` | Adaptive formatting — automatically picks a reasonable precision based on the value |
-| `~g` | Original value, unformatted |
+| `~g` | Original value, using D3's general-format specifier (trims trailing zeros; may switch to exponential notation for very large or small values) |
 
 ### D3 format strings
 
