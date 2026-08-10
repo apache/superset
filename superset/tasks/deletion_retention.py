@@ -280,7 +280,17 @@ def _purge_one(
             removed_dashboard_slices=result.removed_dashboard_slices,
         )
     elif result.blocked_reason is not None:
-        audit.block(record_id)
+        disposition: audit.RetentionBlockedDisposition = (
+            audit.finalize_retention_blocked(record_id)
+        )
+        if disposition == "suppressed":
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.blocked_audit_suppressed"
+            )
+        elif disposition == "fallback":
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.blocked_audit_dedupe_fallback"
+            )
     else:
         audit.fail(record_id)
     return result

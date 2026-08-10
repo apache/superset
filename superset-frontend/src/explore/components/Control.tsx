@@ -84,8 +84,12 @@ export default function Control(props: ControlProps) {
       !isEqual(props.value, props.default) &&
       resetOnHide
     ) {
-      // reset control value if setting to invisible
-      setControlValue?.(name, props.default);
+      // reset control value if setting to invisible. Programmatic: the
+      // user's gesture was whatever hid this control, not an edit of it —
+      // the version-history session log must not attribute it to them.
+      setControlValue?.(name, props.default, undefined, {
+        programmatic: true,
+      });
     }
   }, [
     name,

@@ -38,7 +38,7 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
-from superset.views.filters import BaseDeletedStateFilter
+from superset.views.filters import BaseDeletedRecencyFilter, BaseDeletedStateFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -326,6 +326,14 @@ class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public
         if value is False:
             return query.filter(and_(Dashboard.created_by_fk.is_(None)))
         return query
+
+
+class DashboardDeletedRecencyFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedRecencyFilter
+):
+    """Archive time-range preset: rows archived within the last N days."""
+
+    arg_name = "dashboard_deleted_recency"
 
 
 class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods

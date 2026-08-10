@@ -53,6 +53,7 @@ from superset import (
     is_feature_enabled,
     security_manager,
 )
+from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
@@ -64,6 +65,7 @@ from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
 from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
+    enforce_theme_algorithm,
     is_valid_theme,
 )
 from superset.translations.utils import get_language_pack_version
@@ -126,6 +128,7 @@ FRONTEND_CONF_KEYS = (
     "TABLE_VIZ_MAX_ROW_SERVER",
     "MAPBOX_API_KEY",
     "DEFAULT_MAP_RENDERER",
+    "DECK_MULTI_MAX_SLICES",
     "CSV_STREAMING_ROW_THRESHOLD",
     "EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE",
     "SCARF_ANALYTICS",
@@ -428,6 +431,11 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     default_theme = _process_theme(default_theme, ThemeMode.DEFAULT)
     dark_theme = _process_theme(dark_theme, ThemeMode.DARK)
 
+    # Force each theme to carry the algorithm of the slot it fills, so a light
+    # theme assigned to the dark slot (or vice versa) still renders consistently
+    default_theme = enforce_theme_algorithm(default_theme, ThemeMode.DEFAULT)
+    dark_theme = enforce_theme_algorithm(dark_theme, ThemeMode.DARK)
+
     return {
         "theme": {
             "default": default_theme,
@@ -497,6 +505,39 @@ def _get_frontend_config_value(key: str) -> Any:
     return val
 
 
+def _soft_delete_conf() -> dict[str, Any]:
+    """Return the retention window to advertise to the client, if any.
+
+    Resolved rather than read from config: an operator can change the window at
+    runtime with ``superset deletion-retention set_window``, which persists to
+    a shared key taking precedence over the config seed. Passing the config
+    value through would tell users they have longer to recover an object than
+    the purge task will actually allow.
+
+    An empty mapping means "say nothing about a window" — either the feature is
+    off, so no deployment pays for a lookup it cannot use, or the lookup failed.
+    A display detail must never be the reason a page fails to bootstrap.
+    """
+    if not is_feature_enabled("SOFT_DELETE"):
+        return {}
+    try:
+        return {"SOFT_DELETE_RETENTION_DAYS": resolve_retention_window()}
+    except Exception:  # pylint: disable=broad-except
+        # resolve_retention_window() issues a real key_value SELECT, so a
+        # failure can leave the request's session in a failed-transaction
+        # state. Swallowing the error without rolling back would make the
+        # *next* unrelated query in this request fail with
+        # PendingRollbackError, attributing the fault to whatever ran after
+        # rather than to this lookup.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.warning(
+            "Could not resolve the soft-delete retention window for the client "
+            "bootstrap; the delete modal will omit the recovery window.",
+            exc_info=True,
+        )
+        return {}
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: str | None
@@ -509,6 +550,8 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+
+    frontend_config.update(_soft_delete_conf())
 
     if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
@@ -593,6 +636,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "extra_categorical_color_schemes": app.config[
             "EXTRA_CATEGORICAL_COLOR_SCHEMES"
         ],
+        "extra_theme_tokens": app.config["EXTRA_THEME_TOKENS"],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
         "user_subject_id": _get_user_subject_id(user_id),

@@ -60,11 +60,11 @@ class ForcePurgeCommand:
     user, whose authorization was necessarily checked against one specific
     entity — must pass ``model_cls`` so resolution cannot wander.
 
-    ``require_archived`` restricts resolution to soft-deleted rows. The
-    cascade runs with ``enforce_window=False`` here (a force purge ignores
-    the retention window), which also skips its ``deleted_at`` check, so
-    without this a row restored between authorization and purge could be
-    hard-deleted while live.
+    ``require_archived`` restricts the purge to rows that are still
+    soft-deleted. It is passed through to the cascade, where it becomes a
+    predicate on the locked claim and on the conditional delete — checking it
+    only at resolution time would narrow the race without closing it, since a
+    restore can commit between the resolve and the lock.
     """
 
     def __init__(
@@ -73,11 +73,13 @@ class ForcePurgeCommand:
         actor: str = "operator",
         model_cls: type[SoftDeleteMixin] | None = None,
         require_archived: bool = False,
+        require_audit: bool = False,
     ) -> None:
         self._uuid: str = uuid
         self._actor: str = actor
         self._model_cls = model_cls
         self._require_archived = require_archived
+        self._require_audit = require_audit
 
     def _resolve(self) -> SoftDeleteMixin | None:
         """Find the entity by UUID, visibility-filter bypassed.
@@ -131,6 +133,22 @@ class ForcePurgeCommand:
             entity_uuid=self._uuid,
             removed_dashboard_slices=removed_dashboard_slices,
         )
+        if record_id is None and self._require_audit:
+            # The scheduled task always fails closed here; this command's
+            # default fail-open is licensed by "a human operator is present at
+            # a shell" -- a rationale that does not transfer to the REST
+            # caller, which passes require_audit so an end user's irreversible
+            # purge can never execute unrecorded.
+            logger.warning(
+                "force_purge: refused uuid=%s -- write-ahead audit "
+                "unavailable and the caller requires one",
+                self._uuid,
+            )
+            return {
+                "purged": False,
+                "reason": "audit_unavailable",
+                "uuid": self._uuid,
+            }
         entity = self._resolve()
         if entity is None:
             audit.fail(record_id)
@@ -142,7 +160,10 @@ class ForcePurgeCommand:
         try:
             with suppress_purge_association_versions(db.session):
                 result: CascadeResult = cascade_hard_delete(
-                    db.session, entity, enforce_window=False
+                    db.session,
+                    entity,
+                    enforce_window=False,
+                    require_archived=self._require_archived,
                 )
             # Commit AFTER the suppression block: Continuum executes its
             # pending association statements during flush/commit, so the

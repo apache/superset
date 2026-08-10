@@ -116,6 +116,7 @@ class GuestTokenUser(TypedDict, total=False):
     username: str
     first_name: str
     last_name: str
+    attributes: Optional[dict[str, Any]]
 
 
 class GuestTokenResourceType(StrEnum):

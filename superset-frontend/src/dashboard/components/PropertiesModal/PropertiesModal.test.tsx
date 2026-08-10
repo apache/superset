@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -41,11 +42,35 @@ jest.mock('@superset-ui/core', () => ({
   })),
 }));
 
+// Mock the Advanced JSON editor (Ace-based, not drivable in jsdom) with a plain
+// textarea so a direct JSON edit can be simulated. Keeps the "JSON Metadata"
+// label so the existing "should open advance" test still passes.
+jest.mock('./sections/AdvancedSection', () => ({
+  __esModule: true,
+  default: ({
+    jsonMetadata,
+    onJsonMetadataChange,
+  }: {
+    jsonMetadata: string;
+    onJsonMetadataChange: (value: string) => void;
+  }) => (
+    <div>
+      <span>JSON Metadata</span>
+      <textarea
+        aria-label="JSON metadata editor"
+        data-test="mock-json-editor"
+        value={jsonMetadata}
+        onChange={e => onJsonMetadataChange(e.target.value)}
+      />
+    </div>
+  ),
+}));
+
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const spyColorSchemeSelect = jest.spyOn(ColorSchemeSelect, 'default');
 const mockedJsonMetadata =
-  '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": "supersetColors", "label_colors": {"0": "#D3B3DA", "1": "#9EE5E5", "0. Pre-clinical": "#1FA8C9", "2. Phase II or Combined I/II": "#454E7C", "1. Phase I": "#5AC189", "3. Phase III": "#FF7F44", "4. Authorized": "#666666", "root": "#1FA8C9", "Protein subunit": "#454E7C", "Phase II": "#5AC189", "Pre-clinical": "#FF7F44", "Phase III": "#666666", "Phase I": "#E04355", "Phase I/II": "#FCC700", "Inactivated virus": "#A868B7", "Virus-like particle": "#3CCCCB", "Replicating bacterial vector": "#A38F79", "DNA-based": "#8FD3E4", "RNA-based vaccine": "#A1A6BD", "Authorized": "#ACE1C4", "Non-replicating viral vector": "#FEC0A1", "Replicating viral vector": "#B2B2B2", "Unknown": "#EFA1AA", "Live attenuated virus": "#FDE380", "COUNT(*)": "#D1C6BC"}, "filter_scopes": {"358": {"Country_Name": {"scope": ["ROOT_ID"], "immune": []}, "Product_Category": {"scope": ["ROOT_ID"], "immune": []}, "Clinical Stage": {"scope": ["ROOT_ID"], "immune": []}}}}';
+  '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "expand_all_slices": false, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": "supersetColors", "label_colors": {"0": "#D3B3DA", "1": "#9EE5E5", "0. Pre-clinical": "#1FA8C9", "2. Phase II or Combined I/II": "#454E7C", "1. Phase I": "#5AC189", "3. Phase III": "#FF7F44", "4. Authorized": "#666666", "root": "#1FA8C9", "Protein subunit": "#454E7C", "Phase II": "#5AC189", "Pre-clinical": "#FF7F44", "Phase III": "#666666", "Phase I": "#E04355", "Phase I/II": "#FCC700", "Inactivated virus": "#A868B7", "Virus-like particle": "#3CCCCB", "Replicating bacterial vector": "#A38F79", "DNA-based": "#8FD3E4", "RNA-based vaccine": "#A1A6BD", "Authorized": "#ACE1C4", "Non-replicating viral vector": "#FEC0A1", "Replicating viral vector": "#B2B2B2", "Unknown": "#EFA1AA", "Live attenuated virus": "#FDE380", "COUNT(*)": "#D1C6BC"}, "filter_scopes": {"358": {"Country_Name": {"scope": ["ROOT_ID"], "immune": []}, "Product_Category": {"scope": ["ROOT_ID"], "immune": []}, "Clinical Stage": {"scope": ["ROOT_ID"], "immune": []}}}}';
 
 spyColorSchemeSelect.mockImplementation(
   () => (<div>ColorSchemeSelect</div>) as any,
@@ -257,6 +282,184 @@ describe('PropertiesModal', () => {
       // Check that the Advanced settings section is expanded by looking for its content
       expect(screen.getByText('JSON Metadata')).toBeInTheDocument();
     });
+  });
+
+  test('preserves a refresh_frequency edited in the JSON editor on save (#42116)', async () => {
+    // Save (onlyApply: false) PUTs to the API before calling onSubmit, so the
+    // request must be mocked or onSubmit is never reached.
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // Expand the Advanced settings panel so the (mocked) JSON editor mounts.
+    const advancedHeader = screen
+      .getByText('Advanced settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(advancedHeader!);
+
+    // Edit refresh_frequency directly in the JSON editor without touching the
+    // Refresh dropdown (the reproduction of #42116).
+    const editor = await screen.findByTestId('mock-json-editor');
+    fireEvent.change(editor, {
+      target: { value: JSON.stringify({ refresh_frequency: 30 }) },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(30);
+  });
+
+  test('preserves an explicit 0 from the JSON editor over a non-zero dropdown value (#42116)', async () => {
+    // A truthy value like 30 can't tell `??` and `||` apart. Only a falsy-but-
+    // explicit `refresh_frequency: 0` in the JSON, combined with a non-zero
+    // Refresh dropdown, catches a regression from `??` back to `||` on
+    // index.tsx, which would let the dropdown's non-zero value win over an
+    // explicit "Don't refresh".
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    // A non-zero refresh_frequency in dashboardInfo so the Refresh dropdown
+    // initializes to a truthy value (dashboardInfo, when passed, is used
+    // directly instead of triggering a fetch -- see the `!currentDashboardInfo`
+    // check in the data-loading effect). handleDashboardData reads the parsed
+    // `metadata` object, not the `json_metadata` string.
+    const nonZeroMetadata = mockedJsonMetadata.replace(
+      '"refresh_frequency": 0',
+      '"refresh_frequency": 30',
+    );
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: nonZeroMetadata,
+        metadata: JSON.parse(nonZeroMetadata),
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // Confirm the Refresh dropdown actually picked up the non-zero value.
+    const refreshHeader = screen
+      .getByText('Refresh settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(refreshHeader!);
+    expect(
+      await screen.findByRole('radio', { name: '30 seconds' }),
+    ).toBeChecked();
+
+    // Edit the JSON editor to explicitly set refresh_frequency to 0 ("Don't
+    // refresh") without touching the Refresh dropdown.
+    const advancedHeader = screen
+      .getByText('Advanced settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(advancedHeader!);
+    const editor = await screen.findByTestId('mock-json-editor');
+    fireEvent.change(editor, {
+      target: { value: JSON.stringify({ refresh_frequency: 0 }) },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(0);
+  });
+
+  test('propagates a Refresh dropdown-only change into the submitted JSON metadata', async () => {
+    // Selecting a value from the Refresh dropdown without touching the
+    // Advanced JSON editor must still make it into the submitted payload --
+    // handleRefreshFrequencyChange writes the new value into the JSON
+    // metadata object on change (#42116, requested in review).
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    // dashboardInfo, when passed, is used directly instead of triggering a
+    // fetch (see the `!currentDashboardInfo` check in the data-loading
+    // effect); handleDashboardData reads the parsed `metadata` object, not
+    // the `json_metadata` string, so `metadata` must be parsed here too --
+    // otherwise the seeded JSON has no `refresh_frequency` key at all and
+    // save falls back to the selected 60 through the `?? refreshFrequency`
+    // path regardless of whether the dropdown-to-JSON sync under test
+    // actually runs.
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+        metadata: JSON.parse(mockedJsonMetadata),
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // mockedJsonMetadata starts at refresh_frequency: 0, so selecting
+    // "1 minute" (60) is a real change coming only from the dropdown.
+    const refreshHeader = screen
+      .getByText('Refresh settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(refreshHeader!);
+    await userEvent.click(
+      await screen.findByRole('radio', { name: '1 minute' }),
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(60);
   });
 
   test('should close modal', async () => {

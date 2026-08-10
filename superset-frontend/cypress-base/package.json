@@ -9,12 +9,6 @@
     "cypress-debug": "cypress open --config watchForFileChanges=true",
     "cypress-run-chrome": "cypress run --browser chrome --headless"
   },
-  "nyc": {
-    "reporter": [
-      "html",
-      "json"
-    ]
-  },
   "dependencies": {
     "@cypress/code-coverage": "^3.10.4",
     "@superset-ui/core": "^2.1.0",
@@ -35,14 +29,20 @@
   },
   "overrides": {
     "@babel/core": "^7.29.6",
+    "@cypress/code-coverage": {
+      "js-yaml": "4.1.1"
+    },
+    "@cypress/request": "^3.0.0",
     "cypress": {
       "form-data": "^2.3.4"
     },
     "qs": "^6.14.2",
-    "uuid": "^11.1.1",
-    "@cypress/request": "^3.0.0",
-    "@cypress/code-coverage": {
-      "js-yaml": "4.1.1"
-    }
+    "uuid": "^11.1.1"
+  },
+  "nyc": {
+    "reporter": [
+      "html",
+      "json"
+    ]
   }
 }
