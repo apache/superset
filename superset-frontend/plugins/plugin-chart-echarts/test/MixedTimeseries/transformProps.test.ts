@@ -1259,15 +1259,15 @@ test('y-axis title position: Left sets nameLocation to middle', () => {
     queriesData,
   });
   const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const yAxis = transformed.echartOptions.yAxis as Array<{
+    nameGap: number;
+    nameLocation: string;
+  }>;
 
-  expect((transformed.echartOptions.yAxis as any)[0].nameGap).toEqual(20);
-  expect((transformed.echartOptions.yAxis as any)[0].nameLocation).toEqual(
-    'middle',
-  );
-  expect((transformed.echartOptions.yAxis as any)[1].nameGap).toEqual(20);
-  expect((transformed.echartOptions.yAxis as any)[1].nameLocation).toEqual(
-    'middle',
-  );
+  expect(yAxis[0].nameGap).toEqual(20);
+  expect(yAxis[0].nameLocation).toEqual('middle');
+  expect(yAxis[1].nameGap).toEqual(20);
+  expect(yAxis[1].nameLocation).toEqual('middle');
 });
 
 test('y-axis title position: non-Left sets nameLocation to end', () => {
@@ -1285,13 +1285,13 @@ test('y-axis title position: non-Left sets nameLocation to end', () => {
     queriesData,
   });
   const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const yAxis = transformed.echartOptions.yAxis as Array<{
+    nameGap: number;
+    nameLocation: string;
+  }>;
 
-  expect((transformed.echartOptions.yAxis as any)[0].nameGap).toEqual(30);
-  expect((transformed.echartOptions.yAxis as any)[0].nameLocation).toEqual(
-    'end',
-  );
-  expect((transformed.echartOptions.yAxis as any)[1].nameGap).toEqual(30);
-  expect((transformed.echartOptions.yAxis as any)[1].nameLocation).toEqual(
-    'end',
-  );
+  expect(yAxis[0].nameGap).toEqual(30);
+  expect(yAxis[0].nameLocation).toEqual('end');
+  expect(yAxis[1].nameGap).toEqual(30);
+  expect(yAxis[1].nameLocation).toEqual('end');
 });
