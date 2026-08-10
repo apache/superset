@@ -385,8 +385,31 @@ def sanitize_user_input(
             f"Maximum allowed length is {max_length} characters."
         )
 
-    # Strip all HTML tags using nh3
+    # Remove dangerous Unicode characters BEFORE any check so zero-widths
+    # smuggled inside a denylisted keyword can't slip past the pattern
+    # checks below (mirrors sanitize_sql_expression's ordering).
+    value = _remove_dangerous_unicode(value)
+
+    # Canonicalization above can reduce a truthy input (e.g. a lone
+    # zero-width character) to "" — recheck emptiness so that case still
+    # honors the documented non-empty / allow_empty contract instead of
+    # silently returning "".
+    if not value:
+        if allow_empty:
+            return None
+        raise ValueError(f"{field_name} cannot be empty")
+
+    # Strip all HTML tags using nh3. This decodes HTML entities internally
+    # (see _strip_html_tags), which can turn an entity-encoded zero-width
+    # character (e.g. "&#8203;") into the raw character -- re-run the
+    # Unicode strip below so an entity-encoded smuggling attempt is caught
+    # too, not just a raw one. Deliberately no emptiness recheck here: nh3
+    # legitimately reduces tag-heavy input (e.g. "<script>...</script>") to
+    # an empty string as the correct sanitized result, not an error case --
+    # unlike the recheck above, which guards the value *before* any content
+    # has been intentionally stripped away.
     value = _strip_html_tags(value)
+    value = _remove_dangerous_unicode(value)
 
     # Check for dangerous patterns (URL schemes, event handlers)
     _check_dangerous_patterns(value, field_name)
@@ -394,9 +417,6 @@ def sanitize_user_input(
     # SQL keyword and shell metacharacter checks (for column names, etc.)
     if check_sql_keywords:
         _check_sql_patterns(value, field_name)
-
-    # Remove dangerous Unicode characters
-    value = _remove_dangerous_unicode(value)
 
     return value
 
@@ -433,8 +453,18 @@ def sanitize_filter_value(
             f"Maximum allowed length is {max_length} characters."
         )
 
-    # Strip all HTML tags using nh3
+    # Remove dangerous Unicode characters BEFORE any check so zero-widths
+    # smuggled inside a denylisted pattern can't slip past the pattern
+    # checks below (mirrors sanitize_sql_expression's ordering).
+    value = _remove_dangerous_unicode(value)
+
+    # Strip all HTML tags using nh3. This decodes HTML entities internally
+    # (see _strip_html_tags), which can turn an entity-encoded zero-width
+    # character (e.g. "&#8203;") into the raw character -- re-run the
+    # Unicode strip below so an entity-encoded smuggling attempt is caught
+    # too, not just a raw one.
     value = _strip_html_tags(value)
+    value = _remove_dangerous_unicode(value)
 
     # Check for dangerous patterns
     _check_dangerous_patterns(value, "Filter value")
@@ -465,9 +495,6 @@ def sanitize_filter_value(
     # Check for hex encoding
     if re.search(r"\\x[0-9a-fA-F]{2}", value):
         raise ValueError("Filter value contains hex encoding which is not allowed.")
-
-    # Remove dangerous Unicode characters
-    value = _remove_dangerous_unicode(value)
 
     return value
 
@@ -518,8 +545,11 @@ def sanitize_sql_expression(  # noqa: C901
             f"Maximum allowed length is {max_length} characters."
         )
 
-    # Strip + decode entities BEFORE any check so zero-widths and entity
-    # encoding can't smuggle past the tag-pattern / keyword scans.
+    # Strip zero-widths, then decode entities, then strip again: decoding
+    # can turn an entity-encoded zero-width character (e.g. "&#8203;") into
+    # the raw character, so a single strip-then-decode order would let an
+    # entity-encoded smuggling attempt through the tag-pattern / keyword
+    # scans below.
     value = _remove_dangerous_unicode(value)
     prev: str | None = None
     iterations = 0
@@ -527,6 +557,16 @@ def sanitize_sql_expression(  # noqa: C901
         prev = value
         value = html.unescape(value)
         iterations += 1
+    value = _remove_dangerous_unicode(value)
+
+    # Canonicalization above can reduce a truthy input (e.g. a lone
+    # zero-width character) to "" — recheck emptiness so that case still
+    # honors the documented non-empty / allow_empty contract instead of
+    # silently returning "".
+    if not value:
+        if allow_empty:
+            return None
+        raise ValueError(f"{field_name} cannot be empty")
 
     if _HTML_TAG_LIKE_RE.search(value):
         raise ValueError(
