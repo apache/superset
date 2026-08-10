@@ -2705,7 +2705,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         offset_df: pd.DataFrame,
         actual_join_keys: list[str],
-        how: Literal["left", "right", "inner", "outer", "cross"] = "left",
+        how: Literal["left", "right", "inner", "outer"] = "left",
     ) -> pd.DataFrame:
         """Perform the appropriate join operation."""
         if actual_join_keys:
