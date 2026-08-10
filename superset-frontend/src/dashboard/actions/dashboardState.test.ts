@@ -337,11 +337,11 @@ describe('dashboardState actions', () => {
       });
     });
 
-    // Regression companion: when the PUT response carries no usable slug (null
-    // or empty after sanitization — e.g. a slug composed solely of reserved
-    // characters sanitizes down to an empty string), the redirect must fall
-    // back to the dashboard id rather than emitting `/dashboard//` or echoing
-    // the raw submitted slug.
+    // Regression companion: when the PUT response carries no usable slug
+    // (e.g. a slug composed solely of reserved characters, which
+    // BaseDashboardSchema.post_load sanitizes down to an empty string rather
+    // than null), the redirect must fall back to the dashboard id rather
+    // than emitting `/dashboard//` or echoing the raw submitted slug.
     test('redirects using the id when the PUT response slug is empty', async () => {
       const updatedId = 779;
       const { getState, dispatch } = setup({
@@ -352,7 +352,7 @@ describe('dashboardState actions', () => {
       putStub.mockRestore();
       putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
         json: {
-          result: { ...mockDashboardData, id: updatedId, slug: null },
+          result: { ...mockDashboardData, id: updatedId, slug: '' },
           last_modified_time: 0,
         },
       } as any);
