@@ -314,6 +314,26 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
 
+        referenced_dataset_ids = {
+            target["datasetId"]
+            for native_filter in payload.get("metadata", {}).get(
+                "native_filter_configuration", []
+            )
+            for target in native_filter.get("targets", [])
+            if target.get("datasetId") is not None
+        } | {
+            target["datasetId"]
+            for customization in (
+                payload.get("metadata", {}).get("chart_customization_config") or []
+            )
+            for target in customization.get("targets") or []
+            if target.get("datasetId") is not None
+        }
+        datasets_by_id = {
+            dataset.id: dataset
+            for dataset in DatasetDAO.find_by_ids(list(referenced_dataset_ids))
+        }
+
         # Extract all native filter datasets and replace native
         # filter dataset references with uuid
         for native_filter in payload.get("metadata", {}).get(
@@ -321,10 +341,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
         ):
             for target in native_filter.get("targets", []):
                 dataset_id = target.pop("datasetId", None)
-                if dataset_id is not None:
-                    dataset = DatasetDAO.find_by_id(dataset_id)
-                    if dataset:
-                        target["datasetUuid"] = str(dataset.uuid)
+                if dataset_id is not None and (
+                    dataset := datasets_by_id.get(dataset_id)
+                ):
+                    target["datasetUuid"] = str(dataset.uuid)
 
         # Replace display control dataset references with uuid.
         # datasetId is intentionally preserved alongside datasetUuid so that
@@ -336,8 +356,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             for target in customization.get("targets") or []:
                 dataset_id = target.get("datasetId")
                 if dataset_id is not None:
-                    dataset = DatasetDAO.find_by_id(dataset_id)
-                    if dataset:
+                    if dataset := datasets_by_id.get(dataset_id):
                         target["datasetUuid"] = str(dataset.uuid)
                     else:
                         logger.warning(
@@ -435,18 +454,14 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         if export_related:
             # Extract all native filter datasets and export referenced datasets
+            referenced_dataset_ids: set[int] = set()
             for native_filter in payload.get("metadata", {}).get(
                 "native_filter_configuration", []
             ):
                 for target in native_filter.get("targets", []):
                     dataset_id = target.pop("datasetId", None)
                     if dataset_id is not None:
-                        dataset = DatasetDAO.find_by_id(dataset_id)
-                        if dataset:
-                            # Pass the shared seen set to the dataset export command
-                            yield from ExportDatasetsCommand([dataset_id]).run(
-                                seen=seen
-                            )
+                        referenced_dataset_ids.add(dataset_id)
 
             # Export datasets referenced by display controls
             for customization in (
@@ -455,9 +470,12 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 for target in customization.get("targets") or []:
                     dataset_id = target.get("datasetId")
                     if dataset_id is not None:
-                        dataset = DatasetDAO.find_by_id(dataset_id)
-                        if dataset:
-                            # Pass the shared seen set to the dataset export command
-                            yield from ExportDatasetsCommand([dataset_id]).run(
-                                seen=seen
-                            )
+                        referenced_dataset_ids.add(dataset_id)
+
+            found_dataset_ids = [
+                dataset.id
+                for dataset in DatasetDAO.find_by_ids(list(referenced_dataset_ids))
+            ]
+            if found_dataset_ids:
+                # Pass the shared seen set to the dataset export command
+                yield from ExportDatasetsCommand(found_dataset_ids).run(seen=seen)
