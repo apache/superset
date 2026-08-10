@@ -17,12 +17,31 @@
  * under the License.
  */
 
+import { createRef } from 'react';
 import { render, fireEvent, screen } from '@superset-ui/core/spec';
-import { NoAnimationDropdown } from '.';
+import { MenuDotsDropdown, NoAnimationDropdown } from '.';
 
 const props = {
   overlay: <div>Test Overlay</div>,
 };
+
+describe('MenuDotsDropdown', () => {
+  test('renders a focusable trigger', () => {
+    render(<MenuDotsDropdown {...props} />);
+    expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute(
+      'tabIndex',
+      '0',
+    );
+  });
+
+  test('forwards a ref to the trigger so callers can focus it programmatically', () => {
+    const ref = createRef<HTMLDivElement>();
+    render(<MenuDotsDropdown {...props} ref={ref} />);
+    ref.current?.focus();
+    expect(screen.getByTestId('dropdown-trigger')).toHaveFocus();
+  });
+});
+
 describe('NoAnimationDropdown', () => {
   test('requires children', () => {
     expect(() => {

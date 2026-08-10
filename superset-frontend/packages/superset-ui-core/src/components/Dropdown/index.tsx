@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, cloneElement } from 'react';
+import { ReactElement, cloneElement, forwardRef } from 'react';
 
 import { Dropdown as AntdDropdown, DropdownProps } from 'antd';
 import { styled } from '@apache-superset/core/theme';
@@ -84,17 +84,18 @@ const RenderIcon = (
   return component;
 };
 
-export const MenuDotsDropdown = ({
-  overlay,
-  iconOrientation = IconOrientation.Vertical,
-  ...rest
-}: MenuDotsDropdownProps) => (
+export const MenuDotsDropdown = forwardRef<
+  HTMLDivElement,
+  MenuDotsDropdownProps
+>(({ overlay, iconOrientation = IconOrientation.Vertical, ...rest }, ref) => (
   <AntdDropdown popupRender={() => overlay} {...rest}>
-    <MenuDotsWrapper data-test="dropdown-trigger">
+    <MenuDotsWrapper ref={ref} tabIndex={0} data-test="dropdown-trigger">
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
-);
+));
+
+MenuDotsDropdown.displayName = 'MenuDotsDropdown';
 
 export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   const { children, onBlur, onKeyDown, ...rest } = props;
