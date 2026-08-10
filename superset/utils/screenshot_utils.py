@@ -248,6 +248,36 @@ PRINT_ALL_CHART_HOLDERS_READY_JS = (
     f"() => {{ {PRINT_ALL_CHART_HOLDERS_READY_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
 )
+
+# When forceRender=true is set on antd/rc-tabs tab items, CSSMotion renders
+# inactive panels into the DOM but applies inline style="display:none" on each
+# hidden panel node. React inline styles override CSS rules (including
+# !important), so a stylesheet fix cannot unhide them. This snippet removes
+# the inline display:none from every rc-tabs / ant-tabs content panel so that
+# Playwright's page.pdf() — which lays out the full DOM, ignoring the browser
+# viewport — captures all tab content. Must be evaluated before the readiness
+# wait so that inactive-tab chart holders can mount and reach a terminal state.
+UNHIDE_TAB_PANELS_JS = """
+() => {
+    const selectors = [
+        '.rc-tabs-tabpane',
+        '.ant-tabs-tabpane',
+        '[role="tabpanel"]',
+    ];
+    let count = 0;
+    for (const sel of selectors) {
+        for (const el of document.querySelectorAll(sel)) {
+            if (el.style.display === 'none') {
+                el.style.display = '';
+                count++;
+            }
+        }
+    }
+    return count;
+}
+"""
+
+
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )

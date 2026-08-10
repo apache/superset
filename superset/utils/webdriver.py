@@ -55,6 +55,7 @@ from superset.utils.screenshot_utils import (
     resolve_screenshot_task_budget_seconds,
     ScreenshotTaskBudgetExceededError,
     take_tiled_screenshot,
+    UNHIDE_TAB_PANELS_JS,
 )
 
 WindowSize = tuple[int, int]
@@ -1024,6 +1025,19 @@ class WebDriverPlaywright(WebDriverProxy):
             # Wait for standalone element to confirm dashboard has mounted
             page.locator(".standalone").wait_for()
 
+            # CSSMotion renders inactive tab panels with inline style="display:none"
+            # when forceRender=true. React inline styles override CSS !important
+            # rules, so the only reliable fix is to remove the inline display:none
+            # via JS. Do this before the readiness wait so that inactive-tab chart
+            # holders can mount and reach a terminal state for the readiness check.
+            unhidden = page.evaluate(UNHIDE_TAB_PANELS_JS)
+            logger.info(
+                "browser_print_pdf_unhide url=%s panels_unhidden=%d log_context=%s",
+                url,
+                unhidden,
+                log_context or "",
+            )
+
             # Determine readiness timeout from budget context or config
             load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
             if report_execution_context:
@@ -1039,6 +1053,11 @@ class WebDriverPlaywright(WebDriverProxy):
                 PRINT_ALL_CHART_HOLDERS_READY_JS,
                 timeout=effective_wait * 1000,
             )
+
+            # Re-strip any display:none that React reconciliation may have
+            # re-applied to tab panels between the initial unhide and chart
+            # readiness settling. This is a no-op if nothing changed.
+            page.evaluate(UNHIDE_TAB_PANELS_JS)
 
             # Native browser print — produces a real vector PDF
             pdf_bytes = page.pdf(
