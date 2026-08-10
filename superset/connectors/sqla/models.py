@@ -70,14 +70,12 @@ from sqlalchemy.types import JSON
 from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
-from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
-from superset.daos.exceptions import DatasourceNotFound
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -499,6 +497,107 @@ class BaseDatasource(
             "supports_drill_to_detail": self.supports_drill_to_detail,
         }
 
+    @staticmethod
+    def _extract_query_columns(query: dict[str, Any]) -> set[str] | None:
+        """Extract metadata dependencies from one serialized query object."""
+        column_names: set[str] = set()
+        # This only collects metadata dependencies, so retaining both fields is
+        # safer than reproducing conflicting schema/factory precedence rules.
+        for query_field in ("columns", "groupby"):
+            columns = query.get(query_field)
+            if not isinstance(columns, list):
+                continue
+            try:
+                column_names.update(
+                    utils.get_column_name(column_) for column_ in columns
+                )
+            except (TypeError, ValueError):
+                return None
+
+        # QueryContextFactory may replace a temporal x-axis with granularity.
+        # Keeping both names is conservative and avoids dropping its metadata.
+        for query_field in ("granularity", "granularity_sqla"):
+            if isinstance(granularity := query.get(query_field), str):
+                column_names.add(granularity)
+
+        return column_names
+
+    @staticmethod
+    def _extract_form_data_columns(
+        form_data: Any,
+        currency_code_column: str | None,
+        has_query_columns: bool,
+    ) -> set[str]:
+        """Extract columns that QueryContextFactory adds using form data."""
+        if not isinstance(form_data, dict):
+            return set()
+
+        column_names: set[str] = set()
+        tooltip_contents = form_data.get("tooltip_contents")
+        if isinstance(tooltip_contents, list):
+            for item in tooltip_contents:
+                if isinstance(item, str):
+                    column_names.add(item)
+                elif (
+                    isinstance(item, dict)
+                    and item.get("item_type") == "column"
+                    and isinstance(column_name := item.get("column_name"), str)
+                ):
+                    column_names.add(column_name)
+
+        currency_format = form_data.get("currency_format")
+        if (
+            (has_query_columns or column_names)
+            and currency_code_column
+            and form_data.get("viz_type") == "pivot_table_v2"
+            and isinstance(currency_format, dict)
+            and currency_format.get("symbol") == "AUTO"
+        ):
+            column_names.add(currency_code_column)
+
+        return column_names
+
+    @classmethod
+    def _extract_query_context_columns(
+        cls,
+        query_context: str | None,
+        currency_code_column: str | None = None,
+    ) -> set[str] | None:
+        """Extract column names from a serialized query context."""
+        if not query_context:
+            return None
+
+        try:
+            payload = json.loads(query_context)
+        except json.JSONDecodeError:
+            logger.exception("Malformed JSON in slice's query context")
+            return None
+
+        if not isinstance(payload, dict):
+            return None
+
+        queries = payload.get("queries")
+        if not isinstance(queries, list):
+            return None
+
+        column_names: set[str] = set()
+        for query in queries:
+            if not isinstance(query, dict):
+                continue
+            if (query_columns := cls._extract_query_columns(query)) is None:
+                return None
+            column_names.update(query_columns)
+
+        column_names.update(
+            cls._extract_form_data_columns(
+                payload.get("form_data"),
+                currency_code_column,
+                bool(column_names),
+            )
+        )
+
+        return column_names or None
+
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
         self, slices: list[Slice]
     ) -> dict[str, Any]:
@@ -537,28 +636,12 @@ class BaseDatasource(
                 if "column" in filter_config
             )
 
-            # for legacy dashboard imports which have the wrong query_context in them
-            try:
-                query_context = slc.get_query_context()
-            except (DatasetNotFoundError, DatasourceNotFound):
-                logger.warning(
-                    "Failed to load query_context for chart '%s' (id=%s): "
-                    "referenced datasource not found",
-                    slc.slice_name,
-                    slc.id,
-                )
-                query_context = None
-
-            # legacy charts don't have query_context charts
-            if query_context:
-                column_names.update(
-                    [
-                        utils.get_column_name(column_)
-                        for query in query_context.queries
-                        for column_ in query.columns
-                    ]
-                    or []
-                )
+            query_context_column_names = self._extract_query_context_columns(
+                slc.query_context,
+                currency_code_column=getattr(self, "currency_code_column", None),
+            )
+            if query_context_column_names is not None:
+                column_names.update(query_context_column_names)
             else:
                 _columns = [
                     (
@@ -2199,6 +2282,11 @@ class SqlaTable(
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
             ]
+        if is_feature_enabled("EMBEDDED_SUPERSET"):
+            # Guest-token RLS clauses are templated when the query is built, so
+            # macros they contain (e.g. get_guest_user_attribute) must also
+            # trigger extra cache key extraction.
+            templatable_statements += security_manager.get_guest_rls_filters_str(self)
         for statement in templatable_statements:
             if ExtraCache.regex.search(statement):
                 return True
