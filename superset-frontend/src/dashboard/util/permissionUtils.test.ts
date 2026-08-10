@@ -263,8 +263,27 @@ describe('isUserEditorOrAdmin', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
+  // The file-level `jest.mock('src/utils/getBootstrapData', ...)` above
+  // permanently stubs out getBootstrapData with fixed data, which would
+  // shadow the DOM-driven bootstrap data these tests set up. Unmock it so
+  // the re-imported permissionUtils picks up the real implementation
+  // (reading document.getElementById('app')), then restore the mock
+  // afterward so later tests in this file keep their expected stub.
+  beforeEach(() => {
+    jest.unmock('src/utils/getBootstrapData');
+  });
+
   afterEach(() => {
     document.body.innerHTML = '';
+    jest.resetModules();
+    jest.mock('src/utils/getBootstrapData', () => ({
+      __esModule: true,
+      default: jest.fn(() => ({
+        common: {
+          user_subjects: [10],
+        },
+      })),
+    }));
   });
 
   test('recognizes a user in the configured custom admin role', async () => {
