@@ -19,7 +19,7 @@
 #
 HYPHEN_SYMBOL='-'
 
-gunicorn \
+exec gunicorn \
     --bind "${SUPERSET_BIND_ADDRESS:-0.0.0.0}:${SUPERSET_PORT:-8088}" \
     --access-logfile "${ACCESS_LOG_FILE:-$HYPHEN_SYMBOL}" \
     --error-logfile "${ERROR_LOG_FILE:-$HYPHEN_SYMBOL}" \

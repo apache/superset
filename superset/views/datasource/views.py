@@ -17,7 +17,7 @@
 from collections import Counter
 from typing import Any
 
-from flask import redirect, request
+from flask import redirect, request, url_for
 from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -30,7 +30,6 @@ from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
-from superset.commands.utils import populate_owner_list
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
@@ -86,15 +85,10 @@ class Datasource(BaseSupersetView):
         )
         orm_datasource.database_id = database_id
 
-        if orm_datasource.owner_class is not None:
-            try:
-                security_manager.raise_for_ownership(orm_datasource)
-            except SupersetSecurityException as ex:
-                raise DatasetForbiddenError() from ex
-
-        datasource_dict["owners"] = populate_owner_list(
-            datasource_dict["owners"], default_to_user=False
-        )
+        try:
+            security_manager.raise_for_editorship(orm_datasource)
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex
 
         duplicates = [
             name
@@ -208,6 +202,23 @@ class Datasource(BaseSupersetView):
             payload = SamplesPayloadSchema().load(request.json)
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
+
+        # Refuse early for datasource types that don't model raw rows
+        # (e.g. semantic views, which only expose pre-defined metrics and
+        # dimensions). Without this gate the request would still go through
+        # the standard query pipeline and fail with an opaque 500.
+        # ``supports_samples`` defaults to True for any datasource class that
+        # doesn't explicitly opt out, so SqlaTable/Query/SavedQuery continue
+        # to work without needing the attribute declared on each class.
+        ds_class = DatasourceDAO.sources.get(
+            DatasourceType(params["datasource_type"]),
+        )
+        if ds_class is not None and not getattr(ds_class, "supports_samples", True):
+            return json_error_response(
+                _("Samples are not available for this datasource type."),
+                status=400,
+            )
+
         dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:
@@ -278,4 +289,6 @@ class DatasetEditor(BaseSupersetView):
         dev = request.args.get("testing")
         if dev is not None:
             return super().render_app_template()
-        return redirect("/")
+        # url_for keeps the redirect inside the application root under
+        # subdirectory deployments (a bare "/" would escape the prefix).
+        return redirect(url_for("Superset.welcome"))

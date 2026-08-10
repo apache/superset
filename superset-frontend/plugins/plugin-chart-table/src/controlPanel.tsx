@@ -57,7 +57,7 @@ import {
   withLabel,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { isEmpty, last } from 'lodash';
+import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
@@ -757,12 +757,8 @@ const config: ControlPanelConfig = {
                 const extraColorChoices = hasTimeComparison
                   ? [
                       {
-                        value: ColorSchemeEnum.Green,
-                        label: t('Green for increase, red for decrease'),
-                      },
-                      {
-                        value: ColorSchemeEnum.Red,
-                        label: t('Red for increase, green for decrease'),
+                        label: t('Trend colors'),
+                        colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
                       },
                     ]
                   : [];
@@ -774,6 +770,7 @@ const config: ControlPanelConfig = {
                     (item: ConditionalFormattingConfig, index, array) => {
                       if (
                         item.colorScheme &&
+                        typeof item.colorScheme === 'string' &&
                         !['Green', 'Red'].includes(item.colorScheme)
                       ) {
                         if (item.columnFormatting === undefined) {

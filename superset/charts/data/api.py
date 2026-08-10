@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import re
 from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING
 
@@ -32,6 +33,7 @@ from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.dashboard_filter_context import (
+    apply_dashboard_filter_context,
     DashboardFilterContext,
     get_dashboard_filter_context,
 )
@@ -49,12 +51,9 @@ from superset.commands.chart.exceptions import (
     ChartDataQueryFailedError,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import (
-    CACHE_DISABLED_TIMEOUT,
-    EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
-    EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
-)
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
@@ -204,41 +203,16 @@ class ChartDataRestApi(ChartRestApi):
             except SupersetSecurityException:
                 return self.response_403()
 
-            if dashboard_filter_context.extra_form_data:
-                efd = dashboard_filter_context.extra_form_data
-                extra_filters = efd.get("filters", [])
+            if efd := dashboard_filter_context.extra_form_data:
+                # Note: this helper currently mutates `json_body` and `efd` in place.
+                # Changes won't persist as these are dicts detached from the ORM state,
+                # but highlighting in case they're further used (mind the changes).
+                apply_dashboard_filter_context(json_body, efd)
 
-                for query in json_body.get("queries", []):
-                    if extra_filters:
-                        existing = query.get("filters") or []
-                        query["filters"] = existing + [
-                            {**f, "isExtra": True} for f in extra_filters
-                        ]
-
-                    extras = query.get("extras") or {}
-                    for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
-                        if key in efd:
-                            extras[key] = efd[key]
-                    if extras:
-                        query["extras"] = extras
-
-                    for (
-                        src_key,
-                        target_key,
-                    ) in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
-                        if src_key in efd:
-                            query[target_key] = efd[src_key]
-
-                    query["extra_form_data"] = efd
-
-                # We need to apply the form data to the global context as jinja
-                # templating pulls form data from the request globally, so this
-                # fallback ensures it has the filters and extra_form_data applied
-                # when used in get_sqla_query which constructs the final query.
-
-        # Jinja macros like metric() resolve dataset context from g.form_data
-        # when not given an explicit dataset_id. For GET requests there is no
-        # JSON body, so we must always expose the saved query context here.
+        # We need to apply the form data to the global context as jinja
+        # templating pulls form data from the request globally, so this
+        # fallback ensures it has the filters and extra_form_data applied
+        # when used in get_sqla_query which constructs the final query.
         g.form_data = json_body
 
         try:
@@ -247,6 +221,8 @@ class ChartDataRestApi(ChartRestApi):
             command.validate()
         except DatasourceNotFound:
             return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
@@ -328,6 +304,8 @@ class ChartDataRestApi(ChartRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             500:
               $ref: '#/components/responses/500'
         """
@@ -347,6 +325,8 @@ class ChartDataRestApi(ChartRestApi):
             command.validate()
         except DatasourceNotFound:
             return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
@@ -416,6 +396,8 @@ class ChartDataRestApi(ChartRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -433,6 +415,8 @@ class ChartDataRestApi(ChartRestApi):
             command.validate()
         except ChartDataCacheLoadError:
             return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
         except ValidationError as error:
             return self.response_400(
                 message=_("Request is incorrect: %(error)s", error=error.messages)
@@ -452,14 +436,16 @@ class ChartDataRestApi(ChartRestApi):
         # First, look for the chart query results in the cache,
         # but only if we're not forcing a refresh.
         if not form_data.get("force"):
-            with contextlib.suppress(ChartDataCacheLoadError):
-                result = command.run(force_cached=True)
+            try:
+                result = command.execute(force_cached=True)
                 if result is not None:
                     # Log is_cached if extra payload callback is provided.
                     # This indicates no async job was triggered - data was already
                     # cached and a synchronous response is being returned immediately.
-                    self._log_is_cached(result, add_extra_log_payload)
+                    self._log_is_cached(result.materialize(), add_extra_log_payload)
                     return self._send_chart_response(result)
+            except ChartDataCacheLoadError:
+                pass
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
         # at which point they will call the /data/<cache_key> endpoint
@@ -470,26 +456,37 @@ class ChartDataRestApi(ChartRestApi):
         except AsyncQueryTokenException:
             return self.response_401()
 
-        result = async_command.run(form_data, get_user_id())
-        return self.response(202, **result)
+        async_result = async_command.run(form_data, get_user_id())
+        return self.response(202, **async_result)
 
     def _send_chart_response(  # noqa: C901
         self,
-        result: dict[Any, Any],
+        result: dict[Any, Any] | ChartDataExecutionResult,
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
         filename: str | None = None,
         expected_rows: int | None = None,
         dashboard_filter_context: DashboardFilterContext | None = None,
     ) -> Response:
-        result_type = result["query_context"].result_type
-        result_format = result["query_context"].result_format
+        if isinstance(result, ChartDataExecutionResult):
+            execution_result: ChartDataExecutionResult | None = result
+            materialized_result = result.materialize()
+        else:
+            execution_result = None
+            materialized_result = result
+
+        result_type = materialized_result["query_context"].result_type
+        result_format = materialized_result["query_context"].result_format
 
         # Post-process the data so it matches the data presented in the chart.
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
-            result = apply_client_processing(result, form_data, datasource)
+            materialized_result = apply_client_processing(
+                materialized_result,
+                form_data,
+                datasource,
+            )
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
@@ -502,24 +499,42 @@ class ChartDataRestApi(ChartRestApi):
             if not has_export_perm:
                 return self.response_403()
 
-            if not result["queries"]:
+            if not materialized_result["queries"]:
                 return self.response_400(_("Empty query result"))
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
 
             # Check if we should use streaming for large datasets
-            if is_csv_format and self._should_use_streaming(result, form_data):
+            if is_csv_format and self._should_use_streaming(
+                materialized_result,
+                form_data,
+            ):
                 return self._create_streaming_csv_response(
-                    result, form_data, filename=filename, expected_rows=expected_rows
+                    materialized_result,
+                    form_data,
+                    filename=filename,
+                    expected_rows=expected_rows,
                 )
 
-            if len(result["queries"]) == 1:
-                # return single query results
-                data = result["queries"][0]["data"]
-                if is_csv_format:
-                    return CsvResponse(data, headers=generate_download_headers("csv"))
+            export_filename = filename or self._get_default_export_filename(form_data)
+            # `generate_download_headers` always appends the format extension,
+            # so strip a matching one here to avoid doubled extensions (e.g.
+            # "chart.csv.csv") if the caller already included it.
+            export_filename = re.sub(
+                r"\.(csv|xlsx|zip)$", "", export_filename, flags=re.IGNORECASE
+            )
 
-                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+            if len(materialized_result["queries"]) == 1:
+                # return single query results
+                data = materialized_result["queries"][0]["data"]
+                if is_csv_format:
+                    return CsvResponse(
+                        data, headers=generate_download_headers("csv", export_filename)
+                    )
+
+                return XlsxResponse(
+                    data, headers=generate_download_headers("xlsx", export_filename)
+                )
 
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
@@ -533,16 +548,22 @@ class ChartDataRestApi(ChartRestApi):
 
             files = {
                 f"query_{idx + 1}.{result_format}": _process_data(query["data"])
-                for idx, query in enumerate(result["queries"])
+                for idx, query in enumerate(materialized_result["queries"])
             }
             return Response(
                 create_zip(files),
-                headers=generate_download_headers("zip"),
+                headers=generate_download_headers("zip", export_filename),
                 mimetype="application/zip",
             )
 
         if result_format == ChartDataResultFormat.JSON:
-            queries = result["queries"]
+            queries = materialized_result["queries"]
+            if execution_result and app.config.get("CHART_DATA_INCLUDE_TIMING"):
+                for query, query_result in zip(
+                    queries, execution_result.queries, strict=True
+                ):
+                    query["timing"] = query_result.timing.as_public_dict()
+
             if security_manager.is_guest_user():
                 for query in queries:
                     query.pop("query", None)
@@ -562,6 +583,26 @@ class ChartDataRestApi(ChartRestApi):
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
+
+    @staticmethod
+    def _get_default_export_filename(form_data: dict[str, Any] | None) -> str:
+        """
+        Build a fallback export filename (without extension) from the chart's
+        name so downloaded files are easy to identify, instead of the
+        generic timestamp-only default used by ``generate_download_headers``.
+
+        Used whenever the client hasn't supplied an explicit filename, by
+        both the streaming and non-streaming chart data export responses.
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        chart_name = "export"
+
+        if form_data and form_data.get("slice_name"):
+            chart_name = form_data["slice_name"]
+        elif form_data and form_data.get("viz_type"):
+            chart_name = form_data["viz_type"]
+
+        return secure_filename(f"superset_{chart_name}_{timestamp}")
 
     def _log_is_cached(
         self,
@@ -596,15 +637,18 @@ class ChartDataRestApi(ChartRestApi):
     ) -> Response:
         """Get data response and optionally log is_cached information."""
         try:
-            result = command.run(force_cached=force_cached)
+            result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
             return self.response_400(message=exc.message)
 
             # Log is_cached if extra payload callback is provided
-        if add_extra_log_payload and result and "queries" in result:
-            is_cached_values = [query.get("is_cached") for query in result["queries"]]
+        materialized_result = result.materialize()
+        if add_extra_log_payload and materialized_result.get("queries"):
+            is_cached_values = [
+                query.get("is_cached") for query in materialized_result["queries"]
+            ]
             add_extra_log_payload(is_cached=is_cached_values)
 
         return self._send_chart_response(
@@ -727,16 +771,7 @@ class ChartDataRestApi(ChartRestApi):
 
         # Use filename from frontend if provided, otherwise generate one
         if not filename:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            chart_name = "export"
-
-            if form_data and form_data.get("slice_name"):
-                chart_name = form_data["slice_name"]
-            elif form_data and form_data.get("viz_type"):
-                chart_name = form_data["viz_type"]
-
-            # Sanitize chart name for filename
-            filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
+            filename = f"{self._get_default_export_filename(form_data)}.csv"
         else:
             # Sanitize the client-provided filename before placing it in the
             # Content-Disposition header to avoid header/path injection.

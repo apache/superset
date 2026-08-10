@@ -36,6 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
@@ -86,7 +87,7 @@ export interface Dataset {
   name?: string;
   description: string | null;
   uid?: string;
-  owners?: Owner[];
+  editors?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
@@ -494,7 +495,7 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
@@ -677,7 +678,9 @@ export interface ServerPaginationData {
 
 export type TableColumnConfig = {
   d3NumberFormat?: string;
-  d3SmallNumberFormat?: string;
+  // Allow null to match JSON round-trips, where an unset value deserializes
+  // from the metadata DB as `null` rather than `undefined`.
+  d3SmallNumberFormat?: string | null;
   d3TimeFormat?: string;
   columnWidth?: number;
   horizontalAlign?: 'left' | 'right' | 'center';
@@ -711,4 +714,5 @@ export interface DataColumnMeta {
   isChildColumn?: boolean;
   description?: string;
   currencyCodeColumn?: string;
+  isFilterable?: boolean;
 }

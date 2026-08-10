@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  actions: read
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -19,7 +20,7 @@ concurrency:
 
 jobs:
   test-load-examples:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -40,8 +41,12 @@ jobs:
         ports:
           - 16379:6379
     steps:
+      - uses: Kesin11/actions-timeline@7bf79990b7c09f5dfb570ac30b814ca597bd538e # v3.1.1
+        with:
+          expand-composite-actions: true
+
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
@@ -61,7 +66,7 @@ jobs:
       - name: superset init
         if: steps.check.outputs.python
         run: |
-          pip install -e .
+          uv pip install --system -e .
           superset db upgrade
           superset load_test_users
       - name: superset load_examples

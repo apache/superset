@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import { throttle } from 'lodash';
+import { throttle } from 'lodash-es';
 import {
   memo,
   useEffect,
@@ -60,7 +60,7 @@ const BarWrapper = styled.div<{ width: number }>`
     margin: 0;
   }
   &.open {
-    width: ${({ width }) => width}px; // arbitrary...
+    width: ${({ width }) => width}px; /* arbitrary... */
   }
 `;
 
@@ -88,8 +88,12 @@ const Bar = styled.div<{ width: number }>`
   `}
 `;
 
-const CollapsedBar = styled.div<{ offset: number }>`
+const CollapsedBar = styled.button<{ offset: number }>`
   ${({ theme, offset }) => `
+    appearance: none;
+    border: none;
+    background: none;
+    font: inherit;
     position: absolute;
     top: ${offset}px;
     left: 0;
@@ -141,8 +145,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
-  clearAllTriggers,
-  onClearAllComplete,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
@@ -264,10 +266,10 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         width={width}
       >
         <CollapsedBar
+          type="button"
           {...getFilterBarTestId('collapsable')}
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
-          role="button"
           offset={offset}
         >
           <Icons.VerticalAlignTopOutlined

@@ -49,7 +49,11 @@ openapi_spec_methods_override = {
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
 }
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 get_slack_channels_schema = {
     "type": "object",
     "properties": {
@@ -59,6 +63,9 @@ get_slack_channels_schema = {
             "items": {"type": "string", "enum": ["public_channel", "private_channel"]},
         },
         "exact_match": {"type": "boolean"},
+        "force": {"type": "boolean"},
+        "page": {"type": "integer", "minimum": 0},
+        "page_size": {"type": "integer", "minimum": 1},
     },
 }
 
@@ -67,6 +74,10 @@ name_description = "The report schedule name."
 # :)
 description_description = "Use a nice description to give context to this Alert/Report"
 email_subject_description = "The report schedule subject line"
+include_cta_description = (
+    "Whether to include the call-to-action link back to Superset "
+    "(e.g. 'Explore in Superset') in the delivered notifications"
+)
 context_markdown_description = "Markdown description"
 crontab_description = (
     "A CRON expression."
@@ -78,9 +89,8 @@ sql_description = (
     "A SQL statement that defines whether the alert should get triggered or "
     "not. The query is expected to return either NULL or a number value."
 )
-owners_description = (
-    "Owner are users ids allowed to delete or change this report. "
-    "If left empty you will be one of the owners of the report."
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the report."
 )
 validator_type_description = (
     "Determines when to trigger alert based off value from alert query. "
@@ -231,7 +241,7 @@ class ReportSchedulePostSchema(Schema):
     )
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     validator_type = fields.String(
         metadata={"description": validator_type_description},
         validate=validate.OneOf(
@@ -263,6 +273,11 @@ class ReportSchedulePostSchema(Schema):
         dump_default=None,
     )
     force_screenshot = fields.Boolean(dump_default=False)
+    include_cta = fields.Boolean(
+        dump_default=True,
+        allow_none=True,
+        metadata={"description": include_cta_description},
+    )
     custom_width = fields.Integer(
         metadata={
             "description": _("Custom width of the screenshot in pixels"),
@@ -270,13 +285,43 @@ class ReportSchedulePostSchema(Schema):
         },
         allow_none=True,
         required=False,
-        default=None,
+        dump_default=None,
+    )
+    retry_on_failure = fields.Boolean(
+        metadata={"description": _("Enable automatic retries on report failure")},
+        load_default=False,
+    )
+    retry_max_attempts = fields.Integer(
+        metadata={
+            "description": _("Maximum number of retry attempts (1–10)"),
+            "example": 3,
+        },
+        load_default=3,
+        required=False,
+        validate=[Range(min=1, max=10, error=_("Must be between 1 and 10"))],
+    )
+    send_failed_reports = fields.Boolean(
+        metadata={
+            "description": _(
+                "Send the failed report to all recipients after retries are exhausted"
+            )
+        },
+        load_default=False,
+    )
+    retry_notify_owners = fields.Boolean(
+        metadata={"description": _("Notify report owners on each retry attempt")},
+        load_default=True,
+    )
+    retry_notify_recipients = fields.Boolean(
+        metadata={"description": _("Notify report recipients on each retry attempt")},
+        load_default=False,
     )
 
     @validates("custom_width")
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -304,6 +349,28 @@ class ReportSchedulePostSchema(Schema):
                     {"database": ["Database reference is not allowed on a report"]}
                 )
 
+    @validates_schema
+    def validate_retry_config(  # pylint: disable=unused-argument
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> None:
+        if data.get("send_failed_reports") and not data.get("retry_on_failure"):
+            raise ValidationError(
+                {
+                    "send_failed_reports": [
+                        _("send_failed_reports requires retry_on_failure to be enabled")
+                    ]
+                }
+            )
+        # Retry is only supported for reports, not alerts.
+        if data.get("type") == ReportScheduleType.ALERT and data.get(
+            "retry_on_failure"
+        ):
+            raise ValidationError(
+                {"retry_on_failure": [_("Retries are not supported for alerts")]}
+            )
+
 
 class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
     """Schema for creating a chart/dashboard subscription.
@@ -325,7 +392,7 @@ class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
     )
 
     class Meta:
-        exclude = ("recipients", "creation_method", "owners")
+        exclude = ("recipients", "creation_method", "editors")
         unknown = EXCLUDE
 
 
@@ -389,8 +456,8 @@ class ReportSchedulePutSchema(Schema):
     )
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False, allow_none=True)
-    owners = fields.List(
-        fields.Integer(metadata={"description": owners_description}), required=False
+    editors = fields.List(
+        fields.Integer(metadata={"description": editors_description}), required=False
     )
     validator_type = fields.String(
         metadata={"description": validator_type_description},
@@ -424,6 +491,11 @@ class ReportSchedulePutSchema(Schema):
     )
     extra = fields.Dict(dump_default=None)
     force_screenshot = fields.Boolean(dump_default=False)
+    include_cta = fields.Boolean(
+        dump_default=True,
+        allow_none=True,
+        metadata={"description": include_cta_description},
+    )
 
     custom_width = fields.Integer(
         metadata={
@@ -432,13 +504,42 @@ class ReportSchedulePutSchema(Schema):
         },
         allow_none=True,
         required=False,
-        default=None,
+        dump_default=None,
+    )
+    retry_on_failure = fields.Boolean(
+        metadata={"description": _("Enable automatic retries on report failure")},
+        required=False,
+    )
+    retry_max_attempts = fields.Integer(
+        metadata={
+            "description": _("Maximum number of retry attempts (1–10)"),
+            "example": 3,
+        },
+        required=False,
+        validate=[Range(min=1, max=10, error=_("Must be between 1 and 10"))],
+    )
+    send_failed_reports = fields.Boolean(
+        metadata={
+            "description": _(
+                "Send the failed report to all recipients after retries are exhausted"
+            )
+        },
+        required=False,
+    )
+    retry_notify_owners = fields.Boolean(
+        metadata={"description": _("Notify report owners on each retry attempt")},
+        required=False,
+    )
+    retry_notify_recipients = fields.Boolean(
+        metadata={"description": _("Notify report recipients on each retry attempt")},
+        required=False,
     )
 
     @validates("custom_width")
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -467,3 +568,15 @@ class SlackChannelSchema(Schema):
     name = fields.String()
     is_member = fields.Boolean()
     is_private = fields.Boolean()
+
+
+class ReportScheduleExecuteResponseSchema(Schema):
+    """Schema for the response when executing a report schedule immediately."""
+
+    class Meta:
+        unknown = EXCLUDE
+
+    execution_id = fields.UUID(
+        metadata={"description": _("UUID to track the execution status")}
+    )
+    message = fields.String(metadata={"description": _("Success message")})

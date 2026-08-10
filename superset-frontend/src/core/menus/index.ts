@@ -27,6 +27,7 @@
 import { useSyncExternalStore } from 'react';
 import type { menus as menusApi } from '@apache-superset/core';
 import { Disposable } from '../models';
+import { createEventEmitter } from '../utils';
 
 type MenuItem = menusApi.MenuItem;
 type Menu = menusApi.Menu;
@@ -47,19 +48,19 @@ const subscribe = (listener: () => void) => {
   return () => syncListeners.delete(listener);
 };
 
-const registerListeners = new Set<(e: MenuItemRegisteredEvent) => void>();
-const unregisterListeners = new Set<(e: MenuItemUnregisteredEvent) => void>();
+const registerEmitter = createEventEmitter<MenuItemRegisteredEvent>();
+const unregisterEmitter = createEventEmitter<MenuItemUnregisteredEvent>();
 
 const menuCache = new Map<string, Menu | undefined>();
 const notifyRegister = (event: MenuItemRegisteredEvent) => {
   menuCache.clear();
   syncListeners.forEach(l => l());
-  registerListeners.forEach(l => l(event));
+  registerEmitter.fire(event);
 };
 const notifyUnregister = (event: MenuItemUnregisteredEvent) => {
   menuCache.clear();
   syncListeners.forEach(l => l());
-  unregisterListeners.forEach(l => l(event));
+  unregisterEmitter.fire(event);
 };
 
 const registerMenuItem: typeof menusApi.registerMenuItem = (
@@ -117,16 +118,14 @@ export const useMenu = (location: string): Menu | undefined =>
 
 export const onDidRegisterMenuItem: typeof menusApi.onDidRegisterMenuItem = (
   listener: (e: MenuItemRegisteredEvent) => void,
-): Disposable => {
-  registerListeners.add(listener);
-  return new Disposable(() => registerListeners.delete(listener));
-};
+  thisArgs?: unknown,
+): Disposable => registerEmitter.subscribe(listener, thisArgs);
 
 export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
-  (listener: (e: MenuItemUnregisteredEvent) => void): Disposable => {
-    unregisterListeners.add(listener);
-    return new Disposable(() => unregisterListeners.delete(listener));
-  };
+  (
+    listener: (e: MenuItemUnregisteredEvent) => void,
+    thisArgs?: unknown,
+  ): Disposable => unregisterEmitter.subscribe(listener, thisArgs);
 
 export const menus: typeof menusApi = {
   registerMenuItem,

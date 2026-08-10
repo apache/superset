@@ -81,22 +81,26 @@ case "${1}" in
   app)
     echo "Starting web app (using development server)..."
 
-    # Environment-based debugger control for security
-    # Only enable Werkzeug interactive debugger when explicitly requested
-    # Modern Werkzeug (3.0+) includes PIN protection, but defense-in-depth approach
-    # Override FLASK_DEBUG so the effective state matches SUPERSET_DEBUG_ENABLED even
-    # when FLASK_DEBUG=true is inherited from docker/.env or .flaskenv
+    # Default to Flask debug mode in this dev compose entrypoint so the Talisman
+    # dev CSP (which permits 'unsafe-eval' required by React Refresh / HMR) is
+    # served. Operators can still set FLASK_DEBUG=false in docker/.env-local
+    # to exercise the production-like CSP and error handling.
+    : "${FLASK_DEBUG:=1}"
+    export FLASK_DEBUG
+
+    # Werkzeug's interactive debugger (/console) is a separate, security-sensitive
+    # feature and must be opted into explicitly via SUPERSET_DEBUG_ENABLED=true.
     if [[ "${SUPERSET_DEBUG_ENABLED:-}" == "true" ]]; then
-        export FLASK_DEBUG=1
         DEBUGGER_FLAG="--debugger"
         echo "  ⚠️  Werkzeug debugger enabled (requires PIN for /console access)"
     else
-        export FLASK_DEBUG=0
         DEBUGGER_FLAG="--no-debugger"
         echo "  🔒 Werkzeug debugger disabled (set SUPERSET_DEBUG_ENABLED=true to enable)"
     fi
 
-    flask run -p $PORT --reload $DEBUGGER_FLAG --host=0.0.0.0 --exclude-patterns "*/node_modules/*:*/.venv/*:*/build/*:*/__pycache__/*:*/superset-frontend/*"
+    flask run -p $PORT --reload $DEBUGGER_FLAG --host=0.0.0.0 \
+      --extra-files "/app/superset/extensions/.reload_trigger" \
+      --exclude-patterns "*/node_modules/*:*/.venv/*:*/build/*:*/__pycache__/*:*/superset-frontend/*:*/superset/__init__.py"
     ;;
   app-gunicorn)
     echo "Starting web app..."

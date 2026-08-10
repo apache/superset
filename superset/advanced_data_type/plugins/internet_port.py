@@ -95,9 +95,9 @@ def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeRespo
         else:
             resp["display_value"] = ", ".join(
                 map(  # noqa: C417
-                    lambda x: f"{x['start']} - {x['end']}"
-                    if isinstance(x, dict)
-                    else str(x),
+                    lambda x: (
+                        f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x)
+                    ),
                     resp["values"],
                 )
             )

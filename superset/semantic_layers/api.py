@@ -260,7 +260,14 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-        return self.response(200, result={"dimensions": dimensions, "metrics": metrics})
+        return self.response(
+            200,
+            result={
+                "name": view.name,
+                "dimensions": dimensions,
+                "metrics": metrics,
+            },
+        )
 
     @expose("/", methods=("POST",))
     @protect()
@@ -607,8 +614,15 @@ class SemanticLayerRestApi(BaseSupersetApi):
         warning: str | None = None
         try:
             schema = cls.get_configuration_schema(parsed_config)
-        except Exception as ex:  # pylint: disable=broad-except
-            warning = str(ex)
+        except Exception:  # pylint: disable=broad-except
+            # Show a stable, user-friendly message in the UI; the exception
+            # detail goes to the server log below.
+            warning = str(
+                t(
+                    "Could not load metadata for this configuration; "
+                    "showing the default form. See the server logs for details."
+                )
+            )
             logger.exception(
                 "Error enriching semantic layer configuration schema for type %s",
                 sl_type,

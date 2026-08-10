@@ -24,18 +24,21 @@ from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
     DatabaseCategory,
+    TimestampExpression,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -257,6 +260,31 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
     @classmethod
+    def get_timestamp_expr(
+        cls,
+        col: ColumnClause,
+        pdf: str | None,
+        time_grain: str | None,
+    ) -> TimestampExpression:
+        """
+        Construct a timestamp expression while preserving pure ``DATE`` semantics.
+
+        Applying ``DATE_TRUNC`` to a ``DATE`` column implicitly casts the value to
+        ``TIMESTAMP``, which can trigger unwanted timezone conversion on the client
+        and shift the displayed date by a day. To avoid this, the truncated value is
+        cast back to ``DATE`` when the source column is a pure ``DATE`` type.
+
+        See https://github.com/apache/superset/issues/42254.
+        """
+        expr = super().get_timestamp_expr(col, pdf, time_grain)
+        col_type = getattr(col, "type", None)
+        # ``DateTime``/``TIMESTAMP`` are distinct SQLAlchemy types (not subclasses
+        # of ``Date``), so this only matches pure ``DATE`` columns.
+        if time_grain and isinstance(col_type, Date):
+            return TimestampExpression(f"CAST({expr.name} AS DATE)", col, type_=Date())
+        return expr
+
+    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:
@@ -278,6 +306,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = True
     supports_dynamic_catalog = True
+    supports_grouping_sets = True
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
@@ -517,6 +546,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     DatabaseCategory.CLOUD_AWS,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
+                "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
             },
         ],
     }
@@ -782,15 +812,42 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
         In Postgres, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                """
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("""
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
-            """
-            )
-        }
+                    """)
+                )
+            }
+
+    @classmethod
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        """
+        Return all schema names, excluding the ``pg_``-prefixed Postgres
+        system schemas (e.g. ``pg_catalog``, ``pg_toast``).
+
+        SQLAlchemy's Postgres dialect filters out system schemas with the
+        query ``nspname NOT LIKE 'pg_%'``. Since ``_`` is a single-character
+        wildcard in SQL ``LIKE`` patterns, this unintentionally excludes any
+        user-defined schema that merely starts with ``pg`` followed by any
+        other character (e.g. ``pgsql``, ``pgstats``), not only the
+        ``pg_``-prefixed system schemas. Matching on the literal ``pg_``
+        prefix instead keeps those user-defined schemas.
+
+        TODO: drop this override once sqlalchemy/sqlalchemy#13471 is merged
+        and released, and SQLAlchemy is bumped past that version.
+        """
+        with inspector.engine.connect() as conn:
+            return {
+                name
+                for (name,) in conn.execute(
+                    text("SELECT nspname FROM pg_namespace ORDER BY nspname")
+                )
+                if not name.startswith("pg_")
+            }
 
     @classmethod
     def get_table_names(

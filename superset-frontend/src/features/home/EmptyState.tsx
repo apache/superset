@@ -57,7 +57,7 @@ const LABELS = {
 const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
-    [WelcomeTable.Dashboards]: '/dashboard/new',
+    [WelcomeTable.Dashboards]: '/dashboard/new/',
     // navigateTo() applies the application root internally; keep this
     // relative so the prefix isn't added twice.
     [WelcomeTable.SavedQueries]: '/sqllab?new=true',

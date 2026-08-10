@@ -19,6 +19,8 @@
 from datetime import datetime
 from typing import Any, Callable
 
+import numpy
+import pandas as pd
 import pytest
 from flask import current_app
 from pytest_mock import MockerFixture
@@ -262,6 +264,49 @@ def test_table_column_database() -> None:
     assert TableColumn(database=database).database is database
 
 
+def _prefixing_sql_query_mutator(sql: str, **kwargs: Any) -> str:
+    """`SQL_QUERY_MUTATOR` stand-in that prepends a marker comment."""
+    return f"-- mutated\n{sql}"
+
+
+@pytest.mark.parametrize(
+    "is_split,mutate_after_split,expect_mutated",
+    [
+        # A split-out statement is mutated only when the mutator is meant to run
+        # after the split, and an un-split block only when it runs before.
+        (True, True, True),
+        (True, False, False),
+        (False, False, True),
+        (False, True, False),
+    ],
+)
+def test_mutate_sql_based_on_config_respects_is_split(
+    app_context: None,
+    mocker: MockerFixture,
+    is_split: bool,
+    mutate_after_split: bool,
+    expect_mutated: bool,
+) -> None:
+    """
+    `mutate_sql_based_on_config` fires `SQL_QUERY_MUTATOR` only when the call
+    site's `is_split` matches the `MUTATE_AFTER_SPLIT` config. Regression guard
+    for issue #30169, where SQL Lab always passed the default `is_split=False`
+    and so never mutated when `MUTATE_AFTER_SPLIT=True`.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": _prefixing_sql_query_mutator,
+            "MUTATE_AFTER_SPLIT": mutate_after_split,
+        },
+    )
+
+    result = database.mutate_sql_based_on_config("SELECT 1", is_split=is_split)
+
+    assert result == ("-- mutated\nSELECT 1" if expect_mutated else "SELECT 1")
+
+
 def test_catalog_cache() -> None:
     """
     Test the catalog cache.
@@ -316,7 +361,10 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
 
     get_inspector = mocker.patch.object(database, "get_inspector")
     with get_inspector() as inspector:
-        inspector.bind.execute.return_value = [("examples",), ("other",)]
+        inspector.engine.connect().__enter__().execute.return_value = [
+            ("examples",),
+            ("other",),
+        ]
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
     get_inspector.assert_called_with()
@@ -533,6 +581,7 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     create_engine.assert_called_with(
         make_url("trino:///"),
         connect_args={"source": "Apache Superset"},
+        future=True,
     )
 
 
@@ -653,6 +702,7 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     create_engine.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice", "source": "Apache Superset"},
+        future=True,
     )
 
 
@@ -708,6 +758,7 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     create_engine.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
+        future=True,
     )
 
 
@@ -848,6 +899,151 @@ def test_get_raw_connection_executes_prequeries_exactly_once(
     # Exactly one prequery, exactly once — not twice, not zero.
     mock_cursor.execute.assert_called_once_with(prequery)
     mock_cursor.close.assert_called_once()
+
+
+def test_prequery_engine_bypasses_shared_cache(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression for the ``deque mutated during iteration`` race.
+
+    ``get_sqla_engine`` attaches (and later removes) a per-call ``connect``
+    listener when prequeries exist. SQLAlchemy stores listeners in an
+    unlocked deque, so mutating a *shared* engine's listeners races with
+    concurrent connection checkouts iterating the same deque. The engine
+    used for prequery calls must therefore be private: never served from,
+    nor stored in, ``_ENGINE_CACHE``.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import _ENGINE_CACHE
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    database.id = 1  # saved instance: normally eligible for the cache
+
+    # Control: without prequeries the engine is shared via the cache.
+    with database.get_sqla_engine() as engine_a:
+        with database.get_sqla_engine() as engine_b:
+            assert engine_a is engine_b
+    assert len(_ENGINE_CACHE) == 1
+    cached_engine = next(iter(_ENGINE_CACHE.values()))
+
+    # With prequeries: a private engine per call, and the cache untouched.
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_prequeries",
+        return_value=["SELECT 1"],
+    )
+    with database.get_sqla_engine() as engine_c:
+        with database.get_sqla_engine() as engine_d:
+            assert engine_c is not cached_engine
+            assert engine_d is not cached_engine
+            assert engine_c is not engine_d
+    assert list(_ENGINE_CACHE.values()) == [cached_engine]
+
+
+def test_prequeries_execute_on_real_connections(
+    app_context: None,
+    mocker: MockerFixture,
+    tmp_path: Any,
+) -> None:
+    """
+    Behavioural guard: prequeries still run on every new DBAPI connection
+    even though the prequery path uses a private, uncached engine. Uses a
+    file-backed SQLite database and a table-creating prequery so the effect
+    is observable from a later query on the same connection.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import _ENGINE_CACHE
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    mocker.patch("superset.models.core.get_username", return_value=None)
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_prequeries",
+        return_value=["CREATE TABLE IF NOT EXISTS prequery_marker (x INTEGER)"],
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"sqlite:///{tmp_path / 'prequery.db'}",
+    )
+    database.id = 1
+
+    with database.get_raw_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE name = 'prequery_marker'")
+        assert cursor.fetchone() is not None, (
+            "prequery did not run on the new connection"
+        )
+    assert _ENGINE_CACHE == {}
+
+
+def test_concurrent_prequery_connections_do_not_race(
+    app: Any,
+    app_context: None,
+    mocker: MockerFixture,
+    tmp_path: Any,
+) -> None:
+    """
+    Stress regression for the listener race: with a shared cached engine,
+    concurrent ``get_raw_connection`` calls with prequeries mutated the
+    engine's connect-listener deque (listen on enter, remove on exit) while
+    other threads' connection checkouts iterated it, intermittently raising
+    ``RuntimeError: deque mutated during iteration``. With a private engine
+    per prequery call there is no shared mutation left to race.
+    """
+    import threading
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import _ENGINE_CACHE
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    mocker.patch("superset.models.core.get_username", return_value=None)
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_prequeries",
+        return_value=["SELECT 1"],
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"sqlite:///{tmp_path / 'race.db'}",
+    )
+    database.id = 1
+
+    errors: list[Exception] = []
+
+    def worker() -> None:
+        try:
+            with app.app_context():
+                for _ in range(50):
+                    with database.get_raw_connection() as conn:
+                        conn.cursor().execute("SELECT 1")
+        except Exception as ex:  # pylint: disable=broad-except
+            errors.append(ex)
+
+    threads = [threading.Thread(target=worker) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert not errors, f"concurrent prequery connections raised: {errors!r}"
 
 
 def test_is_oauth2_enabled() -> None:
@@ -1075,7 +1271,7 @@ def test_get_schema_access_for_file_upload() -> None:
     try:
         from sqlalchemy import create_engine
 
-        create_engine("gsheets://")
+        create_engine("gsheets://", future=True)
     except Exception:
         pytest.skip("gsheets:// dialect not available (Shillelagh not installed)")
 
@@ -1121,6 +1317,7 @@ def test_engine_context_manager(mocker: MockerFixture, app_context: None) -> Non
         nullpool=True,
         source=None,
         sqlalchemy_uri="trino://",
+        cacheable=True,
     )
 
 
@@ -1222,6 +1419,96 @@ def test_purge_oauth2_tokens(session: Session) -> None:
     # make sure database was not deleted... just in case
     database = session.query(Database).filter_by(id=database1.id).one()
     assert database.name == "my_oauth2_db"
+
+
+def test_purge_oauth2_tokens_scoped_by_database_id(session: Session) -> None:
+    """
+    Ensure `purge_oauth2_tokens` filters by ``database_id``, not by the
+    token-table primary key.
+
+    The existing ``test_purge_oauth2_tokens`` case inserts a single token per
+    database in an empty schema, so token PKs and database PKs align 1:1 by
+    coincidence. This regression test inserts several tokens on ``database1``
+    first so token PKs advance past 1, then creates ``database2`` and purges
+    it. All of ``database1``'s tokens must remain untouched.
+    """
+    from flask_appbuilder.security.sqla.models import Role, User  # noqa: F401
+
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe2@example.org",
+        username="adoe2",
+    )
+    session.add(user)
+    session.flush()
+
+    database1 = Database(database_name="db1_pk_drift", sqlalchemy_uri="sqlite://")
+    session.add(database1)
+    session.flush()
+
+    # Insert several tokens on database1 so token PKs advance past 1 and drift
+    # away from any single database PK.
+    for i in range(5):
+        session.add(
+            DatabaseUserOAuth2Tokens(
+                user_id=user.id,
+                database_id=database1.id,
+                access_token=f"db1_access_{i}",  # noqa: S106
+                access_token_expiration=datetime(2023, 1, 1),
+                refresh_token=f"db1_refresh_{i}",  # noqa: S106
+            )
+        )
+    session.flush()
+
+    database2 = Database(database_name="db2_pk_drift", sqlalchemy_uri="sqlite://")
+    session.add(database2)
+    session.flush()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 5
+    )
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .count()
+        == 0
+    )
+
+    # Purging database2 must not touch database1's tokens, even though one
+    # of database1's token PKs will collide with database2's PK.
+    database2.purge_oauth2_tokens()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 5
+    )
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .count()
+        == 0
+    )
+
+    # Purging database1 must delete all of its tokens. Filtering by the
+    # token PK instead of `database_id` would delete at most one row here.
+    database1.purge_oauth2_tokens()
+
+    assert (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .count()
+        == 0
+    )
 
 
 def test_compile_sqla_query_no_optimization(query: Select) -> None:
@@ -1558,6 +1845,45 @@ def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
     assert result == mock_handle
 
 
+def test_resolve_query_default_schema_builds_probe(mocker: MockerFixture) -> None:
+    """``resolve_query_default_schema`` builds a transient probe Query carrying
+    the request's SQL/schema/catalog and resolves through the query-aware
+    ``get_default_schema_for_query`` (which runs per-query engine security
+    gates), forwarding template params."""
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    resolve_mock = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="resolved_schema"
+    )
+
+    result = database.resolve_query_default_schema(
+        "SELECT 1", "explicit", "cat", {"p": 1}
+    )
+
+    assert result == "resolved_schema"
+    probe, template_params = resolve_mock.call_args.args
+    assert probe.sql == "SELECT 1"
+    assert probe.schema == "explicit"
+    assert probe.catalog == "cat"
+    assert template_params == {"p": 1}
+
+
+def test_resolve_query_default_schema_normalizes_blank_schema(
+    mocker: MockerFixture,
+) -> None:
+    """A blank request schema reaches the probe as ``None`` so the engine spec
+    resolves it, rather than matching on an empty string."""
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    resolve_mock = mocker.patch.object(
+        database, "get_default_schema_for_query", return_value="public"
+    )
+
+    database.resolve_query_default_schema("SELECT 1", "", None)
+
+    probe = resolve_mock.call_args.args[0]
+    assert probe.schema is None
+    assert probe.catalog is None
+
+
 def test_clear_bootstrap_cache_logs_warning_on_failure(
     mocker: MockerFixture,
 ) -> None:
@@ -1597,3 +1923,255 @@ def test_clear_bootstrap_cache_logs_warning_on_failure(
     mock_logger.warning.assert_called_once()
     call_args = mock_logger.warning.call_args
     assert call_args[0][0] == "Failed to clear theme bootstrap cache: %s"
+
+
+def test_execute_sql_preserves_line_comments_single_statement(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A single statement is executed verbatim, so the ``--`` line comments added by
+    ``SQL_QUERY_MUTATOR`` are not round-tripped through sqlglot (which would rewrite
+    them into ``/* */`` blocks). Regression test for the comment-mangling bug.
+    """
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_sqla_engine")
+    mocker.patch.object(database, "get_raw_connection")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=[])
+    # Identity mutator so the test isolates whether the SQL got reformatted.
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kwargs: sql
+    )
+    execute = mocker.patch.object(database.db_engine_spec, "execute")
+
+    sql = "SELECT 1 AS one\n-- user: alice\n-- company: dunder mifflin"
+    database._execute_sql_with_mutation_and_logging(sql, fetch_last_result=True)
+
+    executed_sql = execute.call_args.args[1]
+    assert executed_sql == sql
+    assert "/*" not in executed_sql
+
+
+def test_get_df_captures_description_after_fetch(mocker: MockerFixture) -> None:
+    """Fetch asynchronous results before capturing their final column metadata.
+
+    Some asynchronous DB-API drivers (e.g. Spark Thrift) expose placeholder
+    ``cursor.description`` until a fetch call waits for the operation to finish.
+    Capturing ``description`` after ``fetch_data`` ensures the real column
+    metadata is used.
+    """
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    cursor = mocker.MagicMock()
+    placeholder_description: list[tuple[str, str, None, None, None, None, None]] = [
+        ("Result", "STRING", None, None, None, None, None),
+    ]
+    result_description: list[tuple[str, str, None, None, None, None, None]] = [
+        ("value", "BIGINT", None, None, None, None, None),
+    ]
+    cursor.description = placeholder_description
+
+    conn = mocker.MagicMock()
+    conn.cursor.return_value = cursor
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+    get_raw_connection.return_value.__enter__.return_value = conn
+    mocker.patch.object(database.db_engine_spec, "execute")
+
+    def fetch_data(_: object) -> list[tuple[int]]:
+        cursor.description = result_description
+        return [(1,)]
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "fetch_data",
+        side_effect=fetch_data,
+    )
+
+    _, rows, description = database._execute_sql_with_mutation_and_logging(
+        "SELECT 1",
+        fetch_last_result=True,
+    )
+
+    assert rows == [(1,)]
+    assert description == result_description
+
+
+def test_post_process_df_non_zero_based_index() -> None:
+    """
+    post_process_df must not raise when the DataFrame index doesn't contain 0
+    as a label (e.g. after filtering).  Regression test for the FutureWarning
+    caused by df_series[0] positional-but-label-based access on such Series.
+    """
+    df = pd.DataFrame({"col": [None, [1, 2], [3, 4]]}, dtype=object)
+    df = df[df["col"].notna()]  # index is now [1, 2], not [0, 1, 2]
+    result = Database.post_process_df(df)
+    assert result["col"].dtype == numpy.object_
+    assert result["col"].iloc[0] == "[1, 2]"
+    assert result["col"].iloc[1] == "[3, 4]"
+
+
+class _DispatchParkHarness:
+    """Coordination for parking one thread mid connect-event dispatch.
+
+    ``maybe_park`` parks the first caller after ``arm()`` — used from a DBAPI
+    connection wrapper's ``cursor()`` so the park lands inside the prequery
+    listener while SQLAlchemy iterates the engine's connect-listener deque.
+    """
+
+    def __init__(self) -> None:
+        import threading
+
+        self.parked = threading.Event()
+        self.resume = threading.Event()
+        self._lock = threading.Lock()
+        self._armed = False
+        self._consumed = False
+
+    def arm(self) -> None:
+        self._armed = True
+
+    def maybe_park(self) -> None:
+        with self._lock:
+            should_park = self._armed and not self._consumed
+            if should_park:
+                self._consumed = True
+        if should_park:
+            self.parked.set()
+            assert self.resume.wait(timeout=10), "parked thread never released"
+
+
+class _ParkingSqliteConnection:
+    """sqlite3 connection wrapper whose ``cursor()`` may park via a harness."""
+
+    def __init__(self, real: Any, harness: _DispatchParkHarness) -> None:
+        self._real = real
+        self._harness = harness
+
+    def cursor(self) -> Any:
+        self._harness.maybe_park()
+        return self._real.cursor()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._real, name)
+
+
+def test_prequery_listener_mutation_race_deterministic(
+    app: Any,
+    app_context: None,
+    mocker: MockerFixture,
+    tmp_path: Any,
+) -> None:
+    """
+    Deterministic regression for the ``deque mutated during iteration`` race
+    (no timing dependence, unlike the stress test above).
+
+    The overlap that crashes pre-fix code is: thread A parked *inside* the
+    connect-event dispatch of an engine (mid-iteration over the listener
+    deque) while thread B mutates that same deque via ``event.listen``. This
+    test constructs exactly that interleaving:
+
+    - ``create_engine`` is patched to inject a ``creator`` whose DBAPI
+      connections park on the FIRST ``cursor()`` call process-wide. The
+      prequery listener's first act is ``dbapi_connection.cursor()``, so
+      thread A parks provably mid-dispatch.
+    - Thread B waits for A to park, then enters the prequery path itself,
+      which calls ``event.listen`` — on the SAME cached engine pre-fix
+      (mutating the deque A's iterator is walking), on its own private
+      engine post-fix.
+    - A is released; its dispatch loop advances the deque iterator.
+
+    Pre-fix this raises ``RuntimeError: deque mutated during iteration`` in
+    thread A on every run. With the private-engine fix, B's mutation touches
+    a different engine's deque and both threads complete.
+    """
+    import sqlite3
+    import threading
+
+    from sqlalchemy import create_engine as real_create_engine
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import _ENGINE_CACHE
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    mocker.patch("superset.models.core.get_username", return_value=None)
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_prequeries",
+        return_value=["SELECT 1"],
+    )
+
+    # Armed only after the warm-up connection below: the FIRST cursor() call
+    # on a fresh engine is SQLAlchemy's dialect isolation-level probe, which
+    # runs inside the ``first_connect`` once-mutex — parking there deadlocks
+    # the sibling thread on that mutex instead of exercising the deque race.
+    harness = _DispatchParkHarness()
+
+    db_path = tmp_path / "deterministic_race.db"
+
+    def parking_creator() -> _ParkingSqliteConnection:
+        return _ParkingSqliteConnection(sqlite3.connect(str(db_path)), harness)
+
+    def patched_create_engine(url: Any, **kwargs: Any) -> Any:
+        kwargs["creator"] = parking_creator
+        kwargs["future"] = True
+        return real_create_engine(url, **kwargs)
+
+    mocker.patch(
+        "superset.models.core.create_engine",
+        side_effect=patched_create_engine,
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"sqlite:///{db_path}",
+    )
+    database.id = 1
+
+    # Warm-up: consume the dialect's one-time first_connect probe on the
+    # cached engine (pre-fix code shares it with the threads below), so the
+    # park later lands inside the prequery listener's connect dispatch —
+    # where no SQLAlchemy mutex is held — not inside the probe.
+    with database.get_sqla_engine() as warm_engine:
+        with warm_engine.connect():
+            pass
+    harness.arm()
+
+    errors: list[Exception] = []
+
+    def thread_a() -> None:
+        try:
+            with app.app_context():
+                with database.get_raw_connection() as conn:
+                    conn.cursor().execute("SELECT 1")
+        except Exception as ex:  # pylint: disable=broad-except
+            errors.append(ex)
+        finally:
+            # Never leave B waiting if A failed before parking.
+            harness.parked.set()
+
+    def thread_b() -> None:
+        try:
+            assert harness.parked.wait(timeout=10), "A never parked"
+            with app.app_context():
+                # Entering the prequery path calls event.listen — on the
+                # shared cached engine pre-fix, on a private engine post-fix.
+                with database.get_raw_connection() as conn:
+                    conn.cursor().execute("SELECT 1")
+        except Exception as ex:  # pylint: disable=broad-except
+            errors.append(ex)
+        finally:
+            harness.resume.set()
+
+    t_a = threading.Thread(target=thread_a)
+    t_b = threading.Thread(target=thread_b)
+    t_a.start()
+    t_b.start()
+    t_a.join(timeout=30)
+    t_b.join(timeout=30)
+    assert not t_a.is_alive(), "thread A deadlocked"
+    assert not t_b.is_alive(), "thread B deadlocked"
+
+    assert not errors, f"deterministic interleaving raised: {errors!r}"

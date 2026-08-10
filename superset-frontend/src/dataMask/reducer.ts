@@ -45,7 +45,7 @@ import {
   migrateChartCustomizationArray,
   isLegacyChartCustomizationFormat,
 } from 'src/dashboard/util/migrateChartCustomization';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import {
   AnyDataMaskAction,
   CLEAR_DATA_MASK_STATE,

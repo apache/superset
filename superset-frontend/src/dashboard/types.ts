@@ -37,8 +37,8 @@ import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import Owner from 'src/types/Owner';
-import Role from 'src/types/Role';
+import User from 'src/types/User';
+import Subject from 'src/types/Subject';
 import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
 import { AutoRefreshStatus } from './types/autoRefresh';
@@ -123,6 +123,7 @@ export type DashboardState = {
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
   dashboardIsSaving: boolean;
+  lastModifiedTime?: number;
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
@@ -160,6 +161,7 @@ export type DashboardState = {
   inactiveTabs?: string[];
   datasetsStatus?: ResourceStatus;
   expandedSlices?: Record<number, boolean>;
+  expandAllSlices?: boolean;
   refreshFrequency: number;
   shouldPersistRefreshFrequency?: boolean;
   colorNamespace?: string;
@@ -169,6 +171,7 @@ export type DashboardState = {
 };
 export type DashboardInfo = {
   id: number;
+  uuid?: string;
   common: {
     conf: JsonObject;
   };
@@ -199,9 +202,9 @@ export type DashboardInfo = {
   filterBarOrientation: FilterBarOrientation;
   created_on_delta_humanized: string;
   changed_on_delta_humanized: string;
-  changed_by?: Owner;
-  created_by?: Owner;
-  owners: Owner[];
+  changed_by?: User;
+  created_by?: User;
+  editors: Subject[];
   chartCustomizationData?: { [itemId: string]: ColumnOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomization>;
@@ -212,10 +215,10 @@ export type DashboardInfo = {
   } | null;
   css?: string;
   slug?: string;
+  description?: string;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;
-  roles?: Role[];
   tags?: TagType[];
   is_managed_externally?: boolean;
   dash_share_perm?: boolean;
@@ -230,6 +233,13 @@ export type Datasource = Dataset & {
   column_types: GenericDataType[];
   table_name: string;
   database?: Database;
+  // Populated by the dashboard datasets API alongside ``type``; declared here
+  // so callers can rely on structural typing instead of casting.
+  datasource_type?: DatasourceType;
+  /** False when the datasource can't return row samples (e.g. semantic views). */
+  supports_samples?: boolean;
+  /** False when the datasource can't answer drill-to-detail requests. */
+  supports_drill_to_detail?: boolean;
 };
 export type DatasourcesState = {
   [key: string]: Datasource;
@@ -352,7 +362,7 @@ export type Slice = {
   datasource_type: DatasourceType;
   datasource_url: string;
   datasource_name: string;
-  owners: { id: number }[];
+  editors: { id: number }[];
   created_by: { id: number };
 };
 
@@ -365,6 +375,9 @@ export interface SliceEntitiesState {
 
 export enum MenuKeys {
   DownloadAsImage = 'download_as_image',
+  DownloadAsPngTransparent = 'download_as_png_transparent',
+  DownloadAsPngSolid = 'download_as_png_solid',
+  DownloadAsPdf = 'download_as_pdf',
   ExploreChart = 'explore_chart',
   ExportCsv = 'export_csv',
   ExportPivotCsv = 'export_pivot_csv',
@@ -393,4 +406,5 @@ export enum MenuKeys {
   ManageEmailReports = 'manage_email_reports',
   ExportPivotXlsx = 'export_pivot_xlsx',
   EmbedCode = 'embed_code',
+  VersionHistory = 'version_history',
 }

@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import {
   SET_REPORT,
   ADD_REPORT,

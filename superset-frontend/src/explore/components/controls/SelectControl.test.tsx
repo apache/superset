@@ -23,7 +23,6 @@ import {
   render,
   screen,
   userEvent,
-  within,
 } from 'spec/helpers/testing-library';
 import SelectControl, {
   innerGetOptions,
@@ -84,26 +83,24 @@ describe('SelectControl', () => {
   describe('render', () => {
     test('renders with Select by default', () => {
       renderSelectControl();
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
     });
 
     test('renders as mode multiple', () => {
       renderSelectControl({ multi: true });
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
       userEvent.click(selectorInput);
@@ -112,13 +109,12 @@ describe('SelectControl', () => {
 
     test('renders with allowNewOptions when freeForm', () => {
       renderSelectControl({ freeForm: true });
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
 
@@ -126,20 +122,19 @@ describe('SelectControl', () => {
       userEvent.click(selectorInput);
       userEvent.type(selectorInput, 'a new option');
       act(() => jest.runAllTimers());
-      expect(within(selectorWrapper).getByRole('option')).toHaveTextContent(
-        'a new option',
-      );
+      // antd v6 renders the dropdown options in a portal outside the
+      // .ant-select wrapper, so query the whole document.
+      expect(screen.getByRole('option')).toHaveTextContent('a new option');
     });
 
     test('renders with allowNewOptions=false when freeForm=false', () => {
       const container = renderSelectControl({ freeForm: false });
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
 
@@ -151,20 +146,21 @@ describe('SelectControl', () => {
       expect(
         container.querySelector('[role="option"]'),
       ).not.toBeInTheDocument();
+      // antd v6 renders the empty-state ("No data") in a portal outside the
+      // .ant-select wrapper, so query the whole document.
       expect(
-        within(selectorWrapper).getByText('No data', { selector: 'div' }),
+        screen.getByText('No data', { selector: 'div' }),
       ).toBeInTheDocument();
     });
 
     test('renders with tokenSeparators', () => {
       renderSelectControl({ tokenSeparators: ['\n', '\t', ';'], multi: true });
-      const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+      const selectorInput = screen.getByLabelText('Row Limit', {
+        selector: 'input',
       });
-      const selectorInput = within(selectorWrapper).getByLabelText(
-        'Row Limit',
-        { selector: 'input' },
-      );
+      const selectorWrapper = selectorInput.closest(
+        '.ant-select',
+      ) as HTMLElement;
       expect(selectorWrapper).toBeInTheDocument();
       expect(selectorInput).toBeInTheDocument();
 
@@ -414,8 +410,9 @@ describe('SelectControl', () => {
 
       // The SelectControl should receive a sortComparator for numeric values
       // This is tested by verifying the component renders without errors
+      // antd v6 places the aria-label on the Select's input element.
       const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+        selector: 'input',
       });
       expect(selectorWrapper).toBeInTheDocument();
     });
@@ -429,8 +426,9 @@ describe('SelectControl', () => {
       renderSelectControl({ options: numericOptions, choices: undefined });
 
       // The SelectControl should receive a sortComparator for numeric values
+      // antd v6 places the aria-label on the Select's input element.
       const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+        selector: 'input',
       });
       expect(selectorWrapper).toBeInTheDocument();
     });
@@ -444,8 +442,9 @@ describe('SelectControl', () => {
       renderSelectControl({ choices: mixedChoices });
 
       // Should render without errors and not apply numeric sorting
+      // antd v6 places the aria-label on the Select's input element.
       const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+        selector: 'input',
       });
       expect(selectorWrapper).toBeInTheDocument();
     });
@@ -465,8 +464,9 @@ describe('SelectControl', () => {
         sortComparator: explicitComparator,
       });
 
+      // antd v6 places the aria-label on the Select's input element.
       const selectorWrapper = screen.getByLabelText('Row Limit', {
-        selector: 'div',
+        selector: 'input',
       });
       expect(selectorWrapper).toBeInTheDocument();
     });

@@ -38,7 +38,7 @@ RESET='\033[0m'
 echo -e "${GREEN}Updating package lists...${RESET}"
 apt-get update -qq
 
-echo -e "${GREEN}Installing packages: $@${RESET}"
+echo -e "${GREEN}Installing packages: $*${RESET}"
 apt-get install -yqq --no-install-recommends "$@"
 
 echo -e "${GREEN}Autoremoving unnecessary packages...${RESET}"

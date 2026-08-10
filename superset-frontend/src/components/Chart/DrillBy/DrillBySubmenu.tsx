@@ -18,7 +18,6 @@
  */
 
 import {
-  CSSProperties,
   ReactNode,
   useCallback,
   useEffect,
@@ -43,8 +42,8 @@ import {
   Popover,
   Icons,
 } from '@superset-ui/core/components';
-import { debounce } from 'lodash';
-import { FixedSizeList as List } from 'react-window';
+import { debounce } from 'lodash-es';
+import { List, type RowComponentProps } from 'react-window';
 import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { VirtualizedMenuItem } from '../MenuItemWithTruncation';
@@ -52,6 +51,34 @@ import { Dataset } from '../types';
 
 const SUBMENU_HEIGHT = 200;
 const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
+
+interface DrillByColumnRowProps {
+  columns: Column[];
+  onSelectColumn: (event: React.MouseEvent, column: Column) => void;
+}
+
+// Rendered via `rowComponent`, so it must be a stable reference (module
+// scope) rather than defined inline on every render of the submenu -
+// otherwise react-window would treat it as a new component type each
+// render and remount every row. All the data it needs is threaded
+// through `rowProps` instead of being closed over.
+function DrillByColumnRow({
+  index,
+  style,
+  columns,
+  onSelectColumn,
+}: RowComponentProps<DrillByColumnRowProps>) {
+  const column = columns[index];
+  return (
+    <VirtualizedMenuItem
+      tooltipText={column.verbose_name || column.column_name}
+      onClick={e => onSelectColumn(e, column)}
+      style={style}
+    >
+      {column.verbose_name || column.column_name}
+    </VirtualizedMenuItem>
+  );
+}
 
 export interface DrillBySubmenuProps {
   drillByConfig?: ContextMenuFilters['drillBy'];
@@ -84,7 +111,7 @@ export const DrillBySubmenu = ({
   const [debouncedSearchInput, setDebouncedSearchInput] = useState('');
   const [popoverOpen, setPopoverOpen] = useState(false);
   const ref = useRef<InputRef>(null);
-  const menuItemRef = useRef<HTMLDivElement>(null);
+  const menuItemRef = useRef<HTMLButtonElement>(null);
 
   const columns = useMemo(
     () => (dataset ? ensureIsArray(dataset.drillable_columns) : []),
@@ -190,26 +217,9 @@ export const DrillBySubmenu = ({
 
   const isDisabled = !handlesDimensionContextMenu || !hasDrillBy;
 
-  const Row = ({
-    index,
-    data,
-    style,
-  }: {
-    index: number;
-    data: { columns: Column[] };
-    style: CSSProperties;
-  }) => {
-    const { columns } = data;
-    const column = columns[index];
-    return (
-      <VirtualizedMenuItem
-        tooltipText={column.verbose_name || column.column_name}
-        onClick={e => handleSelection(e, column)}
-        style={style}
-      >
-        {column.verbose_name || column.column_name}
-      </VirtualizedMenuItem>
-    );
+  const listRowProps: DrillByColumnRowProps = {
+    columns: filteredColumns,
+    onSelectColumn: handleSelection,
   };
 
   const popoverContent = (
@@ -217,6 +227,7 @@ export const DrillBySubmenu = ({
       role="menu"
       tabIndex={0}
       data-test="drill-by-submenu"
+      onKeyDown={e => e.stopPropagation()}
       css={css`
         width: 220px;
         max-width: 220px;
@@ -259,15 +270,13 @@ export const DrillBySubmenu = ({
         </div>
       ) : filteredColumns.length ? (
         <List
-          width="100%"
-          height={SUBMENU_HEIGHT}
-          itemSize={35}
-          itemCount={filteredColumns.length}
-          itemData={{ columns: filteredColumns }}
+          style={{ width: '100%', height: SUBMENU_HEIGHT }}
+          rowHeight={35}
+          rowCount={filteredColumns.length}
+          rowProps={listRowProps}
+          rowComponent={DrillByColumnRow}
           overscanCount={20}
-        >
-          {Row}
-        </List>
+        />
       ) : (
         <div
           css={css`
@@ -283,11 +292,18 @@ export const DrillBySubmenu = ({
   );
 
   const menuItem = (
-    <div
+    <button
+      type="button"
       ref={menuItemRef}
-      role="button"
+      aria-disabled={isDisabled}
       tabIndex={isDisabled ? -1 : 0}
       css={css`
+        appearance: none;
+        border: none;
+        background: none;
+        padding: 0;
+        font: inherit;
+        width: 100%;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -298,12 +314,6 @@ export const DrillBySubmenu = ({
         }
       `}
       onClick={() => !isDisabled && setPopoverOpen(!popoverOpen)}
-      onKeyDown={e => {
-        if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
-          setPopoverOpen(!popoverOpen);
-        }
-      }}
     >
       <span>{t('Drill by')}</span>
       {isDisabled ? (
@@ -311,7 +321,7 @@ export const DrillBySubmenu = ({
       ) : (
         <Icons.RightOutlined iconSize="s" iconColor={theme.colorTextTertiary} />
       )}
-    </div>
+    </button>
   );
 
   if (isDisabled) {
@@ -330,7 +340,8 @@ export const DrillBySubmenu = ({
         root: {
           paddingLeft: 0,
         },
-        body: {
+        // antd v6 renamed the inner content slot `body` -> `container`
+        container: {
           padding: theme.sizeUnit * 2,
           boxShadow: theme.boxShadow,
           borderRadius: theme.borderRadius,

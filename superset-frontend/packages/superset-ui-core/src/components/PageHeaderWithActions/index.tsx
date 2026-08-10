@@ -32,10 +32,11 @@ import { CertifiedBadge } from '../CertifiedBadge';
 import { Button } from '../Button';
 
 export const menuTriggerStyles = (theme: SupersetTheme) => css`
-  width: ${theme.sizeUnit * 8}px;
-  height: ${theme.sizeUnit * 8}px;
+  width: ${theme.buttonControlHeight ?? theme.sizeUnit * 8}px;
+  height: ${theme.buttonControlHeight ?? theme.sizeUnit * 8}px;
   padding: 0;
   border: 1px solid ${theme.colorPrimary};
+  border-radius: ${theme.buttonBorderRadius ?? theme.borderRadius}px;
 
   &.ant-btn > span.anticon {
     line-height: 0;

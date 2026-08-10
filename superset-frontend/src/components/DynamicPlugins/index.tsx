@@ -34,7 +34,7 @@ import {
   makeApi,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import { omitBy } from 'lodash';
+import { omitBy } from 'lodash-es';
 import type { Plugin, PluginAction, PluginContextType } from './types';
 
 const metadataRegistry = getChartMetadataRegistry();
@@ -123,6 +123,7 @@ const pluginApi = makeApi<{}, { result: Plugin[] }>({
 
 const sharedModules = {
   react: () => import('react'),
+  // oxlint-disable-next-line no-restricted-imports
   lodash: () => import('lodash'),
   'react-dom': () => import('react-dom'),
   '@superset-ui/chart-controls': () => import('@superset-ui/chart-controls'),

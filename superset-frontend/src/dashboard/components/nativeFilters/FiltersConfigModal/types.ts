@@ -19,6 +19,7 @@
 import {
   AdhocFilter,
   DataMask,
+  DatasourceType,
   NativeFilterType,
   NativeFilterScope,
   Filter,
@@ -54,6 +55,7 @@ export interface NativeFiltersFormItem {
   time_grains?: string[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
+  datasourceType?: DatasourceType;
 }
 export interface NativeFilterDivider {
   id: string;
@@ -89,8 +91,10 @@ export interface ChartCustomizationsFormItem {
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   granularity_sqla?: string;
+  time_grains?: string[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
+  datasourceType?: DatasourceType;
   datasetInfo?: {
     label: string | ReactNode;
     value: number;

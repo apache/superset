@@ -86,10 +86,12 @@ import {
   FundProjectionScreenOutlined,
   FunctionOutlined,
   HighlightOutlined,
+  HomeOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,
   InsertRowBelowOutlined,
+  LayoutOutlined,
   LeftOutlined,
   LineChartOutlined,
   LineOutlined,
@@ -120,6 +122,7 @@ import {
   PushpinOutlined,
   QuestionCircleOutlined,
   ReloadOutlined,
+  RollbackOutlined,
   RightOutlined,
   SaveOutlined,
   SearchOutlined,
@@ -243,10 +246,12 @@ const AntdIcons = {
   GoogleOutlined,
   GroupOutlined,
   HighlightOutlined,
+  HomeOutlined,
   InfoCircleOutlined,
   InfoCircleFilled,
   InsertRowAboveOutlined,
   InsertRowBelowOutlined,
+  LayoutOutlined,
   LeftOutlined,
   LineChartOutlined,
   LineOutlined,
@@ -276,6 +281,7 @@ const AntdIcons = {
   PushpinFilled,
   PushpinOutlined,
   ReloadOutlined,
+  RollbackOutlined,
   QuestionCircleOutlined,
   RightOutlined,
   SaveOutlined,
@@ -329,12 +335,21 @@ export const antdEnhancedIcons: Record<
   .reduce(
     (acc, key) => {
       acc[key as AntdIconNames] = forwardRef<HTMLSpanElement, IconType>(
-        (props, ref) => (
+        (
+          {
+            // Forward-compat: TS 6.0 treats IconComponentProps.component as a
+            // different shape than BaseIconProps.component; strip it from spread
+            // props so our own component binding is authoritative.
+            component: _ignoredComponent,
+            ...rest
+          },
+          ref,
+        ) => (
           <BaseIconComponent
             ref={ref}
             component={AntdIcons[key as AntdIconNames]}
             fileName={key}
-            {...props}
+            {...rest}
           />
         ),
       );

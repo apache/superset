@@ -122,6 +122,14 @@ async def get_dashboard_info(
 
     Returns title, charts, and layout details.
 
+    For dashboards with many charts or native filters, the ``charts`` and
+    ``native_filters`` lists may be capped below their true size (see
+    ``chart_count`` for the real total, and ``_truncation_notes`` in the
+    response when truncation occurred). To retrieve the complete list of
+    charts on a large dashboard regardless of size, call ``list_charts``
+    with ``filters=[{"col": "dashboards", "opr": "eq", "value": <dashboard
+    id>}]`` and page through the results using ``page``/``page_size``.
+
     When permalink_key is provided, also returns the filter state from that
     permalink, allowing you to see what filters the user has applied to the
     dashboard (not just the default filter state).
@@ -155,10 +163,15 @@ async def get_dashboard_info(
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        # Eager load slices and tags to avoid N+1 queries during serialization.
+        # Eager load slices (charts), editors, tags, and embedded rows to avoid
+        # N+1 queries. Also eager load editors/tags on each slice since the
+        # dashboard serializer calls serialize_chart_object for every chart.
         eager_options = [
+            subqueryload(Dashboard.slices).subqueryload(Slice.editors),
             subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+            subqueryload(Dashboard.editors),
             subqueryload(Dashboard.tags),
+            subqueryload(Dashboard.embedded),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_info.lookup"):

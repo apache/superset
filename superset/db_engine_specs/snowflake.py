@@ -30,7 +30,7 @@ from cryptography.hazmat.primitives import serialization
 from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
@@ -96,6 +96,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    supports_grouping_sets = True
 
     metadata = {
         "description": "Snowflake is a cloud-native data warehouse.",
@@ -265,12 +266,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         In Snowflake, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                "SELECT DATABASE_NAME from information_schema.databases"
-            )
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("SELECT DATABASE_NAME from information_schema.databases")
+                )
+            }
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

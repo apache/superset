@@ -158,7 +158,7 @@ class Filter:
     type: PredicateType
     column: Dimension | Metric | None
     operator: Operator
-    value: FilterValues | frozenset[FilterValues]
+    value: FilterValues | tuple[FilterValues, ...] | frozenset[FilterValues]
 
 
 class OrderDirection(enum.Enum):

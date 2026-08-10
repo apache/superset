@@ -17,15 +17,19 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { act, render, waitFor } from 'spec/helpers/testing-library';
 
 import SemanticLayerModal from './SemanticLayerModal';
 
 let mockJsonFormsChangeTriggered = false;
+let capturedOnChange:
+  | ((value: { data: Record<string, unknown>; errors?: unknown[] }) => void)
+  | null = null;
 
 jest.mock('@jsonforms/react', () => ({
   ...jest.requireActual('@jsonforms/react'),
   JsonForms: ({ onChange }: { onChange: (value: unknown) => void }) => {
+    capturedOnChange = onChange as typeof capturedOnChange;
     // eslint-disable-next-line react-hooks/rules-of-hooks
     if (!mockJsonFormsChangeTriggered) {
       mockJsonFormsChangeTriggered = true;
@@ -62,6 +66,7 @@ const props = {
 
 beforeEach(() => {
   mockJsonFormsChangeTriggered = false;
+  capturedOnChange = null;
   jest.useFakeTimers({ advanceTimers: true });
   mockedGet.mockReset();
   mockedPost.mockReset();
@@ -127,4 +132,96 @@ test('posts configuration schema refresh after debounce', async () => {
       },
     });
   });
+});
+
+// Schema with an external dependency: `schema_name` depends on `database`.
+const schemaWithExternalDeps = {
+  type: 'object',
+  properties: {
+    database: {
+      type: 'string',
+      'x-dynamic': true,
+      'x-dependsOn': ['database'],
+    },
+    schema_name: {
+      type: 'string',
+      'x-dynamic': true,
+      'x-dependsOn': ['database'],
+    },
+  },
+};
+
+test('clears dependent field value when parent dependency changes', async () => {
+  mockedGet.mockReset();
+  mockedGet
+    .mockResolvedValueOnce({
+      json: {
+        result: [{ id: 'snowflake', name: 'Snowflake', description: '' }],
+      },
+    })
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          name: 'Layer 1',
+          type: 'snowflake',
+          configuration: { database: 'db1' },
+        },
+      },
+    });
+  mockedPost.mockResolvedValue({ json: { result: schemaWithExternalDeps } });
+
+  render(<SemanticLayerModal {...props} />);
+
+  // Wait for the initial schema fetch from fetchExistingLayer.
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+
+  // Populate schema_name while keeping the same database — no clearing should occur.
+  await act(async () => {
+    capturedOnChange!({
+      data: { database: 'db1', schema_name: 'public' },
+      errors: [],
+    });
+  });
+
+  // Change the database — schema_name must be cleared to avoid stale selections.
+  await act(async () => {
+    capturedOnChange!({
+      data: { database: 'db2', schema_name: 'public' },
+      errors: [],
+    });
+  });
+
+  jest.advanceTimersByTime(501);
+
+  await waitFor(() => {
+    expect(mockedPost).toHaveBeenCalledTimes(2);
+    const config = (
+      mockedPost.mock.calls[1][0] as {
+        jsonPayload: { configuration: Record<string, unknown> };
+      }
+    ).jsonPayload.configuration;
+    expect(config.database).toBe('db2');
+    // schema_name must not carry over the stale 'public' value.
+    expect(config.schema_name).not.toBe('public');
+  });
+});
+
+test('cancels pending schema refresh when dependencies become unsatisfied', async () => {
+  render(<SemanticLayerModal {...props} />);
+
+  // Wait for the initial fetchExistingLayer POST.
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+
+  // The auto-fire from the mock set a debounce timer (warehouse='wh1' satisfies deps).
+  // Clear the dependency before the timer fires — the timer must be cancelled.
+  await act(async () => {
+    capturedOnChange!({ data: { warehouse: '' }, errors: [] });
+  });
+
+  jest.advanceTimersByTime(501);
+
+  await act(async () => {});
+
+  // No additional POST should have fired; the cancelled timer must not land.
+  expect(mockedPost).toHaveBeenCalledTimes(1);
 });

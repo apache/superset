@@ -24,7 +24,7 @@ Create Date: 2022-03-02 09:20:02.919490
 
 from alembic import op
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 
@@ -51,7 +51,7 @@ class SavedQuery(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for model in (Query, SavedQuery):
         for record in session.query(model).filter(model.schema == "null"):

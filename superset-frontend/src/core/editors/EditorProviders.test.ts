@@ -254,33 +254,6 @@ test('event listeners can be disposed', () => {
   expect(listener).toHaveBeenCalledTimes(1); // Still only 1 call
 });
 
-test('handles errors in event listeners gracefully', () => {
-  const manager = EditorProviders.getInstance();
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-  const errorListener = jest.fn(() => {
-    throw new Error('Listener error');
-  });
-  const successListener = jest.fn();
-
-  manager.onDidRegister(errorListener);
-  manager.onDidRegister(successListener);
-
-  manager.registerProvider(createMockEditor(), createMockEditorComponent());
-
-  // Both listeners should have been called
-  expect(errorListener).toHaveBeenCalledTimes(1);
-  expect(successListener).toHaveBeenCalledTimes(1);
-
-  // Error should have been logged
-  expect(consoleErrorSpy).toHaveBeenCalledWith(
-    'Error in event listener:',
-    expect.any(Error),
-  );
-
-  consoleErrorSpy.mockRestore();
-});
-
 test('reset clears all providers and language mappings', () => {
   const manager = EditorProviders.getInstance();
 

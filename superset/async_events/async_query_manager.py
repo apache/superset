@@ -16,10 +16,12 @@
 # under the License.
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TYPE_CHECKING
 
 import jwt
 from flask import Flask, Request, request, Response, session
@@ -31,6 +33,9 @@ from superset.async_events.cache_backend import (
 )
 from superset.utils import json
 from superset.utils.core import get_user_id
+
+if TYPE_CHECKING:
+    from superset.security.guest_token import GuestUser
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +106,10 @@ class AsyncQueryManager:
     STATUS_RUNNING = "running"
     STATUS_ERROR = "error"
     STATUS_DONE = "done"
+    STATUS_CANCELLED = "cancelled"
+    # Redis key prefix (within the GAQ stream namespace) for the per-job record
+    # that authorizes cancellation and flags a job as cancelled for the worker.
+    _JOB_REGISTRY_PREFIX = "job-cancel:"
 
     def __init__(self) -> None:
         super().__init__()
@@ -116,7 +125,6 @@ class AsyncQueryManager:
         self._jwt_expiration_seconds: int = 0
         self._load_chart_data_into_cache_job: Any = None
         # pylint: disable=invalid-name
-        self._load_explore_json_into_cache_job: Any = None
 
     def init_app(self, app: Flask) -> None:
         cache_type = app.config.get("CACHE_CONFIG", {}).get("CACHE_TYPE")
@@ -157,17 +165,24 @@ class AsyncQueryManager:
             self.register_request_handlers(app)
 
         # pylint: disable=import-outside-toplevel
-        from superset.tasks.async_queries import (
-            load_chart_data_into_cache,
-            load_explore_json_into_cache,
-        )
+        from superset.tasks.async_queries import load_chart_data_into_cache
 
         self._load_chart_data_into_cache_job = load_chart_data_into_cache
-        self._load_explore_json_into_cache_job = load_explore_json_into_cache
 
     def register_request_handlers(self, app: Flask) -> None:
         @app.after_request
         def validate_session(response: Response) -> Response:
+            # pylint: disable=import-outside-toplevel
+            from superset import security_manager
+
+            # Guest users (embedded dashboards) are typically loaded from a
+            # third-party context where session cookies are unreliable, so the
+            # async channel is derived deterministically from the guest token
+            # in `parse_channel_id_from_request` and the JWT cookie is not
+            # required.
+            if security_manager.get_current_guest_user_if_guest():
+                return response
+
             user_id = get_user_id()
 
             reset_token = (
@@ -182,14 +197,18 @@ class AsyncQueryManager:
                 session["async_channel_id"] = async_channel_id
                 session["async_user_id"] = user_id
 
-                sub = str(user_id) if user_id else None
+                # Conditionally include 'sub' claim only when user_id is present.
+                # RFC 7519 specifies 'sub' as optional; when present it must be
+                # a string, so omit it entirely for guest/anonymous users.
                 now = datetime.now(tz=timezone.utc)
+                payload = {
+                    "channel": async_channel_id,
+                    "exp": now + timedelta(seconds=self._jwt_expiration_seconds),
+                }
+                if user_id is not None:
+                    payload["sub"] = str(user_id)
                 token = jwt.encode(
-                    {
-                        "channel": async_channel_id,
-                        "sub": sub,
-                        "exp": now + timedelta(seconds=self._jwt_expiration_seconds),
-                    },
+                    payload,
                     self._jwt_secret,
                     algorithm="HS256",
                 )
@@ -206,7 +225,49 @@ class AsyncQueryManager:
 
             return response
 
+    def get_guest_user_channel_id(self, guest_user: GuestUser) -> str:
+        """
+        Derive a deterministic async channel ID for a guest user.
+
+        Embedded guest sessions cannot reliably rely on the async-token cookie
+        because cross-origin cookies are blocked or stripped by modern browsers
+        when running inside a third-party iframe. Using an HMAC over stable
+        guest-token claims yields a per-token channel that the chart data
+        request, the celery worker, and the polling endpoint can all derive
+        without needing a cookie. The HMAC is keyed with the configured JWT
+        secret so the value is unguessable to outside callers.
+        """
+        token = guest_user.guest_token
+        # ``iat`` uniquely identifies a guest token issuance, so it provides
+        # per-token isolation while remaining stable across the lifetime of a
+        # single embedded session.
+        message = json.dumps(
+            {
+                "user": token.get("user"),
+                "resources": token.get("resources"),
+                "iat": token.get("iat"),
+                "exp": token.get("exp"),
+                "aud": token.get("aud"),
+                # ``datasets`` and ``rev`` are optional scope claims, so tokens
+                # that differ only in their dataset allowlist or revocation
+                # version still derive distinct channels.
+                "datasets": token.get("datasets"),
+                "rev": token.get("rev"),
+            },
+            sort_keys=True,
+        ).encode("utf-8")
+        digest = hmac.new(
+            self._jwt_secret.encode("utf-8"), message, hashlib.sha256
+        ).hexdigest()
+        return f"guest-{digest}"
+
     def parse_channel_id_from_request(self, req: Request) -> str:
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+
+        if guest_user := security_manager.get_current_guest_user_if_guest():
+            return self.get_guest_user_channel_id(guest_user)
+
         token = req.cookies.get(self._jwt_cookie_name)
         if not token:
             raise AsyncQueryTokenException("Token not preset")
@@ -219,32 +280,31 @@ class AsyncQueryManager:
 
     def init_job(self, channel_id: str, user_id: Optional[int]) -> dict[str, Any]:
         job_id = str(uuid.uuid4())
+        self._register_cancellable_job(job_id, channel_id, user_id)
         return build_job_metadata(
             channel_id, job_id, user_id, status=self.STATUS_PENDING
         )
 
-    # pylint: disable=too-many-arguments
-    def submit_explore_json_job(
-        self,
-        channel_id: str,
-        form_data: dict[str, Any],
-        response_type: str,
-        force: Optional[bool] = False,
-        user_id: Optional[int] = None,
-    ) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel
-        from superset import security_manager
+    def _job_registry_key(self, job_id: str) -> str:
+        return f"{self._stream_prefix}{self._JOB_REGISTRY_PREFIX}{job_id}"
 
-        job_metadata = self.init_job(channel_id, user_id)
-        self._load_explore_json_into_cache_job.delay(
-            {**job_metadata, "guest_token": guest_user.guest_token}
-            if (guest_user := security_manager.get_current_guest_user_if_guest())
-            else job_metadata,
-            form_data,
-            response_type,
-            force,
+    def _register_cancellable_job(
+        self, job_id: str, channel_id: str, user_id: Optional[int]
+    ) -> None:
+        """
+        Persist the identity a later cancel request must match. Keyed by
+        ``job_id`` (also the Celery task id — see ``submit_chart_data_job``) so
+        the cancel endpoint can authorize the caller against the job's original
+        owner without trusting the client-supplied id. Expires with the JWT so
+        it never outlives the job it guards.
+        """
+        if not self._cache:
+            return
+        self._cache.set(
+            self._job_registry_key(job_id),
+            json.dumps({"channel_id": channel_id, "user_id": user_id}),
+            ex=self._jwt_expiration_seconds or None,
         )
-        return job_metadata
 
     def submit_chart_data_job(
         self,
@@ -260,11 +320,17 @@ class AsyncQueryManager:
         # this way we can keep the cache key consistent between sync and async command
         # so that it can be looked up consistently
         job_metadata = self.init_job(channel_id, user_id)
-        self._load_chart_data_into_cache_job.delay(
-            {**job_metadata, "guest_token": guest_user.guest_token}
-            if (guest_user := security_manager.get_current_guest_user_if_guest())
-            else job_metadata,
-            form_data,
+        self._load_chart_data_into_cache_job.apply_async(
+            args=[
+                {**job_metadata, "guest_token": guest_user.guest_token}
+                if (guest_user := security_manager.get_current_guest_user_if_guest())
+                else job_metadata,
+                form_data,
+            ],
+            # Use job_id as the Celery task id so the cancel endpoint can revoke
+            # the running task by the id the client already holds.
+            task_id=job_metadata["job_id"],
+            expires=self._jwt_expiration_seconds,
         )
         return job_metadata
 
@@ -315,5 +381,88 @@ class AsyncQueryManager:
         logger.debug("********** logging event data to stream %s", scoped_stream_name)
         logger.debug(event_data)
 
+        # Drop the cancel record before announcing the result, so a cancel that
+        # arrives once the job is done finds nothing to flag and is reported as
+        # such instead of contradicting the event below. A cancelled job keeps
+        # its record until the TTL: the worker still has to recognize the
+        # SIGUSR1 it is about to receive as a cancellation.
+        if status in (self.STATUS_DONE, self.STATUS_ERROR):
+            if job_id := job_metadata.get("job_id"):
+                self._cache.delete(self._job_registry_key(job_id))
+
         self._cache.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
         self._cache.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
+
+    def is_job_cancelled(self, job_id: str) -> bool:
+        """
+        Whether ``cancel_job`` has flagged this job for cancellation.
+
+        Called from the worker's exception handler, so any cache failure is
+        swallowed and treated as "not cancelled" — a Redis blip must never mask
+        the original error (e.g. a genuine timeout) with a connection error.
+        """
+        if not self._cache:
+            return False
+        try:
+            raw = self._cache.get(self._job_registry_key(job_id))
+            if raw is None:
+                return False
+            return bool(json.loads(raw).get("cancelled"))
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Failed to read cancellation flag for job %s", job_id, exc_info=True
+            )
+            return False
+
+    def cancel_job(self, job_id: str, channel_id: str, user_id: Optional[int]) -> None:
+        """
+        Authorize and cancel a running async job.
+
+        The caller's ``channel_id`` and ``user_id`` (resolved server-side from
+        the request, never taken from the client) must match the job's original
+        owner. The terminal ``STATUS_CANCELLED`` event is emitted here rather
+        than by the worker, which never runs for a task revoked while it was
+        still queued; the worker only logs the cancellation it is told about
+        through the flag, so a job still gets exactly one terminal event.
+
+        :raises AsyncQueryJobException: the job is unknown or already terminal
+        :raises AsyncQueryTokenException: the caller does not own the job
+        """
+        if not self._cache:
+            raise CacheBackendNotInitialized("Cache backend not initialized")
+
+        key = self._job_registry_key(job_id)
+        raw = self._cache.get(key)
+        if raw is None:
+            raise AsyncQueryJobException("Job not found or already completed")
+
+        record = json.loads(raw)
+        if record.get("channel_id") != channel_id or record.get("user_id") != user_id:
+            raise AsyncQueryTokenException("Not authorized to cancel this job")
+
+        # Flag before revoking so the worker's timeout handler, which may fire
+        # almost immediately, reliably sees the cancellation. Write only if the
+        # key still exists (``xx``): if the job finished and cleared its record
+        # between the read above and here, don't recreate a stale record or
+        # revoke a task that is already gone — report it as not found instead.
+        flagged = self._cache.set(
+            key,
+            json.dumps({**record, "cancelled": True}),
+            ex=self._jwt_expiration_seconds or None,
+            xx=True,
+        )
+        if not flagged:
+            raise AsyncQueryJobException("Job not found or already completed")
+
+        # pylint: disable=import-outside-toplevel
+        from superset.extensions import celery_app
+
+        # SIGUSR1 raises SoftTimeLimitExceeded inside the running task rather
+        # than hard-killing the process, so it unwinds through the task's
+        # exception handling instead of dying mid-query.
+        celery_app.control.revoke(job_id, terminate=True, signal="SIGUSR1")
+
+        self.update_job(
+            build_job_metadata(channel_id, job_id, user_id),
+            self.STATUS_CANCELLED,
+        )

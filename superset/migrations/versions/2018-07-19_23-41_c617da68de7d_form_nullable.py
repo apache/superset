@@ -28,7 +28,7 @@ down_revision = "18dc26817ad2"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, String, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils.core import MediumText  # noqa: E402
@@ -159,7 +159,7 @@ class TableColumn(BaseColumnMixin, Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     tables = [
         Annotation,

@@ -114,7 +114,7 @@ testdata() {
   say "::group::Load test data"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
-  pip install -e .
+  uv pip install --system -e .
   superset db upgrade
   superset load_test_users
   superset load_examples --load-test-data
@@ -127,7 +127,7 @@ playwright_testdata() {
   say "::group::Load all examples for Playwright tests"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
-  pip install -e .
+  uv pip install --system -e .
   superset db upgrade
   superset load_test_users
   superset load_examples
@@ -256,7 +256,7 @@ cypress-run-all() {
   # UNCOMMENT the next few commands to monitor memory usage
   # monitor_memory &  # Start memory monitoring in the background
   # memoryMonitorPid=$!
-  python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group $PARALLEL_ID --retries 5 $USE_DASHBOARD_FLAG
+  python ../../scripts/cypress_run.py --retries 5 $USE_DASHBOARD_FLAG
   # kill $memoryMonitorPid
 }
 

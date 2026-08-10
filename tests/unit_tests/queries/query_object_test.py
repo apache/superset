@@ -45,6 +45,7 @@ def test_default_query_object_to_dict():
         "from_dttm": None,
         "granularity": None,
         "group_others_when_limit_reached": False,
+        "grouping_sets": [],
         "inner_from_dttm": None,
         "inner_to_dttm": None,
         "is_rowcount": False,
@@ -59,6 +60,7 @@ def test_default_query_object_to_dict():
         "series_limit": 0,
         "series_limit_metric": None,
         "time_shift": None,
+        "time_compare_full_range": False,
         "to_dttm": None,
     }
 
