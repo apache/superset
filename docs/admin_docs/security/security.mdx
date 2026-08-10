@@ -209,10 +209,10 @@ GET /api/v1/security/subject/
 The main use case is **id mapping** — given a user, role, or group id, callers (including
 extensions) can look up the corresponding subject entity, and vice versa. Access is gated by
 the `can_read` permission on the `Subject` resource, which is granted to **Admins only** by
-default, since subjects enumerate every user, role, and group on the instance. Non-admins
-receive a `403`. Only `GET` (list, get, info) is exposed — there is no create, update, or
-delete, because subjects are derived automatically from users, roles, and groups and kept in
-sync internally.
+default, since subjects enumerate every user, role, and group on the instance. Callers without
+that permission receive a `403`. Only `GET` (list, get, info) is exposed — there is no create,
+update, or delete, because subjects are derived automatically from users, roles, and groups and
+kept in sync internally.
 
 **Resolve the subject for a given principal id** using [Rison](https://github.com/Nanonid/rison)
 query syntax:
