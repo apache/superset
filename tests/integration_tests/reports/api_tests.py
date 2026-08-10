@@ -377,6 +377,11 @@ class TestReportSchedulesApi(SupersetTestCase):
             "last_state",
             "name",
             "recipients",
+            "retry_max_attempts",
+            "retry_notify_owners",
+            "retry_notify_recipients",
+            "retry_on_failure",
+            "send_failed_reports",
             "timezone",
             "type",
         ]
@@ -614,6 +619,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "working_timeout": 3600,
             "chart": chart.id,
             "database": example_db.id,
+            "include_cta": False,
         }
         uri = "api/v1/report/"
         rv = self.post_assert_metric(uri, report_schedule_data, "post")
@@ -629,6 +635,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert created_model.chart.id == report_schedule_data["chart"]
         assert created_model.database.id == report_schedule_data["database"]
         assert created_model.creation_method == report_schedule_data["creation_method"]
+        assert created_model.include_cta is False
         # Rollback changes
         db.session.delete(created_model)
         db.session.commit()
@@ -1510,6 +1517,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             ],
             "chart": chart.id,
             "database": example_db.id,
+            "include_cta": False,
         }
 
         uri = f"api/v1/report/{report_schedule.id}"
@@ -1524,6 +1532,12 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_model.crontab == report_schedule_data["crontab"]
         assert updated_model.chart_id == report_schedule_data["chart"]
         assert updated_model.database_id == report_schedule_data["database"]
+        assert updated_model.include_cta is False
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"]["include_cta"] is False
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_schedule_clear_recipients(self):

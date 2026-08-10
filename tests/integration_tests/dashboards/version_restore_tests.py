@@ -45,7 +45,7 @@ def _get_version_rows(dashboard: Dashboard) -> list[Any]:
     ver_cls = version_class(Dashboard)
     return (
         db.session.query(ver_cls)
-        .filter(ver_cls.id == dashboard.id)
+        .filter(ver_cls.id == dashboard.id, ver_cls.uuid == dashboard.uuid)
         .order_by(ver_cls.transaction_id.asc())
         .all()
     )
@@ -107,7 +107,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
                 ver_cls.dashboard_title,
                 ver_cls.end_transaction_id,
             )
-            .filter(ver_cls.id == dashboard_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.asc())
             .all()
         )
@@ -168,7 +168,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         ver_cls = version_class(Dashboard)
         target_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == dashboard_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.desc())
             .limit(1)
             .scalar()
@@ -231,7 +231,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         assert entity_uuid is not None
         target_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == dashboard_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.desc())
             .limit(1)
             .scalar()
@@ -290,7 +290,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         assert entity_uuid is not None
         target_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == dashboard_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.desc())
             .limit(1)
             .scalar()
@@ -350,7 +350,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         assert entity_uuid is not None
         first_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == dashboard.id)
+            .filter(ver_cls.id == dashboard.id, ver_cls.uuid == dashboard.uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
@@ -398,8 +398,14 @@ class TestDashboardRestoreApi(SupersetTestCase):
         original_title = dashboard.dashboard_title
 
         ver_cls = version_class(Dashboard)
+        # Pin to (id, uuid), as the API's version lookup does. A shared test
+        # database recycles integer ids across the suite, so an id-only count
+        # picks up shadow rows belonging to hard-deleted predecessors and
+        # over-states this dashboard's history.
         count_before = (
-            db.session.query(ver_cls).filter(ver_cls.id == dashboard_id).count()
+            db.session.query(ver_cls)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == dashboard.uuid)
+            .count()
         )
         expected_old = count_before - 1 if count_before > 0 else None
 

@@ -28,6 +28,7 @@ Alerts and reports are disabled by default. To turn them on, you'll need to chan
 - Users can customize the email subject by including date code placeholders, which will automatically be replaced with the corresponding UTC date when the email is sent. To enable this functionality, activate the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags). This enables date formatting in email subjects, preventing all reporting emails from being grouped into the same thread (optional for the reporting feature).
   - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
   - If no date code is provided, the original string will be used as the email subject.
+- Each alert/report has an "Include a link back to Superset" option (enabled by default) controlling whether the call-to-action link is included in email and Slack notifications. The link text in emails is configurable via `EMAIL_REPORTS_CTA`; the Slack message always uses "Explore in Superset". Uncheck the option when recipients should not receive a link to your Superset host, e.g. for external audiences.
 
 ##### Disable dry-run mode
 
@@ -132,7 +133,7 @@ Superset sends an HTTP POST with `Content-Type: application/json`:
   },
   "text": "Alert condition met: value exceeded threshold",
   "description": "Monthly revenue dropped below target",
-  "url": "https://your-superset-host/superset/dashboard/1/"
+  "url": "https://your-superset-host/dashboard/1/"
 }
 ```
 
@@ -245,6 +246,53 @@ class CeleryConfig:
     }
 CELERY_CONFIG = CeleryConfig
 
+# Scheduled reports share one deadline across browser readiness, capture/PDF
+# generation, delivery, and terminal-state persistence. The effective budget
+# for a schedule is min(this value, the schedule's working_timeout), so the
+# per-schedule field keeps its meaning as a user-facing cap. The default (one
+# hour) matches the historical working_timeout default, so upgrading changes
+# no default behavior; lower it to enforce a tighter report SLA.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = 3600
+
+# These reserves are part of (not additions to) the total budget and their sum
+# must be less than it. Readiness polling stops in time to leave capacity for
+# the later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = 60
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = 120
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = 30
+
+# Celery's hard limit leaves this additional window for terminal cleanup after
+# the soft limit, which equals the resolved execution budget (the configured
+# budget capped by each schedule's working_timeout).
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL controls these Celery limits; disabling
+# it does not disable the application deadline above.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
+
+# Invalid budget/reserve combinations fail application startup instead of
+# allowing every scheduled report to fail later. A report Celery soft timeout
+# records ERROR and increments `reports.execute.celery_soft_timeout`; it does
+# not attempt an in-band customer error notification during the hard-limit
+# grace window. Alert schedules retain their existing timeout notifications.
+#
+# The application deadline is cooperative between synchronous phases. The
+# Celery limits provide the final preemption boundary when the worker pool
+# supports them; PDF construction is checked immediately before and after the
+# synchronous builder but cannot be interrupted inside that call.
+#
+# Sizing the budget against infrastructure limits:
+# - Kubernetes (or similar) pod termination grace must exceed
+#   budget + hard-timeout grace, or in-flight reports are killed mid-run on
+#   every deploy/node drain despite the application deadline.
+# - The web server's per-request timeout (e.g. gunicorn ``timeout``) bounds
+#   each individual chart data request made by the headless browser -- not
+#   the report as a whole. Readiness allowance beyond that per-request
+#   ceiling buys nothing for a single slow chart (its request dies at the
+#   web layer and the chart reaches an error state), but multi-chart and
+#   tiled captures legitimately accumulate total time well past it.
+
+# Screenshot-specific waits continue to apply to thumbnails and other
+# standalone screenshot calls. Scheduled reports derive their waits from the
+# shared execution deadline above.
 SCREENSHOT_LOCATE_WAIT = 100
 SCREENSHOT_LOAD_WAIT = 600
 
@@ -278,7 +326,7 @@ WEBDRIVER_OPTION_ARGS = [
 ]
 
 # This is for internal use, you can keep http
-WEBDRIVER_BASEURL = "http://superset:8088" # When running using docker compose use "http://superset_app:8088'
+WEBDRIVER_BASEURL = "http://superset:8088" # This is also the default for Docker Compose, where the app service is named "superset"
 # This is the link sent to the recipient. Change to your domain, e.g. https://superset.mydomain.com
 WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
 ```
@@ -403,9 +451,9 @@ Possible fixes:
 
 The worker may be unable to reach the report. It will use the value of `WEBDRIVER_BASEURL` to browse to the report. If that route is invalid, or presents an authentication challenge that the worker can't pass, the report screenshot will fail.
 
-Check this by attempting to `curl` the URL of a report that you see in the error logs of your worker. For instance, from the worker environment, run `curl http://superset_app:8088/superset/dashboard/1/`. You may get different responses depending on whether the dashboard exists - for example, you may need to change the `1` in that URL. If there's a URL in your logs from a failed report screenshot, that's a good place to start. The goal is to determine a valid value for `WEBDRIVER_BASEURL` and determine if an issue like HTTPS or authentication is redirecting your worker.
+Check this by attempting to `curl` the URL of a report that you see in the error logs of your worker. For instance, from the worker environment, run `curl http://superset:8088/dashboard/1/`. You may get different responses depending on whether the dashboard exists - for example, you may need to change the `1` in that URL. If there's a URL in your logs from a failed report screenshot, that's a good place to start. The goal is to determine a valid value for `WEBDRIVER_BASEURL` and determine if an issue like HTTPS or authentication is redirecting your worker.
 
-In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in. For instance, you could use `WEBDRIVER_BASEURL="http://superset_app:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG`.
+In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in. For instance, you could use `WEBDRIVER_BASEURL="http://superset:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG` — appropriate only for an isolated development stack or when HTTPS is enforced by a trusted proxy in front of Superset.
 
 ### Duplicate report deliveries
 
