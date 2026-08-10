@@ -93,7 +93,7 @@
     "@typescript-eslint/parser": "^8.65.0",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
-    "globals": "^17.8.0",
+    "globals": "^17.9.0",
     "oxfmt": "^0.61.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.65.0",
