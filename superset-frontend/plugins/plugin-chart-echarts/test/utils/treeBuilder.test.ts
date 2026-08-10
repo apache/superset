@@ -646,4 +646,42 @@ describe('test treeBuilder', () => {
       },
     ]);
   });
+
+  // Regression: a plain-object grouping accumulator coerces every key to a
+  // string, so a SQL NULL and the literal string "null" both land under the
+  // "null" property and merge into one group. Keep them as separate nodes.
+  test('keeps a SQL null and the literal string "null" as distinct groups', () => {
+    const tree = treeBuilder(
+      [
+        { foo: null, count: 2, count2: 3 },
+        { foo: 'null', count: 5, count2: 7 },
+        { foo: 'a', count: 1, count2: 1 },
+      ],
+      ['foo'],
+      'count',
+    );
+    expect(tree).toEqual([
+      { groupBy: 'foo', name: null, secondaryValue: 2, value: 2 },
+      { groupBy: 'foo', name: 'null', secondaryValue: 5, value: 5 },
+      { groupBy: 'foo', name: 'a', secondaryValue: 1, value: 1 },
+    ]);
+  });
+
+  test('filters only the SQL null, not the literal string "null"', () => {
+    const tree = treeBuilder(
+      [
+        { foo: null, count: 2, count2: 3 },
+        { foo: 'null', count: 5, count2: 7 },
+        { foo: 'a', count: 1, count2: 1 },
+      ],
+      ['foo'],
+      'count',
+      undefined,
+      true,
+    );
+    expect(tree).toEqual([
+      { groupBy: 'foo', name: 'null', secondaryValue: 5, value: 5 },
+      { groupBy: 'foo', name: 'a', secondaryValue: 1, value: 1 },
+    ]);
+  });
 });
