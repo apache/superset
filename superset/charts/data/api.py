@@ -65,6 +65,7 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
+from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -567,6 +568,9 @@ class ChartDataRestApi(ChartRestApi):
             if security_manager.is_guest_user():
                 for query in queries:
                     query.pop("query", None)
+                    query.pop("stacktrace", None)
+                    if query.get("error"):
+                        query["error"] = sanitize_error_message(query["error"])
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:
@@ -639,9 +643,9 @@ class ChartDataRestApi(ChartRestApi):
         try:
             result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
-            return self.response_422(message=exc.message)
+            return self.response_422(message=sanitize_error_message(exc.message))
         except ChartDataQueryFailedError as exc:
-            return self.response_400(message=exc.message)
+            return self.response_400(message=sanitize_error_message(exc.message))
 
             # Log is_cached if extra payload callback is provided
         materialized_result = result.materialize()

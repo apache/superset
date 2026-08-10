@@ -28,6 +28,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import {
   calculateLowerLogTick,
   dedupSeries,
+  extractDataTotalValues,
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
@@ -465,6 +466,40 @@ test('sortAndFilterSeries by name with numbers desc', () => {
     '1. January',
     '1',
   ]);
+});
+
+test('extractDataTotalValues excludes extraMetricLabels from the stacked total (#42701)', () => {
+  const data: DataRecord[] = [
+    { category: '1-3d', A: 32, B: 0, Sort: 2 },
+    { category: '4-6d', A: 10, B: 5, Sort: 1 },
+  ];
+  const withoutExclusion = extractDataTotalValues(data, {
+    stack: true,
+    percentageThreshold: 0,
+    xAxisCol: 'category',
+  });
+  // Reproduces the bug: the sort-only metric leaks into the total.
+  expect(withoutExclusion.totalStackedValues).toEqual([34, 16]);
+
+  const withExclusion = extractDataTotalValues(data, {
+    stack: true,
+    percentageThreshold: 0,
+    xAxisCol: 'category',
+    extraMetricLabels: ['Sort'],
+  });
+  expect(withExclusion.totalStackedValues).toEqual([32, 15]);
+});
+
+test('extractDataTotalValues still respects legendState alongside extraMetricLabels', () => {
+  const data: DataRecord[] = [{ category: '1-3d', A: 32, B: 8, Sort: 2 }];
+  const result = extractDataTotalValues(data, {
+    stack: true,
+    percentageThreshold: 0,
+    xAxisCol: 'category',
+    extraMetricLabels: ['Sort'],
+    legendState: { A: true, B: false },
+  });
+  expect(result.totalStackedValues).toEqual([32]);
 });
 
 describe('extractSeries', () => {

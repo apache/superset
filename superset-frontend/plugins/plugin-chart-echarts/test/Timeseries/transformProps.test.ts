@@ -755,6 +755,55 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
+  test('should exclude a verbose-named sort-only metric from the stacked total (#42881)', () => {
+    // rebaseForecastDatum renames a data column to its verboseMap entry when
+    // one is configured, so extraMetricLabels (derived from raw metric
+    // labels) must be resolved through the same verboseMap to still match —
+    // otherwise the sort-only metric's value leaks back into the total.
+    const sortMetricVerboseMap = { sort_metric: 'Sort By Metric' };
+    const sortFormData: SqlaFormData = {
+      ...formData,
+      onlyTotal: true,
+      groupby: [],
+      metrics: ['San Francisco', 'New York', 'Boston'],
+      timeseries_limit_metric: 'sort_metric',
+      x_axis_sort: 'sort_metric',
+    };
+    const sortQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': 32,
+              'New York': 0,
+              Boston: 0,
+              'Sort By Metric': 2,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      formData: sortFormData,
+      queriesData: sortQueriesData,
+      datasource: { verboseMap: sortMetricVerboseMap },
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    const totalLabels = transformedSeries
+      .flatMap((series, seriesIndex) =>
+        series.data.map((value, dataIndex) =>
+          series.label.formatter({ value, dataIndex, seriesIndex }),
+        ),
+      )
+      .filter(label => label !== '');
+
+    expect(totalLabels).toEqual(['32']);
+  });
+
   test('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps = createTestChartProps({ formData, queriesData });
 
