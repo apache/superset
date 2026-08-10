@@ -300,7 +300,7 @@ export default function transformProps(
     currencyCodeColumn,
     detectedCurrency,
   );
-  const percentFormatter = numberFormat.endsWith('%')
+  const percentFormatter = numberFormat?.endsWith('%')
     ? getNumberFormatter(numberFormat)
     : defaultPercentFormatter;
 
