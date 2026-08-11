@@ -460,6 +460,33 @@ test('getPadding should only affect left margin when Y axis title position is Le
   }
 });
 
+test('getPadding should not reserve left margin when there is no Y axis title', () => {
+  const getChartPaddingSpy = setupGetChartPaddingMock();
+  try {
+    const result = getPadding(
+      false, // showLegend
+      LegendOrientation.Top, // legendOrientation
+      false, // addYAxisTitleOffset
+      false, // zoomable
+      null, // margin
+      false, // addXAxisTitleOffset
+      'Left', // yAxisTitlePosition
+      50, // yAxisTitleMargin
+      0, // xAxisTitleMargin
+      false, // isHorizontal
+    );
+
+    // The default title margin must not eat into the plot area when no
+    // title is rendered
+    expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
+    expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop);
+    expect(result.bottom).toBe(TIMESERIES_CONSTANTS.gridOffsetBottom);
+    expect(result.right).toBe(TIMESERIES_CONSTANTS.gridOffsetRight);
+  } finally {
+    getChartPaddingSpy.mockRestore();
+  }
+});
+
 test('getPadding should only affect top margin when Y axis title position is Top', () => {
   const getChartPaddingSpy = setupGetChartPaddingMock();
   try {
