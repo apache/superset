@@ -142,9 +142,10 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
     urls: list[str] = ["http://localhost/dash/ok", "http://localhost/dash/boom"]
     user: mock.MagicMock = mock.MagicMock()
 
-    def side_effect(url: str, _element: str, **kwargs: Any) -> None:
+    def side_effect(url: str, _element: str, **kwargs: Any) -> bytes | None:
         if url.endswith("boom"):
             raise Exception("screenshot failed")
+        return b"PNG"
 
     with (
         mock.patch(
