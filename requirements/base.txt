@@ -167,6 +167,7 @@ greenlet==3.5.4
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==26.0.0
     # via apache-superset (pyproject.toml)
 hashids==1.3.1
