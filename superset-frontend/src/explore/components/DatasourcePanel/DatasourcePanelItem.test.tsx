@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useDraggable } from '@dnd-kit/core';
 import {
   columns,
   metrics,
@@ -25,7 +26,16 @@ import DatasourcePanelItem, {
   DatasourcePanelItemRowProps,
 } from './DatasourcePanelItem';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
+import { DndItemType } from '../DndItemType';
 import { MetricItem, ColumnItem } from './types';
+
+jest.mock('@dnd-kit/core', () => ({
+  ...jest.requireActual('@dnd-kit/core'),
+  useDraggable: jest.fn(),
+}));
+
+const mockUseDraggable = useDraggable as jest.Mock;
+const actualUseDraggable = jest.requireActual('@dnd-kit/core').useDraggable;
 
 const mockData: DatasourcePanelItemRowProps = {
   flattenedItems: [
@@ -82,7 +92,15 @@ const mockData: DatasourcePanelItemRowProps = {
   collapsedFolderIds: new Set(),
 };
 
-const setup = (data: DatasourcePanelItemRowProps = mockData) =>
+beforeEach(() => {
+  mockUseDraggable.mockReset();
+  mockUseDraggable.mockImplementation(actualUseDraggable);
+});
+
+const setup = (
+  data: DatasourcePanelItemRowProps = mockData,
+  initialState: Record<string, unknown> = { explore: {} },
+) =>
   render(
     <>
       {data.flattenedItems.map((_, index) => (
@@ -100,7 +118,7 @@ const setup = (data: DatasourcePanelItemRowProps = mockData) =>
         />
       ))}
     </>,
-    { useDnd: true, useRedux: true, initialState: { explore: {} } },
+    { useDnd: true, useRedux: true, initialState },
   );
 
 test('renders each item accordingly', () => {
@@ -122,4 +140,41 @@ test('can collapse metrics and columns', () => {
   setup();
   userEvent.click(screen.getAllByRole('button')[0]);
   expect(mockData.onToggleCollapse).toHaveBeenCalled();
+});
+
+test('folder drag payload excludes columns filtered out by compatibleDimensions', () => {
+  setup(mockData, {
+    explore: { compatibleDimensions: [columns[0].column_name] },
+  });
+
+  const folderHeaderCalls = mockUseDraggable.mock.calls.filter(
+    ([opts]) => opts.data.type === DndItemType.Folder,
+  );
+  const columnsFolderCall = folderHeaderCalls.find(
+    ([opts]) => opts.data.name === 'Columns',
+  );
+
+  expect(columnsFolderCall![0].data.items).toEqual([
+    expect.objectContaining({
+      type: DndItemType.Column,
+      value: expect.objectContaining({ column_name: columns[0].column_name }),
+    }),
+  ]);
+  expect(columnsFolderCall![0].disabled).toBe(false);
+});
+
+test('folder header is not draggable when every item is filtered out', () => {
+  setup(mockData, {
+    explore: { compatibleDimensions: ['non-existent-column'] },
+  });
+
+  const folderHeaderCalls = mockUseDraggable.mock.calls.filter(
+    ([opts]) => opts.data.type === DndItemType.Folder,
+  );
+  const columnsFolderCall = folderHeaderCalls.find(
+    ([opts]) => opts.data.name === 'Columns',
+  );
+
+  expect(columnsFolderCall![0].data.items).toEqual([]);
+  expect(columnsFolderCall![0].disabled).toBe(true);
 });

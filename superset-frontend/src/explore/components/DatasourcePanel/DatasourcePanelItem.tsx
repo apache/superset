@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { RowComponentProps } from 'react-window';
-import { CSSProperties, ReactNode, useCallback, useMemo } from 'react';
+import { ReactNode, useCallback, useMemo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 
 import { t } from '@apache-superset/core/translation';
@@ -31,6 +31,7 @@ import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { useActiveDrag } from '../ExploreContainer/ExploreDndContext';
 import { collectFolderDragItems, collectFolderIds } from './folderDrag';
+import { isCompatibleItem, useDatasourceCompatibility } from './compatibility';
 import { DndItemValue, FlattenedItem, Folder } from './types';
 
 const LabelWrapper = styled.div`
@@ -181,9 +182,21 @@ const DatasourcePanelItem = ({
   // draggable for non-header rows / empty folders.
   const isFolderHeader = item?.type === 'header';
   const folder = item ? folderMap.get(item.folderId) : undefined;
+  const { compatibleMetrics, compatibleDimensions } =
+    useDatasourceCompatibility();
   const folderDragItems = useMemo(
-    () => (isFolderHeader && folder ? collectFolderDragItems(folder) : []),
-    [isFolderHeader, folder],
+    () =>
+      isFolderHeader && folder
+        ? collectFolderDragItems(folder).filter(({ type, value }) =>
+            isCompatibleItem(
+              type,
+              value,
+              compatibleMetrics,
+              compatibleDimensions,
+            ),
+          )
+        : [],
+    [isFolderHeader, folder, compatibleMetrics, compatibleDimensions],
   );
   const folderDragIds = useMemo(
     () => (isFolderHeader && folder ? collectFolderIds(folder) : []),
