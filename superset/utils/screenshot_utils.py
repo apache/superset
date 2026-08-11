@@ -277,6 +277,61 @@ UNHIDE_TAB_PANELS_JS = """
 }
 """
 
+# The Superset table viz renders all rows into the DOM but wraps them in a
+# fixed-height scroll container with an inline style such as:
+#   style="height: 828px; overflow: auto; width: 1496px; ..."
+# page.pdf() lays out the full DOM but the scroll container clips content to
+# its inline height before the print engine sees it.  This snippet removes
+# the height and overflow constraints from those inline-styled scroll divs
+# so all rows flow into the print output.  It must be evaluated after the
+# readiness wait (so the chart has finished rendering and populated the DOM)
+# and immediately before page.pdf().
+EXPAND_TABLE_CONTAINERS_JS = """
+() => {
+    let count = 0;
+    // Target divs inside .superset-chart-table that have an explicit inline
+    // height AND overflow:auto/scroll — these are the table scroll containers.
+    // Also walk up to the .resizable-container and .dashboard-component-chart-holder
+    // ancestors and unset their inline heights so the expanded table can grow.
+    const roots = document.querySelectorAll(
+        '.superset-chart-table, [data-test-viz-type="table"], [data-test-viz-type="TableChartTransformed"]'
+    );
+    for (const root of roots) {
+        // 1. Expand the inner scroll containers
+        for (const el of root.querySelectorAll('div[style]')) {
+            const s = el.style;
+            const hasHeight = s.height && s.height !== '' && s.height !== 'auto';
+            const hasOverflow = (s.overflow === 'auto' || s.overflow === 'scroll' ||
+                                 s.overflowY === 'auto' || s.overflowY === 'scroll');
+            if (hasHeight && (hasOverflow || el.scrollHeight > el.clientHeight + 10)) {
+                s.height = 'auto';
+                s.maxHeight = 'none';
+                s.overflow = 'visible';
+                s.overflowY = 'visible';
+                count++;
+            }
+        }
+
+        // 2. Walk up the DOM from the table root and unset inline heights on
+        //    ancestor containers (.resizable-container, .chart-slice,
+        //    .dashboard-component-chart-holder) so they don't clip the expanded
+        //    table.  Stop at .dashboard-grid so we don't affect the whole page.
+        let el = root.parentElement;
+        while (el && !el.classList.contains('dashboard-grid')) {
+            if (el.style && el.style.height && el.style.height !== 'auto') {
+                el.style.height = 'auto';
+                el.style.maxHeight = 'none';
+                if (el.style.overflow === 'hidden') {
+                    el.style.overflow = 'visible';
+                }
+            }
+            el = el.parentElement;
+        }
+    }
+    return count;
+}
+"""
+
 
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"

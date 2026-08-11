@@ -49,6 +49,7 @@ from superset.utils.screenshot_utils import (
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
+    EXPAND_TABLE_CONTAINERS_JS,
     FIND_CHART_HOLDER_STATES_JS,
     PRINT_ALL_CHART_HOLDERS_READY_JS,
     REPORT_CHART_HOLDERS_READY_JS,
@@ -1009,12 +1010,15 @@ class WebDriverPlaywright(WebDriverProxy):
         browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
         browser = _browser_manager.get_browser(browser_args)
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
-        # A4 at 96 dpi = 794 px wide (210 mm × 96/25.4).  Rendering the
-        # dashboard at this width means the CSS print-mode reflow and the
-        # PDF paper are the same width, so there is no blank guttering.
-        # Height is set large enough that the page never needs to scroll
-        # before Playwright has read all chart holders.
-        pdf_viewport_width = app.config.get("BROWSER_PRINT_PDF_VIEWPORT_WIDTH", 794)
+        # Render at the authored dashboard width (default 1600 px) so
+        # ECharts/canvas elements measure and draw at their design resolution.
+        # page.pdf(scale=...) then scales the rendered content down to fit
+        # A4 paper width (794 px at 96 dpi), giving full-resolution charts
+        # with no blank guttering — equivalent to browser print-to-PDF with
+        # a custom scale factor.
+        pdf_viewport_width = app.config.get(
+            "BROWSER_PRINT_PDF_VIEWPORT_WIDTH", self._window[0]
+        )
         context = browser.new_context(
             bypass_csp=True,
             viewport={"height": self._window[1], "width": pdf_viewport_width},
@@ -1071,10 +1075,37 @@ class WebDriverPlaywright(WebDriverProxy):
             # readiness settling. This is a no-op if nothing changed.
             page.evaluate(UNHIDE_TAB_PANELS_JS)
 
-            # Native browser print — produces a real vector PDF
+            # Table viz renders all rows into the DOM but wraps them in a
+            # fixed-height scroll container (inline style="height:Xpx;
+            # overflow:auto").  page.pdf() clips to that inline height before
+            # writing to the paper.  Remove the height/overflow constraints
+            # now that the chart has finished mounting so every row flows
+            # into the print output.
+            expanded = page.evaluate(EXPAND_TABLE_CONTAINERS_JS)
+            if expanded:
+                logger.info(
+                    "browser_print_pdf_expand_tables url=%s tables_expanded=%d "
+                    "log_context=%s",
+                    url,
+                    expanded,
+                    log_context or "",
+                )
+
+            # Native browser print — produces a real vector PDF.
+            #
+            # scale = A4 printable width / viewport width so the content
+            # drawn at `pdf_viewport_width` pixels maps exactly onto the
+            # A4 paper with no blank guttering and no overflow.
+            # A4 printable width at 96 dpi with 8 mm margins on each side:
+            #   210 mm total - 16 mm margins = 194 mm = ~735 px at 96 dpi
+            # We use the full paper width (794 px) for the scale ratio so
+            # margins are applied symmetrically by the PDF engine.
+            _a4_px = 794  # A4 width in CSS pixels at 96 dpi
+            _pdf_scale = min(1.0, _a4_px / pdf_viewport_width)
             pdf_bytes = page.pdf(
                 format="A4",
                 print_background=True,
+                scale=_pdf_scale,
                 margin={
                     "top": "10mm",
                     "bottom": "10mm",
