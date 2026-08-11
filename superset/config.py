@@ -551,6 +551,7 @@ LANGUAGES = {
     "fi": {"flag": "fi", "name": "Finnish"},
     "th": {"flag": "th", "name": "Thai"},
     "tr": {"flag": "tr", "name": "Turkish"},
+    "ta": {"flag": "in", "name": "Tamil"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -1550,6 +1551,22 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
+# Optional hook to build a query context for a chart that has no saved
+# ``query_context``, called before the built-in form-data rebuild. Receives the
+# chart's form data (its ``params`` with ``viz_type`` and the
+# ``datasource="{id}__{type}"`` string injected — i.e. ``Slice.form_data``) and
+# returns a query-context payload dict (the shape ``ChartDataQueryContextSchema``
+# loads) or ``None``. A deployment can point this at a service that runs the
+# chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
+# for viz types the built-in rebuild can't handle. Must return ``None`` — not a
+# partial/stub context — whenever it cannot build the chart faithfully, so the
+# export falls through to the built-in rebuild. The export deep-copies whatever
+# it returns before applying dashboard filters, so a builder is free to memoize
+# or share its payloads. Defaults to ``None`` (built-in behavior only).
+EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
+    Callable[[dict[str, Any]], dict[str, Any] | None] | None
+) = None
+
 # ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------
@@ -2101,7 +2118,16 @@ TROUBLESHOOTING_LINK = ""
 WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 
 # This link should lead to a page with instructions on how to gain access to a
-# Datasource. It will be placed at the bottom of permissions errors.
+# Datasource. It is surfaced as a "Request Access" link on data-permission
+# errors (e.g. when a viewer opens a chart whose dataset they cannot access).
+# The URL may include any of these placeholders, which are substituted with
+# URL-encoded values so the link can deep-link into an access-request system:
+#   {datasource_id}    - id of the denied dataset (datasource errors)
+#   {datasource_name}  - name of the denied dataset (datasource errors)
+#   {table_names}      - comma-separated denied table names (table/SQL errors)
+#   {username}         - the requesting user's username
+# A URL with no placeholders is used as-is. Example:
+#   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your
