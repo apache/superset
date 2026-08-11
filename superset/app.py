@@ -18,21 +18,12 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from typing import cast, Iterable, Optional
+from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-
-if sys.version_info >= (3, 11):
-    from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
-else:
-    from typing import TYPE_CHECKING
-
-    if TYPE_CHECKING:
-        from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
-
 from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
@@ -81,6 +72,14 @@ def create_app(
             # value of app_root so things work out of the box
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
+            # Prefix APP_ICON with the static assets prefix so the brand logo
+            # resolves in subdirectory and CDN deployments alike. Using
+            # STATIC_ASSETS_PREFIX (which defaults to app_root just above)
+            # honours a custom CDN/static prefix when the operator sets one.
+            if app.config.get("APP_ICON", "").startswith("/static/"):
+                app.config["APP_ICON"] = (
+                    f"{app.config['STATIC_ASSETS_PREFIX']}{app.config['APP_ICON']}"
+                )
             if app.config["APPLICATION_ROOT"] == "/":
                 app.config["APPLICATION_ROOT"] = app_root
 

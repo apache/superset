@@ -60,6 +60,10 @@ const ChartList = lazy(
   () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
 );
 
+const ArchivedList = lazy(
+  () => import(/* webpackChunkName: "ArchivedList" */ 'src/pages/ArchivedList'),
+);
+
 const CssTemplateList = lazy(
   () =>
     import(
@@ -191,8 +195,8 @@ const RedirectWarning = lazy(
 
 type Routes = {
   path: string;
-  Component: ComponentType<any>;
-  Fallback?: ComponentType<any>;
+  Component: ComponentType;
+  Fallback?: ComponentType;
   props?: ComponentProps<any>;
 }[];
 
@@ -237,12 +241,19 @@ export const routes: Routes = [
   { path: RoutePaths.SQLLAB, Component: SqlLab },
   { path: RoutePaths.USER_INFO, Component: UserInfo },
   { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
-  { path: RoutePaths.REGISTRATIONS, Component: UserRegistrations },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
   routes.push({ path: RoutePaths.TAGS, Component: Tags });
+}
+
+// Recently-Archived view — gated by the soft-delete feature (T007).
+if (isFeatureEnabled(FeatureFlag.SoftDelete)) {
+  routes.push({
+    path: '/archived/',
+    Component: ArchivedList,
+  });
 }
 
 const user = getBootstrapData()?.user;

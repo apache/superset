@@ -72,7 +72,7 @@ function getProviders() {
     // Configure Ant Design to render portals (tooltips, dropdowns, etc.)
     // inside the closest .storybook-example container instead of document.body
     // This fixes positioning issues in the docs pages
-    const getPopupContainer = (triggerNode) => {
+    const getPopupContainer = triggerNode => {
       // Find the closest .storybook-example container
       const container = triggerNode?.closest?.('.storybook-example');
       return container || document.body;
@@ -190,7 +190,11 @@ const CHILDREN_PROP_NAMES = ['label', 'children', 'text', 'content'];
 // Extract children from props based on common conventions
 function extractChildren(props) {
   for (const propName of CHILDREN_PROP_NAMES) {
-    if (props[propName] !== undefined && props[propName] !== null && props[propName] !== '') {
+    if (
+      props[propName] !== undefined &&
+      props[propName] !== null &&
+      props[propName] !== ''
+    ) {
       const { [propName]: childContent, ...restProps } = props;
       return { children: childContent, restProps };
     }
@@ -220,7 +224,11 @@ function generateSampleChildren(sampleChildren, sampleChildrenStyle) {
           return <ChildComponent key={i} {...item.props} />;
         }
         // Fallback if component not found
-        return <div key={i}>{item.props?.children || `Unknown: ${item.component}`}</div>;
+        return (
+          <div key={i}>
+            {item.props?.children || `Unknown: ${item.component}`}
+          </div>
+        );
       }
       // Simple string
       return (
@@ -252,7 +260,16 @@ function generateSampleChildren(sampleChildren, sampleChildrenStyle) {
 // renderComponent allows overriding which component to actually render (useful when the named
 // component is a namespace object like Icons, not a React component)
 // triggerProp: for components like Modal that need a trigger, specify the boolean prop that controls visibility
-function StoryWithControlsInner({ component, renderComponent, props, controls, sampleChildren, sampleChildrenStyle, triggerProp, onHideProp }) {
+function StoryWithControlsInner({
+  component,
+  renderComponent,
+  props,
+  controls,
+  sampleChildren,
+  sampleChildrenStyle,
+  triggerProp,
+  onHideProp,
+}) {
   // Use renderComponent if provided, otherwise use the main component name
   const componentToRender = renderComponent || component;
   const Component = resolveComponent(componentToRender);
@@ -274,7 +291,7 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
     : extractChildren(stateProps);
   // Filter out undefined values so they don't override component defaults
   const filteredProps = Object.fromEntries(
-    Object.entries(restProps).filter(([, v]) => v !== undefined)
+    Object.entries(restProps).filter(([, v]) => v !== undefined),
   );
 
   // Resolve any prop values that are component descriptors
@@ -283,7 +300,12 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
   // e.g., items: [{ id: 'x', element: { component: 'div', props: { children: 'text' } } }]
   Object.keys(filteredProps).forEach(key => {
     const value = filteredProps[key];
-    if (value && typeof value === 'object' && !Array.isArray(value) && value.component) {
+    if (
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      value.component
+    ) {
       const PropComponent = resolveComponent(value.component);
       if (PropComponent) {
         filteredProps[key] = <PropComponent {...value.props} />;
@@ -295,10 +317,18 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
           const resolved = { ...item };
           Object.keys(resolved).forEach(field => {
             const fieldValue = resolved[field];
-            if (fieldValue && typeof fieldValue === 'object' && !Array.isArray(fieldValue) && fieldValue.component) {
+            if (
+              fieldValue &&
+              typeof fieldValue === 'object' &&
+              !Array.isArray(fieldValue) &&
+              fieldValue.component
+            ) {
               const FieldComponent = resolveComponent(fieldValue.component);
               if (FieldComponent) {
-                resolved[field] = React.createElement(FieldComponent, { key: `${key}-${idx}`, ...fieldValue.props });
+                resolved[field] = React.createElement(FieldComponent, {
+                  key: `${key}-${idx}`,
+                  ...fieldValue.props,
+                });
               }
             }
           });
@@ -312,14 +342,16 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
   // For List-like components with dataSource but no renderItem, provide a default
   if (filteredProps.dataSource && !filteredProps.renderItem) {
     const ListItem = resolveComponent('List')?.Item;
-    filteredProps.renderItem = (item) =>
+    filteredProps.renderItem = item =>
       ListItem
         ? React.createElement(ListItem, null, String(item))
         : React.createElement('div', null, String(item));
   }
 
   // Use sample children if provided, otherwise use props children
-  const children = generateSampleChildren(sampleChildren, sampleChildrenStyle) || propsChildren;
+  const children =
+    generateSampleChildren(sampleChildren, sampleChildrenStyle) ||
+    propsChildren;
 
   // For components with a trigger (like Modal with show/onHide), add handlers.
   // onHideProp supports comma-separated names for components with multiple close
@@ -356,7 +388,9 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
                   Open {component}
                 </ButtonComponent>
               )}
-              <Component {...filteredProps} {...triggerProps}>{children}</Component>
+              <Component {...filteredProps} {...triggerProps}>
+                {children}
+              </Component>
             </>
           ) : (
             <div style={{ color: '#999' }}>
@@ -384,7 +418,9 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
                 {control.type === 'select' ? (
                   <select
                     value={stateProps[control.name] ?? ''}
-                    onChange={e => updateProp(control.name, e.target.value || undefined)}
+                    onChange={e =>
+                      updateProp(control.name, e.target.value || undefined)
+                    }
                     style={{ width: '100%', padding: '5px' }}
                   >
                     <option value="">— None —</option>
@@ -394,19 +430,28 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
                       </option>
                     ))}
                   </select>
-                ) : control.type === 'inline-radio' || control.type === 'radio' ? (
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                ) : control.type === 'inline-radio' ||
+                  control.type === 'radio' ? (
+                  <div
+                    style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}
+                  >
                     {control.options?.map(option => (
                       <label
                         key={option}
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
                       >
                         <input
                           type="radio"
                           name={control.name}
                           value={option}
                           checked={stateProps[control.name] === option}
-                          onChange={e => updateProp(control.name, e.target.value)}
+                          onChange={e =>
+                            updateProp(control.name, e.target.value)
+                          }
                         />
                         {option}
                       </label>
@@ -422,7 +467,9 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
                   <input
                     type="number"
                     value={stateProps[control.name]}
-                    onChange={e => updateProp(control.name, Number(e.target.value))}
+                    onChange={e =>
+                      updateProp(control.name, Number(e.target.value))
+                    }
                     style={{ width: '100%', padding: '5px' }}
                   />
                 ) : control.type === 'color' ? (
@@ -457,7 +504,16 @@ function StoryWithControlsInner({ component, renderComponent, props, controls, s
 // A simple component to display a story with controls
 // renderComponent: optional override for which component to render (e.g., 'Icons.InfoCircleOutlined' when component='Icons')
 // triggerProp/onHideProp: for components like Modal that need a button to open (e.g., triggerProp="show", onHideProp="onHide")
-export function StoryWithControls({ component: Component, renderComponent, props = {}, controls = [], sampleChildren, sampleChildrenStyle, triggerProp, onHideProp }) {
+export function StoryWithControls({
+  component: Component,
+  renderComponent,
+  props = {},
+  controls = [],
+  sampleChildren,
+  sampleChildrenStyle,
+  triggerProp,
+  onHideProp,
+}) {
   return (
     <BrowserOnly fallback={<LoadingPlaceholder />}>
       {() => (
@@ -477,7 +533,13 @@ export function StoryWithControls({ component: Component, renderComponent, props
 }
 
 // Inner component for ComponentGallery (browser-only)
-function ComponentGalleryInner({ component, sizes, styles, sizeProp, styleProp }) {
+function ComponentGalleryInner({
+  component,
+  sizes,
+  styles,
+  sizeProp,
+  styleProp,
+}) {
   const Component = resolveComponent(component);
   const Providers = getProviders();
 
@@ -495,7 +557,14 @@ function ComponentGalleryInner({ component, sizes, styles, sizeProp, styleProp }
         {sizes.map(size => (
           <div key={size} style={{ marginBottom: 40 }}>
             <h4 style={{ marginBottom: 16, color: '#666' }}>{size}</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '12px',
+                alignItems: 'center',
+              }}
+            >
               {styles.map(style => (
                 <Component
                   key={`${style}_${size}`}
@@ -513,7 +582,13 @@ function ComponentGalleryInner({ component, sizes, styles, sizeProp, styleProp }
 }
 
 // A component to display a gallery of all variants (sizes x styles)
-export function ComponentGallery({ component, sizes = [], styles = [], sizeProp = 'size', styleProp = 'variant' }) {
+export function ComponentGallery({
+  component,
+  sizes = [],
+  styles = [],
+  sizeProp = 'size',
+  styleProp = 'variant',
+}) {
   return (
     <BrowserOnly fallback={<LoadingPlaceholder />}>
       {() => (

@@ -8,11 +8,9 @@ version: 1
 
 ## CORS
 
-
 :::note
 In Superset versions prior to `5.x` you have to install to install `flask-cors` with `pip install flask-cors` to enable CORS support.
 :::
-
 
 The following keys in `superset_config.py` can be specified to configure CORS:
 
@@ -54,11 +52,13 @@ Restart Superset for this configuration change to take effect.
 There are two approaches to making dashboards publicly accessible:
 
 **Option 1: Dataset-based access (simpler)**
+
 1. Set `PUBLIC_ROLE_LIKE = "Public"` in `superset_config.py`
 2. Grant the Public role access to the relevant datasets (Menu → Security → List Roles → Public)
 3. All published dashboards using those datasets become visible to anonymous users
 
 **Option 2: Dashboard-level access (selective control)**
+
 1. Set `PUBLIC_ROLE_LIKE = "Public"` in `superset_config.py`
 2. Add the `'DASHBOARD_RBAC': True` [Feature Flag](/admin-docs/configuration/feature-flags)
 3. Edit each dashboard's properties and add the "Public" role
@@ -75,7 +75,7 @@ Now anybody can directly access the dashboard's URL. You can embed it in an ifra
   width="600"
   height="400"
   seamless
-  frameBorder="0"
+  frameborder="0"
   scrolling="no"
   src="https://superset.my-domain.com/superset/dashboard/10/?standalone=1&height=400"
 >
@@ -123,17 +123,17 @@ running a custom auth postback endpoint), you can add the endpoints to `WTF_CSRF
 ## SSH Tunneling
 
 1. Turn on feature flag
-    - Change [`SSH_TUNNELING`](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L489) to `True`
-    - If you want to add more security when establishing the tunnel we allow users to overwrite the `SSHTunnelManager` class [here](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L507)
-    - You can also set the [`SSH_TUNNEL_LOCAL_BIND_ADDRESS`](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L508) this the host address where the tunnel will be accessible on your VPC
+   - Change [`SSH_TUNNELING`](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L489) to `True`
+   - If you want to add more security when establishing the tunnel we allow users to overwrite the `SSHTunnelManager` class [here](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L507)
+   - You can also set the [`SSH_TUNNEL_LOCAL_BIND_ADDRESS`](https://github.com/apache/superset/blob/eb8386e3f0647df6d1bbde8b42073850796cc16f/superset/config.py#L508) this the host address where the tunnel will be accessible on your VPC
 
 2. Create database w/ ssh tunnel enabled
-    - With the feature flag enabled you should now see ssh tunnel toggle.
-    - Click the toggle to enable SSH tunneling and add your credentials accordingly.
-        - Superset allows for two different types of authentication (Basic + Private Key). These credentials should come from your service provider.
+   - With the feature flag enabled you should now see ssh tunnel toggle.
+   - Click the toggle to enable SSH tunneling and add your credentials accordingly.
+     - Superset allows for two different types of authentication (Basic + Private Key). These credentials should come from your service provider.
 
 3. Verify data is flowing
-    - Once SSH tunneling has been enabled, go to SQL Lab and write a query to verify data is properly flowing.
+   - Once SSH tunneling has been enabled, go to SQL Lab and write a query to verify data is properly flowing.
 
 ## Domain Sharding
 

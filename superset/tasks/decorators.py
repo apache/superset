@@ -119,9 +119,9 @@ def task(
 
         if context := get_current_extension_context():
             # Extension context: prefix task name to prevent collisions
-            manifest = context.manifest
             task_name = (
-                f"extensions.{manifest.publisher}.{manifest.name}.{base_task_name}"
+                f"extensions.{context.extension.publisher}."
+                f"{context.extension.name}.{base_task_name}"
             )
         else:
             # Host context: use original task name

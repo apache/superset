@@ -48,7 +48,15 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
+from superset.sql.dialects import (
+    DB2,
+    Dremio,
+    Firebolt,
+    Hana,
+    OpenSearch,
+    Pinot,
+    Vertica,
+)
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -121,7 +129,7 @@ SQLGLOT_DIALECTS = {
     # "firebird": ???
     "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
-    "hana": Dialects.POSTGRES,
+    "hana": Hana,
     "hive": Dialects.HIVE,
     # "ibmi": ???
     "impala": Dialects.HIVE,
@@ -159,6 +167,31 @@ SQLGLOT_DIALECTS = {
     # hence a string name rather than a class reference like the built-in dialects.
     "yql": "ydb",
 }
+
+
+def has_aggregate(expression: str, engine: str = "base") -> bool:
+    """
+    Return True if the SQL expression contains an aggregate function, ignoring
+    only an aggregate that is *itself* windowed (``SUM(x) OVER (...)``), which
+    doesn't collapse rows and is just as invalid under a GROUP BY as a plain
+    column. A plain aggregate nested inside a windowed one
+    (``SUM(SUM(x)) OVER ()``) still counts.
+
+    Deliberately permissive so a valid query is never wrongly blocked: an
+    aggregate inside a scalar subquery still counts, and it fails open (returns
+    True) on a parse error or an unmodelled function (``exp.Anonymous``) that
+    might itself be an aggregate.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
+    except Exception:
+        return True
+    if parsed.find(exp.Anonymous):
+        return True
+    return any(
+        not isinstance(agg.parent, exp.Window) for agg in parsed.find_all(exp.AggFunc)
+    )
 
 
 class LimitMethod(enum.Enum):
@@ -1982,7 +2015,24 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
 
         WITH foo AS (SELECT * FROM target_table) SELECT * FROM foo
 
+    A CTE name is always a bare identifier: it can never carry a schema or
+    catalog qualifier. A schema/catalog-qualified reference therefore always
+    resolves to a physical table, even when its final name component happens to
+    match a CTE defined in scope. Such a reference must be reported as a real
+    table so it resolves to the correct object; otherwise
+    ``WITH orders AS (...) SELECT * FROM public.orders`` would treat the
+    qualified ``public.orders`` as the CTE and drop the physical table from the
+    extracted set.
+
+    Note: an unqualified reference is always resolved relative to the caller's
+    own schema/catalog before any downstream use, so treating a bare name that
+    matches a CTE as a CTE stays correct and is intentionally left unchanged
+    here.
     """
+    if source.db or source.catalog:
+        # Qualified references are always physical tables, never CTEs.
+        return False
+
     parent_sources = scope.parent.sources if scope.parent else {}
     ctes_in_scope = {
         name

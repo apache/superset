@@ -27,6 +27,7 @@ from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
@@ -104,7 +105,11 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 width_height_schema = {
     "type": "array",
@@ -122,9 +127,17 @@ screenshot_query_schema = {
         "thumb_size": width_height_schema,
     },
 }
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
-get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_fav_star_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 #
 # Column schema descriptions
@@ -1358,6 +1371,17 @@ class ChartDataQueryObjectSchema(Schema):
         load_default=False,
         allow_none=True,
     )
+    grouping_sets = fields.List(
+        fields.List(fields.String()),
+        metadata={
+            "description": "Rollup levels for non-additive totals: each entry is "
+            "the list of groupby columns to group at that level (e.g. the empty "
+            "list is the grand total). When set and the engine supports it, the "
+            "levels are computed in a single GROUPING SETS query.",
+        },
+        load_default=None,
+        allow_none=True,
+    )
     timeseries_limit = fields.Integer(
         metadata={
             "description": "Maximum row count for timeseries queries. "
@@ -1542,6 +1566,26 @@ class AnnotationDataSchema(Schema):
     )
 
 
+class ChartDataQueryTimingSchema(Schema):
+    """Schema for the versioned per-query timing phases."""
+
+    query_planning_ms = fields.Float(required=True, allow_none=True)
+    cache_resolution_ms = fields.Float(required=True, allow_none=True)
+    data_acquisition_ms = fields.Float(required=True, allow_none=True)
+    payload_assembly_ms = fields.Float(required=True, allow_none=True)
+    total_ms = fields.Float(required=True)
+
+
+class ChartDataTimingSchema(Schema):
+    """Schema for the versioned query lifecycle timing breakdown."""
+
+    version = fields.Integer(
+        required=True,
+        validate=validate.Equal(CHART_DATA_TIMING_VERSION),
+    )
+    query = fields.Nested(ChartDataQueryTimingSchema, required=True)
+
+
 class ChartDataResponseResult(Schema):
     annotation_data = fields.List(
         fields.Dict(
@@ -1652,6 +1696,17 @@ class ChartDataResponseResult(Schema):
     warning = fields.String(
         metadata={"description": "Warning message when results were truncated"},
         allow_none=True,
+    )
+    timing = fields.Nested(
+        ChartDataTimingSchema,
+        metadata={
+            "description": (
+                "Optional versioned query lifecycle timing breakdown in milliseconds. "
+                "Present only when CHART_DATA_INCLUDE_TIMING is enabled; disabled by "
+                "default."
+            )
+        },
+        required=False,
     )
 
 

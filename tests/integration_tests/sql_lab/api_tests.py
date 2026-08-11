@@ -336,6 +336,29 @@ class TestSqlLabApi(SupersetTestCase):
         assert "{{tbl}}" not in resp_data["result"]
         assert resp_data["result"] == expected
 
+    def test_format_sql_request_with_undefined_jinja_attribute(self):
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        # Attribute access on an undefined Jinja variable (``tbl`` is not in the
+        # template params) raises a jinja2 ``UndefinedError`` from within
+        # ``process_template``. This should surface as a typed 400, not an opaque
+        # 500 from the global exception handler. A non-empty ``template_params``
+        # dict is required so the endpoint actually invokes ``process_template``.
+        data = {
+            "sql": "select * from {{ tbl.name }}",
+            "database_id": example_db.id,
+            "template_params": json.dumps({"unrelated": "value"}),
+        }
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 400
+        assert "tbl" in resp_data["errors"][0]["message"]
+        assert "undefined" in resp_data["errors"][0]["message"]
+
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login(ADMIN_USERNAME)

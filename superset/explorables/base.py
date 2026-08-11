@@ -204,7 +204,7 @@ class Explorable(Protocol):
         object describing what data to fetch (columns, metrics, filters, time range,
         etc.) and returns a QueryResult containing a pandas DataFrame with the results.
 
-        :param query_obj: QueryObject describing the query
+        :param query_object: QueryObject describing the query
 
         :return: QueryResult containing:
             - df: pandas DataFrame with query results

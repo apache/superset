@@ -457,13 +457,23 @@ export default function transformProps(
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
+    const labelMapValues = rawLabelMap?.[seriesName];
+
     let displayName: string;
 
     if (groupby.length > 0) {
-      // When we have groupby, format as "metric, dimension"
+      // When we have groupby, format as "metric, dimension". Each series
+      // belongs to the metric recorded in its label-map tuple
+      // ([metric, ...dimensions]) — always using the first metric would
+      // prepend it to every other metric's series (#37921). Tuples without
+      // a metric part fall back to the first metric as before.
+      const metricDisplayName =
+        labelMapValues && labelMapValues.length > 1
+          ? getMetricDisplayName(labelMapValues[0], verboseMap)
+          : MetricDisplayNameA;
       const metricPart: string = showQueryIdentifiers
-        ? `${MetricDisplayNameA} (Query A)`
-        : MetricDisplayNameA;
+        ? `${metricDisplayName} (Query A)`
+        : metricDisplayName;
       displayName = entryName.includes(metricPart)
         ? entryName
         : `${metricPart}, ${entryName}`;
@@ -471,8 +481,6 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
-
-    const labelMapValues = rawLabelMap?.[seriesName];
     if (labelMapValues) {
       displayLabelMap[displayName] = labelMapValues;
     }
@@ -536,13 +544,23 @@ export default function transformProps(
     const seriesEntry = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
+    const labelMapValuesB = rawLabelMapB?.[seriesEntry];
+
     let displayName: string;
 
     if (groupbyB.length > 0) {
-      // When we have groupby, format as "metric, dimension"
+      // When we have groupby, format as "metric, dimension". Each series
+      // belongs to the metric recorded in its label-map tuple
+      // ([metric, ...dimensions]) — always using the first metric would
+      // prepend it to every other metric's series (#37921). Tuples without
+      // a metric part fall back to the first metric as before.
+      const metricDisplayName =
+        labelMapValuesB && labelMapValuesB.length > 1
+          ? getMetricDisplayName(labelMapValuesB[0], verboseMap)
+          : MetricDisplayNameB;
       const metricPart: string = showQueryIdentifiers
-        ? `${MetricDisplayNameB} (Query B)`
-        : MetricDisplayNameB;
+        ? `${metricDisplayName} (Query B)`
+        : metricDisplayName;
       displayName = entryName.includes(metricPart)
         ? entryName
         : `${metricPart}, ${entryName}`;
@@ -550,8 +568,6 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
-
-    const labelMapValuesB = rawLabelMapB?.[seriesEntry];
     if (labelMapValuesB) {
       displayLabelMapB[displayName] = labelMapValuesB;
     }
@@ -641,7 +657,22 @@ export default function transformProps(
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
+        let lastValue: number | undefined;
         const wrapper = (value: number | string) => {
+          // ECharts formats the labels in repeated ascending passes. Reset the
+          // dedup state when the sequence restarts so a forced boundary label
+          // (e.g. the min date) isn't blanked by the previous pass's last label
+          // when both format identically (e.g. a May-to-May range).
+          if (
+            typeof value === 'number' &&
+            lastValue !== undefined &&
+            value <= lastValue
+          ) {
+            lastLabel = undefined;
+          }
+          if (typeof value === 'number') {
+            lastValue = value;
+          }
           const label =
             typeof xAxisFormatter === 'function'
               ? (xAxisFormatter as Function)(value)
@@ -743,6 +774,8 @@ export default function transformProps(
         ...(showMaxLabel && {
           showMaxLabel: true,
           alignMaxLabel: 'right',
+          showMinLabel: true,
+          alignMinLabel: 'left',
         }),
       },
       minorTick: { show: minorTicks },

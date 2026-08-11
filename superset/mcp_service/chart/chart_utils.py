@@ -27,6 +27,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
+from sqlalchemy.exc import SQLAlchemyError
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
@@ -68,7 +70,7 @@ class DatasetValidationResult:
 
 
 def validate_chart_dataset(
-    chart: Any,
+    datasource_id: int | None,
     check_access: bool = True,
 ) -> DatasetValidationResult:
     """
@@ -77,8 +79,12 @@ def validate_chart_dataset(
     This shared utility should be called by MCP tools after creating or retrieving
     charts to detect issues like missing or deleted datasets early.
 
+    Takes the datasource id rather than the chart so that callers holding an ORM
+    instance read it while that instance is attached; reading it here can raise
+    ``DetachedInstanceError`` when a concurrent request has torn down the session.
+
     Args:
-        chart: A chart-like object with datasource_id, datasource_type attributes
+        datasource_id: The chart's ``datasource_id``, or None if it has none
         check_access: Whether to also check user permissions (default True)
 
     Returns:
@@ -90,7 +96,6 @@ def validate_chart_dataset(
     from superset.mcp_service.auth import has_dataset_access
 
     warnings: list[str] = []
-    datasource_id = getattr(chart, "datasource_id", None)
 
     # Check if chart has a datasource reference
     if datasource_id is None:
@@ -289,20 +294,59 @@ def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> "SqlaTable | No
     return DatasetDAO.find_by_id_or_uuid(str(dataset_id))
 
 
+def _is_dataset_column_temporal(
+    col: Any, column_name: str, db_engine_spec: Any
+) -> bool:
+    """Decide temporality for a single dataset column, mirroring
+    TableColumn.is_temporal: native temporal SQL types are always
+    temporal, and is_dttm=True is otherwise trusted over the raw SQL
+    type -- this is the standard, supported way to mark a non-temporal
+    column (e.g. a VARCHAR "ds" partition column on Hive/Presto/Trino)
+    as a date.
+
+    The one case guarded against is a plain NUMERIC column (e.g. an
+    integer "year"/"month" column) that Superset's column-name
+    heuristics may have mis-flagged as is_dttm=True with no
+    python_date_format to parse it -- applying DATE_TRUNC/time_grain to
+    that would fail at query time.
+    """
+    from superset.utils.core import GenericDataType
+
+    is_dttm = bool(getattr(col, "is_dttm", False))
+    col_type = col.type
+    if not col_type:
+        return is_dttm  # No type info, trust is_dttm flag
+
+    column_spec = db_engine_spec.get_column_spec(col_type)
+    generic_type = column_spec.generic_type if column_spec else None
+
+    if generic_type == GenericDataType.TEMPORAL:
+        return True
+    if not is_dttm:
+        return False
+    if generic_type != GenericDataType.NUMERIC or getattr(
+        col, "python_date_format", None
+    ):
+        return True
+
+    logger.debug(
+        "Column '%s' is marked is_dttm=True but has numeric type '%s' with "
+        "no python_date_format; treating as non-temporal to avoid an "
+        "invalid DATE_TRUNC on a numeric column",
+        column_name,
+        col_type,
+    )
+    return False
+
+
 def is_column_truly_temporal(
     column_name: str,
     dataset_id: int | str | None,
     dataset: "SqlaTable | None" = None,
 ) -> bool:
     """
-    Check if a column is truly temporal based on its SQL data type.
-
-    This is important because Superset may mark columns as is_dttm=True based on
-    column name heuristics (e.g., "year", "month"), but if the actual SQL type is
-    BIGINT or INTEGER, DATE_TRUNC will fail.
-
-    Uses the database engine spec's column type mapping to determine the actual
-    GenericDataType, bypassing the is_dttm flag which may be set incorrectly.
+    Check if a column is truly temporal, mirroring TableColumn.is_temporal
+    (see ``_is_dataset_column_temporal`` for the precedence rules).
 
     Args:
         column_name: Name of the column to check
@@ -311,9 +355,8 @@ def is_column_truly_temporal(
             redundant DAO lookup when the caller already resolved it.
 
     Returns:
-        True if the column has a real temporal SQL type, False otherwise
+        True if the column should be treated as temporal, False otherwise
     """
-    from superset.utils.core import GenericDataType
 
     if not dataset_id and dataset is None:
         return True  # Default to temporal if we can't check (backward compatible)
@@ -325,34 +368,11 @@ def is_column_truly_temporal(
         if not dataset:
             return True  # Default to temporal if dataset not found
 
-        # Find the column and check its actual type using db_engine_spec
         column_lower = column_name.lower()
         for col in dataset.columns:
             if col.column_name.lower() == column_lower:
-                col_type = col.type
-                if not col_type:
-                    # No type info, trust is_dttm flag
-                    return getattr(col, "is_dttm", False)
-
-                # Use the db_engine_spec to get the actual GenericDataType
-                # This bypasses the is_dttm flag and checks the real SQL type
                 db_engine_spec = dataset.database.db_engine_spec
-                column_spec = db_engine_spec.get_column_spec(col_type)
-
-                if column_spec:
-                    is_temporal = column_spec.generic_type == GenericDataType.TEMPORAL
-                    if not is_temporal:
-                        logger.debug(
-                            "Column '%s' has type '%s' (generic: %s), "
-                            "treating as non-temporal",
-                            column_name,
-                            col_type,
-                            column_spec.generic_type,
-                        )
-                    return is_temporal
-
-                # If no column_spec, trust is_dttm flag
-                return getattr(col, "is_dttm", False)
+                return _is_dataset_column_temporal(col, column_name, db_engine_spec)
 
         return True  # Default if column not found
 
@@ -441,18 +461,14 @@ def adhoc_filters_to_query_filters(
 
     Adhoc filters use ``{subject, operator, comparator}`` keys while
     ``QueryContextFactory`` expects ``{col, op, val}`` (QueryObjectFilterClause).
+    Delegates to the shared builder so the MCP and dashboard-export paths stay in
+    sync (single source of truth).
     """
-    result: list[Dict[str, Any]] = []
-    for f in adhoc_filters:
-        if f.get("expressionType") == "SIMPLE":
-            result.append(
-                {
-                    "col": f.get("subject"),
-                    "op": f.get("operator"),
-                    "val": f.get("comparator"),
-                }
-            )
-    return result
+    from superset.common.form_data_query_context import (
+        adhoc_filters_to_query_filters as _shared,
+    )
+
+    return _shared(adhoc_filters)
 
 
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
@@ -707,7 +723,9 @@ def configure_temporal_handling(
             form_data.setdefault("_mcp_warnings", []).append(
                 f"time_grain='{time_grain}' was ignored because the x-axis "
                 f"column is not a temporal type. time_grain only applies to "
-                f"DATE/DATETIME/TIMESTAMP columns."
+                f"DATE/DATETIME/TIMESTAMP columns, or other column types "
+                f"explicitly marked as temporal (is_dttm) with a "
+                f"python_date_format on the dataset."
             )
 
 
@@ -1050,23 +1068,39 @@ def _resolve_big_number_temporal_column(
 ) -> str | None:
     """Resolve the column to bind a Big Number's TEMPORAL_RANGE filter to.
 
-    Falls back to the dataset's main_dttm_col when the caller didn't specify
-    temporal_column, and guards the result with is_column_truly_temporal (same
-    check map_xy_config applies to its x-axis) so a non-temporal column never
-    gets a TEMPORAL_RANGE filter. The dataset is fetched at most once here and
-    reused by is_column_truly_temporal instead of letting it re-query by
-    dataset_id.
+    Matches the Explore UI default: use the dataset's main_dttm_col, or its
+    first temporal column when no main column is configured. Guards candidates
+    with is_column_truly_temporal (the same check map_xy_config applies to its
+    x-axis) so a non-temporal column never gets a TEMPORAL_RANGE filter. The
+    dataset is fetched at most once here and reused by the temporal checks
+    instead of letting them re-query by dataset_id.
     """
-    dataset = None
-    if not config.temporal_column:
+    if config.temporal_column:
+        if is_column_truly_temporal(config.temporal_column, dataset_id):
+            return config.temporal_column
+        return None
+
+    try:
         dataset = _find_dataset_by_id_or_uuid(dataset_id)
-    temporal_column = config.temporal_column or (
-        dataset.main_dttm_col if dataset else None
+    except SQLAlchemyError:
+        logger.warning(
+            "Unable to resolve a temporal column for dataset %s",
+            dataset_id,
+            exc_info=True,
+        )
+        return None
+    if not dataset:
+        return None
+
+    candidates: list[str] = []
+    if dataset.main_dttm_col:
+        candidates.append(dataset.main_dttm_col)
+    candidates.extend(
+        column.column_name for column in dataset.columns if column.column_name
     )
-    if temporal_column and is_column_truly_temporal(
-        temporal_column, dataset_id, dataset=dataset
-    ):
-        return temporal_column
+    for temporal_column in dict.fromkeys(candidates):
+        if is_column_truly_temporal(temporal_column, dataset_id, dataset=dataset):
+            return temporal_column
     return None
 
 
@@ -1074,7 +1108,10 @@ def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
     """Map handlebars chart config to Superset form_data."""
     form_data: Dict[str, Any] = {
         "viz_type": "handlebars",
-        "handlebars_template": config.handlebars_template,
+        # Persist under the camelCase key the Handlebars renderer reads
+        # (`formData.handlebarsTemplate`); the snake_case `handlebars_template`
+        # is the tool's request-contract field, not the persisted form_data key.
+        "handlebarsTemplate": config.handlebars_template,
         "row_limit": config.row_limit,
         "order_desc": config.order_desc,
     }
@@ -1489,11 +1526,9 @@ def get_table_chart_type_label(viz_type: str | None) -> str | None:
     return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
-def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
+def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabilities:
     """Analyze chart capabilities based on type and configuration."""
-    if chart:
-        viz_type = getattr(chart, "viz_type", "unknown")
-    else:
+    if not viz_type:
         viz_type = _resolve_viz_type(config)
 
     # Determine interaction capabilities based on chart type
@@ -1539,11 +1574,9 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     )
 
 
-def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
+def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics:
     """Generate semantic understanding of the chart."""
-    if chart:
-        viz_type = getattr(chart, "viz_type", "unknown")
-    else:
+    if not viz_type:
         viz_type = _resolve_viz_type(config)
 
     # Generate primary insight based on chart type
