@@ -479,6 +479,26 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert result["slice_name"] == dashboard.slices[0].slice_name
 
     @pytest.mark.usefixtures("create_dashboards")
+    @patch("superset.dashboards.api.security_manager.can_access_chart")
+    def test_get_dashboard_charts_strips_form_data_without_chart_access(
+        self, can_access_chart_mock
+    ):
+        """A caller who cannot access a member chart does not receive its
+        form_data (datasource/query config), only its identifying fields."""
+        can_access_chart_mock.return_value = False
+        self.login(ADMIN_USERNAME)
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
+        for chart in data["result"]:
+            assert "form_data" not in chart
+            assert "id" in chart
+            assert "slice_name" in chart
+
+    @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):
         """
         Dashboard API: Test getting charts belonging to a dashboard
