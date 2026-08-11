@@ -17,16 +17,15 @@
  * under the License.
  */
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
-import DashboardProvider from '../DashboardProvider';
-import CanvasBlock from './CanvasBlock';
+import DashboardProvider from './DashboardProvider';
+import RootGrid from './RootGrid';
 
 /**
  * What a gesture on the grid commits.
  *
- * `react-grid-layout` is mocked down to the props CanvasBlock feeds it.
- * Everything about how it draws is its own business and covered by its own
- * tests; what matters here is that CanvasBlock always compacts and never
- * allows overlap.
+ * `react-grid-layout` is mocked down to the props RootGrid feeds it. Everything
+ * about how it draws is its own business and covered by its own tests; what
+ * matters here is that RootGrid always compacts and never allows overlap.
  */
 jest.mock('react-grid-layout/legacy', () => ({
   __esModule: true,
@@ -67,7 +66,7 @@ const mount = () => {
   const rootId = provider.getRoot().id;
   const first = provider.addBuildingBlock(rootId, 0, { type: 'markdown' });
   const second = provider.addBuildingBlock(rootId, 1, { type: 'markdown' });
-  render(<CanvasBlock nodeId={rootId} />);
+  render(<RootGrid nodeId={rootId} />);
   return { rootId, first, second };
 };
 
@@ -79,17 +78,17 @@ test('a grid compacts its children and does not let them overlap', () => {
   expect(grid).toHaveAttribute('data-allow-overlap', 'false');
 });
 
-test('the corner a block removes itself from is not also a resize handle', () => {
+test('a block resizes from all four corners', () => {
   mount();
 
-  // react-grid-layout appends its handles after a block's own content, so the
-  // north-east one landed on the remove control and took every click aimed at
-  // it -- `elementFromPoint` at that button's centre returned the handle. A
-  // handle nobody can grab is worse than no handle: the corner still looks
-  // resizable, and answers a drag that starts a pixel to either side.
+  // Used to exclude the north-east corner, which sat under the remove
+  // control -- react-grid-layout appends its handles after a block's own
+  // content, so a handle there took every click aimed at the button beneath
+  // it. The single card-wide inset (see `BuildingBlockView`) moved the
+  // button far enough from the true corner that both now fit.
   expect(screen.getByTestId('rgl')).toHaveAttribute(
     'data-resize-handles',
-    'se,sw,nw',
+    'se,sw,nw,ne',
   );
 });
 
@@ -108,7 +107,7 @@ const paletteTransfer = (type: string) => {
 test('dropping a palette block on a container places it there', () => {
   const { rootId } = mount();
 
-  fireEvent.drop(screen.getByTestId('canvas-container'), {
+  fireEvent.drop(screen.getByTestId('grid-container'), {
     dataTransfer: paletteTransfer('markdown'),
   });
 
@@ -121,7 +120,7 @@ test('a drop carrying something else is not read as a block', () => {
   const { rootId } = mount();
   const before = provider.getNode(rootId)?.children?.length;
 
-  fireEvent.drop(screen.getByTestId('canvas-container'), {
+  fireEvent.drop(screen.getByTestId('grid-container'), {
     dataTransfer: {
       types: ['text/plain'],
       getData: () => '',
@@ -174,6 +173,19 @@ test('the grid is told not to start a drag from the remove control', () => {
   expect(
     screen.getByTestId(`block-remove-${first}`).closest('[data-block-remove]'),
   ).not.toBeNull();
+});
+
+test('the grid is also told not to start a drag from a nested block resize handle', () => {
+  mount();
+
+  // The same guard as the remove control, for the same reason — a `tabs`
+  // block sitting on this grid renders its own resize handle (see
+  // `TabsBlock`'s `FlowItem`) for a block flowed into one of its panes, and
+  // without this, resizing that block also drags the `tabs` item holding it.
+  const cancel = screen
+    .getByTestId('rgl')
+    .getAttribute('data-draggable-cancel');
+  expect(cancel).toContain('[data-block-resize]');
 });
 
 test('clicking the remove control removes rather than selects', () => {

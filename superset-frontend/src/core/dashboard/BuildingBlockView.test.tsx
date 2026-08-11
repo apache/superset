@@ -34,8 +34,8 @@ beforeEach(() => {
 const withBlock = () => {
   const rootId = provider.getRoot().id;
   const id = provider.addBuildingBlock(rootId, 0, {
-    type: 'markdown',
-    props: { content: 'Quarterly notes' },
+    type: 'metric-tile',
+    props: { label: 'Quarterly notes' },
   });
   render(<BuildingBlockView nodeId={id} />);
   return { rootId, id };
@@ -45,7 +45,7 @@ test('a block says which one it is', () => {
   const { id } = withBlock();
 
   // Named by the same call the Outline names its rows by, so a block is not
-  // "Quarterly notes" in one place and "Markdown" in the other.
+  // "Quarterly notes" in one place and "Metric Tile" in the other.
   expect(screen.getByTestId(`block-title-${id}`)).toHaveTextContent(
     'Quarterly notes',
   );

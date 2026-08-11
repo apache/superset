@@ -16,7 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import DashboardProvider from './DashboardProvider';
+import DashboardProvider, { registerContainerType } from './DashboardProvider';
+
+// A stand-in container type for exercising generic container mechanics
+// (holding children, being a valid move/collision target) — 'canvas' itself
+// is no longer addable (it's reserved for the root, see `addBuildingBlock`),
+// and this suite tests `DashboardProvider` in isolation, without the
+// registration (`registerBuiltInBuildingBlocks`) that gives 'tabs'/'tab'
+// their own container status.
+const TEST_CONTAINER_TYPE = 'container';
+
+beforeAll(() => {
+  registerContainerType(TEST_CONTAINER_TYPE);
+});
 
 beforeEach(() => {
   DashboardProvider.getInstance().reset();
@@ -26,12 +38,12 @@ test('returns the singleton instance', () => {
   expect(DashboardProvider.getInstance()).toBe(DashboardProvider.getInstance());
 });
 
-test('starts with a blank root canvas', () => {
+test('starts with a blank root grid', () => {
   const provider = DashboardProvider.getInstance();
 
   expect(provider.getRoot()).toEqual({
     id: 'root',
-    type: 'canvas',
+    type: 'grid',
     layout: { columns: 24, gap: 16 },
     children: [],
   });
@@ -60,11 +72,13 @@ test('addBuildingBlock clamps an out-of-range index', () => {
   expect(provider.getRoot().children).toEqual([id]);
 });
 
-test('addBuildingBlock gives canvas nodes an empty children array', () => {
+test('addBuildingBlock gives container nodes an empty children array', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
 
-  const id = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
+  const id = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
 
   expect(provider.getNode(id)?.children).toEqual([]);
 });
@@ -83,7 +97,7 @@ test('addBuildingBlock throws when the parent cannot hold children', () => {
   const leafId = provider.addBuildingBlock(rootId, 0, { type: 'text' });
 
   expect(() => provider.addBuildingBlock(leafId, 0, { type: 'text' })).toThrow(
-    /not a canvas/,
+    /not a container/,
   );
 });
 
@@ -98,15 +112,17 @@ test('removeBuildingBlock detaches the node from its parent', () => {
   expect(provider.getRoot().children).toEqual([]);
 });
 
-test('removeBuildingBlock removes an entire canvas subtree', () => {
+test('removeBuildingBlock removes an entire container subtree', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const canvasId = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
-  const childId = provider.addBuildingBlock(canvasId, 0, { type: 'text' });
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
+  const childId = provider.addBuildingBlock(containerId, 0, { type: 'text' });
 
-  provider.removeBuildingBlock(canvasId);
+  provider.removeBuildingBlock(containerId);
 
-  expect(provider.getNode(canvasId)).toBeUndefined();
+  expect(provider.getNode(containerId)).toBeUndefined();
   expect(provider.getNode(childId)).toBeUndefined();
 });
 
@@ -131,13 +147,15 @@ test('removeBuildingBlock is a no-op for an unknown id', () => {
 test('moveBuildingBlock relocates a node to a new parent at the given index', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const canvasId = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
   const id = provider.addBuildingBlock(rootId, 1, { type: 'text' });
 
-  provider.moveBuildingBlock(id, canvasId, 0);
+  provider.moveBuildingBlock(id, containerId, 0);
 
-  expect(provider.getRoot().children).toEqual([canvasId]);
-  expect(provider.getNode(canvasId)?.children).toEqual([id]);
+  expect(provider.getRoot().children).toEqual([containerId]);
+  expect(provider.getNode(containerId)?.children).toEqual([id]);
 });
 
 test('moveBuildingBlock keeps an explicit position when the parent is unchanged', () => {
@@ -159,14 +177,16 @@ test('moveBuildingBlock keeps an explicit position when the parent is unchanged'
   });
 });
 
-test('getParentId returns the canvas holding a node', () => {
+test('getParentId returns the container holding a node', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const canvasId = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
-  const childId = provider.addBuildingBlock(canvasId, 0, { type: 'text' });
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
+  const childId = provider.addBuildingBlock(containerId, 0, { type: 'text' });
 
-  expect(provider.getParentId(childId)).toBe(canvasId);
-  expect(provider.getParentId(canvasId)).toBe(rootId);
+  expect(provider.getParentId(childId)).toBe(containerId);
+  expect(provider.getParentId(containerId)).toBe(rootId);
 });
 
 test('getParentId returns undefined for the root and for an unknown id', () => {
@@ -179,9 +199,11 @@ test('getParentId returns undefined for the root and for an unknown id', () => {
 test('moveBuildingBlock throws when moving the root node', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const canvasId = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
 
-  expect(() => provider.moveBuildingBlock(rootId, canvasId, 0)).toThrow(
+  expect(() => provider.moveBuildingBlock(rootId, containerId, 0)).toThrow(
     /Cannot move the root node/,
   );
 });
@@ -193,21 +215,23 @@ test('moveBuildingBlock throws when the target cannot hold children', () => {
   const otherId = provider.addBuildingBlock(rootId, 1, { type: 'text' });
 
   expect(() => provider.moveBuildingBlock(otherId, leafId, 0)).toThrow(
-    /not a canvas/,
+    /not a container/,
   );
 });
 
 test('moveBuildingBlock throws when moving a node into its own subtree', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const canvasId = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
-  const childCanvasId = provider.addBuildingBlock(canvasId, 0, {
-    type: 'canvas',
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
+  const childContainerId = provider.addBuildingBlock(containerId, 0, {
+    type: TEST_CONTAINER_TYPE,
   });
 
-  expect(() => provider.moveBuildingBlock(canvasId, childCanvasId, 0)).toThrow(
-    /into itself or one of its own descendants/,
-  );
+  expect(() =>
+    provider.moveBuildingBlock(containerId, childContainerId, 0),
+  ).toThrow(/into itself or one of its own descendants/);
 });
 
 test("updateLayout merges into the node's existing layout", () => {
@@ -249,7 +273,7 @@ test('updateLayout displaces an explicitly placed sibling it now collides with',
   // Growing `first` down into row 2 now overlaps `second`, which is also
   // explicitly placed — this mirrors what an AI tool call (not a mouse
   // drag) can do, since it goes through this method directly rather than
-  // through CanvasBlock/react-grid-layout's own collision handling.
+  // through RootGrid/react-grid-layout's own collision handling.
   provider.updateLayout(firstId, { rowSpan: 2 });
 
   expect(provider.getNode(firstId)?.layout).toEqual({
@@ -401,7 +425,7 @@ test('removing the selected node clears the selection', () => {
 test('removing a container clears a selection inside its subtree', () => {
   const provider = DashboardProvider.getInstance();
   const sectionId = provider.addBuildingBlock(provider.getRoot().id, 0, {
-    type: 'canvas',
+    type: TEST_CONTAINER_TYPE,
   });
   const childId = provider.addBuildingBlock(sectionId, 0, { type: 'markdown' });
   provider.setSelection(childId);

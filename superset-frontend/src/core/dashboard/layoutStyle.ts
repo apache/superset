@@ -27,7 +27,7 @@ export const DEFAULT_COLUMNS = 24;
 
 const DEFAULT_GAP = 16;
 
-/** A container's resolved grid geometry, in the plain numbers `CanvasBlock` feeds to `react-grid-layout` (`cols`/`rowHeight`/`margin`). */
+/** A container's resolved grid geometry, in the plain numbers `RootGrid` feeds to `react-grid-layout` (`cols`/`rowHeight`/`margin`). */
 export interface GridMetrics {
   columns: number;
   gap: number;

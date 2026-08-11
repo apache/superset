@@ -110,6 +110,81 @@ export function packChildLayout(
   return result;
 }
 
+/** A rectangular span a block being dropped in has room for — see `availableDropSpan`. */
+export interface AvailableDropSpan {
+  w: number;
+  h: number;
+}
+
+/**
+ * How big a block being dropped in at `(cursorCol, cursorRow)` has room for
+ * — up to `maxRowSpan` tall — given `packed`'s existing occupancy: the pure
+ * geometry half of `RootGrid`'s own live drop preview (see its own
+ * `handleDropDragOver`), split out here so it can be exercised without a
+ * real drag gesture, the same reason `packChildLayout`'s own placement math
+ * lives here rather than inside a component.
+ *
+ * Open space returns exactly as wide a span as that row has free, capped at
+ * `columns` — a wholly empty grid included, since nothing anywhere is
+ * occupied there either — and exactly as tall a span as the rows below it,
+ * within that same width, stay just as free, capped at `maxRowSpan`. A gap
+ * that turns out to be as tall as it is wide is not pushing anything out of
+ * the way at all: it was already free on every side. No minimum width of
+ * its own beyond that: every block's own `minW` is 1 (see `RootGrid`'s own
+ * `layout` construction), so a single free column is already as legitimate
+ * a place to drop one as a whole free row is — narrower than that and there
+ * is no width left to report at all.
+ *
+ * Directly over another block there is no *beside* to speak of, only
+ * *above* or *below* it (which `compactType="vertical"` resolves the same
+ * way it already does for repositioning an existing block), so that returns
+ * the full row at `maxRowSpan` instead.
+ */
+export function availableDropSpan(
+  packed: Record<string, PackedRect>,
+  columns: number,
+  cursorCol: number,
+  cursorRow: number,
+  maxRowSpan: number,
+): AvailableDropSpan {
+  const occupied = new Set<string>();
+  Object.values(packed).forEach(rect => {
+    for (let dy = 0; dy < rect.h; dy += 1) {
+      for (let dx = 0; dx < rect.w; dx += 1) {
+        occupied.add(`${rect.x + dx},${rect.y + dy}`);
+      }
+    }
+  });
+
+  if (occupied.has(`${cursorCol},${cursorRow}`)) {
+    return { w: columns, h: maxRowSpan };
+  }
+
+  let left = cursorCol;
+  while (left > 0 && !occupied.has(`${left - 1},${cursorRow}`)) {
+    left -= 1;
+  }
+  let right = cursorCol;
+  while (right < columns - 1 && !occupied.has(`${right + 1},${cursorRow}`)) {
+    right += 1;
+  }
+  const w = right - left + 1;
+
+  const rowIsFree = (row: number): boolean => {
+    for (let dx = 0; dx < w; dx += 1) {
+      if (occupied.has(`${left + dx},${row}`)) return false;
+    }
+    return true;
+  };
+  let bottom = cursorRow;
+  while (bottom - cursorRow + 1 < maxRowSpan && rowIsFree(bottom + 1)) {
+    bottom += 1;
+  }
+  const h = bottom - cursorRow + 1;
+
+  return { w, h };
+}
+
 function rectsOverlap(
   a: { col: number; row: number; colSpan: number; rowSpan: number },
   b: { col: number; row: number; colSpan: number; rowSpan: number },
@@ -127,7 +202,7 @@ function rectsOverlap(
  * (both `col` and `row` set) by pushing a later-declared one straight down,
  * one row at a time, until it no longer overlaps an earlier one — the same
  * "displace, never shrink" rule interactive resize/drag already gets from
- * `react-grid-layout` (see `CanvasBlock`), applied here for the
+ * `react-grid-layout` (see `RootGrid`), applied here for the
  * programmatic placement path (`DashboardProvider.addBuildingBlock`/
  * `updateLayout`, which an extension's AI tools call directly) so both give
  * the same "nothing ends up stuck overlapping" guarantee, not just the one

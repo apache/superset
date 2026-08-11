@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@apache-superset/core/theme';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import { provider, useDashboardRevision } from '../store';
 
@@ -28,7 +27,6 @@ import { provider, useDashboardRevision } from '../store';
  */
 export default function MarkdownBlock({ nodeId }: { nodeId: string }) {
   useDashboardRevision();
-  const theme = useTheme();
   const node = provider.getNode(nodeId);
   if (!node) return null;
 
@@ -37,10 +35,9 @@ export default function MarkdownBlock({ nodeId }: { nodeId: string }) {
       style={{
         width: '100%',
         height: '100%',
-        // Surface, border and corners belong to the card `BuildingBlockView`
-        // draws around this block and the name above it, so that the name is
-        // inside the frame rather than over it.
-        padding: theme.padding,
+        // Surface, border, corners and inset all belong to the card
+        // `BuildingBlockView` draws around this block and the name above
+        // it, so that the name is inside the frame rather than over it.
         overflow: 'auto',
       }}
     >

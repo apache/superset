@@ -32,26 +32,44 @@ type StoredNode = Omit<DashboardNode, 'id'>;
 const ROOT_ID = 'root';
 
 /**
- * The one node type that holds other nodes.
- *
- * Named here because two things need to agree on it and neither should learn
- * it by string comparison of its own: this provider, deciding whether a new
- * node gets a `children` array at all, and the palette, deciding whether a
- * block an author places is a container or something to put in one.
+ * The root's own type — the one container every dashboard always has,
+ * whether or not anything has registered itself as one. Named here because
+ * two things need to agree on it and neither should learn it by string
+ * comparison of its own: this provider, deciding whether a new node gets a
+ * `children` array at all, and the palette, deciding that placing this
+ * specific type is not an authored feature (it's reserved for the root).
+ * Rendered by `Grid` — see `BuildingBlockView`, which resolves the root's
+ * renderer to it directly rather than through the building-block registry.
  */
-export const CONTAINER_TYPE = 'canvas';
+export const GRID_TYPE = 'grid';
+
+/**
+ * Container types beyond the root's own — each registered by whatever adds
+ * that building block (see `registerBuiltInBuildingBlocks`), the same way a
+ * type registers its renderer. A container's own arrangement of its
+ * children is that type's business, not this provider's (see the
+ * composition/layout design doc) — this set only ever answers the one
+ * question the provider itself needs: whether a freshly added node of this
+ * type gets a `children` array to hold them in.
+ */
+const registeredContainerTypes = new Set<string>();
+
+/** Marks `type` as a container, alongside the root's own `grid`. */
+export function registerContainerType(type: string): void {
+  registeredContainerTypes.add(type);
+}
 
 /** Whether placing this type produces something other nodes can go inside. */
 export const isContainerType = (type: string): boolean =>
-  type === CONTAINER_TYPE;
+  type === GRID_TYPE || registeredContainerTypes.has(type);
 
 function createBlankNodes(): Record<string, StoredNode> {
   return {
     [ROOT_ID]: {
-      type: 'canvas',
+      type: GRID_TYPE,
       // No total height is set here, and none is needed — the root grid's
       // rows are created on demand (see resolveContainerGridStyle), so the
-      // canvas is always exactly as tall as its content.
+      // grid is always exactly as tall as its content.
       layout: { columns: DEFAULT_COLUMNS, gap: 16 },
       children: [],
     },
@@ -157,8 +175,8 @@ class DashboardProvider {
   public getNode = (id: string): DashboardNode | undefined => this.toNode(id);
 
   /**
-   * The canvas a node sits in, or `undefined` for the root and for a node
-   * that is not in the tree.
+   * The container a node sits in, or `undefined` for the root and for a
+   * node that is not in the tree.
    *
    * {@link moveBuildingBlock} takes the destination parent as an argument, so
    * every caller that moves a node already has to know which parent it is in
@@ -193,7 +211,7 @@ class DashboardProvider {
    * collide with one another (see {@link resolveExplicitCollisions}) and
    * folds the result into `nodes`. `addBuildingBlock`/`updateLayout` are the
    * two ways an extension's AI tools place a node without going through
-   * `CanvasBlock`'s interactive drag/resize at all — this gives that
+   * `RootGrid`'s interactive drag/resize at all — this gives that
    * programmatic path the same "nothing ends up stuck overlapping"
    * guarantee a mouse-driven resize gets for free from `react-grid-layout`,
    * rather than leaving it to whatever the renderer happens to paper over
@@ -231,13 +249,19 @@ class DashboardProvider {
     index: number,
     spec: BuildingBlockSpec,
   ): string {
+    if (spec.type === GRID_TYPE) {
+      throw new Error(
+        `[dashboard] Cannot add a "${GRID_TYPE}" node — it is reserved for the dashboard root, not a Building Block`,
+      );
+    }
+
     const parent = this.nodes[parentId];
     if (!parent) {
       throw new Error(`[dashboard] Unknown parent node "${parentId}"`);
     }
     if (!parent.children) {
       throw new Error(
-        `[dashboard] Node "${parentId}" cannot hold children (not a canvas)`,
+        `[dashboard] Node "${parentId}" cannot hold children (not a container)`,
       );
     }
 
@@ -303,7 +327,7 @@ class DashboardProvider {
     }
     if (!this.nodes[newParentId]?.children) {
       throw new Error(
-        `[dashboard] Node "${newParentId}" cannot hold children (not a canvas)`,
+        `[dashboard] Node "${newParentId}" cannot hold children (not a container)`,
       );
     }
     if (this.isNodeOrDescendant(id, newParentId)) {
@@ -334,7 +358,7 @@ class DashboardProvider {
     // column count) was only ever meaningful in the *old* parent's grid —
     // carrying it over verbatim into the new one is how a moved node ends
     // up silently overlapping or overflowing its new siblings. Interactive
-    // drag-based reparenting (see `CanvasBlock`'s `handleDragStop`) already
+    // drag-based reparenting (see `RootGrid`'s `handleDragStop`) already
     // resets exactly these two things on drop; this is that same reset,
     // applied here so the programmatic path gives the same guarantee.
     //
@@ -381,7 +405,7 @@ class DashboardProvider {
 
   /**
    * Merges a `layout` update into each of several nodes at once, in a single
-   * commit. A drag or resize that displaces siblings (see `CanvasBlock`)
+   * commit. A drag or resize that displaces siblings (see `RootGrid`)
    * resolves *all* of their new positions together — committing them one
    * {@link updateLayout} call at a time would tick the revision counter, and
    * so re-render every subscriber, once per displaced sibling instead of

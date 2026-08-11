@@ -18,34 +18,34 @@
  */
 import { views } from 'src/core/views';
 import { DASHBOARD_BUILDING_BLOCKS_LOCATION } from './resolveBuildingBlockView';
-import CanvasBlock from './blocks/CanvasBlock';
+import { registerContainerType } from './DashboardProvider';
 import MarkdownBlock from './blocks/MarkdownBlock';
 import ChartBlock from './blocks/ChartBlock';
 import AgGridTableBlock from './blocks/AgGridTableBlock';
 import MetricTileBlock from './blocks/MetricTileBlock';
+import TabsBlock, { TAB_TYPE } from './blocks/TabsBlock';
+import CollapsibleBlock from './blocks/CollapsibleBlock';
+import CarouselBlock, { SLIDE_TYPE } from './blocks/CarouselBlock';
 
 let registered = false;
 
 /**
  * Registers the built-in block types through the exact same `views` call an
- * extension uses to contribute one of its own — canvas/markdown/echarts/
- * ag-grid-table/metric-tile have no special status in the render path (see
- * `BuildingBlockView`), they're just pre-registered here before anything
- * else has a chance to render a dashboard node.
+ * extension uses to contribute one of its own — markdown/echarts/
+ * ag-grid-table/metric-tile/tabs have no special status in the render path
+ * (see `BuildingBlockView`), they're just pre-registered here before
+ * anything else has a chance to render a dashboard node.
+ *
+ * `grid` — the root's own type — is deliberately not among them. The root
+ * is not a Building Block (see the composition/layout design doc): nothing
+ * ever places one, and `BuildingBlockView` resolves the root's renderer
+ * directly rather than through this registry (the same reason `tab`, below,
+ * isn't registered either — see `TabsBlock`).
  */
 export function registerBuiltInBuildingBlocks(): void {
   if (registered) return;
   registered = true;
 
-  views.registerView(
-    {
-      id: 'canvas',
-      name: 'Canvas',
-      description: 'A flex container for other building blocks.',
-    },
-    DASHBOARD_BUILDING_BLOCKS_LOCATION,
-    CanvasBlock,
-  );
   views.registerView(
     {
       id: 'markdown',
@@ -82,4 +82,46 @@ export function registerBuiltInBuildingBlocks(): void {
     DASHBOARD_BUILDING_BLOCKS_LOCATION,
     MetricTileBlock,
   );
+  views.registerView(
+    {
+      id: 'tabs',
+      name: 'Tabs',
+      description: 'Groups building blocks into switchable tabs.',
+    },
+    DASHBOARD_BUILDING_BLOCKS_LOCATION,
+    TabsBlock,
+  );
+  views.registerView(
+    {
+      id: 'collapsible',
+      name: 'Collapsible',
+      description: 'Holds a single building block behind a show/hide toggle.',
+    },
+    DASHBOARD_BUILDING_BLOCKS_LOCATION,
+    CollapsibleBlock,
+  );
+  views.registerView(
+    {
+      id: 'carousel',
+      name: 'Carousel',
+      description:
+        'Groups building blocks into slides, navigated vertically one at a time.',
+    },
+    DASHBOARD_BUILDING_BLOCKS_LOCATION,
+    CarouselBlock,
+  );
+
+  // A tab pane / carousel slide holds its own children (in flow — see
+  // `TabsBlock`/`CarouselBlock`), but neither is registered as a view:
+  // nothing ever resolves one through `resolveBuildingBlockView` — each
+  // renders its pane's/slide's children directly rather than rendering the
+  // node itself. They only need to be recognized container types so
+  // `addBuildingBlock` gives them a `children` array. `collapsible` needs no
+  // such private type: its one child is held directly, with no intermediate
+  // pane (see `CollapsibleBlock`).
+  registerContainerType('tabs');
+  registerContainerType(TAB_TYPE);
+  registerContainerType('collapsible');
+  registerContainerType('carousel');
+  registerContainerType(SLIDE_TYPE);
 }

@@ -55,17 +55,18 @@ test('building blocks is what you start on, and it lists what is registered', ()
   expect(screen.getByTestId('palette-echarts')).toBeVisible();
 });
 
-test('canvas is not offered in the palette, since nesting one is not an authored feature', () => {
+test('the root grid is not offered in the palette, since nesting one is not an authored feature', () => {
   mount();
 
-  // Canvas stays registered so the root node has something to render
-  // through, but placing one is not offered.
+  // The root's own type is resolved directly by `BuildingBlockView`, never
+  // through the `dashboard.buildingBlocks` registry this palette lists from
+  // (see `registerBuiltInBuildingBlocks`) — so there is nothing registered
+  // under either name to ever show up here in the first place.
   expect(screen.queryByTestId('palette-canvas')).not.toBeInTheDocument();
-  // With nothing left on it, the shelf it would have sat on does not render
-  // either.
-  expect(
-    screen.queryByTestId('palette-shelf-structure'),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByTestId('palette-grid')).not.toBeInTheDocument();
+  // The structure shelf still renders — it holds the genuine containers
+  // (tabs/collapsible/carousel), which the root is not one of.
+  expect(screen.getByTestId('palette-shelf-structure')).toBeInTheDocument();
 });
 
 test('clicking a block asks the page to place it', async () => {
@@ -163,7 +164,7 @@ const widthOf = () =>
 test('the panel opens wide enough to edit a block in', () => {
   mount();
 
-  expect(widthOf()).toBe(500);
+  expect(widthOf()).toBe(350);
 });
 
 test('the handle resizes from the keyboard, so a drag is not the only way', () => {
@@ -172,7 +173,7 @@ test('the handle resizes from the keyboard, so a drag is not the only way', () =
   handle.focus();
 
   fireEvent.keyDown(handle, { key: 'ArrowRight' });
-  expect(widthOf()).toBe(516);
+  expect(widthOf()).toBe(366);
 
   fireEvent.keyDown(handle, { key: 'End' });
   expect(widthOf()).toBe(800);
@@ -188,7 +189,7 @@ test('the handle reports the width it actually has', () => {
   // control is lying about the only thing it does.
   expect(screen.getByTestId('panel-resize')).toHaveAttribute(
     'aria-valuenow',
-    '500',
+    '350',
   );
 });
 

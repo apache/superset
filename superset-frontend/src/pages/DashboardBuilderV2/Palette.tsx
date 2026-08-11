@@ -18,17 +18,17 @@
  */
 import { useMemo, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
+import type { views as viewsApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { EmptyState, Input } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { views } from 'src/core/views';
+import { useViews } from 'src/core/views';
 import { DASHBOARD_BUILDING_BLOCKS_LOCATION } from 'src/core/dashboard/resolveBuildingBlockView';
-import {
-  CONTAINER_TYPE,
-  isContainerType,
-} from 'src/core/dashboard/DashboardProvider';
+import { isContainerType } from 'src/core/dashboard/DashboardProvider';
 import { PALETTE_MIME } from 'src/core/dashboard/placement';
+
+type View = viewsApi.View;
 
 /**
  * Which shelf a block sits on.
@@ -60,16 +60,23 @@ export interface PaletteEntry {
   readonly shelf: 'structure' | 'content';
 }
 
-/** Everything registered as a building block, in the order it was registered. */
-export const paletteEntries = (): readonly PaletteEntry[] =>
-  (views.getViews(DASHBOARD_BUILDING_BLOCKS_LOCATION) ?? [])
-    .filter(view => view.id !== CONTAINER_TYPE)
-    .map(view => ({
-      type: view.id,
-      label: view.name,
-      description: view.description,
-      shelf: isContainerType(view.id) ? 'structure' : 'content',
-    }));
+/**
+ * Everything registered as a building block, in the order it was registered.
+ *
+ * No filtering needed for the root's own type: `grid` is not registered
+ * here at all (see `registerBuiltInBuildingBlocks`), since the root is not a
+ * Building Block — nothing to exclude by name, because it was never in this
+ * list to begin with.
+ */
+export const paletteEntries = (
+  registered: readonly View[] | undefined,
+): readonly PaletteEntry[] =>
+  (registered ?? []).map(view => ({
+    type: view.id,
+    label: view.name,
+    description: view.description,
+    shelf: isContainerType(view.id) ? 'structure' : 'content',
+  }));
 
 const matches = (entry: PaletteEntry, query: string): boolean => {
   if (query === '') {
@@ -325,12 +332,19 @@ const Disclosure = ({
 /**
  * The building blocks, as things to place.
  *
- * The list is the registry's — `views.getViews('dashboard.buildingBlocks')`,
- * the same call `BuildingBlockView` resolves a renderer through. Registering
- * a block makes it placeable and unregistering one removes it, with no list
- * here to keep in agreement — except canvas, which stays registered so the
- * root node has something to render through but is filtered out below, since
- * placing one is not an authored feature.
+ * The list is the registry's — `useViews('dashboard.buildingBlocks')`, the
+ * same location `BuildingBlockView` resolves a renderer through for anything
+ * other than the root. Registering a block makes it placeable and
+ * unregistering one removes it, with no list here to keep in agreement.
+ *
+ * `useViews` rather than a one-time read: an extension's own building block
+ * registers itself only once its remote module has actually loaded, which
+ * is asynchronous (a network fetch for its bundle, then Module Federation's
+ * own init) and near-certain to still be in flight on this component's first
+ * render. A snapshot taken then would permanently miss every
+ * extension-contributed block that hadn't finished loading yet — built-ins
+ * never hit this because `registerBuiltInBuildingBlocks` runs synchronously
+ * at import time, well before anything here renders.
  */
 export default function Palette({
   onAdd,
@@ -340,7 +354,8 @@ export default function Palette({
   const [query, setQuery] = useState('');
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
 
-  const entries = useMemo(paletteEntries, []);
+  const registered = useViews(DASHBOARD_BUILDING_BLOCKS_LOCATION);
+  const entries = useMemo(() => paletteEntries(registered), [registered]);
   const found = entries.filter(entry => matches(entry, query));
   const searching = query.trim() !== '';
   const isOpen = (key: string): boolean => searching || !closed.has(key);
