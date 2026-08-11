@@ -28,7 +28,12 @@ import logging
 from flask_appbuilder.security.sqla.models import User
 
 from superset.utils.report_execution import ReportExecutionContext
-from superset.utils.screenshots import BaseScreenshot, WindowSize
+from superset.utils.screenshots import (
+    BaseScreenshot,
+    ChartScreenshot,
+    DashboardScreenshot,
+    WindowSize,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,29 +63,8 @@ class PooledBaseScreenshot(BaseScreenshot):
         )
 
 
-class PooledChartScreenshot(PooledBaseScreenshot):
-    """Pooled version of chart screenshot generation."""
-
-    thumbnail_type: str = "chart"
-    element: str = "chart-container"
-
-    def __init__(
-        self,
-        url: str,
-        digest: str | None,
-        window_size: WindowSize | None = None,
-        thumb_size: WindowSize | None = None,
-    ):
-        from superset.utils.urls import modify_url_query
-        from superset.utils.webdriver import ChartStandaloneMode
-
-        url = modify_url_query(
-            url,
-            standalone=ChartStandaloneMode.HIDE_NAV.value,
-        )
-        super().__init__(url, digest)
-        self.window_size = window_size or (800, 600)
-        self.thumb_size = thumb_size or (400, 300)
+class PooledChartScreenshot(ChartScreenshot):
+    """Pooled version of chart screenshot — delegates entirely to ChartScreenshot."""
 
 
 class PooledExploreScreenshot(PooledBaseScreenshot):
@@ -101,26 +85,5 @@ class PooledExploreScreenshot(PooledBaseScreenshot):
         self.thumb_size = thumb_size or (800, 600)
 
 
-class PooledDashboardScreenshot(PooledBaseScreenshot):
-    """Pooled version of dashboard screenshot generation."""
-
-    thumbnail_type: str = "dashboard"
-    element: str = "standalone"
-
-    def __init__(
-        self,
-        url: str,
-        digest: str | None,
-        window_size: WindowSize | None = None,
-        thumb_size: WindowSize | None = None,
-    ):
-        from superset.utils.urls import modify_url_query
-        from superset.utils.webdriver import DashboardStandaloneMode
-
-        url = modify_url_query(
-            url,
-            standalone=DashboardStandaloneMode.REPORT.value,
-        )
-        super().__init__(url, digest)
-        self.window_size = window_size or (1600, 1200)
-        self.thumb_size = thumb_size or (800, 600)
+class PooledDashboardScreenshot(DashboardScreenshot):
+    """Pooled dashboard screenshot — delegates to DashboardScreenshot."""

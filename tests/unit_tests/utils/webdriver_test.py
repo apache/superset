@@ -88,37 +88,8 @@ class TestPlaywrightAvailabilityCheck:
         """Test check_playwright_availability returns True when module is importable."""
         result = check_playwright_availability()
         assert result is True
-        # Should never launch a browser
+        # Only checks sync_playwright is not None — never launches browser
         mock_sync_playwright.assert_not_called()
-
-    @patch("superset.utils.webdriver.sync_playwright")
-    @patch("superset.utils.webdriver.logger")
-    def test_check_playwright_availability_returns_true_when_module_available(
-        self, mock_logger, mock_sync_playwright
-    ):
-        """Test check_playwright_availability returns True when module is importable."""
-        result = check_playwright_availability()
-        assert result is True
-
-    @patch("superset.utils.webdriver.sync_playwright")
-    @patch("superset.utils.webdriver.logger")
-    def test_check_playwright_availability_does_not_launch_browser(
-        self, mock_logger, mock_sync_playwright
-    ):
-        """Test check_playwright_availability never launches a browser."""
-        result = check_playwright_availability()
-        assert result is True
-        mock_sync_playwright.assert_not_called()
-
-    @patch("superset.utils.webdriver.sync_playwright")
-    @patch("superset.utils.webdriver.logger")
-    def test_check_playwright_availability_ignores_runtime_errors(
-        self, mock_logger, mock_sync_playwright
-    ):
-        """Test check_playwright_availability returns True if module is importable."""
-        # Even if the mock raises, we only check importability
-        result = check_playwright_availability()
-        assert result is True
 
 
 class TestWebDriverPlaywrightFallback:

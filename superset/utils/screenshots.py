@@ -207,6 +207,7 @@ class BaseScreenshot:
         window_size: WindowSize | None = None,
     ) -> WebDriverProxy:
         window_size = window_size or self.window_size
+        # Empty string for driver_type — unused by WebDriverPlaywright internals
         return WebDriverPlaywright("", window_size)
 
     def get_screenshot(
