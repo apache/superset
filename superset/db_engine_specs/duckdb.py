@@ -206,8 +206,10 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
     # Verified against a live duckdb instance (in-process, no server needed),
     # including under GROUPING SETS: the grand total correctly reflects every
-    # row, not an aggregate-of-aggregates. Values match postgres/mysql exactly
-    # for the same inputs. Inherited by MotherDuckEngineSpec.
+    # row, not an aggregate-of-aggregates. STDDEV_SAMP/VAR_SAMP values match
+    # postgres/mysql exactly for the same inputs; MEDIAN matches postgres
+    # (mysql has no native MEDIAN to compare against). Inherited by
+    # MotherDuckEngineSpec.
     _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
         "MEDIAN": sa.func.median,
         "STDDEV_SAMP": sa.func.stddev_samp,

@@ -139,7 +139,7 @@ Example table config:
 ## Available Aggregations
 SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, STDDEV_SAMP, VAR_SAMP, MEDIAN
 (support for STDDEV_SAMP/VAR_SAMP/MEDIAN depends on the connected database;
-an unsupported choice returns a clear error naming the aggregate and database)
+an unsupported choice returns a clear error naming the unsupported aggregate)
 
 ## Custom SQL Metrics
 For ratio metrics, weighted averages, and conditional aggregates,
