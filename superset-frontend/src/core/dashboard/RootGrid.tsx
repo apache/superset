@@ -30,7 +30,12 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { provider, useDashboardRevision } from './store';
 import { resolveGridMetrics } from './layoutStyle';
 import { availableDropSpan, packChildLayout } from './gridPacking';
-import { FALLBACK_ROW_SPAN, PALETTE_MIME, placeBlock, placeBlockAt } from './placement';
+import {
+  FALLBACK_ROW_SPAN,
+  PALETTE_MIME,
+  placeBlock,
+  placeBlockAt,
+} from './placement';
 import BuildingBlockView from './BuildingBlockView';
 
 type LayoutProps = dashboardApi.LayoutProps;
@@ -316,12 +321,14 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
    */
   const handleDropDragOver = (
     event: ReactDragEvent<HTMLDivElement>,
-  ): {
-    w?: number;
-    h?: number;
-    dragOffsetX?: number;
-    dragOffsetY?: number;
-  } | false => {
+  ):
+    | {
+        w?: number;
+        h?: number;
+        dragOffsetX?: number;
+        dragOffsetY?: number;
+      }
+    | false => {
     if (!event.dataTransfer.types.includes(PALETTE_MIME)) {
       return false;
     }
@@ -354,9 +361,7 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
       FALLBACK_ROW_SPAN,
     );
     const pixelWidth = Math.round(colWidth * w + Math.max(0, w - 1) * gap);
-    const pixelHeight = Math.round(
-      rowUnitPx * h + Math.max(0, h - 1) * gap,
-    );
+    const pixelHeight = Math.round(rowUnitPx * h + Math.max(0, h - 1) * gap);
 
     return {
       w,

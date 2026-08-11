@@ -355,10 +355,7 @@ export default function Palette({
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
 
   const registered = useViews(DASHBOARD_BUILDING_BLOCKS_LOCATION);
-  const entries = useMemo(
-    () => paletteEntries(registered),
-    [registered],
-  );
+  const entries = useMemo(() => paletteEntries(registered), [registered]);
   const found = entries.filter(entry => matches(entry, query));
   const searching = query.trim() !== '';
   const isOpen = (key: string): boolean => searching || !closed.has(key);

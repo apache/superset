@@ -76,7 +76,9 @@ test('addBuildingBlock gives container nodes an empty children array', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
 
-  const id = provider.addBuildingBlock(rootId, 0, { type: TEST_CONTAINER_TYPE });
+  const id = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
 
   expect(provider.getNode(id)?.children).toEqual([]);
 });
@@ -113,7 +115,9 @@ test('removeBuildingBlock detaches the node from its parent', () => {
 test('removeBuildingBlock removes an entire container subtree', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const containerId = provider.addBuildingBlock(rootId, 0, { type: TEST_CONTAINER_TYPE });
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
   const childId = provider.addBuildingBlock(containerId, 0, { type: 'text' });
 
   provider.removeBuildingBlock(containerId);
@@ -143,7 +147,9 @@ test('removeBuildingBlock is a no-op for an unknown id', () => {
 test('moveBuildingBlock relocates a node to a new parent at the given index', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const containerId = provider.addBuildingBlock(rootId, 0, { type: TEST_CONTAINER_TYPE });
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
   const id = provider.addBuildingBlock(rootId, 1, { type: 'text' });
 
   provider.moveBuildingBlock(id, containerId, 0);
@@ -174,7 +180,9 @@ test('moveBuildingBlock keeps an explicit position when the parent is unchanged'
 test('getParentId returns the container holding a node', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const containerId = provider.addBuildingBlock(rootId, 0, { type: TEST_CONTAINER_TYPE });
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
   const childId = provider.addBuildingBlock(containerId, 0, { type: 'text' });
 
   expect(provider.getParentId(childId)).toBe(containerId);
@@ -191,7 +199,9 @@ test('getParentId returns undefined for the root and for an unknown id', () => {
 test('moveBuildingBlock throws when moving the root node', () => {
   const provider = DashboardProvider.getInstance();
   const rootId = provider.getRoot().id;
-  const containerId = provider.addBuildingBlock(rootId, 0, { type: TEST_CONTAINER_TYPE });
+  const containerId = provider.addBuildingBlock(rootId, 0, {
+    type: TEST_CONTAINER_TYPE,
+  });
 
   expect(() => provider.moveBuildingBlock(rootId, containerId, 0)).toThrow(
     /Cannot move the root node/,
@@ -221,9 +231,7 @@ test('moveBuildingBlock throws when moving a node into its own subtree', () => {
 
   expect(() =>
     provider.moveBuildingBlock(containerId, childContainerId, 0),
-  ).toThrow(
-    /into itself or one of its own descendants/,
-  );
+  ).toThrow(/into itself or one of its own descendants/);
 });
 
 test("updateLayout merges into the node's existing layout", () => {

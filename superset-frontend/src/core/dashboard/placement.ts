@@ -106,7 +106,7 @@ export function placeBlock(parentId: string, type: string): string {
   const index = provider.getNode(parentId)?.children?.length ?? 0;
   const onRootGrid = provider.getNode(parentId)?.type === GRID_TYPE;
   const rowSpan = onRootGrid
-    ? DEFAULT_ROW_SPAN[type] ?? FALLBACK_ROW_SPAN
+    ? (DEFAULT_ROW_SPAN[type] ?? FALLBACK_ROW_SPAN)
     : undefined;
   const id = provider.addBuildingBlock(parentId, index, {
     type,

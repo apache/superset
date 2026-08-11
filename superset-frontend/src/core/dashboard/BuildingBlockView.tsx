@@ -273,7 +273,9 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           // arranged on, not a card among them — so it gets none of a card's
           // trappings: no fill, no border, no rounded corners of its own.
           backgroundColor: isRoot ? undefined : theme.colorBgContainer,
-          border: isRoot ? undefined : `1px solid ${theme.colorBorderSecondary}`,
+          border: isRoot
+            ? undefined
+            : `1px solid ${theme.colorBorderSecondary}`,
           borderRadius: isRoot ? undefined : theme.borderRadiusLG,
           // Nothing reaches past the corners this rounds — a block's content
           // is square and would otherwise fill them back in. Moot on the

@@ -120,9 +120,7 @@ test('a block placed while a container is selected goes inside it', async () => 
 
   // An author who has just selected a pane and reaches for a block means to
   // put it in that pane.
-  expect(provider.getNode(paneId)?.children).toEqual([
-    provider.getSelection(),
-  ]);
+  expect(provider.getNode(paneId)?.children).toEqual([provider.getSelection()]);
   expect(provider.getNode(tabsId)?.children).toEqual([paneId]);
 });
 

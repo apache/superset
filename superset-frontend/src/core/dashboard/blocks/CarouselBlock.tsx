@@ -93,9 +93,9 @@ const Dot = styled.button<{ $active: boolean }>`
     transition: background-color ${theme.motionDurationMid};
 
     &:hover {
-      background-color: ${$active
-        ? theme.colorPrimary
-        : theme.colorPrimaryBorder};
+      background-color: ${
+        $active ? theme.colorPrimary : theme.colorPrimaryBorder
+      };
     }
 
     &:focus-visible {

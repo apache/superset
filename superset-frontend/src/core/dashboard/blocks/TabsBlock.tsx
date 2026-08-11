@@ -142,13 +142,18 @@ const untitledLabel = (index: number): string => t('Tab %s', index + 1);
  * whenever the previously active one no longer exists — most commonly right
  * after that pane is removed, or on a first render with no pane yet.
  */
-export default function TabsBlock({ nodeId }: { nodeId: string }): ReactElement | null {
+export default function TabsBlock({
+  nodeId,
+}: {
+  nodeId: string;
+}): ReactElement | null {
   useDashboardRevision();
   const node = provider.getNode(nodeId);
   const panes = node?.children ?? [];
 
   const [activeTabId, setActiveTabId] = useState<string | undefined>(panes[0]);
-  const activeIsValid = activeTabId !== undefined && panes.includes(activeTabId);
+  const activeIsValid =
+    activeTabId !== undefined && panes.includes(activeTabId);
   if (!activeIsValid && activeTabId !== panes[0]) {
     setActiveTabId(panes[0]);
   }

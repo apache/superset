@@ -230,7 +230,10 @@ export function FlowItem({
             }
       }
     >
-      <BuildingBlockView nodeId={nodeId} style={{ width: '100%', height: '100%' }}>
+      <BuildingBlockView
+        nodeId={nodeId}
+        style={{ width: '100%', height: '100%' }}
+      >
         <ResizeGrip
           // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="separator"
@@ -339,4 +342,3 @@ export function FlowContent({
     </FlowArea>
   );
 }
-

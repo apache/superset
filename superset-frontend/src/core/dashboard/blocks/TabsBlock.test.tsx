@@ -86,7 +86,9 @@ test('a second tab can be removed, falling back to the remaining one', () => {
   fireEvent.click(screen.getByTestId(`tabs-add-${tabsId}`));
   const secondTab = screen.getByRole('tab', { name: 'Tab 2' });
   fireEvent.click(secondTab);
-  fireEvent.click(screen.getByTestId(`tab-remove-${provider.getNode(tabsId)?.children?.[1]}`));
+  fireEvent.click(
+    screen.getByTestId(`tab-remove-${provider.getNode(tabsId)?.children?.[1]}`),
+  );
 
   expect(screen.queryByRole('tab', { name: 'Tab 2' })).not.toBeInTheDocument();
   expect(provider.getNode(tabsId)?.children).toEqual([firstPaneId]);
@@ -104,7 +106,9 @@ test('dropping a palette block onto the active pane places it there', () => {
   });
   render(<TabsBlock nodeId={tabsId} />);
 
-  const data = new Map([['application/x-dashboard-building-block', 'markdown']]);
+  const data = new Map([
+    ['application/x-dashboard-building-block', 'markdown'],
+  ]);
   fireEvent.drop(screen.getByTestId(`tabs-panes-${tabsId}`), {
     dataTransfer: {
       types: [...data.keys()],

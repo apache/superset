@@ -104,7 +104,8 @@ export function registerBuiltInBuildingBlocks(): void {
     {
       id: 'carousel',
       name: 'Carousel',
-      description: 'Groups building blocks into slides, navigated vertically one at a time.',
+      description:
+        'Groups building blocks into slides, navigated vertically one at a time.',
     },
     DASHBOARD_BUILDING_BLOCKS_LOCATION,
     CarouselBlock,
