@@ -795,8 +795,11 @@ export function getPadding(
         zoomable && !isHorizontal
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
           : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
+      // The title margin is only reserved when a Y-axis title is actually
+      // rendered. Without this guard every chart pays for the default
+      // margin, which eats a large share of the plot area on narrow charts.
       left:
-        yAxisTitlePosition === 'Left'
+        yAxisTitlePosition === 'Left' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetLeft +
             (Number(yAxisTitleMargin) || 0)
           : TIMESERIES_CONSTANTS.gridOffsetLeft,
