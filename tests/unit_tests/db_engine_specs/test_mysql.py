@@ -118,6 +118,29 @@ def test_fetch_data_mutates_decimal_rows_in_tuple_results() -> None:
     assert data == [(Decimal("10.50"), "Ships"), (Decimal("22.30"), "Planes")]
 
 
+def test_fetch_data_mutates_duplicate_decimal_column_names() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    newdecimal, var_string = 246, 253
+    cursor = Mock()
+    cursor.description = [
+        ("amount", newdecimal),
+        ("amount", var_string),
+        ("amount", newdecimal),
+    ]
+    cursor.fetchall.return_value = [("10.50", "not a decimal", "22.30")]
+
+    original_type_code_map = spec.type_code_map
+    spec.type_code_map = {newdecimal: "NEWDECIMAL", var_string: "VAR_STRING"}
+
+    try:
+        data = spec.fetch_data(cursor)
+    finally:
+        spec.type_code_map = original_type_code_map
+
+    assert data == [(Decimal("10.50"), "not a decimal", Decimal("22.30"))]
+
+
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
@@ -300,7 +323,7 @@ def test_column_type_mutator(
     assert spec.fetch_data(mock_cursor) == expected_result
 
 
-def test_get_datatype_pymysql_fallback():
+def test_get_datatype_pymysql_fallback() -> None:
     """get_datatype() falls back to pymysql when MySQLdb is not installed."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
@@ -311,14 +334,14 @@ def test_get_datatype_pymysql_fallback():
     try:
         # Build a fake pymysql module with constants.FIELD_TYPE
         fake_field_type = ModuleType("pymysql.constants.FIELD_TYPE")
-        fake_field_type.TINY = 1
-        fake_field_type.VARCHAR = 15
+        setattr(fake_field_type, "TINY", 1)
+        setattr(fake_field_type, "VARCHAR", 15)
 
         fake_constants = ModuleType("pymysql.constants")
-        fake_constants.FIELD_TYPE = fake_field_type
+        setattr(fake_constants, "FIELD_TYPE", fake_field_type)
 
         fake_pymysql = ModuleType("pymysql")
-        fake_pymysql.constants = fake_constants
+        setattr(fake_pymysql, "constants", fake_constants)
 
         original_import = builtins.__import__
 
@@ -336,6 +359,33 @@ def test_get_datatype_pymysql_fallback():
             assert MySQLEngineSpec.get_datatype(999) is None
     finally:
         # Restore original state
+        MySQLEngineSpec.type_code_map = original_type_code_map
+
+
+def test_get_datatype_mysqlconnector_fallback() -> None:
+    """get_datatype() supports mysql-connector-python without PyMySQL."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    original_type_code_map = MySQLEngineSpec.type_code_map
+    MySQLEngineSpec.type_code_map = {}
+
+    try:
+        fake_field_type = ModuleType("mysql.connector.constants.FieldType")
+        setattr(fake_field_type, "NEWDECIMAL", 246)
+        fake_constants = ModuleType("mysql.connector.constants")
+        setattr(fake_constants, "FieldType", fake_field_type)
+        original_import = builtins.__import__
+
+        def mock_import(name: str, *args: Any, **kwargs: Any) -> Any:
+            if name in {"MySQLdb", "pymysql"}:
+                raise ImportError(f"No module named '{name}'")
+            if name == "mysql.connector.constants":
+                return fake_constants
+            return original_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            assert MySQLEngineSpec.get_datatype(246) == "NEWDECIMAL"
+    finally:
         MySQLEngineSpec.type_code_map = original_type_code_map
 
 

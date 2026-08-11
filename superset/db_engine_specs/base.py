@@ -1326,12 +1326,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
             description = cursor.description or []
-            # Create a mapping between column name and a mutator function to normalize
-            # values with. The first two items in the description row are
-            # the column name and type.
+            # Create a mapping between column index and a mutator function to normalize
+            # values with. The first two items in the description row are the column
+            # name and type.
             column_mutators = {
-                row[0]: func
-                for row in description
+                index: func
+                for index, row in enumerate(description)
                 if (
                     func := cls.column_type_mutators.get(
                         type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
@@ -1341,11 +1341,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if column_mutators:
                 if not isinstance(data, list):
                     data = list(data)
-                indexes = {row[0]: idx for idx, row in enumerate(description)}
                 for row_idx, row in enumerate(data):
                     new_row = list(row)
-                    for col, func in column_mutators.items():
-                        col_idx = indexes[col]
+                    for col_idx, func in column_mutators.items():
                         new_row[col_idx] = func(row[col_idx])
                     data[row_idx] = tuple(new_row)
 

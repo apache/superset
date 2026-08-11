@@ -448,11 +448,16 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 try:
                     import MySQLdb
 
-                    mysql_module = MySQLdb
+                    ft = MySQLdb.constants.FIELD_TYPE
                 except ImportError:
-                    mysql_module = __import__("pymysql")
+                    try:
+                        import pymysql  # type: ignore[import-untyped]
 
-                ft = mysql_module.constants.FIELD_TYPE
+                        ft = pymysql.constants.FIELD_TYPE
+                    except ImportError:
+                        from mysql.connector.constants import FieldType
+
+                        ft = FieldType
                 cls.type_code_map = {
                     getattr(ft, k): k for k in dir(ft) if not k.startswith("_")
                 }
