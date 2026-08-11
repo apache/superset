@@ -126,8 +126,6 @@ class TestWebDriverPlaywrightFallback:
             "SCREENSHOT_TILED_ENABLED": False,
             "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 10,
-            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
         }
 
         # Setup playwright mocks
@@ -188,8 +186,6 @@ class TestWebDriverPlaywrightFallback:
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": True,
                 "SCREENSHOT_TILED_ENABLED": False,
             }
@@ -315,8 +311,6 @@ class TestWebDriverPlaywrightErrorHandling:
             "SCREENSHOT_TILED_ENABLED": False,
             "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 60,
-            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
         }
 
         mock_browser = MagicMock()
@@ -375,8 +369,6 @@ class TestWebDriverPlaywrightErrorHandling:
             "SCREENSHOT_TILED_ENABLED": False,
             "SCREENSHOT_LOCATE_WAIT": 10,
             "SCREENSHOT_LOAD_WAIT": 60,
-            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
         }
 
         mock_browser = MagicMock()
@@ -447,8 +439,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": True,
                 "SCREENSHOT_TILED_ENABLED": False,
             }
@@ -530,8 +520,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": True,
                 "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
@@ -622,8 +610,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": True,
                 "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
@@ -704,8 +690,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": False,
             }
@@ -779,8 +763,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
                 "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
                 "SCREENSHOT_TILED_ENABLED": True,
                 "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
@@ -835,8 +817,6 @@ class TestWebDriverPlaywrightChartReadiness:
         "SCREENSHOT_TILED_ENABLED": False,
         "SCREENSHOT_LOCATE_WAIT": 10,
         "SCREENSHOT_LOAD_WAIT": 5,
-        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
     }
 
     def _make_pw_mocks(self, mock_browser_manager):
@@ -1365,8 +1345,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
         "SCREENSHOT_LOCATE_WAIT": 10,
         "SCREENSHOT_LOAD_WAIT": 30,
-        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
-        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
     }
 
     def _make_pw_mocks(self, mock_browser_manager):

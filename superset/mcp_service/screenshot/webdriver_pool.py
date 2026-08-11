@@ -25,10 +25,6 @@ accessor interface so callers that were previously using the Selenium-based
 WebDriverPool can migrate without touching import sites.
 """
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 class WebDriverPool:
     """Stub retained for import compatibility; no longer functional."""

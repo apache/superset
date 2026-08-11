@@ -2591,9 +2591,8 @@ WEBDRIVER_WINDOW = {
 # browser context when using Playwright
 WEBDRIVER_AUTH_FUNC = None
 
-# Additional args to be passed to the Playwright browser launch
-# Note: "--headless" is typically not needed for Playwright (headless is the default)
-WEBDRIVER_OPTION_ARGS = ["--headless"]
+# Additional args to be passed to the Playwright browser launch.
+WEBDRIVER_OPTION_ARGS: list[str] = []
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"

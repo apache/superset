@@ -311,7 +311,7 @@ class TestBaseScreenshotDriverFallback:
 
 
 class TestScreenshotSubclassesDriverBehavior:
-    """Test ChartScreenshot and DashboardScreenshot inherit driver behavior."""
+    """Test ChartScreenshot inherits driver behavior."""
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.extensions.feature_flag_manager.is_feature_enabled")

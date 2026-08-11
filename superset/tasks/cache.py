@@ -423,5 +423,3 @@ def cache_warmup(
         results,
     )
     return results
-
-    return results
