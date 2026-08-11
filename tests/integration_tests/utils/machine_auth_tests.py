@@ -18,6 +18,7 @@
 from unittest.mock import MagicMock, patch
 
 from superset.extensions import machine_auth_provider_factory
+from superset.utils.machine_auth import MachineAuthProvider
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -50,8 +51,6 @@ class MachineAuthProviderTests(SupersetTestCase):
 
     def test_authenticate_browser_context_uses_override(self):
         """authenticate_browser_context calls the override func when configured."""
-        from superset.utils.machine_auth import MachineAuthProvider
-
         user = MagicMock()
         mock_context = MagicMock()
         mock_override = MagicMock(return_value=mock_context)

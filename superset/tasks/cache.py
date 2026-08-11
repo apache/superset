@@ -38,7 +38,7 @@ from superset.tasks.native_filter_cache import (
     get_eligible_native_filters,
 )
 from superset.utils.date_parser import parse_human_datetime
-from superset.utils.webdriver import WebDriverPlaywright
+from superset.utils.webdriver import _browser_manager, WebDriverPlaywright
 
 logger: logging.Logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -334,16 +334,19 @@ def _warmup_urls(
     results: dict[str, list[str]],
 ) -> None:
     wd: WebDriverPlaywright = WebDriverPlaywright("", window)
-    for url in urls:
-        try:
-            logger.info("Fetching %s", url)
-            screenshot = wd.get_screenshot(url, "grid-container", user=user)
-            if not screenshot:
-                raise RuntimeError("No screenshot captured")
-            results["success"].append(url)
-        except Exception:  # noqa: BLE001
-            logger.exception("Error warming up cache for %s", url)
-            results["errors"].append(url)
+    try:
+        for url in urls:
+            try:
+                logger.info("Fetching %s", url)
+                screenshot = wd.get_screenshot(url, "grid-container", user=user)
+                if not screenshot:
+                    raise RuntimeError("No screenshot captured")
+                results["success"].append(url)
+            except Exception:  # noqa: BLE001
+                logger.exception("Error warming up cache for %s", url)
+                results["errors"].append(url)
+    finally:
+        _browser_manager._cleanup()  # noqa: SLF001
 
 
 @celery_app.task(name="cache-warmup")
