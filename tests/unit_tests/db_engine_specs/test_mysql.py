@@ -334,14 +334,14 @@ def test_get_datatype_pymysql_fallback() -> None:
     try:
         # Build a fake pymysql module with constants.FIELD_TYPE
         fake_field_type = ModuleType("pymysql.constants.FIELD_TYPE")
-        setattr(fake_field_type, "TINY", 1)
-        setattr(fake_field_type, "VARCHAR", 15)
+        setattr(fake_field_type, "TINY", 1)  # noqa: B010
+        setattr(fake_field_type, "VARCHAR", 15)  # noqa: B010
 
         fake_constants = ModuleType("pymysql.constants")
-        setattr(fake_constants, "FIELD_TYPE", fake_field_type)
+        setattr(fake_constants, "FIELD_TYPE", fake_field_type)  # noqa: B010
 
         fake_pymysql = ModuleType("pymysql")
-        setattr(fake_pymysql, "constants", fake_constants)
+        setattr(fake_pymysql, "constants", fake_constants)  # noqa: B010
 
         original_import = builtins.__import__
 
@@ -371,9 +371,9 @@ def test_get_datatype_mysqlconnector_fallback() -> None:
 
     try:
         fake_field_type = ModuleType("mysql.connector.constants.FieldType")
-        setattr(fake_field_type, "NEWDECIMAL", 246)
+        setattr(fake_field_type, "NEWDECIMAL", 246)  # noqa: B010
         fake_constants = ModuleType("mysql.connector.constants")
-        setattr(fake_constants, "FieldType", fake_field_type)
+        setattr(fake_constants, "FieldType", fake_field_type)  # noqa: B010
         original_import = builtins.__import__
 
         def mock_import(name: str, *args: Any, **kwargs: Any) -> Any:
