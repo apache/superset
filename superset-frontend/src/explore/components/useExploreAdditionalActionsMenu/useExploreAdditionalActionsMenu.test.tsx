@@ -176,10 +176,7 @@ test('shows 413 error toast when Export Current View CSV server path fails with 
 
 test('showDataExportOnly hides screenshot, share, report, and query actions', async () => {
   render(
-    <TestComponent
-      {...defaultProps}
-      options={{ showDataExportOnly: true }}
-    />,
+    <TestComponent {...defaultProps} options={{ showDataExportOnly: true }} />,
     { useRedux: true },
   );
 
@@ -191,16 +188,22 @@ test('showDataExportOnly hides screenshot, share, report, and query actions', as
   expect(await screen.findByText('Export Current View')).toBeInTheDocument();
 
   userEvent.hover(await screen.findByText('Export All Data'));
-  expect(await screen.findByText('Export to original .CSV')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Export to original .CSV'),
+  ).toBeInTheDocument();
   expect(await screen.findByText('Export to .JSON')).toBeInTheDocument();
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
-  expect(screen.queryByText('Export screenshot (jpeg)')).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Export screenshot (jpeg)'),
+  ).not.toBeInTheDocument();
   expect(screen.queryByText('Export screenshot (png)')).not.toBeInTheDocument();
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
 
   userEvent.hover(await screen.findByText('Export Current View'));
   expect(await screen.findAllByText('Export to .CSV')).toHaveLength(1);
-  expect(screen.queryByText('Export screenshot (jpeg)')).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Export screenshot (jpeg)'),
+  ).not.toBeInTheDocument();
   expect(screen.queryByText('Export screenshot (png)')).not.toBeInTheDocument();
   expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
 });
