@@ -30,6 +30,7 @@ from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
+from superset.commands.dataset.source import DatasetSource, raise_for_source_access
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
@@ -83,29 +84,37 @@ class Datasource(BaseSupersetView):
         orm_datasource = DatasourceDAO.get_datasource(
             DatasourceType(datasource_type), datasource_id
         )
-        orm_datasource.database_id = database_id
+        current_source = DatasetSource.build(
+            orm_datasource.database_id,
+            orm_datasource.catalog,
+            orm_datasource.schema,
+            orm_datasource.table_name,
+            orm_datasource.sql,
+        )
 
         try:
             security_manager.raise_for_editorship(orm_datasource)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        # When the datasource is repointed to a different database connection,
-        # authorise the target the same way the create path does, so editing a
-        # datasource cannot be used to reach a connection the caller lacks
-        # access to. Mirrors the physical branch of ``CreateDatasetCommand``.
-        target_database = (
-            db.session.query(Database).filter_by(id=database_id).one_or_none()
+        # The connection is repointed and ``update_from_object`` overwrites the
+        # table name, schema, catalog and SQL further down, so the move is
+        # authorised against the requested values rather than the stored ones.
+        # Both happen only once every check below has passed: the datasource is
+        # a live ORM object, so mutating it before then would let a rejected
+        # save reach the database anyway on the next flush.
+        requested_source = DatasetSource.build(
+            database_id,
+            datasource_dict.get("catalog"),
+            datasource_dict.get("schema"),
+            datasource_dict.get("table_name"),
+            datasource_dict.get("sql"),
         )
-        if target_database is not None:
-            security_manager.raise_for_access(
-                database=target_database,
-                table=Table(
-                    orm_datasource.table_name,
-                    orm_datasource.schema,
-                    orm_datasource.catalog,
-                ),
-            )
+        if requested_source.moved_from(current_source):
+            target_database = DatasetDAO.get_database_by_id(database_id)
+            if target_database is None:
+                return json_error_response(_("Database not found."), status=404)
+            raise_for_source_access(target_database, requested_source)
 
         duplicates = [
             name
@@ -122,6 +131,8 @@ class Datasource(BaseSupersetView):
                 ),
                 status=409,
             )
+
+        orm_datasource.database_id = database_id
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data
         db.session.commit()  # pylint: disable=consider-using-transaction

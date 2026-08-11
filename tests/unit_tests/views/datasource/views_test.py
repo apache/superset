@@ -21,6 +21,7 @@ bypassing the Flask-AppBuilder permission decorator machinery.
 """
 
 import inspect
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -52,6 +53,17 @@ def _view_self() -> MagicMock:
     self = MagicMock()
     self.json_response = MagicMock(return_value="ok")
     return self
+
+
+def _save_request_context(payload: dict[str, Any]):
+    """Build a request context for ``Datasource.save`` carrying ``payload``."""
+    from flask import Flask
+
+    return Flask(__name__).test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={"data": superset_json.dumps(payload)},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -312,109 +324,249 @@ def test_save_non_editor_with_editors_field_is_rejected(
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
 
-@patch("superset.views.datasource.views.Table")
-@patch("superset.views.datasource.views.db")
+@patch("superset.commands.dataset.source.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_repoint_to_unauthorized_database_is_rejected(
+@pytest.mark.parametrize(
+    ("stored", "payload", "expected"),
+    [
+        pytest.param(
+            {"database_id": 1, "table_name": "some_table", "sql": None},
+            {"table_name": "some_table"},
+            {"table": "some_table"},
+            id="connection",
+        ),
+        pytest.param(
+            {"database_id": 2, "table_name": "old_table", "sql": None},
+            {"table_name": "other_table"},
+            {"table": "other_table"},
+            id="physical_table",
+        ),
+        pytest.param(
+            {"database_id": 1, "table_name": "virtual_ds", "sql": "SELECT 1"},
+            {"table_name": "virtual_ds", "sql": "SELECT 1"},
+            {"sql": "SELECT 1"},
+            id="virtual_unchanged_sql",
+        ),
+    ],
+)
+def test_save_repoint_authorizes_requested_source(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
-    mock_db: MagicMock,
-    mock_table: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_source_security_manager: MagicMock,
+    stored: dict[str, Any],
+    payload: dict[str, Any],
+    expected: dict[str, str],
 ) -> None:
     """
-    Repointing a datasource to a database connection the caller cannot access
-    is rejected, matching the create path's target-database access check.
+    A move is authorised against the source the save will persist: the target
+    connection, and the requested table for physical datasets or the requested
+    SQL for virtual ones. Resending unchanged SQL does not skip the check.
     """
-    mock_orm = MagicMock()
+    mock_orm = MagicMock(catalog="cat", schema="public", **stored)
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
 
     target_database = MagicMock()
-    mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value = (  # noqa: E501
-        target_database
-    )
-    mock_security_manager.raise_for_access.side_effect = _security_exception()
-
-    from flask import Flask
+    mock_get_database_by_id.return_value = target_database
+    mock_source_security_manager.raise_for_access.side_effect = _security_exception()
 
     raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 2},
-                    "columns": [],
-                }
-            )
-        },
+    with _save_request_context(
+        {
+            "id": 1,
+            "type": "table",
+            "database": {"id": 2},
+            "schema": "public",
+            "catalog": "cat",
+            "columns": [],
+            **payload,
+        }
     ):
         with pytest.raises(SupersetSecurityException):
             raw_save(_view_self())
 
-    mock_security_manager.raise_for_access.assert_called_once()
-    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
+    mock_get_database_by_id.assert_called_once_with(2)
+    call_kwargs = mock_source_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is target_database
+    # The datasource is a live ORM object: a rejected save must leave it on its
+    # original connection, or the next flush would persist the refused move.
+    assert mock_orm.database_id == stored["database_id"]
+    mock_orm.update_from_object.assert_not_called()
+    if "table" in expected:
+        assert call_kwargs["table"].table == expected["table"]
+        assert "sql" not in call_kwargs
+    else:
+        assert call_kwargs["sql"] == expected["sql"]
+        assert "table" not in call_kwargs
 
 
-@patch("superset.views.datasource.views.sanitize_datasource_data")
-@patch("superset.views.datasource.views.Table")
 @patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.sanitize_datasource_data")
+@patch("superset.commands.dataset.source.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
 def test_save_repoint_to_authorized_database_succeeds(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
-    mock_db: MagicMock,
-    mock_table: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_source_security_manager: MagicMock,
     mock_sanitize: MagicMock,
+    mock_db: MagicMock,
 ) -> None:
     """
-    Repointing a datasource to a database the caller can access proceeds past
-    the access check and persists.
+    Moving a datasource to a connection the caller can access proceeds past the
+    access check and persists.
     """
-    mock_orm = MagicMock()
+    mock_orm = MagicMock(
+        database_id=1,
+        catalog="cat",
+        schema="public",
+        table_name="some_table",
+        sql=None,
+    )
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
 
     target_database = MagicMock()
-    mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value = (  # noqa: E501
-        target_database
-    )
-    mock_security_manager.raise_for_access.return_value = None
+    mock_get_database_by_id.return_value = target_database
+    mock_source_security_manager.raise_for_access.return_value = None
     mock_sanitize.return_value = {"id": 1}
-
-    from flask import Flask
 
     view = _view_self()
     raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 2},
-                    "columns": [],
-                }
-            )
-        },
+    with _save_request_context(
+        {
+            "id": 1,
+            "type": "table",
+            "database": {"id": 2},
+            "table_name": "some_table",
+            "schema": "public",
+            "catalog": "cat",
+            "columns": [],
+        }
     ):
         raw_save(view)
 
-    mock_security_manager.raise_for_access.assert_called_once()
-    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
-    assert call_kwargs["database"] is target_database
+    mock_source_security_manager.raise_for_access.assert_called_once()
+    assert (
+        mock_source_security_manager.raise_for_access.call_args.kwargs["database"]
+        is target_database
+    )
     view.json_response.assert_called_once_with({"id": 1})
+
+
+@patch("superset.views.datasource.views._", lambda s: s)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.commands.dataset.source.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_repoint_to_unknown_database_is_rejected(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_source_security_manager: MagicMock,
+    mock_json_error_response: MagicMock,
+) -> None:
+    """
+    A move to a connection that does not resolve is rejected rather than
+    silently skipping the access check.
+    """
+    mock_orm = MagicMock(
+        database_id=1,
+        catalog="cat",
+        schema="public",
+        table_name="some_table",
+        sql=None,
+    )
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+    mock_get_database_by_id.return_value = None
+
+    raw_save = _get_view_func("save")
+    with _save_request_context(
+        {
+            "id": 1,
+            "type": "table",
+            "database": {"id": 2},
+            "table_name": "some_table",
+            "schema": "public",
+            "catalog": "cat",
+            "columns": [],
+        }
+    ):
+        raw_save(_view_self())
+
+    mock_source_security_manager.raise_for_access.assert_not_called()
+    assert mock_json_error_response.call_args.kwargs["status"] == 404
+    assert mock_orm.database_id == 1
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.sanitize_datasource_data")
+@patch("superset.commands.dataset.source.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    ("stored", "payload"),
+    [
+        pytest.param(
+            {"table_name": "some_table", "sql": None},
+            {"table_name": "some_table"},
+            id="physical_metadata_edit",
+        ),
+        pytest.param(
+            {"table_name": "virtual_ds", "sql": "SELECT 1"},
+            {"table_name": "renamed", "sql": "SELECT 1"},
+            id="virtual_rename",
+        ),
+    ],
+)
+def test_save_without_move_skips_access_check(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_source_security_manager: MagicMock,
+    mock_sanitize: MagicMock,
+    mock_db: MagicMock,
+    stored: dict[str, Any],
+    payload: dict[str, Any],
+) -> None:
+    """
+    Edits that leave the source alone stay gated on editorship: a metadata-only
+    change, and renaming a virtual dataset, which relabels it without changing
+    what it reads.
+    """
+    mock_orm = MagicMock(database_id=2, catalog="cat", schema="public", **stored)
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+    mock_sanitize.return_value = {"id": 1}
+
+    raw_save = _get_view_func("save")
+    with _save_request_context(
+        {
+            "id": 1,
+            "type": "table",
+            "database": {"id": 2},
+            "schema": "public",
+            "catalog": "cat",
+            "description": "a new description",
+            "columns": [],
+            **payload,
+        }
+    ):
+        raw_save(_view_self())
+
+    mock_source_security_manager.raise_for_access.assert_not_called()
+    mock_get_database_by_id.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

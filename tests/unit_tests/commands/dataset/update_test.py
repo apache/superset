@@ -174,30 +174,44 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     )
 
 
-def test_update_dataset_repoint_database_authorized(mocker: MockerFixture) -> None:
+def _mock_repoint_env(
+    mocker: MockerFixture,
+    *,
+    stored_sql: str | None = None,
+    table_name: str = "test_table",
+    repointed: bool = True,
+) -> tuple[Any, Any, Any]:
     """
-    Repointing a physical dataset to a different database connection the user
-    can access succeeds, matching the create path's physical access check.
+    Mock out an update of a dataset stored on database 1.
+
+    Returns the patched DAO, the dataset and the database the update targets,
+    which is a second connection when ``repointed`` and the dataset's own
+    otherwise.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
 
     old_database = mocker.MagicMock()
     old_database.id = 1
-    new_database = mocker.MagicMock()
-    new_database.id = 2
-    new_database.get_default_catalog.return_value = "catalog"
-    new_database.allow_multi_catalog = False
+    old_database.get_default_catalog.return_value = "catalog"
+    old_database.allow_multi_catalog = False
+
+    target_database = old_database
+    if repointed:
+        target_database = mocker.MagicMock()
+        target_database.id = 2
+        target_database.get_default_catalog.return_value = "catalog"
+        target_database.allow_multi_catalog = False
 
     mock_dataset = mocker.MagicMock()
     mock_dataset.database = old_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
-    mock_dataset.table_name = "test_table"
-    mock_dataset.sql = None
+    mock_dataset.table_name = table_name
+    mock_dataset.sql = stored_sql
     mock_dataset.editors = []
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
-    mock_dataset_dao.get_database_by_id.return_value = new_database
+    mock_dataset_dao.get_database_by_id.return_value = target_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
     mock_dataset_dao.update.return_value = mock_dataset
 
@@ -205,14 +219,21 @@ def test_update_dataset_repoint_database_authorized(mocker: MockerFixture) -> No
         "superset.commands.dataset.update.security_manager.raise_for_editorship",
     )
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
-    # Access to the target database is granted.
+
+    return mock_dataset_dao, mock_dataset, target_database
+
+
+def test_update_dataset_repoint_database_authorized(mocker: MockerFixture) -> None:
+    """
+    Repointing a physical dataset to a different database connection the user
+    can access succeeds, matching the create path's physical access check.
+    """
+    mock_dataset_dao, mock_dataset, new_database = _mock_repoint_env(mocker)
     raise_for_access = mocker.patch(
         "superset.commands.dataset.update.security_manager.raise_for_access",
     )
 
-    result = UpdateDatasetCommand(1, {"database_id": 2}).run()
-
-    assert result == mock_dataset
+    assert UpdateDatasetCommand(1, {"database_id": 2}).run() == mock_dataset
     mock_dataset_dao.update.assert_called_once()
     # The physical branch must run against the new database and table.
     raise_for_access.assert_called_once()
@@ -221,38 +242,28 @@ def test_update_dataset_repoint_database_authorized(mocker: MockerFixture) -> No
     assert call_kwargs["table"].table == "test_table"
 
 
-def test_update_dataset_repoint_database_unauthorized(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize(
+    ("stored_sql", "payload"),
+    [
+        pytest.param(None, {"database_id": 2}, id="physical"),
+        pytest.param(
+            "SELECT * FROM some_table",
+            {"database_id": 2, "sql": "SELECT * FROM some_table"},
+            id="virtual_unchanged_sql",
+        ),
+    ],
+)
+def test_update_dataset_repoint_database_unauthorized(
+    mocker: MockerFixture,
+    stored_sql: str | None,
+    payload: dict[str, Any],
+) -> None:
     """
-    Repointing a physical dataset (no SQL change) to a database connection the
-    user cannot access is rejected. Previously this branch was only checked
-    when the SQL text changed, so a physical repoint went unauthorised.
+    Repointing to a database connection the user cannot access is rejected.
+    Neither leaving the SQL out of the payload nor resending it unchanged
+    skips the check on the target.
     """
-    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
-
-    old_database = mocker.MagicMock()
-    old_database.id = 1
-    new_database = mocker.MagicMock()
-    new_database.id = 2
-    new_database.get_default_catalog.return_value = "catalog"
-    new_database.allow_multi_catalog = False
-
-    mock_dataset = mocker.MagicMock()
-    mock_dataset.database = old_database
-    mock_dataset.catalog = "catalog"
-    mock_dataset.schema = "public"
-    mock_dataset.table_name = "test_table"
-    mock_dataset.sql = None
-    mock_dataset.editors = []
-
-    mock_dataset_dao.find_by_id.return_value = mock_dataset
-    mock_dataset_dao.get_database_by_id.return_value = new_database
-    mock_dataset_dao.validate_update_uniqueness.return_value = True
-
-    mocker.patch(
-        "superset.commands.dataset.update.security_manager.raise_for_editorship",
-    )
-    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
-    # Access to the target database is denied.
+    _mock_repoint_env(mocker, stored_sql=stored_sql)
     mocker.patch(
         "superset.commands.dataset.update.security_manager.raise_for_access",
         side_effect=SupersetSecurityException(
@@ -265,12 +276,33 @@ def test_update_dataset_repoint_database_unauthorized(mocker: MockerFixture) -> 
     )
 
     with pytest.raises(DatasetInvalidError) as excinfo:
-        UpdateDatasetCommand(1, {"database_id": 2}).run()
+        UpdateDatasetCommand(1, payload).run()
 
     assert any(
         "You don't have access to the 'target_db' database" in str(exc)
         for exc in excinfo.value._exceptions
     )
+
+
+def test_update_dataset_rename_virtual_dataset_skips_access_check(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Renaming a virtual dataset leaves its source untouched, so it is not gated
+    on access to a physical table sharing the new name.
+    """
+    _, mock_dataset, _ = _mock_repoint_env(
+        mocker,
+        stored_sql="SELECT * FROM some_table",
+        table_name="virtual_dataset",
+        repointed=False,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    assert UpdateDatasetCommand(1, {"table_name": "renamed"}).run() == mock_dataset
+    raise_for_access.assert_not_called()
 
 
 @pytest.mark.parametrize(

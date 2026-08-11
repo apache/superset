@@ -44,6 +44,7 @@ from superset.commands.dataset.exceptions import (
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
 )
+from superset.commands.dataset.source import DatasetSource, raise_for_source_access
 from superset.commands.utils import compute_subjects
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.daos.dataset import DatasetDAO
@@ -172,86 +173,62 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         ):
             exceptions.append(DatasetExistsValidationError(table))
 
-        self._validate_source_access(db, table, catalog, schema, exceptions)
+        self._validate_source_access(db, table, default_catalog, exceptions)
 
     def _validate_source_access(
         self,
         db: Database,
         table: Table,
-        catalog: str | None,
-        schema: str | None,
+        default_catalog: str | None,
         exceptions: list[ValidationError],
     ) -> None:
         """
-        Enforce the datasource-access check whenever the dataset's source
-        changes, mirroring ``CreateDatasetCommand``.
+        Authorise the dataset's source whenever the update moves it, mirroring
+        ``CreateDatasetCommand``.
 
-        The create path runs ``raise_for_access`` on every new dataset: the
-        SQL branch for virtual datasets, the physical branch (``database`` +
-        ``table``) for physical ones. On update the SQL branch already runs
-        when ``sql`` changes; this method adds the physical branch so that
-        moving a dataset to a different database connection (or physical
-        table) is authorised against that target the same way, instead of
-        only being gated by editorship of the existing model.
+        The create path authorises every new dataset against what it will read.
+        The same applies here, derived from the *resulting* dataset rather than
+        from whichever keys the payload happens to carry, so that pointing a
+        dataset at a different connection, catalog, schema or table is
+        authorised against that target instead of only being gated by
+        editorship of the existing model.
         """
         # we know we have a valid model
         self._model = cast(SqlaTable, self._model)
 
-        self._validate_sql_access(db, catalog, schema, exceptions)
-
-        # Physical branch: only relevant when the dataset is (or becomes)
-        # physical and the source moved. A SQL change is already covered by
-        # ``_validate_sql_access`` above.
-        sql = self._properties.get("sql")
-        if sql:
-            return
-
-        source_changed = (
-            db.id != self._model.database.id
-            or table.table != self._model.table_name
-            or (schema or None) != (self._model.schema or None)
-            or (catalog or None) != (self._model.catalog or None)
+        requested = DatasetSource.build(
+            db.id,
+            table.catalog,
+            table.schema,
+            table.table,
+            self._properties.get("sql", self._model.sql),
         )
-        if not source_changed:
+        current = DatasetSource.build(
+            self._model.database.id,
+            self._model.catalog,
+            self._model.schema,
+            self._model.table_name,
+            self._model.sql,
+        )
+        # A null catalog reads through the connection default, and single-catalog
+        # connections have already normalised the requested value to it, so both
+        # sides resolve nulls the same way before being compared.
+        if not requested.resolve_catalog(default_catalog).moved_from(
+            current.resolve_catalog(default_catalog)
+        ):
             return
 
         try:
-            security_manager.raise_for_access(
-                database=db,
-                table=table,
-            )
+            raise_for_source_access(db, requested)
         except SupersetSecurityException as ex:
             exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-
-    def _validate_sql_access(
-        self,
-        db: Database,
-        catalog: str | None,
-        schema: str | None,
-        exceptions: list[ValidationError],
-    ) -> None:
-        """Validate SQL query access if SQL is being updated."""
-        # we know we have a valid model
-        self._model = cast(SqlaTable, self._model)
-
-        sql = self._properties.get("sql")
-        if sql and sql != self._model.sql:
-            try:
-                security_manager.raise_for_access(
-                    database=db,
-                    sql=sql,
-                    catalog=catalog,
-                    schema=schema,
+        except SupersetParseError as ex:
+            exceptions.append(
+                ValidationError(
+                    f"Invalid SQL: {ex.error.message}",
+                    field_name="sql",
                 )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            except SupersetParseError as ex:
-                exceptions.append(
-                    ValidationError(
-                        f"Invalid SQL: {ex.error.message}",
-                        field_name="sql",
-                    )
-                )
+            )
 
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model
