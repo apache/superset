@@ -105,6 +105,36 @@ def test_cache_warmup_happy_path(app_context: None) -> None:
     assert driver.get_screenshot.call_count == len(urls)
 
 
+def test_cache_warmup_treats_none_screenshot_as_error(app_context: None) -> None:
+    """A URL whose screenshot returns None is recorded as an error."""
+    from superset.tasks.cache import cache_warmup
+
+    urls: list[str] = ["http://localhost/dash/ok", "http://localhost/dash/none"]
+    user: mock.MagicMock = mock.MagicMock()
+
+    def side_effect(url: str, _element: str, **kwargs: Any) -> Any:
+        return None if url.endswith("none") else b"PNG"
+
+    with (
+        mock.patch(
+            "superset.tasks.cache.current_app",
+            _fake_app({"SUPERSET_CACHE_WARMUP_USER": "bot"}),
+        ),
+        mock.patch("superset.tasks.cache.security_manager") as mock_sm,
+        mock.patch("superset.tasks.cache.WebDriverPlaywright") as mock_wd,
+        mock.patch("superset.tasks.cache.DummyStrategy.get_urls", return_value=urls),
+    ):
+        mock_sm.find_user = mock.MagicMock(return_value=user)
+        driver: mock.MagicMock = mock_wd.return_value
+        driver.get_screenshot.side_effect = side_effect
+        result: dict[str, list[str]] | str = cache_warmup("dummy")
+
+    assert result == {
+        "success": ["http://localhost/dash/ok"],
+        "errors": ["http://localhost/dash/none"],
+    }
+
+
 def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
     """A failing URL is recorded as an error and cleanup still runs in finally."""
     from superset.tasks.cache import cache_warmup

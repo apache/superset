@@ -327,6 +327,25 @@ strategy_registry: dict[str, type[Strategy]] = {
 }
 
 
+def _warmup_urls(
+    urls: list[str],
+    user: Any,
+    window: tuple[int, int],
+    results: dict[str, list[str]],
+) -> None:
+    wd: WebDriverPlaywright = WebDriverPlaywright("", window)
+    for url in urls:
+        try:
+            logger.info("Fetching %s", url)
+            screenshot = wd.get_screenshot(url, "grid-container", user=user)
+            if not screenshot:
+                raise RuntimeError("No screenshot captured")
+            results["success"].append(url)
+        except Exception:  # noqa: BLE001
+            logger.exception("Error warming up cache for %s", url)
+            results["errors"].append(url)
+
+
 @celery_app.task(name="cache-warmup")
 def cache_warmup(
     strategy_name: str, *args: Any, **kwargs: Any
@@ -397,17 +416,12 @@ def cache_warmup(
 
         return results
 
-    wd: WebDriverPlaywright = WebDriverPlaywright(
-        "", current_app.config["WEBDRIVER_WINDOW"]["dashboard"]
+    _warmup_urls(
+        strategy.get_urls(),
+        user,
+        current_app.config["WEBDRIVER_WINDOW"]["dashboard"],
+        results,
     )
-
-    for url in strategy.get_urls():
-        try:
-            logger.info("Fetching %s", url)
-            wd.get_screenshot(url, "grid-container", user=user)
-            results["success"].append(url)
-        except Exception:  # noqa: BLE001
-            logger.exception("Error warming up cache for %s", url)
-            results["errors"].append(url)
+    return results
 
     return results
