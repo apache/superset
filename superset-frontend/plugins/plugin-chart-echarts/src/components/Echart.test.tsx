@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from '../../../../spec/helpers/testing-library';
 import type { EChartsCoreOption } from 'echarts/core';
+import { render, waitFor } from '../../../../spec/helpers/testing-library';
 import Echart, {
   ECHARTS_HOST_CLASS,
   ECHARTS_RENDER_FINISHED_CLASS,
@@ -79,25 +79,29 @@ beforeEach(() => {
 });
 
 test('tags the ECharts canvas host with the readiness-gate class', async () => {
-  const { container } = render(renderEchart(), { initialState, useRedux: true });
+  const { container } = render(renderEchart(), {
+    initialState,
+    useRedux: true,
+  });
   await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
   expect(container.querySelector(`.${ECHARTS_HOST_CLASS}`)).not.toBeNull();
 });
 
 test('marks the host painted only on the ECharts `finished` event', async () => {
-  const { container } = render(renderEchart(), { initialState, useRedux: true });
+  const { container } = render(renderEchart(), {
+    initialState,
+    useRedux: true,
+  });
   await waitFor(() => expect(mockChart.setOption).toHaveBeenCalled());
 
-  const host = container.querySelector(
-    `.${ECHARTS_HOST_CLASS}`,
-  ) as HTMLElement;
+  const host = container.querySelector(`.${ECHARTS_HOST_CLASS}`) as HTMLElement;
   expect(host).not.toBeNull();
 
   // `setOption` ran during mount, which clears the marker; `finished` has not
   // fired yet, so the host must NOT be flagged as painted.
-  expect(host.classList.contains(ECHARTS_RENDER_FINISHED_CLASS)).toBe(false);
+  expect(host).not.toHaveClass(ECHARTS_RENDER_FINISHED_CLASS);
 
   // Simulate ECharts completing its draw -> the host is flagged painted.
   trigger('finished');
-  expect(host.classList.contains(ECHARTS_RENDER_FINISHED_CLASS)).toBe(true);
+  expect(host).toHaveClass(ECHARTS_RENDER_FINISHED_CLASS);
 });
