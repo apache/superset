@@ -55,14 +55,31 @@ def _view_self() -> MagicMock:
     return self
 
 
-def _save_request_context(payload: dict[str, Any]):
-    """Build a request context for ``Datasource.save`` carrying ``payload``."""
+def _save_request_context(**payload: Any):
+    """
+    Build a request context for ``Datasource.save``.
+
+    Saves dataset 1 against connection 2 in ``cat.public``; ``payload``
+    overrides or adds individual fields.
+    """
     from flask import Flask
 
     return Flask(__name__).test_request_context(
         "/datasource/save/",
         method="POST",
-        data={"data": superset_json.dumps(payload)},
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    "database": {"id": 2},
+                    "schema": "public",
+                    "catalog": "cat",
+                    "columns": [],
+                    **payload,
+                }
+            )
+        },
     )
 
 
@@ -374,17 +391,7 @@ def test_save_repoint_authorizes_requested_source(
     mock_source_security_manager.raise_for_access.side_effect = _security_exception()
 
     raw_save = _get_view_func("save")
-    with _save_request_context(
-        {
-            "id": 1,
-            "type": "table",
-            "database": {"id": 2},
-            "schema": "public",
-            "catalog": "cat",
-            "columns": [],
-            **payload,
-        }
-    ):
+    with _save_request_context(**payload):
         with pytest.raises(SupersetSecurityException):
             raw_save(_view_self())
 
@@ -439,17 +446,7 @@ def test_save_repoint_to_authorized_database_succeeds(
 
     view = _view_self()
     raw_save = _get_view_func("save")
-    with _save_request_context(
-        {
-            "id": 1,
-            "type": "table",
-            "database": {"id": 2},
-            "table_name": "some_table",
-            "schema": "public",
-            "catalog": "cat",
-            "columns": [],
-        }
-    ):
+    with _save_request_context(table_name="some_table"):
         raw_save(view)
 
     mock_source_security_manager.raise_for_access.assert_called_once()
@@ -489,17 +486,7 @@ def test_save_repoint_to_unknown_database_is_rejected(
     mock_get_database_by_id.return_value = None
 
     raw_save = _get_view_func("save")
-    with _save_request_context(
-        {
-            "id": 1,
-            "type": "table",
-            "database": {"id": 2},
-            "table_name": "some_table",
-            "schema": "public",
-            "catalog": "cat",
-            "columns": [],
-        }
-    ):
+    with _save_request_context(table_name="some_table"):
         raw_save(_view_self())
 
     mock_source_security_manager.raise_for_access.assert_not_called()
@@ -551,18 +538,48 @@ def test_save_without_move_skips_access_check(
     mock_sanitize.return_value = {"id": 1}
 
     raw_save = _get_view_func("save")
-    with _save_request_context(
-        {
-            "id": 1,
-            "type": "table",
-            "database": {"id": 2},
-            "schema": "public",
-            "catalog": "cat",
-            "description": "a new description",
-            "columns": [],
-            **payload,
-        }
-    ):
+    with _save_request_context(description="a new description", **payload):
+        raw_save(_view_self())
+
+    mock_source_security_manager.raise_for_access.assert_not_called()
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.sanitize_datasource_data")
+@patch("superset.commands.dataset.source.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_omitted_catalog_reads_through_connection_default(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_source_security_manager: MagicMock,
+    mock_sanitize: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    A payload that leaves the catalog out reads through the connection's
+    default, so a dataset already stored on that default has not moved. The
+    update command normalises the stored catalog to it on single-catalog
+    connections, so the two spellings must not read as a move.
+    """
+    mock_orm = MagicMock(
+        database_id=2,
+        catalog="cat",
+        schema="public",
+        table_name="some_table",
+        sql=None,
+    )
+    mock_orm.database.get_default_catalog.return_value = "cat"
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+    mock_sanitize.return_value = {"id": 1}
+
+    raw_save = _get_view_func("save")
+    with _save_request_context(table_name="some_table", catalog=None):
         raw_save(_view_self())
 
     mock_source_security_manager.raise_for_access.assert_not_called()

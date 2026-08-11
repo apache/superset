@@ -210,12 +210,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._model.table_name,
             self._model.sql,
         )
-        # A null catalog reads through the connection default, and single-catalog
-        # connections have already normalised the requested value to it, so both
-        # sides resolve nulls the same way before being compared.
-        if not requested.resolve_catalog(default_catalog).moved_from(
-            current.resolve_catalog(default_catalog)
-        ):
+        if not requested.moved_from(current, default_catalog):
             return
 
         try:

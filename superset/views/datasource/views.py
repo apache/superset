@@ -84,6 +84,17 @@ class Datasource(BaseSupersetView):
         orm_datasource = DatasourceDAO.get_datasource(
             DatasourceType(datasource_type), datasource_id
         )
+
+        try:
+            security_manager.raise_for_editorship(orm_datasource)
+        except SupersetSecurityException as ex:
+            raise DatasetForbiddenError() from ex
+
+        # The repoint and ``update_from_object`` below overwrite the stored
+        # source, so the move is authorised against the requested values. Both
+        # run only once every check has passed: the datasource is a live ORM
+        # object, so mutating it earlier would let a rejected save reach the
+        # database anyway on the next flush.
         current_source = DatasetSource.build(
             orm_datasource.database_id,
             orm_datasource.catalog,
@@ -91,18 +102,6 @@ class Datasource(BaseSupersetView):
             orm_datasource.table_name,
             orm_datasource.sql,
         )
-
-        try:
-            security_manager.raise_for_editorship(orm_datasource)
-        except SupersetSecurityException as ex:
-            raise DatasetForbiddenError() from ex
-
-        # The connection is repointed and ``update_from_object`` overwrites the
-        # table name, schema, catalog and SQL further down, so the move is
-        # authorised against the requested values rather than the stored ones.
-        # Both happen only once every check below has passed: the datasource is
-        # a live ORM object, so mutating it before then would let a rejected
-        # save reach the database anyway on the next flush.
         requested_source = DatasetSource.build(
             database_id,
             datasource_dict.get("catalog"),
@@ -110,7 +109,12 @@ class Datasource(BaseSupersetView):
             datasource_dict.get("table_name"),
             datasource_dict.get("sql"),
         )
-        if requested_source.moved_from(current_source):
+        # A null catalog reads through the connection's default. That only
+        # affects the comparison while the connection is unchanged, so the
+        # stored database's default resolves both sides.
+        if requested_source.moved_from(
+            current_source, orm_datasource.database.get_default_catalog()
+        ):
             target_database = DatasetDAO.get_database_by_id(database_id)
             if target_database is None:
                 return json_error_response(_("Database not found."), status=404)
