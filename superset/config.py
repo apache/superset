@@ -2548,6 +2548,12 @@ REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 
+# Socket timeout (in seconds) for the HTTP request that dispatches webhook
+# alerts/reports. Without a timeout the request blocks indefinitely if the
+# webhook target is unreachable, which leaves the report schedule stuck in
+# the WORKING state. Set to None to disable (not recommended).
+ALERT_REPORTS_WEBHOOK_TIMEOUT = 60
+
 # When True, webhook alert/report dispatch is permitted to call private/internal
 # IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
 # the webhook target is on an internal network (a chatops bridge, an internal
