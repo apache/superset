@@ -174,6 +174,105 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     )
 
 
+def test_update_dataset_repoint_database_authorized(mocker: MockerFixture) -> None:
+    """
+    Repointing a physical dataset to a different database connection the user
+    can access succeeds, matching the create path's physical access check.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+
+    old_database = mocker.MagicMock()
+    old_database.id = 1
+    new_database = mocker.MagicMock()
+    new_database.id = 2
+    new_database.get_default_catalog.return_value = "catalog"
+    new_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = old_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "test_table"
+    mock_dataset.sql = None
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = new_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    # Access to the target database is granted.
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    result = UpdateDatasetCommand(1, {"database_id": 2}).run()
+
+    assert result == mock_dataset
+    mock_dataset_dao.update.assert_called_once()
+    # The physical branch must run against the new database and table.
+    raise_for_access.assert_called_once()
+    call_kwargs = raise_for_access.call_args.kwargs
+    assert call_kwargs["database"] is new_database
+    assert call_kwargs["table"].table == "test_table"
+
+
+def test_update_dataset_repoint_database_unauthorized(mocker: MockerFixture) -> None:
+    """
+    Repointing a physical dataset (no SQL change) to a database connection the
+    user cannot access is rejected. Previously this branch was only checked
+    when the SQL text changed, so a physical repoint went unauthorised.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+
+    old_database = mocker.MagicMock()
+    old_database.id = 1
+    new_database = mocker.MagicMock()
+    new_database.id = 2
+    new_database.get_default_catalog.return_value = "catalog"
+    new_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = old_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "test_table"
+    mock_dataset.sql = None
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = new_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    # Access to the target database is denied.
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="You don't have access to the 'target_db' database",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        UpdateDatasetCommand(1, {"database_id": 2}).run()
+
+    assert any(
+        "You don't have access to the 'target_db' database" in str(exc)
+        for exc in excinfo.value._exceptions
+    )
+
+
 @pytest.mark.parametrize(
     ("payload, exception, error_msg"),
     [
@@ -211,6 +310,12 @@ def test_update_dataset_validation_errors(
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
     mocker.patch(
         "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    # A physical source change routes through the target-database access check
+    # (mirroring the create path); allow it so this test isolates the other
+    # validation errors.
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
     )
     mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
     mocker.patch(

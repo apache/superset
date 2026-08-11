@@ -312,6 +312,111 @@ def test_save_non_editor_with_editors_field_is_rejected(
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
 
+@patch("superset.views.datasource.views.Table")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_repoint_to_unauthorized_database_is_rejected(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_table: MagicMock,
+) -> None:
+    """
+    Repointing a datasource to a database connection the caller cannot access
+    is rejected, matching the create path's target-database access check.
+    """
+    mock_orm = MagicMock()
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+
+    target_database = MagicMock()
+    mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value = (  # noqa: E501
+        target_database
+    )
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    from flask import Flask
+
+    raw_save = _get_view_func("save")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    "database": {"id": 2},
+                    "columns": [],
+                }
+            )
+        },
+    ):
+        with pytest.raises(SupersetSecurityException):
+            raw_save(_view_self())
+
+    mock_security_manager.raise_for_access.assert_called_once()
+    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
+    assert call_kwargs["database"] is target_database
+
+
+@patch("superset.views.datasource.views.sanitize_datasource_data")
+@patch("superset.views.datasource.views.Table")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_repoint_to_authorized_database_succeeds(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_table: MagicMock,
+    mock_sanitize: MagicMock,
+) -> None:
+    """
+    Repointing a datasource to a database the caller can access proceeds past
+    the access check and persists.
+    """
+    mock_orm = MagicMock()
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+
+    target_database = MagicMock()
+    mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value = (  # noqa: E501
+        target_database
+    )
+    mock_security_manager.raise_for_access.return_value = None
+    mock_sanitize.return_value = {"id": 1}
+
+    from flask import Flask
+
+    view = _view_self()
+    raw_save = _get_view_func("save")
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {
+                    "id": 1,
+                    "type": "table",
+                    "database": {"id": 2},
+                    "columns": [],
+                }
+            )
+        },
+    ):
+        raw_save(view)
+
+    mock_security_manager.raise_for_access.assert_called_once()
+    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
+    assert call_kwargs["database"] is target_database
+    view.json_response.assert_called_once_with({"id": 1})
+
+
 # ---------------------------------------------------------------------------
 # Datasource.samples
 # ---------------------------------------------------------------------------

@@ -90,6 +90,23 @@ class Datasource(BaseSupersetView):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
+        # When the datasource is repointed to a different database connection,
+        # authorise the target the same way the create path does, so editing a
+        # datasource cannot be used to reach a connection the caller lacks
+        # access to. Mirrors the physical branch of ``CreateDatasetCommand``.
+        target_database = (
+            db.session.query(Database).filter_by(id=database_id).one_or_none()
+        )
+        if target_database is not None:
+            security_manager.raise_for_access(
+                database=target_database,
+                table=Table(
+                    orm_datasource.table_name,
+                    orm_datasource.schema,
+                    orm_datasource.catalog,
+                ),
+            )
+
         duplicates = [
             name
             for name, count in Counter(

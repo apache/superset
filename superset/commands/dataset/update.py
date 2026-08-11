@@ -172,7 +172,56 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         ):
             exceptions.append(DatasetExistsValidationError(table))
 
+        self._validate_source_access(db, table, catalog, schema, exceptions)
+
+    def _validate_source_access(
+        self,
+        db: Database,
+        table: Table,
+        catalog: str | None,
+        schema: str | None,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """
+        Enforce the datasource-access check whenever the dataset's source
+        changes, mirroring ``CreateDatasetCommand``.
+
+        The create path runs ``raise_for_access`` on every new dataset: the
+        SQL branch for virtual datasets, the physical branch (``database`` +
+        ``table``) for physical ones. On update the SQL branch already runs
+        when ``sql`` changes; this method adds the physical branch so that
+        moving a dataset to a different database connection (or physical
+        table) is authorised against that target the same way, instead of
+        only being gated by editorship of the existing model.
+        """
+        # we know we have a valid model
+        self._model = cast(SqlaTable, self._model)
+
         self._validate_sql_access(db, catalog, schema, exceptions)
+
+        # Physical branch: only relevant when the dataset is (or becomes)
+        # physical and the source moved. A SQL change is already covered by
+        # ``_validate_sql_access`` above.
+        sql = self._properties.get("sql")
+        if sql:
+            return
+
+        source_changed = (
+            db.id != self._model.database.id
+            or table.table != self._model.table_name
+            or (schema or None) != (self._model.schema or None)
+            or (catalog or None) != (self._model.catalog or None)
+        )
+        if not source_changed:
+            return
+
+        try:
+            security_manager.raise_for_access(
+                database=db,
+                table=table,
+            )
+        except SupersetSecurityException as ex:
+            exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
 
     def _validate_sql_access(
         self,
