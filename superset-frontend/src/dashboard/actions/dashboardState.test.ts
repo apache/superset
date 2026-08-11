@@ -298,6 +298,80 @@ describe('dashboardState actions', () => {
         { event: 'dashboard_properties_changed' },
       );
     });
+
+    // Regression for the reserved-URL-character slug redirect. When the
+    // submitted slug starts with a reserved character (e.g. `?` or `/`), the
+    // backend sanitizes it out of the persisted slug
+    // (BaseDashboardSchema.post_load strips `[^\w\-]`). The post-save redirect
+    // must therefore be built from the sanitized slug returned in the PUT
+    // response, not the raw slug the user submitted, or the first render lands
+    // on a malformed/blank URL (a later reload works because it reads the
+    // stored, sanitized slug).
+    test('redirects using the sanitized slug from the PUT response, not the raw submitted slug', async () => {
+      const updatedId = 778;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: 'test' },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        { ...newDashboardData, slug: '?test' },
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith('/dashboard/test/', {
+        event: 'dashboard_properties_changed',
+      });
+    });
+
+    // Regression companion: when the PUT response carries no usable slug
+    // (e.g. a slug composed solely of reserved characters, which
+    // BaseDashboardSchema.post_load sanitizes down to an empty string rather
+    // than null), the redirect must fall back to the dashboard id rather
+    // than emitting `/dashboard//` or echoing the raw submitted slug.
+    test('redirects using the id when the PUT response slug is empty', async () => {
+      const updatedId = 779;
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      mockNavigateWithState.mockClear();
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+        json: {
+          result: { ...mockDashboardData, id: updatedId, slug: '' },
+          last_modified_time: 0,
+        },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        { ...newDashboardData, slug: '?' },
+        updatedId,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
+      await waitFor(() => expect(mockNavigateWithState).toHaveBeenCalled());
+
+      expect(mockNavigateWithState).toHaveBeenCalledWith(
+        `/dashboard/${updatedId}/`,
+        { event: 'dashboard_properties_changed' },
+      );
+    });
   });
 
   test('fetchCharts returns a Promise that resolves after all refreshes', async () => {
