@@ -223,6 +223,10 @@ class TestTableTotalsAggregateOverride(SupersetTestCase):
         total_count = _result_df(_base_payload(count_metric, []))["count__num"].iloc[0]
         avg_total = _result_df(_base_payload(avg_metric, []))["avg__num"].iloc[0]
 
+        # Guard the fixture itself: the second assertion below only proves
+        # AVG != SUM when there's more than one row to average over.
+        assert total_count > 1
+
         assert avg_total == pytest.approx(total_sum / total_count)
         assert avg_total != pytest.approx(total_sum)
 
