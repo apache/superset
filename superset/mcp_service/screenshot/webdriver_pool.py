@@ -16,13 +16,13 @@
 # under the License.
 
 """
-Browser pooling for MCP screenshot service.
+Stub module retained for import compatibility after Selenium removal.
 
 Playwright manages its own long-lived browser instance via the
 _PlaywrightBrowserManager in superset.utils.webdriver (one browser per worker
 process, isolated contexts per screenshot). This module re-exports the pool
 accessor interface so callers that were previously using the Selenium-based
-WebDriverPool can be updated without touching import sites.
+WebDriverPool can migrate without touching import sites.
 """
 
 import logging
@@ -31,12 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class WebDriverPool:
-    """
-    Stub retained for import compatibility. Screenshot generation now delegates
-    entirely to WebDriverPlaywright, which uses the process-scoped Playwright
-    browser manager. This class is no longer functional and will be removed in
-    a future release.
-    """
+    """Stub retained for import compatibility; no longer functional."""
 
     def get_stats(self) -> dict[str, object]:
         return {"status": "playwright_managed"}

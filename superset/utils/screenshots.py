@@ -205,8 +205,6 @@ class BaseScreenshot:
     def driver(
         self,
         window_size: WindowSize | None = None,
-        user: User | None = None,
-        log_context: str | None = None,
     ) -> WebDriverProxy:
         window_size = window_size or self.window_size
         return WebDriverPlaywright("", window_size)
@@ -218,7 +216,7 @@ class BaseScreenshot:
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
-        driver = self.driver(window_size, user, log_context=log_context)
+        driver = self.driver(window_size)
         self.screenshot = driver.get_screenshot(
             self.url,
             self.element,
