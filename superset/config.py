@@ -350,6 +350,9 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 # (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
 # those values undecryptable unless they are re-encrypted first. See the
 # authenticated-encryption SIP/migration before switching an existing install.
+# Leaving this at "aes" logs a startup warning
+# (SupersetAppInitializer.check_encryption_engine) pointing at the
+# `superset re-encrypt-secrets --engine aes-gcm` migration path.
 SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 
 # Extends the default SQLGlot dialects with additional dialects
@@ -2547,6 +2550,12 @@ ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
+
+# Socket timeout (in seconds) for the HTTP request that dispatches webhook
+# alerts/reports. Without a timeout the request blocks indefinitely if the
+# webhook target is unreachable, which leaves the report schedule stuck in
+# the WORKING state. Set to None to disable (not recommended).
+ALERT_REPORTS_WEBHOOK_TIMEOUT = 60
 
 # When True, webhook alert/report dispatch is permitted to call private/internal
 # IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
