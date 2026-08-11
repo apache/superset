@@ -31,8 +31,9 @@ class SlackMixin:
         content: NotificationContent,
         table: str = "",
     ) -> str:
-        return __(
-            """*%(name)s*
+        if content.include_cta:
+            return __(
+                """*%(name)s*
 
 %(description)s
 
@@ -40,14 +41,64 @@ class SlackMixin:
 
 %(table)s
 """,
+                name=content.name,
+                description=content.description or "",
+                url=content.url,
+                table=table,
+            )
+        return __(
+            """*%(name)s*
+
+%(description)s
+
+%(table)s
+""",
             name=content.name,
             description=content.description or "",
-            url=content.url,
             table=table,
         )
 
     @staticmethod
-    def _error_template(name: str, description: str, text: str) -> str:
+    def _error_template(
+        name: str,
+        description: str,
+        text: str,
+        retry_attempt: int | None = None,
+        retry_max_attempts: int | None = None,
+    ) -> str:
+        if retry_attempt is not None:
+            retries_remaining = (retry_max_attempts or 0) - retry_attempt
+            return __(
+                """*Report Retry [%(attempt)s of %(max)s]: %(name)s*
+
+%(description)s
+
+Retry attempt: %(attempt)s of %(max)s  |  Retries remaining: %(remaining)s
+
+Error: %(text)s
+""",
+                name=name,
+                description=description,
+                attempt=retry_attempt,
+                max=retry_max_attempts,
+                remaining=retries_remaining,
+                text=text,
+            )
+        if retry_max_attempts is not None:
+            return __(
+                """*Report Failed - All Retries Exhausted: %(name)s*
+
+%(description)s
+
+The report failed after %(max)s retry attempts.
+
+Error: %(text)s
+""",
+                name=name,
+                description=description,
+                max=retry_max_attempts,
+                text=text,
+            )
         return __(
             """*%(name)s*
 
@@ -63,7 +114,11 @@ class SlackMixin:
     def _get_body(self, content: NotificationContent) -> str:
         if content.text:
             return self._error_template(
-                content.name, content.description or "", content.text
+                content.name,
+                content.description or "",
+                content.text,
+                retry_attempt=content.retry_attempt,
+                retry_max_attempts=content.retry_max_attempts,
             )
 
         if content.embedded_data is None:

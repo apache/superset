@@ -166,6 +166,12 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+
+    encrypted_extra_sensitive_fields = {
+        "$.auth_params.password": "Password",
+        "$.auth_params.token": "JWT Token",
+        "$.connect_args.requests_kwargs.jwt": "JWT Token",
+    }
     # Not set here: GROUPING SETS support is opted in per-concrete-engine
     # (``PrestoEngineSpec``, ``TrinoEngineSpec``) rather than on this shared
     # base, since Hive-family descendants (``HiveEngineSpec``, ``SparkEngineSpec``,
@@ -1235,6 +1241,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         all_columns: list[ResultSetColumnType] = []
         expanded_columns = []
         current_array_level = None
+        unnested_rows: dict[int, int] = defaultdict(int)
         while to_process:
             column, level = to_process.popleft()
             if column["column_name"] not in [
@@ -1248,7 +1255,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             # added by the first. every time we change a level in the nested arrays
             # we reinitialize this.
             if level != current_array_level:
-                unnested_rows: dict[int, int] = defaultdict(int)
+                unnested_rows = defaultdict(int)
                 current_array_level = level
 
             name = column["column_name"]

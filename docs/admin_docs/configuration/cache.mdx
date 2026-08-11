@@ -15,9 +15,8 @@ fail-fast behavior ensures operators are immediately aware of infrastructure iss
 
 Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes.
 Flask-Caching supports various caching backends, including Redis (recommended), Memcached,
-SimpleCache (in-memory), or the local filesystem.
-[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends)
-are also supported.
+SimpleCache (in-memory), MinIO/S3, or the local filesystem.
+[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) are also supported.
 
 Caching can be configured by providing dictionaries in
 `superset_config.py` that comply with [the Flask-Caching config specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
@@ -47,6 +46,7 @@ In order to use dedicated cache stores, additional python libraries must be inst
 - For Redis: we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
 - Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
   `python-memcached` does not handle storing binary data correctly.
+- MinIO (S3): we recommend using the [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) package
 
 These libraries can be installed using pip.
 
@@ -75,6 +75,21 @@ value defined in `DATA_CACHE_CONFIG`.
 
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
+
+## Limiting Cached Result Size
+
+Very large chart or SQL query results can flood the cache backend (Redis/Memcached), evicting many
+smaller useful entries or exhausting memory. To cap the size of any single value written to the data
+cache, set `DATA_CACHE_MAX_VALUE_SIZE` (in bytes) in `superset_config.py`:
+
+```python
+DATA_CACHE_MAX_VALUE_SIZE = 10 * 1024 * 1024  # 10 MB
+```
+
+When a result's serialized size exceeds this threshold it is not written to the data cache — the
+chart still renders, but the next load re-queries the datasource instead of getting a cache hit. The
+`skip_cache_value_too_large` statsd metric is incremented each time this happens. Set to `None` (the
+default) to disable the check.
 
 ## SQL Lab Query Results
 
@@ -118,6 +133,50 @@ CELERY_CONFIG = CustomCeleryConfig
 
 This will cache the top 5 most popular dashboards every hour. For other
 strategies, check the `superset/tasks/cache.py` file.
+
+### Warming Up Native Filter Options
+
+Native filter Value-type dropdown option queries (e.g. `SELECT DISTINCT column FROM table`) are
+cached the same way as chart data, via `DATA_CACHE_CONFIG`. However, the strategies above only warm
+up chart render queries, so the first user to open a dashboard's filter dropdown after a cache entry
+expires still triggers a fresh database query.
+
+The `native_filter_options` strategy pre-populates the cache for these dropdown queries. It reads
+each dashboard's `native_filter_configuration`, builds the same `filter_select` chart-data query the
+frontend would send, and executes it as the configured `SUPERSET_CACHE_WARMUP_USER`:
+
+```python
+class CustomCeleryConfig(CeleryConfig):
+    beat_schedule = {
+        **CeleryConfig.beat_schedule,
+        'cache-warmup-native-filters': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute=0, hour=3),  # daily at 03:00
+            'kwargs': {
+                'strategy_name': 'native_filter_options',
+                'dashboard_ids': [1, 2, 3],
+            },
+        },
+    }
+```
+
+Requirements and limitations:
+
+- `SUPERSET_CACHE_WARMUP_USER` must be set to a user with access to the dashboards and datasets
+  referenced by the native filters.
+- `DATA_CACHE_CONFIG` must use a backend that actually persists entries (Redis recommended); the
+  default `NullCache` discards writes, so warming has nothing to warm. The effective timeout also
+  needs to be positive — `NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT = -1` disables cache writes for these
+  queries entirely, even with a working backend.
+- Schedule the warm-up at least as often as the effective native filter cache timeout (whichever of
+  `NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT`, the chart/dataset/database timeout, or `DATA_CACHE_CONFIG`'s
+  default applies). A looser schedule still leaves a window of cold, unwarmed queries between expiry
+  and the next run — the daily example above assumes a TTL of a day or more.
+- Cache entries are warmed under the warm-up user's own cache partition, the same entry that user
+  would create by opening the filter dropdown manually. Users with a different role set or row-level
+  security context may still see a cache miss on first load.
+- Cascading/dependent native filters and search-term variants of filter option queries are not
+  warmed by this strategy.
 
 ## Caching Thumbnails
 
@@ -286,6 +345,24 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 }
 ```
 
+By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` (as well as
+`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, which uses the same `RedisCache`/`RedisSentinelCache`
+backend) have no socket timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
+`CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, both in seconds:
+
+```python
+DISTRIBUTED_COORDINATION_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_SOCKET_TIMEOUT": 5,  # seconds
+    "CACHE_REDIS_SOCKET_CONNECT_TIMEOUT": 5,  # seconds
+}
+```
+
+These apply to `RedisSentinelCache` connections as well, covering both the sentinel-node
+connections and the resolved master connection.
+
 ### Distributed Lock TTL
 
 You can configure the default lock TTL (time-to-live) in seconds. Locks automatically expire after
@@ -308,6 +385,7 @@ While database-backed operations work reliably, the Redis backend is recommended
 deployments where low latency and reduced database load are important.
 
 :::resources
+
 - [Blog: The Data Engineer's Guide to Lightning-Fast Superset Dashboards](https://preset.io/blog/the-data-engineers-guide-to-lightning-fast-apache-superset-dashboards/)
 - [Blog: Accelerating Dashboards with Materialized Views](https://preset.io/blog/accelerating-apache-superset-dashboards-with-materialized-views/)
-:::
+  :::

@@ -403,7 +403,7 @@ def apply_client_processing(  # noqa: C901
         # Check if the DataFrame has a default RangeIndex, which should not be shown
         show_default_index = not isinstance(processed_df.index, pd.RangeIndex)
 
-        # Flatten hierarchical columns/index since they are represented as
+        # Flatten hierarchical columns since they are represented as
         # `Tuple[str]`. Otherwise encoding to JSON later will fail because
         # maps cannot have tuples as their keys in JSON.
         processed_df.columns = [
@@ -414,14 +414,40 @@ def apply_client_processing(  # noqa: C901
             )
             for column in processed_df.columns
         ]
-        processed_df.index = [
-            (
-                " ".join(str(name) for name in index).strip()
-                if isinstance(index, tuple)
-                else index
-            )
-            for index in processed_df.index
-        ]
+
+        if query["result_format"] == ChartDataResultFormat.JSON:
+            # JSON object keys must be strings, so a hierarchical (multi-level)
+            # row index has to be flattened into a single string per row.
+            processed_df.index = [
+                (
+                    " ".join(str(name) for name in index).strip()
+                    if isinstance(index, tuple)
+                    else index
+                )
+                for index in processed_df.index
+            ]
+        elif (
+            isinstance(processed_df.index, pd.MultiIndex)
+            and processed_df.index.nlevels > 1
+        ):
+            # For tabular formats (CSV/XLSX) keep each "Rows" field as its own
+            # column instead of collapsing them into a single joined string.
+            # Previously, when a pivot table had multiple "Rows" fields, they
+            # were merged into a single column on export; pandas natively
+            # writes a MultiIndex as one column per level when serializing to
+            # CSV/Excel. See: https://github.com/apache/superset/issues/32369
+            processed_df.index.names = [
+                name if name is not None else "" for name in processed_df.index.names
+            ]
+        else:
+            processed_df.index = [
+                (
+                    " ".join(str(name) for name in index).strip()
+                    if isinstance(index, tuple)
+                    else index
+                )
+                for index in processed_df.index
+            ]
 
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()

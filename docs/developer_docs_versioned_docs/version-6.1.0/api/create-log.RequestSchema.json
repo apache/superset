@@ -1,1 +1,17 @@
-{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"id":{"type":"integer"}},"type":"object","title":"LogRestApi.post"},"example":{"id":1}}},"description":"Model schema","required":true}}
+{
+  "title": "Body",
+  "body": {
+    "content": {
+      "application/json": {
+        "schema": {
+          "properties": { "id": { "type": "integer" } },
+          "type": "object",
+          "title": "LogRestApi.post"
+        },
+        "example": { "id": 1 }
+      }
+    },
+    "description": "Model schema",
+    "required": true
+  }
+}

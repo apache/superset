@@ -27,10 +27,6 @@ export const URL_PARAMS = {
     name: 'standalone',
     type: 'number',
   },
-  showDownload: {
-    name: 'show_download',
-    type: 'boolean',
-  },
   uiConfig: {
     name: 'uiConfig',
     type: 'number',
@@ -49,6 +45,10 @@ export const URL_PARAMS = {
   },
   showFilters: {
     name: 'show_filters',
+    type: 'boolean',
+  },
+  showDownload: {
+    name: 'show_download',
     type: 'boolean',
   },
   expandFilters: {
@@ -111,6 +111,10 @@ export const URL_PARAMS = {
     name: 'edit',
     type: 'boolean',
   },
+  versionHistory: {
+    name: 'version_history',
+    type: 'boolean',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
@@ -120,6 +124,7 @@ export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
   URL_PARAMS.showDownload.name,
+  URL_PARAMS.versionHistory.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,
@@ -127,6 +132,7 @@ export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.permalinkKey.name,
   URL_PARAMS.preselectFilters.name,
   URL_PARAMS.editMode.name,
+  URL_PARAMS.versionHistory.name,
 ];
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
@@ -149,6 +155,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   extra_categorical_color_schemes: [],
   extra_sequential_color_schemes: [],
+  extra_theme_tokens: [],
   theme: {
     default: {},
     dark: {},

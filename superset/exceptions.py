@@ -147,6 +147,16 @@ class SupersetGenericDBErrorException(SupersetErrorFromParamsException):
         )
 
 
+class SupersetVirtualTableParseException(SupersetGenericDBErrorException):
+    """Raised when a virtual dataset's SQL cannot be parsed/templated.
+
+    Distinct from generic DB errors so callers can soften template/parse
+    failures (which cannot be validated at save time without runtime
+    context) without also swallowing genuine driver, connection, or
+    permission errors from the same code path. See #38012.
+    """
+
+
 class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
     status = 400
 

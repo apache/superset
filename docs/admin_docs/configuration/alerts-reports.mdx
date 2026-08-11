@@ -9,8 +9,8 @@ version: 2
 
 Users can configure automated alerts and reports to send dashboards or charts to an email recipient or Slack channel.
 
-- *Alerts* are sent when a SQL condition is reached
-- *Reports* are sent on a schedule
+- _Alerts_ are sent when a SQL condition is reached
+- _Reports_ are sent on a schedule
 
 Alerts and reports are disabled by default. To turn them on, you'll need to change configuration settings and install a suitable headless browser in your environment.
 
@@ -26,16 +26,18 @@ Alerts and reports are disabled by default. To turn them on, you'll need to chan
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
 - Users can customize the email subject by including date code placeholders, which will automatically be replaced with the corresponding UTC date when the email is sent. To enable this functionality, activate the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags). This enables date formatting in email subjects, preventing all reporting emails from being grouped into the same thread (optional for the reporting feature).
-    - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
-    - If no date code is provided, the original string will be used as the email subject.
+  - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
+  - If no date code is provided, the original string will be used as the email subject.
+- Each alert/report has an "Include a link back to Superset" option (enabled by default) controlling whether the call-to-action link is included in email and Slack notifications. The link text in emails is configurable via `EMAIL_REPORTS_CTA`; the Slack message always uses "Explore in Superset". Uncheck the option when recipients should not receive a link to your Superset host, e.g. for external audiences.
 
 ##### Disable dry-run mode
 
-Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`.  To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
+Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`. To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
 
 #### In your `Dockerfile`
 
 You'll need to extend the Superset image to include a headless browser. Your options include:
+
 - Use Playwright with Chromium: this is the recommended approach as of version 4.1.x or greater. Playwright always uses Chromium — the `WEBDRIVER_TYPE` config setting has no effect when Playwright is active. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page. Enable the `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag in your config to activate it.
 - Use Firefox (Selenium): you'll need to install geckodriver and Firefox. Set `WEBDRIVER_TYPE` to `"firefox"` in your `superset_config.py`.
 - Use Chrome (Selenium): you'll need to install Chrome. Set `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
@@ -131,7 +133,7 @@ Superset sends an HTTP POST with `Content-Type: application/json`:
   },
   "text": "Alert condition met: value exceeded threshold",
   "description": "Monthly revenue dropped below target",
-  "url": "https://your-superset-host/superset/dashboard/1/"
+  "url": "https://your-superset-host/dashboard/1/"
 }
 ```
 
@@ -173,6 +175,16 @@ ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 
 When enabled, Superset rejects webhook configurations that use `http://` URLs.
 
+#### Request Timeout
+
+Webhook deliveries use a socket timeout so a request can't hang forever if the webhook target is unreachable, which would otherwise leave the report schedule stuck in a `WORKING` state. Configure it with:
+
+```python
+ALERT_REPORTS_WEBHOOK_TIMEOUT = 60  # seconds
+```
+
+Set to `None` to disable the timeout (not recommended).
+
 #### Retry Behavior
 
 Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff. Retries are bounded to roughly 120 seconds of cumulative wall-clock time (worst case ~210 seconds, because the bound is checked against the time elapsed before each attempt, so the final request can begin just under the limit and still run its full request timeout), after which the delivery is abandoned.
@@ -204,7 +216,7 @@ You need to replace default values with your custom Redis, Slack and/or SMTP con
 Superset uses Celery beat and Celery worker(s) to send alerts and reports.
 
 - The beat is the scheduler that tells the worker when to perform its tasks. This schedule is defined when you create the alert or report.
-- The worker will process the  tasks that need to be performed when an alert or report is fired.
+- The worker will process the tasks that need to be performed when an alert or report is fired.
 
 In the `CeleryConfig`, only the `beat_schedule` is relevant to this feature, the rest of the `CeleryConfig` can be changed for your needs.
 
@@ -244,6 +256,53 @@ class CeleryConfig:
     }
 CELERY_CONFIG = CeleryConfig
 
+# Scheduled reports share one deadline across browser readiness, capture/PDF
+# generation, delivery, and terminal-state persistence. The effective budget
+# for a schedule is min(this value, the schedule's working_timeout), so the
+# per-schedule field keeps its meaning as a user-facing cap. The default (one
+# hour) matches the historical working_timeout default, so upgrading changes
+# no default behavior; lower it to enforce a tighter report SLA.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = 3600
+
+# These reserves are part of (not additions to) the total budget and their sum
+# must be less than it. Readiness polling stops in time to leave capacity for
+# the later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = 60
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = 120
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = 30
+
+# Celery's hard limit leaves this additional window for terminal cleanup after
+# the soft limit, which equals the resolved execution budget (the configured
+# budget capped by each schedule's working_timeout).
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL controls these Celery limits; disabling
+# it does not disable the application deadline above.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
+
+# Invalid budget/reserve combinations fail application startup instead of
+# allowing every scheduled report to fail later. A report Celery soft timeout
+# records ERROR and increments `reports.execute.celery_soft_timeout`; it does
+# not attempt an in-band customer error notification during the hard-limit
+# grace window. Alert schedules retain their existing timeout notifications.
+#
+# The application deadline is cooperative between synchronous phases. The
+# Celery limits provide the final preemption boundary when the worker pool
+# supports them; PDF construction is checked immediately before and after the
+# synchronous builder but cannot be interrupted inside that call.
+#
+# Sizing the budget against infrastructure limits:
+# - Kubernetes (or similar) pod termination grace must exceed
+#   budget + hard-timeout grace, or in-flight reports are killed mid-run on
+#   every deploy/node drain despite the application deadline.
+# - The web server's per-request timeout (e.g. gunicorn ``timeout``) bounds
+#   each individual chart data request made by the headless browser -- not
+#   the report as a whole. Readiness allowance beyond that per-request
+#   ceiling buys nothing for a single slow chart (its request dies at the
+#   web layer and the chart reaches an error state), but multi-chart and
+#   tiled captures legitimately accumulate total time well past it.
+
+# Screenshot-specific waits continue to apply to thumbnails and other
+# standalone screenshot calls. Scheduled reports derive their waits from the
+# shared execution deadline above.
 SCREENSHOT_LOCATE_WAIT = 100
 SCREENSHOT_LOAD_WAIT = 600
 
@@ -277,7 +336,7 @@ WEBDRIVER_OPTION_ARGS = [
 ]
 
 # This is for internal use, you can keep http
-WEBDRIVER_BASEURL = "http://superset:8088" # When running using docker compose use "http://superset_app:8088'
+WEBDRIVER_BASEURL = "http://superset:8088" # This is also the default for Docker Compose, where the app service is named "superset"
 # This is the link sent to the recipient. Change to your domain, e.g. https://superset.mydomain.com
 WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
 ```
@@ -313,7 +372,7 @@ Please refer to `ExecutorType` in the codebase for other executor types.
 
 It's also possible to specify a minimum interval between each report's execution through the config file:
 
-``` python
+```python
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=10).total_seconds())
@@ -322,7 +381,7 @@ REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=5).total_seconds())
 
 Alternatively, you can assign a function to `ALERT_MINIMUM_INTERVAL` and/or `REPORT_MINIMUM_INTERVAL`. This is useful to dynamically retrieve a value as needed:
 
-``` python
+```python
 def alert_dynamic_minimal_interval(**kwargs) -> int:
     """
     Define logic here to retrieve the value dynamically
@@ -335,7 +394,7 @@ ALERT_MINIMUM_INTERVAL = alert_dynamic_minimal_interval
 
 For security, Superset rewrites external links in alert/report email HTML so
 they go through a warning page before the user is navigated to the external
-site.  Internal links (matching your configured base URL) are not affected.
+site. Internal links (matching your configured base URL) are not affected.
 
 ```python
 # Disable external link redirection entirely (default: True)
@@ -347,17 +406,17 @@ to determine which hosts are internal.
 
 ## Troubleshooting
 
-There are many reasons that reports might not be working.  Try these steps to check for specific issues.
+There are many reasons that reports might not be working. Try these steps to check for specific issues.
 
 ### Confirm feature flag is enabled and you have sufficient permissions
 
-If you don't see "Alerts & Reports" under the *Manage* section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.
+If you don't see "Alerts & Reports" under the _Manage_ section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.
 
 Log in as an admin user to ensure you have adequate permissions.
 
 ### Check the logs of your Celery worker
 
-This is the best source of information about the problem.  In a docker compose deployment, you can do this with a command like `docker logs superset_worker --since 1h`.
+This is the best source of information about the problem. In a docker compose deployment, you can do this with a command like `docker logs superset_worker --since 1h`.
 
 ### Check web browser and webdriver installation
 
@@ -369,7 +428,7 @@ If you are handling the installation of the headless browser on your own, do you
 
 One symptom of an invalid connection to an email server is receiving an error of `[Errno 110] Connection timed out` in your logs when the report tries to send.
 
-Confirm via testing that your outbound email configuration is correct.  Here is the simplest test, for an un-authenticated email SMTP email service running on port 25.  If you are sending over SSL, for instance, study how [Superset's codebase sends emails](https://github.com/apache/superset/blob/master/superset/utils/core.py#L818) and then test with those commands and arguments.
+Confirm via testing that your outbound email configuration is correct. Here is the simplest test, for an un-authenticated email SMTP email service running on port 25. If you are sending over SSL, for instance, study how [Superset's codebase sends emails](https://github.com/apache/superset/blob/master/superset/utils/core.py#L818) and then test with those commands and arguments.
 
 Start Python in your worker environment, replace all example values, and run:
 
@@ -395,16 +454,16 @@ This should send an email.
 
 Possible fixes:
 
-- Some cloud hosts disable outgoing unauthenticated SMTP email to prevent spam.  For instance, [Azure blocks port 25 by default on some machines](https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity). Enable that port or use another sending method.
+- Some cloud hosts disable outgoing unauthenticated SMTP email to prevent spam. For instance, [Azure blocks port 25 by default on some machines](https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity). Enable that port or use another sending method.
 - Use another set of SMTP credentials that you verify works in this setup.
 
 ### Browse to your report from the worker
 
-The worker may be unable to reach the report. It will use the value of `WEBDRIVER_BASEURL` to browse to the report.  If that route is invalid, or presents an authentication challenge that the worker can't pass, the report screenshot will fail.
+The worker may be unable to reach the report. It will use the value of `WEBDRIVER_BASEURL` to browse to the report. If that route is invalid, or presents an authentication challenge that the worker can't pass, the report screenshot will fail.
 
-Check this by attempting to `curl` the URL of a report that you see in the error logs of your worker. For instance, from the worker environment, run `curl http://superset_app:8088/superset/dashboard/1/`. You may get different responses depending on whether the dashboard exists - for example, you may need to change the `1` in that URL. If there's a URL in your logs from a failed report screenshot, that's a good place to start. The goal is to determine a valid value for `WEBDRIVER_BASEURL` and determine if an issue like HTTPS or authentication is redirecting your worker.
+Check this by attempting to `curl` the URL of a report that you see in the error logs of your worker. For instance, from the worker environment, run `curl http://superset:8088/dashboard/1/`. You may get different responses depending on whether the dashboard exists - for example, you may need to change the `1` in that URL. If there's a URL in your logs from a failed report screenshot, that's a good place to start. The goal is to determine a valid value for `WEBDRIVER_BASEURL` and determine if an issue like HTTPS or authentication is redirecting your worker.
 
-In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in.  For instance, you could use `WEBDRIVER_BASEURL="http://superset_app:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG`.
+In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in. For instance, you could use `WEBDRIVER_BASEURL="http://superset:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG` — appropriate only for an isolated development stack or when HTTPS is enforced by a trusted proxy in front of Superset.
 
 ### Duplicate report deliveries
 
@@ -512,6 +571,7 @@ schedule the queries that have `schedule_info` in their JSON metadata. For sched
 Airflow, additional fields can be easily added to the configuration file above.
 
 :::resources
+
 - [Tutorial: Automated Alerts and Reporting via Slack/Email in Superset](https://dev.to/ngtduc693/apache-superset-topic-5-automated-alerts-and-reporting-via-slackemail-in-superset-2gbe)
 - [Blog: Integrating Slack alerts and Apache Superset for better data observability](https://medium.com/affinityanswers-tech/integrating-slack-alerts-and-apache-superset-for-better-data-observability-fd2f9a12c350)
-:::
+  :::

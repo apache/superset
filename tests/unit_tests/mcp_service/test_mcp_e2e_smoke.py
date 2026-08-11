@@ -30,8 +30,12 @@ CI.
 This module closes that gap with a single smoke test file that:
 
 1. Builds the *real* ASGI app the way ``run_server()`` does --
-   ``mcp.http_app(transport="streamable-http", stateless_http=True)`` --
+   ``mcp.http_app(transport="streamable-http", stateless_http=...)`` --
    with the production FastMCP-level middleware list attached.
+   ``stateless_http`` defaults to True (``MCP_STATELESS_HTTP`` in
+   ``mcp_config.py``); this suite pins it to False, the value deployments
+   override to in order to avoid the crash documented on that config's
+   docstring.
 2. Serves it in-process over real MCP streamable-HTTP JSON-RPC using
    ``httpx.ASGITransport`` (no real TCP socket, no real network).
 3. Drives it with FastMCP's own high-level ``Client``, proving the full
@@ -143,7 +147,9 @@ async def _real_asgi_client() -> AsyncIterator[Client]:
     Builds the app the way ``run_server()`` does for the multi-pod/http_app
     path (``server.py:938``): FastMCP-level middleware from
     ``build_middleware_list()`` attached to the shared ``mcp`` instance, then
-    ``mcp.http_app(transport="streamable-http", stateless_http=True)``.
+    ``mcp.http_app(transport="streamable-http", stateless_http=False)`` --
+    pinned to False rather than reading ``MCP_STATELESS_HTTP``'s True default,
+    since False is what deployments actually run (see module docstring).
 
     The request/response cycle is driven over ``httpx.ASGITransport`` (no
     real socket) using FastMCP's own ``StreamableHttpTransport`` so the
@@ -165,7 +171,7 @@ async def _real_asgi_client() -> AsyncIterator[Client]:
         mcp.add_middleware(middleware)
 
     try:
-        asgi_app = mcp.http_app(transport="streamable-http", stateless_http=True)
+        asgi_app = mcp.http_app(transport="streamable-http", stateless_http=False)
 
         def httpx_client_factory(**kwargs: Any) -> httpx.AsyncClient:
             return httpx.AsyncClient(

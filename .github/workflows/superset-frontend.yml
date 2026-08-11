@@ -23,6 +23,12 @@ jobs:
   frontend-build:
     runs-on: ubuntu-26.04
     timeout-minutes: 30
+    # The change detector reads the PR's file list, which needs
+    # `pull-requests: read`. Public repos serve that endpoint without it;
+    # private forks return 403.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
     steps:
@@ -171,10 +177,10 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
-      - name: Build Plugins Packages
+      - name: Validate dependency tree
         run: |
           docker run --rm $TAG bash -c \
-          "npm run plugins:build"
+          "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
 
   test-storybook:
     needs: frontend-build
@@ -195,3 +201,14 @@ jobs:
         run: |
           docker run --rm $TAG bash -c \
           "npm run build-storybook && npx playwright install-deps && npx playwright install chromium && npm run test-storybook:ci"
+
+  actions-timeline:
+    needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

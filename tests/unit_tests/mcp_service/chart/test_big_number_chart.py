@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.mcp_service.chart.chart_utils import (
     _resolve_viz_type,
@@ -388,13 +389,13 @@ class TestMapBigNumberConfig:
         mock_find_by_id_or_uuid.assert_called_once_with("42")
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
-    def test_total_no_dataset_main_dttm_col_skips_temporal_filter(
+    def test_total_without_temporal_columns_skips_temporal_filter(
         self, mock_find_by_id_or_uuid: MagicMock
     ) -> None:
-        """When the dataset has no temporal column, no TEMPORAL_RANGE filter
-        can be added — there's nothing for a dashboard filter to bind to."""
+        """A dataset without temporal columns has nothing to bind to."""
         mock_dataset = MagicMock()
         mock_dataset.main_dttm_col = None
+        mock_dataset.columns = []
         mock_find_by_id_or_uuid.return_value = mock_dataset
 
         config = BigNumberChartConfig(
@@ -403,6 +404,84 @@ class TestMapBigNumberConfig:
         )
         form_data = map_big_number_config(config, dataset_id=42)
 
+        assert "adhoc_filters" not in form_data
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
+    def test_total_falls_back_to_first_temporal_column_without_main_dttm_col(
+        self, mock_find_by_id_or_uuid: MagicMock
+    ) -> None:
+        """Match Explore when temporal columns exist but no main one is set."""
+        non_temporal_column = MagicMock(
+            column_name="revenue",
+            is_dttm=False,
+        )
+        temporal_column = MagicMock(
+            column_name="order_date",
+            is_dttm=True,
+            type=None,
+        )
+        mock_dataset = MagicMock(
+            main_dttm_col=None,
+            columns=[non_temporal_column, temporal_column],
+        )
+        mock_find_by_id_or_uuid.return_value = mock_dataset
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        form_data = map_big_number_config(config, dataset_id=42)
+
+        assert form_data["adhoc_filters"][0]["subject"] == "order_date"
+        assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
+        mock_find_by_id_or_uuid.assert_called_once_with("42")
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
+    def test_total_accepts_native_temporal_column_without_is_dttm(
+        self,
+        mock_find_by_id_or_uuid: MagicMock,
+        mock_is_temporal: MagicMock,
+    ) -> None:
+        """Use backend type classification instead of relying only on is_dttm."""
+        mock_dataset = MagicMock(
+            main_dttm_col=None,
+            columns=[
+                MagicMock(column_name="revenue", is_dttm=False),
+                MagicMock(column_name="order_date", is_dttm=False),
+            ],
+        )
+        mock_find_by_id_or_uuid.return_value = mock_dataset
+        mock_is_temporal.side_effect = lambda column, *_args, **_kwargs: (
+            column == "order_date"
+        )
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        form_data = map_big_number_config(config, dataset_id=42)
+
+        assert form_data["adhoc_filters"][0]["subject"] == "order_date"
+        assert [call.args[0] for call in mock_is_temporal.call_args_list] == [
+            "revenue",
+            "order_date",
+        ]
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
+    def test_total_ignores_optional_temporal_binding_on_dataset_lookup_failure(
+        self, mock_find_by_id_or_uuid: MagicMock
+    ) -> None:
+        """A metadata failure must not make optional time binding abort mapping."""
+        mock_find_by_id_or_uuid.side_effect = SQLAlchemyError("metadata unavailable")
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+
+        form_data = map_big_number_config(config, dataset_id=42)
+
+        assert form_data["viz_type"] == "big_number_total"
         assert "adhoc_filters" not in form_data
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")

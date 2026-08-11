@@ -60,6 +60,7 @@ export const TableControls = ({
   data,
   datasourceId,
   onInputChange,
+  filterText,
   columnNames,
   columnTypes,
   rowcount,
@@ -93,7 +94,11 @@ export const TableControls = ({
   const { canCopyClipboard: copyEnabled } = usePermissions();
   return (
     <TableControlsWrapper>
-      <FilterInput onChangeHandler={onInputChange} shouldFocus />
+      <FilterInput
+        onChangeHandler={onInputChange}
+        shouldFocus
+        value={filterText}
+      />
       <div
         css={css`
           display: flex;
