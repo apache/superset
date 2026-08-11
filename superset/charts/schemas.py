@@ -27,6 +27,7 @@ from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
@@ -1565,6 +1566,26 @@ class AnnotationDataSchema(Schema):
     )
 
 
+class ChartDataQueryTimingSchema(Schema):
+    """Schema for the versioned per-query timing phases."""
+
+    query_planning_ms = fields.Float(required=True, allow_none=True)
+    cache_resolution_ms = fields.Float(required=True, allow_none=True)
+    data_acquisition_ms = fields.Float(required=True, allow_none=True)
+    payload_assembly_ms = fields.Float(required=True, allow_none=True)
+    total_ms = fields.Float(required=True)
+
+
+class ChartDataTimingSchema(Schema):
+    """Schema for the versioned query lifecycle timing breakdown."""
+
+    version = fields.Integer(
+        required=True,
+        validate=validate.Equal(CHART_DATA_TIMING_VERSION),
+    )
+    query = fields.Nested(ChartDataQueryTimingSchema, required=True)
+
+
 class ChartDataResponseResult(Schema):
     annotation_data = fields.List(
         fields.Dict(
@@ -1675,6 +1696,17 @@ class ChartDataResponseResult(Schema):
     warning = fields.String(
         metadata={"description": "Warning message when results were truncated"},
         allow_none=True,
+    )
+    timing = fields.Nested(
+        ChartDataTimingSchema,
+        metadata={
+            "description": (
+                "Optional versioned query lifecycle timing breakdown in milliseconds. "
+                "Present only when CHART_DATA_INCLUDE_TIMING is enabled; disabled by "
+                "default."
+            )
+        },
+        required=False,
     )
 
 

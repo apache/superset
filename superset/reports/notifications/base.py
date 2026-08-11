@@ -35,6 +35,10 @@ class NotificationContent:
     description: Optional[str] = ""
     url: Optional[str] = None  # url to chart/dashboard for this screenshot
     embedded_data: Optional[pd.DataFrame] = None
+    # Populated only when this is a per-retry or final-failure notification
+    retry_attempt: Optional[int] = None
+    retry_max_attempts: Optional[int] = None
+    include_cta: bool = True  # include the call-to-action link back to Superset
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

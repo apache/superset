@@ -21,6 +21,7 @@ from typing import Any, TypedDict
 
 from flask import current_app as app
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError
 
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
@@ -150,7 +151,17 @@ class QueryEstimationCommand(BaseCommand):
         sql = self._sql
         if self._template_params:
             template_processor = get_template_processor(self._database)
-            sql = template_processor.process_template(sql, **self._template_params)
+            try:
+                sql = template_processor.process_template(sql, **self._template_params)
+            except TemplateError as ex:
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=str(ex),
+                        error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                        level=ErrorLevel.ERROR,
+                    ),
+                    status=400,
+                ) from ex
 
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to

@@ -21,6 +21,7 @@ import {
   AnnotationStyle,
   AnnotationType,
   AxisType,
+  ChartProps,
   ComparisonType,
   DataRecord,
   EventAnnotationLayer,
@@ -32,6 +33,7 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
@@ -753,6 +755,55 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
+  test('should exclude a verbose-named sort-only metric from the stacked total (#42881)', () => {
+    // rebaseForecastDatum renames a data column to its verboseMap entry when
+    // one is configured, so extraMetricLabels (derived from raw metric
+    // labels) must be resolved through the same verboseMap to still match —
+    // otherwise the sort-only metric's value leaks back into the total.
+    const sortMetricVerboseMap = { sort_metric: 'Sort By Metric' };
+    const sortFormData: SqlaFormData = {
+      ...formData,
+      onlyTotal: true,
+      groupby: [],
+      metrics: ['San Francisco', 'New York', 'Boston'],
+      timeseries_limit_metric: 'sort_metric',
+      x_axis_sort: 'sort_metric',
+    };
+    const sortQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': 32,
+              'New York': 0,
+              Boston: 0,
+              'Sort By Metric': 2,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      formData: sortFormData,
+      queriesData: sortQueriesData,
+      datasource: { verboseMap: sortMetricVerboseMap },
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    const totalLabels = transformedSeries
+      .flatMap((series, seriesIndex) =>
+        series.data.map((value, dataIndex) =>
+          series.label.formatter({ value, dataIndex, seriesIndex }),
+        ),
+      )
+      .filter(label => label !== '');
+
+    expect(totalLabels).toEqual(['32']);
+  });
+
   test('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps = createTestChartProps({ formData, queriesData });
 
@@ -916,40 +967,38 @@ describe('legend sorting', () => {
       'Boston',
     ]);
   });
+});
 
-  test('falls back to scroll for zoomable top legends when toolbox space reduces available width', () => {
-    const narrowLegendData = [
-      createTestQueryData(
-        createTestData(
-          [
-            {
-              Alpha: 1,
-              Beta: 2,
-              Gamma: 3,
-            },
-          ],
-          { intervalMs: 300000000 },
-        ),
+test('honors an explicit List selection for zoomable top legends even when toolbox space reduces available width', () => {
+  const narrowLegendData = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            Alpha: 1,
+            Beta: 2,
+            Gamma: 3,
+          },
+        ],
+        { intervalMs: 300000000 },
       ),
-    ];
-    const chartProps = createTestChartProps({
-      width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
-      formData: {
-        ...formData,
-        legendType: LegendType.Plain,
-        legendOrientation: LegendOrientation.Top,
-        showLegend: true,
-        zoomable: true,
-      },
-      queriesData: narrowLegendData,
-    });
-
-    const transformed = transformProps(chartProps);
-
-    expect((transformed.echartOptions.legend as any).type).toBe(
-      LegendType.Scroll,
-    );
+    ),
+  ];
+  const chartProps = createTestChartProps({
+    width: 190 + TIMESERIES_CONSTANTS.legendTopRightOffset,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      zoomable: true,
+    },
+    queriesData: narrowLegendData,
   });
+
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
 });
 
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
@@ -1022,9 +1071,11 @@ test('should apply dashed line style to time comparison series with single metri
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1065,11 +1116,13 @@ test('should apply dashed line style to time comparison series with metric__offs
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const mainSeries = series.find(s => s.name === 'sum__num') as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
   const comparisonSeries = series.find(
     s => s.name === 'sum__num__1 week ago',
   ) as
-    (SeriesOption & { lineStyle?: { type?: number[] | string } }) | undefined;
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
@@ -1101,7 +1154,8 @@ test('should apply connectNulls to time comparison series', () => {
   const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
   const comparisonSeries = series.find(s => s.name === '1 week ago') as
-    (SeriesOption & { connectNulls?: boolean }) | undefined;
+    | (SeriesOption & { connectNulls?: boolean })
+    | undefined;
 
   expect(comparisonSeries).toBeDefined();
   expect(comparisonSeries?.connectNulls).toBe(true);
@@ -1982,4 +2036,67 @@ test('tooltip time grain wiring: chart-level time grain drives the tooltip when 
 
   expect(result).toContain('2021');
   expect(result).not.toContain('2021-01-07');
+});
+
+test('rebases each series to its percent change when the flag is enabled', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      rebasePercentChange: true,
+    } as unknown as Partial<EchartsTimeseriesFormData>,
+  });
+  const transformed = transformProps(chartProps);
+
+  // SF: 1 -> 3 rebases to 0 -> 2; NY: 2 -> 4 rebases to 0 -> 1
+  expect(transformed.echartOptions).toEqual(
+    expect.objectContaining({
+      series: expect.arrayContaining([
+        expect.objectContaining({
+          name: 'San Francisco',
+          data: [
+            [BASE_TIMESTAMP, 0],
+            [BASE_TIMESTAMP + 300000000, 2],
+          ],
+        }),
+        expect.objectContaining({
+          name: 'New York',
+          data: [
+            [BASE_TIMESTAMP, 0],
+            [BASE_TIMESTAMP + 300000000, 1],
+          ],
+        }),
+      ]),
+    }),
+  );
+
+  // percent-change view forces a percent axis format
+  expect(getYAxisFormatter(transformed)(1, 0)).toContain('%');
+});
+
+test('honors the snake_case flag the compare-chart migration stores in params', () => {
+  // MigrateCompareChart writes `rebase_percent_change` into slice params;
+  // ChartProps camelizes stored form data before transformProps reads it, so
+  // this exercises the full migrated-chart path rather than the camelized
+  // key the test helper injects directly.
+  const chartProps = new ChartProps({
+    formData: {
+      datasource: '3__table',
+      viz_type: 'echarts_timeseries_line',
+      granularity_sqla: 'ds',
+      rebase_percent_change: true,
+    },
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+    datasource: {},
+  }) as unknown as EchartsTimeseriesChartProps;
+  const { echartOptions } = transformProps(chartProps);
+
+  const { series } = echartOptions as unknown as { series: SeriesOption[] };
+  const sanFrancisco = series.find(s => s.name === 'San Francisco');
+  expect(sanFrancisco?.data).toEqual([
+    [BASE_TIMESTAMP, 0],
+    [BASE_TIMESTAMP + 300000000, 2],
+  ]);
 });

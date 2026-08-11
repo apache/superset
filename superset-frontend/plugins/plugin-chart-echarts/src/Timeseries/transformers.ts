@@ -548,7 +548,8 @@ export function transformIntervalAnnotation(
   });
 
   const allIntervalData: (
-    MarkArea1DDataItemOption | MarkArea2DDataItemOption
+    | MarkArea1DDataItemOption
+    | MarkArea2DDataItemOption
   )[] = annotations.map(annotation => {
     const { intervalEnd, time = '' } = annotation;
     const combinedLabel = (intervalsByStartTime.get(time) || []).join('\n');

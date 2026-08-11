@@ -195,37 +195,47 @@ class TestDashboardSoftDelete(SupersetTestCase):
         from superset.models.slice import Slice
 
         admin = self.get_user("admin")
-        database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
-        db.session.add(database)
-        db.session.flush()
-        table = SqlaTable(table_name="sd_acl_tbl", database=database)
-        db.session.add(table)
-        db.session.flush()
-        chart = Slice(
-            slice_name="sd_acl_slice",
-            datasource_id=table.id,
-            datasource_type="table",
-            viz_type="table",
-        )
-        db.session.add(chart)
-        dashboard = Dashboard(
-            dashboard_title="sd_acl_dash",
-            slug="sd_acl_dash",
-            editors=subjects_from_users([admin]),
-            slices=[chart],
-            published=True,
-        )
-        db.session.add(dashboard)
-        db.session.commit()
-        dashboard_id = dashboard.id
-
-        gamma_role = security_manager.find_role("Gamma")
-        pvm = security_manager.add_permission_view_menu("datasource_access", table.perm)
-        gamma_role.permissions.append(pvm)
-        db.session.commit()
-
+        # Every fixture is created INSIDE the try: a failure during setup used
+        # to leak the rows past the finally, and one leaked sd_acl_slice was
+        # observed poisoning 28 unrelated chart tests on the shared DB (their
+        # example lookups take query(Slice).first()). The names are seeded
+        # None so the finally can clean up exactly as far as setup got.
+        database = table = chart = None
+        dashboard_id = None
+        gamma_role = None
         title_filter = "(col:dashboard_title,opr:title_or_slug,value:sd_acl_dash)"
         try:
+            database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
+            db.session.add(database)
+            db.session.flush()
+            table = SqlaTable(table_name="sd_acl_tbl", database=database)
+            db.session.add(table)
+            db.session.flush()
+            chart = Slice(
+                slice_name="sd_acl_slice",
+                datasource_id=table.id,
+                datasource_type="table",
+                viz_type="table",
+            )
+            db.session.add(chart)
+            dashboard = Dashboard(
+                dashboard_title="sd_acl_dash",
+                slug="sd_acl_dash",
+                editors=subjects_from_users([admin]),
+                slices=[chart],
+                published=True,
+            )
+            db.session.add(dashboard)
+            db.session.commit()
+            dashboard_id = dashboard.id
+
+            gamma_role = security_manager.find_role("Gamma")
+            pvm = security_manager.add_permission_view_menu(
+                "datasource_access", table.perm
+            )
+            gamma_role.permissions.append(pvm)
+            db.session.commit()
+
             # Precondition: gamma can see the dashboard while it is live.
             self.login(GAMMA_USERNAME)
             rv = self.client.get(f"/api/v1/dashboard/?q=(filters:!({title_filter}))")
@@ -255,15 +265,20 @@ class TestDashboardSoftDelete(SupersetTestCase):
                     f"dashboard via deleted_state={value}"
                 )
         finally:
-            pvm = security_manager.find_permission_view_menu(
-                "datasource_access", table.perm
-            )
-            if pvm:
-                security_manager.del_permission_role(gamma_role, pvm)
-            _hard_delete_dashboard(dashboard_id)
-            db.session.delete(chart)
-            db.session.delete(table)
-            db.session.delete(database)
+            # A failed setup leaves the session mid-transaction; clear it so
+            # the cleanup deletes below run against a working session.
+            db.session.rollback()
+            if gamma_role is not None and table is not None:
+                pvm = security_manager.find_permission_view_menu(
+                    "datasource_access", table.perm
+                )
+                if pvm:
+                    security_manager.del_permission_role(gamma_role, pvm)
+            if dashboard_id is not None:
+                _hard_delete_dashboard(dashboard_id)
+            for leftover in (chart, table, database):
+                if leftover is not None:
+                    db.session.delete(leftover)
             db.session.commit()
 
     @with_feature_flags(SOFT_DELETE=True)
@@ -730,3 +745,157 @@ class TestDashboardRestore(SupersetTestCase):
         finally:
             _hard_delete_dashboard(original_id)
             _hard_delete_dashboard(claimant_id)
+
+
+class TestDashboardArchiveListing(SupersetTestCase):
+    """Recently-Deleted view listing (sc-111760, T017): ``deleted_at``
+    ordering and a deletion-time cutoff filter work at the SQL layer and
+    compose with the ``dashboard_deleted_state`` filter; the restore gate
+    holds for a non-owner."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._made: list[int] = []
+
+    def tearDown(self) -> None:
+        """Remove every fixture this class created, however the test ended.
+
+        These fixtures are soft-deleted with ``deleted_at`` values far in the
+        past, which makes them eligible for the retention purge. Leaving one
+        behind lets an unrelated suite's global ``_purge_impl`` run pick it up
+        and count it, so cleanup has to survive a failed assertion.
+        """
+        for dashboard_id in self._made:
+            row = (
+                db.session.query(Dashboard)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+                .filter(Dashboard.id == dashboard_id)
+                .one_or_none()
+            )
+            if row:
+                db.session.delete(row)
+        db.session.commit()
+        super().tearDown()
+
+    def _make(self, title: str) -> Dashboard:
+        admin = self.get_user("admin")
+        dashboard = Dashboard(
+            dashboard_title=title,
+            slug=f"slug_{title}",
+            editors=subjects_from_users([admin]),
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+        self._made.append(dashboard.id)
+        return dashboard
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_archive_list_orders_by_deleted_at(self) -> None:
+        """``order_column:deleted_at`` sorts archived dashboards by deletion
+        time (SQL-layer ordering, not merely field presence)."""
+        older = self._make("arch_order_older")
+        newer = self._make("arch_order_newer")
+        older_id, newer_id = older.id, newer.id
+        older.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        newer.deleted_at = datetime(2026, 3, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rison_query = (
+            "(filters:!((col:id,opr:dashboard_deleted_state,value:only)),"
+            "order_column:deleted_at,order_direction:desc,page_size:200)"
+        )
+        rv = self.client.get(f"/api/v1/dashboard/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [d["id"] for d in json.loads(rv.data)["result"]]
+        assert older_id in ids
+        assert newer_id in ids
+        assert ids.index(newer_id) < ids.index(older_id)
+
+        # Cleanup
+        _hard_delete_dashboard(older_id)
+        _hard_delete_dashboard(newer_id)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_archive_list_filters_by_deleted_at_cutoff(self) -> None:
+        """A ``deleted_at`` ``gt`` cutoff narrows the archive and composes with
+        the deleted-state filter."""
+        old = self._make("arch_cut_old")
+        recent = self._make("arch_cut_recent")
+        old_id, recent_id = old.id, recent.id
+        old.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        recent.deleted_at = datetime(2026, 6, 1, 12, 0, 0)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rison_query = (
+            "(filters:!("
+            "(col:id,opr:dashboard_deleted_state,value:only),"
+            "(col:deleted_at,opr:gt,value:'2026-03-01T00:00:00')"
+            "),page_size:200)"
+        )
+        rv = self.client.get(f"/api/v1/dashboard/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [d["id"] for d in json.loads(rv.data)["result"]]
+        assert recent_id in ids
+        assert old_id not in ids
+
+        # Cleanup
+        _hard_delete_dashboard(old_id)
+        _hard_delete_dashboard(recent_id)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_archive_restore_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot restore another user's archived
+        dashboard — the restore gate is owner/admin only (SC-003)."""
+        dashboard = self._make("arch_rbac_dashboard")
+        dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
+        dashboard.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/restore")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_purge_by_owner_permanently_deletes(self) -> None:
+        """POST /api/v1/dashboard/<uuid>/purge hard-deletes an archived dashboard."""
+        dashboard = self._make("arch_purge_dash")
+        dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
+        dashboard.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/purge")
+        assert rv.status_code == 200, rv.data
+
+        row = (
+            db.session.query(Dashboard)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+            .filter(Dashboard.id == dashboard_id)
+            .one_or_none()
+        )
+        assert row is None
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_purge_blocked_for_non_owner(self) -> None:
+        """A non-owner (Gamma) cannot permanently delete another user's archived
+        dashboard (SC-003)."""
+        dashboard = self._make("arch_purge_dash_rbac")
+        dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
+        dashboard.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(GAMMA_USERNAME)
+        rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/purge")
+        assert rv.status_code in (403, 404), rv.data
+
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
