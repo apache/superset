@@ -81,12 +81,38 @@ const LabelWrapper = styled.div`
   `}
 `;
 
+const SectionHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+`;
+
 const SectionHeaderButton = styled.button`
   border: none;
   background: transparent;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   padding-inline: 0;
+`;
+
+const FolderDragHandle = styled.div<{ isDraggable: boolean }>`
+  ${({ theme, isDraggable }) => css`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: ${theme.sizeUnit * 6}px;
+    height: 100%;
+    cursor: ${isDraggable ? 'grab' : 'not-allowed'};
+    opacity: ${isDraggable ? 1 : 0.35};
+    color: ${theme.colorFill};
+
+    &:hover {
+      color: ${isDraggable ? theme.colorIcon : theme.colorFill};
+    }
+  `}
 `;
 
 const SectionHeaderTextContainer = styled.div`
@@ -244,24 +270,32 @@ const DatasourcePanelItem = ({
       }}
     >
       {item.type === 'header' && (
-        <SectionHeaderButton
-          ref={setFolderDragRef}
-          onClick={() => onToggleCollapse(folder.id)}
-          style={{ cursor: folderDragItems.length ? 'grab' : undefined }}
-          {...folderDragAttributes}
-          {...folderDragListeners}
-        >
-          <Tooltip title={getTooltipNode(folder)}>
-            <SectionHeaderTextContainer>
-              <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
-              {collapsedFolderIds.has(folder.id) ? (
-                <Icons.DownOutlined iconSize="s" iconColor={theme.colorText} />
-              ) : (
-                <Icons.UpOutlined iconSize="s" iconColor={theme.colorText} />
-              )}
-            </SectionHeaderTextContainer>
-          </Tooltip>
-        </SectionHeaderButton>
+        <SectionHeaderRow>
+          <SectionHeaderButton onClick={() => onToggleCollapse(folder.id)}>
+            <Tooltip title={getTooltipNode(folder)}>
+              <SectionHeaderTextContainer>
+                <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
+                {collapsedFolderIds.has(folder.id) ? (
+                  <Icons.DownOutlined
+                    iconSize="s"
+                    iconColor={theme.colorText}
+                  />
+                ) : (
+                  <Icons.UpOutlined iconSize="s" iconColor={theme.colorText} />
+                )}
+              </SectionHeaderTextContainer>
+            </Tooltip>
+          </SectionHeaderButton>
+          <FolderDragHandle
+            ref={setFolderDragRef}
+            isDraggable={folderDragItems.length > 0}
+            {...folderDragAttributes}
+            {...folderDragListeners}
+            aria-label={t('Drag %s folder', folder.name)}
+          >
+            <Icons.Drag iconSize="xl" />
+          </FolderDragHandle>
+        </SectionHeaderRow>
       )}
 
       {item.type === 'subtitle' && (
