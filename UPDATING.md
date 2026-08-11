@@ -129,12 +129,15 @@ that don't touch SQLAlchemy directly.
 
 `MEDIAN`, `STDDEV_SAMP`, and `VAR_SAMP` are now available anywhere a metric
 aggregate is chosen (every chart type, SQL Lab, MCP), not only in Pivot
-Table's controls. Support is opt-in per database engine, verified against a
-live instance before being enabled: Postgres, MySQL (`STDDEV_SAMP`/`VAR_SAMP`
-only, no `MEDIAN`), DuckDB, and Redshift (inherits Postgres's support, not yet
-separately verified) ship enabled in this release. Picking one of these
-aggregates on a database that has not opted in returns a clear "not supported
-on this database" error rather than a failed query. See
+Table's controls. Support is opt-in per database engine *spec class*,
+verified against a live instance before being enabled: Postgres, MySQL
+(`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and Redshift (inherits
+Postgres's support, not yet separately verified) ship enabled in this
+release. Engine specs that subclass one of those (e.g. MariaDB, Aurora
+MySQL/Postgres, TimescaleDB) inherit the same support, on the same
+not-yet-independently-verified basis. Picking one of these aggregates on a
+database that has not opted in returns a clear "not supported on this
+database" error rather than a failed query. See
 `docs/sip/median-stddev-variance-aggregates.md` for the full design
 rationale, including why this is safe to add without reintroducing the
 totals/subtotals correctness bug fixed by #41184 (SIP-216).
