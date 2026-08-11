@@ -268,7 +268,7 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^15.0.0",
-    "@testing-library/user-event": "^12.8.3",
+    "@testing-library/user-event": "^14.6.3",
     "@types/content-disposition": "^0.5.9",
     "@types/dom-to-image": "^2.6.7",
     "@types/jest": "^30.0.0",
