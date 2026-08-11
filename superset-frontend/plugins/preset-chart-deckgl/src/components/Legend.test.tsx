@@ -99,6 +99,21 @@ test('clicking a legend item toggles the category without triggering anchor navi
   expect(toggleCategory).toHaveBeenCalledWith('Positive');
 });
 
+test('normalizes the 0-255 deck.gl alpha channel to the 0-1 range CSS rgba() expects', () => {
+  renderWithTheme(
+    <Legend
+      format={null}
+      categories={{
+        Translucent: { enabled: true, color: [255, 0, 0, 128] },
+      }}
+    />,
+  );
+
+  const legendItem = screen.getByRole('button', { name: 'Translucent' });
+  const swatch = legendItem.firstChild as HTMLElement;
+  expect(swatch).toHaveStyle(`background-color: rgba(255, 0, 0, ${128 / 255})`);
+});
+
 test('ctrl+clicking a legend item toggles the category without opening a new tab', () => {
   // Regression proof for #34157: legend items render as real <button>
   // elements (not href="#" anchors), so a ctrl+click has no "open link in

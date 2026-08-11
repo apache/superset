@@ -287,6 +287,7 @@ export const fillColorPicker: CustomControlItem = {
     default: PRIMARY_COLOR,
     renderTrigger: true,
     visibility: ({ controls }) =>
+      !controls.color_scheme_type ||
       isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.fixed_color),
   },
 };
