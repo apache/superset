@@ -59,7 +59,7 @@ def test_get_form_data_handles_non_dict_json_body() -> None:
     assert slc is None
 
 
-def test_get_dashboard_extra_filters_ignores_native_filter_defaults(
+def test_get_dashboard_extra_filters_includes_native_filter_defaults(
     session: Session,
 ) -> None:
     """
