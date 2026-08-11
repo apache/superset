@@ -22,16 +22,11 @@ import pytest
 from superset.mcp_service.screenshot.pooled_screenshot import PooledBaseScreenshot
 
 
+@patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", False)
 def test_get_screenshot_raises_when_playwright_unavailable() -> None:
-    """get_screenshot raises RuntimeError when Playwright is unavailable."""
+    """get_screenshot raises RuntimeError via the real PLAYWRIGHT_AVAILABLE check."""
     screenshot = PooledBaseScreenshot("http://example.com", "digest")
     user = MagicMock()
 
-    with patch("superset.mcp_service.screenshot.pooled_screenshot.super") as mock_super:
-        mock_super_instance = MagicMock()
-        mock_super.return_value = mock_super_instance
-        mock_super_instance.get_screenshot.side_effect = RuntimeError(
-            "Playwright is required"
-        )
-        with pytest.raises(RuntimeError, match="Playwright is required"):
-            screenshot.get_screenshot(user, log_context="cache_key=abc")
+    with pytest.raises(RuntimeError, match="Playwright is required"):
+        screenshot.get_screenshot(user, log_context="cache_key=abc")
