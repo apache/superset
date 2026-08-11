@@ -44,6 +44,7 @@ import {
   LegendOrientation,
   LegendType,
   EchartsTimeseriesChartProps,
+  LabelPositionEnum,
 } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
@@ -715,7 +716,7 @@ describe('Does transformProps transform series correctly', () => {
     const chartProps = createTestChartProps({
       formData: {
         ...formData,
-        labelPosition: 'insideBottom',
+        labelPosition: LabelPositionEnum.InsideBottom,
       },
       queriesData,
     });
@@ -835,7 +836,7 @@ describe('Does transformProps transform series correctly', () => {
         ...formData,
         seriesType: EchartsTimeseriesSeriesType.Bar,
         stack: false,
-        labelPosition: 'inside',
+        labelPosition: LabelPositionEnum.Inside,
       },
       queriesData: negativeQueriesData,
     });

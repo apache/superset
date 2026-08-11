@@ -33,6 +33,7 @@ import {
   LegendOrientation,
   LegendType,
   EchartsTimeseriesSeriesType,
+  LabelPositionEnum,
 } from '../../src';
 import transformProps from '../../src/MixedTimeseries/transformProps';
 import {
@@ -41,7 +42,7 @@ import {
   EchartsMixedTimeseriesProps,
 } from '../../src/MixedTimeseries/types';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
-import type { SeriesOption } from 'echarts';
+import type { BarSeriesOption, LineSeriesOption, SeriesOption } from 'echarts';
 
 type LabelFormatterParams = {
   value: [number, number];
@@ -464,8 +465,8 @@ test('threads labelPosition and labelPositionB to series A and B', () => {
       metricsB: ['barMetric'],
       showValue: true,
       showValueB: true,
-      labelPosition: 'inside',
-      labelPositionB: 'bottom',
+      labelPosition: LabelPositionEnum.Inside,
+      labelPositionB: LabelPositionEnum.Bottom,
       stack: null,
       stackB: null,
       x_axis: '__timestamp',
@@ -474,12 +475,14 @@ test('threads labelPosition and labelPositionB to series A and B', () => {
   });
 
   const { echartOptions } = transformProps(chartProps);
-  const series = echartOptions.series as SeriesOption[];
+  // `SeriesOption` is a union across every echarts series type and does not
+  // carry `label`; the two series under test are a line and a bar.
+  const series = echartOptions.series as (LineSeriesOption | BarSeriesOption)[];
   const seriesA = series.find(s => s.name === 'lineMetric');
   const seriesB = series.find(s => s.name === 'barMetric');
 
-  expect((seriesA?.label as any)?.position).toBe('inside');
-  expect((seriesB?.label as any)?.position).toBe('bottom');
+  expect(seriesA?.label?.position).toBe(LabelPositionEnum.Inside);
+  expect(seriesB?.label?.position).toBe(LabelPositionEnum.Bottom);
 });
 
 describe('legend sorting', () => {
