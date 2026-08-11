@@ -17,20 +17,21 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.mcp_service.screenshot.pooled_screenshot import PooledBaseScreenshot
 
 
-@patch("superset.mcp_service.screenshot.pooled_screenshot.retry_screenshot_operation")
-def test_get_screenshot_accepts_base_log_context(
-    mock_retry_screenshot_operation: MagicMock,
-) -> None:
+def test_get_screenshot_raises_when_playwright_unavailable() -> None:
+    """get_screenshot raises RuntimeError when Playwright is unavailable."""
     screenshot = PooledBaseScreenshot("http://example.com", "digest")
     user = MagicMock()
 
-    screenshot.get_screenshot(user, log_context="cache_key=abc")
-
-    mock_retry_screenshot_operation.assert_called_once_with(
-        screenshot._get_screenshot_internal,  # pylint: disable=protected-access
-        user,
-        None,
-    )
+    with patch("superset.mcp_service.screenshot.pooled_screenshot.super") as mock_super:
+        mock_super_instance = MagicMock()
+        mock_super.return_value = mock_super_instance
+        mock_super_instance.get_screenshot.side_effect = RuntimeError(
+            "Playwright is required"
+        )
+        with pytest.raises(RuntimeError, match="Playwright is required"):
+            screenshot.get_screenshot(user, log_context="cache_key=abc")

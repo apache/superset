@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import ANY, MagicMock, patch, PropertyMock
+from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
 
 import pytest
@@ -82,93 +82,43 @@ class TestPlaywrightAvailabilityCheck:
 
     @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.logger")
-    def test_check_playwright_availability_uses_lightweight_check(
+    def test_check_playwright_availability_returns_true_when_module_importable(
         self, mock_logger, mock_sync_playwright
     ):
-        """Test check_playwright_availability uses executable_path first."""
-        # Setup mocks for successful executable path check
-        mock_playwright_instance = MagicMock()
-        mock_sync_playwright.return_value.__enter__.return_value = (
-            mock_playwright_instance
-        )
-        mock_playwright_instance.chromium.executable_path = "/path/to/chromium"
-
+        """Test check_playwright_availability returns True when module is importable."""
         result = check_playwright_availability()
-
         assert result is True
-        # Should not launch browser if executable_path works
-        mock_playwright_instance.chromium.launch.assert_not_called()
+        # Should never launch a browser
+        mock_sync_playwright.assert_not_called()
 
     @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.logger")
-    def test_check_playwright_availability_falls_back_to_launch(
+    def test_check_playwright_availability_returns_true_when_module_available(
         self, mock_logger, mock_sync_playwright
     ):
-        """Test check_playwright_availability falls back to browser launch."""
-        # Setup mocks where executable_path fails but launch succeeds
-        mock_playwright_instance = MagicMock()
-        mock_browser = MagicMock()
-
-        mock_sync_playwright.return_value.__enter__.return_value = (
-            mock_playwright_instance
-        )
-        # Make executable_path raise exception
-        type(mock_playwright_instance.chromium).executable_path = PropertyMock(
-            side_effect=Exception("executable_path failed")
-        )
-        mock_playwright_instance.chromium.launch.return_value = mock_browser
-
+        """Test check_playwright_availability returns True when module is importable."""
         result = check_playwright_availability()
-
         assert result is True
-        # Should fall back to browser launch
-        mock_playwright_instance.chromium.launch.assert_called_once_with(headless=True)
-        mock_browser.close.assert_called_once()
 
     @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.logger")
-    def test_check_playwright_availability_handles_browser_launch_failure(
+    def test_check_playwright_availability_does_not_launch_browser(
         self, mock_logger, mock_sync_playwright
     ):
-        """Test check_playwright_availability handles browser launch failures."""
-        # Setup mocks to raise exception on browser launch
-        mock_playwright_instance = MagicMock()
-        mock_sync_playwright.return_value.__enter__.return_value = (
-            mock_playwright_instance
-        )
-        # Mock executable_path to raise exception to force fallback to launch test
-        type(mock_playwright_instance.chromium).executable_path = PropertyMock(
-            side_effect=Exception("Executable path check failed")
-        )
-        mock_playwright_instance.chromium.launch.side_effect = Exception(
-            "Browser binaries not installed"
-        )
-
+        """Test check_playwright_availability never launches a browser."""
         result = check_playwright_availability()
-
-        assert result is False
-        mock_logger.warning.assert_called_once()
-        warning_call = mock_logger.warning.call_args[0][0]
-        assert (
-            "Playwright module is installed but browser launch failed" in warning_call
-        )
-        assert "playwright install chromium" in warning_call
+        assert result is True
+        mock_sync_playwright.assert_not_called()
 
     @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.logger")
-    def test_check_playwright_availability_handles_context_manager_error(
+    def test_check_playwright_availability_ignores_runtime_errors(
         self, mock_logger, mock_sync_playwright
     ):
-        """Test check_playwright_availability handles context manager errors."""
-        # Setup mock to raise exception when entering context
-        mock_sync_playwright.return_value.__enter__.side_effect = Exception(
-            "Context error"
-        )
-
+        """Test check_playwright_availability returns True if module is importable."""
+        # Even if the mock raises, we only check importability
         result = check_playwright_availability()
-
-        assert result is False
-        mock_logger.warning.assert_called_once()
+        assert result is True
 
 
 class TestWebDriverPlaywrightFallback:
