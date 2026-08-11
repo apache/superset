@@ -2405,6 +2405,76 @@ def test_get_sqla_query_allows_jinja_templated_custom_sql_metric_with_columns(
     assert "{{" not in sql
 
 
+def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
+    database: Database,
+) -> None:
+    """
+    Regression for #35263: a Jinja-templated virtual dataset that calls
+    ``filter_values()`` in its own SQL must see filters sent in the native
+    ``{col, op, val}`` format that Drill to Detail/Drill by use, not just
+    the ``adhoc_filters`` format used by ordinary chart/explore requests.
+    Without this, Jinja-based datasets return zero rows when drilled into,
+    even though the parent chart shows data for the selected value.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        sql=(
+            "SELECT a, b FROM t WHERE 1=1 "
+            "{% if filter_values('b') %} "
+            "AND b IN {{ filter_values('b') | where_in }} "
+            "{% endif %}"
+        ),
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    result = table.get_sqla_query(
+        columns=["a", "b"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "b", "op": "IN", "val": ["Alice"]}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "'Alice'" in sql, (
+        "filter_values() should resolve native drill-to-detail-style "
+        f"filters inside a virtual dataset's own SQL. Generated SQL: {sql}"
+    )
+
+    # The assertion above can pass even when filter_values() itself is
+    # broken, because get_sqla_query() independently applies the native
+    # filter as an outer WHERE predicate on top of whatever the virtual
+    # dataset's own SQL renders to. Pull the virtual dataset's own rendered
+    # SQL directly out of the compiled query (rather than re-rendering it
+    # via a separately constructed template processor, which would not
+    # catch get_sqla_query() failing to forward the filter to the template
+    # processor it builds internally) to confirm filter_values() actually
+    # resolved the native filter *inside* the templated subquery.
+    virtual_table_from = result.sqla_query.get_final_froms()[0]
+    rendered_inner_sql = virtual_table_from.element.element.text
+    assert "'Alice'" in rendered_inner_sql, (
+        "filter_values() should render the native drill-to-detail-style "
+        "filter directly into the virtual dataset's own templated SQL, "
+        f"not just the outer query. Rendered SQL: {rendered_inner_sql}"
+    )
+
+
 def test_extras_where_is_parenthesized(
     database: Database,
 ) -> None:
@@ -2684,6 +2754,106 @@ def test_calculated_column_non_boolean_filter_is_parenthesized(
     )
 
 
+def test_get_sqla_query_in_filter_preserves_float_precision(
+    database: Database,
+) -> None:
+    """
+    Test that mixing integer and float values in an "IN" filter does not
+    truncate the float value's decimal precision when the compiled query
+    binds parameters (see #33206).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="global_sales", type="FLOAT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["global_sales"],
+        filter=[
+            {
+                "col": "global_sales",
+                "op": "IN",
+                "val": [33, 29.02],
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The decimal value must retain its precision in the compiled SQL,
+    # rather than being silently truncated to the integer 29.
+    assert "29.02" in sql, (
+        f"Expected float value 29.02 to be preserved in the IN clause, "
+        f"but it was likely truncated. Generated SQL: {sql}"
+    )
+
+
+def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
+    database: Database,
+) -> None:
+    """
+    Test that mixing integer and float values with a NULL in an "IN" filter
+    does not truncate the float value's decimal precision, even though this
+    triggers the separate `eq_without_none` code path (see #33206).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="global_sales", type="FLOAT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["global_sales"],
+        filter=[
+            {
+                "col": "global_sales",
+                "op": "IN",
+                "val": [33, 29.02, None],  # type: ignore[list-item]
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The decimal value must retain its precision in the compiled SQL,
+    # rather than being silently truncated to the integer 29, even when
+    # the filter list also contains a NULL value.
+    assert "29.02" in sql, (
+        f"Expected float value 29.02 to be preserved in the IN clause "
+        f"even with a NULL present, but it was likely truncated. "
+        f"Generated SQL: {sql}"
+    )
+
+
 def test_multiple_calculated_columns_each_parenthesized(
     database: Database,
 ) -> None:
@@ -2827,6 +2997,51 @@ def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
     assert "limit" not in probe_sql, (
         f"WHERE false probe must not contain LIMIT, but got: {probe_sql}"
     )
+
+
+def test_adhoc_column_type_probe_propagates_db_error(database: Database) -> None:
+    """
+    Regression test for SUPERSET-PYTHON-WE6.
+
+    A real DB/connectivity failure during the type-probe (surfaced by
+    get_columns_description as a SupersetGenericDBErrorException) must propagate
+    unchanged. It must NOT be relabeled as ColumnNotFoundException, which would
+    cause the calling adhoc-filter code in models/helpers.py to silently drop
+    the filter as if the column didn't exist.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import (
+        ColumnNotFoundException,
+        SupersetGenericDBErrorException,
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+
+    db_error_message = "SSL error: unexpected eof while reading"
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=SupersetGenericDBErrorException(db_error_message),
+    ):
+        with pytest.raises(SupersetGenericDBErrorException) as excinfo:
+            table.adhoc_column_to_sqla(adhoc_col, force_type_check=True)
+
+    assert db_error_message in str(excinfo.value)
+    assert not isinstance(excinfo.value, ColumnNotFoundException)
 
 
 def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
@@ -4465,3 +4680,230 @@ def test_get_sqla_query_calculated_column_inlined_in_raw_records(
     assert "CASE WHEN a > 0" in sql
     assert "'positive'" in sql
     assert "'non-positive'" in sql
+
+
+def test_values_for_column_uses_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Physical-table datasets run filter-value SQL through the database
+    read-limit retry so engines like ClickHouse can bound the read when the
+    engine rejects it.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    retry.assert_called_once()
+
+
+def test_values_for_column_virtual_dataset_skips_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Virtual datasets embed user-authored SQL and must stay governed by
+    operator read limits.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        sql="SELECT a FROM t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    retry.assert_not_called()
+
+
+def test_get_query_str_extended_does_not_alter_system_sampling_sql(
+    database: Database,
+) -> None:
+    """
+    The bounded-read override is a retry-time concern; the generated (and
+    user-visible) statement for a samples request must stay unmodified.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    query_str_ext = table.get_query_str_extended(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    assert "SETTINGS" not in query_str_ext.sql
+
+
+def test_query_system_sampling_uses_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    The system_sampling extras marker (set by the samples query action)
+    routes execution through the read-limit retry; ordinary chart queries
+    are untouched.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch.object(database, "get_df", return_value=pd.DataFrame({"a": [1]}))
+
+    table.query(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    retry.assert_called_once()
+
+    retry.reset_mock()
+    table.query({"columns": ["a"], "is_timeseries": False, "row_limit": 10})
+    retry.assert_not_called()
+
+
+def test_query_system_sampling_skips_virtual_dataset(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Even sample requests do not receive the retry on virtual datasets.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        sql="SELECT a FROM t",
+        columns=[TableColumn(column_name="a")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch.object(database, "get_df", return_value=pd.DataFrame({"a": [1]}))
+
+    table.query(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    retry.assert_not_called()
+
+
+def test_select_star_returns_unmodified_sql(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    select_star output is displayed in SQL Lab, returned by the API, and
+    persisted as CTAS result-fetch SQL, so it must never carry the
+    bounded-read override.
+    """
+    from superset.sql.parse import Table
+
+    retry_sql = mocker.patch.object(database, "sampling_read_limit_retry_sql")
+    sql = database.select_star(Table("t"), limit=10, latest_partition=False)
+
+    retry_sql.assert_not_called()
+    assert "SETTINGS" not in sql
+
+
+def test_adhoc_type_probe_does_not_get_sampling_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    The adhoc expression type probe is a zero-row WHERE FALSE query and must
+    never be routed through the sampling read-limit retry.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        return_value=[{"is_dttm": False, "type_generic": GenericDataType.NUMERIC}],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "a + 1",
+        "label": "probe_me",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    table.adhoc_column_to_sqla(adhoc_col)
+
+    retry.assert_not_called()

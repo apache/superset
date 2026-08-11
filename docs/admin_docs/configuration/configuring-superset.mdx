@@ -97,6 +97,50 @@ for more information on how to configure it.
 
 At the very least, you'll want to change `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI`. Continue reading for more about each of these.
 
+## Chart-data query timing
+
+Set `CHART_DATA_INCLUDE_TIMING = True` to add an optional versioned timing object
+to every successful JSON query result returned by the chart-data API. The setting
+is `False` by default, so enabling it is an explicit API-contract choice for an
+operator. File exports, streaming responses, and HTTP error responses do not
+include this object.
+
+```json
+{
+  "timing": {
+    "version": 1,
+    "query": {
+      "query_planning_ms": 1.23,
+      "cache_resolution_ms": 0.45,
+      "data_acquisition_ms": null,
+      "payload_assembly_ms": 0.67,
+      "total_ms": 2.98
+    }
+  }
+}
+```
+
+Durations are milliseconds rounded to two decimal places. A numeric `0.0`
+means that the corresponding stage ran but rounded below that precision;
+`null` means it did not apply. For example, `data_acquisition_ms` is null for
+a normal dataframe cache hit, while metadata-only results have null phase values
+and a numeric total.
+
+The phases have fixed ownership: `query_planning_ms` includes Jinja rendering,
+row-level-security transformation, and cache identity; `cache_resolution_ms`
+includes cache lookup, compatibility policy, deserialization, and rehydration;
+`data_acquisition_ms` includes database work and annotation dependencies; and
+`payload_assembly_ms` includes response shaping and AUTO-currency fallback.
+
+`total_ms` is measured over one continuous per-query execution interval. It
+contains the exposed stages and unattributed work such as query-result cache
+persistence, so it is not the sum of the phase values. Query-context cache
+persistence is excluded. The total also excludes request parsing,
+authorization, contribution-total work before the per-query loop, client
+post-processing, JSON serialization, network transfer, and background async
+producer execution. Additive optional fields can preserve version 1; a field
+rename, removal, or semantic change requires a new version.
+
 ## Specifying a SECRET_KEY
 
 ### Adding an initial SECRET_KEY
@@ -225,7 +269,7 @@ RequestHeader set X-Forwarded-Proto "https"
 
 ## Configuring the application root
 
-*Please be advised that this feature is in BETA.*
+_Please be advised that this feature is in BETA._
 
 Superset supports running the application under a non-root path. The root path
 prefix can be specified in one of three ways:
@@ -262,6 +306,22 @@ to simplify the process of setting up a non-default root path across the service
 
 In `docker/.env-local` set `SUPERSET_APP_ROOT` to the desired prefix and then bring the
 services up with `docker compose up --detach`.
+
+### Swagger UI
+
+By default, Superset's Swagger UI and OpenAPI spec (enabled via `FAB_API_SWAGGER_UI`) are
+served by Flask-AppBuilder and don't account for a non-root `APPLICATION_ROOT` prefix. If
+you're running Superset behind a URL prefix and want the Swagger UI and OpenAPI spec to
+resolve correctly, set:
+
+```python
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = True
+```
+
+in your `superset_config.py` file. This serves an `APPLICATION_ROOT`-aware Swagger UI and
+OpenAPI spec at `/swagger/<version>` and `/api/<version>/_openapi` respectively, resolved
+through the configured prefix. This flag only takes effect when `FAB_API_SWAGGER_UI` is
+also enabled, and defaults to `False`.
 
 ## Custom OAuth2 Configuration
 
@@ -312,10 +372,13 @@ AUTH_USER_REGISTRATION_ROLE = "Public"
 ```
 
 In case you want to assign the `Admin` role on new user registration, it can be assigned as follows:
+
 ```python
 AUTH_USER_REGISTRATION_ROLE = "Admin"
 ```
+
 If you encounter the [issue](https://github.com/apache/superset/issues/13243) of not being able to list users from the Superset main page settings, although a newly registered user has an `Admin` role, please re-run `superset init` to sync the required permissions. Below is the command to re-run `superset init` using docker compose.
+
 ```
 docker-compose exec superset superset init
 ```
@@ -568,5 +631,6 @@ SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 131072  # double the default
 Alternatively, split a very large dashboard into several smaller ones. Note that this check is enforced when saving layout edits in the UI; a dashboard imported from a ZIP with an oversized layout will load and render, but cannot be edited and re-saved until the limit is raised.
 
 :::resources
+
 - [Blog: Feature Flags in Apache Superset](https://preset.io/blog/feature-flags-in-apache-superset-and-preset/)
-:::
+  :::

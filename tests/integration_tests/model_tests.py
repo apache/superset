@@ -31,6 +31,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 import pytest
+from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime  # noqa: F401
 
@@ -150,6 +151,7 @@ class TestDatabaseModel(SupersetTestCase):
         SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
     )
     def test_impersonate_user_presto(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://", future=True)
         uri = "presto://localhost"
         principal_user = security_manager.find_user(username="gamma")
         extra = """
@@ -201,6 +203,7 @@ class TestDatabaseModel(SupersetTestCase):
     )
     @mock.patch("superset.models.core.create_engine")
     def test_adjust_engine_params_mysql(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://", future=True)
         model = Database(
             database_name="test_database1",
             sqlalchemy_uri="mysql://user:password@localhost",
@@ -223,6 +226,7 @@ class TestDatabaseModel(SupersetTestCase):
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_trino(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://", future=True)
         principal_user = security_manager.find_user(username="gamma")
 
         with override_user(principal_user):
@@ -259,6 +263,7 @@ class TestDatabaseModel(SupersetTestCase):
         SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
     )
     def test_impersonate_user_hive(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://", future=True)
         uri = "hive://localhost"
         principal_user = security_manager.find_user(username="gamma")
         extra = """

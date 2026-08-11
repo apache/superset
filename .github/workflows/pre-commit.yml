@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -188,3 +189,12 @@ jobs:
             echo "📖 More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
             exit 1
           fi
+
+  actions-timeline:
+    needs: pre-commit
+    if: always()
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

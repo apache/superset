@@ -40,7 +40,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   setup_matrix:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
@@ -213,3 +213,14 @@ jobs:
         shell: bash
         run: |
           docker compose -f docker-compose-image-tag.yml up superset-init --exit-code-from superset-init
+
+  actions-timeline:
+    needs: [docker-build, docker-compose-image-tag]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

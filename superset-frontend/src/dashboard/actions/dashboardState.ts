@@ -536,6 +536,7 @@ export function saveDashboardRequest(
           ? getColorSchemeDomain(colorScheme)
           : [],
         expanded_slices: data.metadata?.expanded_slices || {},
+        expand_all_slices: data.metadata?.expand_all_slices || false,
         label_colors: customLabelsColor,
         shared_label_colors: getFreshSharedLabels(sharedLabelsColor),
         map_label_colors: getFreshLabelsColorMapEntries(customLabelsColor),
@@ -717,7 +718,8 @@ export function saveDashboardRequest(
                 updatedBy: dashboard.changed_by_name as string,
                 overwriteConfirmItems:
                   overwriteConfirmItems as DashboardState['overwriteConfirmMetadata'] extends
-                    { overwriteConfirmItems: infer I } | undefined
+                    | { overwriteConfirmItems: infer I }
+                    | undefined
                     ? I
                     : never,
                 dashboardId: id,

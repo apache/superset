@@ -503,6 +503,50 @@ def test_format_oracle_group_by_keeps_explicit_expressions_subquery() -> None:
     assert not any(item.isdigit() for item in group_by_items)
 
 
+def test_format_hana_preserves_quoted_identifier_casing() -> None:
+    """
+    Regression test for https://github.com/apache/superset/issues/39328.
+
+    HANA is mapped to the Postgres sqlglot dialect (there's no dedicated HANA
+    dialect upstream). HANA calculation-view invocations address the view as
+    a quoted, case-sensitive identifier followed by a PLACEHOLDER parameter
+    list, e.g. ``"zbw.10_001/INVENTORY"('PLACEHOLDER' = (...))`` -- sqlglot's
+    parser treats that shape as a function call, so Postgres's inherited
+    function-name normalization (``NORMALIZE_FUNCTIONS = "upper"``) re-cased
+    the quoted identifier to ``"ZBW.10_001/INVENTORY"``. HANA resolves
+    calculation-view names case-sensitively, so the re-cased identifier no
+    longer exists and SQL Lab fails with ``invalid table name`` even though
+    the user's original query was valid.
+    """
+    sql = (
+        'SELECT * FROM _sys_bic."zbw.10_001/INVENTORY"\n'
+        "(\n"
+        "  'PLACEHOLDER' = ('$$IP_DATE_TO$$', ''),\n"
+        "  'PLACEHOLDER' = ('$$IP_DATE_FROM$$', '')\n"
+        ")"
+    )
+    formatted = SQLStatement(sql, engine="hana").format()
+
+    assert '"zbw.10_001/INVENTORY"' in formatted
+    assert "$$IP_DATE_TO$$" in formatted
+    assert "$$IP_DATE_FROM$$" in formatted
+
+
+def test_format_hana_custom_function_call_untouched() -> None:
+    """
+    The HANA dialect disables function-name normalization entirely (see
+    ``test_format_hana_preserves_quoted_identifier_casing``), which only
+    affects functions sqlglot doesn't recognize (parsed as
+    ``exp.Anonymous`` -- built-ins like ``COUNT`` have their own dedicated
+    AST node and always generate with a fixed canonical casing regardless).
+    An unrecognized, mixed-case function call must round-trip with its
+    original casing intact rather than being forced to uppercase.
+    """
+    formatted = SQLStatement("SELECT MyCustomFunc(col) FROM t", engine="hana").format()
+
+    assert "MyCustomFunc(col)" in formatted
+
+
 def test_split_no_dialect() -> None:
     """
     Test the statement split when the engine has no corresponding dialect.
@@ -901,6 +945,49 @@ GROUP BY SalesYear, SalesPersonID
 ORDER BY SalesPersonID, SalesYear;
 """
     ) == {Table("SalesOrderHeader")}
+
+
+def test_extract_tables_qualified_reference_matching_cte_name() -> None:
+    """
+    Test that a schema/catalog-qualified reference is resolved as a physical
+    table even when its final name component matches a CTE defined in scope.
+
+    A CTE name is always a bare identifier, so ``public.orders`` cannot be the
+    CTE ``orders`` and must be reported as the physical table it names.
+    """
+    # schema-qualified reference shadowed by a same-named bare CTE
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM public.orders"
+    ) == {Table("orders", "public")}
+
+    # the CTE itself still references its own physical source
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT * FROM staging.orders) SELECT * FROM public.orders"
+    ) == {Table("orders", "staging"), Table("orders", "public")}
+
+    # catalog-qualified reference shadowed by a same-named bare CTE
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM cat.public.orders"
+    ) == {Table("orders", "public", "cat")}
+
+
+def test_extract_tables_bare_cte_still_excluded() -> None:
+    """
+    Test that a genuine bare CTE reference is still not reported as a table.
+    """
+    assert extract_tables_from_sql(
+        "WITH foo AS (SELECT * FROM target_table) SELECT * FROM foo"
+    ) == {Table("target_table")}
+
+
+def test_extract_tables_unreferenced_cte_does_not_shadow_table() -> None:
+    """
+    Test that a CTE that is defined but not used by the outer query does not
+    change extraction of a physical table sharing its name.
+    """
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM orders_summary"
+    ) == {Table("orders_summary")}
 
 
 def test_extract_tables_identifier_list_with_keyword_as_alias() -> None:

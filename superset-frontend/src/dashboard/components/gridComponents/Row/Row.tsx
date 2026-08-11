@@ -46,7 +46,11 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
-import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
+import {
+  EMPTY_CONTAINER_Z_INDEX,
+  FORCE_IN_VIEW_EVENT,
+  RESTORE_VIRTUALIZATION_EVENT,
+} from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
 
 export type RowProps = {
@@ -207,6 +211,49 @@ const Row = memo((props: RowProps) => {
         observerEnabler.observe(element);
         observerDisabler.observe(element);
       }
+
+      // Client-side "Download as Image/PDF" (see src/utils/downloadUtils.ts)
+      // dispatches these events so off-screen rows render before the capture
+      // and lazy loading is restored afterwards. Without this, virtualized
+      // charts are exported as loading spinners.
+      //
+      // The force event optionally carries a `rowIds` batch in its detail so
+      // large dashboards can be force-rendered a few rows at a time instead
+      // of every row at once (see FORCE_RENDER_BATCH_SIZE in
+      // downloadUtils.ts). No detail means "force every row", preserving the
+      // original single-shot behavior for any other future caller.
+      const handleForceInView = (event: Event) => {
+        const rowIds = (event as CustomEvent<{ rowIds?: string[] }>).detail
+          ?.rowIds;
+        if (rowIds && !rowIds.includes(rowComponent.id as string)) {
+          return;
+        }
+        observerEnabler?.disconnect();
+        observerDisabler?.disconnect();
+        setIsInView(true);
+      };
+      const handleRestoreVirtualization = () => {
+        const el = containerRef.current;
+        if (el) {
+          observerEnabler?.observe(el);
+          observerDisabler?.observe(el);
+        }
+      };
+      window.addEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+      window.addEventListener(
+        RESTORE_VIRTUALIZATION_EVENT,
+        handleRestoreVirtualization,
+      );
+
+      return () => {
+        observerEnabler?.disconnect();
+        observerDisabler?.disconnect();
+        window.removeEventListener(FORCE_IN_VIEW_EVENT, handleForceInView);
+        window.removeEventListener(
+          RESTORE_VIRTUALIZATION_EVENT,
+          handleRestoreVirtualization,
+        );
+      };
     }
 
     return () => {
@@ -293,6 +340,8 @@ const Row = memo((props: RowProps) => {
             <DeleteComponentButton onDelete={handleDeleteComponent} />
             <IconButton
               onClick={() => handleChangeFocus(true)}
+              label={t('Row settings')}
+              hideVisibleLabel
               icon={<Icons.SettingOutlined iconSize="l" />}
             />
           </HoverMenu>
@@ -305,6 +354,7 @@ const Row = memo((props: RowProps) => {
             backgroundStyle.className,
           )}
           data-test={`grid-row-${backgroundStyle.className}`}
+          data-row-id={rowComponent.id}
           ref={containerRef}
           editMode={editMode}
         >
