@@ -101,6 +101,15 @@ const DragOverlayContainer = styled(Flex)`
 `;
 
 /**
+ * Folder-specific overlay container. The folder drag is now activated from a
+ * small dedicated handle (not the full-width header row)
+ */
+const FolderDragOverlayContainer = styled(DragOverlayContainer)`
+  width: max-content;
+  min-width: 220px;
+`;
+
+/**
  * Pill shown in the folder drag overlay with the count of items in flight.
  */
 const FolderDragBadge = styled.span`
@@ -342,7 +351,7 @@ export function renderDragOverlayContent(
 ): ReactNode {
   if (activeData?.type === DndItemType.Folder) {
     return (
-      <DragOverlayContainer align="center" justify="space-between">
+      <FolderDragOverlayContainer align="center" justify="space-between">
         <Flex align="center" gap={4}>
           <Icons.FolderOutlined iconSize="l" />
           <span>{activeData.name}</span>
@@ -355,7 +364,7 @@ export function renderDragOverlayContent(
             activeData.items?.length ?? 0,
           )}
         </FolderDragBadge>
-      </DragOverlayContainer>
+      </FolderDragOverlayContainer>
     );
   }
   if (activeData?.value) {

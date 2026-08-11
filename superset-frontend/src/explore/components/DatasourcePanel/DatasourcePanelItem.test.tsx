@@ -142,6 +142,25 @@ test('can collapse metrics and columns', () => {
   expect(mockData.onToggleCollapse).toHaveBeenCalled();
 });
 
+test('folder drag handle is a separate element from the collapse toggle', () => {
+  setup();
+
+  const toggleButtons = screen
+    .getAllByRole('button', { name: /Metrics/ })
+    .filter(el => el.tagName === 'BUTTON');
+  expect(toggleButtons).toHaveLength(1);
+  const [toggleButton] = toggleButtons;
+  const dragHandle = screen.getByRole('button', {
+    name: 'Drag Metrics folder',
+  });
+
+  expect(toggleButton).not.toBe(dragHandle);
+  expect(toggleButton.tagName).toBe('BUTTON');
+
+  userEvent.click(toggleButton);
+  expect(mockData.onToggleCollapse).toHaveBeenCalledWith('1');
+});
+
 test('folder drag payload excludes columns filtered out by compatibleDimensions', () => {
   setup(mockData, {
     explore: { compatibleDimensions: [columns[0].column_name] },
