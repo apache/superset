@@ -26,17 +26,20 @@ from sqlalchemy.orm.session import Session
 
 from superset.connectors.sqla.models import (
     SqlaTable,
+    SqlMetric,
     TableColumn,
     validate_stored_expression,
 )
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import (
     OAuth2RedirectError,
+    QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetSecurityException,
 )
 from superset.models.core import Database
+from superset.models.helpers import ExploreMixin, validate_adhoc_subquery
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
@@ -1484,6 +1487,162 @@ def test_validate_stored_expression_rejects_subquery_around_jinja(
             None,
             "(SELECT password FROM ab_user LIMIT 1) {# x #}",
         )
+
+
+def _stored_col(expression: str, engine: str, mocker: MockerFixture) -> TableColumn:
+    """
+    Build a ``TableColumn`` whose sinks run the *real* query-time validator
+    against ``engine``, so the tests pin the sub-query policy rather than the
+    wiring to a mocked validator.
+    """
+    tc = TableColumn(column_name="ds", expression=expression)
+    tc.table = mocker.MagicMock()
+    tc.table.database = _database_for_expression(mocker)
+    tc.table.catalog = None
+    tc.table.schema = "public"
+    tc.db_engine_spec.engine = engine
+    return tc
+
+
+def test_get_sqla_col_rejects_stored_subquery(mocker: MockerFixture) -> None:
+    """
+    A stored calculated-column expression is validated at the query sink, not
+    only at save time, so a disallowed sub-query is rejected even when it
+    reaches the query without having been checked on save (templating, v1
+    import, dataset duplication, or rows predating the save-time check). It
+    surfaces as a chart-level ``QueryObjectValidationError`` to match the adhoc
+    sinks.
+    """
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    tc = _stored_col("(SELECT password FROM ab_user LIMIT 1)", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_sqla_col()
+
+
+def test_get_timestamp_expression_rejects_stored_subquery(
+    mocker: MockerFixture,
+) -> None:
+    """The time-grained sink enforces the same query-time gate as ``get_sqla_col``."""
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    tc = _stored_col("(SELECT ts FROM ab_user LIMIT 1)", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_timestamp_expression(time_grain=None)
+
+
+def test_metric_get_sqla_col_rejects_stored_subquery(mocker: MockerFixture) -> None:
+    """The stored-metric sink enforces the same query-time gate."""
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    metric = SqlMetric(metric_name="leak", expression="(SELECT 1)")
+    metric.table = mocker.MagicMock()
+    metric.table.database = _database_for_expression(mocker)
+    metric.table.catalog = None
+    metric.table.schema = "public"
+    metric.table.db_engine_spec.engine = "mysql"
+    with pytest.raises(QueryObjectValidationError):
+        metric.get_sqla_col()
+
+
+def test_convert_tbl_column_to_sqla_col_rejects_stored_subquery(
+    mocker: MockerFixture,
+) -> None:
+    """The virtual-dataset column sink enforces the same query-time gate."""
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    datasource = mocker.MagicMock()
+    datasource.database = _database_for_expression(mocker)
+    datasource.catalog = None
+    datasource.schema = "public"
+    datasource.db_engine_spec.engine = "mysql"
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+    tbl_column = TableColumn(column_name="leak", expression="(SELECT 1)")
+    with pytest.raises(QueryObjectValidationError):
+        datasource.convert_tbl_column_to_sqla_col(tbl_column)
+
+
+def test_get_sqla_col_falls_back_when_stored_expression_unparseable(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A stored expression using dialect-specific syntax that sqlglot cannot parse
+    (e.g. ``DATE_ADD(ds, 1)`` on MySQL) pre-dates the query-time gate and went
+    to the query unparsed. The engine dialect fails to parse it, the permissive
+    dialect confirms there is no sub-query, so it falls back to the raw
+    expression rather than breaking the query.
+    """
+    spy = mocker.patch(
+        "superset.models.helpers.validate_adhoc_subquery",
+        wraps=validate_adhoc_subquery,
+    )
+    literal = mocker.patch("superset.connectors.sqla.models.literal_column")
+    _stored_col("DATE_ADD(ds, 1)", "mysql", mocker).get_sqla_col()
+    assert literal.call_args.args[0] == "DATE_ADD(ds, 1)"
+    # The gate ran rather than being skipped: the bare expression on the engine
+    # dialect, then the wrapped form on the permissive dialect as a detector.
+    assert [(call.args[0], call.args[-1]) for call in spy.call_args_list] == [
+        ("DATE_ADD(ds, 1)", "mysql"),
+        ("SELECT DATE_ADD(ds, 1)", "base"),
+    ]
+
+
+def test_get_sqla_col_rejects_stored_subquery_in_select_list_fragment(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``DISTINCT (SELECT ...)`` only parses inside a select list, so parsing the
+    bare expression fails in every dialect. The detector wraps it the way the
+    save-time validator does, which parses, so the sub-query is still rejected
+    instead of falling through to the raw expression.
+    """
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    tc = _stored_col("DISTINCT (SELECT password FROM ab_user)", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_sqla_col()
+
+
+def test_get_sqla_col_rejects_stored_multi_statement_expression(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A stored expression carrying a second statement is unparseable as a single
+    statement in every dialect, so it would otherwise take the fallback. The
+    detector parses the wrapped form as a script and rejects it, matching the
+    save-time validator.
+    """
+    tc = _stored_col("1; DROP TABLE ab_user", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_sqla_col()
+
+
+def test_get_sqla_col_allows_semicolon_inside_string_literal(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The multi-statement detector must not treat a semicolon inside a string
+    literal as a second statement, or a legitimate calculated column breaks.
+    """
+    literal = mocker.patch("superset.connectors.sqla.models.literal_column")
+    expression = "CASE WHEN x = 'a;b' THEN 1 END"
+    _stored_col(expression, "mysql", mocker).get_sqla_col()
+    assert literal.call_args.args[0] == expression
+
+
+def test_get_sqla_col_catches_subquery_beside_unparseable_syntax(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A sub-query hidden next to syntax the engine dialect cannot parse
+    (``DATE_ADD(ds, 1) + (SELECT 1)`` on MySQL) must not slip through the
+    fallback: the permissive dialect parses it as a detector and the sub-query
+    is still rejected.
+    """
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    tc = _stored_col("DATE_ADD(ds, 1) + (SELECT 1)", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_sqla_col()
 
 
 def test_has_extra_cache_key_calls_scans_guest_token_rls(

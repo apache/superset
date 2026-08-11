@@ -947,6 +947,49 @@ ORDER BY SalesPersonID, SalesYear;
     ) == {Table("SalesOrderHeader")}
 
 
+def test_extract_tables_qualified_reference_matching_cte_name() -> None:
+    """
+    Test that a schema/catalog-qualified reference is resolved as a physical
+    table even when its final name component matches a CTE defined in scope.
+
+    A CTE name is always a bare identifier, so ``public.orders`` cannot be the
+    CTE ``orders`` and must be reported as the physical table it names.
+    """
+    # schema-qualified reference shadowed by a same-named bare CTE
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM public.orders"
+    ) == {Table("orders", "public")}
+
+    # the CTE itself still references its own physical source
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT * FROM staging.orders) SELECT * FROM public.orders"
+    ) == {Table("orders", "staging"), Table("orders", "public")}
+
+    # catalog-qualified reference shadowed by a same-named bare CTE
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM cat.public.orders"
+    ) == {Table("orders", "public", "cat")}
+
+
+def test_extract_tables_bare_cte_still_excluded() -> None:
+    """
+    Test that a genuine bare CTE reference is still not reported as a table.
+    """
+    assert extract_tables_from_sql(
+        "WITH foo AS (SELECT * FROM target_table) SELECT * FROM foo"
+    ) == {Table("target_table")}
+
+
+def test_extract_tables_unreferenced_cte_does_not_shadow_table() -> None:
+    """
+    Test that a CTE that is defined but not used by the outer query does not
+    change extraction of a physical table sharing its name.
+    """
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1) SELECT * FROM orders_summary"
+    ) == {Table("orders_summary")}
+
+
 def test_extract_tables_identifier_list_with_keyword_as_alias() -> None:
     """
     Test that aliases that are keywords are parsed correctly.

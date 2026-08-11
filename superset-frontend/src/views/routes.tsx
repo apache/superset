@@ -195,8 +195,8 @@ const RedirectWarning = lazy(
 
 type Routes = {
   path: string;
-  Component: ComponentType<any>;
-  Fallback?: ComponentType<any>;
+  Component: ComponentType;
+  Fallback?: ComponentType;
   props?: ComponentProps<any>;
 }[];
 
@@ -241,7 +241,6 @@ export const routes: Routes = [
   { path: RoutePaths.SQLLAB, Component: SqlLab },
   { path: RoutePaths.USER_INFO, Component: UserInfo },
   { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
-  { path: RoutePaths.REGISTRATIONS, Component: UserRegistrations },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
