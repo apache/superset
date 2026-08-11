@@ -1534,6 +1534,7 @@ def test_metric_get_sqla_col_rejects_stored_subquery(mocker: MockerFixture) -> N
     mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
     metric = SqlMetric(metric_name="leak", expression="(SELECT 1)")
     metric.table = mocker.MagicMock()
+    metric.table.database = _database_for_expression(mocker)
     metric.table.catalog = None
     metric.table.schema = "public"
     metric.table.db_engine_spec.engine = "mysql"
@@ -1547,6 +1548,7 @@ def test_convert_tbl_column_to_sqla_col_rejects_stored_subquery(
     """The virtual-dataset column sink enforces the same query-time gate."""
     mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
     datasource = mocker.MagicMock()
+    datasource.database = _database_for_expression(mocker)
     datasource.catalog = None
     datasource.schema = "public"
     datasource.db_engine_spec.engine = "mysql"

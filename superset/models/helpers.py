@@ -271,7 +271,7 @@ def validate_stored_expression_at_query_time(
     expression: str,
     database: Database,
     catalog: str | None,
-    schema: str,
+    schema: str | None,
     engine: str,
 ) -> str:
     """
@@ -297,38 +297,32 @@ def validate_stored_expression_at_query_time(
     A disallowed sub-query is surfaced as ``QueryObjectValidationError`` (a
     chart-level 400) to match the adhoc sinks, rather than a raw 403.
     """
+    default_schema = schema or ""
     try:
-        return validate_adhoc_subquery(expression, database, catalog, schema, engine)
+        return validate_adhoc_subquery(
+            expression, database, catalog, default_schema, engine
+        )
     except SupersetSecurityException as ex:
         raise QueryObjectValidationError(ex.message) from ex
     except SupersetParseError:
         pass
 
-    # The engine dialect could not parse the bare expression. Retry against the
-    # synthetic ``SELECT <expr>`` the save-time validator uses, which also parses
-    # fragments that are only valid in a select list (``DISTINCT <expr>``), and
-    # against the permissive dialect, so a sub-query sitting next to syntax the
-    # engine dialect cannot handle is still caught. These passes are detection
-    # only: the SQL they return is discarded rather than returned, since it is
-    # wrapped and may be in the wrong dialect. RLS injection is therefore not
-    # applied here, matching how such expressions reached the query before this
-    # check existed.
+    # The detector passes below are detection only: the SQL they return is
+    # discarded rather than returned, since it is wrapped and may be in the wrong
+    # dialect. RLS injection is therefore not applied here, matching how such
+    # expressions reached the query before this check existed.
     wrapped = f"SELECT {expression}"
     for dialect in (engine, "base"):
         try:
-            statements = SQLScript(wrapped, dialect).statements
+            if len(SQLScript(wrapped, dialect).statements) > 1:
+                raise QueryObjectValidationError(
+                    _("Custom SQL fields cannot be parsed as a single SQL statement.")
+                )
+            validate_adhoc_subquery(wrapped, database, catalog, default_schema, dialect)
         except SupersetParseError:
             continue
-        if len(statements) > 1:
-            raise QueryObjectValidationError(
-                _("Custom SQL fields cannot be parsed as a single SQL statement.")
-            )
-        try:
-            validate_adhoc_subquery(wrapped, database, catalog, schema, dialect)
         except SupersetSecurityException as ex:
             raise QueryObjectValidationError(ex.message) from ex
-        except SupersetParseError:
-            continue
         return expression
 
     logger.warning("Skipping query-time validation of unparseable stored expression")
@@ -3740,7 +3734,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             expression,
             self.database,
             self.catalog,
-            self.schema or "",
+            self.schema,
             self.db_engine_spec.engine,
         )
 

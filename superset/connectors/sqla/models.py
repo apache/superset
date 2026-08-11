@@ -1185,11 +1185,12 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         )
 
     def _validate_stored_expression(self, expression: str) -> str:
+        table = self.table
         return validate_stored_expression_at_query_time(
             expression,
             self.database,
-            self.table.catalog if self.table else None,
-            (self.table.schema if self.table else None) or "",
+            table.catalog if table else None,
+            table.schema if table else None,
             self.db_engine_spec.engine,
         )
 
@@ -1345,7 +1346,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
             expression,
             self.table.database,
             self.table.catalog,
-            self.table.schema or "",
+            self.table.schema,
             self.table.db_engine_spec.engine,
         )
 
