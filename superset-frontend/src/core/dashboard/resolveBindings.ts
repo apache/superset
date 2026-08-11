@@ -18,12 +18,23 @@
  */
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import type { useTheme } from '@apache-superset/core/theme';
+import type { ChartTheme } from './chartTheme';
 
 type DataRow = dashboardApi.DataRow;
 type Theme = ReturnType<typeof useTheme>;
 
 export interface BindContext {
   rows: DataRow[];
+  /**
+   * What the theme means for a chart, which is what a `theme` bind resolves
+   * against — `text.mutedColor` rather than whatever antd calls it.
+   */
+  chartTheme: ChartTheme;
+  /**
+   * The raw token bag, for a `theme` bind naming a token that has no chart
+   * theme field. Kept so that options authored against the token names keep
+   * working; not what a new one should be written against.
+   */
   theme: Theme;
 }
 
@@ -32,7 +43,10 @@ interface BindMarker {
     source: 'metric' | 'dimension' | 'theme' | 'records';
     /** `metric`/`dimension` — the row field to pull one column's values from. */
     alias?: string;
-    /** `theme` — the theme token to substitute. */
+    /**
+     * `theme` — the chart theme field to substitute, as a dotted path:
+     * `accent`, `text.mutedColor`, `axis.gridColor`.
+     */
     token?: string;
     /**
      * `records` — zip several row fields into one array of plain objects,
@@ -57,6 +71,71 @@ interface BindMarker {
 }
 
 const BIND_SOURCES = new Set(['metric', 'dimension', 'theme', 'records']);
+
+/** Named for the error message, so a wrong token says what the right ones are. */
+const CHART_THEME_FIELDS = [
+  'background',
+  'text.color',
+  'text.mutedColor',
+  'text.disabledColor',
+  'text.fontFamily',
+  'text.fontSize',
+  'axis.lineColor',
+  'axis.labelColor',
+  'axis.gridColor',
+  'axis.minorGridColor',
+  'tooltip.background',
+  'tooltip.color',
+  'accent',
+  'categoricalColors',
+  'sequentialColors',
+];
+
+function readPath(source: unknown, path: string): unknown {
+  return path
+    .split('.')
+    .reduce<unknown>(
+      (value, key) =>
+        value !== null && typeof value === 'object'
+          ? (value as Record<string, unknown>)[key]
+          : undefined,
+      source,
+    );
+}
+
+/**
+ * Resolves a `theme` bind against the chart theme, falling back to the raw
+ * token bag.
+ *
+ * The chart theme is the vocabulary every other part of a widget already gets
+ * its colours from — a renderer is handed `text.mutedColor`, not whatever antd
+ * happens to call it this version. A `$bind` reaching past that into the token
+ * bag was the one place left where an authored option had to know the token
+ * names, which is the coupling `getChartTheme` exists to remove.
+ *
+ * The fallback keeps options already authored against token names rendering,
+ * rather than breaking every saved canvas over a vocabulary change. New ones
+ * are taught the chart theme fields — see the `$bind` guidance in
+ * `clientTools`.
+ *
+ * A function field (`getColor`) is not a value an option can carry, so it is
+ * skipped rather than spliced in as one: a series is coloured by name in
+ * `applySeriesDefaults`, which is where that belongs.
+ */
+function resolveThemeToken(token: string, ctx: BindContext): unknown {
+  const field = readPath(ctx.chartTheme, token);
+  if (field !== undefined && typeof field !== 'function') {
+    return field;
+  }
+  const legacy = (ctx.theme as unknown as Record<string, unknown>)[token];
+  if (legacy !== undefined) {
+    return legacy;
+  }
+  throw new Error(
+    `$bind theme token "${token}" is not a chart theme field. ` +
+      `Use one of: ${CHART_THEME_FIELDS.join(', ')}.`,
+  );
+}
 
 function isBindMarker(value: unknown): value is BindMarker {
   return (
@@ -100,7 +179,7 @@ function resolveBind(bind: BindMarker['$bind'], ctx: BindContext): unknown {
     if (!bind.token) {
       throw new Error('$bind with source "theme" is missing "token"');
     }
-    return (ctx.theme as unknown as Record<string, unknown>)[bind.token];
+    return resolveThemeToken(bind.token, ctx);
   }
   if (bind.source === 'metric' || bind.source === 'dimension') {
     if (!bind.alias) {
