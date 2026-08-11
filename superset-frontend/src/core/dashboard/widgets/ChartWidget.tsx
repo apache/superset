@@ -234,7 +234,12 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     () =>
       getChartTheme(
         theme,
-        typeof colorScheme === 'string' ? colorScheme : undefined,
+        // Empty is unset, not a scheme named "": the registry would look up
+        // the empty key and hand back no palette at all. Matches how the
+        // dashboard API reads the same prop.
+        typeof colorScheme === 'string' && colorScheme !== ''
+          ? colorScheme
+          : undefined,
       ),
     [theme, colorScheme],
   );

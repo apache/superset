@@ -71,11 +71,17 @@ export function getEchartsTheme(theme: SupersetTheme, options?: any) {
       lineStyle: { color: theme.colorBorderSecondary },
     },
   };
+  // ECharts accepts one axis or several. A single object merged over an
+  // authored array is replaced wholesale by it, so a chart with two y-axes
+  // lost every bit of axis styling the theme meant to give it — matched in
+  // shape here instead, one default per authored axis.
+  const forAxis = (axis: unknown) =>
+    Array.isArray(axis) ? axis.map(() => axisTheme) : axisTheme;
   if (options?.xAxis) {
-    echartsTheme.xAxis = axisTheme;
+    echartsTheme.xAxis = forAxis(options.xAxis);
   }
   if (options?.yAxis) {
-    echartsTheme.yAxis = axisTheme;
+    echartsTheme.yAxis = forAxis(options.yAxis);
   }
 
   return echartsTheme;

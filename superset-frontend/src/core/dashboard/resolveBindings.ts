@@ -127,8 +127,14 @@ function resolveThemeToken(token: string, ctx: BindContext): unknown {
   if (field !== undefined && typeof field !== 'function') {
     return field;
   }
-  const legacy = (ctx.theme as unknown as Record<string, unknown>)[token];
-  if (legacy !== undefined) {
+  // Own properties only: `constructor` and `toString` are reachable by plain
+  // property access and would splice a function out of `Object.prototype`
+  // into an authored option instead of raising the error below.
+  const tokens = ctx.theme as unknown as Record<string, unknown>;
+  const legacy = Object.prototype.hasOwnProperty.call(tokens, token)
+    ? tokens[token]
+    : undefined;
+  if (legacy !== undefined && typeof legacy !== 'function') {
     return legacy;
   }
   throw new Error(

@@ -93,3 +93,14 @@ test('does not splice a theme function in as if it were a value', () => {
     ),
   ).toThrow(/not a chart theme field/);
 });
+
+test('a token that is only on Object.prototype is not a theme value', () => {
+  // Reachable by plain property access, so `constructor` used to resolve to a
+  // function and be spliced straight into the option.
+  expect(() =>
+    resolveBindings(
+      { color: { $bind: { source: 'theme', token: 'constructor' } } },
+      ctx,
+    ),
+  ).toThrow(/not a chart theme field/);
+});
