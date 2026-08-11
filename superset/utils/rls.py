@@ -109,26 +109,29 @@ def get_predicates_for_table(
     if exclude_dataset_id is not None:
         filters.append(SqlaTable.id != exclude_dataset_id)
 
-    def lookup(schema_predicate: Any) -> Any:
-        return (
-            db.session.query(SqlaTable)
-            .filter(and_(*filters, schema_predicate))
-            .one_or_none()
-        )
-
-    dataset = lookup(SqlaTable.schema == table.schema)
+    dataset = (
+        db.session.query(SqlaTable)
+        .filter(and_(*filters, SqlaTable.schema == table.schema))
+        .one_or_none()
+    )
     if not dataset and table.schema:
         # A dataset stored without a schema is scoped to the database's default
         # schema, so a query resolving to that same schema must still pick up its
         # predicates. This mirrors the null-catalog fallback above.
         #
-        # The fallback is a second lookup rather than an ``OR`` on the first so that
-        # an exact schema match always wins and neither query can match more than
-        # one dataset. Resolving the default schema probes the analytic database, so
-        # it is deferred until a null-schema dataset is known to exist.
-        dataset = lookup(SqlaTable.schema.is_(None))
-        if dataset and table.schema != database.get_default_schema(table.catalog):
-            dataset = None
+        # This is a second query rather than an ``OR`` on the first so that an exact
+        # schema match always wins and neither query can match more than one dataset.
+        # Resolving the default schema probes the analytic database, so it is deferred
+        # until a null-schema dataset is known to exist.
+        null_schema_dataset = (
+            db.session.query(SqlaTable)
+            .filter(and_(*filters, SqlaTable.schema.is_(None)))
+            .one_or_none()
+        )
+        if null_schema_dataset and table.schema == database.get_default_schema(
+            table.catalog
+        ):
+            dataset = null_schema_dataset
 
     if not dataset:
         return []
