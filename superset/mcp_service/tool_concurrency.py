@@ -63,8 +63,7 @@ def max_concurrent_tool_calls() -> int:
     from superset.mcp_service.flask_singleton import get_flask_app  # noqa: PLC0415
 
     config = get_flask_app().config
-    configured = config.get("MCP_MAX_CONCURRENT_TOOL_CALLS")
-    if configured is not None:
+    if (configured := config.get("MCP_MAX_CONCURRENT_TOOL_CALLS")) is not None:
         return max(0, int(configured))
 
     engine_options = config.get("SQLALCHEMY_ENGINE_OPTIONS") or {}
