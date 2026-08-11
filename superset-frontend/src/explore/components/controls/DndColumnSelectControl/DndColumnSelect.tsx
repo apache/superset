@@ -113,7 +113,11 @@ function DndColumnSelect(props: DndColumnSelectProps) {
           optionSelector.add(columnNames[0]);
         }
       } else {
-        columnNames.forEach(columnName => optionSelector.add(columnName));
+        columnNames.forEach(columnName => {
+          if (!optionSelector.has(columnName)) {
+            optionSelector.add(columnName);
+          }
+        });
       }
       onChange(optionSelector.getValues());
     },
