@@ -46,6 +46,7 @@ from superset.mcp_service.middleware import (
     LoggingMiddleware,
     RBACToolVisibilityMiddleware,
     StructuredContentStripperMiddleware,
+    ToolConcurrencyMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
 from superset.utils import json
@@ -860,12 +861,16 @@ def build_middleware_list() -> list[Middleware]:
     2. RBACToolVisibilityMiddleware — filters tools/list by RBAC;
        positioned inside the Stripper so it sees full tool objects
        (with outputSchema) before stripping occurs
-    3. LoggingMiddleware — logs tool calls with success/failure status
-    4. GlobalErrorHandler — catches tool exceptions, raises ToolError
+    3. ToolConcurrencyMiddleware — admits at most as many concurrent tool
+       calls as the connection pool can serve; outside the logger because the
+       audit log write is itself a connection checkout
+    4. LoggingMiddleware — logs tool calls with success/failure status
+    5. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
         StructuredContentStripperMiddleware(),
         RBACToolVisibilityMiddleware(),
+        ToolConcurrencyMiddleware(),
         LoggingMiddleware(),
         GlobalErrorHandlerMiddleware(),
     ]

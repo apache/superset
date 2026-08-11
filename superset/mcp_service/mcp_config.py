@@ -88,6 +88,18 @@ MCP_STATELESS_HTTP = True
 # against the FAB security_manager before execution.
 MCP_RBAC_ENABLED = True
 
+# How many async tool calls may run at once. Each call holds its own SQLAlchemy
+# session, and therefore its own connection, for its whole duration — so
+# admitting more calls than the pool can serve means a task waits for a
+# connection while blocking the event loop that the calls holding connections
+# need in order to release them (see tool_concurrency.py).
+#
+# None derives the limit from the connection pool: SQLALCHEMY_ENGINE_OPTIONS
+# pool_size + max_overflow, falling back to SQLAlchemy's own 5 + 10. Set an
+# integer to pin it, or 0 to remove the limit — with no limit, a burst larger
+# than the pool stalls until the pool timeout expires.
+MCP_MAX_CONCURRENT_TOOL_CALLS: int | None = None
+
 # MCP Disabled Tools - a set of tool names to remove from the MCP server at
 # startup. Disabled tools are silently omitted from tool discovery, so AI
 # clients never see them. Use this when a Superset-provided tool conflicts with
@@ -736,6 +748,7 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_DEBUG": MCP_DEBUG,
         "MCP_STATELESS_HTTP": MCP_STATELESS_HTTP,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
+        "MCP_MAX_CONCURRENT_TOOL_CALLS": MCP_MAX_CONCURRENT_TOOL_CALLS,
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
         "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,

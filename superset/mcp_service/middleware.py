@@ -51,6 +51,7 @@ from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
+from superset.mcp_service.tool_concurrency import bounded_tool_call
 from superset.mcp_service.utils.token_utils import (
     DATA_QUERY_TOOLS,
     estimate_response_tokens,
@@ -230,6 +231,32 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
         else:
             result[k] = v
     return result
+
+
+class ToolConcurrencyMiddleware(Middleware):
+    """Admit at most ``MCP_MAX_CONCURRENT_TOOL_CALLS`` tool calls at a time.
+
+    Every admitted call holds a SQLAlchemy session — and therefore a
+    connection — for its whole duration, and the tool bodies do blocking
+    database work on the event loop. Once the pool is empty, the task waiting
+    for a connection blocks the only thread there is, including the tasks that
+    are holding the connections and can no longer reach their app context
+    teardown to release them. Admission turns that into a wait the event loop
+    can service (see tool_concurrency.py).
+
+    It deliberately sits outside ``LoggingMiddleware``: the audit log write is
+    itself a connection checkout, so it has to happen inside the admission that
+    accounts for it. The trade-off is that ``duration_ms`` then measures
+    execution only, excluding time spent queueing for admission.
+    """
+
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext[mt.CallToolRequestParams],
+        call_next: Callable[[MiddlewareContext], Awaitable[ToolResult]],
+    ) -> ToolResult:
+        async with bounded_tool_call():
+            return await call_next(context)
 
 
 class LoggingMiddleware(Middleware):
