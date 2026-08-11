@@ -218,6 +218,40 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
             _("Pivot operation must include at least one aggregate")
         )
 
+    # Fail fast on ``show_values_as`` misconfiguration *before* running the
+    # (potentially expensive) ``pivot_table`` call: an unknown mode should
+    # not silently perform a full pivot only to raise at the end, and the
+    # ``marginal_distributions`` combination should reject before pandas
+    # gets a chance to raise its own margins-related errors. ``None`` /
+    # ``""`` / ``"actual"`` are the no-op sentinels — anything else must
+    # be a known percent mode.
+    percent_mode: Optional[str] = None
+    if show_values_as not in (None, "", "actual"):
+        if show_values_as not in _PERCENT_MODES:
+            raise InvalidPostProcessingError(
+                _(
+                    "Unsupported show_values_as value: %(mode)s. "
+                    "Expected one of: percent_row, percent_col, percent_total, actual.",
+                    mode=show_values_as,
+                )
+            )
+        if marginal_distributions:
+            # The pivot would carry an "All" margin row and/or column;
+            # summing across the axis would double-count by including the
+            # margin as part of its own denominator. Combining ``margins``
+            # with ``show_values_as`` needs a first-class design (probably
+            # computing percentages on the non-margin subset and then
+            # re-inserting the margin totals as-is), which is out of scope
+            # here. Reject explicitly rather than silently returning wrong
+            # numbers.
+            raise InvalidPostProcessingError(
+                _(
+                    "show_values_as is not yet supported when "
+                    "marginal_distributions is enabled."
+                )
+            )
+        percent_mode = show_values_as
+
     if columns and column_fill_value:
         df[columns] = df[columns].fillna(value=column_fill_value)
 
@@ -263,34 +297,7 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         # be silently dropped by stack's default dropna=True behavior.
         df = df.stack(level=0, dropna=False).unstack()
 
-    # Normalize the ``no-op`` sentinels — ``None``, the empty string, and
-    # the explicit ``"actual"`` all mean "leave cell values alone". Anything
-    # else must be a known percent mode; a bad value raises rather than
-    # silently no-oping.
-    if show_values_as not in (None, "", "actual"):
-        if show_values_as not in _PERCENT_MODES:
-            raise InvalidPostProcessingError(
-                _(
-                    "Unsupported show_values_as value: %(mode)s. "
-                    "Expected one of: percent_row, percent_col, percent_total, actual.",
-                    mode=show_values_as,
-                )
-            )
-        if marginal_distributions:
-            # The pivot already carries an "All" margin row and/or column;
-            # summing across the axis would double-count by including the
-            # margin as part of its own denominator. Combining ``margins``
-            # with ``show_values_as`` needs a first-class design (probably
-            # computing percentages on the non-margin subset and then
-            # re-inserting the margin totals as-is), which is out of scope
-            # here. Reject explicitly rather than silently returning wrong
-            # numbers.
-            raise InvalidPostProcessingError(
-                _(
-                    "show_values_as is not yet supported when "
-                    "marginal_distributions is enabled."
-                )
-            )
-        df = _apply_show_values_as(df, show_values_as)
+    if percent_mode is not None:
+        df = _apply_show_values_as(df, percent_mode)
 
     return df
