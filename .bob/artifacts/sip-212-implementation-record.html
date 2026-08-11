@@ -1,0 +1,311 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SIP-212 Implementation Record</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #1f2328; background: #fff; margin: 0; padding: 32px 16px 64px; }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+  h2 { font-size: 17px; font-weight: 600; margin: 36px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #e5e7eb; color: #1f2328; }
+  h3 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: #1f2328; }
+  p { margin: 8px 0 12px; }
+  pre { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px; padding: 12px 14px; font-size: 12px; font-family: "SFMono-Regular", "Consolas", monospace; overflow-x: auto; margin: 8px 0 14px; line-height: 1.5; white-space: pre; }
+  code { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 3px; padding: 1px 5px; font-size: 12px; font-family: "SFMono-Regular", "Consolas", monospace; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0 18px; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; text-align: left; font-weight: 600; }
+  td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .callout { border-left: 3px solid #3b82d4; background: #f0f6ff; padding: 10px 14px; margin: 12px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+  .callout.warn { border-left-color: #c07d00; background: #fffbf0; }
+  .callout.ok { border-left-color: #1a7d3c; background: #f0fff5; }
+  .callout.pending { border-left-color: #7c5cd8; background: #f5f0ff; }
+  .callout strong { display: block; margin-bottom: 3px; }
+  .file { font-family: "SFMono-Regular", monospace; font-size: 12px; background: #f7f8fa; border: 1px solid #e5e7eb; padding: 1px 5px; border-radius: 3px; color: #7c5cd8; }
+  .badge { display: inline-block; padding: 1px 7px; font-size: 11px; border-radius: 10px; font-weight: 600; margin-left: 4px; }
+  .new { background: #d0f0d8; color: #1a5c30; }
+  .ext { background: #ffefd0; color: #7c4500; }
+  .fix { background: #ffd8d8; color: #7c0000; }
+  ul, ol { padding-left: 20px; margin: 8px 0 12px; }
+  li { margin: 4px 0; }
+  footer { margin-top: 60px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>SIP-212: Browser-Print PDF — Implementation Record</h1>
+<p style="color:#57606a;font-size:13px;margin-bottom:24px">
+  <strong>Branch:</strong> <code>feature/sip-212-implementation</code>  · 
+  <strong>Base branch:</strong> <code>feature/sip-212-browser-print-pdf</code>  · 
+  <strong>Status:</strong> Implemented &amp; manually tested end-to-end
+</p>
+
+<div class="callout ok">
+  <strong>End-to-end test result (confirmed in this session)</strong>
+  Worker log: <code>browser_print_pdf_success url=http://superset:8088/dashboard/.../?standalone=3&amp;print=1 bytes=52814</code> followed by <code>browser_print_pdf_used</code>. Native Playwright <code>page.pdf()</code> ran successfully. Chart titles and table cell text are selectable in the output PDF.
+</div>
+
+<h2>1. Background</h2>
+<p>Superset's existing PDF report pipeline takes a PNG screenshot of the rendered dashboard and wraps it in a PDF container using PIL. This produces raster-only output: no selectable text, no real links, large file sizes, and clipped content for off-screen widgets.</p>
+<p>SIP-212 proposes replacing step 5–6 of that pipeline (screenshot → image-in-PDF) with Playwright's native <code>page.pdf()</code> on a print-ready DOM. This branch implements Phases A–C of the hybrid approach described in the design documents.</p>
+
+<h2>2. Branch Setup</h2>
+<p>All work is on a <strong>new branch</strong> created from the existing design-doc branch:</p>
+<pre>git checkout -b feature/sip-212-implementation
+# base: feature/sip-212-browser-print-pdf (contains only docs, no code)</pre>
+<p>The implementation branch is <strong>not</strong> the same as the design-doc branch. The design-doc branch (<code>feature/sip-212-browser-print-pdf</code>) was pre-existing and contained only <code>docs/features/</code> files. All code changes are on <code>feature/sip-212-implementation</code>.</p>
+
+<h2>3. Docker / Environment Setup</h2>
+<p>Superset runs via Docker Compose. The system Python on macOS has no packages installed — all Python runs inside containers.</p>
+<h3>Rebuild with Chromium (required once)</h3>
+<pre>INCLUDE_CHROMIUM=true docker compose build superset superset-worker
+docker compose up -d</pre>
+<p>The <code>INCLUDE_CHROMIUM=true</code> build arg triggers the block in <span class="file">Dockerfile:177-184</span> that runs <code>uv pip install playwright &amp;&amp; playwright install chromium</code>.</p>
+
+<h3>Local config override</h3>
+<p>File created: <span class="file">docker/pythonpath_dev/superset_config_docker.py</span></p>
+<pre>FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": True,
+    "DASHBOARD_REPORTS_BROWSER_PRINT_PDF": True,
+}
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = False</pre>
+<p>This file is imported last by <span class="file">docker/pythonpath_dev/superset_config.py:157-165</span> via <code>import superset_config_docker</code>. The <code>SQLALCHEMY_DATABASE_URI</code> and <code>SQLALCHEMY_ECHO = True</code> lines from the example template were <strong>removed</strong> — they caused <code>create_app()</code> to hang trying to connect to a non-existent host.</p>
+<pre>docker compose restart superset superset-worker</pre>
+
+<h2>4. All Code Changes</h2>
+
+<h3>4.1 New feature flag — <span class="file">superset/config.py</span> <span class="badge ext">EXTEND</span></h3>
+<p>Added to <code>DEFAULT_FEATURE_FLAGS</code> in the development section (after <code>SOFT_DELETE</code>):</p>
+<pre># Enable browser-native print (page.pdf()) for dashboard PDF reports.
+# Falls back to the existing screenshot path on any failure.
+# Requires PLAYWRIGHT_REPORTS_AND_THUMBNAILS to also be enabled.
+# @lifecycle: development
+"DASHBOARD_REPORTS_BROWSER_PRINT_PDF": False,</pre>
+
+<h3>4.2 New JS readiness predicate — <span class="file">superset/utils/screenshot_utils.py</span> <span class="badge ext">EXTEND</span></h3>
+<p>Added after the existing <code>REPORT_CHART_HOLDERS_READY_JS</code> constant. The existing predicate skips chart holders outside the viewport (<code>getBoundingClientRect()</code> filter). The new one removes that filter so ALL holders in the DOM must reach terminal state — required because <code>page.pdf()</code> renders the full document, not just the visible viewport.</p>
+<pre>PRINT_ALL_CHART_HOLDERS_READY_JS_BODY = f"""
+    const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
+    const unready = [];
+    for (const holder of holders) {{
+        const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
+        const isReady = holder.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+        if (stillLoading || !isReady) {{
+            const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
+            unready.push({{ chartId: chartIdMatch ? chartIdMatch[1] : null }});
+        }}
+    }}
+"""
+PRINT_ALL_CHART_HOLDERS_READY_JS = (
+    f"() =&gt; {{ {PRINT_ALL_CHART_HOLDERS_READY_JS_BODY} "
+    "return holders.length &gt; 0 &amp;&amp; unready.length === 0; }"
+)</pre>
+
+<h3>4.3 New DashboardPrintScreenshot class — <span class="file">superset/utils/screenshots.py</span> <span class="badge new">NEW</span></h3>
+<p>Appended after <code>DashboardScreenshot</code>. Subclass that appends <code>?print=1</code> to the URL (on top of <code>?standalone=3</code> set by the parent) and exposes a <code>get_print_pdf()</code> method:</p>
+<pre>class DashboardPrintScreenshot(DashboardScreenshot):
+    def __init__(self, url, digest, window_size=None, thumb_size=None):
+        super().__init__(url, digest, window_size, thumb_size)
+        self.url = modify_url_query(self.url, print=1)
+
+    def get_print_pdf(self, user, window_size=None,
+                      log_context=None, report_execution_context=None):
+        if not feature_flag_manager.is_feature_enabled(
+                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+            return None
+        if not PLAYWRIGHT_AVAILABLE:
+            return None
+        driver = WebDriverPlaywright(self.driver_type,
+                                     window_size or self.window_size)
+        return driver.get_print_pdf(self.url, user=user,
+            log_context=log_context,
+            report_execution_context=report_execution_context)</pre>
+
+<h3>4.4 New get_print_pdf() method — <span class="file">superset/utils/webdriver.py</span> <span class="badge new">NEW</span></h3>
+<p>Added to <code>WebDriverPlaywright</code> (after <code>get_screenshot()</code>). Also added <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> to the existing import from <code>screenshot_utils</code>.</p>
+<p>The method: opens an authenticated browser context, navigates to the print URL, waits for <code>.standalone</code> to mount, then polls <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> until all chart holders reach terminal state, then calls <code>page.pdf(format="A4", print_background=True, margin=10mm)</code>. Any exception returns <code>None</code> (never raises) so the caller can fall back.</p>
+
+<h3>4.5 Worker routing — <span class="file">superset/commands/report/execute.py</span> <span class="badge ext">EXTEND</span></h3>
+<p>Two changes:</p>
+<ol>
+  <li>Added <code>DashboardPrintScreenshot</code> to the import on line 100.</li>
+  <li><code>_get_pdf()</code> now checks the flag at the top and calls a new <code>_get_browser_print_pdf()</code> helper. On <code>None</code> return or any exception, the existing <code>_get_screenshots()</code> path runs unchanged.</li>
+</ol>
+<pre>def _get_pdf(self) -&gt; bytes:
+    if (feature_flag_manager.is_feature_enabled(
+            "DASHBOARD_REPORTS_BROWSER_PRINT_PDF")
+            and self._report_schedule.dashboard):
+        try:
+            pdf_bytes = self._get_browser_print_pdf()
+            if pdf_bytes:
+                return pdf_bytes
+        except Exception:  # noqa: BLE001
+            logger.exception("browser_print_pdf_exception ...")
+    # EXISTING PATH — unmodified
+    screenshots = self._get_screenshots()
+    ...
+
+def _get_browser_print_pdf(self) -&gt; bytes | None:
+    urls = self.get_dashboard_urls()
+    if len(urls) != 1:   # multi-tab deferred
+        return None
+    screenshot = DashboardPrintScreenshot(urls[0], ...)
+    return screenshot.get_print_pdf(user=user, ...)</pre>
+<p><strong>Not modified:</strong> <code>_get_screenshots()</code>, <code>build_pdf_from_screenshots()</code>, the Selenium path, <span class="file">superset/utils/pdf.py</span>. No <code>ReportSchedulePdfFailedError</code> import was added (it is not imported in execute.py today and the new code does not use it directly).</p>
+
+<h3>4.6 Frontend feature flag — <span class="file">superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts</span> <span class="badge ext">EXTEND</span></h3>
+<p>Added one line to the <code>FeatureFlag</code> enum (alphabetically between CssTemplates and DashboardVirtualization):</p>
+<pre>DashboardReportsBrowserPrintPdf = 'DASHBOARD_REPORTS_BROWSER_PRINT_PDF',</pre>
+
+<h3>4.7 New URL parameter — <span class="file">superset-frontend/src/constants.ts</span> <span class="badge ext">EXTEND</span></h3>
+<p>Added to <code>URL_PARAMS</code>:</p>
+<pre>print: {
+  name: 'print',
+  type: 'number',
+},</pre>
+
+<h3>4.8 Body class + CSS injection — <span class="file">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</span> <span class="badge ext">EXTEND</span></h3>
+<p>Added import of <code>PRINT_MODE_CSS</code> from the new printMode.ts file. Added after <code>isReport</code> is set:</p>
+<pre>const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+
+useEffect(() =&gt; {
+  if (isPrintMode) {
+    document.body.classList.add('print-mode');
+    const styleEl = document.createElement('style');
+    styleEl.id = 'superset-print-mode-css';
+    styleEl.textContent = PRINT_MODE_CSS;
+    document.head.appendChild(styleEl);
+    return () =&gt; {
+      document.body.classList.remove('print-mode');
+      document.head.removeChild(styleEl);
+    };
+  }
+  return undefined;
+}, [isPrintMode]);</pre>
+<p><code>URL_PARAMS</code> and <code>getUrlParam</code> were already imported in this file.</p>
+
+<h3>4.9 Virtualization bypass — <span class="file">superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx</span> <span class="badge ext">EXTEND</span></h3>
+<p>Added imports of <code>URL_PARAMS</code> and <code>getUrlParam</code>. Changed <code>isInView</code> initial state and guarded the IntersectionObserver effect:</p>
+<pre>const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+const [isInView, setIsInView] = useState(isPrintMode);
+
+useEffect(() =&gt; {
+  // Skip IntersectionObserver in print mode — all charts must render
+  if (
+    !isPrintMode &amp;&amp;
+    isFeatureEnabled(FeatureFlag.DashboardVirtualization) &amp;&amp;
+    !isCurrentUserBot()
+  ) {
+    // ... existing observer setup unchanged ...
+  }
+}, []);</pre>
+<p><strong>Why this file:</strong> The design document (v2, correction #4) identified that the virtualization gate lives in Row.tsx's IntersectionObserver, not at DashboardGrid/DashboardBuilder level. The <code>isInView</code> state flows Row → ChartHolder → Chart → <code>shouldRenderChart()</code>.</p>
+
+<h3>4.10 Print-mode CSS — <span class="file">superset-frontend/src/dashboard/styles/printMode.ts</span> <span class="badge new">NEW</span></h3>
+<p>New file. Exports <code>PRINT_MODE_CSS</code> string, scoped to <code>body.print-mode</code> so it never affects interactive or embedded SDK consumers using <code>standalone=3</code> alone. Key rules:</p>
+<ul>
+  <li>Hide: <code>.dashboard-header-container</code>, <code>.filter-bar</code>, <code>.drag-handle</code>, <code>.resizable-add-col</code>, <code>.ant-dropdown-trigger</code></li>
+  <li>Layout: <code>.dragdroppable-row { display: flex; flex-direction: column }</code> — stacks columns vertically, full width (updated from initial <code>display: block</code> after discovering columns were being cut off)</li>
+  <li>Table expansion: <code>.table-viz, .dataTable { overflow: visible; max-height: none }</code></li>
+  <li>Chart minimum height: <code>.chart-container { min-height: 200px }</code></li>
+</ul>
+
+<h3>4.11 Chart title link suppression — <span class="file">superset-frontend/src/dashboard/components/SliceHeader/index.tsx</span> <span class="badge fix">BUG FIX</span></h3>
+<p>Discovered during testing: chart titles were rendered as clickable <code>&lt;a href&gt;</code> links in the PDF (clicking "Total Revenue" opened Chrome at an explore URL). Root cause: <code>renderExploreLink</code> wraps the title in a React Router <code>&lt;Link&gt;</code> when <code>canExplore</code> is true. Fixed by adding <code>&amp;&amp; !isPrintMode</code>:</p>
+<pre>import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
+
+// inside component:
+const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+const canExplore = !editMode &amp;&amp; supersetCanExplore &amp;&amp; !isPrintMode;</pre>
+
+<h3>4.12 Inactive tab rendering — <span class="file">superset-frontend/src/dashboard/components/gridComponents/Tabs/Tabs.tsx</span> <span class="badge fix">BUG FIX</span></h3>
+<p>Discovered during testing: the PDF only contained the active tab. Root cause: <code>isComponentVisible</code> is passed as <code>selectedTabIndex === tabIndex &amp;&amp; isCurrentTabVisible</code> — only the active tab gets <code>true</code>, so inactive tab charts are never mounted in the DOM. Fixed:</p>
+<pre>import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
+
+// in the tab items useMemo:
+isComponentVisible={
+  getUrlParam(URL_PARAMS.print) === 1
+    ? true
+    : selectedTabIndex === tabIndex &amp;&amp; isCurrentTabVisible
+}</pre>
+
+<h3>4.13 Documentation — <span class="file">DEMO-NOTES.md</span> <span class="badge new">NEW</span></h3>
+<p>Created at repo root. Contains: what was implemented, files changed table, how to enable for demo, E2E flow description, known limitations.</p>
+
+<h2>5. Fallback Guarantee</h2>
+<p>The existing screenshot path is completely untouched. The new path is purely additive:</p>
+<pre>Flag OFF → existing path runs, no change
+Flag ON + multi-tab dashboard → returns None → existing path
+Flag ON + Playwright unavailable → returns None → existing path
+Flag ON + readiness timeout → PlaywrightTimeout caught → returns None → existing path
+Flag ON + page.pdf() error → caught → returns None → existing path
+Flag ON + pdf_bytes returned → new path used, logged as browser_print_pdf_used</pre>
+
+<h2>6. Pending Issue — Stale Webpack Build</h2>
+<div class="callout pending">
+  <strong>v3 PDF is same as v2 — webpack has not rebuilt yet</strong>
+  The frontend changes to Tabs.tsx and printMode.ts (fixes 4.10, 4.12) have been written to disk but the running node container hasn't compiled them yet. The <code>extract_pdf.py</code> script calls <code>get_print_pdf()</code> directly via the backend, which fetches the URL from the <strong>running webpack dev server</strong>. Until the node container rebuilds, the browser serves the old JS bundle and the PDF reflects the old frontend.
+</div>
+<h3>How to confirm webpack has rebuilt</h3>
+<pre>docker compose logs -f superset-superset-node-1 | grep -E "compiled|error"</pre>
+<p>Wait for: <code>webpack compiled successfully</code>. This can take 60–120 seconds after a file change. Only then regenerate the PDF.</p>
+<h3>After webpack rebuilds</h3>
+<pre>docker compose cp extract_pdf.py superset:/app/extract_pdf.py
+docker compose exec superset python3 /app/extract_pdf.py
+docker compose cp superset:/app/superset_home/test_output.pdf ~/Desktop/sip212_test_v4.pdf
+open ~/Desktop/sip212_test_v4.pdf</pre>
+<p>The v4 PDF should contain all columns from all tabs stacked vertically.</p>
+
+<h2>7. Known Limitations (Out of Scope)</h2>
+<table>
+  <tr><th>Item</th><th>Why deferred</th></tr>
+  <tr><td>ECharts canvas text (axis labels, legends) not selectable</td><td>Canvas is a raster bitmap — text is pixels, not DOM. Unavoidable without switching ECharts to SVG rendering mode.</td></tr>
+  <tr><td>Multi-tab dashboards (tabs split into separate URLs)</td><td>Requires per-URL page.pdf() + PDF merge library (pypdf). Explicitly deferred as Phase 5.</td></tr>
+  <tr><td>Large table server-side fetch path</td><td>CSS overflow expansion sufficient for moderate tables. Phase D deferred.</td></tr>
+  <tr><td>A4 format hard-coded</td><td>Configurable format is a Phase 4 hardening item.</td></tr>
+  <tr><td>Selenium print PDF</td><td>Selenium has no page.pdf() equivalent. Hard requirement on Playwright.</td></tr>
+</table>
+
+<h2>8. Files Changed (complete list)</h2>
+<table>
+  <tr><th>File</th><th>Type</th><th>Summary</th></tr>
+  <tr><td class="file">superset/config.py</td><td><span class="badge ext">EXTEND</span></td><td>Add DASHBOARD_REPORTS_BROWSER_PRINT_PDF: False to DEFAULT_FEATURE_FLAGS</td></tr>
+  <tr><td class="file">superset/utils/screenshot_utils.py</td><td><span class="badge ext">EXTEND</span></td><td>Add PRINT_ALL_CHART_HOLDERS_READY_JS (all-holder variant of readiness predicate)</td></tr>
+  <tr><td class="file">superset/utils/screenshots.py</td><td><span class="badge new">NEW</span></td><td>Add DashboardPrintScreenshot class</td></tr>
+  <tr><td class="file">superset/utils/webdriver.py</td><td><span class="badge ext">EXTEND</span></td><td>Import new constant; add get_print_pdf() to WebDriverPlaywright</td></tr>
+  <tr><td class="file">superset/commands/report/execute.py</td><td><span class="badge ext">EXTEND</span></td><td>Import DashboardPrintScreenshot; wrap _get_pdf(); add _get_browser_print_pdf()</td></tr>
+  <tr><td class="file">superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts</td><td><span class="badge ext">EXTEND</span></td><td>Add DashboardReportsBrowserPrintPdf to FeatureFlag enum</td></tr>
+  <tr><td class="file">superset-frontend/src/constants.ts</td><td><span class="badge ext">EXTEND</span></td><td>Add print: { name: 'print', type: 'number' } to URL_PARAMS</td></tr>
+  <tr><td class="file">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</td><td><span class="badge ext">EXTEND</span></td><td>Add isPrintMode, body class useEffect, CSS style tag injection</td></tr>
+  <tr><td class="file">superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx</td><td><span class="badge ext">EXTEND</span></td><td>Import URL_PARAMS/getUrlParam; initialize isInView=true in print mode; guard IntersectionObserver</td></tr>
+  <tr><td class="file">superset-frontend/src/dashboard/styles/printMode.ts</td><td><span class="badge new">NEW</span></td><td>Print-mode CSS string exported as PRINT_MODE_CSS</td></tr>
+  <tr><td class="file">superset-frontend/src/dashboard/components/SliceHeader/index.tsx</td><td><span class="badge fix">FIX</span></td><td>Suppress explore link on chart titles in print mode (canExplore &amp;&amp; !isPrintMode)</td></tr>
+  <tr><td class="file">superset-frontend/src/dashboard/components/gridComponents/Tabs/Tabs.tsx</td><td><span class="badge fix">FIX</span></td><td>Force isComponentVisible=true for all tabs in print mode</td></tr>
+  <tr><td class="file">DEMO-NOTES.md</td><td><span class="badge new">NEW</span></td><td>Setup instructions, E2E flow, known limitations</td></tr>
+  <tr><td class="file">docker/pythonpath_dev/superset_config_docker.py</td><td><span class="badge new">NEW</span></td><td>Local config override enabling the two required feature flags</td></tr>
+  <tr><td class="file">extract_pdf.py</td><td><span class="badge new">NEW (temp)</span></td><td>One-off script to extract PDF bytes directly for manual testing. Not part of the feature.</td></tr>
+</table>
+
+<h2>9. Verified Test Results</h2>
+<table>
+  <tr><th>Check</th><th>Result</th><th>How verified</th></tr>
+  <tr><td>body.print-mode class set</td><td>✅ true</td><td>DevTools console on Sales Dashboard with ?print=1</td></tr>
+  <tr><td>Style tag injected</td><td>✅ true</td><td>document.getElementById('superset-print-mode-css') !== null</td></tr>
+  <tr><td>All chart holders terminal</td><td>✅ 6 holders, 0 unready</td><td>Custom JS predicate run in browser console</td></tr>
+  <tr><td>Worker uses new path</td><td>✅ browser_print_pdf_success bytes=52814</td><td>docker compose logs superset-worker</td></tr>
+  <tr><td>Chart titles selectable</td><td>✅ plain text in PDF</td><td>PDF opened in Preview, text selection confirmed</td></tr>
+  <tr><td>Table cell text selectable</td><td>✅ "Classic Cars", "34k" etc.</td><td>PDF opened in Preview, text selection confirmed</td></tr>
+  <tr><td>ECharts canvas text selectable</td><td>❌ pixels (expected)</td><td>By design — canvas is raster</td></tr>
+  <tr><td>Inactive tabs rendered</td><td>⏳ fix applied, awaiting webpack rebuild</td><td>Tabs.tsx change not yet compiled</td></tr>
+  <tr><td>All columns rendered</td><td>⏳ fix applied, awaiting webpack rebuild</td><td>printMode.ts flex fix not yet compiled</td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

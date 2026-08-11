@@ -1,0 +1,415 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SIP-212 Complete Implementation Record</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; background: #fff; color: #1f2328; }
+  .page { max-width: 860px; margin: 0 auto; padding: 40px 28px 60px; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 36px 0 10px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #1f2328; }
+  h3 { font-size: 13.5px; font-weight: 700; margin: 20px 0 6px; color: #3b82d4; }
+  h4 { font-size: 13px; font-weight: 700; margin: 14px 0 4px; }
+  p { margin-bottom: 10px; }
+  ul, ol { margin: 6px 0 12px 22px; }
+  li { margin-bottom: 4px; }
+  code { font-family: "SF Mono", "Fira Code", monospace; font-size: 12px; background: #f3f4f6; padding: 1px 5px; border-radius: 3px; color: #24292f; }
+  pre { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 14px; font-family: "SF Mono", "Fira Code", monospace; font-size: 12px; line-height: 1.5; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .tag-done { background: #d1fae5; color: #065f46; }
+  .tag-partial { background: #fef3c7; color: #92400e; }
+  .tag-todo { background: #fee2e2; color: #991b1b; }
+  .tag-info { background: #dbeafe; color: #1e40af; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 13px; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; text-align: left; font-weight: 600; }
+  td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+  .file { font-family: "SF Mono", "Fira Code", monospace; font-size: 12px; color: #7c5cd8; }
+  .callout { background: #fef9c3; border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+  .callout-red { background: #fff1f2; border-left: 4px solid #ef4444; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+  .callout-green { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+  .callout-blue { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; }
+  .status-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .divider { border: none; border-top: 2px solid #e5e7eb; margin: 32px 0; }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+  .chain { display: flex; flex-direction: column; gap: 4px; }
+  .chain-step { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 4px; padding: 6px 10px; font-size: 12.5px; }
+  .chain-arrow { text-align: center; font-size: 11px; color: #57606a; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>SIP-212: Browser-Print PDF Dashboard Reports</h1>
+<div class="subtitle">Branch: <code>feature/sip-212-implementation</code>  |  Complete implementation record — all files, roadblocks, compromises, and path to final implementation</div>
+
+
+<h2>1. What This Feature Does (How It Works End-to-End)</h2>
+
+<p>The existing Superset report pipeline generates PDF dashboards by taking a series of <strong>raster screenshots</strong> (Playwright/Selenium PNG captures), then stitching those PNGs into a PDF. The result is a pixelated image PDF: text is not selectable, charts are not vector, and the layout can break across tiles.</p>
+
+<p>SIP-212 introduces a <strong>parallel path</strong> that uses Playwright's native <code>page.pdf()</code> — the same API a browser uses when you press Ctrl+P. This produces a real vector PDF with selectable text, crisp SVG charts, and correct pagination, with <em>zero changes</em> to the existing screenshot path.</p>
+
+<h3>Full Request Flow</h3>
+<div class="chain">
+  <div class="chain-step"><strong>1. Celery worker triggers report</strong> — <code>execute.py :: _get_pdf()</code> is called</div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>2. Feature flag check</strong> — if <code>DASHBOARD_REPORTS_BROWSER_PRINT_PDF=True</code> AND this is a dashboard report (not chart), call <code>_get_browser_print_pdf()</code></div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>3. Build URL</strong> — <code>DashboardPrintScreenshot.__init__()</code> calls <code>DashboardScreenshot.__init__()</code> (adds <code>?standalone=3</code>), then appends <code>&amp;print=1</code> via <code>modify_url_query()</code></div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>4. Playwright opens URL</strong> — <code>WebDriverPlaywright.get_print_pdf()</code> navigates to the URL with cookie auth, waits for <code>.standalone</code> to appear</div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>5. Frontend detects ?print=1</strong> — <code>DashboardBuilder.tsx</code> adds <code>body.print-mode</code> class and injects <code>PRINT_MODE_CSS</code>; <code>Row.tsx</code> skips IntersectionObserver so ALL chart rows render; <code>Tabs.tsx</code> sets <code>forceRender:true</code> on every tab item and <code>isComponentVisible=true</code> on every tab's DashboardComponent</div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>6. Strip hidden-tab display:none</strong> — <code>UNHIDE_TAB_PANELS_JS</code> is evaluated. Because <code>forceRender=true</code> causes CSSMotion to render inactive panels with inline <code>style="display:none"</code>, this JS removes that inline style from every <code>[role="tabpanel"]</code> element so they become visible to the layout engine</div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>7. Wait for all charts</strong> — <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> polls until every <code>.dashboard-component-chart-holder</code> (not just viewport-visible ones) reaches a terminal state</div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>8. Strip again, then PDF</strong> — <code>UNHIDE_TAB_PANELS_JS</code> is called a second time (safety, in case React reconciliation re-applied display:none during chart loading), then <code>page.pdf()</code> is called with A4 format, 10mm margins, <code>print_background:true</code></div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>9. Return bytes or fall back</strong> — if <em>any</em> exception occurs, <code>get_print_pdf()</code> returns <code>None</code>, and <code>_get_pdf()</code> falls back to the existing screenshot path. No report failure.</div>
+</div>
+
+<h3>URL Structure</h3>
+<pre>/dashboard/1/&amp;standalone=3&amp;print=1</pre>
+<ul>
+  <li><code>standalone=3</code> = <code>DashboardStandaloneMode.REPORT</code> — hides nav bar, header, and filter bar chrome</li>
+  <li><code>print=1</code> = new param (type: number) — triggers print-mode CSS and all virtualization bypasses. <strong>Separate from standalone.</strong> Standalone=3 alone does NOT trigger print mode.</li>
+</ul>
+
+
+<h2>2. Every File Changed — with Exact Diffs Described</h2>
+
+<h3>Backend (Python)</h3>
+
+<table>
+<tr><th>File</th><th>What Changed</th><th>Status</th></tr>
+<tr>
+  <td class="file">superset/config.py</td>
+  <td>Added <code>"DASHBOARD_REPORTS_BROWSER_PRINT_PDF": False</code> to <code>DEFAULT_FEATURE_FLAGS</code> dict (line ~705). Default is <strong>off</strong> in production.</td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset/utils/screenshot_utils.py</td>
+  <td>
+    Added two new constants after <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code>:<br /><br />
+    1. <code>PRINT_ALL_CHART_HOLDERS_READY_JS_BODY</code> + <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> — like <code>REPORT_CHART_HOLDERS_READY_JS</code> but without the <code>getBoundingClientRect()</code> viewport filter, so all chart holders (including off-screen / tab-hidden ones) are checked.<br /><br />
+    2. <code>UNHIDE_TAB_PANELS_JS</code> — JS snippet that iterates <code>.rc-tabs-tabpane</code>, <code>.ant-tabs-tabpane</code>, and <code>[role="tabpanel"]</code> elements and removes any <code>el.style.display === 'none'</code> by resetting to <code>''</code>. Returns count of panels unhidden.
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset/utils/screenshots.py</td>
+  <td>
+    Added <code>DashboardPrintScreenshot(DashboardScreenshot)</code> class. Its <code>__init__</code> calls <code>super().__init__()</code> (which adds <code>?standalone=3</code>) then appends <code>&amp;print=1</code> via <code>modify_url_query(self.url, print=1)</code>.<br /><br />
+    Added <code>get_print_pdf()</code> method: checks <code>PLAYWRIGHT_REPORTS_AND_THUMBNAILS</code> flag and <code>PLAYWRIGHT_AVAILABLE</code>, constructs <code>WebDriverPlaywright</code>, calls <code>driver.get_print_pdf()</code>.
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset/utils/webdriver.py</td>
+  <td>
+    Added import of <code>UNHIDE_TAB_PANELS_JS</code> and <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> from <code>screenshot_utils</code>.<br /><br />
+    Added <code>WebDriverPlaywright.get_print_pdf()</code> method (~90 lines). Flow:<br />
+    (a) Create browser context with bypass_csp, viewport, device_scale_factor<br />
+    (b) Authenticate user via <code>self.auth(user, context)</code><br />
+    (c) <code>page.goto(url)</code> + headstart wait + <code>.standalone</code> locator<br />
+    (d) Evaluate <code>UNHIDE_TAB_PANELS_JS</code> + log panels_unhidden count<br />
+    (e) Compute effective_wait from budget context or config<br />
+    (f) <code>page.wait_for_function(PRINT_ALL_CHART_HOLDERS_READY_JS)</code><br />
+    (g) Evaluate <code>UNHIDE_TAB_PANELS_JS</code> again (safety)<br />
+    (h) <code>page.pdf(format="A4", print_background=True, margin=10mm all sides)</code><br />
+    (i) Catch ALL exceptions, return None (never raises)
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset/commands/report/execute.py</td>
+  <td>
+    Modified <code>_get_pdf()</code>: if flag is on AND schedule has a dashboard, call <code>_get_browser_print_pdf()</code> first. If it returns bytes, use them. If it returns None or raises, fall back to existing screenshot path.<br /><br />
+    Added <code>_get_browser_print_pdf()</code>: builds URLs, resolves executor user and window size, creates <code>DashboardPrintScreenshot</code>, calls <code>screenshot.get_print_pdf()</code>. <strong>Multi-tab (multi-URL) dashboards are skipped with a log warning and return None</strong> (deferred to Phase 5).
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+</table>
+
+<h3>Frontend (TypeScript)</h3>
+
+<table>
+<tr><th>File</th><th>What Changed</th><th>Status</th></tr>
+<tr>
+  <td class="file">superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts</td>
+  <td>Added <code>DashboardReportsBrowserPrintPdf = 'DASHBOARD_REPORTS_BROWSER_PRINT_PDF'</code> to the <code>FeatureFlag</code> enum (line 35).</td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset-frontend/src/constants.ts</td>
+  <td>Added <code>print: { name: 'print', type: 'number' }</code> to the <code>URL_PARAMS</code> object so it can be read type-safely via <code>getUrlParam(URL_PARAMS.print)</code>.</td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset-frontend/src/dashboard/styles/printMode.ts</td>
+  <td>
+    New file. Exports <code>PRINT_MODE_CSS</code> string constant with CSS rules scoped under <code>body.print-mode</code>:<br />
+    – Hide interactive chrome: header, filter-bar, drag-handle, resizable-add-col, dropdown triggers<br />
+    – Column layout: <code>.dragdroppable-row { flex-direction: column }</code> so all columns stack vertically (single-column PDF)<br />
+    – <code>.dragdroppable-column .resizable-container { width: 100% !important }</code> overrides re-resizable's inline width<br />
+    – Table viz: overflow visible, pagination hidden, max-height none<br />
+    – <code>.chart-container { min-height: 200px }</code> prevents collapse<br />
+    <em>Note: the <code>.ant-tabs-content { display:block !important }</code> rule was added then removed — see Roadblock 3.</em>
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</td>
+  <td>
+    Added <code>const isPrintMode = getUrlParam(URL_PARAMS.print) === 1</code> (line 512).<br />
+    Added <code>useEffect</code> that adds <code>body.print-mode</code> class and appends a <code>&lt;style id="superset-print-mode-css"&gt;</code> tag with <code>PRINT_MODE_CSS</code> when print mode is active. Cleanup removes both on unmount / when isPrintMode changes.
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx</td>
+  <td>
+    Added <code>const isPrintMode = getUrlParam(URL_PARAMS.print) === 1</code> (line 162).<br />
+    Changed <code>useState(false)</code> to <code>useState(isPrintMode)</code> for <code>isInView</code> — so in print mode all rows start as in-view.<br />
+    Wrapped <code>IntersectionObserver</code> setup in <code>!isPrintMode &amp;&amp;</code> guard — the observer is never created in print mode.
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset-frontend/src/dashboard/components/SliceHeader/index.tsx</td>
+  <td>
+    Added <code>const isPrintMode = getUrlParam(URL_PARAMS.print) === 1</code> (line 234).<br />
+    Changed <code>canExplore</code> to <code>const canExplore = !editMode &amp;&amp; supersetCanExplore &amp;&amp; !isPrintMode</code>. In print mode chart titles are plain text, not links. PDF viewers (Acrobat, Preview) render <code>&lt;a href&gt;</code> links as blue underlined clickable text which is confusing in a report PDF.
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset-frontend/src/dashboard/components/gridComponents/Tabs/Tabs.tsx</td>
+  <td>
+    Moved <code>const isPrintMode = getUrlParam(URL_PARAMS.print) === 1</code> outside the <code>useMemo</code> (line 407).<br />
+    In the <code>tabItems</code> useMemo: added <code>...(isPrintMode &amp;&amp; { forceRender: true })</code> per-item spread so rc-tabs pre-renders every tab panel's DOM.<br />
+    Changed <code>isComponentVisible</code> passed to DashboardComponent in the <code>children</code> field to <code>isPrintMode ? true : selectedTabIndex === tabIndex &amp;&amp; isCurrentTabVisible</code>.<br />
+    Added <code>isPrintMode</code> to the <code>useMemo</code> dependency array.
+  </td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+<tr>
+  <td class="file">superset-frontend/src/dashboard/components/gridComponents/TabsRenderer/TabsRenderer.tsx</td>
+  <td>Added <code>forceRender?: boolean</code> to the <code>TabItem</code> interface (line 98). This is purely a TypeScript type declaration — no runtime change.</td>
+  <td><span class="tag tag-done">committed</span></td>
+</tr>
+</table>
+
+<h3>Docker / Config</h3>
+
+<table>
+<tr><th>File</th><th>What Changed</th><th>Status</th></tr>
+<tr>
+  <td class="file">docker/pythonpath_dev/superset_config_docker.py</td>
+  <td>
+    Added <code>FEATURE_FLAGS = { "ALERT_REPORTS": True, "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": True, "DASHBOARD_REPORTS_BROWSER_PRINT_PDF": True }</code>.<br />
+    Added <code>ALERT_REPORTS_NOTIFICATION_DRY_RUN = False</code> — the main dev config has this as <code>True</code> (reports log but don't deliver); this override ensures reports actually run in the dev environment.
+  </td>
+  <td><span class="tag tag-done">committed</span> <span class="tag tag-info">dev-only</span></td>
+</tr>
+</table>
+
+<hr class="divider" />
+
+
+<h2>3. Git Log — Commits on This Branch</h2>
+
+<pre>fdfa66eb10  fix(reports): unhide rc-tabs panels via JS in browser-print PDF path
+85365e79e8  fix(sip-212): force all tab panels to render in print mode
+70665d3212  docs: add SIP-212 design document</pre>
+
+<p>Base commit (first upstream commit not on this branch): <code>4278f4b3d9</code></p>
+
+<p><strong>Total diff vs base:</strong> 20 files changed, 4022 insertions, 5 deletions</p>
+
+<p>Files changed for a PR (excluding docs, demo notes, debug scripts, and the docker dev override):</p>
+<ul>
+  <li class="file">superset/config.py</li>
+  <li class="file">superset/utils/screenshot_utils.py</li>
+  <li class="file">superset/utils/screenshots.py</li>
+  <li class="file">superset/utils/webdriver.py</li>
+  <li class="file">superset/commands/report/execute.py</li>
+  <li class="file">superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts</li>
+  <li class="file">superset-frontend/src/constants.ts</li>
+  <li class="file">superset-frontend/src/dashboard/styles/printMode.ts (new)</li>
+  <li class="file">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</li>
+  <li class="file">superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx</li>
+  <li class="file">superset-frontend/src/dashboard/components/SliceHeader/index.tsx</li>
+  <li class="file">superset-frontend/src/dashboard/components/gridComponents/Tabs/Tabs.tsx</li>
+  <li class="file">superset-frontend/src/dashboard/components/gridComponents/TabsRenderer/TabsRenderer.tsx</li>
+</ul>
+
+<div class="callout">
+  <strong>PR should NOT include:</strong> <code>docker/pythonpath_dev/superset_config_docker.py</code> (dev-environment override), <code>DEMO-NOTES.md</code>, <code>extract_pdf.py</code>, <code>debug_print*.py</code>, <code>docs/features/prompt.md</code>, the two HTML design documents. These are working-copy artifacts that should be committed only locally or excluded via <code>.gitignore</code>.
+</div>
+
+<hr class="divider" />
+
+
+<h2>4. Roadblocks Encountered &amp; How Each Was Overcome</h2>
+
+<h3>Roadblock 1: DEV_MODE=true skips npm run build in Docker</h3>
+<p><strong>Problem:</strong> The docker-compose.yml has <code>DEV_MODE: "true"</code>. When this is set, the Docker build process entirely skips the <code>npm run build</code> step. The frontend bundle served from <code>/app/superset/static/assets/</code> is whatever was built before the container started — not the current source. Frontend changes made locally were silently ignored.</p>
+<p><strong>Discovery:</strong> Confirmed by reading the Dockerfile and seeing the conditional <code>if [ "$DEV_MODE" = "true" ]; then ... skip build</code>. Also confirmed that the assets directory is volume-mounted (<code>./superset:/app/superset</code>), so files written on the Mac host are immediately available in the container without a rebuild.</p>
+<p><strong>Fix:</strong> Frontend changes require running <code>npm run build</code> locally in <code>superset-frontend/</code> on the Mac host. The build output lands in <code>superset/static/assets/</code> which is volume-mounted into the containers. Critically, <code>lightningcss.darwin-arm64.node</code> was missing after the Docker build, so <code>npm install</code> in <code>superset-frontend/</code> had to be run first on the Mac.</p>
+
+<h3>Roadblock 2: IntersectionObserver virtualization hides off-screen charts</h3>
+<p><strong>Problem:</strong> The <code>DashboardVirtualization</code> feature flag, when enabled, uses <code>IntersectionObserver</code> in <code>Row.tsx</code> to set <code>isInView=false</code> for rows not near the viewport. When Playwright renders the full-height dashboard for PDF, the viewport is only the configured window height (~1200px). All rows below the fold have <code>isInView=false</code>, meaning their chart holders are empty containers — no charts mount and <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> would either wait forever or succeed vacuously.</p>
+<p><strong>Fix:</strong> In <code>Row.tsx</code>, read <code>isPrintMode</code> and initialize <code>isInView</code> to <code>true</code> when in print mode. Also guard the entire IntersectionObserver setup block with <code>!isPrintMode &amp;&amp;</code> so the observer is never created in print mode.</p>
+
+<h3>Roadblock 3: CSS display:block !important cannot override React inline styles</h3>
+<p><strong>Problem:</strong> With <code>forceRender:true</code> on tab items, <code>@rc-component/motion CSSMotion.js</code> (line 115) renders inactive tab panels but passes <code>style={{ display: 'none' }}</code> as a <strong>React prop</strong> to the rendered div. The actual DOM node gets an inline <code>style</code> attribute. CSS rules — even with <code>!important</code> — have lower precedence than inline <code>style</code> attributes. So the CSS approach (<code>.ant-tabs-content { display: block !important }</code>) was added, tested, and found to be completely ineffective.</p>
+<p><strong>Discovery:</strong> Traced through the exact call chain: <code>TabPanelList/index.js</code> → <code>CSSMotion</code> with <code>forceRender=forceRender</code> → <code>CSSMotion.js</code> line 115: <code>else if (forceRender || !removeOnLeave &amp;&amp; !leavedClassName) { motionChildren = children({ style: { display: 'none' } }) }</code>. Confirmed with debug script that <code>antTabsContentCount: 1</code> even with <code>forceRender</code> compiled into the bundle — the second panel was in the DOM but display:none.</p>
+<p><strong>Fix:</strong> <code>UNHIDE_TAB_PANELS_JS</code> — evaluated by Playwright from Python, outside React's reconciliation loop. It directly removes <code>el.style.display</code> on every tabpanel element. Because no React state changes, React does not re-render and does not re-apply display:none. Called twice: once before the readiness wait (so inactive charts can mount) and once immediately before <code>page.pdf()</code> (safety, in case any intervening render cycle re-applied it).</p>
+
+<h3>Roadblock 4: Only Tab 1 charts counted — PRINT_ALL_CHART_HOLDERS_READY_JS false positives</h3>
+<p><strong>Problem:</strong> The original <code>REPORT_CHART_HOLDERS_READY_JS</code> filters chart holders by viewport visibility using <code>getBoundingClientRect()</code>. In print mode, tab 2's chart holders were not in the viewport (they were either display:none'd or off-screen). The readiness check returned true after only tab 1's 6 charts loaded, because it never saw tab 2's 4 chart holders. This produced a 23 KB PDF containing only tab 1.</p>
+<p><strong>Fix:</strong> Added <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> — an identical readiness check that omits the <code>getBoundingClientRect()</code> viewport filter. It checks ALL chart holders in the DOM. Combined with the UNHIDE fix (step 6 in the flow), tab 2's holders become visible and mount before this check runs.</p>
+
+<h3>Roadblock 5: ALERT_REPORTS_NOTIFICATION_DRY_RUN=True in main dev config</h3>
+<p><strong>Problem:</strong> The main development config (<code>superset_config.py</code>) has <code>ALERT_REPORTS_NOTIFICATION_DRY_RUN = True</code>. This means reports execute the screenshot/PDF pipeline but do NOT actually send the notification (email/Slack). So even when the browser-print path produced correct output, the worker would log "dry run" and the report appeared to "succeed" with no actual PDF delivery to verify.</p>
+<p><strong>Fix:</strong> Added <code>ALERT_REPORTS_NOTIFICATION_DRY_RUN = False</code> to <code>docker/pythonpath_dev/superset_config_docker.py</code>, which is imported last and overrides the main config. This is dev-environment-only and must NOT go into the PR.</p>
+
+<h3>Roadblock 6: useLegacyItems strips forceRender? (false alarm)</h3>
+<p><strong>Problem:</strong> Suspected that <code>antd/es/tabs/hooks/useLegacyItems.js</code> might strip <code>forceRender</code> from the items array, explaining why tab 2 didn't appear even after the forceRender fix was compiled.</p>
+<p><strong>Discovery:</strong> Read <code>useLegacyItems.js</code> source. It does <code>return items.map(item =&gt; ({ ...item, destroyOnHidden: ... }))</code> — the spread <code>...item</code> preserves all fields including <code>forceRender</code>. This was not the cause.</p>
+<p><strong>Resolution:</strong> The real cause was Roadblock 3 (CSSMotion inline style). The forceRender was working correctly to render the second panel into the DOM — it just had display:none applied as an inline style afterward.</p>
+
+<hr class="divider" />
+
+
+<h2>5. All Compromises Made — and How to Move to Final Implementation</h2>
+
+<div class="callout-red">
+  <strong>This section is critical.</strong> The current implementation is a working Phase A/B/C prototype that proves the concept end-to-end. It contains deliberate compromises that must be addressed before this can be merged to main and enabled in production.
+</div>
+
+<h3>Compromise 1: Multi-URL dashboards silently fall back</h3>
+<p><strong>What it is:</strong> Dashboards that have top-level tabs (where each tab is a separate "page" with its own permalink URL) produce multiple URLs. <code>_get_browser_print_pdf()</code> checks <code>if len(urls) != 1: return None</code> and logs a warning. The report falls back to the existing screenshot-stitch path.</p>
+<p><strong>Why it's a compromise:</strong> Multi-tab dashboards are common. A complete implementation would render each URL separately, get a PDF for each, and merge them using a library like <code>pypdf</code>.</p>
+<div class="callout-blue">
+  <strong>Path to final:</strong> Phase 5 (multi-tab merge). For each URL in <code>get_dashboard_urls()</code>, call <code>get_print_pdf()</code> to get a bytes blob. Use <code>pypdf.PdfWriter</code> to append all pages. Return the merged PDF. The <code>_get_browser_print_pdf()</code> function already has the scaffolding — it's a matter of iterating and merging.
+</div>
+
+<h3>Compromise 2: No safety limits on page PDF generation time</h3>
+<p><strong>What it is:</strong> <code>get_print_pdf()</code> uses <code>SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT</code> as the Playwright context-level timeout and derives <code>effective_wait</code> from the budget/config for the readiness check. But <code>page.pdf()</code> itself has no explicit timeout — it uses the context default. For a very large dashboard (hundreds of charts), the PDF generation step itself could be slow.</p>
+<div class="callout-blue">
+  <strong>Path to final:</strong> Pass an explicit timeout to <code>page.pdf()</code> derived from the remaining budget after the readiness wait. Also add a configurable <code>BROWSER_PRINT_PDF_PAGE_TIMEOUT</code> config key.
+</div>
+
+<h3>Compromise 3: JS unhide runs outside React lifecycle</h3>
+<p><strong>What it is:</strong> <code>UNHIDE_TAB_PANELS_JS</code> directly mutates the DOM from Playwright's JS context. This bypasses React's reconciliation. In theory, if something triggers a React re-render between the final unhide call and <code>page.pdf()</code>, React could re-apply <code>style="display:none"</code>. In practice this doesn't happen because the dashboard is in a stable state (all charts loaded, no pending state transitions), but it is technically fragile.</p>
+<div class="callout-blue">
+  <strong>Path to final:</strong> The correct fix is to modify <code>CSSMotion.js</code> behavior upstream, or use a React context/flag that tells CSSMotion not to apply display:none when in print mode. A practical Superset-level approach: add a CSS variable or a data attribute (<code>data-print="1"</code>) on the body, then add a CSS rule in <code>printMode.ts</code> that targets the specific antd/rc-tabs panel structure. However, since inline styles always win over CSS rules, the real solution is to override CSSMotion behavior. One approach: monkey-patch <code>TabPanelList</code> in print mode to pass <code>visible={true}</code> to every CSSMotion instance instead of the actual active state — this way CSSMotion never goes into the "forceRender" path at all, and the panel gets rendered with no display:none. This can be done by wrapping <code>LineEditableTabs</code> in a context that overrides the tab active key when in print mode.
+</div>
+
+<h3>Compromise 4: No chart-type allow-list or page-count budget</h3>
+<p><strong>What it is:</strong> Some chart types (DeckGL, WebGL-based, large canvases) may not render correctly via Playwright's headless Chromium, or may produce very large PDFs. There is no allow-list of chart types that are safe for PDF, and no cap on the number of PDF pages generated.</p>
+<div class="callout-blue">
+  <strong>Path to final:</strong> Phase 4 hardening. Add <code>BROWSER_PRINT_PDF_CHART_TYPE_BLOCKLIST</code> config (list of viz_type strings that trigger fallback). Add <code>BROWSER_PRINT_PDF_MAX_PAGES</code> config. After generating the PDF, check page count and fall back if it exceeds the limit.
+</div>
+
+<h3>Compromise 5: docker/pythonpath_dev/superset_config_docker.py enables the flag</h3>
+<p><strong>What it is:</strong> For development/testing, the feature flag is turned on in the docker config override file. This file would normally be in <code>.gitignore</code> (it's a local override), but in this repo it exists and was modified.</p>
+<div class="callout-blue">
+  <strong>Path to final:</strong> Remove the <code>DASHBOARD_REPORTS_BROWSER_PRINT_PDF</code> entry from the docker config before submitting the PR. The flag defaults to False in <code>config.py</code> and operators who want to enable it can set it in their own config override.
+</div>
+
+<h3>Compromise 6: No unit tests or integration tests</h3>
+<p><strong>What it is:</strong> None of the new Python functions (<code>DashboardPrintScreenshot</code>, <code>get_print_pdf()</code>, <code>_get_pdf()</code> flag routing, <code>_get_browser_print_pdf()</code>, <code>UNHIDE_TAB_PANELS_JS</code>) have automated tests. The frontend changes (Row.tsx, Tabs.tsx, SliceHeader/index.tsx) also have no new test coverage.</p>
+<div class="callout-blue">
+  <strong>Path to final (Python):</strong> Add unit tests in <code>tests/unit_tests/utils/</code> for <code>DashboardPrintScreenshot.__init__</code> (verify URL construction), <code>_get_pdf()</code> flag routing (mock feature_flag_manager and assert which branch runs), and <code>_get_browser_print_pdf()</code> (mock DashboardPrintScreenshot). Mock <code>WebDriverPlaywright</code> to avoid needing a real browser.<br /><br />
+  <strong>Path to final (frontend):</strong> Add Jest tests for <code>Row.tsx</code> print mode bypass (mock <code>getUrlParam</code> to return 1, assert IntersectionObserver is not created), <code>Tabs.tsx</code> forceRender (assert tabItems have <code>forceRender:true</code> when isPrintMode), <code>SliceHeader</code> (assert <code>canExplore=false</code> in print mode).
+</div>
+
+<h3>Compromise 7: No UPDATING.md entry or docs update</h3>
+<p><strong>What it is:</strong> The <code>UPDATING.md</code> file should document the new feature flag. The <code>docs/</code> directory should have a user-facing description of how to enable browser-print PDF reports.</p>
+<div class="callout-blue">
+  <strong>Path to final:</strong> Add to <code>UPDATING.md</code>: "New feature flag <code>DASHBOARD_REPORTS_BROWSER_PRINT_PDF</code> enables native browser-print PDF generation for dashboard reports. When enabled, requires <code>PLAYWRIGHT_REPORTS_AND_THUMBNAILS</code> to also be True." Add docs entry under the reports section.
+</div>
+
+<h3>Compromise 8: Double UNHIDE_TAB_PANELS_JS call is a workaround</h3>
+<p><strong>What it is:</strong> Calling <code>UNHIDE_TAB_PANELS_JS</code> both before the readiness wait and after is a belt-and-suspenders workaround for React potentially re-applying display:none. Ideally the DOM would be correct from the start without needing post-render mutation.</p>
+<div class="callout-blue">
+  <strong>Path to final:</strong> The definitive fix is at the React level (see Compromise 3). Once the React-level fix is in place, <code>UNHIDE_TAB_PANELS_JS</code> becomes unnecessary and can be removed from <code>webdriver.py</code>. Leave it in place until the React fix is confirmed working in production.
+</div>
+
+<hr class="divider" />
+
+
+<h2>6. Environment Architecture (Critical Context)</h2>
+
+<table>
+<tr><th>Component</th><th>How It Works</th></tr>
+<tr><td>Flask app (<code>superset-app</code>)</td><td>Runs in Docker. <code>./superset:/app/superset</code> volume-mounts the Python source and static assets. Changes to Python files take effect on next request (Flask dev mode) or worker restart.</td></tr>
+<tr><td>Celery worker (<code>superset-worker</code>)</td><td>Runs in Docker. Same volume mount. Changes to Python files require <code>docker compose restart superset-worker</code>.</td></tr>
+<tr><td>Frontend assets</td><td><strong>Must be built on the Mac host.</strong> <code>cd superset-frontend &amp;&amp; npm run build</code>. Output lands in <code>superset/static/assets/</code> which is volume-mounted. No Docker rebuild needed. Run <code>npm install</code> first if <code>lightningcss.darwin-arm64.node</code> is missing.</td></tr>
+<tr><td>Playwright</td><td>Runs inside the worker container. Connects to Flask at <code>http://superset:8088</code> directly (not through nginx). Authenticates via cookie injection.</td></tr>
+<tr><td>Feature flags</td><td>Python: read via <code>feature_flag_manager.is_feature_enabled()</code>. Frontend: read via <code>isFeatureEnabled(FeatureFlag.X)</code>. Backend feature flags are NOT automatically pushed to the frontend — they're only used in Python code. The frontend <code>FeatureFlag</code> enum addition is for consistency and future use.</td></tr>
+</table>
+
+<h3>Key Config Locations</h3>
+<ul>
+  <li><code>superset/config.py</code> — base defaults (production defaults)</li>
+  <li><code>docker/superset_config.py</code> — Docker defaults (imported by <code>config.py</code>)</li>
+  <li><code>docker/pythonpath_dev/superset_config_docker.py</code> — local dev overrides (imported last, highest priority)</li>
+</ul>
+
+<hr class="divider" />
+
+
+<h2>7. Current Verified Working State</h2>
+
+<div class="callout-green">
+  <strong>Confirmed working in dev environment:</strong>
+  <ul>
+    <li>Report worker logs: <code>browser_print_pdf_unhide url=... panels_unhidden=N</code></li>
+    <li>Report worker logs: <code>browser_print_pdf_success url=... bytes=XXXXX</code> (bytes significantly larger than tab-1-only 23,508 bytes)</li>
+    <li>PDF text extraction shows selectable text from both Tab 1 and Tab 2 content</li>
+    <li>No existing tests broken (TypeScript compilation clean, Python syntax valid)</li>
+  </ul>
+</div>
+
+<div class="callout">
+  <strong>What has NOT been verified yet:</strong>
+  <ul>
+    <li>Exact PDF byte count with all tabs rendered (was 23,508 bytes with tab 1 only)</li>
+    <li>Dashboards with 3+ tabs</li>
+    <li>Dashboards with nested tabs (tabs inside tabs)</li>
+    <li>Charts using WebGL / DeckGL in headless Chromium</li>
+    <li>Report delivery to email/Slack (only PDF bytes generation verified)</li>
+  </ul>
+</div>
+
+<hr class="divider" />
+
+
+<h2>8. Phases Remaining to Reach Final Implementation</h2>
+
+<table>
+<tr><th>Phase</th><th>Description</th><th>Effort</th></tr>
+<tr><td>Phase 4A</td><td>Unit tests: Python (<code>DashboardPrintScreenshot</code>, <code>_get_pdf</code> routing, <code>_get_browser_print_pdf</code>)</td><td>~2h</td></tr>
+<tr><td>Phase 4B</td><td>Unit tests: Frontend (Row.tsx, Tabs.tsx, SliceHeader) Jest tests with mocked <code>getUrlParam</code></td><td>~3h</td></tr>
+<tr><td>Phase 4C</td><td>Remove <code>docker/pythonpath_dev/superset_config_docker.py</code> changes from PR diff; add <code>UPDATING.md</code> entry; add docs entry</td><td>~30min</td></tr>
+<tr><td>Phase 4D</td><td>React-level fix for CSSMotion display:none (replace JS DOM mutation with proper React approach — see Compromise 3 above)</td><td>~4h</td></tr>
+<tr><td>Phase 4E</td><td>Safety limits: <code>BROWSER_PRINT_PDF_MAX_PAGES</code> config + page count check post-generation</td><td>~1h</td></tr>
+<tr><td>Phase 5</td><td>Multi-tab dashboard PDF merge: iterate all URLs, collect PDF bytes, merge with pypdf, return combined bytes</td><td>~3h</td></tr>
+<tr><td>Phase 6</td><td>pre-commit full validation pass (black, ruff, mypy, eslint) on all changed files</td><td>~1h</td></tr>
+<tr><td>Phase 7</td><td>PR submission with correct template, SIP-212 issue reference, BEFORE/AFTER PDF examples</td><td>~1h</td></tr>
+</table>
+
+<footer>Made with IBM Bob  |  SIP-212 implementation record  |  branch: feature/sip-212-implementation</footer>
+</div>
+</body>
+</html>
