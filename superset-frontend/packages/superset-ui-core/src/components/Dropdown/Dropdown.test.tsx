@@ -18,7 +18,7 @@
  */
 
 import { createRef } from 'react';
-import { render, fireEvent, screen } from '@superset-ui/core/spec';
+import { render, fireEvent, screen, userEvent } from '@superset-ui/core/spec';
 import { MenuDotsDropdown, NoAnimationDropdown } from '.';
 
 const props = {
@@ -26,19 +26,26 @@ const props = {
 };
 
 describe('MenuDotsDropdown', () => {
-  test('renders a focusable trigger', () => {
+  test('renders a focusable, labeled button trigger', () => {
     render(<MenuDotsDropdown {...props} />);
-    expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute(
-      'tabIndex',
-      '0',
+    expect(screen.getByTestId('dropdown-trigger')).toEqual(
+      screen.getByRole('button', { name: 'Actions' }),
     );
   });
 
   test('forwards a ref to the trigger so callers can focus it programmatically', () => {
-    const ref = createRef<HTMLDivElement>();
+    const ref = createRef<HTMLButtonElement>();
     render(<MenuDotsDropdown {...props} ref={ref} />);
     ref.current?.focus();
     expect(screen.getByTestId('dropdown-trigger')).toHaveFocus();
+  });
+
+  test('opens the menu when activated with the keyboard', async () => {
+    render(<MenuDotsDropdown {...props} />);
+    const trigger = screen.getByTestId('dropdown-trigger');
+    trigger.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByText('Test Overlay')).toBeInTheDocument();
   });
 });
 

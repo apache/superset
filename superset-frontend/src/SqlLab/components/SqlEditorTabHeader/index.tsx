@@ -113,7 +113,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const renameInputRef = useRef<InputRef>(null);
-  const dropdownTriggerRef = useRef<HTMLDivElement>(null);
+  const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
   const trimmedTitle = newTitle.trim();
 
   function openRenameModal() {
