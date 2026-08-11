@@ -276,17 +276,23 @@ def validate_stored_expression_at_query_time(
 ) -> str:
     """
     Validate a stored column/metric expression at the point of use, applying the
-    same sub-query policy and RLS injection as adhoc expressions. The save-time
-    check can be deferred past (Jinja templating, the create path, older data),
-    so the query sink is the reliable place to enforce it.
+    same sub-query policy and RLS injection as adhoc expressions. Only the
+    dataset update path validates on save; v1 import
+    (``superset/commands/dataset/importers/v1/``) and dataset duplication
+    (``superset/commands/dataset/duplicate.py``) persist expressions as-is, and
+    rows written before the save-time check was added were never validated at
+    all. Jinja templating also rewrites the expression after save. The query
+    sink is therefore the reliable place to enforce the policy.
 
     A parse failure is ambiguous: the expression may use dialect-specific syntax
-    sqlglot cannot handle (e.g. ``DATE_ADD(ds, 1)`` on MySQL), or it may be
-    unparseable precisely because a sub-query was appended to it. Before falling
-    back to the raw expression, the permissive dialect is used as a detector so a
-    sub-query hidden next to benign-but-unparseable syntax is still caught. Only
-    when even the permissive dialect cannot parse the expression is validation
-    skipped (and logged), matching the pre-gate behaviour for such expressions.
+    sqlglot cannot handle (e.g. ``DATE_ADD(ds, 1)`` on MySQL), it may be a
+    fragment that only parses inside a select list (``DISTINCT <expr>``), or it
+    may be unparseable precisely because something was appended to it. Before
+    falling back to the raw expression, the synthetic ``SELECT <expr>`` form and
+    the permissive dialect are used as detectors, so a sub-query or a second
+    statement sitting next to benign-but-unparseable syntax is still caught.
+    Only when no detector can parse the expression is validation skipped (and
+    logged), matching the pre-gate behaviour for such expressions.
 
     A disallowed sub-query is surfaced as ``QueryObjectValidationError`` (a
     chart-level 400) to match the adhoc sinks, rather than a raw 403.
@@ -296,18 +302,37 @@ def validate_stored_expression_at_query_time(
     except SupersetSecurityException as ex:
         raise QueryObjectValidationError(ex.message) from ex
     except SupersetParseError:
-        # The engine dialect could not parse the expression. Re-check with the
-        # permissive dialect as a detector before giving up, so a sub-query next
-        # to benign dialect syntax is not smuggled through unvalidated.
+        pass
+
+    # The engine dialect could not parse the bare expression. Retry against the
+    # synthetic ``SELECT <expr>`` the save-time validator uses, which also parses
+    # fragments that are only valid in a select list (``DISTINCT <expr>``), and
+    # against the permissive dialect, so a sub-query sitting next to syntax the
+    # engine dialect cannot handle is still caught. These passes are detection
+    # only: the SQL they return is discarded rather than returned, since it is
+    # wrapped and may be in the wrong dialect. RLS injection is therefore not
+    # applied here, matching how such expressions reached the query before this
+    # check existed.
+    wrapped = f"SELECT {expression}"
+    for dialect in (engine, "base"):
         try:
-            validate_adhoc_subquery(expression, database, catalog, schema, "base")
+            statements = SQLScript(wrapped, dialect).statements
+        except SupersetParseError:
+            continue
+        if len(statements) > 1:
+            raise QueryObjectValidationError(
+                _("Custom SQL fields cannot be parsed as a single SQL statement.")
+            )
+        try:
+            validate_adhoc_subquery(wrapped, database, catalog, schema, dialect)
         except SupersetSecurityException as ex:
             raise QueryObjectValidationError(ex.message) from ex
         except SupersetParseError:
-            logger.warning(
-                "Skipping query-time validation of unparseable stored expression"
-            )
+            continue
         return expression
+
+    logger.warning("Skipping query-time validation of unparseable stored expression")
+    return expression
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
