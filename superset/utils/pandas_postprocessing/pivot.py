@@ -41,75 +41,77 @@ def _div_preserving_nan(numerator: DataFrame, denominator: Any, axis: int) -> Da
     return result.mask(numerator.isna(), other=float("nan"))
 
 
+def _apply_percent_transform_to_group(g: DataFrame, mode: str) -> DataFrame:
+    """Apply a percent-of-{row,col,total} transform to a single-metric block.
+
+    Called both for the whole DataFrame when it holds one metric, and
+    per-metric-group for MultiIndex / flat-multi-metric pivots. A zero or
+    NaN denominator produces NaN cells rather than ``Infinity``/``NaN``
+    from division-by-zero, matching the client's ``if (acc === null)
+    return null`` guard in ``fractionOf``.
+    """
+    if mode == "percent_row":
+        row_totals = g.sum(axis=PandasAxis.COLUMN, skipna=True).replace(0, float("nan"))
+        return _div_preserving_nan(g, row_totals, axis=PandasAxis.ROW)
+    if mode == "percent_col":
+        col_totals = g.sum(axis=PandasAxis.ROW, skipna=True).replace(0, float("nan"))
+        return _div_preserving_nan(g, col_totals, axis=PandasAxis.COLUMN)
+    # percent_total
+    grand = g.sum(skipna=True).sum(skipna=True)
+    if pd.isna(grand) or grand == 0:
+        return g * float("nan")
+    return _div_preserving_nan(g, grand, axis=PandasAxis.ROW)
+
+
 def _apply_show_values_as(df: DataFrame, mode: str) -> DataFrame:
     """Divide each metric cell by the appropriate rollup total.
 
     Mirrors the client-side ``fractionOf`` semantic in
-    ``superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/utilities.ts:739``:
+    ``plugin-chart-pivot-table/src/react-pivottable/utilities.ts:739``:
 
-    - ``percent_row``:   cell / row-total     (denominator: sum across the columns axis)
-    - ``percent_col``:   cell / column-total  (denominator: sum across the rows axis)
-    - ``percent_total``: cell / grand-total   (denominator: sum of the whole DataFrame)
+    - ``percent_row``:   cell / row-total     (sum across the columns axis)
+    - ``percent_col``:   cell / column-total  (sum across the rows axis)
+    - ``percent_total``: cell / grand-total   (sum of the metric block)
 
-    On a multi-metric pivot (``MultiIndex`` columns) the totals are computed
-    *within each metric group* — never across metrics — so per-metric totals
-    stay separate, matching the client's ``metricAxis`` handling which never
-    conflates one metric's numerator with another metric's denominator.
+    Per-metric isolation — the totals are computed *within each metric* so
+    one metric's numerator is never divided by another metric's total,
+    matching the client's ``metricAxis`` handling. This applies to both
+    shapes ``pivot_table`` can produce:
 
-    A zero or NaN denominator produces NaN cells rather than
-    ``Infinity``/``NaN`` from division-by-zero, matching the client's
-    ``if (acc === null) return null`` guard.
+    - **MultiIndex columns** (level 0 = metric): iterate the level-0
+      groups explicitly. Explicit iteration avoids the deprecated
+      ``df.groupby(level=0, axis=1)`` pattern (removed in pandas 3.x).
+    - **Flat columns with >1 column** (multi-metric pivot with no
+      ``columns`` groupby — each column IS a metric): treat each column
+      as its own single-column metric block.
+    - **Flat columns with 1 column** (single-metric pivot with no
+      ``columns`` groupby): the whole block is one metric.
     """
-    is_multi_metric = isinstance(df.columns, pd.MultiIndex)
+    is_multi_metric_wide = isinstance(df.columns, pd.MultiIndex)
+    is_flat_multi_metric = not is_multi_metric_wide and df.shape[1] > 1
 
-    if mode == "percent_row":
-        if is_multi_metric:
-            return df.groupby(level=0, axis=1, group_keys=False).apply(
-                lambda g: _div_preserving_nan(
-                    g,
-                    g.sum(axis=PandasAxis.COLUMN, skipna=True).replace(0, float("nan")),
-                    axis=PandasAxis.ROW,
-                )
-            )
-        return _div_preserving_nan(
-            df,
-            df.sum(axis=PandasAxis.COLUMN, skipna=True).replace(0, float("nan")),
-            axis=PandasAxis.ROW,
-        )
+    if is_multi_metric_wide:
+        # Iterate level-0 groups explicitly (pandas-3-safe).
+        metrics = df.columns.get_level_values(0).unique()
+        parts = []
+        for metric in metrics:
+            block = df.xs(metric, axis=PandasAxis.COLUMN, level=0, drop_level=False)
+            parts.append(_apply_percent_transform_to_group(block, mode))
+        # ``concat`` along columns preserves the MultiIndex; reorder to
+        # match the original column layout deterministically.
+        combined = pd.concat(parts, axis=PandasAxis.COLUMN)
+        return combined[df.columns]
 
-    if mode == "percent_col":
-        if is_multi_metric:
-            return df.groupby(level=0, axis=1, group_keys=False).apply(
-                lambda g: _div_preserving_nan(
-                    g,
-                    g.sum(axis=PandasAxis.ROW, skipna=True).replace(0, float("nan")),
-                    axis=PandasAxis.COLUMN,
-                )
-            )
-        return _div_preserving_nan(
-            df,
-            df.sum(axis=PandasAxis.ROW, skipna=True).replace(0, float("nan")),
-            axis=PandasAxis.COLUMN,
-        )
+    if is_flat_multi_metric:
+        # Each flat column is its own metric — process independently.
+        parts = []
+        for col in df.columns:
+            block = df[[col]]
+            parts.append(_apply_percent_transform_to_group(block, mode))
+        return pd.concat(parts, axis=PandasAxis.COLUMN)[df.columns]
 
-    if mode == "percent_total":
-        if is_multi_metric:
-
-            def _per_metric_total(g: DataFrame) -> DataFrame:
-                grand = g.sum(skipna=True).sum(skipna=True)
-                if pd.isna(grand) or grand == 0:
-                    return g * float("nan")
-                return _div_preserving_nan(g, grand, axis=PandasAxis.ROW)
-
-            return df.groupby(level=0, axis=1, group_keys=False).apply(
-                _per_metric_total
-            )
-        grand = df.sum(skipna=True).sum(skipna=True)
-        if pd.isna(grand) or grand == 0:
-            return df * float("nan")
-        return _div_preserving_nan(df, grand, axis=PandasAxis.ROW)
-
-    return df
+    # Flat single-metric block — the whole DataFrame is one metric.
+    return _apply_percent_transform_to_group(df, mode)
 
 
 def _restore_dropped_metric_columns(
@@ -261,13 +263,32 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         # be silently dropped by stack's default dropna=True behavior.
         df = df.stack(level=0, dropna=False).unstack()
 
-    if show_values_as and show_values_as != "actual":
+    # Normalize the ``no-op`` sentinels — ``None``, the empty string, and
+    # the explicit ``"actual"`` all mean "leave cell values alone". Anything
+    # else must be a known percent mode; a bad value raises rather than
+    # silently no-oping.
+    if show_values_as not in (None, "", "actual"):
         if show_values_as not in _PERCENT_MODES:
             raise InvalidPostProcessingError(
                 _(
                     "Unsupported show_values_as value: %(mode)s. "
                     "Expected one of: percent_row, percent_col, percent_total, actual.",
                     mode=show_values_as,
+                )
+            )
+        if marginal_distributions:
+            # The pivot already carries an "All" margin row and/or column;
+            # summing across the axis would double-count by including the
+            # margin as part of its own denominator. Combining ``margins``
+            # with ``show_values_as`` needs a first-class design (probably
+            # computing percentages on the non-margin subset and then
+            # re-inserting the margin totals as-is), which is out of scope
+            # here. Reject explicitly rather than silently returning wrong
+            # numbers.
+            raise InvalidPostProcessingError(
+                _(
+                    "show_values_as is not yet supported when "
+                    "marginal_distributions is enabled."
                 )
             )
         df = _apply_show_values_as(df, show_values_as)
