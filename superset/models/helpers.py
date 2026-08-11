@@ -4308,6 +4308,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
                         )
+
+                    # Normalize mixed int/float values before binding, since
+                    # SQLAlchemy may infer the bind parameter type from the
+                    # first element and silently truncate other values
+                    # (see #33206)
+                    if target_generic_type == utils.GenericDataType.NUMERIC and any(
+                        isinstance(v, float) for v in eq
+                    ):
+                        eq = [
+                            float(v) if isinstance(v, (int, float)) else v for v in eq
+                        ]
+
                     if len(eq) > len(
                         eq_without_none := [x for x in eq if x is not None]
                     ):
@@ -4318,6 +4330,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             cond = is_null_cond
                     else:
                         cond = sqla_col.in_(eq)
+
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
                     target_clause_list.append(cond)

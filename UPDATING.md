@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [42935](https://github.com/apache/superset/pull/42935): The MCP service now refuses to start (`MCPAuthConfigError`) when `MCP_JWT_ISSUER` trusts more than one issuer and no `MCP_USER_RESOLVER` is configured, instead of only logging a warning. This was already a documented misconfiguration (the default resolver isn't issuer-scoped, so distinct trusted issuers minting the same username/email would resolve to the same Superset user); deployments trusting multiple issuers must configure an `MCP_USER_RESOLVER` that derives its identity from the token's `iss` claim before upgrading. Single-issuer deployments are unaffected.
 - [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
 
 ### Soft delete is on by default, and purging is live
@@ -109,6 +110,19 @@ Behavior changes to be aware of:
   if charts never mount. Thumbnails and non-report screenshots keep their
   previous behavior.
 
+### Embedded (guest token) API responses no longer echo database errors
+
+API responses served to a guest-token principal now carry a generic
+`An error occurred while fetching the data.` in place of the underlying error
+(`You don't have permission to access this resource.` on a 401/403), and drop
+the `stacktrace` and error `extra` payloads. Engine errors routinely quote
+catalog, schema, table and column names of the warehouse, which embedded
+viewers should not see. Errors Superset authors itself — access denials, OAuth2
+redirects, timeouts, payload validation — keep their message and type, though
+their `extra` is still reduced to the fields the client needs. Responses to
+every non-guest principal are unchanged, and the full error is still logged
+server-side.
+
 ### Principal listing APIs now honour related-field filters
 
 Two authorization-related listing behaviors changed for API clients. Neither
@@ -157,11 +171,23 @@ A new dashboard action exports every chart's data to a single multi-sheet
 requires a running Celery worker and a configured SMTP transport, since the task
 emails the requesting user a pre-signed download link. New config keys:
 `EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
-`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`, and
-`EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
 The feature depends on `boto3`, which is **not** installed by default; install it
 with `pip install apache-superset[excel-export]`.
+
+Charts store their `query_context` only once they have been (re-)saved in
+Explore, so older charts may have none. For a fixed, conservative set of viz
+types (`table`, `big_number_total`, `big_number`, `pie`) the export rebuilds a
+query context from the chart's saved form data so those charts still export.
+The rebuild is a single-query mapping and does **not** reproduce plugin
+post-processing (pivot, rolling, forecast) or multi-query charts, so any chart of
+another type without a saved query context is skipped and listed in the email for
+the user to re-save. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
+to a callable that receives the chart's form data and returns a query-context
+payload (or `None` to fall back to the built-in rebuild) — for example one backed
+by a service that runs the chart's real frontend `buildQuery`.
 
 A second mode, **Export Images to Excel**, embeds non-table charts as rendered
 images (which viz types stay tabular is controlled by
