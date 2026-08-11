@@ -41,7 +41,10 @@ describe('MenuDotsDropdown', () => {
   });
 
   test('opens the menu when activated with the keyboard', async () => {
-    render(<MenuDotsDropdown {...props} />);
+    // Callers (e.g. the SQL Lab tab menu) open the dropdown on click, since
+    // antd's default trigger is hover, which keyboard activation can't
+    // reach.
+    render(<MenuDotsDropdown {...props} trigger={['click']} />);
     const trigger = screen.getByTestId('dropdown-trigger');
     trigger.focus();
     // A native <button> converts an Enter keypress into a click once
