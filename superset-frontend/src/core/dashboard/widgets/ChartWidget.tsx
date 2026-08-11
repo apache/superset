@@ -56,7 +56,13 @@ import { useTheme } from '@apache-superset/core/theme';
 import { Flex, Loading, Typography } from '@superset-ui/core/components';
 import { provider, useDashboardRevision } from '../store';
 import { fetchQueryData } from '../chartData';
+import {
+  getEchartsTheme,
+  mergeEchartsThemeOverrides,
+} from '@superset-ui/plugin-chart-echarts';
 import { resolveBindings } from '../resolveBindings';
+import { getChartTheme } from '../chartTheme';
+import { applySeriesDefaults } from '../echartsSeriesDefaults';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type DataRow = dashboardApi.DataRow;
@@ -223,11 +229,20 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 
+  const colorScheme = provider.getRoot().props?.colorScheme;
+  const chartTheme = useMemo(
+    () =>
+      getChartTheme(
+        theme,
+        typeof colorScheme === 'string' ? colorScheme : undefined,
+      ),
+    [theme, colorScheme],
+  );
   const option = useMemo(() => {
     if (!rows) return undefined;
     const resolved = resolveBindings(
       (node?.props?.echartsOptions as Record<string, unknown>) ?? {},
-      { rows, theme },
+      { rows, chartTheme, theme },
     );
     // The chart's name is drawn by the widget's header, which reads it from
     // this same option (see `widgetLabel`). Leaving it here too would print it
@@ -235,8 +250,31 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     // that sits where every other widget's name sits.
     const withoutTitle = { ...resolved };
     delete withoutTitle.title;
-    return withoutTitle;
-  }, [node?.props?.echartsOptions, rows, theme]);
+
+    // Everything an AI-authored option doesn't say for itself comes from the
+    // theme: text/axis/legend/tooltip colors, the categorical palette, and
+    // whatever chart overrides the theme carries. Merged *under* the option
+    // (rightmost source wins in `mergeEchartsThemeOverrides`), so an explicit
+    // choice in the spec still takes precedence.
+    const merged = mergeEchartsThemeOverrides(
+      {
+        ...getEchartsTheme(theme, withoutTitle),
+        // The fallback for a series with no name of its own. A named one is
+        // coloured by that name in `applySeriesDefaults`, so it never reaches
+        // this list.
+        color: chartTheme.categoricalColors,
+        backgroundColor: 'transparent',
+      },
+      withoutTitle,
+      theme.echartsOptionsOverrides ?? {},
+    );
+
+    // Per-series-type theming can't ride along in the merge — a source array
+    // replaces the destination's, so any `series` the theme layer added would
+    // be dropped by the authored one. Filled in afterwards, and only where the
+    // option is silent, which leaves an explicit choice in the spec intact.
+    return applySeriesDefaults(merged, chartTheme);
+  }, [node?.props?.echartsOptions, rows, theme, chartTheme]);
 
   if (!node) return null;
 

@@ -67,6 +67,10 @@ export { DEFAULT_FORM_DATA as TimeseriesDefaultFormData } from './Timeseries/con
 
 export * from './utils/eChartOptionsSchema';
 export * from './utils/safeEChartOptionsParser';
+// Used by renderers that draw ECharts options without SuperChart/ChartPlugin —
+// see the Dashboard v2 widgets.
+export * from './utils/echartsTheme';
+export * from './utils/themeOverrides';
 
 export * from './types';
 
