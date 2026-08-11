@@ -656,34 +656,35 @@ test('should pass chartStackTrace to ChartContainer so dashboard chart errors st
   );
 });
 
-describe('Chart Description with ResizeObserver', () => {
-  let mockResizeObserver: jest.Mock;
-  let observeMock: jest.Mock;
-  let disconnectMock: jest.Mock;
-  let getComputedStyleSpy: jest.SpyInstance;
-
-  beforeEach(() => {
-    observeMock = jest.fn();
-    disconnectMock = jest.fn();
-    mockResizeObserver = jest.fn().mockImplementation(() => ({
-      observe: observeMock,
-      disconnect: disconnectMock,
-    }));
-    global.ResizeObserver = mockResizeObserver as any;
-
-    getComputedStyleSpy = jest
-      .spyOn(window, 'getComputedStyle')
-      .mockReturnValue({
-        getPropertyValue: () => '',
-      } as unknown as CSSStyleDeclaration);
+function installResizeObserverMock() {
+  const observeMock = jest.fn();
+  const disconnectMock = jest.fn();
+  let observerCallback: ResizeObserverCallback | undefined;
+  const mockResizeObserver = jest.fn().mockImplementation(callback => {
+    observerCallback = callback;
+    return { observe: observeMock, disconnect: disconnectMock };
   });
+  global.ResizeObserver = mockResizeObserver as any;
 
-  afterEach(() => {
-    delete (global as any).ResizeObserver;
-    getComputedStyleSpy.mockRestore();
-  });
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
 
-  test('A chart description configured to start expanded is visible after initial render', () => {
+  return {
+    observeMock,
+    getObserverCallback: () => observerCallback,
+    restore: () => {
+      delete (global as any).ResizeObserver;
+      getComputedStyleSpy.mockRestore();
+    },
+  };
+}
+
+test('A chart description configured to start expanded is visible after initial render', () => {
+  const { observeMock, restore } = installResizeObserverMock();
+  try {
     const { container } = setup(
       {},
       {
@@ -695,15 +696,14 @@ describe('Chart Description with ResizeObserver', () => {
     );
     expect(container.querySelector('.slice_description')).toBeInTheDocument();
     expect(observeMock).toHaveBeenCalled();
-  });
+  } finally {
+    restore();
+  }
+});
 
-  test('The description height is correctly updated after asynchronous markdown rendering completes', () => {
-    let observerCallback: ResizeObserverCallback | undefined;
-    mockResizeObserver.mockImplementation(callback => {
-      observerCallback = callback;
-      return { observe: observeMock, disconnect: disconnectMock };
-    });
-
+test('The description height is correctly updated after asynchronous markdown rendering completes', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
     const { container } = setup(
       { height: 300 },
       {
@@ -726,13 +726,14 @@ describe('Chart Description with ResizeObserver', () => {
     ) as HTMLElement;
     expect(descriptionEl).toBeInTheDocument();
 
+    const observerCallback = getObserverCallback();
     if (observerCallback) {
       Object.defineProperty(descriptionEl, 'offsetHeight', {
         value: 100,
         configurable: true,
       });
       act(() => {
-        observerCallback!(
+        observerCallback(
           [{ target: descriptionEl } as unknown as ResizeObserverEntry],
           {} as ResizeObserver,
         );
@@ -745,15 +746,14 @@ describe('Chart Description with ResizeObserver', () => {
       10,
     );
     expect(chartHeight).toBe(300 - 22 - 100);
-  });
+  } finally {
+    restore();
+  }
+});
 
-  test('The ResizeObserver callback updates the measured height', () => {
-    let observerCallback: ResizeObserverCallback | undefined;
-    mockResizeObserver.mockImplementation(callback => {
-      observerCallback = callback;
-      return { observe: observeMock, disconnect: disconnectMock };
-    });
-
+test('The ResizeObserver callback updates the measured height', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
     const { container } = setup(
       { height: 400 },
       {
@@ -776,13 +776,14 @@ describe('Chart Description with ResizeObserver', () => {
     ) as HTMLElement;
     expect(descriptionEl).toBeInTheDocument();
 
+    const observerCallback = getObserverCallback();
     if (observerCallback) {
       Object.defineProperty(descriptionEl, 'offsetHeight', {
         value: 200,
         configurable: true,
       });
       act(() => {
-        observerCallback!(
+        observerCallback(
           [{ target: descriptionEl } as unknown as ResizeObserverEntry],
           {} as ResizeObserver,
         );
@@ -795,9 +796,14 @@ describe('Chart Description with ResizeObserver', () => {
       10,
     );
     expect(chartHeight).toBe(400 - 22 - 200);
-  });
+  } finally {
+    restore();
+  }
+});
 
-  test('Existing expand/collapse behavior continues to work', () => {
+test('Existing expand/collapse behavior continues to work', () => {
+  const { restore } = installResizeObserverMock();
+  try {
     const collapsedSetup = setup(
       {},
       {
@@ -823,5 +829,7 @@ describe('Chart Description with ResizeObserver', () => {
     expect(
       expandedSetup.container.querySelector('.slice_description'),
     ).toBeInTheDocument();
-  });
+  } finally {
+    restore();
+  }
 });
