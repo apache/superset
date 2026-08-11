@@ -4148,6 +4148,24 @@ def test_get_disallowed_tables_search_path_change(
         ("SET ROLE app_search_path_user", False),
         # `set_config('search_path', ...)` rebinds the path via a function call.
         ("SELECT set_config('search_path', 'information_schema', true)", True),
+        # Postgres evaluates the setting name, so a name built from an
+        # expression rebinds the path just like the literal form. It can't be
+        # resolved statically, so it's treated as a change.
+        ("SELECT set_config('search_' || 'path', 'information_schema', true)", True),
+        (
+            "SELECT set_config(CONCAT('search_', 'path'), 'information_schema', true)",
+            True,
+        ),
+        # A `set_config` inside a statement the parser leaves opaque (here a
+        # PL/pgSQL block) is not reachable on the tree, so it is matched on the
+        # raw text instead of being let through.
+        (
+            "DO $$ BEGIN PERFORM set_config('search_path', 'information_schema', "
+            "false); END $$",
+            True,
+        ),
+        # An opaque statement with no `set_config` in it is not a change.
+        ("DO $$ BEGIN PERFORM pg_sleep(0); END $$", False),
         # A different setting changed through `set_config` is not a search-path
         # change.
         ("SELECT set_config('statement_timeout', '0', true)", False),
@@ -4162,6 +4180,27 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
     `set_config`) without misclassifying unrelated `SET` statements.
     """
     assert SQLStatement(sql, "postgresql").changes_search_path() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1; SELECT 2", False),
+        # A rebind anywhere in the script counts, not just in the first
+        # statement.
+        ("SELECT 1; SET search_path = information_schema; SELECT 2", True),
+        (
+            "SELECT set_config('search_path', 'information_schema', true); SELECT 1",
+            True,
+        ),
+    ],
+)
+def test_script_changes_search_path(sql: str, expected: bool) -> None:
+    """
+    `SQLScript.changes_search_path` reports whether any statement in the script
+    rebinds the search path.
+    """
+    assert SQLScript(sql, "postgresql").changes_search_path() == expected
 
 
 @pytest.mark.parametrize(

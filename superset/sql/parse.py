@@ -1154,10 +1154,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Return True if the statement changes the session ``search_path``.
 
-        A ``SET search_path = ...`` makes unqualified references in later
-        statements resolve to a schema other than the caller's
-        ``default_schema``, so denylist matching against ``default_schema``
-        alone becomes unreliable once such a statement is present.
+        A rebind makes unqualified references in later statements resolve to a
+        schema other than the caller's ``default_schema``, so denylist matching
+        against ``default_schema`` alone becomes unreliable once such a
+        statement is present. A rebind can be expressed as a structured
+        ``SET search_path = ...``, as a ``set_config(...)`` call, or inside a
+        statement the parser leaves opaque, so each is matched in turn.
+        Detection errs towards ``True`` where the setting name or the statement
+        body cannot be resolved statically.
         """
         # `SET search_path = schema` (and the `TO`/`SESSION`/`LOCAL` variants)
         # parse as a structured exp.Set, surfaced by get_settings(). Strip any
@@ -1169,23 +1173,33 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # function call rather than a SET statement, so it never reaches
         # get_settings() and must be detected on the parsed tree.
         for func in self._parsed.find_all(exp.Anonymous):
-            if (
-                func.name.lower() == "set_config"
-                and func.expressions
-                and isinstance(func.expressions[0], exp.Literal)
-                and func.expressions[0].name.lower() == "search_path"
-            ):
+            if func.name.lower() != "set_config" or not func.expressions:
+                continue
+            setting = func.expressions[0]
+            # Postgres evaluates the setting name as an expression, so
+            # `set_config('search_' || 'path', ...)` rebinds the search path
+            # just like the literal form. A non-literal name can't be resolved
+            # statically, so treat it as a change rather than letting it pass.
+            if not isinstance(setting, exp.Literal):
+                return True
+            if setting.name.lower() == "search_path":
                 return True
         # Exotic forms (e.g. `SET search_path TO "$user", public`) fall back to
         # an opaque exp.Command. Match the leading setting name rather than
         # scanning the whole expression, so `SET ROLE my_search_path_role`
         # (whose value merely contains the substring) is not misclassified.
         parsed = self._parsed
-        if isinstance(parsed, exp.Command) and parsed.name.upper() == "SET":
-            tokens = str(parsed.expression).replace("=", " ").split()
-            while tokens and tokens[0].upper() in {"SESSION", "LOCAL"}:
-                tokens.pop(0)
-            return bool(tokens) and tokens[0].strip('"').lower() == "search_path"
+        if isinstance(parsed, exp.Command):
+            if parsed.name.upper() == "SET":
+                tokens = str(parsed.expression).replace("=", " ").split()
+                while tokens and tokens[0].upper() in {"SESSION", "LOCAL"}:
+                    tokens.pop(0)
+                return bool(tokens) and tokens[0].strip('"').lower() == "search_path"
+            # Statements the parser can't model (e.g. a PL/pgSQL `DO` block)
+            # keep their whole body as opaque text, so a `set_config` call
+            # inside one is invisible to the tree scan above. Match the
+            # function name in the raw text rather than letting it through.
+            return "set_config" in parsed.sql(dialect=self._dialect).lower()
         return False
 
     def get_disallowed_tables(
@@ -1859,6 +1873,14 @@ class SQLScript:
         :return: True if the script contains mutating statements
         """
         return any(statement.is_mutating() for statement in self.statements)
+
+    def changes_search_path(self) -> bool:
+        """
+        Check if any statement in the script changes the session ``search_path``.
+
+        :return: True if the script changes the session ``search_path``
+        """
+        return any(statement.changes_search_path() for statement in self.statements)
 
     def has_destructive(self) -> bool:
         """
