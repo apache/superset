@@ -75,6 +75,30 @@ def test_default_engine_is_aes_cbc() -> None:
     assert isinstance(field.engine, AesEngine)
 
 
+def test_trailing_asterisk_survives_round_trip() -> None:
+    """A secret ending in a literal '*' must not be truncated on decrypt.
+
+    Reported in apache/superset#32664: a Redshift/Postgres password ending in
+    '*' connects fine (Test Connection succeeds) but authentication fails
+    after the Database row is saved and reloaded. The default AES-CBC field
+    uses sqlalchemy_utils' "naive" padding scheme, which pads short values
+    with literal '*' bytes and unpads by unconditionally stripping every
+    trailing '*' on decrypt (see NaivePadding.unpad). That strips a real
+    trailing '*' in the secret right along with the padding, silently
+    corrupting any password/token that happens to end in that character.
+    """
+    field = SQLAlchemyUtilsAdapter().create(SECRET, String(1024))
+
+    encrypted = field.process_bind_param("mypassword*", DIALECT)
+    decrypted = field.process_result_value(encrypted, DIALECT)
+
+    assert decrypted == "mypassword*", (
+        f"expected the trailing '*' to survive the round trip, got {decrypted!r} "
+        "-- the default naive padding scheme strips real trailing '*' bytes "
+        "along with its own padding"
+    )
+
+
 def test_aes_gcm_engine_selected_by_config() -> None:
     """SQLALCHEMY_ENCRYPTED_FIELD_ENGINE='aes-gcm' selects authenticated AES-GCM."""
     field = SQLAlchemyUtilsAdapter().create(
