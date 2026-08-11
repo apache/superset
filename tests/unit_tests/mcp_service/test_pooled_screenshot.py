@@ -19,13 +19,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from superset.mcp_service.screenshot.pooled_screenshot import PooledBaseScreenshot
+from superset.utils.screenshots import BaseScreenshot
 
 
 @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", False)
 def test_get_screenshot_raises_when_playwright_unavailable() -> None:
     """get_screenshot raises RuntimeError via the real PLAYWRIGHT_AVAILABLE check."""
-    screenshot = PooledBaseScreenshot("http://example.com", "digest")
+    screenshot = BaseScreenshot("http://example.com", "digest")
     user = MagicMock()
 
     with pytest.raises(RuntimeError, match="Playwright is required"):
