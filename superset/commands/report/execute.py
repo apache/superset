@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 import urllib.parse
 import urllib.request
 from collections.abc import Sequence
@@ -27,6 +28,7 @@ from uuid import UUID
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
@@ -89,6 +91,12 @@ from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
+from superset.utils.report_execution import (
+    ReportExecutionBudgetExceededError,
+    ReportExecutionContext,
+    ReportExecutionDeadline,
+    resolve_report_execution_budget_seconds,
+)
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
@@ -123,6 +131,137 @@ def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     return user, username
 
 
+def log_report_delivery_phase(
+    report_context: ReportExecutionContext | None,
+    recipient_type: ReportRecipientType | None,
+    phase: str,
+    *,
+    enforce_budget: bool,
+) -> None:
+    """Enforce and log a notification phase when executing a report."""
+
+    if report_context is None:
+        return
+    deadline = report_context.deadline
+    if enforce_budget:
+        deadline.timeout_seconds(
+            "notification_delivery",
+            reserve_seconds=report_context.cleanup_reserve_seconds,
+        )
+    logger.info(
+        "report_delivery_%s %s recipient_type=%s elapsed_seconds=%.2f "
+        "remaining_seconds=%.2f",
+        phase,
+        report_context.log_context,
+        recipient_type,
+        deadline.elapsed_seconds,
+        deadline.remaining_seconds,
+    )
+
+
+def persist_owned_report_execution_terminal_error(
+    report_schedule_id: int,
+    execution_id: UUID,
+    error_message: str,
+    terminal_reason: str,
+    report_context: ReportExecutionContext | None = None,
+) -> bool:
+    """
+    Terminalize this command's WORKING row from its application-owned boundary.
+
+    Report states normally persist their terminal result before re-raising. If
+    that first write loses its transaction or database connection, the command
+    boundary is the last safe in-process retry: it still has Flask application
+    context and knows the execution UUID it owns. A compare against the latest
+    active WORKING row prevents an old worker from changing the schedule state
+    after a newer execution has started.
+    """
+
+    try:
+        # The state-machine transaction has already rolled back on its way to
+        # this boundary. Roll back again so a failed terminal flush cannot leave
+        # the scoped session unusable for the retry.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        working_log = (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule_id == report_schedule_id,
+                ReportExecutionLog.uuid == execution_id,
+                ReportExecutionLog.state == ReportState.WORKING,
+                ReportExecutionLog.error_message.is_(None),
+            )
+            .first()
+        )
+        if working_log is None:
+            return False
+
+        latest_working_log = (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule_id == report_schedule_id,
+                ReportExecutionLog.state == ReportState.WORKING,
+                ReportExecutionLog.error_message.is_(None),
+            )
+            .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
+        )
+        report_schedule = working_log.report_schedule
+        owns_schedule_state = (
+            report_schedule.last_state == ReportState.WORKING
+            and latest_working_log is not None
+            and latest_working_log.uuid == execution_id
+        )
+        ended_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        working_log.state = ReportState.ERROR
+        working_log.error_message = error_message
+        working_log.end_dttm = ended_at
+        if owns_schedule_state:
+            report_schedule.last_state = ReportState.ERROR
+            report_schedule.last_eval_dttm = ended_at
+
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        log_context = (
+            report_context.log_context
+            if report_context is not None
+            else (
+                f"capture_kind=report execution_id={execution_id} "
+                f"report_schedule_id={report_schedule_id} "
+                f"dashboard_id={report_schedule.dashboard_id} "
+                f"chart_id={report_schedule.chart_id}"
+            )
+        )
+        elapsed_seconds = (
+            f"{report_context.deadline.elapsed_seconds:.2f}"
+            if report_context is not None
+            else "unknown"
+        )
+        remaining_seconds = (
+            f"{report_context.deadline.remaining_seconds:.2f}"
+            if report_context is not None
+            else "unknown"
+        )
+        logger.info(
+            "report_execution_terminal %s state=%s terminal_reason=%s "
+            "elapsed_seconds=%s remaining_seconds=%s",
+            log_context,
+            ReportState.ERROR.value,
+            terminal_reason,
+            elapsed_seconds,
+            remaining_seconds,
+        )
+        return True
+    except Exception:  # noqa: BLE001  # never mask the report's original exception
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.exception(
+            "Failed terminal persistence retry for report execution "
+            "capture_kind=report execution_id=%s report_schedule_id=%s "
+            "terminal_reason=terminal_persistence_retry_failed",
+            execution_id,
+            report_schedule_id,
+        )
+        return False
+
+
 class BaseReportState:
     current_states: list[ReportState] = []
     initial: bool = False
@@ -133,12 +272,50 @@ class BaseReportState:
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
         execution_id: UUID,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> None:
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
         self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
+        self._report_execution_context = report_execution_context
         self._filter_warnings: list[str] = []
+
+    @property
+    def _log_context(self) -> str:
+        if self._report_execution_context:
+            return self._report_execution_context.log_context
+        # Alerts (and any capture without an execution context) get a
+        # self-identifying fallback so their log lines are distinguishable
+        # from report captures and traceable to the schedule.
+        return (
+            f"capture_kind={str(self._report_schedule.type).lower()} "
+            f"execution_id={self._execution_id} "
+            f"report_schedule_id={self._report_schedule.id} "
+            f"dashboard_id={self._report_schedule.dashboard_id} "
+            f"chart_id={self._report_schedule.chart_id}"
+        )
+
+    def _budget_values(self) -> tuple[float | None, float | None]:
+        if not self._report_execution_context:
+            return None, None
+        deadline = self._report_execution_context.deadline
+        return deadline.elapsed_seconds, deadline.remaining_seconds
+
+    def _phase_timeout(
+        self,
+        phase: str,
+        *,
+        requested_seconds: float | None = None,
+        reserve_seconds: float = 0.0,
+    ) -> float | None:
+        if not self._report_execution_context:
+            return requested_seconds
+        return self._report_execution_context.deadline.timeout_seconds(
+            phase,
+            requested_seconds=requested_seconds,
+            reserve_seconds=reserve_seconds,
+        )
 
     def update_report_schedule_and_log(
         self,
@@ -151,6 +328,17 @@ class BaseReportState:
         """
         self.update_report_schedule(state)
         self.create_log(error_message)
+        if state != ReportState.WORKING:
+            elapsed, remaining = self._budget_values()
+            logger.info(
+                "report_execution_terminal %s state=%s terminal_reason=%s "
+                "elapsed_seconds=%s remaining_seconds=%s",
+                self._log_context,
+                state.value,
+                error_message or state.value,
+                f"{elapsed:.2f}" if elapsed is not None else None,
+                f"{remaining:.2f}" if remaining is not None else None,
+            )
 
     def update_report_schedule(self, state: ReportState) -> None:
         """
@@ -224,7 +412,13 @@ class BaseReportState:
             recipient.type = ReportRecipientType.SLACKV2
             recipient.recipient_config_json = recipient_config_json
 
-    def create_log(self, error_message: Optional[str] = None) -> None:
+    def create_log(
+        self,
+        error_message: Optional[str] = None,
+        *,
+        log_state: ReportState | None = None,
+        reuse_working_log: bool = True,
+    ) -> None:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
 
@@ -237,13 +431,16 @@ class BaseReportState:
         for working-timeout detection), so promoting it in place keeps one row per
         execution ``uuid`` without losing that behavior. The intentional
         error-notification marker row is a terminal-to-terminal transition, so it is
-        still recorded as a distinct row.
+        still recorded as a distinct row. A refused duplicate also needs a distinct
+        terminal audit row without changing the active owner's schedule state;
+        ``log_state`` and ``reuse_working_log`` support that case.
         """
         from sqlalchemy.orm.exc import StaleDataError
 
         try:
             # Reuse the in-flight WORKING trigger row for this execution, if any,
             # so a single execution surfaces as a single log entry.
+            effective_state = log_state or self._report_schedule.last_state
             log = (
                 db.session.query(ReportExecutionLog)
                 .filter(
@@ -252,7 +449,7 @@ class BaseReportState:
                     ReportExecutionLog.error_message.is_(None),
                 )
                 .first()
-                if self._report_schedule.last_state != ReportState.WORKING
+                if reuse_working_log and effective_state != ReportState.WORKING
                 else None
             )
             if log is None:
@@ -266,7 +463,7 @@ class BaseReportState:
             log.end_dttm = datetime.now(timezone.utc).replace(tzinfo=None)
             log.value = self._report_schedule.last_value
             log.value_row_json = self._report_schedule.last_value_row_json
-            log.state = self._report_schedule.last_state
+            log.state = effective_state
             log.error_message = error_message
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
@@ -592,7 +789,9 @@ class BaseReportState:
             imges = []
             for screenshot in screenshots:
                 imge = screenshot.get_screenshot(
-                    user=user, log_context=f"execution_id={self._execution_id}"
+                    user=user,
+                    log_context=self._log_context,
+                    report_execution_context=self._report_execution_context,
                 )
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(
@@ -603,28 +802,55 @@ class BaseReportState:
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.info(
-                "Screenshot capture took %.2fs - execution_id: %s",
+                "report_capture_complete %s elapsed_seconds=%.2f "
+                "remaining_seconds=%s screenshot_count=%s",
+                self._log_context,
                 elapsed_seconds,
-                self._execution_id,
+                (
+                    f"{self._report_execution_context.deadline.remaining_seconds:.2f}"
+                    if self._report_execution_context
+                    else None
+                ),
+                len(imges),
             )
         except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.warning(
-                "Screenshot timeout after %.2fs - execution_id: %s",
+                "report_capture_terminal %s elapsed_seconds=%.2f "
+                "remaining_seconds=%s terminal_reason=celery_soft_timeout",
+                self._log_context,
                 elapsed_seconds,
-                self._execution_id,
+                (
+                    f"{self._report_execution_context.deadline.remaining_seconds:.2f}"
+                    if self._report_execution_context
+                    else None
+                ),
             )
+            if self._report_schedule.type == ReportScheduleType.REPORT:
+                raise
+            # Alerts that attach a screenshot retain their established
+            # format-specific timeout and error-notification behavior. Report
+            # executions propagate the Celery signal to terminal cleanup.
             raise ReportScheduleScreenshotTimeout() from ex
+        except ReportExecutionBudgetExceededError:
+            raise
         except Exception as ex:
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
             logger.error(
-                "Screenshot failed after %.2fs - execution_id: %s",
+                "report_capture_terminal %s elapsed_seconds=%.2f "
+                "remaining_seconds=%s terminal_reason=%s",
+                self._log_context,
                 elapsed_seconds,
-                self._execution_id,
+                (
+                    f"{self._report_execution_context.deadline.remaining_seconds:.2f}"
+                    if self._report_execution_context
+                    else None
+                ),
+                type(ex).__name__,
             )
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
@@ -639,7 +865,20 @@ class BaseReportState:
         :raises: ReportSchedulePdfFailedError
         """
         screenshots = self._get_screenshots()
+        reserve_seconds = (
+            self._report_execution_context.post_capture_reserve_seconds
+            if self._report_execution_context
+            else 0.0
+        )
+        self._phase_timeout(
+            "pdf_generation",
+            reserve_seconds=reserve_seconds,
+        )
         pdf = build_pdf_from_screenshots(screenshots)
+        self._phase_timeout(
+            "pdf_generation",
+            reserve_seconds=reserve_seconds,
+        )
 
         return pdf
 
@@ -789,7 +1028,17 @@ class BaseReportState:
                 data = get_chart_csv_data(
                     chart_url=url,
                     auth_cookies=auth_cookies,
-                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                    timeout=self._phase_timeout(
+                        "data_generation",
+                        requested_seconds=app.config[
+                            "ALERT_REPORTS_CSV_REQUEST_TIMEOUT"
+                        ],
+                        reserve_seconds=(
+                            self._report_execution_context.post_capture_reserve_seconds
+                            if self._report_execution_context
+                            else 0.0
+                        ),
+                    ),
                 )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
@@ -798,7 +1047,17 @@ class BaseReportState:
                     chart_url=url,
                     auth_cookies=auth_cookies,
                     request_payload=request_payload,
-                    timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                    timeout=self._phase_timeout(
+                        "data_generation",
+                        requested_seconds=app.config[
+                            "ALERT_REPORTS_CSV_REQUEST_TIMEOUT"
+                        ],
+                        reserve_seconds=(
+                            self._report_execution_context.post_capture_reserve_seconds
+                            if self._report_execution_context
+                            else 0.0
+                        ),
+                    ),
                 )
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -821,7 +1080,11 @@ class BaseReportState:
                 elapsed_seconds,
                 self._execution_id,
             )
+            if self._report_schedule.type == ReportScheduleType.REPORT:
+                raise
             raise timeout_error() from ex
+        except ReportExecutionBudgetExceededError:
+            raise
         except Exception as ex:
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -855,7 +1118,15 @@ class BaseReportState:
             dataframe = get_chart_dataframe(
                 url,
                 auth_cookies,
-                timeout=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                timeout=self._phase_timeout(
+                    "dataframe_generation",
+                    requested_seconds=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                    reserve_seconds=(
+                        self._report_execution_context.post_capture_reserve_seconds
+                        if self._report_execution_context
+                        else 0.0
+                    ),
+                ),
             )
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -876,7 +1147,11 @@ class BaseReportState:
                 elapsed_seconds,
                 self._execution_id,
             )
+            if self._report_schedule.type == ReportScheduleType.REPORT:
+                raise
             raise ReportScheduleDataFrameTimeout() from ex
+        except ReportExecutionBudgetExceededError:
+            raise
         except Exception as ex:
             elapsed_seconds = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
@@ -968,6 +1243,8 @@ class BaseReportState:
         error_text = None
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
+        # NULL (rows predating the include_cta column) is treated as True
+        include_cta = self._report_schedule.include_cta is not False
 
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -1003,6 +1280,7 @@ class BaseReportState:
                     text=error_text,
                     header_data=header_data,
                     url=url,
+                    include_cta=include_cta,
                 )
 
         if (
@@ -1035,6 +1313,7 @@ class BaseReportState:
             xlsx=xlsx_data,
             embedded_data=embedded_data,
             header_data=header_data,
+            include_cta=include_cta,
         )
 
     def _send(
@@ -1048,10 +1327,17 @@ class BaseReportState:
         :raises: CommandException
         """
         notification_errors: list[SupersetError] = []
+        report_context = getattr(self, "_report_execution_context", None)
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
                 try:
+                    log_report_delivery_phase(
+                        report_context,
+                        getattr(recipient, "type", None),
+                        "start",
+                        enforce_budget=True,
+                    )
                     if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
                         logger.info(
                             "Would send notification for alert %s, to %s. "
@@ -1062,6 +1348,12 @@ class BaseReportState:
                         )
                     else:
                         notification.send()
+                    log_report_delivery_phase(
+                        report_context,
+                        getattr(recipient, "type", None),
+                        "complete",
+                        enforce_budget=False,
+                    )
                 except SlackV1NotificationError as ex:
                     # The slack notification should be sent with the v2 api
                     logger.info(
@@ -1070,6 +1362,12 @@ class BaseReportState:
                     self.update_report_schedule_slack_v2()
                     recipient.type = ReportRecipientType.SLACKV2
                     notification = create_notification(recipient, notification_content)
+                    log_report_delivery_phase(
+                        report_context,
+                        recipient.type,
+                        "retry",
+                        enforce_budget=True,
+                    )
                     notification.send()
             except (
                 UpdateFailedError,
@@ -1120,7 +1418,12 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=sanitize_title(name), text=message, header_data=header_data, url=url
+            name=sanitize_title(name),
+            text=message,
+            header_data=header_data,
+            url=url,
+            # NULL (rows predating the include_cta column) is treated as True
+            include_cta=self._report_schedule.include_cta is not False,
         )
 
         # filter recipients to recipients who are also editors
@@ -1165,6 +1468,191 @@ class BaseReportState:
             < last_success.end_dttm
         )
 
+    def _get_retry_delay(self, attempt: int) -> int:
+        """Exponential backoff: base * 2^attempt, capped at a configurable max."""
+        base: int = app.config.get("ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS", 60)
+        cap: int = app.config.get("ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600)
+        return min(base * (2**attempt), cap)
+
+    @staticmethod
+    def _normalize_dttm(dt: Optional[datetime]) -> Optional[datetime]:
+        """Strip timezone info and microseconds so naive/aware datetimes can
+        be compared safely.  MySQL DateTime columns truncate microseconds,
+        so without this the round-tripped anchor would differ from the
+        in-memory value."""
+        if dt is not None:
+            return dt.replace(tzinfo=None, microsecond=0)
+        return dt
+
+    def _is_retry_window_stale(self) -> bool:
+        """
+        Return True if a new crontab window fired while the previous one was
+        still retrying.  When stale the retry counter must be reset so the new
+        window gets a fresh retry budget.
+
+        Both sides are normalized to naive datetimes because
+        retry_scheduled_dttm is a plain DateTime column (no timezone), while
+        _scheduled_dttm may be tz-aware depending on the Celery broker.
+        """
+        anchor = self._normalize_dttm(self._report_schedule.retry_scheduled_dttm)
+        current = self._normalize_dttm(self._scheduled_dttm)
+        return anchor is not None and anchor != current
+
+    def _increment_retry(self) -> int:
+        """Increment retry_attempt, set the window anchor, and return the new count."""
+        self._report_schedule.retry_attempt += 1
+        # Store as naive — the column is a plain DateTime.
+        self._report_schedule.retry_scheduled_dttm = self._normalize_dttm(
+            self._scheduled_dttm
+        )
+        return self._report_schedule.retry_attempt
+
+    def _reset_retry_counter(self) -> None:
+        """Reset retry state after a terminal outcome."""
+        self._report_schedule.retry_attempt = 0
+        self._report_schedule.retry_scheduled_dttm = None
+
+    def _schedule_retry(self, delay_seconds: int) -> None:
+        """Re-queue the execute task with the given countdown (seconds)."""
+        # Lazy import to avoid a circular dependency between execute.py and scheduler.py
+        from superset.tasks.scheduler import execute as execute_task  # noqa: PLC0415
+
+        # Pass the original crontab-trigger timestamp so the retry task
+        # shares the same window identity.  This lets _is_retry_window_stale()
+        # detect when a *new* crontab window fires while retries are in-flight.
+        execute_task.apply_async(
+            (self._report_schedule.id, self._scheduled_dttm.isoformat()),
+            countdown=delay_seconds,
+        )
+
+    def send_retry_notification(
+        self, attempt: int, max_attempts: int, error_message: str
+    ) -> None:
+        """
+        Send a per-retry-attempt failure notification to the owners and/or recipients
+        selected via the retry_notify_owners / retry_notify_recipients flags.
+        """
+        recipients: list[ReportRecipients] = []
+
+        if self._report_schedule.retry_notify_owners:
+            recipients.extend(
+                [
+                    ReportRecipients(
+                        type=ReportRecipientType.EMAIL,
+                        recipient_config_json=json.dumps({"target": s.user.email}),
+                    )
+                    for s in self._report_schedule.editors
+                    if s.type == SubjectType.USER and s.user
+                ]
+            )
+
+        if self._report_schedule.retry_notify_recipients:
+            recipients.extend(self._report_schedule.recipients)
+
+        if not recipients:
+            return
+
+        header_data = self._get_log_data()
+        url = self._get_url(user_friendly=True)
+        notification_content = NotificationContent(
+            name=sanitize_title(self._report_schedule.name),
+            text=error_message,
+            header_data=header_data,
+            url=url,
+            retry_attempt=attempt,
+            retry_max_attempts=max_attempts,
+        )
+        self._send(notification_content, recipients)
+
+    def send_final_failure_report(self, error_message: str) -> None:
+        """
+        Send the failed report notification to all configured recipients after
+        all retry attempts have been exhausted and send_failed_reports is enabled.
+        """
+        header_data = self._get_log_data()
+        url = self._get_url(user_friendly=True)
+        max_attempts: int = self._report_schedule.retry_max_attempts
+        notification_content = NotificationContent(
+            name=sanitize_title(self._report_schedule.name),
+            text=error_message,
+            header_data=header_data,
+            url=url,
+            retry_max_attempts=max_attempts,
+        )
+        self._send(notification_content, self._report_schedule.recipients)
+
+    def _handle_retry_or_error(
+        self, error_message: str, original_exception: Exception
+    ) -> bool:
+        """
+        Shared retry-or-error logic.  Returns True if a retry was scheduled
+        (caller should ``return`` without re-raising), or False if the caller
+        should fall through to its own error handling path.
+        """
+        retry_on_failure: bool = self._report_schedule.retry_on_failure
+        if not retry_on_failure:
+            return False
+
+        max_attempts: int = self._report_schedule.retry_max_attempts
+
+        # If a new crontab window has fired since the first failure, reset the
+        # retry counter so this window gets a fresh budget.
+        if self._is_retry_window_stale():
+            self._reset_retry_counter()
+
+        current_attempt = self._report_schedule.retry_attempt
+
+        # If this execution was itself a retry (current_attempt > 0),
+        # send the retry-failure notification *after* the attempt ran so
+        # the email reflects what happened, not what is about to be
+        # scheduled.  ("You will receive an update after each retry.")
+        if current_attempt > 0:
+            try:
+                self.send_retry_notification(
+                    current_attempt, max_attempts, error_message
+                )
+            except Exception:  # pylint: disable=broad-except
+                logger.warning(
+                    "Failed to send retry notification for report schedule "
+                    "(execution %s)",
+                    self._execution_id,
+                    exc_info=True,
+                )
+
+        if current_attempt < max_attempts:
+            # Schedule another attempt and exit cleanly (don't re-raise).
+            self._increment_retry()
+            try:
+                self.update_report_schedule_and_log(
+                    ReportState.RETRYING, error_message=error_message
+                )
+            except ReportScheduleUnexpectedError as logging_ex:
+                logger.warning(
+                    "Failed to log RETRYING state for report schedule "
+                    "(execution %s) due to database issue",
+                    self._execution_id,
+                    exc_info=True,
+                )
+                raise original_exception from logging_ex
+            self._schedule_retry(
+                self._get_retry_delay(self._report_schedule.retry_attempt - 1)
+            )
+            return True  # retry scheduled — caller should return
+
+        # All retries exhausted — reset counter and send final failure.
+        self._reset_retry_counter()
+        if self._report_schedule.send_failed_reports:
+            try:
+                self.send_final_failure_report(error_message)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning(
+                    "Failed to send final failure report for report schedule "
+                    "(execution %s)",
+                    self._execution_id,
+                    exc_info=True,
+                )
+        return False  # exhausted — caller should handle error normally
+
     def is_on_working_timeout(self) -> bool:
         """
         Checks if an alert is in a working timeout
@@ -1174,11 +1662,22 @@ class BaseReportState:
         )
         if not last_working:
             return False
+        working_timeout = self._report_schedule.working_timeout
+        if self._report_schedule.type == ReportScheduleType.REPORT:
+            # Same effective budget the execution enforces (global budget
+            # capped by the schedule's working_timeout, floored at the phase
+            # reserves), so stale detection and enforcement share one number.
+            working_timeout = int(
+                resolve_report_execution_budget_seconds(
+                    app.config,
+                    working_timeout=working_timeout,
+                )
+            )
         return (
-            self._report_schedule.working_timeout is not None
+            working_timeout is not None
             and self._report_schedule.last_eval_dttm is not None
             and datetime.now(timezone.utc).replace(tzinfo=None)
-            - timedelta(seconds=self._report_schedule.working_timeout)
+            - timedelta(seconds=working_timeout)
             > last_working.end_dttm
         )
 
@@ -1195,10 +1694,34 @@ class ReportNotTriggeredErrorState(BaseReportState):
     - Error
     """
 
-    current_states = [ReportState.NOOP, ReportState.ERROR]
+    current_states = [ReportState.NOOP, ReportState.ERROR, ReportState.RETRYING]
     initial = True
 
     def next(self) -> None:  # noqa: C901
+        # If retries from a previous crontab window are still in-flight and
+        # this is a new crontab trigger, skip — let the active retry chain
+        # finish.  If the report hasn't been touched in longer than the max
+        # retry delay, consider the retry chain dead and let the new window
+        # proceed (e.g., apply_async failed after committing RETRYING).
+        if (
+            self._report_schedule.last_state == ReportState.RETRYING
+            and self._is_retry_window_stale()
+        ):
+            max_delay: int = app.config.get(
+                "ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS", 3600
+            )
+            last_touched = self._report_schedule.last_eval_dttm
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            if last_touched and (now - last_touched).total_seconds() < max_delay:
+                logger.info(
+                    "Skipping crontab execution for report %s — retries "
+                    "from a previous window are still in-flight "
+                    "(execution %s)",
+                    self._report_schedule.id,
+                    self._execution_id,
+                )
+                return
+
         self.update_report_schedule_and_log(ReportState.WORKING)
         try:
             # If it's an alert check if the alert is triggered
@@ -1216,21 +1739,42 @@ class ReportNotTriggeredErrorState(BaseReportState):
             warning_message = (
                 ";".join(self._filter_warnings) if self._filter_warnings else None
             )
+            # Clear any retry state from previous failed attempts in this window.
+            self._reset_retry_counter()
             self.update_report_schedule_and_log(
                 ReportState.SUCCESS, error_message=warning_message
             )
+        except SoftTimeLimitExceeded:
+            # Persist the terminal state inside the cleanup grace period rather
+            # than spending it on an error notification. The task-level handler
+            # then reports the Celery task failure without performing DB work.
+            self.update_report_schedule_and_log(
+                ReportState.ERROR,
+                error_message="celery_soft_timeout",
+            )
+            raise
+        except ReportExecutionBudgetExceededError as ex:
+            self.update_report_schedule_and_log(
+                ReportState.ERROR,
+                error_message=f"report_execution_budget_exhausted:{ex.phase}",
+            )
+            raise
         except (SupersetErrorsException, Exception) as first_ex:
             error_message = str(first_ex)
             if isinstance(first_ex, SupersetErrorsException):
                 error_message = ";".join([error.message for error in first_ex.errors])
 
+            if self._handle_retry_or_error(error_message, first_ex):
+                return  # retry scheduled — exit cleanly
+
             try:
                 self.update_report_schedule_and_log(
                     ReportState.ERROR, error_message=error_message
                 )
-            except ReportScheduleUnexpectedError as logging_ex:
+            except (ReportScheduleUnexpectedError, SQLAlchemyError) as logging_ex:
                 # Logging failed (likely StaleDataError), but we still want to
                 # raise the original error so the root cause remains visible
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 logger.warning(
                     "Failed to log error for report schedule (execution %s) "
                     "due to database issue",
@@ -1306,6 +1850,12 @@ class ReportWorkingState(BaseReportState):
                 self._execution_id,
             )
             exception_timeout = ReportScheduleWorkingTimeoutError()
+            # Keep recovery owned by this invocation. If it reuses the original
+            # execution id, create_log promotes that exact WORKING row. A distinct
+            # invocation must not mutate the old audit row: Celery hard limits do
+            # not preempt every worker pool, so the original worker may still be
+            # alive. The recovery ERROR still unblocks the schedule without risking
+            # a lost update or uncertain duplicate delivery.
             self.update_report_schedule_and_log(
                 ReportState.ERROR,
                 error_message=str(exception_timeout),
@@ -1316,9 +1866,23 @@ class ReportWorkingState(BaseReportState):
             self._execution_id,
         )
         exception_working = ReportSchedulePreviousWorkingError()
-        self.update_report_schedule_and_log(
-            ReportState.WORKING,
+        # This invocation is terminal even though the active owner's schedule
+        # must remain WORKING. Record a distinct ERROR audit row rather than
+        # accumulating another WORKING row or unblocking the active schedule.
+        self.create_log(
             error_message=str(exception_working),
+            log_state=ReportState.ERROR,
+            reuse_working_log=False,
+        )
+        elapsed, remaining = self._budget_values()
+        logger.info(
+            "report_execution_terminal %s state=%s terminal_reason=%s "
+            "elapsed_seconds=%s remaining_seconds=%s",
+            self._log_context,
+            ReportState.ERROR.value,
+            type(exception_working).__name__,
+            f"{elapsed:.2f}" if elapsed is not None else None,
+            f"{remaining:.2f}" if remaining is not None else None,
         )
         raise exception_working
 
@@ -1334,7 +1898,7 @@ class ReportSuccessState(BaseReportState):
 
     current_states = [ReportState.SUCCESS, ReportState.GRACE]
 
-    def next(self) -> None:
+    def next(self) -> None:  # noqa: C901
         if self._report_schedule.type == ReportScheduleType.ALERT:
             if self.is_in_grace_period():
                 self.update_report_schedule_and_log(
@@ -1399,21 +1963,18 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-            # Include filter warnings in the log if any were collected
-            warning_message = (
-                ";".join(self._filter_warnings) if self._filter_warnings else None
-            )
-            self.update_report_schedule_and_log(
-                ReportState.SUCCESS, error_message=warning_message
-            )
         except Exception as ex:  # pylint: disable=broad-except
+            if self._handle_retry_or_error(str(ex), ex):
+                return  # retry scheduled — exit cleanly
+
             try:
                 self.update_report_schedule_and_log(
                     ReportState.ERROR, error_message=str(ex)
                 )
-            except ReportScheduleUnexpectedError as logging_ex:
+            except (ReportScheduleUnexpectedError, SQLAlchemyError) as logging_ex:
                 # Logging failed (likely StaleDataError), but we still want to
                 # raise the original error so the root cause remains visible
+                db.session.rollback()  # pylint: disable=consider-using-transaction
                 logger.warning(
                     "Failed to log error for report schedule (execution %s) "
                     "due to database issue",
@@ -1423,6 +1984,16 @@ class ReportSuccessState(BaseReportState):
                 # Re-raise the original exception, not the logging failure
                 raise ex from logging_ex
             raise
+
+        # send() succeeded — clear retry state and log success.
+        # Include filter warnings in the log if any were collected.
+        warning_message = (
+            ";".join(self._filter_warnings) if self._filter_warnings else None
+        )
+        self._reset_retry_counter()
+        self.update_report_schedule_and_log(
+            ReportState.SUCCESS, error_message=warning_message
+        )
 
 
 class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
@@ -1437,10 +2008,12 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         task_uuid: UUID,
         report_schedule: ReportSchedule,
         scheduled_dttm: datetime,
+        report_execution_context: ReportExecutionContext | None = None,
     ):
         self._execution_id = task_uuid
         self._report_schedule = report_schedule
         self._scheduled_dttm = scheduled_dttm
+        self._report_execution_context = report_execution_context
 
     @transaction()
     def run(self) -> None:
@@ -1452,6 +2025,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                     self._report_schedule,
                     self._scheduled_dttm,
                     self._execution_id,
+                    self._report_execution_context,
                 ).next()
                 break
         else:
@@ -1472,10 +2046,61 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self._execution_id = UUID(task_id)
 
     def run(self) -> None:
+        monotonic_started_at = time.monotonic()
+        report_execution_context: ReportExecutionContext | None = None
+        owns_report_working_state = False
         try:
             self.validate()
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
+
+            if self._model.type == ReportScheduleType.REPORT:
+                # An invocation that enters on WORKING is a duplicate or stale
+                # recovery, not the owner that created the active row. Its state
+                # handler may terminalize a stale execution, but the command
+                # boundary must never infer ownership from a replayed UUID.
+                owns_report_working_state = (
+                    self._model.last_state != ReportState.WORKING
+                )
+                total_seconds = resolve_report_execution_budget_seconds(
+                    app.config,
+                    working_timeout=self._model.working_timeout,
+                )
+                deadline = ReportExecutionDeadline(
+                    total_seconds=total_seconds,
+                    started_at=monotonic_started_at,
+                )
+                dashboard = self._model.dashboard
+                expected_chart_count = (
+                    len(dashboard.slices)
+                    if dashboard is not None and dashboard.slices is not None
+                    else (1 if self._model.chart_id is not None else None)
+                )
+                report_execution_context = ReportExecutionContext(
+                    execution_id=self._execution_id,
+                    report_schedule_id=self._model.id,
+                    dashboard_id=self._model.dashboard_id,
+                    chart_id=self._model.chart_id,
+                    expected_chart_count=expected_chart_count,
+                    deadline=deadline,
+                    capture_reserve_seconds=float(
+                        app.config["ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS"]
+                    ),
+                    delivery_reserve_seconds=float(
+                        app.config["ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS"]
+                    ),
+                    cleanup_reserve_seconds=float(
+                        app.config["ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS"]
+                    ),
+                )
+                logger.info(
+                    "report_execution_start %s total_budget_seconds=%.2f "
+                    "elapsed_seconds=%.2f remaining_seconds=%.2f",
+                    report_execution_context.log_context,
+                    deadline.total_seconds,
+                    deadline.elapsed_seconds,
+                    deadline.remaining_seconds,
+                )
 
             # Resolve the executor at the run() boundary, tolerating a missing
             # user (find_user -> None) so the state machine still runs and its
@@ -1507,10 +2132,16 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 # already-committed row without a second INSERT.
                 if self._model.dashboard_id:
                     BaseReportState(
-                        self._model, self._scheduled_dttm, self._execution_id
+                        self._model,
+                        self._scheduled_dttm,
+                        self._execution_id,
+                        report_execution_context,
                     ).get_dashboard_urls()
                 ReportScheduleStateMachine(
-                    self._execution_id, self._model, self._scheduled_dttm
+                    self._execution_id,
+                    self._model,
+                    self._scheduled_dttm,
+                    report_execution_context,
                 ).run()
 
             elapsed_seconds: float = (
@@ -1522,9 +2153,33 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 elapsed_seconds,
                 self._execution_id,
             )
-        except CommandException:
+        except (CommandException, SoftTimeLimitExceeded) as ex:
+            if (
+                self._model
+                and self._model.type == ReportScheduleType.REPORT
+                and owns_report_working_state
+            ):
+                persist_owned_report_execution_terminal_error(
+                    self._model.id,
+                    self._execution_id,
+                    str(ex) or type(ex).__name__,
+                    type(ex).__name__,
+                    report_execution_context,
+                )
             raise
         except Exception as ex:
+            if (
+                self._model
+                and self._model.type == ReportScheduleType.REPORT
+                and owns_report_working_state
+            ):
+                persist_owned_report_execution_terminal_error(
+                    self._model.id,
+                    self._execution_id,
+                    str(ex) or type(ex).__name__,
+                    type(ex).__name__,
+                    report_execution_context,
+                )
             raise ReportScheduleUnexpectedError(str(ex)) from ex
 
     def validate(self) -> None:

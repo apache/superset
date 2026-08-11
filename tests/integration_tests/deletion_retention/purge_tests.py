@@ -29,6 +29,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import sqlalchemy as sa
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.sql.dml import Delete
 
@@ -40,11 +41,13 @@ from superset.connectors.sqla.models import (
     RowLevelSecurityFilter,
     SqlaTable,
 )
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.reports.models import ReportSchedule
 from superset.tags.models import ObjectType, Tag, TaggedObject
+from superset.tasks import deletion_retention as deletion_retention_task
 from superset.tasks.deletion_retention import _purge_impl
 
 from ._base import DeletionRetentionTestBase
@@ -273,6 +276,80 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             .one()
         )
         assert row.status == audit.STATUS_BLOCKED
+
+    def test_repeated_report_blocker_preserves_counts_and_suppresses_noise(
+        self,
+    ) -> None:
+        chart: Slice = self.make_chart("reported_repeatedly")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_repeated_report",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        chart_uuid: str = str(chart.uuid)
+        self.soft_delete(chart, days_ago=90)
+
+        incr: MagicMock
+        gauge: MagicMock
+        with (
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "incr"
+            ) as incr,
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "gauge"
+            ) as gauge,
+        ):
+            first_result: dict[str, Any] = _purge(window=30)
+            second_result: dict[str, Any] = _purge(window=30)
+
+        assert first_result["blocked_by_reference"] == 1
+        assert second_result["blocked_by_reference"] == 1
+        assert (
+            db.session.query(audit.PurgeAuditLog)
+            .filter_by(
+                entity_uuid=chart_uuid,
+                trigger=audit.TRIGGER_RETENTION,
+                status=audit.STATUS_BLOCKED,
+            )
+            .count()
+            == 1
+        )
+        incr.assert_called_once_with("deletion_retention.blocked_audit_suppressed")
+        assert gauge.call_count == 2
+        gauge.assert_called_with("deletion_retention.blocked_by_reference", 1)
+
+    def test_blocked_audit_fallback_is_counted_without_changing_task_result(
+        self,
+    ) -> None:
+        chart: Slice = self.make_chart("reported_fallback")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_fallback_report",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        self.soft_delete(chart, days_ago=90)
+
+        incr: MagicMock
+        with (
+            patch.object(
+                audit,
+                "finalize_retention_blocked",
+                return_value="fallback",
+            ),
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "incr"
+            ) as incr,
+        ):
+            result: dict[str, Any] = _purge(window=30)
+
+        assert result["blocked_by_reference"] == 1
+        incr.assert_called_once_with("deletion_retention.blocked_audit_dedupe_fallback")
 
     def test_restrictive_fk_blocks_dashboard_without_rewriting_referrer(self) -> None:
         """A welcome-dashboard FK remains authoritative during retention."""
@@ -629,3 +706,127 @@ class TestPurgeIdentityGuard(DeletionRetentionTestBase):
 
         assert result.purged is False
         assert self.exists(Slice, chart_id)
+
+
+class TestExplicitBlockerGuards(DeletionRetentionTestBase):
+    """Blockers must be policy checks, not side effects of FK enforcement."""
+
+    def _set_welcome(self, dashboard_id: int) -> tuple[UserAttribute, bool, int | None]:
+        user = self.get_user("admin")
+        attribute = (
+            db.session.query(UserAttribute).filter_by(user_id=user.id).one_or_none()
+        )
+        created = attribute is None
+        if attribute is None:
+            attribute = UserAttribute(user_id=user.id)
+            db.session.add(attribute)
+        previous = attribute.welcome_dashboard_id
+        attribute.welcome_dashboard_id = dashboard_id
+        db.session.commit()
+        return attribute, created, previous
+
+    def _restore_welcome(
+        self, attribute: UserAttribute, created: bool, previous: int | None
+    ) -> None:
+        if created:
+            db.session.delete(attribute)
+        else:
+            attribute.welcome_dashboard_id = previous
+        db.session.commit()
+
+    def test_welcome_dashboard_blocks_even_without_fk_enforcement(self) -> None:
+        """The guard must hold where the database will not.
+
+        SQLite runs with foreign keys unenforced, which is exactly the
+        configuration where relying on the FK let the dashboard purge
+        "successfully" -- stranding user_attributes.welcome_dashboard_id as a
+        broken homepage pointer while the audit row said confirmed.
+        """
+        dashboard = self.make_dashboard("welcome_fkoff")
+        dashboard_id = dashboard.id
+        self.soft_delete(dashboard, days_ago=90)
+        attribute, created, previous = self._set_welcome(dashboard_id)
+        try:
+            result = cascade_hard_delete(
+                db.session,
+                dashboard,
+                enforce_window=True,
+                cutoff=datetime.now() - timedelta(days=30),
+            )
+            db.session.commit()
+
+            assert result.purged is False
+            assert result.blocked_reason is not None
+            assert "welcome page" in result.blocked_reason
+            assert self.exists(Dashboard, dashboard_id)
+        finally:
+            self._restore_welcome(attribute, created, previous)
+
+    def test_unhandled_fk_failure_reports_a_curated_reason(self) -> None:
+        """Raw driver text must not become the blocked reason.
+
+        An IntegrityError from a restrictive FK the cascade does not handle
+        carries the failing SQL and bind parameters; the blocked_reason
+        travels to a 422 and from there into a user-facing toast. The caller
+        gets a curated sentence; the constraint detail belongs in the log,
+        at WARNING, where a cascade-coverage bug can actually be diagnosed.
+        """
+        chart = self.make_chart("fk_surprise")
+        chart_id = chart.id
+        self.soft_delete(chart, days_ago=90)
+
+        driver_text = (
+            "(sqlite3.IntegrityError) FOREIGN KEY constraint failed "
+            "[SQL: DELETE FROM slices WHERE slices.id = ?] [parameters: (1,)]"
+        )
+        with patch(
+            "superset.commands.deletion_retention.purge_cascade._delete_m2m_joins",
+            side_effect=IntegrityError(driver_text, None, Exception("fk")),
+        ):
+            result = cascade_hard_delete(
+                db.session,
+                chart,
+                enforce_window=True,
+                cutoff=datetime.now() - timedelta(days=30),
+            )
+            db.session.commit()
+
+        assert result.purged is False
+        assert result.blocked_reason == "blocked by database references"
+        assert "SQL:" not in result.blocked_reason
+        assert self.exists(Slice, chart_id)
+
+
+class TestFailClosedAudienceDefault(DeletionRetentionTestBase):
+    """A soft-delete model without editors must not enumerate to everyone."""
+
+    def test_editorless_model_enumerates_nothing_to_non_admins(self) -> None:
+        """_scope_to_restore_audience fails CLOSED for a model without an
+        editors relationship. All three shipped models have one, so this
+        pins the default the next SoftDeleteMixin adopter inherits: no
+        audience to scope to means nothing enumerable, not everything.
+        """
+        from superset.views.filters import BaseDeletedStateFilter
+
+        chart = self.make_chart("failclosed")
+        self.soft_delete(chart, days_ago=1)
+
+        class ProbeFilter(BaseDeletedStateFilter):
+            arg_name = "probe_deleted_state"
+            model = Slice
+
+        instance = ProbeFilter.__new__(ProbeFilter)
+        base_query = db.session.query(Slice).execution_options(
+            **{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}}
+        )
+        with (
+            patch(
+                "superset.views.filters.security_manager.is_admin",
+                return_value=False,
+            ),
+            patch.object(Slice, "editors", None),
+        ):
+            scoped = instance._scope_to_restore_audience(  # noqa: SLF001
+                base_query.filter(Slice.deleted_at.is_not(None)), "only"
+            )
+            assert scoped.count() == 0

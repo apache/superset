@@ -48,7 +48,15 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
+from superset.sql.dialects import (
+    DB2,
+    Dremio,
+    Firebolt,
+    Hana,
+    OpenSearch,
+    Pinot,
+    Vertica,
+)
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -121,7 +129,7 @@ SQLGLOT_DIALECTS = {
     # "firebird": ???
     "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
-    "hana": Dialects.POSTGRES,
+    "hana": Hana,
     "hive": Dialects.HIVE,
     # "ibmi": ???
     "impala": Dialects.HIVE,
@@ -2007,7 +2015,24 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
 
         WITH foo AS (SELECT * FROM target_table) SELECT * FROM foo
 
+    A CTE name is always a bare identifier: it can never carry a schema or
+    catalog qualifier. A schema/catalog-qualified reference therefore always
+    resolves to a physical table, even when its final name component happens to
+    match a CTE defined in scope. Such a reference must be reported as a real
+    table so it resolves to the correct object; otherwise
+    ``WITH orders AS (...) SELECT * FROM public.orders`` would treat the
+    qualified ``public.orders`` as the CTE and drop the physical table from the
+    extracted set.
+
+    Note: an unqualified reference is always resolved relative to the caller's
+    own schema/catalog before any downstream use, so treating a bare name that
+    matches a CTE as a CTE stays correct and is intentionally left unchanged
+    here.
     """
+    if source.db or source.catalog:
+        # Qualified references are always physical tables, never CTEs.
+        return False
+
     parent_sources = scope.parent.sources if scope.parent else {}
     ctes_in_scope = {
         name
