@@ -18,7 +18,6 @@
  */
 import { useEffect, useState } from 'react';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/theme';
 import {
   Flex,
   Loading,
@@ -54,7 +53,6 @@ function deriveColumnDefs(columns: string[]): ColDef[] {
  */
 export default function AgGridTableBlock({ nodeId }: { nodeId: string }) {
   useDashboardRevision();
-  const theme = useTheme();
   const [rows, setRows] = useState<DataRow[] | null>(null);
   const [columns, setColumns] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +113,7 @@ export default function AgGridTableBlock({ nodeId }: { nodeId: string }) {
         <Flex
           align="center"
           justify="center"
-          style={{ width: '100%', height: '100%', padding: theme.padding }}
+          style={{ width: '100%', height: '100%' }}
         >
           <Typography.Text type="danger">{error}</Typography.Text>
         </Flex>

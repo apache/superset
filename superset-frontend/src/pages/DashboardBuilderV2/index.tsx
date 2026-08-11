@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { EmptyState, Flex } from '@superset-ui/core/components';
 import { dashboard, useDashboardRevision } from 'src/core/dashboard';
 import { provider } from 'src/core/dashboard/store';
-import { placeBlock } from 'src/core/dashboard/placement';
+import { PALETTE_MIME, placeBlock } from 'src/core/dashboard/placement';
 import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
 import DashboardHeader from './DashboardHeader';
 import EditorPanel from './EditorPanel';
@@ -63,33 +64,44 @@ const EmptyCanvasWrapper = styled.div`
 /**
  * The dashboard with nothing on it, as something to aim at.
  *
- * A dashed frame is what the rest of the app draws around a place a thing can
- * be dropped, and this is one — the palette drags land here. It is also the
- * only way to select the root on a blank canvas, so it answers a pointer and a
- * Tab the way anything clickable does: the frame firms up and the surface
- * lifts, rather than a dashed box that never reacts to being pressed.
+ * No border and no hover fill of its own — the root draws directly onto the
+ * grid, same as every block on it (see `BuildingBlockView`) — but it is
+ * still the only way to select the root on a blank canvas and the palette's
+ * own drop target, so a Tab still lands on it and takes a visible outline,
+ * rather than the control being unreachable from the keyboard entirely.
  */
 const CanvasPlaceholder = styled(Flex)`
   ${({ theme }) => css`
     width: 100%;
     height: 100%;
-    border: 2px dashed ${theme.colorBorder};
     border-radius: ${theme.borderRadiusLG}px;
     color: ${theme.colorTextTertiary};
     cursor: pointer;
-    transition:
-      border-color ${theme.motionDurationMid},
-      background-color ${theme.motionDurationMid};
-
-    &:hover {
-      border-color: ${theme.colorPrimaryBorderHover};
-      background-color: ${theme.colorFillQuaternary};
-    }
 
     &:focus-visible {
       outline: 2px solid ${theme.colorPrimaryBorder};
       outline-offset: 2px;
     }
+  `}
+`;
+
+/**
+ * The same live drop indicator `RootGrid` draws once the root has a grid of
+ * its own to draw one onto (see its own `GridSurface` doc comment) — this is
+ * that same answer for the one moment there is no grid yet to ask. A blank
+ * dashboard is a single open target with only one possible outcome (the
+ * first block, full width, at the top) rather than a cell to resolve, so
+ * filling the whole placeholder is exactly right here — there is no
+ * "beside" or "below" anything yet to be more specific than "here" about,
+ * and no react-grid-layout instance underneath for this to coordinate with.
+ */
+const DropPreview = styled.div`
+  ${({ theme }) => css`
+    width: 100%;
+    height: 100%;
+    background-color: ${theme.colorPrimaryBg};
+    border: 2px dashed ${theme.colorPrimary};
+    border-radius: ${theme.borderRadiusLG}px;
   `}
 `;
 
@@ -118,6 +130,17 @@ export default function DashboardBuilderV2() {
   useDashboardRevision();
   const root = dashboard.getRoot();
   const isEmpty = !root.children || root.children.length === 0;
+
+  // Whether a palette drag is currently over the empty-canvas placeholder —
+  // drives `DropPreview`, below. A counter rather than a plain boolean
+  // toggled on enter/leave: the placeholder isn't a single element, it's the
+  // wrapper plus whatever `EmptyState`/`DropPreview` renders inside it, and
+  // the pointer crossing from the wrapper onto one of those fires a `leave`
+  // on the outer element immediately followed by an `enter` on the inner one
+  // — a plain boolean would read that as leaving entirely and flicker the
+  // preview off for a frame. Only reaching zero really means "gone".
+  const [dragOverCount, setDragOverCount] = useState(0);
+  const isDragOver = dragOverCount > 0;
 
   /**
    * Places a block from the palette.
@@ -184,14 +207,49 @@ export default function DashboardBuilderV2() {
                     provider.setSelection(root.id);
                   }
                 }}
+                // The same drop target `RootGrid` offers once the root has
+                // at least one child — this stands in for it beforehand,
+                // since a dashboard with nothing on it yet is exactly when
+                // this placeholder (rather than `RootGrid`) is what's on
+                // screen to drop onto. Without this, the empty state's own
+                // "Drag a building block from the panel" is an instruction
+                // this element cannot actually answer.
+                onDragEnter={event => {
+                  if (event.dataTransfer.types.includes(PALETTE_MIME)) {
+                    setDragOverCount(count => count + 1);
+                  }
+                }}
+                onDragLeave={event => {
+                  if (event.dataTransfer.types.includes(PALETTE_MIME)) {
+                    setDragOverCount(count => Math.max(0, count - 1));
+                  }
+                }}
+                onDragOver={event => {
+                  if (event.dataTransfer.types.includes(PALETTE_MIME)) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'copy';
+                  }
+                }}
+                onDrop={event => {
+                  const type = event.dataTransfer.getData(PALETTE_MIME);
+                  setDragOverCount(0);
+                  if (type !== '') {
+                    event.preventDefault();
+                    placeBlock(root.id, type);
+                  }
+                }}
               >
-                <EmptyState
-                  image="empty-dashboard.svg"
-                  title={t('Start building')}
-                  description={t(
-                    'Drag a building block from the panel, or ask the assistant for one.',
-                  )}
-                />
+                {isDragOver ? (
+                  <DropPreview data-test="empty-canvas-drop-preview" />
+                ) : (
+                  <EmptyState
+                    image="empty-dashboard.svg"
+                    title={t('Start building')}
+                    description={t(
+                      'Drag a building block from the panel, or ask the assistant for one.',
+                    )}
+                  />
+                )}
               </CanvasPlaceholder>
             </EmptyCanvasWrapper>
           ) : (

@@ -25,6 +25,8 @@ import { ErrorBoundary } from 'src/components';
 import { provider, useDashboardRevision } from './store';
 import { resolveBuildingBlockView } from './resolveBuildingBlockView';
 import { blockLabel } from './blockLabel';
+import { blockHeaderControl } from './blockHeaderControl';
+import RootGrid from './RootGrid';
 
 function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
   const theme = useTheme();
@@ -66,14 +68,51 @@ const BlockHeader = styled.div`
     align-items: center;
     gap: ${theme.sizeUnit}px;
     height: ${theme.controlHeightSM}px;
-    /* Aligned with the inset every block's own content sits at, so a block's
-       name reads as the head of the box beneath it rather than as something
-       floating loose to its left. The right side stays tight: the remove
-       button is a square target of its own and centres its icon, which is the
-       inset it needs. */
-    padding-left: ${theme.padding}px;
-    padding-right: ${theme.sizeUnit}px;
+    flex: 0 0 auto;
   `}
+`;
+
+/**
+ * What the remove control (and a type's own extra header control, if it has
+ * one — see `blockHeaderControl`) sit inside together, pushed to the end of
+ * the header as one group.
+ *
+ * Grouped rather than each carrying its own `margin-left: auto`: the two
+ * controls have to land beside each other with nothing but the header's own
+ * gap between them, which a shared wrapper gives for free and two
+ * independently-pushed elements would not (each would land flush against
+ * the header's own right edge, stacking on top of one another instead of
+ * sitting side by side). Pushed to the end whether or not a name is there
+ * to share the row with — an unnamed type (see blockLabel's UNNAMED set)
+ * leaves nothing on the other side to grow and do this instead.
+ */
+const HeaderTrailingControls = styled.span`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    flex: 0 0 auto;
+    margin-left: auto;
+  `}
+`;
+
+/**
+ * What a type's own extra header control (see `blockHeaderControl`) is
+ * wrapped in, and why — the identical reasoning `RemoveSlot`, below, is
+ * wrapped for: the control itself is an `ActionButton` (or built from one)
+ * whose `onClick` carries no event, so the two gestures this sits inside are
+ * stopped here instead — a press on it must act rather than select the
+ * block it is drawn on, and a pointer down on it must not start a
+ * react-grid-layout drag.
+ *
+ * `data-block-header-control` is the other half of that second one —
+ * `RootGrid` names it in `draggableCancel`, and react-grid-layout matches
+ * the selector up the ancestors, so carrying it here covers the control
+ * inside.
+ */
+const HeaderControlSlot = styled.span`
+  display: flex;
+  flex: 0 0 auto;
 `;
 
 /**
@@ -86,7 +125,7 @@ const BlockHeader = styled.div`
  * the bin must remove rather than select the block it is drawn on, and a
  * pointer down on it must not start a react-grid-layout drag.
  *
- * `data-block-remove` is the other half of that second one — `CanvasBlock`
+ * `data-block-remove` is the other half of that second one — `RootGrid`
  * names it in `draggableCancel`, and react-grid-layout matches the selector up
  * the ancestors, so carrying it here covers the button inside.
  */
@@ -102,13 +141,16 @@ interface BuildingBlockViewProps extends HTMLAttributes<HTMLDivElement> {
 /**
  * The single entry point for rendering a dashboard node. A node's `type` is
  * resolved against `dashboard.buildingBlocks` views — built-in types
- * (canvas/markdown/echarts) and extension-contributed ones are registered
+ * (markdown/echarts/...) and extension-contributed ones are registered
  * identically (see `registerBuiltInBuildingBlocks`), so nothing here knows
  * or cares which kind it's rendering. Falls back to a placeholder if the
  * node doesn't exist, or nothing is registered for its `type`.
  *
- * A `canvas` parent (`CanvasBlock`) renders its children through
- * `react-grid-layout`, which positions/sizes each child by cloning it and
+ * The root is the one exception: it is not a Building Block (see the
+ * composition/layout design doc), so there is nothing to look up for it in
+ * that registry — its renderer, `RootGrid`, is resolved directly instead.
+ * `RootGrid` renders its children through `react-grid-layout`, which
+ * positions/sizes each child by cloning it and
  * injecting `ref`/`style`/drag-and-resize handlers directly onto whatever
  * element it renders — hence `forwardRef` and spreading `...rest` onto this
  * component's own root div, rather than each block doing that itself. That's
@@ -135,14 +177,21 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
     const node = provider.getNode(nodeId);
     if (!node) return null;
 
-    const resolved = resolveBuildingBlockView(node.type, nodeId);
     const selected = provider.getSelection() === nodeId;
     // The root is the dashboard itself rather than something on it: it has no
     // name of its own to show, and removing it is refused by the provider, so
-    // a header there would be a label saying "Canvas" over a button that only
+    // a header there would be a label saying "Grid" over a button that only
     // ever raises an error.
     const chrome = nodeId !== provider.getRoot().id;
     const isRoot = !chrome;
+    // The root's renderer is not looked up in the building-block registry —
+    // see this component's own doc comment — since the root was never
+    // registered there in the first place.
+    const resolved = isRoot ? (
+      <RootGrid nodeId={nodeId} />
+    ) : (
+      resolveBuildingBlockView(node.type, nodeId)
+    );
     // The same token `BlockHeader` is drawn at: the content box below is this
     // element's height minus the band, so the two have to be one number.
     const headerHeight = theme.controlHeightSM;
@@ -192,6 +241,17 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           // is kept wherever it set one and `relative` only fills the gap
           // when it did not.
           position: rest.style?.position ?? 'relative',
+          // Sized the same way every other block already is — everything
+          // that is not the root gets its width/height from
+          // react-grid-layout, which clones the grid item and injects both
+          // directly (captured above through `...rest.style`). Nothing
+          // clones the root; it is rendered directly, with no props, so
+          // without this it has no width or height at all and shrinks to
+          // whatever its own content happens to be — which is exactly one
+          // block tall, with nothing below it to drop onto and a scrollbar
+          // that flickers in and out as that one block resizes against it.
+          width: isRoot ? '100%' : rest.style?.width,
+          height: isRoot ? '100%' : rest.style?.height,
           // The card, drawn around the whole of a block rather than around
           // part of it.
           //
@@ -207,26 +267,37 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           // Opaque for the same reason it is one card: on a free canvas
           // blocks overlap, and anything a block does not paint is a window
           // onto whatever is behind it.
-          backgroundColor: isRoot ? undefined : theme.colorBgContainer,
-          border: `1px solid ${theme.colorBorderSecondary}`,
-          borderRadius: theme.borderRadiusLG,
-          // Nothing reaches past the corners this rounds — a block's content
-          // is square and would otherwise fill them back in.
-          overflow: isRoot ? undefined : 'hidden',
-          // The dashboard's own gutter, and what makes it clickable.
           //
-          // The root is drawn by a grid that fills its box edge to edge
-          // (`containerPadding={[0, 0]}` in CanvasBlock), which left the
-          // dashboard with no pixels of its own. The inset is what an author
-          // aims at to select the dashboard rather than something on it — and
-          // it is the same inset a block's content sits at, so the two read as
-          // one scale rather than two. It carries no surface of its own: this
-          // is what everything else is arranged *on*, not a card among them.
-          padding: isRoot ? theme.padding : undefined,
+          // None of this is true of the root. The root is not a block on the
+          // dashboard, it *is* the dashboard — the surface everything else is
+          // arranged on, not a card among them — so it gets none of a card's
+          // trappings: no fill, no border, no rounded corners of its own.
+          backgroundColor: isRoot ? undefined : theme.colorBgContainer,
+          border: isRoot ? undefined : `1px solid ${theme.colorBorderSecondary}`,
+          borderRadius: isRoot ? undefined : theme.borderRadiusLG,
+          // Nothing reaches past the corners this rounds — a block's content
+          // is square and would otherwise fill them back in. Moot on the
+          // root, which rounds nothing.
+          overflow: isRoot ? undefined : 'hidden',
+          // One inset for the whole card — the name and the content both
+          // sit inside it, rather than each drawing its own. `border-box`
+          // keeps it inside the pixel box `RootGrid`/`FlowItem` gave this
+          // element (a chart resizes to what's left after this is
+          // subtracted) instead of adding to it. The root gets none: it is
+          // not a card, and RootGrid already fills it exactly.
+          padding: isRoot ? undefined : theme.padding,
+          boxSizing: 'border-box',
           // Drawn over the block rather than around it: an outline takes no
           // space, so nothing on screen shifts when a selection moves.
-          outline: selected ? `2px solid ${theme.colorPrimary}` : undefined,
-          outlineOffset: selected ? -2 : undefined,
+          //
+          // Never on the root: it can still be selected (see `EditorPanel`'s
+          // own Properties for it), but the root is the canvas itself, not a
+          // block sitting on it, and an outline meant to mark one block out
+          // from its neighbors instead reads as a frame around the entire
+          // dashboard when it is the root wearing it.
+          outline:
+            selected && !isRoot ? `2px solid ${theme.colorPrimary}` : undefined,
+          outlineOffset: selected && !isRoot ? -2 : undefined,
         }}
       >
         {/* What this block is, and how to be rid of it.
@@ -237,7 +308,7 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
             once instead of twice.
 
             `data-block-remove` is what keeps a press on the button from
-            starting a react-grid-layout drag; see CanvasBlock's
+            starting a react-grid-layout drag; see RootGrid's
             `draggableCancel`. The propagation stops are the same idea for the
             two gestures it sits inside: a click here removes rather than
             selects, and a pointer down here grabs nothing.
@@ -249,49 +320,73 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
             semantics and Properties carries the same Delete. */}
         {chrome && (
           <BlockHeader data-test={`block-header-${nodeId}`}>
-            <Typography.Text
-              ellipsis
-              data-test={`block-title-${nodeId}`}
-              style={{
-                flex: '1 1 auto',
-                // The name of the thing below it, not a note about it. At the
-                // small size in the secondary colour it read as a caption
-                // hanging over the block — and this is the first thing anyone
-                // scanning a canvas uses to tell one block from the next, so
-                // it is drawn at the weight that job deserves.
-                fontSize: theme.fontSize,
-                fontWeight: theme.fontWeightStrong,
-                color: theme.colorText,
-              }}
-            >
-              {blockLabel(node.type, node.props)}
-            </Typography.Text>
-            <RemoveSlot
-              data-block-remove
-              onMouseDown={event => event.stopPropagation()}
-              onPointerDown={event => event.stopPropagation()}
-              onClick={event => event.stopPropagation()}
-            >
-              <ActionButton
-                label={t('Remove block')}
-                tooltip={t('Remove block')}
-                placement="bottom"
-                dataTest={`block-remove-${nodeId}`}
-                onClick={() => provider.removeBuildingBlock(nodeId)}
-                // A bin rather than a cross. A cross on a card is the gesture
-                // for dismissing the card — closing it, putting it away — and
-                // this does not put the block away, it takes it off the
-                // dashboard. The bin is what the rest of the app uses to say
-                // so, and it is the same act the panel offers as Delete.
-                //
-                // Quiet at rest and primary under the pointer, which is
-                // `ActionButton`'s own behaviour and the same answer the
-                // dashboard list gives for its Delete: a bin on every block,
-                // all of them lit red, would make a canvas read as a row of
-                // things about to be deleted.
-                icon={<Icons.DeleteOutlined iconSize="s" />}
-              />
-            </RemoveSlot>
+            {/* Skipped entirely for a type `blockLabel` leaves unnamed
+                (markdown, whose rendered body is right below this and needs
+                no caption repeating it) — an empty `Typography.Text` would
+                still be a blank strip claiming the header's whole left
+                side, not nothing. */}
+            {blockLabel(node.type, node.props) && (
+              <Typography.Text
+                ellipsis
+                data-test={`block-title-${nodeId}`}
+                style={{
+                  flex: '1 1 auto',
+                  // The name of the thing below it, not a note about it. At the
+                  // small size in the secondary colour it read as a caption
+                  // hanging over the block — and this is the first thing anyone
+                  // scanning a canvas uses to tell one block from the next, so
+                  // it is drawn at the weight that job deserves.
+                  fontSize: theme.fontSize,
+                  fontWeight: theme.fontWeightStrong,
+                  color: theme.colorText,
+                }}
+              >
+                {blockLabel(node.type, node.props)}
+              </Typography.Text>
+            )}
+            <HeaderTrailingControls>
+              {/* A type's own extra header control — e.g. `collapsible`'s
+                  expand/collapse toggle — sits beside Remove rather than
+                  below the header, so a block with one of these is still
+                  just a title and its content, not a title, a second bar,
+                  and its content. See `blockHeaderControl`. */}
+              {blockHeaderControl(node.type, nodeId) && (
+                <HeaderControlSlot
+                  data-block-header-control
+                  onMouseDown={event => event.stopPropagation()}
+                  onPointerDown={event => event.stopPropagation()}
+                  onClick={event => event.stopPropagation()}
+                >
+                  {blockHeaderControl(node.type, nodeId)}
+                </HeaderControlSlot>
+              )}
+              <RemoveSlot
+                data-block-remove
+                onMouseDown={event => event.stopPropagation()}
+                onPointerDown={event => event.stopPropagation()}
+                onClick={event => event.stopPropagation()}
+              >
+                <ActionButton
+                  label={t('Remove block')}
+                  tooltip={t('Remove block')}
+                  placement="bottom"
+                  dataTest={`block-remove-${nodeId}`}
+                  onClick={() => provider.removeBuildingBlock(nodeId)}
+                  // A bin rather than a cross. A cross on a card is the gesture
+                  // for dismissing the card — closing it, putting it away — and
+                  // this does not put the block away, it takes it off the
+                  // dashboard. The bin is what the rest of the app uses to say
+                  // so, and it is the same act the panel offers as Delete.
+                  //
+                  // Quiet at rest and primary under the pointer, which is
+                  // `ActionButton`'s own behaviour and the same answer the
+                  // dashboard list gives for its Delete: a bin on every block,
+                  // all of them lit red, would make a canvas read as a row of
+                  // things about to be deleted.
+                  icon={<Icons.DeleteOutlined iconSize="s" />}
+                />
+              </RemoveSlot>
+            </HeaderTrailingControls>
           </BlockHeader>
         )}
         {/* The block's own box, which is the whole of this element's minus

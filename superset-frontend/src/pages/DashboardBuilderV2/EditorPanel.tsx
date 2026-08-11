@@ -37,7 +37,7 @@ type PanelTab = 'blocks' | 'properties' | 'outline';
  * narrow whatever they are given. The ceiling leaves a usable canvas on a
  * small screen.
  */
-const DEFAULT_WIDTH = 500;
+const DEFAULT_WIDTH = 350;
 const MIN_WIDTH = 280;
 const MAX_WIDTH = 800;
 /** How far one arrow press moves the edge. */

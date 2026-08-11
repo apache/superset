@@ -21,10 +21,12 @@ import { resolveView, views } from 'src/core/views';
 
 /**
  * The `views` location a dashboard node's `type` must be registered at to
- * be renderable as a building block — built-in types (canvas/markdown/
- * echarts, see `registerBuiltInBuildingBlocks`) and extension-contributed
- * ones register here identically, through the same `views.registerView`
- * call.
+ * be renderable as a building block — built-in types (markdown/echarts/...,
+ * see `registerBuiltInBuildingBlocks`) and extension-contributed ones
+ * register here identically, through the same `views.registerView` call.
+ * The root's own type (`grid`) is deliberately not among them — it is not
+ * a Building Block, and `BuildingBlockView` resolves its renderer directly
+ * rather than through this location.
  */
 export const DASHBOARD_BUILDING_BLOCKS_LOCATION = 'dashboard.buildingBlocks';
 

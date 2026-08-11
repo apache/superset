@@ -109,7 +109,7 @@ echarts.use([
  * renders it owns measuring the DOM. This measures both dimensions: a grid
  * item's cell is always a definite pixel box (its column share of the
  * container's width, its `rowSpan × rowUnit` height, both enforced by the
- * parent grid — see `CanvasBlock`), so there's no case here where a
+ * parent grid — see `RootGrid`), so there's no case here where a
  * measured size is ambiguous or collapses to zero the way an unconstrained
  * flex height could.
  */
@@ -260,7 +260,7 @@ export default function ChartBlock({ nodeId }: { nodeId: string }) {
         <Flex
           align="center"
           justify="center"
-          style={{ width: '100%', height: '100%', padding: theme.padding }}
+          style={{ width: '100%', height: '100%' }}
         >
           <Typography.Text type="danger">{error}</Typography.Text>
         </Flex>

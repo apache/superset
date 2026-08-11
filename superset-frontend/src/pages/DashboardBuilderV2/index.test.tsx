@@ -17,7 +17,7 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import { act, render, screen } from 'spec/helpers/testing-library';
+import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import DashboardBuilderV2 from '.';
 
@@ -73,24 +73,57 @@ test('placing a block from the palette puts it on the dashboard and selects it',
   expect(provider.getSelection()).toBe(children[0]);
 });
 
+/** A drag payload jsdom's synthetic events do not carry on their own. */
+const paletteTransfer = (type: string) => {
+  const data = new Map([['application/x-dashboard-building-block', type]]);
+  return {
+    types: [...data.keys()],
+    getData: (key: string) => data.get(key) ?? '',
+    setData: (key: string, value: string) => data.set(key, value),
+    dropEffect: '',
+    effectAllowed: '',
+  };
+};
+
+test('dropping a palette block on a blank dashboard places it there', () => {
+  renderPage();
+
+  // `RootGrid`'s own drop target does not exist yet on a blank dashboard —
+  // this is the one that is actually on screen at that point, and it needs
+  // the identical handling or the empty state's own instruction to "drag a
+  // building block from the panel" is one this element cannot answer.
+  fireEvent.drop(screen.getByTestId('empty-canvas'), {
+    dataTransfer: paletteTransfer('markdown'),
+  });
+
+  const children = provider.getRoot().children ?? [];
+  expect(children).toHaveLength(1);
+  expect(provider.getNode(children[0])?.type).toBe('markdown');
+});
+
 test('a block placed while a container is selected goes inside it', async () => {
   renderPage();
-  // Canvas is not on the palette, but a container can still exist — placed
-  // by the assistant, or carried over from before this UI stopped offering
-  // it — and a block placed into a selected one still goes inside it.
-  const sectionId = provider.addBuildingBlock(provider.getRoot().id, 0, {
-    type: 'canvas',
+  // A 'tabs' block itself is not the container to select for this — its own
+  // children are always 'tab' panes, never a leaf placed directly — so this
+  // selects the pane, which is exactly where a leaf placed from the palette
+  // belongs.
+  const tabsId = provider.addBuildingBlock(provider.getRoot().id, 0, {
+    type: 'tabs',
   });
-  act(() => provider.setSelection(sectionId));
+  const paneId = provider.addBuildingBlock(tabsId, 0, {
+    type: 'tab',
+    props: { label: 'Overview' },
+  });
+  act(() => provider.setSelection(paneId));
 
   await userEvent.click(screen.getByTestId('palette-markdown'));
 
-  // An author who has just selected a section and reaches for a block means
-  // to put it in that section.
-  expect(provider.getNode(sectionId)?.children).toEqual([
+  // An author who has just selected a pane and reaches for a block means to
+  // put it in that pane.
+  expect(provider.getNode(paneId)?.children).toEqual([
     provider.getSelection(),
   ]);
-  expect(provider.getRoot().children).toEqual([sectionId]);
+  expect(provider.getNode(tabsId)?.children).toEqual([paneId]);
 });
 
 test('a block placed while a leaf is selected goes beside it, not inside it', async () => {

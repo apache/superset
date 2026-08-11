@@ -333,7 +333,7 @@ test('the dashboard is not a block, so it is not placed and cannot be deleted', 
 
 test('the panel counts what is on the dashboard', () => {
   const rootId = provider.getRoot().id;
-  const section = provider.addBuildingBlock(rootId, 0, { type: 'canvas' });
+  const section = provider.addBuildingBlock(rootId, 0, { type: 'tabs' });
   provider.addBuildingBlock(section, 0, { type: 'markdown' });
   provider.addBuildingBlock(rootId, 1, { type: 'markdown' });
   selectRoot();

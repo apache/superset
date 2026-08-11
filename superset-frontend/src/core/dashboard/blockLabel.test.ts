@@ -47,10 +47,25 @@ test('a metric tile is named by the label it displays', () => {
   );
 });
 
-test('markdown is named by its opening words', () => {
+test('a tab pane is named by its own label', () => {
+  expect(blockLabel('tab', { label: 'Overview' })).toBe('Overview');
+});
+
+test('a tabs block with no panes yet falls back to its registered name', () => {
+  expect(blockLabel('tabs', {})).toBe('Tabs');
+});
+
+test('markdown goes unnamed — its rendered body is already its name', () => {
+  // Unlike a chart's title or a tile's label, markdown's `content` is the
+  // whole of what the block renders rather than a field carved out of it,
+  // and its registered name ("Markdown") says only what it is, not which
+  // one — worth nothing sitting right above the content itself. Both would
+  // repeat what a reader is already looking at, so this returns '' rather
+  // than falling back to either.
   expect(
     blockLabel('markdown', { content: '# Acme Corp\n\nGenerated November' }),
-  ).toBe('# Acme Corp Generated November');
+  ).toBe('');
+  expect(blockLabel('markdown', {})).toBe('');
 });
 
 test('a block with no name of its own is named by what it is', () => {
@@ -64,7 +79,6 @@ test('a name of nothing but spaces is no name', () => {
   expect(
     blockLabel('echarts', { echartsOptions: { title: { text: '  ' } } }),
   ).toBe('ECharts');
-  expect(blockLabel('markdown', { content: '\n\n' })).toBe('Markdown');
 });
 
 test('a type nothing registered still says something', () => {
