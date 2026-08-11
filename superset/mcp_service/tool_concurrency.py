@@ -34,6 +34,7 @@ pool, where each worker waits on its own without stopping the others.
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from typing import AsyncGenerator, MutableMapping, Optional
 from weakref import WeakKeyDictionary
 
@@ -47,6 +48,14 @@ _DEFAULT_MAX_OVERFLOW = 10
 _limiters: MutableMapping[asyncio.AbstractEventLoop, asyncio.Semaphore] = (
     WeakKeyDictionary()
 )
+
+# Tool calls nest: with tool search enabled (the default), a client calls the
+# ``call_tool`` proxy, which calls the target tool through
+# ``FastMCP.call_tool()`` — and that runs the middleware chain again. Both
+# passes are the same call holding the same connection, so only the outer one
+# takes a slot. Taking one per pass would have every call hold a slot while
+# waiting for a second, which deadlocks the moment the limit is reached.
+_admitted: ContextVar[bool] = ContextVar("mcp_tool_call_admitted", default=False)
 
 
 def max_concurrent_tool_calls() -> int:
@@ -83,10 +92,18 @@ def _limiter() -> Optional[asyncio.Semaphore]:
 
 @asynccontextmanager
 async def bounded_tool_call() -> AsyncGenerator[None, None]:
-    """Admit one async tool call, waiting on the loop rather than on the pool."""
-    if (limiter := _limiter()) is None:
+    """Admit one async tool call, waiting on the loop rather than on the pool.
+
+    Re-entrant: a nested pass for the same call (the ``call_tool`` search
+    proxy invoking its target) runs inside the slot the outer pass took.
+    """
+    if _admitted.get() or (limiter := _limiter()) is None:
         yield
         return
 
-    async with limiter:
-        yield
+    token = _admitted.set(True)
+    try:
+        async with limiter:
+            yield
+    finally:
+        _admitted.reset(token)

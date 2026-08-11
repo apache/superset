@@ -132,6 +132,29 @@ async def test_zero_removes_the_limit() -> None:
         assert await _peak_concurrency(20) == 20
 
 
+async def test_a_nested_pass_reuses_the_outer_slot() -> None:
+    """The call_tool search proxy runs the middleware chain twice per call.
+
+    Tool search is enabled by default, and the proxy reaches its target
+    through ``FastMCP.call_tool()``, which runs the chain again. If each pass
+    took a slot, every call would hold one while waiting for a second — a
+    deadlock as soon as the limit is reached. Here the limit is one.
+    """
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app",
+        return_value=_FakeApp(MCP_MAX_CONCURRENT_TOOL_CALLS=1),
+    ):
+
+        async def proxy_then_target() -> str:
+            async with bounded_tool_call():  # the call_tool proxy
+                async with bounded_tool_call():  # the target tool
+                    return "done"
+
+        assert await asyncio.wait_for(proxy_then_target(), timeout=2) == "done"
+        # and the slot is handed back, so the next call still gets in
+        assert await asyncio.wait_for(proxy_then_target(), timeout=2) == "done"
+
+
 async def test_a_failing_call_releases_its_slot() -> None:
     """An exception must not leak admission, or the server wedges."""
     with patch(
