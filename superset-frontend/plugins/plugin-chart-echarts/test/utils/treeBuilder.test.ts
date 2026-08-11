@@ -667,6 +667,40 @@ describe('test treeBuilder', () => {
     ]);
   });
 
+  // Regression: distinct `Date` instances representing the same timestamp
+  // must not fragment into separate groups. A `Map` keyed on the raw object
+  // would otherwise compare `Date`s by identity rather than value.
+  test('groups distinct Date instances with the same timestamp together', () => {
+    const tree = treeBuilder(
+      [
+        { foo: new Date('2020-01-01T00:00:00Z'), bar: 'a', count: 2 },
+        { foo: new Date('2020-01-01T00:00:00Z'), bar: 'b', count: 3 },
+        { foo: new Date('2020-01-02T00:00:00Z'), bar: 'c', count: 5 },
+      ],
+      ['foo', 'bar'],
+      'count',
+    );
+    expect(tree).toEqual([
+      {
+        children: [
+          { groupBy: 'bar', name: 'a', secondaryValue: 2, value: 2 },
+          { groupBy: 'bar', name: 'b', secondaryValue: 3, value: 3 },
+        ],
+        groupBy: 'foo',
+        name: new Date('2020-01-01T00:00:00Z'),
+        secondaryValue: 5,
+        value: 5,
+      },
+      {
+        children: [{ groupBy: 'bar', name: 'c', secondaryValue: 5, value: 5 }],
+        groupBy: 'foo',
+        name: new Date('2020-01-02T00:00:00Z'),
+        secondaryValue: 5,
+        value: 5,
+      },
+    ]);
+  });
+
   test('filters only the SQL null, not the literal string "null"', () => {
     const tree = treeBuilder(
       [

@@ -37,13 +37,30 @@ function getMetricValue(datum: DataRecord, metric: string) {
 // and get merged into a single group. A Map keeps them as distinct keys, so
 // null filtering stays deterministic regardless of what else is in the
 // column.
+//
+// `Date` values need special handling: a `Map` compares object keys by
+// identity, not value, so two separately-parsed `Date` instances for the
+// same timestamp would otherwise land in different groups. Canonicalizing
+// by epoch time keeps identical timestamps together while still keeping
+// `null` and `'null'` distinct.
 function groupByValue(
   data: DataRecord[],
   groupByKey: string,
 ): Map<DataRecordValue, DataRecord[]> {
   const groups = new Map<DataRecordValue, DataRecord[]>();
+  const keysByCanonicalTime = new Map<number, DataRecordValue>();
   data.forEach(datum => {
-    const key = datum[groupByKey];
+    const rawKey = datum[groupByKey];
+    let key = rawKey;
+    if (rawKey instanceof Date) {
+      const time = rawKey.getTime();
+      const existingKey = keysByCanonicalTime.get(time);
+      if (existingKey !== undefined) {
+        key = existingKey;
+      } else {
+        keysByCanonicalTime.set(time, rawKey);
+      }
+    }
     const group = groups.get(key);
     if (group) {
       group.push(datum);
