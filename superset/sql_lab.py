@@ -25,7 +25,7 @@ from datetime import datetime
 from sys import getsizeof
 from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
 
-import backoff
+import backon
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app, has_app_context
@@ -132,7 +132,7 @@ def handle_query_error(
     return payload
 
 
-def get_query_backoff_handler(details: dict[Any, Any]) -> None:
+def get_query_retry_handler(details: dict[Any, Any]) -> None:
     stats_logger = app.config["STATS_LOGGER"]
     query_id = details["kwargs"]["query_id"]
     stats_logger.incr(f"error_attempting_orm_query_{details['tries'] - 1}")
@@ -148,11 +148,11 @@ def get_query_giveup_handler(_: Any) -> None:
     stats_logger.incr("error_failed_at_getting_orm_query")
 
 
-@backoff.on_exception(
-    backoff.constant,
+@backon.on_exception(
+    backon.constant,
     SqlLabException,
     interval=1,
-    on_backoff=get_query_backoff_handler,
+    on_backoff=get_query_retry_handler,
     on_giveup=get_query_giveup_handler,
     max_tries=5,
 )

@@ -25,7 +25,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator, TYPE_CHECKING
 
-import backoff
+import backon
 import jwt
 from flask import current_app as app, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
@@ -76,8 +76,8 @@ def generate_code_challenge(code_verifier: str) -> str:
     return code_challenge
 
 
-@backoff.on_exception(
-    backoff.expo,
+@backon.on_exception(
+    backon.expo,
     AcquireDistributedLockFailedException,
     factor=0.1,
     base=2,
