@@ -154,6 +154,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   extra_categorical_color_schemes: [],
   extra_sequential_color_schemes: [],
+  extra_theme_tokens: [],
   theme: {
     default: {},
     dark: {},

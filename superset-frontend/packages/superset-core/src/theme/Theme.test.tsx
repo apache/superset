@@ -160,6 +160,43 @@ test('Theme.setConfig correctly applies algorithm changes', () => {
   expect(serialized.algorithm).toBe(ThemeAlgorithm.DARK);
 });
 
+test('Theme.setConfig with baseTheme merges the config over the base theme tokens', () => {
+  const baseTheme: AnyThemeConfig = {
+    token: { colorPrimary: '#111111', colorError: '#ff0000' },
+  };
+  const theme = Theme.fromConfig();
+  theme.setConfig({ token: { colorPrimary: '#0000ff' } }, baseTheme);
+
+  // Config wins for colorPrimary; the base theme fills the untouched colorError.
+  expect(theme.theme.colorPrimary).toBe('#0000ff');
+  expect(theme.theme.colorError).toBe('#ff0000');
+});
+
+test('Theme.setConfig with baseTheme keeps the base theme ECharts overrides', () => {
+  const baseTheme = {
+    token: { colorPrimary: '#111111' },
+    echartsOptionsOverrides: { backgroundColor: '#123456' },
+    echartsOptionsOverridesByChartType: {
+      pie: { itemStyle: { borderWidth: 2 } },
+    },
+  } as AnyThemeConfig & {
+    echartsOptionsOverrides: Record<string, unknown>;
+    echartsOptionsOverridesByChartType: Record<string, unknown>;
+  };
+  const theme = Theme.fromConfig();
+
+  // In-place update whose config sets no ECharts overrides: the base theme's
+  // overrides must survive, the same way its tokens do.
+  theme.setConfig({ token: { colorPrimary: '#0000ff' } }, baseTheme);
+
+  expect(theme.theme.echartsOptionsOverrides).toEqual({
+    backgroundColor: '#123456',
+  });
+  expect(theme.theme.echartsOptionsOverridesByChartType).toEqual({
+    pie: { itemStyle: { borderWidth: 2 } },
+  });
+});
+
 test('Theme.toggleDarkMode switches to dark algorithm when toggling dark mode on', () => {
   const theme = Theme.fromConfig();
 

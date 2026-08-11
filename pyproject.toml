@@ -50,7 +50,7 @@ dependencies = [
     "flask-cors>=6.0.5, <7.0",
     "croniter>=6.2.4",
     "cron-descriptor",
-    "cryptography>=49.0.0, <50.0.0",
+    "cryptography>=50.0.0, <51.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <4.0.0",
     "flask-appbuilder>=5.2.2, <6.0.0",
@@ -68,19 +68,19 @@ dependencies = [
     # not just a connection-pool quirk. Needs dedicated investigation, not a
     # driver-compat-prep bump; revisit alongside the actual SQLAlchemy 2.0
     # core bump (discussion #40273, step 6).
-    "flask-sqlalchemy>=2.5.1, <3.0",
+    "flask-sqlalchemy>=2.5.1, <4.0",
     "flask-wtf>=1.3.0, <2.0",
     "geopy",
     "greenlet<=3.5.4, >=3.5.4",
     "gunicorn>=26.0.0, <27; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
-    "holidays>=0.99, <1",
+    "holidays>=0.101, <1",
     "humanize",
     "isodate",
     "jsonpath-ng>=1.8.0, <2",
     "Mako>=1.2.2",
-    "markdown>=3.10.2",
+    "markdown>=3.10.3",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
     # https://github.com/apache/superset/issues/33162
@@ -88,7 +88,7 @@ dependencies = [
     "marshmallow-union>=0.1.15.post1",
     "msgpack>=1.2.0, <1.3",
     "nh3>=0.3.5, <0.4",
-    "numpy>1.23.5, <2.3",
+    "numpy>=1.23.5, <2.5",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
@@ -111,14 +111,14 @@ dependencies = [
     "redis>=5.0.0, <9.0",
     "rison>=2.0.1, <3.0",
     "selenium>=4.46.0, <5.0",
-    "shillelagh[gsheetsapi]>=1.4.4, <2.0",
+    "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=4.1.1",
     "slack_sdk>=3.43.0, <4",
     "sqlalchemy>=1.4.43, <2", # 1.4.43 adds the python-oracledb (oracle+oracledb) dialect
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
-    "sqlglot>=30.14.0, <31",
+    "sqlglot>=30.16.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -143,7 +143,7 @@ bigquery = [
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
     "sqlalchemy-bigquery>=1.17.1",
-    "google-cloud-bigquery>=3.42.2",
+    "google-cloud-bigquery>=3.42.3",
 ]
 clickhouse = ["clickhouse-connect>=1.6.0, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
@@ -204,7 +204,7 @@ fastmcp = [
 firebird = ["sqlalchemy-firebird>=0.8.0, <2.0.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
 gevent = ["gevent>=26.7.0"]
-gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
+gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
 hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
 hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
@@ -234,7 +234,7 @@ ocient = [
 oracle = ["oracledb>=4.0.2, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb>=5.0.0, <10.0.0"]
-playwright = ["playwright>=1.61.0, <2"]
+playwright = ["playwright>=1.62.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.338.0"]
@@ -248,8 +248,8 @@ redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 # and 2.0 (version numbers don't track SQLAlchemy compat monotonically); pin
 # to the newest 1.4-only release for now. Bump to >=2.0.0 in lockstep with
 # Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
-risingwave = ["sqlalchemy-risingwave>=1.4.1, <2.0.0"]
-shillelagh = ["shillelagh[all]>=1.4.4, <2"]
+risingwave = ["sqlalchemy-risingwave>=1.4.1, <3.0.0"]
+shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.11.0, <2"]
 sqlite = ["syntaqlite>=0.7.0,<0.8.0"]
@@ -262,11 +262,11 @@ tdengine = [
     "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
-teradata = ["teradatasql>=20.0.0.63"]
+teradata = ["teradatasql>=20.0.0.64"]
 thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>= 11.1.2, < 11.2"]
-starrocks = ["starrocks>=1.3.3, <2"]
+starrocks = ["starrocks>=1.3.4, <2"]
 doris = ["pydoris>=1.2.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1.2"]
 ydb = ["ydb-sqlalchemy>=0.1.22", "ydb-sqlglot-plugin>=0.2.8"]
@@ -286,7 +286,7 @@ development = [
     "progress>=1.6.1,<2",
     "psutil",
     "pyfakefs",
-    "pyinstrument>=5.1.2,<6",
+    "pyinstrument>=5.1.3,<6",
     "pylint",
     "pytest<10.0.0", # cap below the next major until validated; the earlier <8 pin (current_app proxy timing) no longer reproduces
     "pytest-asyncio",
@@ -535,6 +535,11 @@ authorized_licenses = [
 # Seems ok, might need legal review
 # https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
 polyline = "2"
+# NumPy 2.x reports a combined SPDX license expression covering vendored
+# code (BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0), all of which
+# are permissive OSI-approved licenses; the package itself remains
+# BSD-3-Clause. https://github.com/numpy/numpy/blob/main/LICENSE.txt
+numpy = "2"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE
