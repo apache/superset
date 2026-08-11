@@ -995,6 +995,12 @@ class WebDriverPlaywright(WebDriverProxy):
         viewport-visible) to detect readiness, then calls Playwright's
         native page.pdf() instead of page.screenshot().
 
+        The viewport width is set to the A4 printable width (794 px at
+        96 dpi) so the dashboard reflows at exactly the paper width.
+        This eliminates the blank-space problem that occurs when the
+        browser lays out at 1600 px and page.pdf() then maps that onto
+        a 794 px-wide A4 sheet.
+
         Returns None (never raises) so the caller can fall back to
         the existing screenshot path.
         """
@@ -1003,9 +1009,15 @@ class WebDriverPlaywright(WebDriverProxy):
         browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
         browser = _browser_manager.get_browser(browser_args)
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
+        # A4 at 96 dpi = 794 px wide (210 mm × 96/25.4).  Rendering the
+        # dashboard at this width means the CSS print-mode reflow and the
+        # PDF paper are the same width, so there is no blank guttering.
+        # Height is set large enough that the page never needs to scroll
+        # before Playwright has read all chart holders.
+        pdf_viewport_width = app.config.get("BROWSER_PRINT_PDF_VIEWPORT_WIDTH", 794)
         context = browser.new_context(
             bypass_csp=True,
-            viewport={"height": self._window[1], "width": self._window[0]},
+            viewport={"height": self._window[1], "width": pdf_viewport_width},
             device_scale_factor=pixel_density,
         )
         context.set_default_timeout(

@@ -29,19 +29,33 @@
  */
 export const PRINT_MODE_CSS = `
 body.print-mode {
-  /* Hide all interactive chrome */
-  .dashboard-header-container { display: none !important; }
-  .filter-bar { display: none !important; }
-  .drag-handle { display: none !important; }
-  .resizable-add-col { display: none !important; }
-  .ant-dropdown-trigger { display: none !important; }
+  /* ── 1. Hide interactive chrome ─────────────────────────────────── */
+  .dashboard-header-container,
+  .filter-bar,
+  .drag-handle,
+  .resizable-add-col,
+  .ant-dropdown-trigger,
+  .resizable-add-row,
+  .empty-droptarget,
+  [data-test="anchor-link-container"],
+  .slice_description { display: none !important; }
 
-  /* Single vertical column layout — stack row children top-to-bottom,
-     each column taking the full page width */
-  .dragdroppable-row {
+  /* ── 2. Single-column vertical stacking ─────────────────────────── */
+  /*
+   * DOM nesting: .dragdroppable-row > .with-popover-menu > .grid-row
+   *   > .dragdroppable-column > .resizable-container
+   * Both .dragdroppable-row AND .grid-row are flex:row containers that
+   * place dashboard columns side-by-side. Both must become flex:column.
+   * .resizable-container carries inline width AND height from re-resizable
+   * — both must be overridden so the chart fills the page width and
+   * takes its natural height.
+   */
+  .dragdroppable-row,
+  .grid-row {
     display: flex !important;
     flex-direction: column !important;
     width: 100% !important;
+    gap: 0 !important;
   }
   .dragdroppable-column {
     display: block !important;
@@ -49,29 +63,65 @@ body.print-mode {
     max-width: 100% !important;
     flex-shrink: 0 !important;
   }
-  /* re-resizable sets inline width on the .resizable-container — override it */
-  .dragdroppable-column .resizable-container {
+  /* Override all re-resizable inline width + height */
+  .resizable-container {
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    max-height: none !important;
   }
 
-  /* Expand scroll-clipped containers (tables, long text) so full content
-     is visible to the browser print engine rather than being cut off */
-  .table-viz {
+  /* ── 3. Chart cards ──────────────────────────────────────────────── */
+  /* Each chart card (the white rounded box) takes full width and wraps
+     to its content height — removes the fixed pixel height set by the
+     dashboard layout engine */
+  .dashboard-component-chart-holder {
+    height: auto !important;
+    min-height: 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .chart-slice {
+    height: auto !important;
+  }
+  /* The inner chart canvas/SVG container: keep a sensible minimum so
+     charts don't collapse, but let taller charts use their full height */
+  .chart-container {
+    height: auto !important;
+    min-height: 240px;
+    overflow: visible !important;
+  }
+  /* Big-number / KPI charts are naturally short — don't stretch them */
+  [data-test-viz-type="big_number"] .chart-container,
+  [data-test-viz-type="big_number_total"] .chart-container {
+    min-height: 120px;
+  }
+
+  /* ── 4. Tables ───────────────────────────────────────────────────── */
+  .table-viz,
+  .dataTable {
     overflow: visible !important;
     max-height: none !important;
     height: auto !important;
   }
   .dt-global-filter,
   .pagination-container { display: none !important; }
-  .dataTable {
+
+  /* ── 5. Markdown / text cards ────────────────────────────────────── */
+  .dashboard-markdown {
     overflow: visible !important;
+    height: auto !important;
     max-height: none !important;
   }
+  .dashboard-markdown .resizable-container {
+    overflow: visible !important;
+    height: auto !important;
+  }
 
-  /* Prevent canvas/SVG charts from collapsing to zero height in block flow */
-  .chart-container {
-    min-height: 200px;
+  /* ── 6. Spacing between cards ────────────────────────────────────── */
+  .dragdroppable-column + .dragdroppable-column {
+    margin-top: 8px;
   }
 }
 `;
