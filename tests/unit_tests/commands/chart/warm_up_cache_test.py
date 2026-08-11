@@ -14,29 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import Mock, patch
+from __future__ import annotations
+
+from collections.abc import Iterator
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.models.slice import Slice
+from superset.utils import json
 
 
 @pytest.fixture(autouse=True)
-def mock_security_manager():
-    with patch("superset.commands.chart.warm_up_cache.security_manager"):
-        yield
+def mock_security_manager() -> Iterator[Mock]:
+    with patch(
+        "superset.commands.chart.warm_up_cache.security_manager",
+        new=Mock(),
+    ) as security_manager:
+        yield security_manager
 
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
-def test_applies_dashboard_filters_to_non_legacy_chart(
-    mock_chart_data_command, mock_get_dashboard_filters
+def test_prepends_dashboard_filters_to_non_legacy_chart(
+    mock_chart_data_command: Mock,
+    mock_get_dashboard_filters: Mock,
 ):
-    """Verify dashboard filters are added to query.filter for non-legacy viz"""
-    # Setup: Mock dashboard filters response
+    """Dashboard filters must precede chart filters to match the frontend."""
     mock_get_dashboard_filters.return_value = [
-        {"col": "country", "op": "in", "val": ["USA", "France"]}
+        {"col": "country", "op": "IN", "val": ["USA", "France"]}
     ]
 
     # Create a chart with non-legacy viz type
@@ -48,38 +55,81 @@ def test_applies_dashboard_filters_to_non_legacy_chart(
         datasource_type="table",
     )
 
-    # Create mock query with empty filter list
     mock_query = Mock()
-    mock_query.filter = []
-    mock_qc = Mock()
-    mock_qc.queries = [mock_query]
-    mock_qc.force = False
+    mock_query.filter = [{"col": "year", "op": "==", "val": 2026}]
+    mock_qc = Mock(queries=[mock_query], force=False)
 
-    # Mock dependencies
     with patch.object(chart, "get_query_context", return_value=mock_qc):
         mock_chart_data_command.return_value.run.return_value = {
             "queries": [{"error": None, "status": "success"}]
         }
 
-        # Execute with dashboard_id
         result = ChartWarmUpCacheCommand(chart, 42, None).run()
 
-        # VALIDATE: Filters were added to query.filter
-        assert len(mock_query.filter) == 1, "Filter should be added to query"
-        assert mock_query.filter[0] == {
-            "col": "country",
-            "op": "in",
-            "val": ["USA", "France"],
-        }, "Filter content should match dashboard filter"
-
-        # VALIDATE: get_dashboard_extra_filters was called correctly
+        assert mock_query.filter == [
+            {"col": "country", "op": "IN", "val": ["USA", "France"]},
+            {"col": "year", "op": "==", "val": 2026},
+        ]
         mock_get_dashboard_filters.assert_called_once_with(123, 42)
-
-        # VALIDATE: force flag was set
-        assert mock_qc.force is True, "force should be set to True"
-
-        # VALIDATE: Result is correct
+        assert mock_qc.force is True
         assert result["chart_id"] == 123
+
+
+@patch("superset.views.utils.db")
+@patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
+def test_persisted_native_default_reaches_warm_up_query(
+    mock_chart_data_command: Mock,
+    mock_dashboard_db: MagicMock,
+) -> None:
+    chart = Slice(
+        id=131,
+        slice_name="Persisted native default",
+        viz_type="echarts_timeseries_bar",
+        datasource_id=1,
+        datasource_type="table",
+    )
+    mock_query = Mock()
+    mock_query.filter = [{"col": "year", "op": "==", "val": 2026}]
+    mock_query_context = Mock(queries=[mock_query])
+    dashboard = MagicMock()
+    dashboard.id = 42
+    dashboard.slices = [chart]
+    dashboard.position_json = "{}"
+    dashboard.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "name": "Region",
+                    "type": "NATIVE_FILTER",
+                    "filterType": "filter_select",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "targets": [{"column": {"name": "region"}}],
+                    "defaultDataMask": {
+                        "extraFormData": {
+                            "filters": [{"col": "region", "op": "IN", "val": ["APAC"]}]
+                        },
+                        "filterState": {"value": ["APAC"]},
+                    },
+                    "controlValues": {},
+                }
+            ]
+        }
+    )
+    (
+        mock_dashboard_db.session.query.return_value.filter_by.return_value.one_or_none.return_value
+    ) = dashboard
+    mock_chart_data_command.return_value.run.return_value = {
+        "queries": [{"error": None, "status": "success"}]
+    }
+
+    with patch.object(chart, "get_query_context", return_value=mock_query_context):
+        ChartWarmUpCacheCommand(chart, 42, None).run()
+
+    assert mock_query.filter == [
+        {"col": "region", "op": "IN", "val": ["APAC"]},
+        {"col": "year", "op": "==", "val": 2026},
+    ]
 
 
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
@@ -117,7 +167,8 @@ def test_no_filters_applied_without_dashboard_id(mock_chart_data_command):
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
 def test_extra_filters_parameter_takes_precedence(
-    mock_chart_data_command, mock_get_dashboard_filters
+    mock_chart_data_command: Mock,
+    mock_get_dashboard_filters: Mock,
 ):
     """Verify extra_filters parameter is used instead of fetching from dashboard"""
     chart = Slice(
@@ -130,8 +181,7 @@ def test_extra_filters_parameter_takes_precedence(
 
     mock_query = Mock()
     mock_query.filter = []
-    mock_qc = Mock()
-    mock_qc.queries = [mock_query]
+    mock_qc = Mock(queries=[mock_query])
 
     with patch.object(chart, "get_query_context", return_value=mock_qc):
         mock_chart_data_command.return_value.run.return_value = {
@@ -142,18 +192,18 @@ def test_extra_filters_parameter_takes_precedence(
         extra_filters_json = '[{"col": "state", "op": "==", "val": "CA"}]'
         ChartWarmUpCacheCommand(chart, 42, extra_filters_json).run()
 
-        # VALIDATE: get_dashboard_extra_filters should NOT be called
+        # VALIDATE: persisted dashboard context should NOT be loaded
         mock_get_dashboard_filters.assert_not_called()
 
         # VALIDATE: extra_filters were parsed and applied
-        assert len(mock_query.filter) == 1
-        assert mock_query.filter[0] == {"col": "state", "op": "==", "val": "CA"}
+        assert mock_query.filter == [{"col": "state", "op": "==", "val": "CA"}]
 
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
 def test_handles_multiple_queries_in_query_context(
-    mock_chart_data_command, mock_get_dashboard_filters
+    mock_chart_data_command: Mock,
+    mock_get_dashboard_filters: Mock,
 ):
     """Verify filters are added to ALL queries in the query context"""
     mock_get_dashboard_filters.return_value = [
@@ -168,13 +218,11 @@ def test_handles_multiple_queries_in_query_context(
         datasource_type="table",
     )
 
-    # Create query context with MULTIPLE queries
     mock_query1 = Mock()
     mock_query1.filter = []
     mock_query2 = Mock()
     mock_query2.filter = []
-    mock_qc = Mock()
-    mock_qc.queries = [mock_query1, mock_query2]
+    mock_qc = Mock(queries=[mock_query1, mock_query2])
 
     with patch.object(chart, "get_query_context", return_value=mock_qc):
         mock_chart_data_command.return_value.run.return_value = {
@@ -187,19 +235,17 @@ def test_handles_multiple_queries_in_query_context(
         ChartWarmUpCacheCommand(chart, 42, None).run()
 
         # VALIDATE: Filters added to BOTH queries
-        assert len(mock_query1.filter) == 1, "Filter should be added to query 1"
-        assert len(mock_query2.filter) == 1, "Filter should be added to query 2"
-        assert mock_query1.filter[0]["col"] == "country"
-        assert mock_query2.filter[0]["col"] == "country"
+        assert mock_query1.filter == [{"col": "country", "op": "==", "val": "USA"}]
+        assert mock_query2.filter == [{"col": "country", "op": "==", "val": "USA"}]
 
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
 def test_handles_empty_dashboard_filters(
-    mock_chart_data_command, mock_get_dashboard_filters
+    mock_chart_data_command: Mock,
+    mock_get_dashboard_filters: Mock,
 ):
     """Verify graceful handling when dashboard has no filters configured"""
-    # get_dashboard_extra_filters returns empty list
     mock_get_dashboard_filters.return_value = []
 
     chart = Slice(
@@ -226,9 +272,7 @@ def test_handles_empty_dashboard_filters(
         assert len(mock_query.filter) == 0, (
             "No filters should be added when dashboard has no filters"
         )
-        assert mock_get_dashboard_filters.called, (
-            "Should still call get_dashboard_extra_filters"
-        )
+        assert mock_get_dashboard_filters.called, "Should still load dashboard filters"
 
 
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")

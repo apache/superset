@@ -92,29 +92,30 @@ def _is_filter_in_scope_for_chart(
     if chart_id in excluded:
         return False
 
-    if chart_layout_item := _find_chart_layout_item(chart_id, position_json):
-        parents: list[str] = chart_layout_item.get("parents", [])
-        return any(parent in root_path for parent in parents)
+    if chart_layout_items := _find_chart_layout_items(chart_id, position_json):
+        return any(
+            parent in root_path
+            for chart_layout_item in chart_layout_items
+            for parent in chart_layout_item.get("parents", [])
+        )
 
     # If the chart doesn't exist in the dashboard layout, treat it as a
     # root-level chart.
     return "ROOT_ID" in root_path
 
 
-def _find_chart_layout_item(
+def _find_chart_layout_items(
     chart_id: int,
     position_json: dict[str, Any],
-) -> dict[str, Any] | None:
-    """Find the layout item for a chart in the dashboard position JSON."""
-    for item in position_json.values():
-        if not isinstance(item, dict):
-            continue
-        if (
-            item.get("type") == CHART_TYPE
-            and item.get("meta", {}).get("chartId") == chart_id
-        ):
-            return item
-    return None
+) -> list[dict[str, Any]]:
+    """Find every layout item for a chart in the dashboard position JSON."""
+    return [
+        item
+        for item in position_json.values()
+        if isinstance(item, dict)
+        and item.get("type") == CHART_TYPE
+        and item.get("meta", {}).get("chartId") == chart_id
+    ]
 
 
 def _merge_extra_form_data(
@@ -266,40 +267,19 @@ def _check_dashboard_access(dashboard: Dashboard) -> None:
     security_manager.raise_for_access(dashboard=dashboard)
 
 
-def get_dashboard_filter_context(
-    dashboard_id: int,
+def build_dashboard_filter_context(
+    dashboard: Dashboard,
     chart_id: int,
     *,
     active_data_mask: dict[str, Any] | None = None,
 ) -> DashboardFilterContext:
     """
-    Build a DashboardFilterContext for a chart on a dashboard.
+    Build filter context from an already-loaded dashboard.
 
-    Loads the dashboard's native filter configuration, determines which
-    filters are in scope for the given chart, resolves each filter's value,
-    and returns the merged extra_form_data along with metadata about each filter.
-
-    When ``active_data_mask`` is provided (e.g. the live filter state from a
-    dashboard view), each in-scope filter present in the mask uses its active
-    ``extraFormData`` instead of the saved default; an empty active value means
-    the filter was cleared. Filters absent from the mask fall back to their
-    saved defaults, so omitting ``active_data_mask`` reproduces the dashboard's
-    initial-load behavior.
-
-    :param dashboard_id: The ID of the dashboard
-    :param chart_id: The ID of the chart
-    :param active_data_mask: Optional live filter state keyed by native filter id
-    :returns: DashboardFilterContext with merged extra_form_data and filter metadata
-    :raises ValueError: if dashboard not found or chart not on dashboard
-    :raises SupersetSecurityException: if the user cannot access the dashboard
+    This helper intentionally does not perform an access check. Callers that expose
+    dashboard data must validate access before invoking it; callers such as cache
+    warming already operate on dashboard metadata loaded by their existing path.
     """
-    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
-    if not dashboard:
-        raise ValueError(
-            _("Dashboard %(dashboard_id)s not found", dashboard_id=dashboard_id)
-        )
-
-    _check_dashboard_access(dashboard)
     _validate_chart_on_dashboard(dashboard, chart_id)
 
     metadata = json.loads(dashboard.json_metadata or "{}")
@@ -339,6 +319,47 @@ def get_dashboard_filter_context(
         )
 
     return context
+
+
+def get_dashboard_filter_context(
+    dashboard_id: int,
+    chart_id: int,
+    *,
+    active_data_mask: dict[str, Any] | None = None,
+) -> DashboardFilterContext:
+    """
+    Build a DashboardFilterContext for a chart on a dashboard.
+
+    Loads the dashboard's native filter configuration, determines which
+    filters are in scope for the given chart, resolves each filter's value,
+    and returns the merged extra_form_data along with metadata about each filter.
+
+    When ``active_data_mask`` is provided (e.g. the live filter state from a
+    dashboard view), each in-scope filter present in the mask uses its active
+    ``extraFormData`` instead of the saved default; an empty active value means
+    the filter was cleared. Filters absent from the mask fall back to their
+    saved defaults, so omitting ``active_data_mask`` reproduces the dashboard's
+    initial-load behavior.
+
+    :param dashboard_id: The ID of the dashboard
+    :param chart_id: The ID of the chart
+    :param active_data_mask: Optional live filter state keyed by native filter id
+    :returns: DashboardFilterContext with merged extra_form_data and filter metadata
+    :raises ValueError: if dashboard not found or chart not on dashboard
+    :raises SupersetSecurityException: if the user cannot access the dashboard
+    """
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+    if not dashboard:
+        raise ValueError(
+            _("Dashboard %(dashboard_id)s not found", dashboard_id=dashboard_id)
+        )
+
+    _check_dashboard_access(dashboard)
+    return build_dashboard_filter_context(
+        dashboard,
+        chart_id,
+        active_data_mask=active_data_mask,
+    )
 
 
 def apply_dashboard_filter_context(  # noqa: C901

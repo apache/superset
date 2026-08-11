@@ -37,6 +37,9 @@ from flask_babel import _
 from werkzeug.exceptions import BadRequest
 
 from superset import appbuilder, dataframe, db, result_set
+from superset.charts.data.dashboard_filter_context import (
+    build_dashboard_filter_context,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import (
     SerializationError,
@@ -502,11 +505,19 @@ def get_dashboard_extra_filters(
         return []
 
     with contextlib.suppress(json.JSONDecodeError):
-        # does this dashboard have default filters?
         json_metadata = json.loads(dashboard.json_metadata)
+        native_context = build_dashboard_filter_context(dashboard, slice_id)
+        native_filters = [
+            flt
+            for flt in native_context.extra_form_data.get("filters", [])
+            if isinstance(flt, dict)
+        ]
+
+        # Legacy Filter Box defaults and native filter defaults are applied
+        # independently by the frontend, so preserve both in the same order.
         default_filters = json.loads(json_metadata.get("default_filters", "null"))
         if not default_filters:
-            return []
+            return native_filters
 
         # are default filters applicable to the given slice?
         filter_scopes = json_metadata.get("filter_scopes", {})
@@ -517,7 +528,11 @@ def get_dashboard_extra_filters(
             and isinstance(filter_scopes, dict)
             and isinstance(default_filters, dict)
         ):
-            return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
+            legacy_filters = build_extra_filters(
+                layout, filter_scopes, default_filters, slice_id
+            )
+            return [*legacy_filters, *native_filters]
+        return native_filters
     return []
 
 
@@ -568,7 +583,7 @@ def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-bloc
                     extra_filters.append(
                         {
                             "col": col,
-                            "op": "in" if isinstance(val, list) else "==",
+                            "op": "IN" if isinstance(val, list) else "==",
                             "val": val,
                         }
                     )

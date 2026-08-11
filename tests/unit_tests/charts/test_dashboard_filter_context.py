@@ -23,7 +23,7 @@ import pytest
 
 from superset.charts.data.dashboard_filter_context import (
     _extract_filter_extra_form_data,
-    _find_chart_layout_item,
+    _find_chart_layout_items,
     _is_filter_in_scope_for_chart,
     _merge_extra_form_data,
     _validate_chart_on_dashboard,
@@ -111,25 +111,23 @@ def _make_filter(
     return flt
 
 
-# --- _find_chart_layout_item ---
+# --- _find_chart_layout_items ---
 
 
-def test_find_chart_layout_item_found() -> None:
-    result = _find_chart_layout_item(10, SAMPLE_POSITION_JSON)
-    assert result is not None
-    assert result["id"] == "CHART-xyz"
-    assert result["meta"]["chartId"] == 10
+def test_find_chart_layout_items_found() -> None:
+    result = _find_chart_layout_items(10, SAMPLE_POSITION_JSON)
+    assert len(result) == 1
+    assert result[0]["id"] == "CHART-xyz"
+    assert result[0]["meta"]["chartId"] == 10
 
 
-def test_find_chart_layout_item_not_found() -> None:
-    result = _find_chart_layout_item(999, SAMPLE_POSITION_JSON)
-    assert result is None
+def test_find_chart_layout_items_not_found() -> None:
+    assert _find_chart_layout_items(999, SAMPLE_POSITION_JSON) == []
 
 
-def test_find_chart_layout_item_skips_non_dict_entries() -> None:
+def test_find_chart_layout_items_skips_non_dict_entries() -> None:
     position = {**SAMPLE_POSITION_JSON, "DASHBOARD_VERSION_KEY": "v2"}
-    result = _find_chart_layout_item(10, position)
-    assert result is not None
+    assert len(_find_chart_layout_items(10, position)) == 1
 
 
 # --- _is_filter_in_scope_for_chart ---
@@ -163,6 +161,35 @@ def test_filter_in_scope_ignores_empty_charts_in_scope() -> None:
 def test_filter_in_scope_via_root_path() -> None:
     flt = _make_filter(scope_root=["ROOT_ID"])
     assert _is_filter_in_scope_for_chart(flt, 10, SAMPLE_POSITION_JSON) is True
+
+
+@pytest.mark.parametrize("reverse_layout", [False, True])
+def test_filter_in_scope_when_any_duplicate_layout_item_matches(
+    reverse_layout: bool,
+) -> None:
+    flt = _make_filter(scope_root=["TAB-in-scope"])
+    items = [
+        (
+            "CHART-out-of-scope",
+            {
+                "type": "CHART",
+                "meta": {"chartId": 10},
+                "parents": ["ROOT_ID", "TAB-out-of-scope"],
+            },
+        ),
+        (
+            "CHART-in-scope",
+            {
+                "type": "CHART",
+                "meta": {"chartId": 10},
+                "parents": ["ROOT_ID", "TAB-in-scope"],
+            },
+        ),
+    ]
+    if reverse_layout:
+        items.reverse()
+
+    assert _is_filter_in_scope_for_chart(flt, 10, dict(items)) is True
 
 
 def test_filter_excluded_from_scope() -> None:
@@ -249,7 +276,7 @@ def test_extract_default_to_first_item_overrides_static_default() -> None:
 
 
 def test_extract_filter_state_value_but_no_extra_form_data() -> None:
-    """Edge case: filterState.value set but extraFormData not persisted."""
+    """A value alone is insufficient to rebuild plugin-specific filter data."""
     flt = _make_filter()
     flt["defaultDataMask"] = {"filterState": {"value": ["US"]}}
     extra_form_data, status = _extract_filter_extra_form_data(flt)
@@ -369,6 +396,24 @@ def test_get_dashboard_filter_context_dashboard_not_found(
     ) = None
     with pytest.raises(ValueError, match="not found"):
         get_dashboard_filter_context(dashboard_id=999, chart_id=10)
+
+
+@patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")
+@patch("superset.charts.data.dashboard_filter_context.db")
+def test_get_dashboard_filter_context_checks_access_before_building(
+    mock_db: MagicMock,
+    mock_check_access: MagicMock,
+) -> None:
+    dashboard = MagicMock()
+    (
+        mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value
+    ) = dashboard
+    mock_check_access.side_effect = RuntimeError("access denied")
+
+    with pytest.raises(RuntimeError, match="access denied"):
+        get_dashboard_filter_context(dashboard_id=42, chart_id=10)
+
+    mock_check_access.assert_called_once_with(dashboard)
 
 
 @patch("superset.charts.data.dashboard_filter_context._check_dashboard_access")

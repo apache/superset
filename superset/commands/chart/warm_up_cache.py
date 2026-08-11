@@ -46,7 +46,7 @@ class ChartWarmUpCacheCommand(BaseCommand):
         self._extra_filters = extra_filters
 
     def _get_dashboard_filters(self, chart_id: int) -> list[dict[str, Any]]:
-        """Retrieve dashboard filters from extra_filters or dashboard metadata."""
+        """Retrieve dashboard filters from explicit or persisted defaults."""
         if not self._dashboard_id:
             return []
 
@@ -65,12 +65,12 @@ class ChartWarmUpCacheCommand(BaseCommand):
                 "Explore once (or re-save it) to generate it."
             )
 
-        # Apply dashboard filters if dashboard_id is provided
         if dashboard_filters := self._get_dashboard_filters(chart.id):
             for query in query_context.queries:
-                query.filter.extend(
-                    cast(list[QueryObjectFilterClause], dashboard_filters)
-                )
+                query.filter = [
+                    *cast(list[QueryObjectFilterClause], dashboard_filters),
+                    *query.filter,
+                ]
 
         query_context.force = True
         command = ChartDataCommand(query_context)
