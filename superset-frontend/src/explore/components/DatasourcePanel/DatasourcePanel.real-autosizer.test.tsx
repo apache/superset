@@ -30,14 +30,14 @@ import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelect
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 
 /**
- * The rest of this test file mocks react-virtualized-auto-sizer to a fixed
+ * DatasourcePanel.test.tsx mocks react-virtualized-auto-sizer to a fixed
  * height, which bypasses react-window's own size self-measurement path
  * entirely. This test instead drives a real ResizeObserver callback so the
  * panel renders through the same AutoSizer -> react-window List pipeline
  * the browser uses, to guard against regressions like
  * https://github.com/apache/superset/issues/43008.
  */
-class FakeResizeObserver implements ResizeObserver {
+class FakeResizeObserver {
   callback: ResizeObserverCallback;
 
   constructor(callback: ResizeObserverCallback) {
