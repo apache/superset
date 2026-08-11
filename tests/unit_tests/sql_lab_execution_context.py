@@ -126,3 +126,24 @@ def test_set_database_rejects_ctas_when_database_disallows_it(query_params):
     assert (
         exc_info.value.error.error_type == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
     )
+
+
+def test_set_database_rejects_cvas_when_database_disallows_it(query_params):
+    """
+    ``allow_cvas`` must be enforced server-side at submission, mirroring the
+    ``allow_ctas``/VIEW branch of ``_validate_ctas_is_allowed``.
+    """
+    query_params["select_as_cta"] = True
+    query_params["ctas_method"] = "VIEW"
+    query_params["tmp_table_name"] = "tmp_target"
+    context = SqlJsonExecutionContext(query_params)
+
+    database = MagicMock()
+    database.allow_cvas = False
+
+    with pytest.raises(SupersetErrorException) as exc_info:
+        context.set_database(database)
+
+    assert (
+        exc_info.value.error.error_type == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
+    )
