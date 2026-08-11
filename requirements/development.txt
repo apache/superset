@@ -182,7 +182,7 @@ croniter==6.2.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-cryptography==49.0.0
+cryptography==50.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -363,7 +363,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.42.2
+google-cloud-bigquery==3.43.0
     # via
     #   apache-superset
     #   pandas-gbq
@@ -408,7 +408,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.100
+holidays==0.102
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -521,7 +521,7 @@ mako==1.3.12
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
-markdown==3.10.2
+markdown==3.10.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -581,7 +581,7 @@ nh3==0.3.6
     #   apache-superset
 nodeenv==1.8.0
     # via pre-commit
-numpy==1.26.4
+numpy==2.4.6
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -776,7 +776,7 @@ pygments==2.20.0
     #   rich
 pyhive==0.7.0
     # via apache-superset
-pyinstrument==5.1.2
+pyinstrument==5.1.3
     # via apache-superset
 pyjwt==2.13.0
     # via
@@ -791,7 +791,7 @@ pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   paramiko
-pyopenssl==26.3.0
+pyopenssl==26.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   google-auth
@@ -874,7 +874,7 @@ pyyaml==6.0.3
     #   fastmcp-slim
     #   jsonschema-path
     #   pre-commit
-redis==8.0.1
+redis==8.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -948,7 +948,7 @@ setuptools==80.9.0
     #   pydata-google-auth
     #   zope-event
     #   zope-interface
-shillelagh==1.4.4
+shillelagh==1.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
