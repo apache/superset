@@ -343,6 +343,20 @@ test('keeps the chart mounted after it has entered view (latch)', () => {
   expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
 });
 
+test('renders eagerly when the browser has no IntersectionObserver support', () => {
+  enableVirtualization();
+  delete (window as any).IntersectionObserver;
+
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
+
+  // No way to detect visibility - fall back to rendering immediately rather
+  // than leaving the cell stuck on its placeholder forever.
+  expect(screen.getByText('SuperChart Mock')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('matrixify-cell-placeholder'),
+  ).not.toBeInTheDocument();
+});
+
 test('renders every cell eagerly during headless capture even with virtualization on', () => {
   enableVirtualization();
   setHeadlessCapture(true);
