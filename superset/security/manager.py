@@ -1321,6 +1321,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
+        "RlsEnforcementEvidence",
         "Security",
         "SQL Lab",
         "User Registrations",
@@ -1479,6 +1480,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "List Roles",
         "Row Level Security",
         "Row Level Security Filters",
+        "RlsEnforcementEvidence",
         "Access Requests",
         "Action Log",
         "Manage",
@@ -4365,6 +4367,31 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]
         return []
 
+    def get_global_guest_rls_filters_str(
+        self, guest_user: Optional["GuestUser"] = None
+    ) -> list[str]:
+        """
+        Return the clauses of the current (or given) guest's global RLS rules.
+
+        Global (unscoped) guest rules carry no ``dataset`` and therefore apply to
+        every table the guest queries. They are collected here so the ad-hoc
+        chart path can inject them exactly once — that path renders for guests
+        but does not go through the dataset-scoped ``get_guest_rls_filters``
+        outer-WHERE application, so without this the global rule is dropped.
+
+        :param guest_user: The guest identity to read rules from. Defaults to the
+            current request's guest identity, if any.
+        :return: A list of SQL clause strings (empty for non-guest identities).
+        """
+        guest_user = guest_user or self.get_current_guest_user_if_guest()
+        if not guest_user:
+            return []
+        return [
+            rule["clause"]
+            for rule in guest_user.rls
+            if not rule.get("dataset") and rule.get("clause")
+        ]
+
     def get_rls_filters(self, table: "BaseDatasource | Explorable") -> list[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
@@ -4559,15 +4586,35 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ) -> list[str]:
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
+    def _rls_identity_handle(self) -> str:
+        """Distinguishing token for the acting identity.
+
+        Row-level-security resolution depends on *who* is asking: a guest's own
+        rules travel on its token, while a regular user's rules follow from its
+        roles. Folding that into the cache key keeps one identity's row-filtered
+        result from ever being served to another — including a guest presenting a
+        different rule set, which must key differently even under the same
+        username.
+        """
+        guest_user = self.get_current_guest_user_if_guest()
+        if guest_user is not None:
+            username = getattr(guest_user, "username", None)
+            return f"guest:{username}:{guest_user.rls!r}"
+        return f"user:{get_user_id()}"
+
     def get_rls_cache_key(self, datasource: "Explorable | BaseDatasource") -> list[str]:
-        rls_clauses_with_group_key = []
-        if datasource.is_rls_supported:
-            rls_clauses_with_group_key = [
-                f"{f.clause}-{f.group_key or ''}"
-                for f in self.get_rls_sorted(datasource)
-            ]
+        # Regular-user clauses are keyed for every datasource kind. ``Query``
+        # datasources report ``is_rls_supported = False`` yet are still
+        # row-filtered on the ad-hoc chart path, so gating on that flag would
+        # drop their clauses from the key.
+        rls_clauses_with_group_key = [
+            f"{f.clause}-{f.group_key or ''}"
+            for f in self.get_rls_sorted(datasource)
+        ]
         guest_rls = self.get_guest_rls_filters_str(datasource)
-        return guest_rls + rls_clauses_with_group_key
+        # Prefix the identity so two distinct identities never collide on a key,
+        # regardless of whether their resolved clause text happens to match.
+        return [self._rls_identity_handle()] + guest_rls + rls_clauses_with_group_key
 
     @staticmethod
     def _get_current_epoch_time() -> float:

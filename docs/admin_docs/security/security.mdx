@@ -565,6 +565,41 @@ the physical datasets referenced in the virtual dataset's SQL, since their RLS f
 are applied at query time too.
 :::
 
+#### Defense in Depth: Database-Native Row Access Policies
+
+Superset's Row Level Security filters are the **primary** row-access control for data
+accessed through Superset: they are enforced in the application layer, injected into every
+query Superset generates for a governed dataset. For an additional, independent layer of
+protection, many databases can also enforce row-level access **inside the database itself**,
+using the credentials of the connecting principal. Configuring both gives you
+**defense in depth** — even a query that reaches the database outside of Superset's RLS path
+is still constrained by the engine's own policy.
+
+Database-native policies are a **complement to**, not a replacement for, Superset's RLS. They
+are most effective when Superset connects with per-user or per-role database credentials so the
+engine can evaluate the policy against the actual end user. When Superset connects with a single
+shared service account, engine-side policies apply uniformly to that account and cannot
+distinguish individual Superset users — in that common deployment, Superset's RLS remains the
+control that scopes rows per user, role, or group.
+
+Keep the intent of your Superset RLS clauses and your database policies aligned so the two
+layers do not contradict each other. Refer to your engine's documentation for the exact syntax
+and privileges required:
+
+- **PostgreSQL** — enable row security on a table with `ALTER TABLE ... ENABLE ROW LEVEL
+  SECURITY` and define per-role predicates with
+  [`CREATE POLICY`](https://www.postgresql.org/docs/current/ddl-rowsecurity.html).
+- **Snowflake** —
+  [`CREATE ROW ACCESS POLICY`](https://docs.snowflake.com/en/user-guide/security-row-intro)
+  attached to a table or view, evaluated against the current role or session context.
+- **BigQuery** —
+  [row-level security](https://cloud.google.com/bigquery/docs/row-level-security-intro)
+  defined with `CREATE ROW ACCESS POLICY` on a table, filtering rows by the querying identity.
+
+Most other engines that Superset connects to offer an equivalent feature (for example, views
+that filter on a session user function, or vendor-specific row access policies); consult the
+relevant database's documentation.
+
 ### User Sessions
 
 Superset uses [Flask](https://pypi.org/project/Flask/)

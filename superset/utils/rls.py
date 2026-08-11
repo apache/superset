@@ -17,16 +17,38 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
+from flask import g, has_app_context
 from sqlalchemy import and_, or_
 
 from superset import db
-from superset.sql.parse import Table
+from superset.sql.parse import SQLStatement, Table
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.security.guest_token import GuestUser
     from superset.sql.parse import BaseSQLStatement
+
+# Attribute on ``flask.g`` holding the per-request RLS predicate-resolution
+# cache. A dashboard rendering many tiles over the same governed table resolves
+# predicates once per identity instead of once per tile (NFR-5).
+_RLS_REQUEST_CACHE_ATTR = "_rls_query_predicate_cache"
+
+
+class RLSUnresolvableError(Exception):
+    """Predicate injection cannot be done safely and deterministically.
+
+    Raised by the rewrite path when a governed query's RLS predicates cannot be
+    resolved to an unambiguous injection target. Carries the fail-closed
+    ``denial_class`` so the enforcement gate can convert it into an explicit
+    DENIED decision rather than letting a raw exception bubble out or, worse,
+    emitting an unfiltered render (FR-3).
+    """
+
+    def __init__(self, denial_class: str, message: str | None = None):
+        self.denial_class = denial_class
+        super().__init__(message or denial_class)
 
 
 def apply_rls(
@@ -184,3 +206,137 @@ def collect_rls_predicates_for_sql(
         # If we can't parse the SQL, return empty list
         # This ensures RLS application failure doesn't break caching
         return []
+
+
+def get_global_guest_rls_predicates(identity: Optional[GuestUser]) -> list[str]:
+    """Global (unscoped) guest RLS clauses that apply to every referenced table.
+
+    ``get_predicates_for_table`` deliberately excludes global guest RLS (via
+    ``get_sqla_row_level_filters(include_global_guest_rls=False)``) so a virtual
+    dataset does not double-apply it: the virtual dataset re-applies it on its
+    outer WHERE. The ad-hoc chart path has no such outer WHERE, so the global
+    rule would be dropped entirely and the guest render would leak. This returns
+    those clauses so the rewriter can inject them exactly once.
+
+    Only rules carrying no ``dataset`` are global; dataset-scoped rules stay with
+    the per-table resolver. Returns ``[]`` for a non-guest identity.
+    """
+    if identity is None:
+        return []
+    from superset import security_manager
+
+    return security_manager.get_global_guest_rls_filters_str(identity)
+
+
+def _identity_handle(identity: Optional[GuestUser]) -> Any:
+    """Opaque, hashable handle that partitions the request cache per identity.
+
+    Predicate resolution depends on the acting identity (a guest's own RLS
+    rules, or a regular user's roles). The handle folds in whatever drives that
+    resolution so cached predicates are never shared across identities (NFR-4).
+    """
+    if identity is not None:
+        # A guest carries its RLS rules on the token; different rule sets must
+        # key differently even for the same username.
+        return ("guest", getattr(identity, "username", None), repr(identity.rls))
+
+    # Regular/anonymous users: resolution follows the current user's roles, so
+    # key on the current user id (None for anonymous).
+    from superset.utils.core import get_user_id
+
+    user_id = get_user_id() if has_app_context() else None
+    return ("user", user_id)
+
+
+def _request_cache() -> Optional[dict[Any, list[str]]]:
+    """Return the request-scoped predicate cache, or ``None`` outside a request."""
+    if not has_app_context():
+        return None
+    cache = getattr(g, _RLS_REQUEST_CACHE_ATTR, None)
+    if cache is None:
+        cache = {}
+        setattr(g, _RLS_REQUEST_CACHE_ATTR, cache)
+    return cache
+
+
+def clear_rls_request_cache() -> None:
+    """Drop the request-scoped predicate cache (used by tests and teardown)."""
+    if has_app_context() and hasattr(g, _RLS_REQUEST_CACHE_ATTR):
+        delattr(g, _RLS_REQUEST_CACHE_ATTR)
+
+
+def rewrite_sql_for_query(
+    database: Database,
+    catalog: str | None,
+    schema: str,
+    sql: str,
+    identity: Optional[GuestUser],
+) -> tuple[str, int]:
+    """Inject RLS predicates into an ad-hoc ``Query`` SQL string.
+
+    Mirrors the SQL-Lab mechanism exactly: parse once, resolve predicates per
+    referenced table via :func:`get_predicates_for_table`, and rewrite in place
+    with :meth:`BaseSQLStatement.apply_rls`. The statement is only re-emitted
+    when a predicate was actually applied, so a query with no applicable rule is
+    returned byte-identical (FR-4) and never round-tripped through the parser.
+
+    Predicate resolution is memoized per request keyed on
+    ``(identity_handle, database_id, catalog, schema, frozenset(tables))`` so a
+    dashboard's repeated renders over the same governed table resolve once. The
+    cache is identity-partitioned and never bleeds predicates across identities.
+
+    :returns: ``(sql, applied_filter_count)`` — the (possibly rewritten) SQL and
+        the number of predicate strings injected.
+    """
+    # Single parser pass: the statement is constructed exactly once and reused
+    # for both table enumeration (cache key) and the in-place rewrite.
+    statement = SQLStatement(sql, engine=database.db_engine_spec.engine)
+    tables = {
+        table.qualify(catalog=catalog, schema=schema)
+        for table in statement.tables
+    }
+
+    cache_key = (
+        _identity_handle(identity),
+        database.id,
+        catalog,
+        schema,
+        frozenset(tables),
+    )
+    cache = _request_cache()
+    predicates_by_table: Optional[dict[Table, list[str]]] = None
+    if cache is not None and cache_key in cache:
+        predicates_by_table = cache[cache_key]
+
+    if predicates_by_table is None:
+        default_catalog = database.get_default_catalog()
+        # Per-table resolution, preserving the table→predicate association so a
+        # multi-table query applies each table's own rules (no cross-apply).
+        predicates_by_table = {
+            table: get_predicates_for_table(table, database, default_catalog)
+            for table in tables
+        }
+        # Global (unscoped) guest RLS is excluded by get_predicates_for_table
+        # (it is re-applied on a virtual dataset's outer WHERE). This path has no
+        # such outer WHERE, so inject the guest's global rules here — on every
+        # referenced table, exactly once. Skip any clause a table already
+        # resolved to avoid double-application.
+        global_guest_predicates = get_global_guest_rls_predicates(identity)
+        if global_guest_predicates:
+            for preds in predicates_by_table.values():
+                preds.extend(p for p in global_guest_predicates if p not in preds)
+        if cache is not None:
+            cache[cache_key] = predicates_by_table
+
+    applied_count = sum(len(preds) for preds in predicates_by_table.values())
+    if not applied_count:
+        # No applicable rule: SQL returned byte-identical, no re-parse round-trip.
+        return sql, 0
+
+    parsed_predicates = {
+        table: [statement.parse_predicate(p) for p in preds if p]
+        for table, preds in predicates_by_table.items()
+    }
+    method = database.db_engine_spec.get_rls_method()
+    statement.apply_rls(catalog, schema, parsed_predicates, method)
+    return statement.format(), applied_count

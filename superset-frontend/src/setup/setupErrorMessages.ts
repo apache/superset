@@ -27,6 +27,7 @@ import {
   InvalidSQLErrorMessage,
   OAuth2RedirectMessage,
   FrontendNetworkErrorMessage,
+  RowLevelSecurityErrorMessage,
 } from 'src/components';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
@@ -169,6 +170,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.RESULT_TOO_LARGE_ERROR,
     DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.ROW_LEVEL_SECURITY_UNRESOLVABLE,
+    RowLevelSecurityErrorMessage,
   );
   setupErrorMessagesExtra();
 }

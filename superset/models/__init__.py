@@ -18,6 +18,7 @@ from . import (  # noqa: F401
     core,
     dynamic_plugins,
     purge_audit_log,
+    rls_evidence,
     sql_lab,
     user_attributes,
 )

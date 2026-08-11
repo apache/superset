@@ -193,6 +193,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             SecurityRestApi,
             UserRegistrationsRestAPI,
         )
+        from superset.security.rls_evidence_api import RlsEnforcementEvidenceRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.subjects.api import SubjectRestApi
@@ -279,6 +280,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
+        appbuilder.add_api(RlsEnforcementEvidenceRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
             from superset.semantic_layers.api import (

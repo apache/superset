@@ -2922,6 +2922,14 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 # version 0, so nothing is revoked until an admin explicitly bumps the version.
 GUEST_TOKEN_REVOCATION_ENABLED = False
 
+# Enables the tamper-evidence hash chain on row-level-security enforcement
+# evidence rows. When True, each evidence row carries a hash computed over its
+# own content plus the prior row's hash, so any later alteration or deletion of a
+# row breaks the chain and is detectable. When False (the default), the chain
+# columns stay null and evidence-writing behavior is otherwise unchanged. This is
+# a pure audit-integrity feature; it never affects an enforcement outcome.
+RLS_EVIDENCE_HASH_CHAIN_ENABLED = False
+
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,
 #

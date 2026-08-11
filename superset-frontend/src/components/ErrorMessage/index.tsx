@@ -28,6 +28,7 @@ export { IssueCode } from './IssueCode';
 export { MarshmallowErrorMessage } from './MarshmallowErrorMessage';
 export { OAuth2RedirectMessage } from './OAuth2RedirectMessage';
 export { ParameterErrorMessage } from './ParameterErrorMessage';
+export { RowLevelSecurityErrorMessage } from './RowLevelSecurityErrorMessage';
 export { TimeoutErrorMessage } from './TimeoutErrorMessage';
 
 export type { ErrorAlertProps, ErrorMessageComponentProps } from './types';

@@ -825,18 +825,25 @@ def test_rls_filter_doesnt_alter_admin_birth_names_query():
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")
 def test_get_rls_cache_key():
-    g.user = _get_user(username="admin")
+    admin = _get_user(username="admin")
+    g.user = admin
     tbl = _get_table(name="birth_names")
-    clauses = security_manager.get_rls_cache_key(tbl)
-    assert clauses == []
+    admin_key = security_manager.get_rls_cache_key(tbl)
+    # The key is partitioned by identity so two identities can never collide.
+    assert admin_key == [f"user:{admin.id}"]
 
-    g.user = _get_user(username="gamma")
-    clauses = security_manager.get_rls_cache_key(tbl)
-    assert clauses == [
+    gamma = _get_user(username="gamma")
+    g.user = gamma
+    gamma_key = security_manager.get_rls_cache_key(tbl)
+    assert gamma_key == [
+        f"user:{gamma.id}",
         "name like 'A%' or name like 'B%'-name",
         "name like 'Q%'-name",
         "gender = 'boy'-gender",
     ]
+    # Different identities never share a key even when clauses would otherwise
+    # match.
+    assert admin_key != gamma_key
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")

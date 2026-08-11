@@ -111,6 +111,11 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
+from superset.security.rls_enforcement import (
+    DENIAL_MESSAGE,
+    enforce,
+    EnforcementOutcome,
+)
 from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
@@ -1314,9 +1319,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
         include_global_guest_rls: bool = True,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
-        # TODO: We should refactor this mixin and remove this method
-        # as it exists in the BaseDatasource and is not applicable
-        # for datasources of type query
+        # Ad-hoc ``Query`` datasources carry no SqlaTable-style outer-WHERE
+        # filters: their RLS is enforced by rewriting the ad-hoc SQL itself in
+        # the enforcement gate (see security/rls_enforcement.py, which drives
+        # utils/rls.apply_rls over the referenced tables). Returning [] here is
+        # therefore correct — the predicates are injected into the SQL, not
+        # appended as clauses — and no longer means "silently unfiltered".
         return []
 
     def _resolve_denylist_schema(self, sql: str) -> Optional[str]:
@@ -1527,6 +1535,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             is_virtual=bool(self.sql),
         )
         sql = self._apply_cte(sql, sqlaq.cte)
+
+        # Route every datasource render through the single enforcement gate.
+        from superset import security_manager
+
+        identity = security_manager.get_current_guest_user_if_guest()
+        decision = enforce(self, sql, identity, "get_query_str_extended")
+        if decision.outcome is EnforcementOutcome.DENIED:
+            # The client receives only the fixed, non-disclosive copy (FR-11 /
+            # NFR-2). The sensitive denial_class stays server-side for the audit
+            # trail / F5 evidence sink; it is never placed in the client message.
+            logger.warning(
+                "RLS enforcement denied render (denial_class=%s)",
+                decision.denial_class,
+            )
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.ROW_LEVEL_SECURITY_UNRESOLVABLE,
+                    message=str(DENIAL_MESSAGE),
+                    level=ErrorLevel.ERROR,
+                )
+            )
+        sql = decision.sql
 
         if mutate:
             sql = self.database.mutate_sql_based_on_config(sql)
@@ -2898,9 +2928,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if rls_applied:
                     from_sql = parsed_script.format()
 
+            except SupersetSecurityException:
+                # A security denial raised inside the try (e.g. a downstream
+                # fail-closed check) is already the right thing: let it
+                # propagate unchanged rather than re-wrapping / double-logging.
+                raise
+            except QueryObjectValidationError:
+                # Structural validation errors are surfaced as-is (matches the
+                # read-only / empty / multi-statement guards above).
+                raise
             except Exception as ex:
-                # Log the error but don't fail - RLS application is best-effort
+                # FAIL-CLOSED (FR-001 / ISSUE-002): applying a governed virtual
+                # dataset's inner-SQL RLS failed. The gate returns NOOP for
+                # SqlaTable (trusting this injection), so swallowing here would
+                # render ALL rows -- an RLS bypass. Deny instead. The detail is
+                # logged SERVER-SIDE only (ops/evidence); the client message is
+                # the fixed, non-disclosive DENIAL_MESSAGE -- no table names,
+                # SQL, or exception text leak into the payload.
                 logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.ROW_LEVEL_SECURITY_UNRESOLVABLE,
+                        message=str(DENIAL_MESSAGE),
+                        level=ErrorLevel.ERROR,
+                    )
+                ) from ex
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (

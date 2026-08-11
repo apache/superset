@@ -98,6 +98,12 @@ export interface ChartDataResponseResult {
    */
   detected_currency?: string | null;
   /**
+   * Row-level security enforcement summary for the query, if any rules applied.
+   */
+  rls_enforcement?: {
+    row_filters_active?: boolean;
+  };
+  /**
    * Versioned query lifecycle timing in milliseconds.
    */
   timing?: ChartDataTiming;

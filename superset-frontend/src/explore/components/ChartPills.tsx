@@ -25,6 +25,7 @@ import {
   Timer,
 } from '@superset-ui/core/components';
 import RowCountLabel from 'src/components/RowCountLabel';
+import RlsActiveBadge from 'src/components/RlsActiveBadge';
 
 const CHART_STATUS_MAP = {
   failed: 'danger' as LabelType,
@@ -104,6 +105,11 @@ export const ChartPills = forwardRef(
             <CachedLabel
               onClick={refreshCachedQuery}
               cachedTimestamp={firstQueryResponse.cached_dttm}
+            />
+          )}
+          {!isLoading && (
+            <RlsActiveBadge
+              rlsEnforcement={firstQueryResponse?.rls_enforcement}
             />
           )}
           <Timer
