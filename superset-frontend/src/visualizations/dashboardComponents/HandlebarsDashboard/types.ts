@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormData } from '@superset-ui/core';
 
-/*
-  Preset dashboard components (in addition to basic components like row, column, chart, etc...)
- */
+export interface SlotConfig {
+  /** Identifies the slot as a Handlebars partial name and context key. */
+  name: string;
+  formData: QueryFormData;
+  template: string;
+}
 
-import DashboardComponentsRegistry from '../dashboardComponents/DashboardComponentsRegistry';
-import { HandlebarsComponentConfig } from '../dashboardComponents/HandlebarsDashboard';
-
-const dashboardComponents = DashboardComponentsRegistry([
-  HandlebarsComponentConfig,
-]);
-
-export default dashboardComponents;
+export interface SlotResult {
+  data: Record<string, unknown>[];
+  columns: string[];
+}

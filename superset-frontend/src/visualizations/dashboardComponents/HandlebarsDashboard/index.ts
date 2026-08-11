@@ -16,16 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { lazy } from 'react';
 
-/*
-  Preset dashboard components (in addition to basic components like row, column, chart, etc...)
- */
+const HandlebarsDashboard = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "HandlebarsDashboard" */ './HandlebarsDashboard'
+    ),
+);
 
-import DashboardComponentsRegistry from '../dashboardComponents/DashboardComponentsRegistry';
-import { HandlebarsComponentConfig } from '../dashboardComponents/HandlebarsDashboard';
+export const HandlebarsComponentConfig = {
+  key: 'handlebars-dashboard',
+  item: {
+    Component: HandlebarsDashboard,
+    metadata: {
+      name: 'handlebars-dashboard',
+      iconName: 'code',
+    },
+  },
+};
 
-const dashboardComponents = DashboardComponentsRegistry([
-  HandlebarsComponentConfig,
-]);
-
-export default dashboardComponents;
+export default HandlebarsDashboard;

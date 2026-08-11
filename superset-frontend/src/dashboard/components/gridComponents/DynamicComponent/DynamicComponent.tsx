@@ -108,6 +108,9 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
     }),
     shallowEqual,
   );
+  const dashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
 
   return (
     <Draggable
@@ -168,7 +171,10 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
                   </HoverMenu>
                 )}
                 <Suspense fallback={<div>{t('Loading...')}</div>}>
-                  <Component dashboardData={dashboardData} />
+                  <Component
+                    dashboardData={dashboardData}
+                    dashboardId={dashboardId}
+                  />
                 </Suspense>
               </div>
             </ResizableContainer>

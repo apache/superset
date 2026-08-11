@@ -1,0 +1,54 @@
+{
+  "formatNumber": {
+    "signature": "{{formatNumber value}}",
+    "description": "Formats a number with locale commas (e.g. 1234567 → 1,234,567)"
+  },
+  "eq": {
+    "signature": "{{eq a b}}",
+    "description": "Returns true if a === b"
+  },
+  "ne": {
+    "signature": "{{ne a b}}",
+    "description": "Returns true if a !== b"
+  },
+  "gt": {
+    "signature": "{{gt a b}}",
+    "description": "Returns true if a > b"
+  },
+  "gte": {
+    "signature": "{{gte a b}}",
+    "description": "Returns true if a >= b"
+  },
+  "lt": {
+    "signature": "{{lt a b}}",
+    "description": "Returns true if a < b"
+  },
+  "lte": {
+    "signature": "{{lte a b}}",
+    "description": "Returns true if a <= b"
+  },
+  "and": {
+    "signature": "{{and a b}}",
+    "description": "Returns true if all arguments are truthy"
+  },
+  "or": {
+    "signature": "{{or a b}}",
+    "description": "Returns true if any argument is truthy"
+  },
+  "not": {
+    "signature": "{{not a}}",
+    "description": "Returns true if a is falsy"
+  },
+  "add": {
+    "signature": "{{add a b}}",
+    "description": "Returns a + b"
+  },
+  "subtract": {
+    "signature": "{{subtract a b}}",
+    "description": "Returns a - b"
+  },
+  "multiply": {
+    "signature": "{{multiply a b}}",
+    "description": "Returns a * b"
+  }
+}
