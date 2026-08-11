@@ -444,6 +444,17 @@ class SupersetUserApi(UserApi):
 
         UserDAO._sync_subject(item)
 
+        if data.get("password"):
+            # An admin-initiated password change via this endpoint must
+            # invalidate the target account's other outstanding sessions,
+            # the same as the self-service ``/me/`` path and the two
+            # password-reset views.
+            from superset.security.session_invalidation import (
+                invalidate_sessions_for_user,
+            )
+
+            invalidate_sessions_for_user(item.id)
+
     @expose("/", methods=["POST"])
     @protect()
     @safe

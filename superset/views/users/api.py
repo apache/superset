@@ -82,6 +82,13 @@ class CurrentUserRestApi(BaseSupersetApi):
             # A changed password invalidates any other outstanding session
             # for this account.
             invalidate_sessions_for_user(item.id)
+        elif "password" in data:
+            # A falsy value (e.g. an empty string, which the complexity
+            # validator lets through when password complexity is disabled)
+            # skips the block above, but the key must still never reach
+            # ``UserDAO.update``'s ``setattr`` loop -- it would blank out
+            # the account's stored hash.
+            data.pop("password")
 
     @expose("/", methods=("GET",))
     @protect()

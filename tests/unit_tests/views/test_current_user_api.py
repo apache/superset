@@ -138,3 +138,23 @@ def test_update_me_password_change_persists_a_hash_not_plaintext(
     # new password -- not the plaintext value itself.
     assert stored_password != new_password
     assert check_password_hash(stored_password, new_password)
+
+
+def test_update_me_falsy_password_does_not_blank_stored_hash(
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    """A falsy ``password`` (e.g. an empty string, which the schema's
+    complexity validator lets through when password complexity validation is
+    disabled) skips the hashing branch entirely -- ``pre_update`` must still
+    drop the key from ``data`` so it never reaches ``UserDAO.update``'s
+    ``setattr`` loop and blanks the account's stored hash.
+    """
+    original_hash = generate_password_hash("OldPassw0rd!")
+    admin_user.password = original_hash
+
+    _run_update_me(admin_user, {"password": "", "first_name": "Foo"})
+    db.session.flush()
+
+    assert admin_user.password == original_hash
+    assert admin_user.first_name == "Foo"

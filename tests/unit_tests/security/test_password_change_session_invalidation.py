@@ -33,6 +33,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.models import User
 
 from superset import db, security_manager
@@ -140,6 +141,76 @@ def test_update_me_password_change_invalidates_other_sessions(
     db.session.flush()
 
     assert _invalidated_at(admin_user.id) is not None
+
+
+def test_admin_edit_user_password_via_put_invalidates_target_sessions(
+    after_each: None,  # noqa: F811
+) -> None:
+    """An admin editing another user's password via ``PUT
+    /api/v1/security/users/<pk>`` (``SupersetUserApi.pre_update``, which FAB's
+    ``UserApi.put`` calls before its own commit) must also stamp the target's
+    session-invalidation epoch, the same as the self-service ``/me/`` path and
+    the two password-reset views -- otherwise this admin path is the one way
+    to change a user's password that leaves their other sessions alive.
+    """
+    role = db.session.query(security_manager.role_model).filter_by(name="Admin").one()
+    user = User(
+        first_name="Target",
+        last_name="User",
+        email="admin_edit_password_target@example.org",
+        username="admin_edit_password_target",
+        roles=[role],
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    api = SupersetUserApi()
+    api.datamodel = SQLAInterface(User, db.session)
+    api.appbuilder = SimpleNamespace(
+        sm=SimpleNamespace(current_user=SimpleNamespace(id=1))
+    )
+
+    api.pre_update(user, {"password": "AdminSetPassw0rd!"})
+
+    assert _invalidated_at(user.id) is not None
+
+    db.session.query(UserAttribute).filter_by(user_id=user.id).delete(
+        synchronize_session=False
+    )
+    db.session.query(User).filter_by(id=user.id).delete(synchronize_session=False)
+    db.session.commit()
+
+
+def test_admin_edit_user_without_password_change_does_not_invalidate_sessions(
+    after_each: None,  # noqa: F811
+) -> None:
+    """Editing a user through the same endpoint *without* touching the
+    password (e.g. renaming them) must not stamp the epoch -- only an actual
+    password change should force other sessions to log out.
+    """
+    role = db.session.query(security_manager.role_model).filter_by(name="Admin").one()
+    user = User(
+        first_name="Target",
+        last_name="User",
+        email="admin_edit_no_password_target@example.org",
+        username="admin_edit_no_password_target",
+        roles=[role],
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    api = SupersetUserApi()
+    api.datamodel = SQLAInterface(User, db.session)
+    api.appbuilder = SimpleNamespace(
+        sm=SimpleNamespace(current_user=SimpleNamespace(id=1))
+    )
+
+    api.pre_update(user, {"first_name": "Renamed"})
+
+    assert _invalidated_at(user.id) is None
+
+    db.session.query(User).filter_by(id=user.id).delete(synchronize_session=False)
+    db.session.commit()
 
 
 def _make_api_for_target(user: User) -> SupersetUserApi:
