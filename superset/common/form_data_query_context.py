@@ -230,17 +230,17 @@ def orderby_from_form_data(
 
 def _columns_and_metrics(
     form_data: dict[str, Any], viz_type: str | None
-) -> tuple[list[Any], list[Any], bool]:
+) -> tuple[list[Any], list[Any]]:
     """
-    Resolve the query's ``(columns, metrics, promoted_time_column)`` from form
-    data, honoring raw vs. aggregate mode and the Big Number trendline promotion.
+    Resolve the query's ``(columns, metrics)`` from form data, honoring raw vs.
+    aggregate mode and the Big Number trendline promotion.
     """
     if is_raw_query_mode(form_data):
         # Raw mode returns individual rows: use only the selected columns and
         # ignore ``metrics``/``groupby``, which stay in form data as stale values
         # (the controls aren't reset when hidden) but are ignored by the chart.
         columns = list(form_data.get("all_columns") or form_data.get("columns") or [])
-        return columns, [], False
+        return columns, []
 
     metrics = list(form_data.get("metrics") or [])
     # Single-metric charts (e.g. Big Number) store ``metric`` rather than
@@ -252,8 +252,8 @@ def _columns_and_metrics(
     # time column; ``big_number_total`` is a single aggregate and must not be
     # grouped, or it would return one row per timestamp instead of a total.
     if not columns and viz_type == "big_number" and form_data.get("granularity_sqla"):
-        return [form_data["granularity_sqla"]], metrics, True
-    return columns, metrics, False
+        return [form_data["granularity_sqla"]], metrics
+    return columns, metrics
 
 
 def _pie_contribution_post_processing(metrics: list[Any]) -> list[dict[str, Any]]:
@@ -300,7 +300,7 @@ def build_query_context_from_form_data(
     :param viz_type: The chart's viz type, used for viz-specific handling.
     :returns: A single-query query-context dict.
     """
-    columns, metrics, promoted_time_column = _columns_and_metrics(form_data, viz_type)
+    columns, metrics = _columns_and_metrics(form_data, viz_type)
 
     # SIMPLE adhoc filters (+ legacy top-level ``filters``) become query filters;
     # free-form SQL predicates go into ``extras``. Only ``WHERE``-clause SIMPLE
@@ -336,14 +336,15 @@ def build_query_context_from_form_data(
         post_processing := _pie_contribution_post_processing(metrics)
     ):
         query["post_processing"] = post_processing
-    # ``granularity`` names the temporal column that applies the time range and
-    # that ``time_grain_sqla`` buckets. Set it when there is a real range to apply,
-    # or when we've promoted a Big Number trendline's time column (so its time
-    # grain takes effect even with no active range). Otherwise leave it off — a
-    # non-temporal ``granularity_sqla`` with no range would be forced through date
-    # bucketing and fail.
-    granularity = form_data.get("granularity") or form_data.get("granularity_sqla")
-    if granularity and (time_range != "No filter" or promoted_time_column):
+    # ``granularity`` does two jobs downstream: it names the temporal column the
+    # time range filters on, and it is the column ``time_grain_sqla`` buckets
+    # (``models/helpers.py`` swaps a selected column for its timestamp expression
+    # when that column equals ``granularity``). Only the first job depends on
+    # there being an active range, so set it whenever form data carries one —
+    # matching ``extractExtras.ts``, which sets it unconditionally. Gating it on
+    # ``time_range`` dropped the bucketing, so an ordinary "all-time totals by
+    # month" chart exported one row per raw timestamp instead of one per month.
+    if granularity := form_data.get("granularity") or form_data.get("granularity_sqla"):
         query["granularity"] = granularity
     if form_data.get("row_limit"):
         query["row_limit"] = form_data["row_limit"]

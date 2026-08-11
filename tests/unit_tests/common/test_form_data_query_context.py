@@ -190,12 +190,13 @@ def test_build_context_prefers_explicit_granularity_over_sqla() -> None:
     assert query["granularity"] == "event_time"
 
 
-def test_build_context_omits_granularity_without_active_time_range() -> None:
-    # A numeric column saved as granularity_sqla with no active range must not be
-    # forced through temporal bucketing (which would fail on non-temporal columns).
-    form_data = {"metrics": ["count"], "granularity_sqla": "year"}
+def test_build_context_sets_granularity_without_active_time_range() -> None:
+    # `granularity` also drives time-grain bucketing of a selected column, not just
+    # the time filter, so it is set whenever form data carries one — matching
+    # extractExtras.ts, which sets it unconditionally.
+    form_data = {"metrics": ["count"], "granularity_sqla": "ds"}
     query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
-    assert "granularity" not in query
+    assert query["granularity"] == "ds"
 
 
 def test_orderby_defaults_to_first_metric_descending() -> None:
@@ -314,10 +315,7 @@ def test_table_groupby_time_column_without_time_range_is_bucketed() -> None:
     ][0]
     assert query["columns"] == ["order_date"]
     assert query["extras"]["time_grain_sqla"] == "P1Y"
-    # Currently fails: `granularity` is omitted whenever time_range == "No
-    # filter", so the backend selects `order_date` as a raw, un-truncated value
-    # (one row per distinct raw timestamp) instead of bucketing it by P1Y.
-    assert query.get("granularity") == "order_date"
+    assert query["granularity"] == "order_date"
 
 
 def test_simple_having_filter_converted_by_default_but_not_where_only() -> None:
