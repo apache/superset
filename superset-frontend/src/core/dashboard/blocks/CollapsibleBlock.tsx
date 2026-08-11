@@ -31,6 +31,8 @@ import { FlowContent } from './flowContent';
  */
 const Root = styled.div`
   ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
     width: 100%;
     height: 100%;
     margin: 0 -${theme.padding}px -${theme.padding}px;
