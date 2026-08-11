@@ -18,7 +18,7 @@
  */
 
 import { createRef } from 'react';
-import { render, fireEvent, screen, userEvent } from '@superset-ui/core/spec';
+import { render, fireEvent, screen } from '@superset-ui/core/spec';
 import { MenuDotsDropdown, NoAnimationDropdown } from '.';
 
 const props = {
@@ -44,7 +44,11 @@ describe('MenuDotsDropdown', () => {
     render(<MenuDotsDropdown {...props} />);
     const trigger = screen.getByTestId('dropdown-trigger');
     trigger.focus();
-    await userEvent.keyboard('{Enter}');
+    // A native <button> converts an Enter keypress into a click once
+    // activated, so we simulate that browser behavior directly since
+    // jsdom does not implement it for us.
+    fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(trigger);
     expect(await screen.findByText('Test Overlay')).toBeInTheDocument();
   });
 });
