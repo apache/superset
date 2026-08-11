@@ -522,7 +522,13 @@ class WebDriverPlaywright(WebDriverProxy):
             )
 
         browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
-        browser = _browser_manager.get_browser(browser_args)
+        try:
+            browser = _browser_manager.get_browser(browser_args)
+        except Exception as ex:
+            raise RuntimeError(
+                f"Playwright is required for screenshots. "
+                f"{PLAYWRIGHT_INSTALL_MESSAGE}{context_suffix}"
+            ) from ex
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         viewport_height = self._window[1]
         viewport_width = self._window[0]
