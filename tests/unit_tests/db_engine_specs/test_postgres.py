@@ -182,6 +182,31 @@ SELECT * FROM some_table;
     )
 
 
+def test_get_default_schema_for_query_blocks_set_config_search_path(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A query that rebinds the session search_path via the ``set_config`` function
+    (rather than a ``SET`` statement) must be rejected by the same gate: it
+    changes how unqualified table references resolve at runtime, which would
+    otherwise let a schema-scoped user read tables in other schemas.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+    query = mocker.MagicMock()
+    query.schema = "foo"
+    query.sql = (
+        "SELECT set_config('search_path', 'other_schema', false);\n"
+        "SELECT * FROM some_table;"
+    )
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        spec.get_default_schema_for_query(database, query)
+    assert (
+        str(excinfo.value)
+        == "Users are not allowed to set a search path for security reasons."
+    )
+
+
 def test_adjust_engine_params() -> None:
     """
     Test `adjust_engine_params`.

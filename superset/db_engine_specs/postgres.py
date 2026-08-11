@@ -645,8 +645,13 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         malicious path setting in the query.
         """
         script = process_jinja_sql(query.sql, database, template_params).script
-        settings = script.get_settings()
-        if "search_path" in settings:
+        # A query can rebind the session ``search_path`` not only via a
+        # structured ``SET search_path = ...`` (surfaced by ``get_settings``)
+        # but also via the ``set_config('search_path', ...)`` function and other
+        # forms. ``changes_search_path`` recognises all of them; matching on
+        # ``get_settings`` alone missed the function-call form, which changes how
+        # unqualified table references resolve at runtime.
+        if any(statement.changes_search_path() for statement in script.statements):
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
