@@ -1408,10 +1408,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         if method == LimitMethod.FORCE_LIMIT:
             # `SHOW` statements (`SHOW TABLES`, `SHOW DATABASES`, `SHOW CREATE
-            # TABLE`, etc.) have no real `LIMIT` slot in sqlglot's expression
-            # tree: setting `args["limit"]` doesn't get rejected, it renders a
-            # malformed statement with two `LIMIT` keywords, which engines
-            # like StarRocks reject outright. Leave them untouched.
+            # TABLE`, etc.) have no meaningful `LIMIT` slot to force. On
+            # MySQL/StarRocks, writing one renders a malformed statement with
+            # two `LIMIT` keywords that the engine rejects outright; on dialects
+            # like Snowflake it would render a valid `SHOW ... LIMIT`, but SHOW
+            # returns bounded metadata, so we skip it uniformly rather than
+            # special-case per dialect. Leave them untouched.
             if isinstance(self._parsed, exp.Show):
                 return
             self._parsed.args["limit"] = exp.Limit(
