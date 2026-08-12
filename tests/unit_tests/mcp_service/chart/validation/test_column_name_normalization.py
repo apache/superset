@@ -210,6 +210,24 @@ class TestNormalizeColumnNames:
         ) == {"columnWidth": 120}
 
     @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_table_normalization_canonicalizes_raw_column_config_key(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        mock_get_context.return_value = mock_dataset_context
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="orderdate")],
+            column_config={"orderdate": TableColumnConfig(d3TimeFormat="%Y-%m-%d")},
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.columns[0].name == "OrderDate"
+        assert normalized.column_config is not None
+        assert "orderdate" not in normalized.column_config
+        assert normalized.column_config["OrderDate"].d3_time_format == "%Y-%m-%d"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
     def test_table_sql_expression_column_skips_name_normalization(
         self, mock_get_context, mock_dataset_context: DatasetContext
     ) -> None:
