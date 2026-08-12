@@ -26,6 +26,45 @@ assists people when migrating to a new version.
 
 - [42935](https://github.com/apache/superset/pull/42935): The MCP service now refuses to start (`MCPAuthConfigError`) when `MCP_JWT_ISSUER` trusts more than one issuer and no `MCP_USER_RESOLVER` is configured, instead of only logging a warning. This was already a documented misconfiguration (the default resolver isn't issuer-scoped, so distinct trusted issuers minting the same username/email would resolve to the same Superset user); deployments trusting multiple issuers must configure an `MCP_USER_RESOLVER` that derives its identity from the token's `iss` claim before upgrading. Single-issuer deployments are unaffected.
 - [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
+- [42087](https://github.com/apache/superset/pull/42087): Stored calculated-column and metric expressions are validated when a query is built, under the same sub-query policy already applied to adhoc expressions. Previously only the dataset update path checked them on save, so expressions written by v1 import, by dataset duplication, or before that check existed were never validated. Since `ALLOW_ADHOC_SUBQUERY` defaults to `False` (see [19242](https://github.com/apache/superset/pull/19242)), a dataset whose stored expression contains a sub-query works before upgrading and afterwards fails at chart render with `Custom SQL fields cannot contain sub-queries.` There is no migration step, and the error does not name the offending dataset column, so audit stored expressions before upgrading: either rewrite them without the sub-query, or set `ALLOW_ADHOC_SUBQUERY = True` to keep the previous behaviour for both stored and adhoc expressions.
+
+### Selenium support removed — Playwright is now required for screenshots
+
+Selenium support has been removed. **Playwright is now required** for all
+report and thumbnail screenshot generation. Install it with:
+
+```bash
+pip install playwright && playwright install chromium
+```
+
+**Breaking config changes:**
+
+- `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag removed (Playwright is the only backend now)
+- `WEBDRIVER_TYPE` config key removed (Playwright always uses Chromium)
+- `WEBDRIVER_CONFIGURATION` config key removed (Selenium-only)
+- `SCREENSHOT_PAGE_LOAD_WAIT` config key removed (Selenium-only)
+- `SCREENSHOT_SELENIUM_RETRIES` config key removed (Selenium-only)
+- `SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE` config key removed (Selenium-only)
+- `SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE` config key removed (Selenium-only)
+- `MachineAuthProvider.authenticate_webdriver()` removed; use `authenticate_browser_context()` instead
+
+**What operators should do before upgrading:**
+
+1. Install Playwright: `pip install playwright && playwright install chromium`
+2. Remove any references to the removed config keys from custom `superset_config.py`
+3. If you subclassed `MachineAuthProvider`, remove any `authenticate_webdriver` override and migrate auth logic to `authenticate_browser_context`
+
+### CSV/XLSX report exports of Table charts keep raw numeric values
+
+Table and Pivot Table charts sent as text in a report email now apply the
+chart's number and currency formatting so the values match what a user sees in
+Explore. As part of this, the CSV and XLSX result formats return early before
+formatting: previously the Table post-processor applied `d3NumberFormat` to
+every result format, so CSV/XLSX exports contained pre-formatted strings.
+CSV/XLSX exports now preserve numeric values and column types, which is better
+for downstream analysis but is a visible change for anyone who relied on the
+formatted text in those files. The rendered email body (the only place the
+formatting is intended for) is unaffected.
 
 ### Soft delete is on by default, and purging is live
 

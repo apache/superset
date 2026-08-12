@@ -107,6 +107,7 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
@@ -264,6 +265,68 @@ def validate_adhoc_subquery(
     # unnecessary round-tripping through sqlglot can alter dialect-specific
     # syntax.
     return parsed_statement.format() if rls_applied else sql
+
+
+def validate_stored_expression_at_query_time(
+    expression: str,
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    engine: str,
+) -> str:
+    """
+    Validate a stored column/metric expression at the point of use, applying the
+    same sub-query policy and RLS injection as adhoc expressions. Only the
+    dataset update path validates on save; v1 import
+    (``superset/commands/dataset/importers/v1/``) and dataset duplication
+    (``superset/commands/dataset/duplicate.py``) persist expressions as-is, and
+    rows written before the save-time check was added were never validated at
+    all. Jinja templating also rewrites the expression after save. The query
+    sink is therefore the reliable place to enforce the policy.
+
+    A parse failure is ambiguous: the expression may use dialect-specific syntax
+    sqlglot cannot handle (e.g. ``DATE_ADD(ds, 1)`` on MySQL), it may be a
+    fragment that only parses inside a select list (``DISTINCT <expr>``), or it
+    may be unparseable precisely because something was appended to it. Before
+    falling back to the raw expression, the synthetic ``SELECT <expr>`` form and
+    the permissive dialect are used as detectors, so a sub-query or a second
+    statement sitting next to benign-but-unparseable syntax is still caught.
+    Only when no detector can parse the expression is validation skipped (and
+    logged), matching the pre-gate behaviour for such expressions.
+
+    A disallowed sub-query is surfaced as ``QueryObjectValidationError`` (a
+    chart-level 400) to match the adhoc sinks, rather than a raw 403.
+    """
+    default_schema = schema or ""
+    try:
+        return validate_adhoc_subquery(
+            expression, database, catalog, default_schema, engine
+        )
+    except SupersetSecurityException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
+    except SupersetParseError:
+        pass
+
+    # The detector passes below are detection only: the SQL they return is
+    # discarded rather than returned, since it is wrapped and may be in the wrong
+    # dialect. RLS injection is therefore not applied here, matching how such
+    # expressions reached the query before this check existed.
+    wrapped = f"SELECT {expression}"
+    for dialect in (engine, "base"):
+        try:
+            if len(SQLScript(wrapped, dialect).statements) > 1:
+                raise QueryObjectValidationError(
+                    _("Custom SQL fields cannot be parsed as a single SQL statement.")
+                )
+            validate_adhoc_subquery(wrapped, database, catalog, default_schema, dialect)
+        except SupersetParseError:
+            continue
+        except SupersetSecurityException as ex:
+            raise QueryObjectValidationError(ex.message) from ex
+        return expression
+
+    logger.warning("Skipping query-time validation of unparseable stored expression")
+    return expression
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -3666,6 +3729,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             return ValidationResultDict(valid=True, errors=[])
 
+    def _validate_stored_expression(self, expression: str) -> str:
+        return validate_stored_expression_at_query_time(
+            expression,
+            self.database,
+            self.catalog,
+            self.schema,
+            self.db_engine_spec.engine,
+        )
+
     def get_timestamp_expression(
         self,
         column: dict[str, Any],
@@ -3689,6 +3761,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if template_processor:
             expression = template_processor.process_template(column["column_name"])
+            expression = self._validate_stored_expression(expression)
             col = sa.literal_column(expression, type_=type_)
 
         time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
@@ -3709,6 +3782,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression := tbl_column.expression:
             if template_processor:
                 expression = template_processor.process_template(expression)
+            expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = sa.column(tbl_column.column_name, type_=type_)
