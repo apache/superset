@@ -344,9 +344,11 @@ def validate_rendered_expression(
 
     :param expression: the rendered expression
     :returns: the expression to embed, possibly rewritten with RLS predicates
-    :raises SupersetSecurityException: on multi-statement, set-operation, or
-        disallowed sub-query expressions
-    :raises QueryObjectValidationError: if the clause fails sanitization
+    :raises QueryObjectValidationError: on multi-statement, set-operation,
+        disallowed sub-query, or sanitization failures -- matching the
+        ``QueryObjectValidationError`` contract callers already expect from
+        ``validate_stored_expression_at_query_time``, rather than letting a
+        raw ``SupersetSecurityException`` escape uncaught.
     """
     engine = database.backend
     wrapped = f"SELECT {expression}"
@@ -354,26 +356,21 @@ def validate_rendered_expression(
     try:
         parsed = SQLStatement(wrapped, engine)
     except SupersetParseError as ex:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                message=_(
-                    "Custom SQL fields cannot be parsed as a single SQL statement."
-                ),
-                level=ErrorLevel.ERROR,
-            )
+        raise QueryObjectValidationError(
+            _("Custom SQL fields cannot be parsed as a single SQL statement.")
         ) from ex
 
     if parsed.is_set_operation():
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                message=_("Custom SQL fields cannot contain set operations."),
-                level=ErrorLevel.ERROR,
-            )
+        raise QueryObjectValidationError(
+            _("Custom SQL fields cannot contain set operations.")
         )
 
-    wrapped = validate_adhoc_subquery(wrapped, database, catalog, schema or "", engine)
+    try:
+        wrapped = validate_adhoc_subquery(
+            wrapped, database, catalog, schema or "", engine
+        )
+    except SupersetSecurityException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
     try:
         wrapped = sanitize_clause(wrapped, engine)
     except QueryClauseValidationException as ex:

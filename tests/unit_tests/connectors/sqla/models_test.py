@@ -1652,7 +1652,9 @@ def test_get_sqla_col_revalidates_rendered_jinja_expression(
     A Jinja block that renders into a sub-query must be rejected at query
     time: save-time validation only sees the block as a placeholder, so the
     rendered expression is re-validated before it is embedded via
-    ``literal_column``.
+    ``literal_column``. The failure surfaces as a chart-level
+    ``QueryObjectValidationError``, matching the stored-expression path,
+    rather than a raw ``SupersetSecurityException``.
     """
     # A real Database (not a MagicMock) so the ORM relationship assignment on
     # SqlaTable has a valid instance state; sqlite gives a concrete backend.
@@ -1668,7 +1670,7 @@ def test_get_sqla_col_revalidates_rendered_jinja_expression(
     template_processor.process_template.return_value = (
         "(SELECT password FROM ab_user LIMIT 1)"
     )
-    with pytest.raises(SupersetSecurityException):
+    with pytest.raises(QueryObjectValidationError):
         tbl_column.get_sqla_col(template_processor=template_processor)
 
 
