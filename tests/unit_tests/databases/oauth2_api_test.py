@@ -22,7 +22,6 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 from requests.exceptions import HTTPError
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
 from superset.commands.database.exceptions import DatabaseNotFoundError
@@ -172,6 +171,7 @@ def test_oauth2_callback_redacts_exchange_exception_from_all_logs(
 
 def test_oauth2_callback_event_log_failure_preserves_business_write(
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
     client: Any,
     full_api_access: None,
     oauth2_command: MagicMock,
@@ -182,25 +182,94 @@ def test_oauth2_callback_event_log_failure_preserves_business_write(
     oauth2_command.return_value.run.side_effect = lambda: db.session.add(
         Log(action=action)
     )
-    mocker.patch.object(
-        db.session,
-        "bulk_save_objects",
-        side_effect=SQLAlchemyError("event log failure"),
+    event_log = mocker.patch.object(
+        event_logger,
+        "log",
+        side_effect=RuntimeError("event-log-payload-sentinel"),
     )
     metric = mocker.patch.object(stats_logger_manager.instance, "incr")
 
     try:
-        response = client.get(
-            "/api/v1/database/oauth2/",
-            query_string={
-                "state": callback_state(),
-                "code": "XXX",
-            },
-        )
+        with caplog.at_level(logging.WARNING, logger="superset.utils.log"):
+            response = client.get(
+                "/api/v1/database/oauth2/",
+                query_string={
+                    "state": callback_state(),
+                    "code": "XXX",
+                },
+            )
 
         assert response.status_code == 200
         assert db.session.query(Log).filter_by(action=action).one()
+        event_log.assert_called_once()
         metric.assert_called_once_with("DatabaseRestApi.oauth2.success")
+        assert (
+            "Event logging failed: action=DatabaseRestApi.oauth2 "
+            "error_type=RuntimeError"
+        ) in caplog.messages
+        assert "event-log-payload-sentinel" not in caplog.text
     finally:
         db.session.query(Log).filter_by(action=action).delete()
         db.session.commit()
+
+
+def test_oauth2_callback_metric_failure_preserves_success_response(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    client: Any,
+    full_api_access: None,
+    oauth2_command: MagicMock,
+) -> None:
+    mocker.patch.object(event_logger, "log")
+    metric = mocker.patch.object(
+        stats_logger_manager.instance,
+        "incr",
+        side_effect=RuntimeError("metrics-payload-sentinel"),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="superset.views.base_api"):
+        response = client.get(
+            "/api/v1/database/oauth2/",
+            query_string={"state": callback_state(), "code": "XXX"},
+        )
+
+    assert response.status_code == 200
+    oauth2_command.return_value.run.assert_called_once()
+    metric.assert_called_once_with("DatabaseRestApi.oauth2.success")
+    assert (
+        "REST API metrics emission failed: endpoint=DatabaseRestApi.oauth2 "
+        "error_type=RuntimeError"
+    ) in caplog.messages
+    assert "metrics-payload-sentinel" not in caplog.text
+
+
+def test_oauth2_callback_metric_failure_preserves_oauth_error(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    client: Any,
+    full_api_access: None,
+    oauth2_command: MagicMock,
+) -> None:
+    oauth2_command.return_value.run.side_effect = OAuth2Error("Token exchange failed")
+    mocker.patch.object(event_logger, "log")
+    metric = mocker.patch.object(
+        stats_logger_manager.instance,
+        "incr",
+        side_effect=RuntimeError("metrics-payload-sentinel"),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="superset.views.base_api"):
+        response = client.get(
+            "/api/v1/database/oauth2/",
+            query_string={"state": callback_state(), "code": "XXX"},
+        )
+
+    assert response.status_code == 500
+    assert response.json["errors"][0]["extra"] == {"error": "Token exchange failed"}
+    metric.assert_called_once_with("DatabaseRestApi.oauth2.error")
+    assert (
+        "REST API metrics emission failed: endpoint=DatabaseRestApi.oauth2 "
+        "error_type=RuntimeError"
+    ) in caplog.messages
+    assert "metrics-payload-sentinel" not in caplog.text
+    assert "metrics-payload-sentinel" not in response.get_data(as_text=True)

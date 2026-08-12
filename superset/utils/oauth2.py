@@ -177,8 +177,10 @@ def refresh_oauth2_token(
             db.session.delete(token)
             db.session.flush()
             raise OAuth2TokenRefreshError() from None
-        except Exception as ex:
-            # Non-OAuth failure: preserve the token and log structured context
+        # Engine specs can delegate to arbitrary provider clients that do not share an
+        # exception base class. Sanitize every other provider-boundary failure while
+        # preserving the refresh token for a later retry.
+        except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "OAuth2 token refresh failed: database_id=%s engine=%s error_type=%s",
                 database_id,
@@ -320,6 +322,9 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     try:
         yield
     except Exception as ex:
-        if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex):
+        if database.is_oauth2_enabled() and (
+            isinstance(ex, OAuth2TokenRefreshError)
+            or database.db_engine_spec.needs_oauth2(ex)
+        ):
             database.db_engine_spec.start_oauth2_dance(database)
         raise

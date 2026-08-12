@@ -120,7 +120,7 @@ class AbstractEventLogger(ABC):
         object_ref: str | None = None,
         log_to_statsd: bool = True,
         duration: timedelta | None = None,
-        **payload_override: Any,
+        **payload_override: object,
     ) -> object:
         # pylint: disable=W0201
         self.action = action
@@ -140,7 +140,7 @@ class AbstractEventLogger(ABC):
             object_ref=self.object_ref,
             log_to_statsd=self.log_to_statsd,
             duration=datetime.now() - self.start,
-            **self.payload_override,
+            **cast(dict[str, Any], self.payload_override),
         )
 
     @classmethod
@@ -177,7 +177,7 @@ class AbstractEventLogger(ABC):
         log_to_statsd: bool = True,
         database: Any | None = None,
         include_request_data: bool = True,
-        **payload_override: Any,
+        **payload_override: object,
     ) -> None:
         # pylint: disable=import-outside-toplevel
         from superset import db
@@ -264,6 +264,7 @@ class AbstractEventLogger(ABC):
         object_ref: str | None = None,
         log_to_statsd: bool = True,
         include_request_data: bool = True,
+        best_effort: bool = False,
         **kwargs: Any,
     ) -> Iterator[Callable[..., None]]:
         """
@@ -273,6 +274,7 @@ class AbstractEventLogger(ABC):
         :param log_to_statsd: whether to update statsd counter for the action
         :param include_request_data: whether to include form, query, JSON, and referrer
             data
+        :param best_effort: whether event logger failures should be logged and ignored
         """
         payload_override = kwargs.copy()
         start = datetime.now()
@@ -282,14 +284,23 @@ class AbstractEventLogger(ABC):
 
         # take the action from payload_override else take the function param action
         action_str = payload_override.pop("action", action)
-        self.log_with_context(
-            action_str,
-            duration,
-            object_ref,
-            log_to_statsd,
-            include_request_data=include_request_data,
-            **payload_override,
-        )
+        try:
+            self.log_with_context(
+                action_str,
+                duration,
+                object_ref,
+                log_to_statsd,
+                include_request_data=include_request_data,
+                **payload_override,
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            if not best_effort:
+                raise
+            logger.warning(
+                "Event logging failed: action=%s error_type=%s",
+                action_str,
+                type(ex).__name__,
+            )
 
     def _wrapper(
         self,

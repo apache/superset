@@ -28,9 +28,15 @@ import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
-from superset.exceptions import OAuth2Error, OAuth2TokenRefreshError
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+)
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import (
+    check_for_oauth2,
     decode_oauth2_state,
     encode_oauth2_state,
     generate_code_challenge,
@@ -157,6 +163,59 @@ def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
     assert "provider-error-sentinel" not in "".join(
         traceback.format_exception(exc_info.value)
     )
+
+
+def test_refresh_oauth2_token_starts_dance_for_vendor_exception(
+    mocker: MockerFixture,
+) -> None:
+    """A sanitized vendor refresh failure must still start re-authentication."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+
+    class VendorOAuthError(Exception):
+        pass
+
+    class VendorEngineSpec(BaseEngineSpec):
+        engine = "vendor"
+        oauth2_exception = VendorOAuthError
+
+    mocker.patch.object(
+        VendorEngineSpec,
+        "get_oauth2_fresh_token",
+        side_effect=VendorOAuthError("provider-payload-sentinel"),
+    )
+    needs_oauth2 = mocker.patch.object(
+        VendorEngineSpec,
+        "needs_oauth2",
+        return_value=False,
+    )
+    redirect = OAuth2RedirectError(
+        "https://provider.example/authorize",
+        "tab-id",
+        "https://superset.example/oauth2/",
+    )
+    start_oauth2_dance = mocker.patch.object(
+        VendorEngineSpec,
+        "start_oauth2_dance",
+        side_effect=redirect,
+    )
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec = VendorEngineSpec
+    token = mocker.MagicMock()
+    token.access_token = None
+    token.refresh_token = "refresh-token-sentinel"  # noqa: S105
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    with pytest.raises(OAuth2RedirectError) as exc_info:
+        with check_for_oauth2(database):
+            refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, VendorEngineSpec)
+
+    assert exc_info.value is redirect
+    db.session.delete.assert_called_once_with(token)
+    db.session.flush.assert_called_once()
+    start_oauth2_dance.assert_called_once_with(database)
+    needs_oauth2.assert_not_called()
 
 
 def test_refresh_oauth2_token_keeps_token_on_other_exception(
