@@ -495,6 +495,7 @@ def test_required_resource_scope_special_names() -> None:
     assert _required_resource_scope("SQLLab", "execute_sql_query") == (
         "superset:sqllab:write"
     )
+    assert _required_resource_scope("Chart", "update") == "superset:chart:write"
 
 
 def test_required_resource_scope_unmapped_returns_none() -> None:
