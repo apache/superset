@@ -170,8 +170,52 @@ test('creates a new email report via modal Add button', async () => {
   // creation_method, editors, and recipients are set server-side; not in the client payload
   expect(body.creation_method).toBeUndefined();
   expect(body.recipients).toBeUndefined();
+  // Dashboard-scoped report (creationMethod='dashboards'): send `dashboard`,
+  // never `chart`, so the backend does not reject "both".
+  expect(body.dashboard).toBe(1);
+  expect(body.chart).toBeUndefined();
 
   fetchMock.removeRoute('post-subscribe');
+});
+
+test('sends only chart, not dashboard, when creating a chart report from a dashboard context', async () => {
+  // Regression: opening a chart in Explore *from a dashboard* passes the modal a
+  // `dashboardId` context prop while the report stays chart-scoped
+  // (creationMethod='charts'). The payload must carry only `chart`; sending both
+  // `chart` and `dashboard` makes the backend reject with a 422
+  // "Choose a chart or dashboard not both".
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    { id: 1, result: {} },
+    { name: 'post-subscribe-chart' },
+  );
+
+  // Routes persist across tests in this file, so always remove this one — even if
+  // an assertion below throws — to avoid shadowing later tests' report routes.
+  try {
+    const chartFromDashboardProps = {
+      ...defaultProps,
+      creationMethod: 'charts' as const,
+      dashboardId: 7,
+      chart: { id: 119, sliceFormData: { viz_type: VizType.Line } },
+    };
+    render(<ReportModal {...chartFromDashboardProps} />, { useRedux: true });
+
+    const addButton = screen.getByRole('button', { name: /add/i });
+    await waitFor(() => userEvent.click(addButton));
+
+    await waitFor(() => {
+      const postCalls = fetchMock.callHistory.calls('post-subscribe-chart');
+      expect(postCalls).toHaveLength(1);
+    });
+
+    const postCalls = fetchMock.callHistory.calls('post-subscribe-chart');
+    const body = JSON.parse(postCalls[0].options.body as string);
+    expect(body.chart).toBe(119);
+    expect(body.dashboard).toBeUndefined();
+  } finally {
+    fetchMock.removeRoute('post-subscribe-chart');
+  }
 });
 
 test('text-based chart hides screenshot width and shows message content', () => {
