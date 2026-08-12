@@ -127,9 +127,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         new_db_connection: Database | None = None
 
         if database_id and database_id != self._model.database.id:
-            if new_db_connection := DatasetDAO.get_database_by_id(database_id):
-                self._properties["database"] = new_db_connection
-            else:
+            if not (new_db_connection := DatasetDAO.get_database_by_id(database_id)):
                 exceptions.append(DatabaseNotFoundValidationError())
         db = new_db_connection or self._model.database
         default_catalog = db.get_default_catalog()
@@ -163,6 +161,19 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             schema,
             catalog,
         )
+
+        # Repointing to a different database connection requires access to
+        # that connection, independent of the caller's editorship of this
+        # dataset -- only persist the change once that's confirmed.
+        if new_db_connection:
+            try:
+                security_manager.raise_for_access(
+                    database=new_db_connection, table=table
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+            else:
+                self._properties["database"] = new_db_connection
 
         # Validate uniqueness
         if not DatasetDAO.validate_update_uniqueness(
