@@ -508,11 +508,23 @@ def test_dataset_context_uses_binding_temporal_predicate() -> None:
     assert context.available_columns[0]["is_temporal"] is False
 
 
-def test_temporal_column_is_normalized_to_dataset_casing() -> None:
-    config = TableChartConfig(
-        columns=[CATEGORY, METRIC],
-        temporal_column="created_at",
-    )
+@pytest.mark.parametrize(
+    "config",
+    [
+        TableChartConfig(
+            columns=[CATEGORY, METRIC],
+            temporal_column="created_at",
+        ),
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=METRIC,
+            temporal_column="created_at",
+        ),
+    ],
+)
+def test_temporal_column_is_normalized_to_dataset_casing(
+    config: ChartConfig,
+) -> None:
     dataset_context = DatasetContext(
         id=42,
         table_name="orders",
