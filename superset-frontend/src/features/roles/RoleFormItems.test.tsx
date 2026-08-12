@@ -59,10 +59,9 @@ test('PermissionsField shows a permission matched by its raw name even though th
   // fetchPermissionOptions matches the raw, underscore-containing name
   // server-side; the returned label has already gone through
   // formatPermissionLabel (underscores replaced with spaces for display).
-  // Without filterOption={false} on the AsyncSelect, its default client-side
-  // re-filter would check the raw search term against that space-formatted
-  // label and, finding no match, hide the option the server legitimately
-  // returned.
+  // PermissionsField's normalizing filterOption must match the raw search
+  // term against that space-formatted label, or the option the server
+  // legitimately returned gets hidden by client-side re-filtering.
   jest
     .mocked(fetchPermissionOptions)
     .mockImplementation(async (filterValue: string) =>
