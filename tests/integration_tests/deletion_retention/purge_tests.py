@@ -24,29 +24,40 @@ guarantee under FK enforcement OFF, and the version-tables-absent no-op.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.sql.dml import Delete
 
 from superset import db, security_manager
 from superset.commands.deletion_retention import audit
-from superset.commands.deletion_retention.purge_cascade import cascade_hard_delete
+from superset.commands.deletion_retention.purge_cascade import (
+    cascade_hard_delete,
+    suppress_purge_association_versions,
+)
+from superset.commands.deletion_retention.purge_policy import (
+    get_purge_policy,
+    PurgeEntityPolicy,
+)
 from superset.connectors.sqla.models import (
     RLSFilterTables,
     RowLevelSecurityFilter,
     SqlaTable,
 )
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.reports.models import ReportSchedule
 from superset.tags.models import ObjectType, Tag, TaggedObject
+from superset.tasks import deletion_retention as deletion_retention_task
 from superset.tasks.deletion_retention import _purge_impl
 
 from ._base import DeletionRetentionTestBase
@@ -275,6 +286,80 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             .one()
         )
         assert row.status == audit.STATUS_BLOCKED
+
+    def test_repeated_report_blocker_preserves_counts_and_suppresses_noise(
+        self,
+    ) -> None:
+        chart: Slice = self.make_chart("reported_repeatedly")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_repeated_report",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        chart_uuid: str = str(chart.uuid)
+        self.soft_delete(chart, days_ago=90)
+
+        incr: MagicMock
+        gauge: MagicMock
+        with (
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "incr"
+            ) as incr,
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "gauge"
+            ) as gauge,
+        ):
+            first_result: dict[str, Any] = _purge(window=30)
+            second_result: dict[str, Any] = _purge(window=30)
+
+        assert first_result["blocked_by_reference"] == 1
+        assert second_result["blocked_by_reference"] == 1
+        assert (
+            db.session.query(audit.PurgeAuditLog)
+            .filter_by(
+                entity_uuid=chart_uuid,
+                trigger=audit.TRIGGER_RETENTION,
+                status=audit.STATUS_BLOCKED,
+            )
+            .count()
+            == 1
+        )
+        incr.assert_called_once_with("deletion_retention.blocked_audit_suppressed")
+        assert gauge.call_count == 2
+        gauge.assert_called_with("deletion_retention.blocked_by_reference", 1)
+
+    def test_blocked_audit_fallback_is_counted_without_changing_task_result(
+        self,
+    ) -> None:
+        chart: Slice = self.make_chart("reported_fallback")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_fallback_report",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        self.soft_delete(chart, days_ago=90)
+
+        incr: MagicMock
+        with (
+            patch.object(
+                audit,
+                "finalize_retention_blocked",
+                return_value="fallback",
+            ),
+            patch.object(
+                deletion_retention_task.stats_logger_manager.instance, "incr"
+            ) as incr,
+        ):
+            result: dict[str, Any] = _purge(window=30)
+
+        assert result["blocked_by_reference"] == 1
+        incr.assert_called_once_with("deletion_retention.blocked_audit_dedupe_fallback")
 
     def test_restrictive_fk_blocks_dashboard_without_rewriting_referrer(self) -> None:
         """A welcome-dashboard FK remains authoritative during retention."""
@@ -704,9 +789,19 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
             "(sqlite3.IntegrityError) FOREIGN KEY constraint failed "
             "[SQL: DELETE FROM slices WHERE slices.id = ?] [parameters: (1,)]"
         )
+
+        def fail_association_cleanup(
+            _session: Session, _policy: PurgeEntityPolicy, _entity_id: int
+        ) -> None:
+            raise IntegrityError(driver_text, None, Exception("fk"))
+
+        policy: PurgeEntityPolicy = replace(
+            get_purge_policy(Slice),
+            delete_associations=fail_association_cleanup,
+        )
         with patch(
-            "superset.commands.deletion_retention.purge_cascade._delete_m2m_joins",
-            side_effect=IntegrityError(driver_text, None, Exception("fk")),
+            "superset.commands.deletion_retention.purge_cascade.get_purge_policy",
+            return_value=policy,
         ):
             result = cascade_hard_delete(
                 db.session,
@@ -719,6 +814,88 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
         assert result.purged is False
         assert result.blocked_reason == "blocked by database references"
         assert "SQL:" not in result.blocked_reason
+        assert self.exists(Slice, chart_id)
+
+    def test_policy_action_failure_rolls_back_prior_phases(self) -> None:
+        """A later policy-action failure restores earlier association cleanup."""
+        chart: Slice = self.make_chart("action_rollback")
+        chart_id: int = chart.id
+        dashboard: Dashboard = self.make_dashboard("action_rollback", slices=[chart])
+        dashboard_id: int = dashboard.id
+        self.soft_delete(chart, days_ago=90)
+
+        def fail_owned_cleanup(
+            _session: Session, _policy: PurgeEntityPolicy, _entity_id: int
+        ) -> None:
+            raise RuntimeError("injected owned cleanup failure")
+
+        policy: PurgeEntityPolicy = replace(
+            get_purge_policy(Slice),
+            delete_owned_children=fail_owned_cleanup,
+        )
+        with (
+            patch(
+                "superset.commands.deletion_retention.purge_cascade.get_purge_policy",
+                return_value=policy,
+            ),
+            pytest.raises(RuntimeError, match="injected owned cleanup failure"),
+        ):
+            with suppress_purge_association_versions(db.session):
+                cascade_hard_delete(
+                    db.session,
+                    chart,
+                    enforce_window=True,
+                    cutoff=datetime.now() - timedelta(days=30),
+                )
+
+        membership_count: int = int(
+            db.session.execute(
+                sa.select(sa.func.count())
+                .select_from(dashboard_slices)
+                .where(
+                    dashboard_slices.c.dashboard_id == dashboard_id,
+                    dashboard_slices.c.slice_id == chart_id,
+                )
+            ).scalar_one()
+        )
+        assert membership_count == 1
+        assert self.exists(Slice, chart_id)
+
+    def test_history_cleanup_failure_rolls_back_prior_phases(self) -> None:
+        """A history-phase failure restores association cleanup and the root."""
+        chart: Slice = self.make_chart("history_rollback")
+        chart_id: int = chart.id
+        dashboard: Dashboard = self.make_dashboard("history_rollback", slices=[chart])
+        dashboard_id: int = dashboard.id
+        self.soft_delete(chart, days_ago=90)
+
+        with (
+            patch(
+                "superset.commands.deletion_retention.purge_cascade."
+                "_delete_version_history",
+                side_effect=RuntimeError("injected history cleanup failure"),
+            ),
+            pytest.raises(RuntimeError, match="injected history cleanup failure"),
+        ):
+            with suppress_purge_association_versions(db.session):
+                cascade_hard_delete(
+                    db.session,
+                    chart,
+                    enforce_window=True,
+                    cutoff=datetime.now() - timedelta(days=30),
+                )
+
+        membership_count: int = int(
+            db.session.execute(
+                sa.select(sa.func.count())
+                .select_from(dashboard_slices)
+                .where(
+                    dashboard_slices.c.dashboard_id == dashboard_id,
+                    dashboard_slices.c.slice_id == chart_id,
+                )
+            ).scalar_one()
+        )
+        assert membership_count == 1
         assert self.exists(Slice, chart_id)
 
 

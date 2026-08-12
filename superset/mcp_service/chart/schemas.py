@@ -36,6 +36,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
     ValidationError,
 )
 from typing_extensions import Self
@@ -2201,6 +2202,19 @@ class ListChartsRequest(
     PaginatedListRequest[ChartFilter],
 ):
     """Request schema for list_charts with clear, unambiguous types."""
+
+    certified: Annotated[
+        StrictBool | None,
+        Field(
+            default=None,
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified charts (preferred when selecting governed "
+                "assets), false to return only uncertified charts, or omit to "
+                "return both (default)."
+            ),
+        ),
+    ]
 
     deleted_state: Annotated[
         Literal["include", "only"] | None,

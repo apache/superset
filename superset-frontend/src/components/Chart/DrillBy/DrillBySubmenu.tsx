@@ -18,7 +18,6 @@
  */
 
 import {
-  CSSProperties,
   ReactNode,
   useCallback,
   useEffect,
@@ -44,7 +43,7 @@ import {
   Icons,
 } from '@superset-ui/core/components';
 import { debounce } from 'lodash-es';
-import { FixedSizeList as List } from 'react-window';
+import { List, type RowComponentProps } from 'react-window';
 import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { VirtualizedMenuItem } from '../MenuItemWithTruncation';
@@ -52,6 +51,34 @@ import { Dataset } from '../types';
 
 const SUBMENU_HEIGHT = 200;
 const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
+
+interface DrillByColumnRowProps {
+  columns: Column[];
+  onSelectColumn: (event: React.MouseEvent, column: Column) => void;
+}
+
+// Rendered via `rowComponent`, so it must be a stable reference (module
+// scope) rather than defined inline on every render of the submenu -
+// otherwise react-window would treat it as a new component type each
+// render and remount every row. All the data it needs is threaded
+// through `rowProps` instead of being closed over.
+function DrillByColumnRow({
+  index,
+  style,
+  columns,
+  onSelectColumn,
+}: RowComponentProps<DrillByColumnRowProps>) {
+  const column = columns[index];
+  return (
+    <VirtualizedMenuItem
+      tooltipText={column.verbose_name || column.column_name}
+      onClick={e => onSelectColumn(e, column)}
+      style={style}
+    >
+      {column.verbose_name || column.column_name}
+    </VirtualizedMenuItem>
+  );
+}
 
 export interface DrillBySubmenuProps {
   drillByConfig?: ContextMenuFilters['drillBy'];
@@ -190,26 +217,9 @@ export const DrillBySubmenu = ({
 
   const isDisabled = !handlesDimensionContextMenu || !hasDrillBy;
 
-  const Row = ({
-    index,
-    data,
-    style,
-  }: {
-    index: number;
-    data: { columns: Column[] };
-    style: CSSProperties;
-  }) => {
-    const { columns } = data;
-    const column = columns[index];
-    return (
-      <VirtualizedMenuItem
-        tooltipText={column.verbose_name || column.column_name}
-        onClick={e => handleSelection(e, column)}
-        style={style}
-      >
-        {column.verbose_name || column.column_name}
-      </VirtualizedMenuItem>
-    );
+  const listRowProps: DrillByColumnRowProps = {
+    columns: filteredColumns,
+    onSelectColumn: handleSelection,
   };
 
   const popoverContent = (
@@ -260,15 +270,13 @@ export const DrillBySubmenu = ({
         </div>
       ) : filteredColumns.length ? (
         <List
-          width="100%"
-          height={SUBMENU_HEIGHT}
-          itemSize={35}
-          itemCount={filteredColumns.length}
-          itemData={{ columns: filteredColumns }}
+          style={{ width: '100%', height: SUBMENU_HEIGHT }}
+          rowHeight={35}
+          rowCount={filteredColumns.length}
+          rowProps={listRowProps}
+          rowComponent={DrillByColumnRow}
           overscanCount={20}
-        >
-          {Row}
-        </List>
+        />
       ) : (
         <div
           css={css`

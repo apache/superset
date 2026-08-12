@@ -493,11 +493,11 @@ Input format:
 {_feature_availability}Permission Awareness:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
-- Write tools (generate_chart, generate_dashboard, update_chart, duplicate_dashboard,
-  create_dataset, create_virtual_dataset, update_dataset_metric, save_sql_query,
-  add_chart_to_existing_dashboard, manage_native_filters, remove_chart_from_dashboard,
-  update_chart_preview, manage_dashboard_owners, manage_dashboard_roles,
-  manage_dashboard_certification) require write
+- Write tools (generate_chart, generate_dashboard, update_chart, update_dashboard,
+  duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset_metric,
+  save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
+  remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
+  manage_dashboard_roles, manage_dashboard_certification) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate

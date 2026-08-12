@@ -261,12 +261,15 @@ def combine_screenshot_tiles(
     screenshot_tiles: list[bytes],
     *,
     allow_partial_fallback: bool = True,
+    log_context: str | None = None,
 ) -> bytes:
     """
     Combine multiple screenshot tiles into a single vertical image.
 
     Args:
         screenshot_tiles: List of screenshot bytes in PNG format
+        log_context: Optional identifier (e.g. report execution id, or a
+            thumbnail cache key) appended to log lines for tracing.
 
     Returns:
         Combined screenshot as bytes
@@ -277,6 +280,7 @@ def combine_screenshot_tiles(
     if len(screenshot_tiles) == 1:
         return screenshot_tiles[0]
 
+    context_suffix = f" [{log_context}]" if log_context else ""
     try:
         # Open all images
         images = [Image.open(io.BytesIO(tile)) for tile in screenshot_tiles]
@@ -300,7 +304,7 @@ def combine_screenshot_tiles(
         return output.getvalue()
 
     except Exception as e:
-        logger.exception("Failed to combine screenshot tiles: %s", e)
+        logger.exception("Failed to combine screenshot tiles: %s%s", e, context_suffix)
         if allow_partial_fallback:
             # Preserve the historical thumbnail behavior. Scheduled reports
             # opt out because delivering only the first tile is incomplete.
@@ -475,16 +479,17 @@ def take_tiled_screenshot(  # noqa: C901
         dashboard_top = element_info["top"]
 
         logger.info(
-            "Dashboard: %sx%spx at (%s, %s)",
+            "Dashboard: %sx%spx at (%s, %s)%s",
             dashboard_width,
             dashboard_height,
             dashboard_left,
             dashboard_top,
+            context_suffix,
         )
 
         # Calculate number of tiles needed
         num_tiles = max(1, (dashboard_height + tile_height - 1) // tile_height)
-        logger.info("Taking %s screenshot tiles", num_tiles)
+        logger.info("Taking %s screenshot tiles%s", num_tiles, context_suffix)
 
         screenshot_tiles: list[bytes] = []
 
@@ -525,7 +530,11 @@ def take_tiled_screenshot(  # noqa: C901
 
             page.evaluate(f"window.scrollTo(0, {scroll_y})")
             logger.debug(
-                "Scrolled window to %s for tile %s/%s", scroll_y, i + 1, num_tiles
+                "Scrolled window to %s for tile %s/%s%s",
+                scroll_y,
+                i + 1,
+                num_tiles,
+                context_suffix,
             )
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
@@ -688,13 +697,14 @@ def take_tiled_screenshot(  # noqa: C901
                 logger.warning(
                     "Skipping tile %s/%s due to invalid clip dimensions: "
                     "x=%s, y=%s, width=%s, height=%s "
-                    "(element may be scrolled out of viewport)",
+                    "(element may be scrolled out of viewport).%s",
                     i + 1,
                     num_tiles,
                     clip_x,
                     clip_y,
                     dashboard_width,
                     clip_height,
+                    context_suffix,
                 )
                 continue
 
@@ -730,7 +740,13 @@ def take_tiled_screenshot(  # noqa: C901
             )
             screenshot_tiles.append(tile_screenshot)
 
-            logger.debug("Captured tile %s/%s with clip %s", i + 1, num_tiles, clip)
+            logger.debug(
+                "Captured tile %s/%s with clip %s%s",
+                i + 1,
+                num_tiles,
+                clip,
+                context_suffix,
+            )
 
         # Combine all tiles
         try:
@@ -761,10 +777,11 @@ def take_tiled_screenshot(  # noqa: C901
             f"{remaining:.2f}" if remaining is not None else None,
             context_suffix,
         )
-        logger.info("Combining screenshot tiles...")
+        logger.info("Combining screenshot tiles...%s", context_suffix)
         combined_screenshot = combine_screenshot_tiles(
             screenshot_tiles,
             allow_partial_fallback=report_execution_context is None,
+            log_context=log_context,
         )
 
         return combined_screenshot
