@@ -38,6 +38,11 @@ function loadIranGeoJson(): { features: Feature[] } {
 test('every Iranian province has its own distinct ISO 3166-2 code', () => {
   const { features } = loadIranGeoJson();
 
+  // Pin the feature count too, so dropping a province other than
+  // Tehran/Alborz (which would still leave every remaining ISO code
+  // distinct) doesn't slip past the checks below.
+  expect(features.length).toBe(31);
+
   // Sanity check: every province name in this file is unique, so a
   // duplicate ISO code below can only mean two different provinces were
   // mistakenly assigned the same code (as opposed to one province being
