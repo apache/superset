@@ -16,24 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { lazy } from 'react';
-
-const HandlebarsDashboard = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "HandlebarsDashboard" */ './HandlebarsDashboard'
-    ),
-);
 
 export const HandlebarsComponentConfig = {
   key: 'handlebars-dashboard',
   item: {
-    Component: HandlebarsDashboard,
+    loadComponent: () =>
+      import(
+        /* webpackChunkName: "HandlebarsDashboard" */ './HandlebarsDashboard'
+      ),
     metadata: {
       name: 'handlebars-dashboard',
+      description: 'Handlebars-powered Dynamic dashboard component',
       iconName: 'code',
     },
   },
 };
-
-export default HandlebarsDashboard;

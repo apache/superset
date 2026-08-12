@@ -18,6 +18,12 @@
 from .add_chart_to_existing_dashboard import add_chart_to_existing_dashboard
 from .delete_dashboard import delete_dashboard
 from .duplicate_dashboard import duplicate_dashboard
+from .dynamic_dashboard import (
+    create_dynamic_dashboard,
+    get_dynamic_dashboard_config,
+    update_dynamic_dashboard,
+)
+from .render_dynamic_dashboard import render_dynamic_dashboard
 from .generate_dashboard import generate_dashboard
 from .get_dashboard_datasets import get_dashboard_datasets
 from .get_dashboard_info import get_dashboard_info
@@ -47,4 +53,8 @@ __all__ = [
     "restore_dashboard",
     "update_dashboard",
     "delete_dashboard",
+    "create_dynamic_dashboard",
+    "get_dynamic_dashboard_config",
+    "update_dynamic_dashboard",
+    "render_dynamic_dashboard",
 ]

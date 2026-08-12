@@ -19,20 +19,15 @@
 
 from __future__ import annotations
 
+from flask_appbuilder import Model
+from flask_appbuilder.security.sqla.models import User  # noqa: F401 — resolves AuditMixin relationships
 from sqlalchemy import Column, ForeignKey, Integer, Text
-from sqlalchemy.orm import relationship
 
-from superset import db
 from superset.models.helpers import AuditMixinNullable
 
 
-class DynamicDashboardConfig(db.Model, AuditMixinNullable):  # type: ignore[name-defined]
-    """Stores the Handlebars template and slot configuration for a Dynamic dashboard.
-
-    Separates the rendering config from the dashboard's ``position_json`` layout
-    blob, making it safe from accidental overwrites by the layout editor and
-    enabling future version-history support.
-    """
+class DynamicDashboardConfig(Model, AuditMixinNullable):
+    """Stores the Handlebars template and slot configuration for a Dynamic dashboard."""
 
     __tablename__ = "dynamic_dashboard_configs"
 
@@ -40,22 +35,7 @@ class DynamicDashboardConfig(db.Model, AuditMixinNullable):  # type: ignore[name
     dashboard_id = Column(
         Integer, ForeignKey("dashboards.id", ondelete="CASCADE"), nullable=False, unique=True
     )
-
-    # The root Handlebars HTML template.
     template = Column(Text, nullable=False)
-
-    # JSON array of slot definitions:
-    # [{"name": "...", "formData": {...}, "template": "..."}]
     slots = Column(Text, nullable=False, default="[]")
-
-    # Optional JSON object for drill-down configuration.
     drill_down_config = Column(Text, nullable=True)
-
-    # Monotonically increasing version, for future version-history support.
     version = Column(Integer, nullable=False, default=1)
-
-    dashboard = relationship(
-        "Dashboard",
-        foreign_keys=[dashboard_id],
-        backref="dynamic_config",
-    )

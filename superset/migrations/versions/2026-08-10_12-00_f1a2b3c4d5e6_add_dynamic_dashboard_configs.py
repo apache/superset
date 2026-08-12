@@ -35,7 +35,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "f1a2b3c4d5e6"
-down_revision = "b8d2f4a6c901"
+down_revision = "2d6ad72e4af6"
 
 TABLE_NAME = "dynamic_dashboard_configs"
 
