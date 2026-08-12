@@ -174,6 +174,110 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     )
 
 
+def test_update_dataset_database_id_change_checks_new_database_access(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Changing ``database_id`` alone (with no ``sql`` in the payload) must
+    still be authorised against the new database connection: ownership of
+    the dataset (``raise_for_editorship``) is not enough. When the caller
+    isn't authorised for the new database, the update is rejected and the
+    dataset is not repointed.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_current_database = mocker.MagicMock()
+    mock_current_database.id = 1
+
+    mock_new_database = mocker.MagicMock()
+    mock_new_database.id = 2
+    mock_new_database.get_default_catalog.return_value = "catalog"
+    mock_new_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_current_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "test_table"
+    mock_dataset.editors = []  # No editors to avoid computation issues
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_new_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+
+    mock_raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                message="You don't have access to that database",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        UpdateDatasetCommand(1, {"database_id": 2}).run()
+
+    mock_raise_for_access.assert_called_once()
+    assert mock_raise_for_access.call_args.kwargs["database"] is mock_new_database
+    assert any(
+        "You don't have access to that database" in str(exc)
+        for exc in excinfo.value._exceptions
+    )
+    # The update never runs, so the dataset is never repointed.
+    mock_dataset_dao.update.assert_not_called()
+
+
+def test_update_dataset_database_id_change_allowed_with_access(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the caller is authorised for the new database, changing
+    ``database_id`` alone succeeds and the dataset is repointed to it.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_current_database = mocker.MagicMock()
+    mock_current_database.id = 1
+
+    mock_new_database = mocker.MagicMock()
+    mock_new_database.id = 2
+    mock_new_database.get_default_catalog.return_value = "catalog"
+    mock_new_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_current_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "test_table"
+    mock_dataset.editors = []  # No editors to avoid computation issues
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_new_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mock_raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    result = UpdateDatasetCommand(1, {"database_id": 2}).run()
+
+    mock_raise_for_access.assert_called_once()
+    assert mock_raise_for_access.call_args.kwargs["database"] is mock_new_database
+    assert result == mock_dataset
+    _, update_kwargs = mock_dataset_dao.update.call_args
+    assert update_kwargs["attributes"]["database"] is mock_new_database
+
+
 @pytest.mark.parametrize(
     ("payload, exception, error_msg"),
     [

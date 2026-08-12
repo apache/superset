@@ -261,11 +261,33 @@ class UploadCommand(BaseCommand):
         if size is not None and size > max_file_size:
             raise DatabaseUploadFileTooLarge()
 
+    @staticmethod
+    def _resolve_default_schema(database: Database) -> Optional[str]:
+        """Resolve the database's default schema so uploaded datasets carry an
+        explicit schema instead of NULL, which would otherwise duplicate an
+        existing dataset over the same table (see #36305)."""
+        try:
+            return database.get_default_schema(database.get_default_catalog())
+        except Exception:  # pylint: disable=broad-except
+            # Resolution opens an inspector connection; a failure here must
+            # degrade to the no-schema behavior rather than fail the upload.
+            logger.warning(
+                "Unable to resolve default schema for upload; proceeding without one",
+                exc_info=True,
+            )
+            return None
+
     def validate(self) -> None:
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
             raise DatabaseNotFoundError()
-        if not schema_allows_file_upload(self._model, self._schema):
+        engine_resolved = False
+        if not self._schema:
+            self._schema = self._resolve_default_schema(self._model)
+            engine_resolved = self._schema is not None
+        if not schema_allows_file_upload(
+            self._model, self._schema, engine_resolved=engine_resolved
+        ):
             raise DatabaseSchemaUploadNotAllowed()
         if not self._model.db_engine_spec.supports_file_upload:
             raise DatabaseUploadNotSupported()

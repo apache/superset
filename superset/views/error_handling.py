@@ -45,6 +45,10 @@ from superset.exceptions import (
 )
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.error_sanitization import (
+    sanitize_error_message,
+    sanitize_superset_errors,
+)
 from superset.utils.log import get_logger_from_status
 from superset.views.utils import redirect_to_login
 
@@ -74,12 +78,16 @@ def json_error_response(
 ) -> FlaskResponse:
     payload = payload or {}
 
+    if isinstance(error_details, SupersetError):
+        error_details = [error_details]
+
     if isinstance(error_details, list):
-        payload["errors"] = [dataclasses.asdict(error) for error in error_details]
-    elif isinstance(error_details, SupersetError):
-        payload["errors"] = [dataclasses.asdict(error_details)]
+        payload["errors"] = [
+            dataclasses.asdict(error)
+            for error in sanitize_superset_errors(error_details)
+        ]
     elif isinstance(error_details, str):
-        payload["error"] = error_details
+        payload["error"] = sanitize_error_message(error_details, status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),

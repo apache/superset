@@ -165,6 +165,31 @@ You can also certify metrics if you'd like for your team in this view.
 - [Blog: Unlocking the Power of Virtual Datasets](https://preset.io/blog/unlocking-the-power-of-virtual-datasets-in-apache-superset/)
   :::
 
+### Native filters on semantic views
+
+When the `SEMANTIC_LAYERS` feature flag is enabled, Superset can connect to external semantic layers
+(such as dbt Semantic Layer or Cube) and expose their semantic views as data sources alongside your
+regular Datasets. Semantic views can be used as filter targets when adding a native (dashboard) filter,
+the same way a Dataset can.
+
+To add a filter on a semantic view:
+
+1. Open the dashboard, click the **⋮** (more options) menu, and select **Edit dashboard**.
+2. Open the Filter Bar and click **+ Add/Edit Filters**.
+3. Add a new filter and, in the datasource dropdown, select a semantic view. Semantic views are listed
+   alongside datasets and can be identified by their type.
+4. Select one of the semantic view's dimensions in the **Column** field, the same way you'd select a
+   column on a dataset.
+5. Configure the remaining filter options (filter type, default value, scope, etc.) and click **Save**.
+
+Any chart on the dashboard that's powered by the same semantic view is filtered by the selected
+dimension when the filter is applied.
+
+:::note
+Semantic views and native filter support for them are part of the experimental Semantic Layers
+feature and require the `SEMANTIC_LAYERS` feature flag to be enabled.
+:::
+
 ### Creating charts in Explore view
 
 Superset has 2 main interfaces for exploring data:
@@ -302,6 +327,10 @@ Conditional formatting rules highlight cells based on their values. Rules can be
 - **Boolean columns** — color cells that are `true` or `false`, or `null`/`not null`
 
 Each rule has a **"Use gradient"** toggle: enabled applies a varying opacity (lighter = further from threshold), disabled applies a solid fill at full opacity regardless of value.
+
+Each rule's color is set with a full color picker rather than a fixed dropdown of presets. Pick any custom color, or use the **Colors** preset swatches, which reference theme tokens (success, warning, error, and their background variants) so a rule's color updates automatically if the active theme changes, including switching between light and dark mode.
+
+When a rule targets a column with an active time comparison, a **Trend colors** preset also appears, letting you color cells green for an increase and red for a decrease (or the reverse).
 
 #### HTML Rendering in Table Cells
 
