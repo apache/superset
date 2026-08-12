@@ -202,7 +202,11 @@ def _merge_replacement_config(
 ) -> dict[str, Any]:
     """Merge a replacement config, honoring an explicit empty filter list."""
     merged = {
-        **{key: value for key, value in existing_form_data.items() if key != "column_config"},
+        **{
+            key: value
+            for key, value in existing_form_data.items()
+            if key != "column_config"
+        },
         **new_form_data,
     }
     if getattr(parsed_config, "filters", None) == []:

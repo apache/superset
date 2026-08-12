@@ -30,12 +30,14 @@ import pytest
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
+    GenerateChartRequest,
     PivotTableChartConfig,
     TableChartConfig,
     TableColumnConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
 from superset.mcp_service.common.error_schemas import DatasetContext
 
 
@@ -206,6 +208,33 @@ class TestNormalizeColumnNames:
         assert normalized.columns[0].name == "Sales"
         assert normalized.column_config is not None
         assert normalized.column_config["SUM(Sales)"].model_dump(
+            by_alias=True, exclude_unset=True
+        ) == {"columnWidth": 120}
+
+    def test_pipeline_preserves_partial_table_column_config(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        """The request round trip must not turn omitted formats into nulls."""
+        request = GenerateChartRequest.model_validate(
+            {
+                "dataset_id": 18,
+                "config": {
+                    "chart_type": "table",
+                    "columns": [{"name": "sales", "aggregate": "SUM"}],
+                    "column_config": {"SUM(Sales)": {"columnWidth": 120}},
+                },
+            }
+        )
+
+        normalized = ValidationPipeline._normalize_column_names(
+            request,
+            mock_dataset_context,
+            typed_config=request.config,
+        )
+
+        assert isinstance(normalized.config, TableChartConfig)
+        assert normalized.config.column_config is not None
+        assert normalized.config.column_config["SUM(Sales)"].model_dump(
             by_alias=True, exclude_unset=True
         ) == {"columnWidth": 120}
 
