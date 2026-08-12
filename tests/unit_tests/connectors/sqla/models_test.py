@@ -39,7 +39,11 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.core import Database
-from superset.models.helpers import ExploreMixin, validate_adhoc_subquery
+from superset.models.helpers import (
+    ExploreMixin,
+    validate_adhoc_subquery,
+    validate_rendered_expression,
+)
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
@@ -1643,6 +1647,50 @@ def test_get_sqla_col_catches_subquery_beside_unparseable_syntax(
     tc = _stored_col("DATE_ADD(ds, 1) + (SELECT 1)", "mysql", mocker)
     with pytest.raises(QueryObjectValidationError):
         tc.get_sqla_col()
+
+
+def test_validate_rendered_expression_rejects_multi_statement(
+    mocker: MockerFixture,
+) -> None:
+    database = _database_for_expression(mocker)
+    with pytest.raises(QueryObjectValidationError):
+        validate_rendered_expression("1; DROP TABLE users", database, None, "public")
+
+
+def test_validate_rendered_expression_rejects_set_operation(
+    mocker: MockerFixture,
+) -> None:
+    database = _database_for_expression(mocker)
+    with pytest.raises(QueryObjectValidationError):
+        validate_rendered_expression(
+            "1 UNION SELECT password FROM ab_user", database, None, "public"
+        )
+
+
+def test_validate_rendered_expression_rejects_subquery(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With ``ALLOW_ADHOC_SUBQUERY=False`` (the default), a rendered expression
+    containing a sub-query is rejected by the same ``validate_adhoc_subquery``
+    gate used for stored and adhoc expressions.
+    """
+    database = _database_for_expression(mocker)
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    with pytest.raises(QueryObjectValidationError):
+        validate_rendered_expression(
+            "(SELECT password FROM ab_user LIMIT 1)", database, None, "public"
+        )
+
+
+def test_validate_rendered_expression_accepts_valid_expression(
+    mocker: MockerFixture,
+) -> None:
+    """A benign rendered expression is returned unchanged (no RLS applied)."""
+    database = _database_for_expression(mocker)
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    result = validate_rendered_expression("SUM(amount)", database, None, "public")
+    assert result == "SUM(amount)"
 
 
 def test_get_sqla_col_revalidates_rendered_jinja_expression(
