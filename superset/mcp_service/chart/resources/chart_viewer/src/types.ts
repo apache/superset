@@ -57,9 +57,11 @@ export interface ChartData {
   theme?: Record<string, string>;
   [key: string]: unknown;
   /**
-   * Set when Superset's post-processing was NOT applied, so ordering,
-   * pivoting and series joins may differ from the chart in Superset. The
-   * numbers are real; their arrangement may not be the chart's.
+   * Set when the query was rebuilt outside Superset's viz plugins, so the
+   * time grain, groupby, sort, pivot structure and any second series were
+   * never applied. The VALUES may be wrong, not merely reordered — a monthly
+   * chart can return individual days. Never present this as the chart's data
+   * without saying so.
    */
   fidelity_warning?: string | null;
 }

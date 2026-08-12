@@ -603,11 +603,14 @@ async def get_chart_data_core(  # noqa: C901
                 # plausible-looking numbers that silently disagreed with
                 # Superset. It travels with the data now.
                 fidelity_warning = (
-                    "This chart has no saved query context, so Superset's "
-                    "post-processing (sorting, pivoting, series joins, time "
-                    "ordering) was not applied. The values are correct but "
-                    "their order and shape may differ from the chart in "
-                    "Superset. Re-save the chart in Superset to fix this."
+                    "This chart was rendered without Superset's query "
+                    "pipeline. Time grouping, sorting, pivoting and "
+                    "multi-series joins were not applied, so BOTH the values "
+                    "and their arrangement may differ from Superset — a "
+                    "chart grouped by month can come back as individual "
+                    "days, and a pivot table can come back as a single "
+                    "total. Compare against Superset before relying on "
+                    "these numbers."
                 )
                 await ctx.warning(
                     "Chart has no saved query_context. "

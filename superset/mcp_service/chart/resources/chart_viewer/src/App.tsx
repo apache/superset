@@ -1057,7 +1057,7 @@ function shell(
       </div>
       {data?.fidelity_warning && (
         <div className="sv-fidelity">
-          <strong>Row order may differ from Superset.</strong>
+          <strong>These numbers may not match Superset.</strong>
           <span>{stripUntrustedMarkers(data.fidelity_warning)}</span>
         </div>
       )}

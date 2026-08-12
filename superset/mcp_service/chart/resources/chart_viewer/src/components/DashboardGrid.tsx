@@ -193,7 +193,8 @@ export function DashboardGrid({
             </div>
             {cell.data?.fidelity_warning && (
               <div className="sv-fidelity">
-                <strong>Row order may differ.</strong>
+                <strong>May not match Superset.</strong> Not grouped or
+                sorted by Superset's query pipeline.
               </div>
             )}
             <SubstitutionNote cell={cell} />

@@ -2572,10 +2572,13 @@ class ChartData(BaseModel):
         None,
         description=(
             "Set when this data was NOT produced by the chart's own saved "
-            "query context, so Superset's post-processing (sorting, pivoting, "
-            "series joins, time ordering) was not applied and the numbers may "
-            "differ from what the chart shows in Superset. Clients MUST "
-            "surface this rather than presenting the data as the chart's."
+            "query context. Superset builds each chart's query in its viz "
+            "plugin (buildQuery), which supplies the time grain, the "
+            "groupby/series columns, the sort, the pivot structure and any "
+            "second query. None of that is applied here, so the VALUES may be "
+            "wrong — not merely reordered. A monthly chart can return "
+            "individual days, and a pivot table a single total. Clients MUST "
+            "surface this and MUST NOT present the data as the chart's."
         ),
     )
 

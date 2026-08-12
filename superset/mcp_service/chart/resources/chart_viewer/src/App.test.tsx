@@ -530,7 +530,12 @@ it('warns when the data was not post-processed by Superset', async () => {
   // Deliberately proportionate wording: nearly every chart in a typical
   // instance takes this path, so it names the specific risk (ordering) rather
   // than sounding a general alarm nobody would read.
-  expect(note!.textContent).toContain('Row order may differ');
+  // MUST NOT assert correctness we do not have. An earlier version said
+  // "the values are correct but their order may differ" — which is false:
+  // without the time grain a monthly chart returns individual days, so the
+  // magnitudes are wrong too. A warning that reassures is worse than none.
+  expect(note!.textContent).toContain('may not match Superset');
+  expect(note!.textContent).not.toContain('values are correct');
 });
 
 it('stays silent when the data came from the chart’s own query context', async () => {
