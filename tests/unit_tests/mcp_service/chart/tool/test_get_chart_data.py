@@ -1736,6 +1736,24 @@ def test_single_query_chart_keeps_legacy_shape() -> None:
     )
 
 
+def test_multi_query_row_count_reflects_limit() -> None:
+    """Nested row counts describe returned rows rather than source rows."""
+    results = _build_query_results(
+        [
+            {"colnames": ["metric"], "data": [{"metric": 1}, {"metric": 2}]},
+            {"colnames": ["metric"], "data": [{"metric": 3}, {"metric": 4}]},
+        ],
+        limit=1,
+    )
+
+    assert results is not None
+    assert [result.row_count for result in results] == [1, 1]
+    assert [result.data for result in results] == [
+        [{"metric": 1}],
+        [{"metric": 3}],
+    ]
+
+
 @pytest.mark.asyncio
 async def test_unsaved_mixed_timeseries_returns_every_query(
     monkeypatch: pytest.MonkeyPatch,

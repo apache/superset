@@ -293,20 +293,20 @@ def _build_query_results(
     if len(query_results) <= 1:
         return None
 
-    return [
-        ChartQueryResult(
-            query_index=index,
-            columns=query_result.get("colnames", []),
-            data=(
-                query_result.get("data", [])[:limit]
-                if limit
-                else query_result.get("data", [])
-            ),
-            row_count=len(query_result.get("data", [])),
-            total_rows=query_result.get("rowcount"),
+    results = []
+    for index, query_result in enumerate(query_results):
+        data = query_result.get("data", [])
+        returned_data = data[:limit] if limit else data
+        results.append(
+            ChartQueryResult(
+                query_index=index,
+                columns=query_result.get("colnames", []),
+                data=returned_data,
+                row_count=len(returned_data),
+                total_rows=query_result.get("rowcount"),
+            )
         )
-        for index, query_result in enumerate(query_results)
-    ]
+    return results
 
 
 @tool(
