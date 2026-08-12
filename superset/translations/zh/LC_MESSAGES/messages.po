@@ -3097,7 +3097,7 @@ msgid "Captcha"
 msgstr "验证码"
 
 msgid "Cartodiagram"
-msgstr "Cartodiagram"
+msgstr "变形地图"
 
 msgid "Catalog"
 msgstr "目录"
@@ -3558,7 +3558,7 @@ msgid ""
 msgstr "选择国家应根据指标进行着色，还是根据分类调色板分配颜色"
 
 msgid "Choose..."
-msgstr "选择..."
+msgstr "请选择"
 
 msgid "Chord Diagram"
 msgstr "弦图"
@@ -5282,7 +5282,7 @@ msgid "Define the database, SQL query, and triggering conditions for alert."
 msgstr "定义数据库、SQL查询和告警触发条件。"
 
 msgid "Defined through system configuration."
-msgstr "通过系统配置定义。"
+msgstr "由系统配置定义。"
 
 msgid ""
 "Defines a rolling window function to apply, works along with the "
@@ -6265,7 +6265,7 @@ msgid "Elevation"
 msgstr "高程"
 
 msgid "Email"
-msgstr "电子邮件"
+msgstr "邮箱"
 
 msgid "Email is required"
 msgstr "必须填写邮箱"
@@ -6521,9 +6521,8 @@ msgstr "输入主题名称"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Enter your login and password below:"
-msgstr "请在下方输入您的登录名和密码："
+msgstr "请输入您的用户名和密码："
 
 msgid "Entity"
 msgstr "实体"
@@ -7357,10 +7356,10 @@ msgid "First"
 msgstr "第一个"
 
 msgid "First Name"
-msgstr "名字"
+msgstr "名"
 
 msgid "First name"
-msgstr "名字"
+msgstr "名"
 
 msgid "First name is required"
 msgstr "名字是必需的"
@@ -7694,7 +7693,7 @@ msgid "Grain"
 msgstr "粒度"
 
 msgid "Graph Chart"
-msgstr "图图表"
+msgstr "关系图"
 
 msgid "Graph layout"
 msgstr "图表布局"
@@ -8214,7 +8213,7 @@ msgid "Invalid JSON"
 msgstr "无效的JSON"
 
 msgid "Invalid JSON configuration"
-msgstr "无效的JSON配置"
+msgstr "JSON 配置无效"
 
 msgid "Invalid JSON metadata"
 msgstr "无效的 JSON 元数据"
@@ -8594,7 +8593,7 @@ msgid "Last 90 days"
 msgstr ""
 
 msgid "Last Name"
-msgstr "姓氏"
+msgstr "姓"
 
 #, python-format
 msgid "Last Updated %s"
@@ -8625,7 +8624,7 @@ msgid "Last month"
 msgstr "上一月"
 
 msgid "Last name"
-msgstr "姓氏"
+msgstr "姓"
 
 msgid "Last name is required"
 msgstr "姓氏是必需的"
@@ -10588,7 +10587,7 @@ msgid "Page navigation"
 msgstr "页面导航"
 
 msgid "Paired t-test Table"
-msgstr "配对t检验表"
+msgstr "配对 t 检验表"
 
 msgid "Pandas resample method"
 msgstr "Pandas 重采样方法"
@@ -11036,9 +11035,8 @@ msgid "Plugins"
 msgstr "插件"
 
 msgid "Point Cluster Map"
-msgstr "点簇地图"
+msgstr "点聚合地图"
 
-#, fuzzy
 msgid "Point Color"
 msgstr "点颜色"
 
@@ -14068,7 +14066,7 @@ msgid "Summary"
 msgstr "摘要"
 
 msgid "Sunburst Chart"
-msgstr "旭日/太阳图"
+msgstr "旭日图"
 
 msgid "Sunday"
 msgstr "星期日"
@@ -14216,7 +14214,7 @@ msgid "Tab title"
 msgstr "选项卡标题"
 
 msgid "Table"
-msgstr "表"
+msgstr "表格"
 
 #, python-format
 msgid "Table %(table)s wasn't found in the database %(db)s"
@@ -14226,7 +14224,7 @@ msgid "Table Name"
 msgstr "表名"
 
 msgid "Table V2"
-msgstr "表 V2"
+msgstr "表格 V2"
 
 #, python-format
 msgid ""
@@ -16562,7 +16560,7 @@ msgid "Tree orientation"
 msgstr "树形方向"
 
 msgid "Treemap"
-msgstr "树形图"
+msgstr "矩形树图"
 
 msgid "Trend"
 msgstr "趋势"
@@ -17987,7 +17985,7 @@ msgid "With a subheader"
 msgstr "子标题"
 
 msgid "Word Cloud"
-msgstr "词汇云"
+msgstr "词云"
 
 msgid "Word Rotation"
 msgstr "单词旋转"
@@ -18545,7 +18543,7 @@ msgid "Your session has ended. Please sign in again."
 msgstr "您的会话已结束，请重新登录。"
 
 msgid "Your user information"
-msgstr "您的用户信息"
+msgstr "个人信息"
 
 msgid "Z-A"
 msgstr "Z-A"
@@ -18651,7 +18649,7 @@ msgid "`window` must be between 1 and 10000"
 msgstr "`window` 必须介于 1 和 10000 之间。"
 
 msgid "a few seconds"
-msgstr "a few 秒"
+msgstr "几秒"
 
 msgid "aggregate"
 msgstr "合计"
