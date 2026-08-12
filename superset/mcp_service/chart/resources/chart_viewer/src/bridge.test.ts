@@ -632,7 +632,9 @@ describe('Claude Desktop capabilities', () => {
     try {
       const bridge = new ChartBridge();
       await bridge.initialize(500);
-      await expect(bridge.downloadViaHost('d.csv', 'text/csv', 'x')).resolves.toBe(false);
+      await expect(
+        bridge.downloadViaHost('d.csv', 'text/csv', 'x', 200),
+      ).resolves.toBe(false);
     } finally {
       host.restore();
     }
@@ -671,6 +673,89 @@ describe('Claude Desktop capabilities', () => {
       // than after a timeout.
       await expect(bridge.requestDisplayMode('fullscreen', 5000)).resolves.toBeNull();
       expect(host.sent.some((m) => m.method === 'ui/request-display-mode')).toBe(false);
+    } finally {
+      host.restore();
+    }
+  });
+});
+
+describe('host refusal is not success', () => {
+  // McpUiOpenLinkResult.isError: "True if the host failed to open the URL
+  // (e.g., due to security policy)". The promise still RESOLVES. Treating that
+  // as success returned true, skipped every fallback, and left the user with
+  // silence — matching "open in superset does nothing" exactly.
+  it('treats an isError open-link result as a failure', async () => {
+    const host = desktopHost((msg) =>
+      msg.method === 'ui/open-link' ? { isError: true } : undefined,
+    );
+    const realOpen = window.open;
+    window.open = (() => null) as typeof window.open;
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(bridge.openLink('https://x/e', 300)).resolves.toBe(false);
+    } finally {
+      window.open = realOpen;
+      host.restore();
+    }
+  });
+
+  it('records what we sent and what came back, for both operations', async () => {
+    // Three cycles were spent inferring backwards from "it does nothing",
+    // because the host's answer is invisible from outside the iframe.
+    const host = desktopHost((msg) => {
+      if (msg.method === 'ui/open-link') return { isError: true };
+      if (msg.method === 'ui/download-file') return { isError: true };
+      return undefined;
+    });
+    const realOpen = window.open;
+    window.open = (() => null) as typeof window.open;
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await bridge.downloadViaHost('d.csv', 'text/csv', 'a,b');
+      await bridge.openLink('https://x/e', 300);
+      const ex = bridge.getDiagnostics().exchanges;
+      const dl = ex.find((e) => e.method === 'ui/download-file');
+      expect(dl?.result).toEqual({ isError: true });
+      expect(dl?.params).toHaveProperty('contents');
+      expect(ex.some((e) => e.method === 'ui/open-link')).toBe(true);
+    } finally {
+      window.open = realOpen;
+      host.restore();
+    }
+  });
+
+  it('records a silent host as a failure rather than nothing', async () => {
+    const host = desktopHost(); // never answers ui/download-file
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(
+        bridge.downloadViaHost('d.csv', 'text/csv', 'x', 200),
+      ).resolves.toBe(false);
+      const dl = bridge.getDiagnostics().exchanges.find(
+        (e) => e.method === 'ui/download-file',
+      );
+      expect(dl?.failure).toBeTruthy();
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('reads the host-stated frame ceiling instead of our guess', async () => {
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? {
+            hostCapabilities: {},
+            hostContext: { containerDimensions: { width: 768, maxHeight: 5000 } },
+          }
+        : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      expect(bridge.getHostMaxHeight()).toBe(5000);
     } finally {
       host.restore();
     }

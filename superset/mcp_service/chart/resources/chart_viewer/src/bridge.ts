@@ -99,6 +99,15 @@ export interface HostDiagnostics {
   /** Sandbox permissions the host granted (clipboard-write, etc.), if stated. */
   sandboxPermissions: string[];
   /**
+   * The last few host-mediated exchanges, request and response together.
+   *
+   * Download and open-link have each cost several build/restart/test cycles
+   * that ended in inferring backwards from a symptom, because the host's
+   * answer is invisible from outside the iframe. Recording what we sent and
+   * what came back turns "it does nothing" into a readable fact.
+   */
+  exchanges: HostExchange[];
+  /**
    * Display modes the host offers (`inline` | `fullscreen` | `pip`).
    *
    * Surfaced because `pip` — a persistent side panel that survives while the
@@ -107,6 +116,15 @@ export interface HostDiagnostics {
    * advertise it here.
    */
   availableDisplayModes: string[];
+}
+
+/** One request/response pair with the host, for the diagnostics panel. */
+export interface HostExchange {
+  method: string;
+  params: unknown;
+  /** Verbatim result, or the failure if the request never resolved. */
+  result?: unknown;
+  failure?: string;
 }
 
 export interface BridgeInit {
@@ -156,6 +174,7 @@ export class ChartBridge {
   private capabilities: HostCapabilities = emptyCapabilities();
   /** Modes from HostContext.availableDisplayModes; null when unadvertised. */
   private hostDisplayModes: Set<string> | null = null;
+  private hostMaxHeight: number | null = null;
   private diagnostics: HostDiagnostics = buildDiagnostics(
     undefined,
     emptyCapabilities(),
@@ -201,6 +220,7 @@ export class ChartBridge {
 
       this.capabilities = deriveCapabilities(result);
       this.hostDisplayModes = readDisplayModes(result?.hostContext);
+      this.hostMaxHeight = readMaxHeight(result?.hostContext);
       this.diagnostics = buildDiagnostics(result, this.capabilities, true);
       this.notify('ui/notifications/initialized', {});
 
@@ -340,12 +360,7 @@ export class ChartBridge {
     // meant a sandboxed iframe (which blocks it) fell through to a host request
     // we then treated as a last resort. The host is the supported route.
     if (this.isEmbedded && this.capabilities.canOpenLinks) {
-      try {
-        await this.request('ui/open-link', { url }, timeoutMs);
-        return true;
-      } catch {
-        /* fall through to the browser attempt */
-      }
+      if (await this.requestOk('ui/open-link', { url }, timeoutMs)) return true;
     }
     // Synchronously, inside the click's user gesture: awaiting anything first
     // spends transient activation and gets the popup blocked.
@@ -358,12 +373,7 @@ export class ChartBridge {
     if (this.isEmbedded && !this.capabilities.canOpenLinks) {
       // Unadvertised, but the spec says hosts SHOULD implement it — worth one
       // attempt before giving up.
-      try {
-        await this.request('ui/open-link', { url }, timeoutMs);
-        return true;
-      } catch {
-        /* host declined or stayed silent */
-      }
+      if (await this.requestOk('ui/open-link', { url }, timeoutMs)) return true;
     }
     return false;
   }
@@ -385,29 +395,72 @@ export class ChartBridge {
     filename: string,
     mimeType: string,
     text: string,
+    // Generous by default: the spec says the host SHOULD confirm with the user
+    // first, so this waits on a human, not a machine.
+    timeoutMs = 8000,
   ): Promise<boolean> {
     if (!this.isEmbedded || !this.capabilities.canDownloadFile) return false;
-    try {
-      const res = (await this.request('ui/download-file', {
+    return this.requestOk(
+      'ui/download-file',
+      {
         contents: [
           {
             type: 'resource',
             resource: { uri: `file:///${filename}`, mimeType, text },
           },
         ],
-      })) as { isError?: boolean } | undefined;
-      // The host reports refusal and cancellation as isError, so a resolved
-      // promise is not on its own a saved file.
-      return res?.isError !== true;
-    } catch {
+      },
+      timeoutMs,
+    );
+  }
+
+
+  /**
+   * Send a request whose result carries `isError`, and record the exchange.
+   *
+   * The spec marks refusal with `isError` on the RESULT — the promise still
+   * resolves. Treating a resolved promise as success is how "Open in Superset"
+   * reported a link it had opened nothing for, and it is the same defect as
+   * the display-mode control adopting a mode the host declined.
+   */
+  private async requestOk(
+    method: string,
+    params: unknown,
+    timeoutMs: number,
+  ): Promise<boolean> {
+    try {
+      const result = (await this.request(method, params, timeoutMs)) as
+        | { isError?: boolean }
+        | undefined;
+      this.record({ method, params, result });
+      return result?.isError !== true;
+    } catch (err) {
+      this.record({ method, params, failure: String(err) });
       return false;
     }
+  }
+
+  private record(exchange: HostExchange): void {
+    const kept = [...this.diagnostics.exchanges, exchange].slice(-6);
+    this.diagnostics = { ...this.diagnostics, exchanges: kept };
   }
 
   /** Report intrinsic content size so the host can size the iframe. */
   reportSize(width: number, height: number): void {
     if (!this.isEmbedded) return;
     this.notify('ui/notifications/size-changed', { width, height });
+  }
+
+  /**
+   * The tallest frame the host says it will give us, if it says.
+   *
+   * Desktop reports maxHeight 5000 while the widget capped itself at 1200 —
+   * and since that host offers no fullscreen mode, growing the frame IS the
+   * maximize feature, so the guess was the ceiling on the control people use
+   * most.
+   */
+  getHostMaxHeight(): number | null {
+    return this.hostMaxHeight;
   }
 
   /** Display modes the host advertised, or null if it advertised none. */
@@ -590,6 +643,7 @@ function buildDiagnostics(
     origin,
     embedded,
     derived,
+    exchanges: [],
     capabilityKeys: Object.keys(caps),
     sandboxPermissions: Object.keys(sandbox?.permissions ?? {}),
     availableDisplayModes: Array.from(
@@ -721,6 +775,15 @@ function readScheme(
     if (v.includes('light')) return 'light';
   }
   return null;
+}
+
+/** Host-stated ceiling for our frame, when it gives one. */
+export function readMaxHeight(ctx: Record<string, unknown> | undefined): number | null {
+  const dims = ctx?.containerDimensions as
+    | { height?: unknown; maxHeight?: unknown }
+    | undefined;
+  const v = typeof dims?.height === 'number' ? dims.height : dims?.maxHeight;
+  return typeof v === 'number' && v > 0 ? v : null;
 }
 
 function readContainer(

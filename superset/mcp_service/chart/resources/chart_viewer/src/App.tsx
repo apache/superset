@@ -608,9 +608,13 @@ export function App(): JSX.Element {
   }, []);
 
   const requestHeight = useCallback((height: number) => {
+    // Prefer the host's own ceiling over our guess. MAX_WIDGET_HEIGHT was a
+    // number we invented; a host that states containerDimensions knows better,
+    // and Desktop allows 5000 where we were stopping at 1200.
+    const ceiling = bridge.getHostMaxHeight() ?? MAX_WIDGET_HEIGHT;
     const next = Math.max(
       MIN_WIDGET_HEIGHT,
-      Math.min(MAX_WIDGET_HEIGHT, Math.round(height)),
+      Math.min(ceiling, Math.round(height)),
     );
     setRequestedHeight(next);
     bridge.reportSize(Math.max(window.innerWidth, 320), next);
@@ -928,6 +932,13 @@ function HostDiagnosticsPanel(): JSX.Element {
         {' · '}context {flag(d.derived.canUpdateModelContext)}
         {' · '}message {flag(d.derived.canSendMessage)}
         {' · '}modes [{d.availableDisplayModes.join(',') || 'unstated'}]
+        {d.exchanges?.length
+          ? ` · last ${d.exchanges![d.exchanges!.length - 1].method}: ${
+              d.exchanges![d.exchanges!.length - 1].failure
+                ? 'no reply'
+                : JSON.stringify(d.exchanges![d.exchanges!.length - 1].result)
+            }`
+          : ''}
         {' · '}caps [{d.capabilityKeys.join(',') || 'none'}]
         {d.sandboxPermissions.length
           ? ` · grants [${d.sandboxPermissions.join(',')}]`
@@ -944,6 +955,9 @@ function HostDiagnosticsPanel(): JSX.Element {
               ...d.derived,
               appTools: Array.from(d.derived.appTools),
             },
+            // What we sent and what came back, for the host-mediated
+            // operations whose failures are otherwise invisible from here.
+            exchanges: d.exchanges ?? [],
             capabilityKeys: d.capabilityKeys,
             sandboxPermissions: d.sandboxPermissions,
             availableDisplayModes: d.availableDisplayModes,

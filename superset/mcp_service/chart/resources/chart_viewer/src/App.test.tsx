@@ -88,6 +88,7 @@ vi.mock('./bridge', () => ({
     hasTool = vi.fn(() => false);
     supportsDisplayMode = supportsDisplayMode;
     downloadViaHost = downloadViaHost;
+    getHostMaxHeight = vi.fn(() => null);
     getDiagnostics = vi.fn(() => ({
       protocolVersion: '2026-01-26',
       hostCapabilities: {},
@@ -97,6 +98,7 @@ vi.mock('./bridge', () => ({
       capabilityKeys: [],
       sandboxPermissions: [],
       availableDisplayModes: [],
+      exchanges: [],
       derived: {
         appTools: new Set<string>(),
         canCallTools: false,
