@@ -1467,10 +1467,10 @@ class TestDashboardSortableColumns:
             "slug",
             "published",
             "changed_on",
+            "changed_on_delta_humanized",
             "created_on",
         ]
-        # Ensure no computed properties are included
-        assert "changed_on_delta_humanized" not in SORTABLE_DASHBOARD_COLUMNS
+        # Ensure unsupported computed properties are excluded
         assert "changed_by_name" not in SORTABLE_DASHBOARD_COLUMNS
         assert "uuid" not in SORTABLE_DASHBOARD_COLUMNS
 

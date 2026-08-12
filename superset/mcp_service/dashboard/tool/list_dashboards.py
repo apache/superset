@@ -62,6 +62,7 @@ SORTABLE_DASHBOARD_COLUMNS = [
     "slug",
     "published",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 
