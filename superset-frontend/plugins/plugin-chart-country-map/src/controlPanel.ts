@@ -83,6 +83,7 @@ const config: ControlPanelConfig = {
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
+              columnMetricFlag: true,
               shouldMapStateToProps() {
                 return true;
               },

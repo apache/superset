@@ -233,12 +233,14 @@ export const FormattingPopoverContent = ({
   columns = [],
   extraColorChoices = [],
   allColumns = [],
+  columnMetricFlag = false,
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  columnMetricFlag?: boolean;
 }) => {
   const [form] = Form.useForm();
   const colors = colorScheme();
@@ -321,9 +323,6 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
 
-  const effectiveColumn = columns[0]?.value;
-  const columnMetricFlag = effectiveColumn === 'metric';
-
   const defaultColorToken = colors[0]?.colors?.[0];
   const visibleUseGradient = useMemo(
     () =>
@@ -392,7 +391,7 @@ export const FormattingPopoverContent = ({
             name="column"
             label={t('Column')}
             rules={rulesRequired}
-            initialValue={effectiveColumn}
+            initialValue={columns[0]?.value}
           >
             <Select
               ariaLabel={t('Select column')}
