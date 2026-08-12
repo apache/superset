@@ -38,6 +38,7 @@ from superset.mcp_service.dashboard.schemas import (
     DuplicateDashboardResponse,
     GenerateDashboardRequest,
     GetDashboardInfoRequest,
+    GetDashboardLayoutRequest,
     ListDashboardsRequest,
     serialize_chart_summary,
     serialize_dashboard_object,
@@ -959,6 +960,29 @@ class TestRequestSchemaAliasChoices:
             {"id": 42, "columns": ["id", "dashboard_title"]}
         )
         assert req.select_columns == ["id", "dashboard_title"]
+
+    def test_get_dashboard_info_requires_reference(self) -> None:
+        with pytest.raises(ValidationError, match="identifier or permalink_key"):
+            GetDashboardInfoRequest.model_validate({})
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"identifier": 42},
+            {"permalink_key": "shared-key"},
+            {"identifier": 42, "permalink_key": "shared-key"},
+        ],
+    )
+    def test_get_dashboard_layout_accepts_reference(
+        self, payload: dict[str, Any]
+    ) -> None:
+        request = GetDashboardLayoutRequest.model_validate(payload)
+        assert request.identifier == payload.get("identifier")
+        assert request.permalink_key == payload.get("permalink_key")
+
+    def test_get_dashboard_layout_requires_reference(self) -> None:
+        with pytest.raises(ValidationError, match="identifier or permalink_key"):
+            GetDashboardLayoutRequest.model_validate({})
 
     def test_list_dashboards_select_columns_columns_alias(self) -> None:
         req = ListDashboardsRequest.model_validate(
