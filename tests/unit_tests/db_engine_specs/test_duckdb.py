@@ -216,6 +216,31 @@ def test_duckdb_local_impersonation_is_a_noop(mocker: MockerFixture) -> None:
     assert url == URL.create("duckdb", database="/path/to/duck.db")
 
 
+def test_duckdb_impersonation_drops_configured_username(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test ``impersonate_user`` drops a username configured in the URI.
+
+    duckdb-engine forwards it as a ``connect()`` kwarg that duckdb rejects.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    database = mocker.MagicMock()
+
+    for db in ["md:my_db", "/path/to/duck.db"]:
+        url, _ = DuckDBEngineSpec.impersonate_user(
+            database=database,
+            username="alice",
+            user_token=None,
+            url=URL.create("duckdb", username="configured", database=db),
+            engine_kwargs={},
+        )
+        assert url.username is None
+
+
 def test_motherduck_impersonation_escapes_structural_characters(
     mocker: MockerFixture,
 ) -> None:

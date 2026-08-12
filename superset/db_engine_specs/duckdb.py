@@ -378,11 +378,15 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         url: URL,
         engine_kwargs: dict[str, Any],
     ) -> tuple[URL, dict[str, Any]]:
-        # Local DuckDB has no user concept, and the base implementation's
-        # username-in-URL is passed by duckdb-engine as a connect() kwarg
-        # that duckdb rejects -- so never call it. Note that md: databases
-        # also resolve to this spec (spec lookup is by backend name only,
-        # and MotherDuck shares the duckdb:// scheme).
+        # duckdb-engine passes a username in the URL to connect() as a kwarg
+        # that duckdb rejects, so it must never survive: neither the one the
+        # base implementation sets (hence never calling it) nor one already
+        # configured in the SQLAlchemy URI.
+        url = url._replace(username=None)
+
+        # Local DuckDB has no user concept. Note that md: databases also
+        # resolve to this spec (spec lookup is by backend name only, and
+        # MotherDuck shares the duckdb:// scheme).
         if username is None or not (url.database or "").startswith("md:"):
             return url, engine_kwargs
 
