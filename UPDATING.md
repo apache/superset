@@ -54,6 +54,18 @@ pip install playwright && playwright install chromium
 2. Remove any references to the removed config keys from custom `superset_config.py`
 3. If you subclassed `MachineAuthProvider`, remove any `authenticate_webdriver` override and migrate auth logic to `authenticate_browser_context`
 
+### CSV/XLSX report exports of Table charts keep raw numeric values
+
+Table and Pivot Table charts sent as text in a report email now apply the
+chart's number and currency formatting so the values match what a user sees in
+Explore. As part of this, the CSV and XLSX result formats return early before
+formatting: previously the Table post-processor applied `d3NumberFormat` to
+every result format, so CSV/XLSX exports contained pre-formatted strings.
+CSV/XLSX exports now preserve numeric values and column types, which is better
+for downstream analysis but is a visible change for anyone who relied on the
+formatted text in those files. The rendered email body (the only place the
+formatting is intended for) is unaffected.
+
 ### Soft delete is on by default, and purging is live
 
 `SOFT_DELETE` now ships **on** (`DEFAULT_FEATURE_FLAGS`), so deleting a
@@ -158,6 +170,36 @@ handle placement. Callers passing `zIndex` to override the modal's layering
 will now get a TypeScript error and must remove the prop; keeping a manual
 override was exactly the footgun this change removes (see #42510). No
 callers in the Superset frontend codebase itself passed this prop.
+
+### Row-level security now filters table reads a same-named CTE used to hide
+
+`extract_tables_from_statement()` decided whether a reference was a CTE by matching its
+bare name against the enclosing scope's CTE names; it now resolves the name through
+`Scope.cte_sources`. Three kinds of real table read whose bare name collided with a CTE's
+were mistaken for the CTE and dropped from a statement's tables, so they were neither
+RLS-filtered nor access-checked: a schema- or catalog-qualified reference, a non-recursive
+CTE's own name inside its body, and a forward reference to a later `WITH` item.
+
+```sql
+WITH orders AS (SELECT 1 AS d) SELECT * FROM (SELECT * FROM public.orders) AS z
+WITH orders AS (SELECT * FROM orders) SELECT * FROM orders
+WITH q1 AS (SELECT key FROM q2), q2 AS (SELECT 1 AS key) SELECT * FROM q1
+```
+
+Each read is now reported, so it is filtered when `RLS_IN_SQLLAB` is enabled, matched
+against `DISALLOWED_SQL_TABLES`, and requires dataset access under
+`raise_for_access(force_dataset_match=True)`. A query that previously ran, reading those
+rows unfiltered, may now be filtered or rejected. There is no opt-out — the previous
+behavior was a row-level-security bypass.
+
+### Table aliases keep their quoting through the row-level security rewrite
+
+Both RLS transformers took the table alias as a string with its quoting stripped and
+emitted it verbatim; they now carry the parsed identifier. Emitted SQL is unchanged for an
+unquoted identifier; a quoted one keeps its quoting, and a column-alias list
+(`FROM t AS x (c1, c2)`) survives the rewrite instead of being dropped. This repairs
+row-level security for any aliased table on Snowflake, and for at least one statement shape
+on MSSQL where the rewrite previously raised `AttributeError`.
 
 ### Principal listing APIs now honour related-field filters
 

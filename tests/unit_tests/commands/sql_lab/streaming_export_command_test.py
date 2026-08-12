@@ -20,6 +20,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
 from superset.commands.sql_lab.streaming_export_command import (
@@ -28,6 +29,7 @@ from superset.commands.sql_lab.streaming_export_command import (
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
 from superset.sqllab.limiting_factor import LimitingFactor
+from superset.utils.core import get_username
 
 
 def _setup_sqllab_mocks(
@@ -61,6 +63,7 @@ def mock_query():
     query.database = MagicMock()
     query.database.db_engine_spec = MagicMock()
     query.database.db_engine_spec.engine = "postgresql"
+    query.database.mutate_sql_based_on_config.side_effect = lambda sql_, **kwargs: sql_
     query.raise_for_access = MagicMock()
     return query
 
@@ -771,3 +774,120 @@ def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query) -
     assert "2;56,78" in csv_data
     assert "12.34" not in csv_data
     assert "56.78" not in csv_data
+
+
+def test_streaming_export_applies_sql_mutator(mocker, mock_query, mock_result_proxy):
+    """
+    Regression for apache/superset#40465: the non-streaming SQL execution
+    path (Database._execute_sql_with_mutation_and_logging, used by get_df())
+    calls Database.mutate_sql_based_on_config on every statement before
+    executing it -- that's the hook a deployment's SQL_QUERY_MUTATOR runs
+    through (e.g. to strip a trailing semicolon some engines' HTTP endpoints
+    reject, per the issue's Trino repro). _execute_query_and_stream sends
+    the raw SQL straight to engine.connect().execute(text(sql)) instead,
+    bypassing it entirely.
+    """
+    mock_query.select_sql = None
+    mock_query.executed_sql = "SELECT * FROM test_table;"
+    mock_query.limiting_factor = LimitingFactor.NOT_LIMITED
+
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
+    mock_query.database.mutate_sql_based_on_config.side_effect = (
+        lambda sql_, is_split=False: sql_.rstrip(";")
+    )
+
+    mock_connection = MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = (
+        mock_result_proxy
+    )
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingSqlResultExportCommand("test_client_123", chunk_size=10)
+    command.validate()
+
+    csv_generator_callable = command.run()
+    list(csv_generator_callable())
+
+    executed_sql = str(
+        mock_connection.execution_options.return_value.execute.call_args[0][0]
+    )
+    assert not executed_sql.rstrip().endswith(";"), (
+        "streaming export sent the raw, unmutated SQL to the engine -- "
+        "Database.mutate_sql_based_on_config was never called on it"
+    )
+    # Pin the contract the fix relies on: mutate_sql_based_on_config is
+    # called exactly once, with is_split=True -- the complement of the
+    # is_split=False mutation applied upstream. Without this, the assertion
+    # above still passes with is_split=False (rstrip is idempotent).
+    mock_query.database.mutate_sql_based_on_config.assert_called_once_with(
+        "SELECT * FROM test_table;", is_split=True
+    )
+
+
+def test_streaming_export_preserves_impersonated_user_context(
+    app_context, mocker, mock_query, mock_result_proxy
+):
+    """
+    Checks the other half of apache/superset#40465's theory: that the
+    streaming path drops user impersonation because it acquires its engine
+    "without this context" (unlike other call sites, which the issue says
+    use a get_sqla_engine_with_context(user_name=...) that doesn't actually
+    exist anywhere in this codebase). Independently verified this does NOT
+    reproduce: BaseStreamingCSVExportCommand.run() captures flask.g's full
+    __dict__ (including g.user) before entering the deferred generator, and
+    csv_generator() restores it via preserve_g_context before calling
+    _execute_query_and_stream -- so Database.get_sqla_engine's internal
+    get_effective_user()/get_username() call (which every engine-acquisition
+    call site relies on for impersonation, streaming or not) sees the same
+    acting user it would anywhere else. This pins that behavior rather than
+    the bug the issue reports for it.
+    """
+    g.user = Mock(username="alice")
+    assert get_username() == "alice"
+
+    mock_query.select_sql = None
+    mock_query.executed_sql = "SELECT * FROM test_table"
+    mock_query.limiting_factor = LimitingFactor.NOT_LIMITED
+
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
+
+    mock_connection = MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = (
+        mock_result_proxy
+    )
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = MagicMock()
+    mock_engine.connect.return_value = mock_connection
+
+    seen_usernames = []
+
+    def fake_get_sqla_engine(*args, **kwargs):
+        # get_sqla_engine is where Database._get_sqla_engine would call
+        # get_effective_user() -> get_username() -> g.user.username in the
+        # real (unmocked) implementation; capture what g.user resolves to
+        # at the moment this is invoked, from inside the generator's
+        # restored app/g context.
+        seen_usernames.append(get_username())
+        cm = MagicMock()
+        cm.__enter__.return_value = mock_engine
+        cm.__exit__.return_value = None
+        return cm
+
+    mock_query.database.get_sqla_engine.side_effect = fake_get_sqla_engine
+
+    command = StreamingSqlResultExportCommand("test_client_123", chunk_size=10)
+    command.validate()
+
+    csv_generator_callable = command.run()
+    list(csv_generator_callable())
+
+    assert seen_usernames == ["alice"]
