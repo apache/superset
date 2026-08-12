@@ -3971,6 +3971,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if query in self.session:
                 self.session.expunge(query)
 
+        # When only ``database`` is provided, enforce database-level access
+        # here so the call is not a no-op.
+        if database and not (table or query):
+            if not self.can_access_database(database):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                        message=_(
+                            "You need access to the following database: %(name)s",
+                            name=database.database_name,
+                        ),
+                        level=ErrorLevel.WARNING,
+                    )
+                )
+
         if database and table or query:
             if query:
                 # Type narrow: only SQL Lab Query objects have .database attribute
@@ -4049,6 +4064,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                 "could not be fully parsed. Qualify tables "
                                 "explicitly and avoid dynamic SQL inside "
                                 "stored-procedure or vendor-specific calls."
+                            ),
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
+                # Statements that rebind how unqualified table names resolve
+                # (``USE``, ``SET SCHEMA``, or a ``search_path`` change) make
+                # the qualification below diverge from what the engine uses at
+                # execution time, so reject them regardless of engine.
+                if force_dataset_match and parse_result.script.changes_default_schema():
+                    raise SupersetSecurityException(
+                        SupersetError(
+                            error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                            message=_(
+                                "SQL Lab cannot authorise a script that "
+                                "changes the schema used to resolve "
+                                "unqualified table names (e.g. USE or "
+                                "search_path changes). Qualify tables "
+                                "explicitly instead."
                             ),
                             level=ErrorLevel.ERROR,
                         )
