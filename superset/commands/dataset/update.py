@@ -123,12 +123,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         # we know we have a valid model
         self._model = cast(SqlaTable, self._model)
         database_id = self._properties.pop("database_id", None)
-        catalog = self._properties.get("catalog")
-        new_db_connection: Database | None = None
-
-        if database_id and database_id != self._model.database.id:
-            if not (new_db_connection := DatasetDAO.get_database_by_id(database_id)):
-                exceptions.append(DatabaseNotFoundValidationError())
+        new_db_connection = self._get_new_database_connection(database_id, exceptions)
         db = new_db_connection or self._model.database
         database_changed = new_db_connection is not None
 
@@ -139,6 +134,55 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             and self._properties[field] != getattr(self._model, field)
             for field in ("catalog", "schema", "table_name")
         )
+
+        catalog, schema, table = self._resolve_catalog_schema_table(db, exceptions)
+
+        # Repointing to a different database connection requires access to
+        # that connection, independent of the caller's editorship of this
+        # dataset -- only persist the change once that's confirmed.
+        if new_db_connection:
+            self._apply_database_repoint(new_db_connection, table, exceptions)
+
+        # Validate uniqueness
+        if not DatasetDAO.validate_update_uniqueness(
+            db,
+            table,
+            self._model_id,
+        ):
+            exceptions.append(DatasetExistsValidationError(table))
+
+        # Repointing a physical dataset (or converting a virtual dataset to a
+        # physical one) runs the same data-access check as the create path.
+        # Skip it when the database connection itself changed: that case is
+        # already covered by the repoint check above, against the same
+        # (db, table) pair.
+        sql = self._properties.get("sql", self._model.sql)
+        if (
+            not new_db_connection
+            and not sql
+            and (source_changed or ("sql" in self._properties and self._model.sql))
+        ):
+            self._validate_table_access(db, table, exceptions)
+
+        self._validate_sql_access(db, catalog, schema, exceptions)
+
+    def _get_new_database_connection(
+        self, database_id: int | None, exceptions: list[ValidationError]
+    ) -> Database | None:
+        # we know we have a valid model
+        self._model = cast(SqlaTable, self._model)
+        if database_id and database_id != self._model.database.id:
+            if new_db_connection := DatasetDAO.get_database_by_id(database_id):
+                return new_db_connection
+            exceptions.append(DatabaseNotFoundValidationError())
+        return None
+
+    def _resolve_catalog_schema_table(
+        self, db: Database, exceptions: list[ValidationError]
+    ) -> tuple[str | None, str | None, Table]:
+        # we know we have a valid model
+        self._model = cast(SqlaTable, self._model)
+        catalog = self._properties.get("catalog")
         default_catalog = db.get_default_catalog()
 
         # If multi-catalog is disabled, and catalog provided is not
@@ -170,40 +214,28 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             schema,
             catalog,
         )
+        return catalog, schema, table
 
-        # Repointing to a different database connection requires access to
-        # that connection, independent of the caller's editorship of this
-        # dataset -- only persist the change once that's confirmed.
-        if new_db_connection:
-            try:
-                security_manager.raise_for_access(
-                    database=new_db_connection, table=table
-                )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            else:
-                self._properties["database"] = new_db_connection
+    def _apply_database_repoint(
+        self,
+        new_db_connection: Database,
+        table: Table,
+        exceptions: list[ValidationError],
+    ) -> None:
+        try:
+            security_manager.raise_for_access(database=new_db_connection, table=table)
+        except SupersetSecurityException as ex:
+            exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+        else:
+            self._properties["database"] = new_db_connection
 
-        # Validate uniqueness
-        if not DatasetDAO.validate_update_uniqueness(
-            db,
-            table,
-            self._model_id,
-        ):
-            exceptions.append(DatasetExistsValidationError(table))
-
-        # Repointing a physical dataset (or converting a virtual dataset to a
-        # physical one) runs the same data-access check as the create path.
-        sql = self._properties.get("sql", self._model.sql)
-        if not sql and (
-            source_changed or ("sql" in self._properties and self._model.sql)
-        ):
-            try:
-                security_manager.raise_for_access(database=db, table=table)
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-
-        self._validate_sql_access(db, catalog, schema, exceptions, database_changed)
+    def _validate_table_access(
+        self, db: Database, table: Table, exceptions: list[ValidationError]
+    ) -> None:
+        try:
+            security_manager.raise_for_access(database=db, table=table)
+        except SupersetSecurityException as ex:
+            exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
 
     def _validate_sql_access(
         self,
@@ -211,14 +243,13 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         catalog: str | None,
         schema: str | None,
         exceptions: list[ValidationError],
-        database_changed: bool,
     ) -> None:
-        """Validate SQL query access if the SQL or its database binding changes."""
+        """Validate SQL query access if SQL is being updated."""
         # we know we have a valid model
         self._model = cast(SqlaTable, self._model)
 
-        sql = self._properties.get("sql", self._model.sql)
-        if sql and (sql != self._model.sql or database_changed):
+        sql = self._properties.get("sql")
+        if sql and sql != self._model.sql:
             try:
                 security_manager.raise_for_access(
                     database=db,
