@@ -24,6 +24,7 @@ from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
+from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -3281,6 +3282,32 @@ def test_user_view_menu_names_for_guest_user_no_roles(
 
     assert result == set()
     mock_get_user_id.assert_not_called()
+
+
+def test_request_loader_rejects_invalid_guest_token_before_bearer(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Invalid guest tokens must not fall through to Bearer JWT auth.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    header_name = current_app.config["GUEST_TOKEN_HEADER_NAME"]
+    request = SimpleNamespace(
+        headers={header_name: "invalid-guest-token", "Authorization": "Bearer valid"},
+        form={},
+    )
+
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch.object(sm, "get_guest_user_from_request", return_value=None)
+    verify_jwt = mocker.patch("superset.security.manager.verify_jwt_in_request")
+
+    assert sm.request_loader(request) is None
+
+    verify_jwt.assert_not_called()
 
 
 def test_reset_password_self_service_clears_flag(
