@@ -527,7 +527,10 @@ it('warns when the data was not post-processed by Superset', async () => {
   await renderApp();
   const note = container!.querySelector('.sv-fidelity');
   expect(note).not.toBeNull();
-  expect(note!.textContent).toContain('may not match Superset');
+  // Deliberately proportionate wording: nearly every chart in a typical
+  // instance takes this path, so it names the specific risk (ordering) rather
+  // than sounding a general alarm nobody would read.
+  expect(note!.textContent).toContain('Row order may differ');
 });
 
 it('stays silent when the data came from the chart’s own query context', async () => {

@@ -193,8 +193,7 @@ export function DashboardGrid({
             </div>
             {cell.data?.fidelity_warning && (
               <div className="sv-fidelity">
-                <strong>May not match Superset.</strong> Ordering and shape were
-                not post-processed.
+                <strong>Row order may differ.</strong>
               </div>
             )}
             <SubstitutionNote cell={cell} />

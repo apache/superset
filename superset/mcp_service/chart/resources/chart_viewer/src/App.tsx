@@ -1057,8 +1057,8 @@ function shell(
       </div>
       {data?.fidelity_warning && (
         <div className="sv-fidelity">
-          <strong>Data may not match Superset.</strong>{' '}
-          {stripUntrustedMarkers(data.fidelity_warning)}
+          <strong>Row order may differ from Superset.</strong>
+          <span>{stripUntrustedMarkers(data.fidelity_warning)}</span>
         </div>
       )}
       {substitutedFrom && (
