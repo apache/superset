@@ -1275,6 +1275,31 @@ class TestTableFormattingOptions:
                 }
             )
 
+    def test_column_config_preserves_explicit_null_to_clear_formatting(self) -> None:
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue"}],
+                "column_config": {
+                    "revenue": {
+                        "columnWidth": None,
+                        "d3NumberFormat": None,
+                        "d3TimeFormat": None,
+                    }
+                },
+            }
+        )
+
+        result = map_table_config(config)
+
+        assert result["column_config"] == {
+            "revenue": {
+                "columnWidth": None,
+                "d3NumberFormat": None,
+                "d3TimeFormat": None,
+            }
+        }
+
 
 class TestCurrencyFormatModel:
     """CurrencyFormat schema validation."""

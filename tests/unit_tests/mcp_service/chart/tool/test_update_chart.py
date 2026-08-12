@@ -123,7 +123,10 @@ class TestUpdateChart:
     def test_unrelated_config_update_preserves_existing_column_config(self) -> None:
         chart = Mock(
             datasource_id=7,
-            params='{"column_config":{"Revenue":{"columnWidth":160}}}',
+            params=(
+                '{"viz_type":"table",'
+                '"column_config":{"Revenue":{"columnWidth":160}}}'
+            ),
             slice_name="Revenue table",
         )
         request = UpdateChartRequest(
@@ -160,10 +163,11 @@ class TestUpdateChart:
             datasource_id=7,
             params=json.dumps(
                 {
+                    "viz_type": "table",
                     "column_config": {
                         "Revenue": {"columnWidth": 80, "visible": False},
                         "Region": {"customColumnName": "Sales region"},
-                    }
+                    },
                 }
             ),
             slice_name="Revenue table",
@@ -183,6 +187,34 @@ class TestUpdateChart:
         assert json.loads(payload["params"])["column_config"] == {
             "Revenue": {"columnWidth": 120, "visible": False},
             "Region": {"customColumnName": "Sales region"},
+        }
+
+    def test_explicit_null_clears_saved_column_setting(self) -> None:
+        chart = Mock(
+            datasource_id=7,
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {"Revenue": {"columnWidth": 80, "visible": False}},
+                }
+            ),
+            slice_name="Revenue table",
+        )
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue", "aggregate": "SUM"}],
+                "column_config": {"Revenue": {"columnWidth": None}},
+            }
+        )
+        request = UpdateChartRequest(identifier=123, config=config)
+
+        payload = _build_update_payload(request, chart, config)
+
+        assert isinstance(payload, dict)
+        assert json.loads(payload["params"])["column_config"]["Revenue"] == {
+            "columnWidth": None,
+            "visible": False,
         }
 
     @pytest.mark.asyncio
@@ -1253,10 +1285,11 @@ class TestBuildPreviewFormData:
             slice_name="Existing",
             params=json.dumps(
                 {
+                    "viz_type": "table",
                     "column_config": {
                         "Revenue": {"columnWidth": 80, "visible": False},
                         "Region": {"customColumnName": "Sales region"},
-                    }
+                    },
                 }
             ),
         )
@@ -1272,6 +1305,31 @@ class TestBuildPreviewFormData:
             },
             "Region": {"customColumnName": "Sales region"},
         }
+
+    def test_switching_from_table_removes_column_config(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="region"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {"Revenue": {"columnWidth": 80}},
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert "column_config" not in result
 
     def test_name_only_preview_keeps_existing_form_data(self):
         """Name-only preview preserves existing form_data and renames."""

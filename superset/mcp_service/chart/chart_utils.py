@@ -569,7 +569,7 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     add_color_scheme(form_data, config.color_scheme)
     if config.column_config is not None:
         form_data["column_config"] = {
-            label: column.model_dump(by_alias=True, exclude_none=True)
+            label: column.model_dump(by_alias=True, exclude_unset=True)
             for label, column in config.column_config.items()
         }
 
@@ -586,6 +586,13 @@ def merge_table_column_config(
     and properties. The nested merge is important because the Superset UI stores
     additional column settings that the MCP schema does not expose.
     """
+    table_viz_types = {"table", "ag-grid-table"}
+    if (
+        existing_form_data.get("viz_type") not in table_viz_types
+        or new_form_data.get("viz_type") not in table_viz_types
+    ):
+        return
+
     if "column_config" not in new_form_data:
         if "column_config" in existing_form_data:
             new_form_data["column_config"] = existing_form_data["column_config"]

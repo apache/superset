@@ -201,7 +201,10 @@ def _merge_replacement_config(
     parsed_config: Any,
 ) -> dict[str, Any]:
     """Merge a replacement config, honoring an explicit empty filter list."""
-    merged = {**existing_form_data, **new_form_data}
+    merged = {
+        **{key: value for key, value in existing_form_data.items() if key != "column_config"},
+        **new_form_data,
+    }
     if getattr(parsed_config, "filters", None) == []:
         merged.pop("adhoc_filters", None)
     return merged

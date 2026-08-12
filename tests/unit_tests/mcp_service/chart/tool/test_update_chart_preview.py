@@ -689,6 +689,7 @@ class TestUpdateChartPreview:
             }
         ]
         mock_get_previous_form_data.return_value = {
+            "viz_type": "table",
             "adhoc_filters": cached_adhoc_filters,
             "column_config": {"Sales": {"d3NumberFormat": "$,.2f", "visible": False}},
         }

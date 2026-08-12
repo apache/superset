@@ -148,15 +148,17 @@ class TestMapFilterOperator:
 class TestMergeTableColumnConfig:
     def test_partial_update_preserves_other_labels_and_settings(self) -> None:
         existing = {
+            "viz_type": "table",
             "column_config": {
                 "Revenue": {"columnWidth": 80, "visible": False},
                 "Region": {"customColumnName": "Sales region"},
-            }
+            },
         }
         updated = {
+            "viz_type": "table",
             "column_config": {
                 "Revenue": {"columnWidth": 120, "d3NumberFormat": "$,.2f"}
-            }
+            },
         }
 
         merge_table_column_config(existing, updated)
@@ -171,15 +173,46 @@ class TestMergeTableColumnConfig:
         }
 
     def test_omitted_preserves_and_explicit_empty_clears(self) -> None:
-        existing = {"column_config": {"Revenue": {"columnWidth": 80}}}
-        omitted: dict[str, Any] = {}
-        explicit_empty: dict[str, Any] = {"column_config": {}}
+        existing = {
+            "viz_type": "table",
+            "column_config": {"Revenue": {"columnWidth": 80}},
+        }
+        omitted: dict[str, Any] = {"viz_type": "table"}
+        explicit_empty: dict[str, Any] = {
+            "viz_type": "table",
+            "column_config": {},
+        }
 
         merge_table_column_config(existing, omitted)
         merge_table_column_config(existing, explicit_empty)
 
         assert omitted["column_config"] == existing["column_config"]
         assert explicit_empty["column_config"] == {}
+
+    @pytest.mark.parametrize("existing_viz_type", ["line", None])
+    def test_does_not_copy_config_from_non_table_chart(
+        self, existing_viz_type: str | None
+    ) -> None:
+        existing = {
+            "viz_type": existing_viz_type,
+            "column_config": {"Revenue": {"columnWidth": 80}},
+        }
+        updated: dict[str, Any] = {"viz_type": "table"}
+
+        merge_table_column_config(existing, updated)
+
+        assert "column_config" not in updated
+
+    def test_does_not_copy_config_to_non_table_chart(self) -> None:
+        existing = {
+            "viz_type": "table",
+            "column_config": {"Revenue": {"columnWidth": 80}},
+        }
+        updated: dict[str, Any] = {"viz_type": "line"}
+
+        merge_table_column_config(existing, updated)
+
+        assert "column_config" not in updated
 
 
 class TestMapTableConfig:
