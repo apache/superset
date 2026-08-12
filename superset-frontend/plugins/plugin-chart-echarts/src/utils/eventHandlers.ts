@@ -65,7 +65,7 @@ const getCrossFilterDataMask =
     });
 
     // If any selected value has no labelMap entry (e.g. pie "Total" pseudo-element)
-    if (groupbyValues.length === 0 && values.length > 0) {
+    if (values.some(v => !labelMap[v])) {
       return undefined;
     }
 
