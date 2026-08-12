@@ -2274,6 +2274,11 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart.query_context = json.dumps(saved_query_context)
 
         metadata = json.loads(dashboard.json_metadata or "{}")
+        legacy_filter = {"col": "name", "op": "in", "val": ["Alice"]}
+        metadata["default_filters"] = json.dumps(
+            {"-1": {legacy_filter["col"]: legacy_filter["val"]}}
+        )
+        metadata["filter_scopes"] = {}
         native_filter = {"col": "gender", "op": "IN", "val": ["girl"]}
         metadata["native_filter_configuration"] = [
             {
@@ -2310,9 +2315,17 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         browser_query_context = json.loads(chart.query_context)
         browser_query_context["force"] = False
         for query in browser_query_context["queries"]:
-            query["filters"] = [native_filter, *(query.get("filters") or [])]
+            query["filters"] = [
+                legacy_filter,
+                native_filter,
+                *(query.get("filters") or []),
+            ]
 
-        assert browser_query_context["queries"][0]["filters"][-1] == chart_filter
+        assert browser_query_context["queries"][0]["filters"] == [
+            legacy_filter,
+            native_filter,
+            chart_filter,
+        ]
 
         chart_data_response = self.client.post(
             "/api/v1/chart/data",
