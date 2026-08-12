@@ -31,9 +31,11 @@ import {
   menus,
   navigation,
   useNavigationTracker,
+  registerChatTools,
   sqlLab,
   views,
 } from 'src/core';
+import getCoreMcpTools from 'src/core/mcpTools';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import ExtensionsLoader from './ExtensionsLoader';
@@ -68,6 +70,8 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       sqlLab,
       views,
     };
+
+    registerChatTools('core', getCoreMcpTools(chat));
 
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       ExtensionsLoader.getInstance().initializeExtensions();

@@ -29,6 +29,85 @@ import { createValueEventEmitter, createEventEmitter } from '../utils';
 
 type Chat = chatApi.Chat;
 type DisplayMode = chatApi.DisplayMode;
+type McpTool = chatApi.McpTool;
+type ClaudeToolSpec = chatApi.ClaudeToolSpec;
+type McpToolsFormat = chatApi.McpToolsFormat;
+
+// The real value backing @apache-superset/core's `declare const
+// McpToolsFormat` — that package only ever declares (see its own docs on
+// why this isn't a TS `enum`); this is the actual object attached to
+// `window.superset.chat.McpToolsFormat` (re-exported from ./index).
+export const McpToolsFormat = {
+  Claude: 'claude',
+  AgUi: 'ag-ui',
+  CopilotKit: 'copilot-kit',
+  Codex: 'codex',
+} as const;
+
+// AgUi/CopilotKit/Codex have no real transform below — see
+// @apache-superset/core's McpToolsFormat docs for why (no framework in this
+// codebase actually talks to any of them yet, so there's no verified target
+// shape to convert to). Throwing a clear, named error beats either
+// silently returning the native McpTool[] (wrong shape, and callers can
+// already get that from a plain getTools()) or returning an empty array
+// (looks like "this source has no tools" instead of "this format isn't
+// implemented").
+function notYetImplemented(
+  formatKey: keyof typeof McpToolsFormat,
+): () => never {
+  return () => {
+    throw new Error(
+      `[Superset] chat.getTools(chat.McpToolsFormat.${formatKey}) is not ` +
+        'yet implemented — no framework in this codebase talks to this ' +
+        'format yet, so there is no verified target shape to convert to. ' +
+        'Add a real transform to MCP_TOOLS_FORMATTERS in ChatProvider.ts ' +
+        'once there is one to verify against, rather than guessing at it here.',
+    );
+  };
+}
+
+// One entry per McpToolsFormat member — see that constant's own docs for
+// why only Claude has a real transform. Keeping each target's transform (or
+// placeholder) here, keyed by the same object, is what makes adding a real
+// one later a single changed entry rather than a change to getTools()
+// itself.
+const MCP_TOOLS_FORMATTERS: {
+  [K in McpToolsFormat]: (tools: McpTool[]) => unknown[];
+} = {
+  [McpToolsFormat.Claude]: (tools: McpTool[]): ClaudeToolSpec[] =>
+    tools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      input_schema: tool.inputSchema,
+    })),
+  [McpToolsFormat.AgUi]: notYetImplemented('AgUi'),
+  [McpToolsFormat.CopilotKit]: notYetImplemented('CopilotKit'),
+  [McpToolsFormat.Codex]: notYetImplemented('Codex'),
+};
+
+// The client MCP tools SIP's eight product surfaces (mirrors the per-surface
+// folders under superset-frontend/src/core/mcpTools) — every tool name must
+// start with one of these.
+const MCP_TOOL_SURFACES = [
+  'dashboard',
+  'chart',
+  'sqlLab',
+  'dataset',
+  'alert',
+  'report',
+  'cssTemplate',
+  'savedQuery',
+] as const;
+
+// e.g. "dashboard__get_root" — a surface, then "__", then the tool's own
+// name. Deliberately allows no ".": that character is reserved for the
+// "core."/"<extension-id>." prefix registerTools() adds itself below, so a
+// tool author's own `name` containing one is always a mistake — most
+// commonly typing "core." or "extensions." by hand instead of just leaving
+// the prefix off.
+const MCP_TOOL_NAME_PATTERN = new RegExp(
+  `^(${MCP_TOOL_SURFACES.join('|')})__[a-zA-Z0-9_]+$`,
+);
 
 /**
  * Singleton manager for the chat provider.
@@ -46,6 +125,11 @@ class ChatProvider {
   private opened: boolean;
 
   private stateSubscribers = new Set<() => void>();
+
+  // Keyed by source id ("core" for the host's built-ins, an extension id for
+  // everything else) so a given source's tools can be swapped out wholesale
+  // (e.g. on hot reload) without touching any other source's contribution.
+  private toolsBySource = new Map<string, McpTool[]>();
 
   private registerEmitter = createEventEmitter<Chat>();
 
@@ -190,6 +274,76 @@ class ChatProvider {
     return this.resizePanelEmitter.subscribe;
   }
 
+  /**
+   * Registers `sourceId`'s (`"core"`, or an extension's id) client-side
+   * tools, replacing any it previously registered. Each tool's `name` is
+   * authored WITHOUT a source prefix (e.g. `"dashboard__get_root"`, not
+   * `"core.dashboard__get_root"` or `"my-ext.dashboard__get_root"`) — this
+   * method adds it, so the same tool definition works unchanged regardless
+   * of which source registers it. A name that doesn't start with one of
+   * `MCP_TOOL_SURFACES` (most commonly because a "." — and therefore
+   * already-prefixed-looking name like "core.foo" or "extensions.foo" —
+   * snuck in) is rejected outright, logged, and left out of the registered
+   * set entirely, rather than registered as-is or silently dropped without
+   * explanation.
+   *
+   * Since the prefix is always unique per source (there is exactly one
+   * "core", and every extension id is globally unique), the qualified name
+   * this produces can never collide with another SOURCE's — the only
+   * remaining way to get a duplicate is one source registering the same
+   * unprefixed name twice in the same call, which is warned on and only the
+   * first kept, rather than left for whichever tool lookup happens to see
+   * second to silently win.
+   */
+  public registerTools(sourceId: string, tools: McpTool[]): Disposable {
+    const prefix = sourceId === 'core' ? 'core' : sourceId;
+    const seenNames = new Set<string>();
+    const qualifiedTools: McpTool[] = [];
+    tools.forEach(tool => {
+      if (!MCP_TOOL_NAME_PATTERN.test(tool.name)) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[Superset] Rejecting mcpTool "${tool.name}" from "${sourceId}": ` +
+            `name must start with one of ${MCP_TOOL_SURFACES.join(', ')}, ` +
+            'followed by "__", and contain no ".". The source\'s own ' +
+            `prefix ("${prefix}.") is added automatically — do not include ` +
+            '"core.", "extensions.", or any other prefix yourself.',
+        );
+        return;
+      }
+      if (seenNames.has(tool.name)) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Superset] "${sourceId}" registered mcpTool "${tool.name}" more ` +
+            'than once; keeping only the first.',
+        );
+        return;
+      }
+      seenNames.add(tool.name);
+      qualifiedTools.push({ ...tool, name: `${prefix}.${tool.name}` });
+    });
+
+    this.toolsBySource.set(sourceId, qualifiedTools);
+    return new Disposable(() => {
+      if (this.toolsBySource.get(sourceId) !== qualifiedTools) return;
+      this.toolsBySource.delete(sourceId);
+    });
+  }
+
+  public getTools(): McpTool[];
+
+  public getTools(format: typeof McpToolsFormat.Claude): ClaudeToolSpec[];
+
+  public getTools(format: McpToolsFormat): unknown[];
+
+  public getTools(
+    format?: McpToolsFormat,
+  ): McpTool[] | ClaudeToolSpec[] | unknown[] {
+    const tools = [...this.toolsBySource.values()].flat();
+    if (!format) return tools;
+    return MCP_TOOLS_FORMATTERS[format](tools);
+  }
+
   public reset(): void {
     this.chat = undefined;
     this.trigger = undefined;
@@ -202,6 +356,7 @@ class ChatProvider {
     this.resizePanelEmitter = createEventEmitter<{ width: number }>();
     this.modeEmitter = createValueEventEmitter<DisplayMode>('floating');
     this.stateSubscribers.clear();
+    this.toolsBySource.clear();
     setItem(LocalStorageKeys.ChatState, { open: false, mode: 'floating' });
   }
 }
