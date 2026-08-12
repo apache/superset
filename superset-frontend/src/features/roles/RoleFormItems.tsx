@@ -60,6 +60,18 @@ export const PermissionsField = ({
         placeholder={t('Select permissions')}
         options={options}
         loading={loading}
+        // formatPermissionLabel renders the raw permission/view_menu name with
+        // underscores replaced by spaces, so AsyncSelect's default client-side
+        // re-filter never matches a raw-name search term (e.g. "stg_silver")
+        // against the displayed label ("stg silver") and hides the
+        // server-matched option. Normalize both sides so client-side narrowing
+        // still works without hiding valid matches. See #42041.
+        filterOption={(input, option) =>
+          String(option?.label ?? '')
+            .toLowerCase()
+            .replace(/_/g, ' ')
+            .includes(input.toLowerCase().replace(/_/g, ' '))
+        }
         getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
         data-test="permissions-select"
       />
