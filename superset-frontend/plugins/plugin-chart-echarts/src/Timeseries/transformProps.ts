@@ -18,6 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash-es';
+import { rebaseToPercentChange } from './percentChange';
 import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
@@ -26,6 +27,7 @@ import {
   CategoricalColorNamespace,
   CurrencyFormatter,
   DataRecordValue,
+  DTTM_ALIAS,
   ensureIsArray,
   tooltipHtml,
   getCustomFormatter,
@@ -180,6 +182,50 @@ function getSymbolMarker(symbol: string, color: string) {
   }
 }
 
+/**
+ * Given the fully-built ECharts series (each already carrying its resolved
+ * `stack` id, see `getTimeCompareStackId`), find the largest per-index total
+ * across all series sharing a stack, then return the largest such total
+ * across all stacks. Series without a `stack` id (e.g. annotation layers)
+ * are ignored since they aren't part of any stacked total.
+ */
+function getMaxStackedValueByStack(
+  series: SeriesOption[],
+  isHorizontal: boolean,
+): number {
+  const totalsByStack = new Map<string, number[]>();
+  series.forEach(entry => {
+    const rawStackId = (entry as { stack?: unknown }).stack;
+    const stackId = typeof rawStackId === 'string' ? rawStackId : undefined;
+    if (!stackId || !Array.isArray(entry.data)) return;
+    const totals = totalsByStack.get(stackId) ?? [];
+    (entry.data as unknown[]).forEach((datum, idx) => {
+      let value: unknown = datum;
+      if (Array.isArray(datum)) {
+        value = isHorizontal ? datum[0] : datum[1];
+      } else if (datum && typeof datum === 'object' && 'value' in datum) {
+        const rawValue = (datum as { value: unknown }).value;
+        if (Array.isArray(rawValue)) {
+          value = isHorizontal ? rawValue[0] : rawValue[1];
+        } else {
+          value = rawValue;
+        }
+      }
+      if (typeof value === 'number' && !Number.isNaN(value)) {
+        totals[idx] = (totals[idx] ?? 0) + value;
+      }
+    });
+    totalsByStack.set(stackId, totals);
+  });
+  let max = Number.NEGATIVE_INFINITY;
+  totalsByStack.forEach(totals => {
+    totals.forEach(value => {
+      if (value > max) max = value;
+    });
+  });
+  return max;
+}
+
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
@@ -295,7 +341,7 @@ export default function transformProps(
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
-  const rebasedData = rebaseForecastDatum(data, verboseMap);
+  const forecastRebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
   if (
     isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
@@ -303,7 +349,27 @@ export default function transformProps(
   ) {
     xAxisLabel = verboseMap[xAxisLabel];
   }
+  // Restores the legacy nvd3 "Time-series Percent Change" view: every series
+  // rebased client-side to its percent change from the first point. The
+  // baseline can be re-indexed interactively via the draggable line the
+  // chart component installs.
+  const rebasePercentChange = Boolean(
+    (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
+  );
+  const rebasedData = rebasePercentChange
+    ? // the same temporal-alias fallback extractSeries applies, so a chart
+      // with no explicit x-axis cannot have its x column rebased as data
+      rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
+    : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
+  // rebasedData's keys have already been through rebaseForecastDatum, which
+  // renames a key to its verboseMap entry when one is configured for that
+  // metric. extraMetricLabels must be mapped the same way, or a sort-only
+  // metric with a verbose_name set would silently fail to match here (and in
+  // extractSeries below, which has the same requirement).
+  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
+    .map(getMetricLabel)
+    .map(label => verboseMap[label] ?? label);
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -311,10 +377,8 @@ export default function transformProps(
       percentageThreshold,
       xAxisCol: xAxisLabel,
       legendState,
+      extraMetricLabels,
     },
-  );
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
-    getMetricLabel,
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
@@ -492,7 +556,9 @@ export default function transformProps(
   const isAreaExpand = stack === StackControlsValue.Expand;
   const series: SeriesOption[] = [];
 
-  const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
+  const forcePercentFormatter = Boolean(
+    contributionMode || isAreaExpand || rebasePercentChange,
+  );
   const percentFormatter = forcePercentFormatter
     ? getPercentFormatter(yAxisFormat)
     : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
@@ -853,7 +919,38 @@ export default function transformProps(
   // default to 0-100% range when doing row-level contribution chart
   if ((contributionMode === 'row' || isAreaExpand) && stack) {
     if (yAxisMin === undefined) yAxisMin = 0;
-    if (yAxisMax === undefined) yAxisMax = 1;
+    if (yAxisMax === undefined) {
+      if (contributionMode === 'row') {
+        // Contribution percentages are normalized so each stacked row should
+        // sum to 1, but floating point rounding can push the actual stacked
+        // total fractionally above 1 (e.g. 1.0000000000000002). Hard-capping
+        // the axis max at exactly 1 in that case causes echarts to clip the
+        // topmost stacked segment entirely rather than just rounding the
+        // pixel width, which is most visible in horizontal orientation where
+        // this axis is swapped onto the x-axis. Pad the max up to the actual
+        // stacked total when it exceeds 1 so no segment gets clipped.
+        //
+        // This padding only applies in row-contribution mode: for an Expand
+        // ("100% stacked") chart, `sortedTotalValues` holds the raw,
+        // pre-normalization row totals (e.g. 100), not values near 1, so
+        // padding against them here would stretch the axis out to the raw
+        // total instead of the intended 0-1 range.
+        //
+        // `sortedTotalValues` sums every series value per row regardless of
+        // which ECharts stack it belongs to, but with time_compare each
+        // comparison period is its own independently-normalized stack (see
+        // getTimeCompareStackId), so a chart with N comparison periods would
+        // sum to ~N instead of ~1. Compute the max per stack instead, using
+        // the already-built series (which carry the resolved stack ids).
+        const stackedTotalMax = getMaxStackedValueByStack(series, isHorizontal);
+        yAxisMax =
+          Number.isFinite(stackedTotalMax) && stackedTotalMax > 1
+            ? stackedTotalMax
+            : 1;
+      } else {
+        yAxisMax = 1;
+      }
+    }
   } else if (
     logAxis &&
     yAxisMin === undefined &&

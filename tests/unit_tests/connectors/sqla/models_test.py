@@ -26,20 +26,23 @@ from sqlalchemy.orm.session import Session
 
 from superset.connectors.sqla.models import (
     SqlaTable,
+    SqlMetric,
     TableColumn,
     validate_stored_expression,
 )
 from superset.daos.dataset import DatasetDAO
-from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import (
     OAuth2RedirectError,
+    QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetSecurityException,
 )
 from superset.models.core import Database
+from superset.models.helpers import ExploreMixin, validate_adhoc_subquery
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
+from superset.utils import json
 
 
 def test_query_bubbles_errors(mocker: MockerFixture) -> None:
@@ -1115,43 +1118,263 @@ def test_sqla_table_link_escapes_url(mocker: MockerFixture) -> None:
     assert "<script>" not in str(link)
 
 
-def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> None:
-    """
-    Test that data_for_slices gracefully handles a chart whose query_context
-    references a datasource that no longer exists.
-
-    When a chart's query_context references a deleted datasource, get_query_context()
-    raises DatasourceNotFound. The fix ensures this exception is caught and logged,
-    allowing the dashboard to load normally instead of returning a 404.
-    """
+@pytest.mark.parametrize(
+    "query",
+    [
+        {"columns": ["state"]},
+        {"groupby": ["state"]},
+        {"columns": [], "groupby": ["state"]},
+    ],
+)
+def test_data_for_slices_handles_missing_datasource(
+    mocker: MockerFixture,
+    query: dict[str, object],
+) -> None:
+    """Test serialized columns do not require resolving a missing datasource."""
     database = mocker.MagicMock()
     database.id = 1
 
     table = SqlaTable(
         table_name="test_table",
         database=database,
-        columns=[],
+        columns=[TableColumn(column_name="state")],
         metrics=[],
     )
 
-    # Create a mock slice whose get_query_context raises DatasourceNotFound
     mock_slice = mocker.MagicMock()
     mock_slice.id = 1
     mock_slice.slice_name = "Test Chart"
     mock_slice.form_data = {}
-    mock_slice.get_query_context.side_effect = DatasourceNotFound()
+    mock_slice.query_context = json.dumps(
+        {
+            "datasource": {"id": 999, "type": "table"},
+            "queries": [query],
+        }
+    )
 
-    # Mock the columns and metrics properties to return empty lists
-    mocker.patch.object(SqlaTable, "columns", [])
-    mocker.patch.object(SqlaTable, "metrics", [])
-
-    # This should not raise an exception - the fix catches DatasourceNotFound
     result = table.data_for_slices([mock_slice])
 
-    # Verify the method returns a valid data structure
-    assert "columns" in result
-    assert "metrics" in result
-    assert "verbose_map" in result
+    assert [column["column_name"] for column in result["columns"]] == ["state"]
+    mock_slice.get_query_context.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        pytest.param(
+            {"columns": ["country"], "groupby": ["region"]},
+            {"country", "region"},
+            id="both-fields",
+        ),
+        pytest.param(
+            {"columns": ["country"], "groupby": []},
+            {"country"},
+            id="empty-deprecated-groupby",
+        ),
+        pytest.param(
+            {"columns": [], "groupby": ["source", "target"]},
+            {"source", "target"},
+            id="sankey-v2",
+        ),
+    ],
+)
+def test_extract_query_context_columns_preserves_dimension_fields(
+    query: dict[str, list[str]],
+    expected: set[str],
+) -> None:
+    """Test canonical and deprecated dimension fields retain their metadata."""
+    query_context = json.dumps(
+        {
+            "queries": [query],
+        }
+    )
+
+    assert SqlaTable._extract_query_context_columns(query_context) == expected
+
+
+@pytest.mark.parametrize(
+    ("query", "form_data", "expected"),
+    [
+        pytest.param(
+            {"columns": ["state"]},
+            {
+                "tooltip_contents": [
+                    "city",
+                    {"item_type": "column", "column_name": "postal_code"},
+                    {"item_type": "metric", "metric_name": "count"},
+                ]
+            },
+            {"state", "city", "postal_code"},
+            id="tooltip-columns",
+        ),
+        pytest.param(
+            {"columns": ["event_time"], "granularity": "ds"},
+            {},
+            {"event_time", "ds"},
+            id="granularity",
+        ),
+    ],
+)
+def test_extract_query_context_columns_preserves_factory_added_columns(
+    query: dict[str, object],
+    form_data: dict[str, object],
+    expected: set[str],
+) -> None:
+    """Test lightweight extraction preserves QueryContextFactory dependencies."""
+    query_context = json.dumps(
+        {
+            "queries": [query],
+            "form_data": form_data,
+        }
+    )
+
+    assert SqlaTable._extract_query_context_columns(query_context) == expected
+
+
+def test_data_for_slices_preserves_dynamic_currency_column(
+    mocker: MockerFixture,
+) -> None:
+    """Test dynamic currency metadata does not require rebuilding QueryContext."""
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="state"),
+            TableColumn(column_name="currency_code"),
+        ],
+        metrics=[],
+        currency_code_column="currency_code",
+    )
+
+    mock_slice = mocker.MagicMock()
+    mock_slice.form_data = {}
+    mock_slice.query_context = json.dumps(
+        {
+            "queries": [{"columns": ["state"]}],
+            "form_data": {
+                "viz_type": "pivot_table_v2",
+                "currency_format": {"symbol": "AUTO"},
+            },
+        }
+    )
+
+    result = table.data_for_slices([mock_slice])
+
+    assert [column["column_name"] for column in result["columns"]] == [
+        "state",
+        "currency_code",
+    ]
+    mock_slice.get_query_context.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "invalid_column",
+    [
+        None,
+        {},
+        {"label": ["state"]},
+        {"label": {"column_name": "state"}},
+    ],
+)
+def test_data_for_slices_falls_back_for_invalid_query_context_column(
+    mocker: MockerFixture,
+    invalid_column: object,
+) -> None:
+    """Test malformed query-context columns fall back to form data."""
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[TableColumn(column_name="state")],
+        metrics=[],
+    )
+
+    mock_slice = mocker.MagicMock()
+    mock_slice.form_data = {"groupby": ["state"]}
+    mock_slice.query_context = json.dumps(
+        {
+            "datasource": {"id": 999, "type": "table"},
+            "queries": [{"columns": [invalid_column]}],
+        }
+    )
+
+    result = table.data_for_slices([mock_slice])
+
+    assert [column["column_name"] for column in result["columns"]] == ["state"]
+    mock_slice.get_query_context.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "invalid_query_context",
+    [
+        None,
+        "{",
+        json.dumps([]),
+        json.dumps({}),
+        json.dumps({"queries": []}),
+        json.dumps({"queries": [None, {"columns": "state"}]}),
+    ],
+)
+def test_data_for_slices_falls_back_for_invalid_query_context(
+    mocker: MockerFixture,
+    invalid_query_context: str | None,
+) -> None:
+    """Test invalid serialized query contexts fall back to form data."""
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[TableColumn(column_name="state")],
+        metrics=[],
+    )
+
+    mock_slice = mocker.MagicMock()
+    mock_slice.form_data = {"groupby": ["state"]}
+    mock_slice.query_context = invalid_query_context
+
+    result = table.data_for_slices([mock_slice])
+
+    assert [column["column_name"] for column in result["columns"]] == ["state"]
+    mock_slice.get_query_context.assert_not_called()
+
+
+def test_data_for_slices_skips_invalid_query_context_entries(
+    mocker: MockerFixture,
+) -> None:
+    """Test invalid query entries do not hide columns from valid entries."""
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[TableColumn(column_name="state")],
+        metrics=[],
+    )
+
+    mock_slice = mocker.MagicMock()
+    mock_slice.form_data = {}
+    mock_slice.query_context = json.dumps(
+        {
+            "queries": [
+                None,
+                {"columns": "state"},
+                {"columns": ["state"]},
+            ],
+        }
+    )
+
+    result = table.data_for_slices([mock_slice])
+
+    assert [column["column_name"] for column in result["columns"]] == ["state"]
+    mock_slice.get_query_context.assert_not_called()
 
 
 def _database_for_expression(mocker: MockerFixture) -> Database:
@@ -1264,3 +1487,239 @@ def test_validate_stored_expression_rejects_subquery_around_jinja(
             None,
             "(SELECT password FROM ab_user LIMIT 1) {# x #}",
         )
+
+
+def _stored_col(expression: str, engine: str, mocker: MockerFixture) -> TableColumn:
+    """
+    Build a ``TableColumn`` whose sinks run the *real* query-time validator
+    against ``engine``, so the tests pin the sub-query policy rather than the
+    wiring to a mocked validator.
+    """
+    tc = TableColumn(column_name="ds", expression=expression)
+    tc.table = mocker.MagicMock()
+    tc.table.database = _database_for_expression(mocker)
+    tc.table.catalog = None
+    tc.table.schema = "public"
+    tc.db_engine_spec.engine = engine
+    return tc
+
+
+def test_get_sqla_col_rejects_stored_subquery(mocker: MockerFixture) -> None:
+    """
+    A stored calculated-column expression is validated at the query sink, not
+    only at save time, so a disallowed sub-query is rejected even when it
+    reaches the query without having been checked on save (templating, v1
+    import, dataset duplication, or rows predating the save-time check). It
+    surfaces as a chart-level ``QueryObjectValidationError`` to match the adhoc
+    sinks.
+    """
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    tc = _stored_col("(SELECT password FROM ab_user LIMIT 1)", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_sqla_col()
+
+
+def test_get_timestamp_expression_rejects_stored_subquery(
+    mocker: MockerFixture,
+) -> None:
+    """The time-grained sink enforces the same query-time gate as ``get_sqla_col``."""
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    tc = _stored_col("(SELECT ts FROM ab_user LIMIT 1)", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_timestamp_expression(time_grain=None)
+
+
+def test_metric_get_sqla_col_rejects_stored_subquery(mocker: MockerFixture) -> None:
+    """The stored-metric sink enforces the same query-time gate."""
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    metric = SqlMetric(metric_name="leak", expression="(SELECT 1)")
+    metric.table = mocker.MagicMock()
+    metric.table.database = _database_for_expression(mocker)
+    metric.table.catalog = None
+    metric.table.schema = "public"
+    metric.table.db_engine_spec.engine = "mysql"
+    with pytest.raises(QueryObjectValidationError):
+        metric.get_sqla_col()
+
+
+def test_convert_tbl_column_to_sqla_col_rejects_stored_subquery(
+    mocker: MockerFixture,
+) -> None:
+    """The virtual-dataset column sink enforces the same query-time gate."""
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    datasource = mocker.MagicMock()
+    datasource.database = _database_for_expression(mocker)
+    datasource.catalog = None
+    datasource.schema = "public"
+    datasource.db_engine_spec.engine = "mysql"
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+    tbl_column = TableColumn(column_name="leak", expression="(SELECT 1)")
+    with pytest.raises(QueryObjectValidationError):
+        datasource.convert_tbl_column_to_sqla_col(tbl_column)
+
+
+def test_get_sqla_col_falls_back_when_stored_expression_unparseable(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A stored expression using dialect-specific syntax that sqlglot cannot parse
+    (e.g. ``DATE_ADD(ds, 1)`` on MySQL) pre-dates the query-time gate and went
+    to the query unparsed. The engine dialect fails to parse it, the permissive
+    dialect confirms there is no sub-query, so it falls back to the raw
+    expression rather than breaking the query.
+    """
+    spy = mocker.patch(
+        "superset.models.helpers.validate_adhoc_subquery",
+        wraps=validate_adhoc_subquery,
+    )
+    literal = mocker.patch("superset.connectors.sqla.models.literal_column")
+    _stored_col("DATE_ADD(ds, 1)", "mysql", mocker).get_sqla_col()
+    assert literal.call_args.args[0] == "DATE_ADD(ds, 1)"
+    # The gate ran rather than being skipped: the bare expression on the engine
+    # dialect, then the wrapped form on the permissive dialect as a detector.
+    assert [(call.args[0], call.args[-1]) for call in spy.call_args_list] == [
+        ("DATE_ADD(ds, 1)", "mysql"),
+        ("SELECT DATE_ADD(ds, 1)", "base"),
+    ]
+
+
+def test_get_sqla_col_rejects_stored_subquery_in_select_list_fragment(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``DISTINCT (SELECT ...)`` only parses inside a select list, so parsing the
+    bare expression fails in every dialect. The detector wraps it the way the
+    save-time validator does, which parses, so the sub-query is still rejected
+    instead of falling through to the raw expression.
+    """
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    tc = _stored_col("DISTINCT (SELECT password FROM ab_user)", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_sqla_col()
+
+
+def test_get_sqla_col_rejects_stored_multi_statement_expression(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A stored expression carrying a second statement is unparseable as a single
+    statement in every dialect, so it would otherwise take the fallback. The
+    detector parses the wrapped form as a script and rejects it, matching the
+    save-time validator.
+    """
+    tc = _stored_col("1; DROP TABLE ab_user", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_sqla_col()
+
+
+def test_get_sqla_col_allows_semicolon_inside_string_literal(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The multi-statement detector must not treat a semicolon inside a string
+    literal as a second statement, or a legitimate calculated column breaks.
+    """
+    literal = mocker.patch("superset.connectors.sqla.models.literal_column")
+    expression = "CASE WHEN x = 'a;b' THEN 1 END"
+    _stored_col(expression, "mysql", mocker).get_sqla_col()
+    assert literal.call_args.args[0] == expression
+
+
+def test_get_sqla_col_catches_subquery_beside_unparseable_syntax(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A sub-query hidden next to syntax the engine dialect cannot parse
+    (``DATE_ADD(ds, 1) + (SELECT 1)`` on MySQL) must not slip through the
+    fallback: the permissive dialect parses it as a detector and the sub-query
+    is still rejected.
+    """
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    tc = _stored_col("DATE_ADD(ds, 1) + (SELECT 1)", "mysql", mocker)
+    with pytest.raises(QueryObjectValidationError):
+        tc.get_sqla_col()
+
+
+def test_has_extra_cache_key_calls_scans_guest_token_rls(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Guest-token RLS clauses are templated when the query is built, so a macro
+    appearing only in a guest-token RLS clause must still trigger extra cache
+    key extraction; otherwise its value never reaches the cache key and two
+    guests can share a cache entry.
+    """
+    mocker.patch(
+        "superset.connectors.sqla.models.is_feature_enabled",
+        side_effect=lambda flag: flag == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_rls_filters",
+        return_value=[],
+    )
+    get_guest_rls = mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        return_value=[
+            {"clause": "tenant = '{{ get_guest_user_attribute(\"tenant\") }}'"}
+        ],
+    )
+
+    table = SqlaTable(
+        table_name="tenanted",
+        sql="SELECT 1 AS tenant",
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+    )
+    query_obj: QueryObjectDict = {"metrics": [], "columns": [], "extras": {}}
+
+    assert table.has_extra_cache_key_calls(query_obj) is True
+
+    get_guest_rls.return_value = [{"clause": "tenant = 'acme'"}]
+    assert table.has_extra_cache_key_calls(query_obj) is False
+
+
+def test_dttm_cols_excludes_column_after_temporal_flag_removed(
+    session: Session,
+) -> None:
+    """
+    Regression for #30510: when a column is mistakenly marked temporal, set as the
+    dataset's default datetime (``main_dttm_col``) and saved, then later has its
+    ``is_dttm`` flag removed, the dataset must stop treating that column as temporal.
+
+    Otherwise ``dttm_cols`` (which feeds time-column selection and the default time
+    filter for every chart built on the dataset) keeps returning a non-temporal
+    column, corrupting the dataset with a time filter that cannot be removed.
+    """
+    Database.metadata.create_all(session.bind)
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+
+    # A column the user mistakenly marks as temporal ("Is Temporal") and then picks
+    # as the dataset "Default Datetime" (``main_dttm_col``).
+    column = TableColumn(column_name="not_really_a_date", type="VARCHAR", is_dttm=True)
+    dataset = SqlaTable(
+        database=database,
+        table_name="my_table",
+        columns=[column],
+        main_dttm_col="not_really_a_date",
+    )
+    session.add(dataset)
+    session.commit()
+
+    # While flagged temporal, the column is (expectedly) exposed as a datetime column.
+    assert dataset.dttm_cols == ["not_really_a_date"]
+
+    # The user realizes the mistake and unchecks "Is Temporal", then saves. Persisting
+    # the update clears ``is_dttm`` on the column.
+    column.is_dttm = False
+    session.commit()
+
+    # The column is no longer temporal...
+    assert column.is_temporal is False
+    # ...so it must no longer be reported as a datetime column. On master
+    # ``main_dttm_col`` is never cleared, so ``dttm_cols`` still contains the stale,
+    # non-temporal column and this assertion fails (bug reproduced).
+    assert "not_really_a_date" not in dataset.dttm_cols

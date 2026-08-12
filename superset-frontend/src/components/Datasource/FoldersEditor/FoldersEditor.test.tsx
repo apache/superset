@@ -45,28 +45,26 @@ jest.mock(
       children({ height: 500, width: 400 }),
 );
 
-// Mock react-window VariableSizeList to render all items for testing
+// Mock react-window List to render all items for testing
 jest.mock('react-window', () => ({
-  VariableSizeList: ({
-    children: Row,
-    itemCount,
-    itemData,
+  List: ({
+    rowComponent: Row,
+    rowCount,
+    rowProps,
   }: {
-    children: React.ComponentType<{
-      index: number;
-      style: React.CSSProperties;
-      data: unknown;
-    }>;
-    itemCount: number;
-    itemData: unknown;
+    rowComponent: React.ComponentType<
+      { index: number; style: React.CSSProperties } & Record<string, unknown>
+    >;
+    rowCount: number;
+    rowProps: Record<string, unknown>;
   }) => (
     <div data-testid="virtualized-list">
-      {Array.from({ length: itemCount }, (_, index) => (
+      {Array.from({ length: rowCount }, (_, index) => (
         <Row
           key={index}
           index={index}
           style={{ height: 'auto', position: 'relative' }}
-          data={itemData}
+          {...rowProps}
         />
       ))}
     </div>
