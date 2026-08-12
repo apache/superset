@@ -257,6 +257,7 @@ def test_count_referenced_tables() -> None:
         == 2
     )
     assert count_referenced_tables("this is not valid sql (((", Dialects.SQLITE) == 1
+    assert count_referenced_tables("SHOW CREATE TABLE s1.t1", "mysql") == 1
 
 
 def test_count_referenced_tables_self_join() -> None:
