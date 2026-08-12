@@ -347,18 +347,27 @@ export default function transformProps(
     }
   }
 
-  const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
-    const label = extractGroupbyLabel({
-      datum,
-      groupby: groupbyLabels,
-      coltypeMapping,
-      timeFormatter: getTimeFormatter(dateFormat),
-    });
-    return {
-      ...acc,
-      [label]: groupbyLabels.map(col => datum[col] as string),
-    };
-  }, {});
+  const labelMap = data.reduce(
+    (acc: Record<string, string[] | string[][]>, datum) => {
+      const label = extractGroupbyLabel({
+        datum,
+        groupby: groupbyLabels,
+        coltypeMapping,
+        timeFormatter: getTimeFormatter(dateFormat),
+      });
+      return {
+        ...acc,
+        [label]: groupbyLabels.map(col => datum[col] as string),
+      };
+    },
+    {},
+  );
+
+  if (otherDatum && otherRows.length > 0) {
+    labelMap[otherDatum.name] = otherRows.map(row =>
+      groupbyLabels.map(col => row[col] as string),
+    );
+  }
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);

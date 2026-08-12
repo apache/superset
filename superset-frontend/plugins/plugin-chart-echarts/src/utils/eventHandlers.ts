@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  BinaryQueryObjectFilterClause,
   ContextMenuFilters,
   DataMask,
   QueryFormColumn,
@@ -43,7 +42,7 @@ const getCrossFilterDataMask =
   (
     selectedValues: Record<number, string>,
     groupby: QueryFormColumn[],
-    labelMap: Record<string, string[]>,
+    labelMap: Record<string, string[] | string[][]>,
   ) =>
   (value: string) => {
     const selected = Object.values(selectedValues);
@@ -54,14 +53,16 @@ const getCrossFilterDataMask =
       values = [value];
     }
 
-    const groupbyValues = values
-      .map(value => labelMap[value])
-      .filter(Boolean) as string[][];
+    const groupbyValues = values.flatMap(value => {
+      const entry = labelMap[value];
+      if (entry && Array.isArray(entry[0])) {
+        return entry as string[][];
+      }
+      return entry ? [entry as string[]] : [];
+    });
 
-    // If any selected value has no labelMap entry (e.g. pie "Total" or "Other"
-    // pseudo-elements), do not emit a filter — returning undefined signals the
-    // caller to skip the cross-filter emission entirely.
-    if (groupbyValues.length !== values.length) {
+    // If any selected value has no labelMap entry (e.g. pie "Total" pseudo-element)
+    if (groupbyValues.length === 0 && values.length > 0) {
       return undefined;
     }
 
@@ -124,7 +125,7 @@ export const contextMenuEventHandler =
     groupby: (BaseTransformedProps<any> &
       CrossFilterTransformedProps)['groupby'],
     onContextMenu: BaseTransformedProps<any>['onContextMenu'],
-    labelMap: Record<string, string[]>,
+    labelMap: Record<string, string[] | string[][]>,
     getCrossFilterDataMask: (
       value: string,
     ) => ContextMenuFilters['crossFilter'],
@@ -135,22 +136,33 @@ export const contextMenuEventHandler =
     if (onContextMenu) {
       e.event.stop();
       const pointerEvent = e.event.event;
-      const drillFilters: BinaryQueryObjectFilterClause[] = [];
+      const drillFilters: any[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
         if (!values) {
           return;
         }
+        const isMulti = Array.isArray(values[0]);
         groupby.forEach((dimension, i) => {
+          const val = isMulti
+            ? (values as string[][]).map(v => {
+                const metricsCount = v.length - groupby.length;
+                return v[metricsCount + i];
+              })
+            : (values as string[])[
+                (values as string[]).length - groupby.length + i
+              ];
           drillFilters.push({
             col: dimension,
-            op: '==',
-            val: values[i],
-            formattedVal: formatSeriesName(values[i], {
-              timeFormatter: getTimeFormatter(formData.dateFormat),
-              numberFormatter: getNumberFormatter(formData.numberFormat),
-              coltype: coltypeMapping?.[getColumnLabel(dimension)],
-            }),
+            op: isMulti ? 'IN' : '==',
+            val,
+            formattedVal: isMulti
+              ? e.name
+              : formatSeriesName(val as string, {
+                  timeFormatter: getTimeFormatter(formData.dateFormat),
+                  numberFormatter: getNumberFormatter(formData.numberFormat),
+                  coltype: coltypeMapping?.[getColumnLabel(dimension)],
+                }),
           });
         });
       }
@@ -164,7 +176,8 @@ export const contextMenuEventHandler =
   };
 
 export const allEventHandlers = (
-  transformedProps: BaseTransformedProps<any> & CrossFilterTransformedProps,
+  transformedProps: BaseTransformedProps<any> &
+    CrossFilterTransformedProps<any>,
 ) => {
   const {
     groupby,

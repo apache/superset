@@ -153,9 +153,9 @@ export interface BaseTransformedProps<F> {
   onLegendScroll?: (currentIndex: number) => void;
 }
 
-export type CrossFilterTransformedProps = {
+export type CrossFilterTransformedProps<L = string[]> = {
   groupby: QueryFormColumn[];
-  labelMap: Record<string, string[]>;
+  labelMap: Record<string, L>;
   setControlValue?: HandlerFunction;
   setDataMask: SetDataMaskHook;
   selectedValues: Record<number, string>;
