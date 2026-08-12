@@ -252,7 +252,9 @@ const DndMetricSelect = (props: any) => {
       }
 
       const isMetricAlreadyInValues =
-        item.type === 'metric' ? value.includes(item.value.metric_name) : false;
+        item.type === DndItemType.Metric
+          ? value.includes(item.value.metric_name)
+          : false;
       const isColumnAlreadyInValues =
         item.type === DndItemType.Column
           ? value.some(
