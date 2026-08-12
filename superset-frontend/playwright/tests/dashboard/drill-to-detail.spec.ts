@@ -48,6 +48,10 @@ import { DashboardPage } from '../../pages/DashboardPage';
 import { createDashboardWithCharts } from './dashboard-test-helpers';
 
 const MIN_STABLE_BODY_HEIGHT = 100;
+// Max fraction the body height may drift between the two reads below; a
+// partial collapse (e.g. 400px -> 150px) still clears MIN_STABLE_BODY_HEIGHT
+// but fails this, so the check enforces stability, not just a floor.
+const HEIGHT_DRIFT_TOLERANCE = 0.25;
 
 testWithAssets(
   'drill to detail modal renders result rows at a stable height',
@@ -115,10 +119,15 @@ testWithAssets(
     // (a single read could land inside the flash and pass a broken build).
     await expect(async () => {
       const first = await tableBody.boundingBox();
-      expect(first?.height ?? 0).toBeGreaterThan(MIN_STABLE_BODY_HEIGHT);
+      const firstHeight = first?.height ?? 0;
+      expect(firstHeight).toBeGreaterThan(MIN_STABLE_BODY_HEIGHT);
       await page.waitForTimeout(300);
       const second = await tableBody.boundingBox();
-      expect(second?.height ?? 0).toBeGreaterThan(MIN_STABLE_BODY_HEIGHT);
+      const secondHeight = second?.height ?? 0;
+      expect(secondHeight).toBeGreaterThan(MIN_STABLE_BODY_HEIGHT);
+      expect(Math.abs(secondHeight - firstHeight)).toBeLessThanOrEqual(
+        firstHeight * HEIGHT_DRIFT_TOLERANCE,
+      );
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
 
     // And the rows are real data, not just an expanded empty scroller:
