@@ -127,6 +127,16 @@ export interface WidgetSpec {
 }
 
 /**
+ * Returns the id of the classic (persisted) dashboard currently being
+ * viewed, or `undefined` if none is — e.g. on any page other than a
+ * dashboard's own. This is NOT the "Dashboard v2" prototype canvas this
+ * namespace's other functions operate on: that canvas has no id at all
+ * until it's actually saved, so there is deliberately no
+ * `dashboard.getRoot().id`-style equivalent for it here.
+ */
+export declare function getDashboardId(): number | undefined;
+
+/**
  * Returns the root `canvas` node — the entry point for walking the tree.
  * Its `children` array holds the top-level node ids.
  */

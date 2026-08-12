@@ -158,6 +158,7 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
             moduleFederationName=get_module_federation_name(
                 extension.publisher, extension.name
             ),
+            mcpTools=True if extension.mcpTools else None,
         )
 
     backend: ManifestBackend | None = None

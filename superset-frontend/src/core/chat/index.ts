@@ -31,7 +31,7 @@
 import { useSyncExternalStore } from 'react';
 import memoizeOne from 'memoize-one';
 import type { chat as chatApi } from '@apache-superset/core';
-import ChatProvider from './ChatProvider';
+import ChatProvider, { McpToolsFormat } from './ChatProvider';
 
 export { ChatFloatingHost, ChatPanelHost } from './ChatHost';
 
@@ -63,6 +63,15 @@ const getSnapshot = () =>
 export const useChat = () =>
   useSyncExternalStore(provider.subscribe, getSnapshot);
 
+/**
+ * Host-internal — registers a source's ("core" or an extension id)
+ * client-side MCP tools. NOT part of the public `@apache-superset/core`
+ * `chat` API: called by ExtensionsStartup (for the host's own built-ins)
+ * and ExtensionsLoader (for each extension's `mcpTools.url` contribution),
+ * never by an extension itself.
+ */
+export const registerChatTools = provider.registerTools.bind(provider);
+
 export const chat: typeof chatApi = {
   registerChat: provider.registerChat.bind(provider),
   getChat: provider.getChat.bind(provider),
@@ -79,4 +88,9 @@ export const chat: typeof chatApi = {
   // The host fires this from its panel resizer; until that chrome exists the
   // event is exposed but never fires.
   onDidResizePanel: provider.onDidResizePanel,
+  getTools: ((format?: chatApi.McpToolsFormat) =>
+    format
+      ? provider.getTools(format)
+      : provider.getTools()) as typeof chatApi.getTools,
+  McpToolsFormat,
 };

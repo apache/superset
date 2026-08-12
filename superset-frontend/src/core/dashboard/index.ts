@@ -35,6 +35,7 @@
 // `const` export (unlike the ambient `declare function`s alongside it, which
 // this object exists to implement and have no JS output of their own).
 import { dashboard as dashboardApi } from '@apache-superset/core';
+import { store } from 'src/views/store';
 import { provider, useDashboardRevision } from './store';
 import { fetchQueryData } from './chartData';
 import { registerBuiltInWidgets } from './registerBuiltInWidgets';
@@ -47,7 +48,15 @@ registerBuiltInWidgets();
 
 export { useDashboardRevision };
 
+// The classic dashboard's id lives in the ordinary Redux store (populated
+// when its own page mounts), not in `provider` — that class only ever knows
+// about the separate, unpersisted "Dashboard v2" canvas tree.
+function getDashboardId(): number | undefined {
+  return store.getState().dashboardInfo?.id;
+}
+
 export const dashboard: typeof dashboardApi = {
+  getDashboardId,
   getRoot: provider.getRoot,
   getNode: provider.getNode,
   addWidget: provider.addWidget.bind(provider),
