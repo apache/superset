@@ -346,7 +346,12 @@ def import_tag(
                     )
                     db_session.add(new_tagged_object)
 
-                new_tag_ids.append(tag.id)
+            # Only record the tag as imported once the SAVEPOINT has been
+            # released (and its pending inserts flushed) without error; the
+            # nested block's own flush can still fail on a concurrent
+            # unique-constraint violation, in which case this line must not
+            # run.
+            new_tag_ids.append(tag.id)
 
         except SQLAlchemyError as err:
             logger.error(

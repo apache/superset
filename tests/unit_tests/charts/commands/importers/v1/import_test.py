@@ -19,6 +19,7 @@
 import copy
 from collections.abc import Generator
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -532,22 +533,39 @@ def test_import_tag_savepoint_keeps_session_usable(
     object_id = 1
     object_type = "chart"
 
-    # Simulate a unique-constraint violation on the first TaggedObject insert.
-    # The second tag must still be imported, and the session must not be left
-    # in a pending-rollback state (which would raise PendingRollbackError on
-    # the next operation).
+    # Simulate a unique-constraint violation discovered when the first
+    # TaggedObject's SAVEPOINT is flushed (e.g. a concurrent import already
+    # created the same association) -- not synchronously from Session.add().
+    # `import_tag`'s own pre-insert existence check would normally catch a
+    # real duplicate row, so the failure is injected at the point SQLAlchemy
+    # actually persists the pending row: `begin_nested()`'s implicit flush
+    # on a successful `with` exit, which calls `Session.flush()` directly
+    # (see `SessionTransaction._prepare_impl`).
+    pending_tagged_objects: list[TaggedObject] = []
     original_add = session_with_schema.add
-    add_count = 0
 
-    def flaky_add(obj: object) -> None:
-        nonlocal add_count
+    def tracking_add(obj: object) -> None:
         if isinstance(obj, TaggedObject):
-            add_count += 1
-            if add_count == 1:
-                raise SQLAlchemyError("UNIQUE constraint failed: tagged_object")
+            pending_tagged_objects.append(obj)
         original_add(obj)
 
-    mocker.patch.object(session_with_schema, "add", side_effect=flaky_add)
+    original_flush = session_with_schema.flush
+
+    def flaky_flush(*args: Any, **kwargs: Any) -> None:
+        # Only the first TaggedObject ever added should fail, and only while
+        # it's still pending -- once its SAVEPOINT rolls back, SQLAlchemy
+        # expunges it from the session, so this does not also fail tag_2's
+        # flush.
+        if (
+            pending_tagged_objects
+            and pending_tagged_objects[0] is not None
+            and pending_tagged_objects[0] in session_with_schema.new
+        ):
+            raise SQLAlchemyError("UNIQUE constraint failed: tagged_object")
+        original_flush(*args, **kwargs)
+
+    mocker.patch.object(session_with_schema, "add", side_effect=tracking_add)
+    mocker.patch.object(session_with_schema, "flush", side_effect=flaky_flush)
 
     with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
         new_tag_ids = import_tag(
