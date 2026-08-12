@@ -35,6 +35,9 @@ import { formatSeriesName } from './series';
 
 export type Event = {
   name: string;
+  data?: {
+    isOther?: boolean;
+  };
   event: { stop: () => void; event: PointerEvent };
 };
 
@@ -106,7 +109,7 @@ export const clickEventHandler =
     setDataMask: (dataMask: DataMask) => void,
     emitCrossFilters?: boolean,
   ) =>
-  ({ name }: { name: string }) => {
+  ({ name, data }: { name: string; data?: { isOther?: boolean } }) => {
     if (!emitCrossFilters) {
       return;
     }
@@ -114,7 +117,8 @@ export const clickEventHandler =
     if (!name) {
       return;
     }
-    const dataMask = getCrossFilterDataMask(name)?.dataMask;
+    const key = data?.isOther ? `__other__${name}` : name;
+    const dataMask = getCrossFilterDataMask(key)?.dataMask;
     if (dataMask) {
       setDataMask(dataMask);
     }
@@ -137,8 +141,9 @@ export const contextMenuEventHandler =
       e.event.stop();
       const pointerEvent = e.event.event;
       const drillFilters: any[] = [];
+      const key = e.data?.isOther ? `__other__${e.name}` : e.name;
       if (groupby.length > 0) {
-        const values = labelMap[e.name];
+        const values = labelMap[key];
         if (!values) {
           return;
         }
@@ -169,7 +174,7 @@ export const contextMenuEventHandler =
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
         crossFilter:
-          groupby.length > 0 ? getCrossFilterDataMask(e.name) : undefined,
+          groupby.length > 0 ? getCrossFilterDataMask(key) : undefined,
         drillBy: { filters: drillFilters, groupbyFieldName: 'groupby' },
       });
     }

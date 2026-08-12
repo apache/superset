@@ -345,7 +345,7 @@ export default function transformProps(
           color: theme.colorText,
           opacity:
             filterState.selectedValues &&
-            !filterState.selectedValues.includes(otherName)
+            !filterState.selectedValues.includes(`__other__${otherName}`)
               ? OpacityEnum.SemiTransparent
               : OpacityEnum.NonTransparent,
         },
@@ -371,7 +371,7 @@ export default function transformProps(
   );
 
   if (otherDatum && otherRows.length > 0) {
-    labelMap[otherDatum.name] = otherRows.map(row =>
+    labelMap[`__other__${otherDatum.name}`] = otherRows.map(row =>
       groupbyLabels.map(col => row[col] as string),
     );
   }
@@ -381,7 +381,7 @@ export default function transformProps(
 
   let totalValue = 0;
 
-  const transformedData: PieSeriesOption[] = data.map(datum => {
+  const transformedData: PieChartDataItem[] = data.map(datum => {
     const name = extractGroupbyLabel({
       datum,
       groupby: groupbyLabels,
@@ -398,7 +398,7 @@ export default function transformProps(
     }
 
     return {
-      value,
+      value: value as number,
       name,
       itemStyle: {
         color: colorFn(name, sliceId),
@@ -416,7 +416,8 @@ export default function transformProps(
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = transformedData.findIndex(
-        ({ name }) => name === selectedValue,
+        ({ name, isOther }) =>
+          (isOther ? `__other__${name}` : name) === selectedValue,
       );
       return {
         ...acc,
@@ -567,7 +568,7 @@ export default function transformProps(
           backgroundColor: theme.colorBgContainer,
         },
       },
-      data: transformedData,
+      data: transformedData as PieSeriesOption['data'],
     },
   ];
 
