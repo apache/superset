@@ -212,6 +212,12 @@ export function Menu({
     Dashboard = '/dashboard',
     Chart = '/chart',
     Datasets = '/tablemodelview',
+    // The legacy FAB dataset list still lives at ``/tablemodelview/list/``,
+    // but the modern React-managed dataset add + detail routes are under
+    // ``/dataset/*`` (``/dataset/add/``, ``/dataset/:datasetId``). Both
+    // prefixes must map to the Datasets tab so the top-nav highlight
+    // survives navigation into the create/edit flow. See #42467.
+    Dataset = '/dataset',
     SqlLab = '/sqllab',
     SavedQueries = '/savedqueryview',
   }
@@ -238,7 +244,9 @@ export function Menu({
       case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
         setActiveTabs([MenuKeys.Charts]);
         break;
-      case path.startsWith(Paths.Datasets):
+      case path.startsWith(Paths.Datasets) ||
+        path === Paths.Dataset ||
+        path.startsWith(`${Paths.Dataset}/`):
         setActiveTabs([MenuKeys.Datasets]);
         break;
       case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):

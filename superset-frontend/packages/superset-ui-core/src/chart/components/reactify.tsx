@@ -49,9 +49,14 @@ export type ReactifyProps = {
   className?: string;
 };
 
+export interface ReactifyUnmountContext<Props extends object = object> {
+  container?: HTMLDivElement;
+  props: Readonly<Props & ReactifyProps>;
+}
+
 // TODO: add more React lifecycle callbacks as needed
-export type LifeCycleCallbacks = {
-  componentWillUnmount?: () => void;
+export type LifeCycleCallbacks<Props extends object = object> = {
+  componentWillUnmount?: (this: ReactifyUnmountContext<Props>) => void;
 };
 
 export interface RenderFuncType<Props> {
@@ -76,7 +81,7 @@ export type ReactifiedComponent<Props> = ForwardRefExoticComponent<
 // `ReactifiedComponent<Props>` explicitly.
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
-  callbacks?: LifeCycleCallbacks,
+  callbacks?: LifeCycleCallbacks<Props>,
 ): ComponentType<Props & ReactifyProps> {
   const ReactifiedComponent = forwardRef<
     ReactifiedComponentRef,
@@ -89,8 +94,10 @@ export default function reactify<Props extends object>(
     // assignment only happens for committed renders (safe under Concurrent
     // Mode) and is in place before the passive unmount effect reads it.
     const propsRef = useRef(props);
+    const committedContainerRef = useRef<HTMLDivElement>();
     useLayoutEffect(() => {
       propsRef.current = props;
+      committedContainerRef.current = containerRef.current ?? undefined;
     });
 
     // Expose container via ref for external access
@@ -101,6 +108,22 @@ export default function reactify<Props extends object>(
           return containerRef.current ?? undefined;
         },
       }),
+      [],
+    );
+
+    // Cleanup on unmount
+    useEffect(
+      () => () => {
+        if (callbacks?.componentWillUnmount) {
+          // Preserve the legacy `this.props` access pattern and snapshot the
+          // last committed container because React clears refs before passive
+          // effect cleanup runs on unmount.
+          callbacks.componentWillUnmount.call({
+            container: committedContainerRef.current,
+            props: propsRef.current,
+          });
+        }
+      },
       [],
     );
 
@@ -117,24 +140,6 @@ export default function reactify<Props extends object>(
         );
       }
     });
-
-    // Cleanup on unmount
-    useEffect(
-      () => () => {
-        if (callbacks?.componentWillUnmount) {
-          // Preserve legacy behavior where `this` was a component instance
-          // exposing `props`. The class version cleared `this.container`
-          // before invoking componentWillUnmount, so mirror that here to
-          // prevent callbacks from touching a DOM node that's being torn
-          // down.
-          callbacks.componentWillUnmount.call({
-            container: undefined,
-            props: propsRef.current,
-          });
-        }
-      },
-      [],
-    );
 
     const { id, className } = props;
 

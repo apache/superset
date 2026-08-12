@@ -14,18 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import cast
+from typing import Any, cast
+from unittest.mock import patch
 
 import pytest
 import sshtunnel
 from flask import Flask, Response
 from flask_babel import Babel
 
-from superset.errors import SupersetErrorType
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.views.error_handling import handle_api_exception, set_app_error_handlers
+from superset.utils.error_sanitization import (
+    GENERIC_ACCESS_MESSAGE,
+    GENERIC_ERROR_MESSAGE,
+)
+from superset.views.error_handling import (
+    handle_api_exception,
+    json_error_response,
+    set_app_error_handlers,
+)
 
 
 class TestHandleApiExceptionSSHTunnelError:
@@ -110,3 +122,133 @@ class TestShowUnexpectedException:
             == SupersetErrorType.GENERIC_BACKEND_ERROR.value
         )
         assert any(record.levelno >= logging.ERROR for record in caplog.records)
+
+
+class TestShowSupersetException:
+    def _build_app_with_handlers(self) -> Flask:
+        # A fresh, minimal Flask app per test: `set_app_error_handlers` can
+        # only register handlers before the app has served its first
+        # request, so it can't share the module-scoped `app` fixture across
+        # tests in this class.
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/query-validation-error")
+        def query_validation_error_view() -> FlaskResponse:
+            raise QueryObjectValidationError("list object has no element 0")
+
+        @test_app.route("/generic-superset-exception")
+        def generic_superset_exception_view() -> FlaskResponse:
+            raise SupersetException("boom")
+
+        return test_app
+
+    def test_4xx_superset_exception_returns_its_status_and_logs_at_warning(
+        self, caplog: pytest.LogCaptureFixture
+    ):
+        client = self._build_app_with_handlers().test_client()
+
+        with caplog.at_level(logging.WARNING):
+            response = client.get("/query-validation-error")
+
+        assert response.status_code == 400
+        payload = json.loads(response.data)
+        assert payload["errors"][0]["message"] == "list object has no element 0"
+        assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+        assert any(
+            record.levelno == logging.WARNING
+            and record.message == "list object has no element 0"
+            for record in caplog.records
+        )
+
+    def test_5xx_superset_exception_still_returns_500_and_logs_at_error(
+        self, caplog: pytest.LogCaptureFixture
+    ):
+        client = self._build_app_with_handlers().test_client()
+
+        with caplog.at_level(logging.WARNING):
+            response = client.get("/generic-superset-exception")
+
+        assert response.status_code == 500
+        payload = json.loads(response.data)
+        assert payload["errors"][0]["message"] == "boom"
+        assert any(record.levelno >= logging.ERROR for record in caplog.records)
+
+    def test_html_accept_serves_branded_error_page_not_raw_json(self):
+        client = self._build_app_with_handlers().test_client()
+
+        with patch(
+            "superset.views.error_handling.send_file",
+            return_value=Response("<html>500</html>", mimetype="text/html"),
+        ) as mock_send_file:
+            response = client.get(
+                "/generic-superset-exception", headers={"Accept": "text/html"}
+            )
+
+        assert response.status_code == 500
+        assert response.content_type.startswith("text/html")
+        mock_send_file.assert_called_once()
+
+
+class TestGuestErrorSanitization:
+    def _response_payload(
+        self,
+        error_details: str | list[SupersetError],
+        status: int,
+        app: Flask,
+    ) -> dict[str, Any]:
+        with (
+            app.test_request_context(),
+            patch(
+                "superset.security.SupersetSecurityManager.is_guest_user",
+                return_value=True,
+            ),
+        ):
+            response = cast(Response, json_error_response(error_details, status=status))
+        return json.loads(response.data)
+
+    def test_db_error_is_replaced_for_guest_users(self, app):
+        payload = self._response_payload(
+            [
+                SupersetError(
+                    message="Table mydb.myschema.mytable was not found",
+                    error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"engine_name": "BigQuery"},
+                )
+            ],
+            500,
+            app,
+        )
+
+        assert payload["errors"][0]["message"] == str(GENERIC_ERROR_MESSAGE)
+        assert (
+            payload["errors"][0]["error_type"]
+            == SupersetErrorType.GENERIC_BACKEND_ERROR.value
+        )
+        assert "engine_name" not in payload["errors"][0]["extra"]
+
+    def test_bare_string_error_is_replaced_for_guest_users(self, app):
+        payload = self._response_payload(
+            "relation mydb.mytable does not exist", 422, app
+        )
+
+        assert payload["error"] == str(GENERIC_ERROR_MESSAGE)
+
+    def test_access_denial_reads_as_a_denial_for_guest_users(self, app: Flask) -> None:
+        payload = self._response_payload("Forbidden", 403, app)
+
+        assert payload["error"] == str(GENERIC_ACCESS_MESSAGE)
+
+    def test_not_found_is_replaced_for_guest_users(self, app: Flask) -> None:
+        """
+        A 404 message is no safer than any other: `warm_up_cache` reports a
+        missing table as "Table %(table)s wasn't found in the database %(db)s".
+        """
+        payload = self._response_payload(
+            "Table my_table wasn't found in the database my_db", 404, app
+        )
+
+        assert payload["error"] == str(GENERIC_ERROR_MESSAGE)

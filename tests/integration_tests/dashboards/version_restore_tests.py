@@ -45,7 +45,7 @@ def _get_version_rows(dashboard: Dashboard) -> list[Any]:
     ver_cls = version_class(Dashboard)
     return (
         db.session.query(ver_cls)
-        .filter(ver_cls.id == dashboard.id)
+        .filter(ver_cls.id == dashboard.id, ver_cls.uuid == dashboard.uuid)
         .order_by(ver_cls.transaction_id.asc())
         .all()
     )
@@ -90,6 +90,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         original_title = dashboard.dashboard_title
         dashboard_id = dashboard.id
         entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
 
         # Make two more edits so we have a known non-trivial history to
         # navigate: [initial, v1, v2].
@@ -106,7 +107,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
                 ver_cls.dashboard_title,
                 ver_cls.end_transaction_id,
             )
-            .filter(ver_cls.id == dashboard_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.asc())
             .all()
         )
@@ -151,6 +152,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         dashboard_uuid = str(dashboard.uuid)
         dashboard_id = dashboard.id
         entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
 
         original_slice_ids = sorted(s.id for s in dashboard.slices)
         assert len(original_slice_ids) >= 2, (
@@ -166,7 +168,7 @@ class TestDashboardRestoreApi(SupersetTestCase):
         ver_cls = version_class(Dashboard)
         target_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == dashboard_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.desc())
             .limit(1)
             .scalar()
@@ -225,14 +227,16 @@ class TestDashboardRestoreApi(SupersetTestCase):
         db.session.commit()
 
         ver_cls = version_class(Dashboard)
+        entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
         target_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == dashboard_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.desc())
             .limit(1)
             .scalar()
         )
-        target_uuid = str(derive_version_uuid(dashboard.uuid, target_tx))
+        target_uuid = str(derive_version_uuid(entity_uuid, target_tx))
 
         # Edit the member chart AFTER the snapshot.
         member = db.session.query(Slice).filter(Slice.id == member_id).one()
@@ -282,14 +286,16 @@ class TestDashboardRestoreApi(SupersetTestCase):
         db.session.commit()
 
         ver_cls = version_class(Dashboard)
+        entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
         target_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == dashboard_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
             .order_by(ver_cls.transaction_id.desc())
             .limit(1)
             .scalar()
         )
-        target_uuid = str(derive_version_uuid(dashboard.uuid, target_tx))
+        target_uuid = str(derive_version_uuid(entity_uuid, target_tx))
 
         # Detach, then hard-delete the victim via raw SQL so no live row
         # remains (bypasses the soft-delete listener deliberately — the
@@ -340,15 +346,17 @@ class TestDashboardRestoreApi(SupersetTestCase):
         assert alpha not in dashboard.editors
 
         ver_cls = version_class(Dashboard)
+        entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
         first_tx = (
             db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == dashboard.id)
+            .filter(ver_cls.id == dashboard.id, ver_cls.uuid == dashboard.uuid)
             .order_by(ver_cls.transaction_id.asc())
             .limit(1)
             .scalar()
         )
         assert first_tx is not None
-        target_uuid = str(derive_version_uuid(dashboard.uuid, first_tx))
+        target_uuid = str(derive_version_uuid(entity_uuid, first_tx))
 
         self.login(ALPHA_USERNAME)
         rv = self._restore(str(dashboard.uuid), target_uuid)
@@ -390,8 +398,14 @@ class TestDashboardRestoreApi(SupersetTestCase):
         original_title = dashboard.dashboard_title
 
         ver_cls = version_class(Dashboard)
+        # Pin to (id, uuid), as the API's version lookup does. A shared test
+        # database recycles integer ids across the suite, so an id-only count
+        # picks up shadow rows belonging to hard-deleted predecessors and
+        # over-states this dashboard's history.
         count_before = (
-            db.session.query(ver_cls).filter(ver_cls.id == dashboard_id).count()
+            db.session.query(ver_cls)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == dashboard.uuid)
+            .count()
         )
         expected_old = count_before - 1 if count_before > 0 else None
 

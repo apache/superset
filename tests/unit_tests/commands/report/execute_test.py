@@ -16,6 +16,7 @@
 # under the License.
 
 import json  # noqa: TID251
+import time
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -40,10 +41,11 @@ from superset.commands.report.exceptions import (
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
     ReportScheduleXlsxFailedError,
-    ReportScheduleXlsxTimeout,
 )
 from superset.commands.report.execute import (
     BaseReportState,
+    log_report_delivery_phase,
+    persist_owned_report_execution_terminal_error,
     ReportNotTriggeredErrorState,
     ReportScheduleStateMachine,
     ReportSuccessState,
@@ -63,6 +65,11 @@ from superset.reports.models import (
 )
 from superset.subjects.types import SubjectType
 from superset.utils.core import HeaderDataType
+from superset.utils.report_execution import (
+    ReportExecutionBudgetExceededError,
+    ReportExecutionContext,
+    ReportExecutionDeadline,
+)
 from superset.utils.screenshots import ChartScreenshot
 from tests.integration_tests.conftest import with_feature_flags
 
@@ -1429,11 +1436,6 @@ def test_get_data_xlsx_fetches_chart_data(
     ("side_effect", "expected_exception", "expected_message"),
     [
         (
-            SoftTimeLimitExceeded(),
-            ReportScheduleXlsxTimeout,
-            "timeout occurred while generating an Excel file",
-        ),
-        (
             RuntimeError("export failed"),
             ReportScheduleXlsxFailedError,
             "Failed generating excel export failed",
@@ -1665,14 +1667,10 @@ def test_get_content_raises_when_executor_user_missing(
             getattr(report_state, method_name)(*method_args)
 
 
-def test_get_data_xlsx_wraps_soft_time_limit_as_xlsx_timeout(
+def test_get_data_xlsx_propagates_celery_soft_time_limit(
     app: SupersetApp, mocker: MockerFixture
 ) -> None:
-    """
-    A ``SoftTimeLimitExceeded`` during XLSX fetch surfaces as
-    ``ReportScheduleXlsxTimeout`` (not the CSV timeout class), so Excel report
-    timeouts are classified under the format-specific error.
-    """
+    """Celery soft timeout must reach the state cleanup handler unchanged."""
     from celery.exceptions import SoftTimeLimitExceeded
 
     app.config.update({"ALERT_REPORTS_CSV_REQUEST_TIMEOUT": 60})
@@ -1692,8 +1690,46 @@ def test_get_data_xlsx_wraps_soft_time_limit_as_xlsx_timeout(
         side_effect=SoftTimeLimitExceeded(),
     )
 
-    with pytest.raises(ReportScheduleXlsxTimeout):
+    with pytest.raises(SoftTimeLimitExceeded):
         report_state._get_data(ChartDataResultFormat.XLSX)
+
+
+@pytest.mark.parametrize(
+    ("schedule_type", "expected_exception"),
+    [
+        (ReportScheduleType.REPORT, SoftTimeLimitExceeded),
+        (ReportScheduleType.ALERT, ReportScheduleScreenshotTimeout),
+    ],
+)
+def test_screenshot_soft_timeout_distinguishes_reports_from_alert_attachments(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    expected_exception: type[Exception],
+) -> None:
+    """Only reports reserve hard-limit grace for terminal cleanup."""
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+        }
+    )
+    schedule = create_report_schedule(mocker)
+    schedule.type = schedule_type
+    schedule.chart.digest = "chart-digest"
+    state = BaseReportState(schedule, datetime.now(), uuid4())
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.MagicMock(), "executor"),
+    )
+    mocker.patch.object(state, "_get_url", return_value="/chart/1")
+    screenshot = mocker.patch(
+        "superset.commands.report.execute.ChartScreenshot"
+    ).return_value
+    screenshot.get_screenshot.side_effect = SoftTimeLimitExceeded()
+
+    with pytest.raises(expected_exception):
+        state._get_screenshots()
 
 
 def test_executor_not_found_error_message_without_username() -> None:
@@ -2237,6 +2273,13 @@ def _make_state_instance(
     schedule.recipients = []
     schedule.force_screenshot = False
     schedule.extra = {}
+    schedule.retry_on_failure = False
+    schedule.retry_max_attempts = 3
+    schedule.retry_attempt = 0
+    schedule.retry_scheduled_dttm = None
+    schedule.send_failed_reports = False
+    schedule.retry_notify_owners = True
+    schedule.retry_notify_recipients = False
 
     instance = cls(schedule, datetime.utcnow(), uuid4())
     instance._report_schedule = schedule
@@ -2250,6 +2293,7 @@ def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> No
 
     mock_log = mocker.Mock()
     mock_log.end_dttm = datetime.utcnow() - timedelta(hours=2)
+    mock_log.uuid = uuid4()
     mocker.patch(
         "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
         return_value=mock_log,
@@ -2271,15 +2315,165 @@ def test_working_state_still_working_raises_previous_working(
     """Working state not yet timed out should raise PreviousWorkingError."""
     state = _make_state_instance(mocker, ReportWorkingState)
     mocker.patch.object(state, "is_on_working_timeout", return_value=False)
-    mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(state, "create_log")
 
     with pytest.raises(ReportSchedulePreviousWorkingError):
         state.next()
 
-    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
-        ReportState.WORKING,
+    state.create_log.assert_called_once_with(  # type: ignore[attr-defined]
         error_message=str(ReportSchedulePreviousWorkingError()),
+        log_state=ReportState.ERROR,
+        reuse_working_log=False,
     )
+
+
+def test_working_timeout_replay_delegates_single_terminal_update(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        ReportWorkingState,
+        schedule_type=ReportScheduleType.REPORT,
+        last_state=ReportState.WORKING,
+    )
+    mocker.patch.object(state, "is_on_working_timeout", return_value=True)
+    working_log = mocker.Mock()
+    working_log.uuid = state._execution_id
+    working_log.state = ReportState.WORKING
+    working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=working_log,
+    )
+    update = mocker.patch.object(state, "update_report_schedule_and_log")
+
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
+
+    update.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+    assert working_log.state == ReportState.WORKING
+
+
+def test_stale_recovery_delegates_terminal_update_without_delivery(
+    mocker: MockerFixture,
+) -> None:
+    """Recovery unblocks the schedule without racing the old worker's audit row."""
+    state = _make_state_instance(
+        mocker,
+        ReportWorkingState,
+        schedule_type=ReportScheduleType.REPORT,
+        last_state=ReportState.WORKING,
+    )
+    mocker.patch.object(state, "is_on_working_timeout", return_value=True)
+    working_log = mocker.Mock()
+    working_log.uuid = uuid4()
+    working_log.state = ReportState.WORKING
+    working_log.error_message = None
+    working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=working_log,
+    )
+    recovered_next = mocker.patch.object(ReportNotTriggeredErrorState, "next")
+    update = mocker.patch.object(state, "update_report_schedule_and_log")
+
+    with pytest.raises(ReportScheduleWorkingTimeoutError):
+        state.next()
+
+    update.assert_called_once_with(
+        ReportState.ERROR,
+        error_message=str(ReportScheduleWorkingTimeoutError()),
+    )
+    assert working_log.state == ReportState.WORKING
+    assert working_log.error_message is None
+    recovered_next.assert_not_called()
+
+
+def test_report_working_state_recovery_is_bounded_by_execution_budget(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """A lost report worker is unblocked once the effective budget elapses.
+
+    The effective budget is min(global budget, working_timeout); with a
+    deployment-tightened 900s budget, a schedule whose working_timeout is
+    still the one-hour default stops blocking after 15 minutes, not 60.
+    """
+    state = _make_state_instance(
+        mocker,
+        ReportWorkingState,
+        schedule_type=ReportScheduleType.REPORT,
+        last_state=ReportState.WORKING,
+        working_timeout=3600,
+    )
+    working_log = mocker.Mock()
+    working_log.end_dttm = datetime.utcnow() - timedelta(minutes=20)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=working_log,
+    )
+
+    app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"] = 900
+    try:
+        assert state.is_on_working_timeout()
+    finally:
+        app.config["ALERT_REPORTS_EXECUTION_BUDGET_SECONDS"] = 3600
+
+
+def test_soft_timeout_transitions_report_out_of_working(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    mocker.patch.object(state, "send", side_effect=SoftTimeLimitExceeded())
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    send_error = mocker.patch.object(state, "send_error")
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        state.next()
+
+    assert mock_update.call_args_list[0] == mocker.call(ReportState.WORKING)
+    assert mock_update.call_args_list[1] == mocker.call(
+        ReportState.ERROR,
+        error_message="celery_soft_timeout",
+    )
+    send_error.assert_not_called()
+
+
+def test_budget_timeout_transitions_report_without_error_delivery(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        ReportNotTriggeredErrorState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    timeout = ReportExecutionBudgetExceededError(
+        "chart_readiness",
+        elapsed_seconds=690,
+        remaining_seconds=210,
+    )
+    mocker.patch.object(state, "send", side_effect=timeout)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    send_error = mocker.patch.object(state, "send_error")
+
+    with pytest.raises(ReportExecutionBudgetExceededError):
+        state.next()
+
+    assert mock_update.call_args_list == [
+        mocker.call(ReportState.WORKING),
+        mocker.call(
+            ReportState.ERROR,
+            error_message="report_execution_budget_exhausted:chart_readiness",
+        ),
+    ]
+    send_error.assert_not_called()
 
 
 def test_success_state_grace_period_returns_without_sending(
@@ -2484,6 +2678,204 @@ def test_create_log_success_commits(mocker: MockerFixture) -> None:
     mock_db.session.rollback.assert_not_called()
 
 
+def test_create_log_promotes_same_execution_working_row_without_duplicate(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_state = ReportState.ERROR
+    schedule.last_value = None
+    schedule.last_value_row_json = None
+    working_log = mocker.Mock()
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_db.session.query.return_value.filter.return_value.first.return_value = (
+        working_log
+    )
+    log_cls = mocker.patch("superset.commands.report.execute.ReportExecutionLog")
+    state = BaseReportState(
+        schedule,
+        datetime.utcnow(),
+        execution_id,
+    )
+
+    state.create_log(error_message="working timeout")
+
+    assert working_log.state == ReportState.ERROR
+    assert working_log.error_message == "working timeout"
+    log_cls.assert_not_called()
+    mock_db.session.add.assert_not_called()
+    mock_db.session.commit.assert_called_once()
+
+
+def test_terminal_persistence_retry_promotes_owned_working_execution(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_state = ReportState.WORKING
+    schedule.dashboard_id = 805
+    schedule.chart_id = None
+    working_log = mocker.Mock()
+    working_log.uuid = execution_id
+    working_log.report_schedule = schedule
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    filtered_query = mock_db.session.query.return_value.filter.return_value
+    filtered_query.first.return_value = working_log
+    filtered_query.order_by.return_value.first.return_value = working_log
+
+    assert persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "Failed taking a screenshot readiness allocation expired",
+        "ReportScheduleScreenshotFailedError",
+    )
+
+    assert working_log.state == ReportState.ERROR
+    assert (
+        working_log.error_message
+        == "Failed taking a screenshot readiness allocation expired"
+    )
+    assert schedule.last_state == ReportState.ERROR
+    mock_db.session.commit.assert_called_once()
+
+
+def test_alert_log_context_fallback_is_self_identifying(
+    mocker: MockerFixture,
+) -> None:
+    """Alerts run without a ReportExecutionContext by design; their fallback
+    log context must still identify the capture kind and schedule so alert
+    log lines are distinguishable from report captures."""
+    execution_id = UUID("a92a71bd-91ed-41f4-a297-cb9c8da52450")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.type = ReportScheduleType.ALERT
+    schedule.id = 11
+    schedule.dashboard_id = None
+    schedule.chart_id = 19495
+
+    state = BaseReportState(schedule, datetime.utcnow(), execution_id)
+
+    context = state._log_context
+    assert "capture_kind=alert" in context
+    assert f"execution_id={execution_id}" in context
+    assert "report_schedule_id=11" in context
+    assert "chart_id=19495" in context
+
+
+def test_terminal_persistence_retry_survives_database_failure(
+    mocker: MockerFixture,
+) -> None:
+    """The last-resort retry must swallow its own DB failure: roll back, log,
+    and return False so the report's original exception is never masked."""
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+    mock_db.session.query.side_effect = Exception("database connection lost")
+
+    assert not persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "boom",
+        "ReportScheduleWorkingTimeoutError",
+    )
+
+    # One pre-emptive rollback on entry, one in the exception handler.
+    assert mock_db.session.rollback.call_count == 2
+    mock_db.session.commit.assert_not_called()
+    assert any(
+        "terminal_persistence_retry_failed" in call.args[0]
+        for call in mock_logger.exception.call_args_list
+    )
+
+
+def _exhausted_report_context(execution_id: UUID) -> ReportExecutionContext:
+    return ReportExecutionContext(
+        execution_id=execution_id,
+        report_schedule_id=11,
+        deadline=ReportExecutionDeadline(
+            total_seconds=0.01,
+            started_at=time.monotonic() - 10,
+        ),
+    )
+
+
+def test_delivery_phase_gate_noops_without_report_context(
+    mocker: MockerFixture,
+) -> None:
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+
+    log_report_delivery_phase(None, None, "start", enforce_budget=True)
+
+    mock_logger.info.assert_not_called()
+
+
+def test_delivery_phase_gate_raises_when_budget_exhausted(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+
+    with pytest.raises(ReportExecutionBudgetExceededError):
+        log_report_delivery_phase(
+            _exhausted_report_context(execution_id),
+            None,
+            "start",
+            enforce_budget=True,
+        )
+
+
+def test_delivery_phase_logging_without_enforcement_does_not_raise(
+    mocker: MockerFixture,
+) -> None:
+    """enforce_budget=False is the post-send log call: it must record the
+    phase even when the budget is exhausted, not raise mid-notification."""
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    mock_logger = mocker.patch("superset.commands.report.execute.logger")
+
+    log_report_delivery_phase(
+        _exhausted_report_context(execution_id),
+        None,
+        "sent",
+        enforce_budget=False,
+    )
+
+    assert any(
+        call.args and call.args[0].startswith("report_delivery_")
+        for call in mock_logger.info.call_args_list
+    )
+
+
+def test_terminal_persistence_retry_does_not_overwrite_newer_execution(
+    mocker: MockerFixture,
+) -> None:
+    execution_id = UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524")
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.last_state = ReportState.WORKING
+    schedule.dashboard_id = 805
+    schedule.chart_id = None
+    working_log = mocker.Mock()
+    working_log.uuid = execution_id
+    working_log.report_schedule = schedule
+    newer_working_log = mocker.Mock()
+    newer_working_log.uuid = uuid4()
+
+    mock_db = mocker.patch("superset.commands.report.execute.db")
+    filtered_query = mock_db.session.query.return_value.filter.return_value
+    filtered_query.first.return_value = working_log
+    filtered_query.order_by.return_value.first.return_value = newer_working_log
+
+    assert persist_owned_report_execution_terminal_error(
+        11,
+        execution_id,
+        "Failed taking a screenshot readiness allocation expired",
+        "ReportScheduleScreenshotFailedError",
+    )
+
+    assert working_log.state == ReportState.ERROR
+    assert schedule.last_state == ReportState.WORKING
+    mock_db.session.commit.assert_called_once()
+
+
 def test_success_state_report_sends_and_logs_success(
     mocker: MockerFixture,
 ) -> None:
@@ -2505,6 +2897,57 @@ def test_success_state_report_sends_and_logs_success(
         mocker.call(ReportState.WORKING),
         mocker.call(ReportState.SUCCESS, error_message=None),
     ]
+
+
+def test_delivery_budget_exhaustion_does_not_send_notification(
+    mocker: MockerFixture,
+) -> None:
+    state = _make_state_instance(
+        mocker,
+        BaseReportState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    deadline = ReportExecutionDeadline(
+        total_seconds=900,
+        started_at=0,
+        _clock=lambda: 880,
+    )
+    state._report_execution_context = ReportExecutionContext(
+        execution_id=state._execution_id,
+        report_schedule_id=11,
+        dashboard_id=805,
+        expected_chart_count=52,
+        deadline=deadline,
+        cleanup_reserve_seconds=30,
+    )
+    recipient = mocker.Mock(spec=ReportRecipients)
+    notification = mocker.patch(
+        "superset.commands.report.execute.create_notification"
+    ).return_value
+
+    with pytest.raises(ReportExecutionBudgetExceededError):
+        state._send(mocker.Mock(), [recipient])
+
+    notification.send.assert_not_called()
+
+
+def test_incomplete_capture_never_reaches_delivery(mocker: MockerFixture) -> None:
+    state = _make_state_instance(
+        mocker,
+        BaseReportState,
+        schedule_type=ReportScheduleType.REPORT,
+    )
+    mocker.patch.object(
+        state,
+        "_get_notification_content",
+        side_effect=ReportScheduleScreenshotFailedError("not ready"),
+    )
+    send_notification = mocker.patch.object(state, "_send")
+
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state.send()
+
+    send_notification.assert_not_called()
 
 
 def test_success_state_error_logged_when_send_error_raises(

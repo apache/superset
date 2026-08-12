@@ -694,9 +694,11 @@ test('should add a formula annotation when X-axis column has dataset-level label
     result.echartOptions.series as SeriesOption[] | undefined
   )?.find((s: SeriesOption) => s.name === 'My Formula');
   expect(formulaSeries).toBeDefined();
-  expect(formulaSeries?.data).toBeDefined();
-  expect(Array.isArray(formulaSeries?.data)).toBe(true);
-  expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
+  const series = formulaSeries as SeriesOption;
+  expect(series.data).toBeDefined();
+  const data = series.data as unknown[];
+  expect(Array.isArray(data)).toBe(true);
+  expect(data.length).toBeGreaterThan(0);
 });
 
 test('numeric x coltype never gets silently coerced to the Time axis', () => {
@@ -1240,4 +1242,56 @@ test('regression #37921: multi-metric Query A with groupby does not duplicate fi
   for (const name of queryASeriesNames) {
     expect(name).not.toMatch(/score_one,\s+score_two/);
   }
+});
+
+test('y-axis title position: Left sets nameLocation to middle', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      yAxisTitlePosition: 'Left',
+      yAxisTitleMargin: 20,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const yAxis = transformed.echartOptions.yAxis as Array<{
+    nameGap: number;
+    nameLocation: string;
+  }>;
+
+  expect(yAxis[0].nameGap).toEqual(20);
+  expect(yAxis[0].nameLocation).toEqual('middle');
+  expect(yAxis[1].nameGap).toEqual(20);
+  expect(yAxis[1].nameLocation).toEqual('middle');
+});
+
+test('y-axis title position: non-Left sets nameLocation to end', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      yAxisTitlePosition: 'Top',
+      yAxisTitleMargin: 30,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const yAxis = transformed.echartOptions.yAxis as Array<{
+    nameGap: number;
+    nameLocation: string;
+  }>;
+
+  expect(yAxis[0].nameGap).toEqual(30);
+  expect(yAxis[0].nameLocation).toEqual('end');
+  expect(yAxis[1].nameGap).toEqual(30);
+  expect(yAxis[1].nameLocation).toEqual('end');
 });

@@ -17,10 +17,12 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
+import { ErrorTypeEnum } from '@superset-ui/core';
 import DatasetPanel, {
   REFRESHING,
   tableColumnDefinition,
   COLUMN_TITLE,
+  ERROR_TITLE,
 } from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
 import { exampleColumns, exampleDataset } from './fixtures';
 import { ITableColumn } from './types';
@@ -31,8 +33,6 @@ import {
   SELECT_TABLE_TITLE,
   NO_COLUMNS_TITLE,
   NO_COLUMNS_DESCRIPTION,
-  ERROR_TITLE,
-  ERROR_DESCRIPTION,
 } from './MessageContent';
 
 jest.mock(
@@ -47,7 +47,7 @@ jest.mock(
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetPanel', () => {
   test('renders a blank state DatasetPanel', () => {
-    render(<DatasetPanel hasError={false} columnList={[]} loading={false} />, {
+    render(<DatasetPanel columnList={[]} loading={false} />, {
       useRouter: true,
     });
 
@@ -70,17 +70,9 @@ describe('DatasetPanel', () => {
   });
 
   test('renders a no columns screen', () => {
-    render(
-      <DatasetPanel
-        tableName="Name"
-        hasError={false}
-        columnList={[]}
-        loading={false}
-      />,
-      {
-        useRouter: true,
-      },
-    );
+    render(<DatasetPanel tableName="Name" columnList={[]} loading={false} />, {
+      useRouter: true,
+    });
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     expect(blankDatasetImg).toBeVisible();
@@ -91,17 +83,9 @@ describe('DatasetPanel', () => {
   });
 
   test('renders a loading screen', () => {
-    render(
-      <DatasetPanel
-        tableName="Name"
-        hasError={false}
-        columnList={[]}
-        loading
-      />,
-      {
-        useRouter: true,
-      },
-    );
+    render(<DatasetPanel tableName="Name" columnList={[]} loading />, {
+      useRouter: true,
+    });
 
     const loadingIndicator = screen.getByTestId('loading-indicator');
     expect(loadingIndicator).toBeVisible();
@@ -113,7 +97,12 @@ describe('DatasetPanel', () => {
     render(
       <DatasetPanel
         tableName="Name"
-        hasError
+        error={{
+          error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
+          extra: null,
+          level: 'error',
+          message: 'Structured backend failure',
+        }}
         columnList={[]}
         loading={false}
       />,
@@ -124,8 +113,9 @@ describe('DatasetPanel', () => {
 
     const errorTitle = screen.getByText(ERROR_TITLE);
     expect(errorTitle).toBeVisible();
-    const errorDescription = screen.getByText(ERROR_DESCRIPTION);
+    const errorDescription = screen.getByText('Structured backend failure');
     expect(errorDescription).toBeVisible();
+    expect(screen.getByTitle('Name')).toHaveStyle({ position: 'relative' });
   });
 
   test('renders a table with columns displayed', async () => {
@@ -133,7 +123,6 @@ describe('DatasetPanel', () => {
     render(
       <DatasetPanel
         tableName={tableName}
-        hasError={false}
         columnList={exampleColumns}
         loading={false}
       />,
@@ -159,7 +148,6 @@ describe('DatasetPanel', () => {
     render(
       <DatasetPanel
         tableName="example_table"
-        hasError={false}
         columnList={exampleColumns}
         loading={false}
         datasets={exampleDataset}

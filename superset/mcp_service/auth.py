@@ -60,6 +60,7 @@ from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
 from superset.mcp_service.mcp_config import (
     default_user_resolver,
     get_mcp_api_key_enabled,
+    validate_multi_issuer_user_resolver,
 )
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
@@ -526,6 +527,10 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     Raises:
         ValueError: If JWT resolves a username that doesn't exist in the DB
             (fail closed — do NOT fall through to weaker auth sources).
+        MCPAuthConfigError: If more than one JWT issuer is trusted
+            (``MCP_JWT_ISSUER`` is a list/tuple/set) and no issuer-aware
+            ``MCP_USER_RESOLVER`` is configured (fail closed — see
+            ``validate_multi_issuer_user_resolver``).
     """
     try:
         from fastmcp.server.dependencies import get_access_token
@@ -591,23 +596,11 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     # Single-issuer deployments (the common case) are safe — the issuer is
     # already pinned by the verifier, so the username space is unambiguous and
     # we keep the existing lookup key to avoid breaking them. For multi-issuer
-    # configs we warn: operators should provide an issuer-aware MCP_USER_RESOLVER
-    # that derives a compound (iss + sub) identity. This is the least-breaking
-    # correct option (warn, don't change the key out from under existing
-    # single-issuer deployments).
-    configured_issuer = app.config.get("MCP_JWT_ISSUER")
-    if isinstance(configured_issuer, (list, tuple, set)) and len(configured_issuer) > 1:
-        if not app.config.get("MCP_USER_RESOLVER"):
-            token_iss = claims.get("iss") if isinstance(claims, dict) else None
-            logger.warning(
-                "Multiple JWT issuers are trusted (MCP_JWT_ISSUER is a list) but "
-                "the default user resolver maps token claims to Superset users by "
-                "username/email without binding the issuer (iss=%s). Distinct "
-                "issuers minting the same username/email will collide. Configure an "
-                "issuer-aware MCP_USER_RESOLVER to derive a compound (iss+sub) "
-                "identity.",
-                _sanitize_for_log(token_iss),
-            )
+    # configs without an issuer-aware MCP_USER_RESOLVER, fail closed rather
+    # than resolving an identity that isn't actually scoped to the trusted
+    # issuer (mirrors the startup-time config checks in
+    # create_default_mcp_auth_factory / superset.initialization).
+    validate_multi_issuer_user_resolver(app)
 
     # Use configurable resolver or default
 
@@ -868,7 +861,7 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     """
     from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 
-    return validate_chart_dataset(chart, check_access=True)
+    return validate_chart_dataset(chart.datasource_id, check_access=True)
 
 
 def _log_user_resolution_failure(exc: ValueError | PermissionError) -> None:

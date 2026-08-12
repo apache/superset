@@ -93,7 +93,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         "description": "desc_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "expand_all_slices": false, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
         "published": False,
     }
 
@@ -337,19 +337,32 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = self.get_assert_metric(uri, "get_datasets")
         assert response.status_code == 200
         data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
         for dataset in data["result"]:
+            # Spelled out rather than read from the production constant, so
+            # that dropping a field from that constant fails this test.
             for excluded_key in [
                 "sql",
                 "select_star",
                 "fetch_values_predicate",
                 "template_params",
                 "params",
+                "perm",
+                "edit_url",
+                "database",
+                "columns",
+                "column_names",
+                "column_types",
+                "metrics",
+                "verbose_map",
+                "order_by_choices",
+                "main_dttm_col",
+                "granularity_sqla",
+                "time_grain_sqla",
             ]:
                 assert excluded_key not in dataset
-            for column in dataset.get("columns") or []:
-                assert "expression" not in column
-            for metric in dataset.get("metrics") or []:
-                assert "expression" not in metric
+            # The identifying fields the dashboard needs to render are kept.
+            assert {"id", "uid", "table_name", "type"} <= set(dataset)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -464,6 +477,26 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
         assert result["id"] == dashboard.slices[0].id
         assert result["slice_name"] == dashboard.slices[0].slice_name
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @patch("superset.dashboards.api.security_manager.can_access_chart")
+    def test_get_dashboard_charts_strips_form_data_without_chart_access(
+        self, can_access_chart_mock
+    ):
+        """A caller who cannot access a member chart does not receive its
+        form_data (datasource/query config), only its identifying fields."""
+        can_access_chart_mock.return_value = False
+        self.login(ADMIN_USERNAME)
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
+        for chart in data["result"]:
+            assert "form_data" not in chart
+            assert "id" in chart
+            assert "slice_name" in chart
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):
@@ -1998,7 +2031,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert model.slug == self.dashboard_data["slug"]
         assert model.position_json == self.dashboard_data["position_json"]
         assert model.css == self.dashboard_data["css"]
-        assert model.json_metadata == self.dashboard_data["json_metadata"]
+        # Compare parsed JSON rather than raw strings: ``set_dash_metadata``
+        # merges against the dashboard's previously stored metadata, so key
+        # insertion order (and therefore serialized key order) is an
+        # implementation detail, not part of the contract being tested.
+        assert json.loads(model.json_metadata) == json.loads(
+            self.dashboard_data["json_metadata"]
+        )
         assert model.published == self.dashboard_data["published"]
         admin_subject = (
             db.session.query(Subject)
@@ -2006,6 +2045,90 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             .first()
         )
         assert model.editors == [admin_subject]
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_preserves_unsent_json_metadata_fields(self):
+        """
+        Dashboard API: a PUT whose ``json_metadata`` omits a field must not
+        reset that field to its default. ``UpdateDashboardCommand`` routes
+        the incoming ``json_metadata`` through ``DashboardDAO.update``'s
+        generic attribute assignment before calling
+        ``DashboardDAO.set_dash_metadata`` -- if that assignment overwrites
+        ``dashboard.json_metadata`` first, the merge in
+        ``set_dash_metadata`` (which reads ``dashboard.params_dict``) has
+        nothing but the new, partial payload to merge against, silently
+        collapsing the merge into a no-op (see #42142).
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            json_metadata=json.dumps(
+                {"refresh_frequency": 60, "cross_filters_enabled": False}
+            ),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri,
+            {"json_metadata": json.dumps({"color_scheme": "d3Category10"})},
+            "put",
+        )
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        saved_metadata = json.loads(model.json_metadata)
+        assert saved_metadata["refresh_frequency"] == 60
+        assert saved_metadata["cross_filters_enabled"] is False
+        assert saved_metadata["color_scheme"] == "d3Category10"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_persists_metadata_fields_without_dedicated_handling(
+        self,
+    ):
+        """
+        Dashboard API: ``set_dash_metadata`` only gives dedicated handling to a
+        fixed subset of ``json_metadata`` keys (positions, filter_scopes,
+        refresh_frequency, etc). A field edited via the Advanced JSON editor
+        that isn't in that subset -- e.g. ``show_chart_timestamps``,
+        ``stagger_refresh``, ``timed_refresh_immune_slices`` -- must still be
+        persisted rather than silently dropped on save (see #42142).
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            json_metadata=json.dumps({"refresh_frequency": 60}),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri,
+            {
+                "json_metadata": json.dumps(
+                    {
+                        "refresh_frequency": 60,
+                        "show_chart_timestamps": True,
+                        "stagger_refresh": True,
+                        "stagger_time": 500,
+                        "timed_refresh_immune_slices": [1, 2],
+                    }
+                )
+            },
+            "put",
+        )
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        saved_metadata = json.loads(model.json_metadata)
+        assert saved_metadata["show_chart_timestamps"] is True
+        assert saved_metadata["stagger_refresh"] is True
+        assert saved_metadata["stagger_time"] == 500
+        assert saved_metadata["timed_refresh_immune_slices"] == [1, 2]
 
         db.session.delete(model)
         db.session.commit()
@@ -2603,7 +2726,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
 
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert model.json_metadata == self.dashboard_data["json_metadata"]
+        # Compare parsed JSON rather than raw strings; see the equivalent
+        # comment in ``test_update_dashboard``.
+        assert json.loads(model.json_metadata) == json.loads(
+            self.dashboard_data["json_metadata"]
+        )
         assert model.dashboard_title == self.dashboard_data["dashboard_title"]
         assert model.slug == self.dashboard_data["slug"]
 

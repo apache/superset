@@ -12,36 +12,35 @@
     "lint": "npm run eslint -- . && npm run type",
     "dev-server": "npm run build && npm run start",
     "build": "tsc",
-    "prettier-check": "prettier --check .",
-    "prettier-write": "prettier --write .",
-    "format": "prettier --write ."
+    "format": "oxfmt --write .",
+    "format-check": "oxfmt --check ."
   },
   "license": "Apache-2.0",
   "dependencies": {
     "cookie": "^2.0.1",
-    "hot-shots": "^17.0.1",
-    "ioredis": "^5.11.1",
+    "hot-shots": "^17.1.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "lodash-es": "^4.18.1",
     "winston": "^3.19.0",
-    "ws": "^8.21.1"
+    "ws": "^8.21.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
     "@types/eslint__js": "^8.42.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.65.0",
-    "@typescript-eslint/parser": "^8.65.0",
-    "eslint": "^10.7.0",
+    "@typescript-eslint/parser": "^8.66.0",
+    "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.6.0",
-    "prettier": "^3.9.6",
+    "globals": "^17.9.0",
+    "oxfmt": "^0.62.0",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.65.0",
+    "typescript-eslint": "^8.66.0",
     "vitest": "^4.1.10"
   },
   "engines": {
