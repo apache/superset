@@ -17,7 +17,15 @@
  * under the License.
  */
 import type { dashboard as dashboardApi } from '@apache-superset/core';
-import { packChildLayout, resolveExplicitCollisions } from './gridPacking';
+import {
+  availableDropSpan,
+  buildOccupancy,
+  cellKey,
+  packChildLayout,
+  resolveDropPlacement,
+  resolveExplicitCollisions,
+  type PackedRect,
+} from './gridPacking';
 
 type DashboardNode = dashboardApi.DashboardNode;
 
@@ -133,4 +141,218 @@ test('resolveExplicitCollisions does not move an explicit child whose column onl
   });
 
   expect(resolveExplicitCollisions(['a', 'b'], 24, getNode)).toEqual({});
+});
+
+test('cellKey is the same string two equal coordinates produce', () => {
+  expect(cellKey(3, 5)).toBe(cellKey(3, 5));
+  expect(cellKey(3, 5)).not.toBe(cellKey(5, 3));
+});
+
+test('buildOccupancy records which node owns every cell a rect spans', () => {
+  const packed: Record<string, PackedRect> = {
+    a: { x: 0, y: 0, w: 2, h: 2 },
+    b: { x: 2, y: 0, w: 1, h: 1 },
+  };
+
+  const occupancy = buildOccupancy(packed);
+
+  expect(occupancy.get(cellKey(0, 0))).toBe('a');
+  expect(occupancy.get(cellKey(1, 1))).toBe('a');
+  expect(occupancy.get(cellKey(2, 0))).toBe('b');
+  expect(occupancy.get(cellKey(2, 1))).toBeUndefined();
+});
+
+test('buildOccupancy is empty for an empty grid', () => {
+  expect(buildOccupancy({})).toEqual(new Map());
+});
+
+test('availableDropSpan caps width at maxColSpan on a wholly empty grid, so a drop there is not forced full-width', () => {
+  // Regression: before `maxColSpan` existed, an empty grid had nothing
+  // anywhere to bound a free run, so "open space" always meant "the whole
+  // row" — the ghost (and the block it produced) ignored the cursor's own
+  // column entirely. Growth is still left-first, so a cursor this far from
+  // the left edge exhausts the cap before reaching it.
+  expect(availableDropSpan({}, 24, 10, 3, 6, 12)).toEqual({
+    x: 0,
+    y: 3,
+    w: 12,
+    h: 6,
+  });
+});
+
+test('availableDropSpan bounds a free run by the nearest occupied cells on either side, even under a cap wide enough to matter', () => {
+  const packed: Record<string, PackedRect> = {
+    left: { x: 0, y: 0, w: 6, h: 1 },
+    right: { x: 18, y: 0, w: 6, h: 1 },
+  };
+
+  expect(availableDropSpan(packed, 24, 10, 0, 6, 24)).toEqual({
+    x: 6,
+    y: 0,
+    w: 12,
+    h: 6,
+  });
+});
+
+test('availableDropSpan anchors at the run start even when the cursor sits at the run end', () => {
+  // Regression: the run [6, 17] is free either way, but before this fixed a
+  // cursor near its right end returned a rect starting at the cursor's own
+  // column instead of the run's — wider than the space actually to its right.
+  const packed: Record<string, PackedRect> = {
+    left: { x: 0, y: 0, w: 6, h: 1 },
+    right: { x: 18, y: 0, w: 6, h: 1 },
+  };
+
+  expect(availableDropSpan(packed, 24, 17, 0, 6, 24)).toEqual({
+    x: 6,
+    y: 0,
+    w: 12,
+    h: 6,
+  });
+});
+
+test('availableDropSpan caps height at maxRowSpan even when more rows are free', () => {
+  expect(availableDropSpan({}, 24, 0, 0, 4, 24)).toEqual({
+    x: 0,
+    y: 0,
+    w: 24,
+    h: 4,
+  });
+});
+
+test('availableDropSpan stops growing height at the first occupied row below', () => {
+  const packed: Record<string, PackedRect> = {
+    blocker: { x: 0, y: 3, w: 24, h: 1 },
+  };
+
+  expect(availableDropSpan(packed, 24, 0, 0, 6, 24)).toEqual({
+    x: 0,
+    y: 0,
+    w: 24,
+    h: 3,
+  });
+});
+
+test('availableDropSpan over an occupied cell returns the full row, uncapped by maxColSpan', () => {
+  const packed: Record<string, PackedRect> = {
+    a: { x: 0, y: 0, w: 24, h: 2 },
+  };
+
+  // maxColSpan(4) is deliberately narrower than the grid: this band means
+  // "insert a full-width row here", not "drop a block here", so it stays
+  // uncapped regardless.
+  expect(availableDropSpan(packed, 24, 5, 1, 6, 4)).toEqual({
+    x: 0,
+    y: 1,
+    w: 24,
+    h: 6,
+  });
+});
+
+test('resolveDropPlacement over open space delegates to availableDropSpan', () => {
+  const packed: Record<string, PackedRect> = {
+    a: { x: 0, y: 0, w: 12, h: 2 },
+  };
+
+  expect(resolveDropPlacement(packed, 24, 15, 0.5, 6, 24)).toEqual({
+    rect: availableDropSpan(packed, 24, 15, 0, 6, 24),
+  });
+});
+
+test('resolveDropPlacement in the top band of a block inserts a full-width row above it', () => {
+  const packed: Record<string, PackedRect> = {
+    target: { x: 4, y: 2, w: 12, h: 8 },
+  };
+
+  // fracY = (2.5 - 2) / 8 = 0.0625, inside the top 25% band.
+  expect(resolveDropPlacement(packed, 24, 10, 2.5, 6, 12)).toEqual({
+    rect: { x: 0, y: 2, w: 24, h: 6 },
+  });
+});
+
+test('resolveDropPlacement in the bottom band of a block inserts a full-width row below it', () => {
+  const packed: Record<string, PackedRect> = {
+    target: { x: 4, y: 2, w: 12, h: 8 },
+  };
+
+  // fracY = (9.5 - 2) / 8 = 0.9375, inside the bottom 25% band.
+  expect(resolveDropPlacement(packed, 24, 10, 9.5, 6, 12)).toEqual({
+    rect: { x: 0, y: 10, w: 24, h: 6 },
+  });
+});
+
+test('resolveDropPlacement in the middle band, left of center, splits the block and shrinks it to the right half', () => {
+  const packed: Record<string, PackedRect> = {
+    target: { x: 0, y: 0, w: 24, h: 4 },
+  };
+
+  // fracY = 0.5, in the middle band; exactCol 6 is left of the block's own
+  // midpoint (12).
+  expect(resolveDropPlacement(packed, 24, 6, 2, 6, 12)).toEqual({
+    rect: { x: 0, y: 0, w: 12, h: 4 },
+    shrink: { id: 'target', rect: { x: 12, y: 0, w: 12, h: 4 } },
+  });
+});
+
+test('resolveDropPlacement in the middle band, right of center, splits the block and shrinks it to the left half', () => {
+  const packed: Record<string, PackedRect> = {
+    target: { x: 0, y: 0, w: 24, h: 4 },
+  };
+
+  expect(resolveDropPlacement(packed, 24, 18, 2, 6, 12)).toEqual({
+    rect: { x: 12, y: 0, w: 12, h: 4 },
+    shrink: { id: 'target', rect: { x: 0, y: 0, w: 12, h: 4 } },
+  });
+});
+
+test('resolveDropPlacement gives the odd leftover column to whichever half keeps it', () => {
+  const packed: Record<string, PackedRect> = {
+    target: { x: 0, y: 0, w: 5, h: 2 },
+  };
+
+  // w=5 -> newW = floor(5/2) = 2, keepW = 3. exactCol 1 is left of the
+  // midpoint (2.5), so the new block takes the narrower half.
+  expect(resolveDropPlacement(packed, 24, 1, 1, 6, 12)).toEqual({
+    rect: { x: 0, y: 0, w: 2, h: 2 },
+    shrink: { id: 'target', rect: { x: 2, y: 0, w: 3, h: 2 } },
+  });
+});
+
+test('resolveDropPlacement refuses to split a block narrower than the minimum, falling back to the nearer edge', () => {
+  const packed: Record<string, PackedRect> = {
+    target: { x: 0, y: 0, w: 3, h: 2 },
+  };
+
+  // fracY = (0.6 - 0) / 2 = 0.3 is in the middle band (not within
+  // EDGE_BAND_FRACTION of either edge), but w=3 is below MIN_SPLIT_COLUMNS —
+  // falls back to the nearer edge, and 0.3 is nearer the top.
+  expect(resolveDropPlacement(packed, 24, 1, 0.6, 6, 12)).toEqual({
+    rect: { x: 0, y: 0, w: 24, h: 6 },
+  });
+});
+
+test('resolveDropPlacement never produces a shrink that overlaps an unrelated sibling', () => {
+  const packed: Record<string, PackedRect> = {
+    target: { x: 0, y: 0, w: 24, h: 4 },
+    below: { x: 0, y: 4, w: 24, h: 2 },
+  };
+
+  const { rect, shrink } = resolveDropPlacement(packed, 24, 6, 2, 6, 12);
+  const overlapsBelow = (r: PackedRect): boolean =>
+    r.y < packed.below.y + packed.below.h && packed.below.y < r.y + r.h;
+
+  expect(overlapsBelow(rect)).toBe(false);
+  expect(shrink && overlapsBelow(shrink.rect)).toBe(false);
+});
+
+test('availableDropSpan follows the cursor within a capped, wide-open run rather than anchoring to a fixed edge', () => {
+  // No neighbors anywhere in this row: the only bound on either side is
+  // maxColSpan itself. A cursor near the grid's own right edge should still
+  // produce a rect near the cursor, not one stuck at column 0.
+  expect(availableDropSpan({}, 24, 20, 0, 6, 12)).toEqual({
+    x: 9,
+    y: 0,
+    w: 12,
+    h: 6,
+  });
 });

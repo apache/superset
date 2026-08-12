@@ -102,13 +102,12 @@ const HeaderTrailingControls = styled.span`
  * wrapped for: the control itself is an `ActionButton` (or built from one)
  * whose `onClick` carries no event, so the two gestures this sits inside are
  * stopped here instead — a press on it must act rather than select the
- * block it is drawn on, and a pointer down on it must not start a
- * react-grid-layout drag.
+ * block it is drawn on, and a pointer down on it must not start a grid
+ * drag.
  *
  * `data-block-header-control` is the other half of that second one —
- * `RootGrid` names it in `draggableCancel`, and react-grid-layout matches
- * the selector up the ancestors, so carrying it here covers the control
- * inside.
+ * `RootGrid` names it in the grid's own drag-cancel selector, which matches
+ * it up the ancestors, so carrying it here covers the control inside.
  */
 const HeaderControlSlot = styled.span`
   display: flex;
@@ -123,11 +122,11 @@ const HeaderControlSlot = styled.span`
  * dashboard list uses for its own Delete. It takes an `onClick` with no event,
  * so the two gestures this sits inside are stopped here instead: a click on
  * the bin must remove rather than select the block it is drawn on, and a
- * pointer down on it must not start a react-grid-layout drag.
+ * pointer down on it must not start a grid drag.
  *
  * `data-block-remove` is the other half of that second one — `RootGrid`
- * names it in `draggableCancel`, and react-grid-layout matches the selector up
- * the ancestors, so carrying it here covers the button inside.
+ * names it in the grid's own drag-cancel selector, which matches it up the
+ * ancestors, so carrying it here covers the button inside.
  */
 const RemoveSlot = styled.span`
   display: flex;
@@ -149,21 +148,23 @@ interface BuildingBlockViewProps extends HTMLAttributes<HTMLDivElement> {
  * The root is the one exception: it is not a Building Block (see the
  * composition/layout design doc), so there is nothing to look up for it in
  * that registry — its renderer, `RootGrid`, is resolved directly instead.
- * `RootGrid` renders its children through `react-grid-layout`, which
- * positions/sizes each child by cloning it and
- * injecting `ref`/`style`/drag-and-resize handlers directly onto whatever
- * element it renders — hence `forwardRef` and spreading `...rest` onto this
- * component's own root div, rather than each block doing that itself. That's
- * deliberate: a block, built-in or extension-contributed, should only ever
- * need to fill 100% of whatever box it's given, not know it's sitting in a
- * grid at all, let alone that the grid is draggable/resizable. Before this
- * existed, every block (and every third-party extension) had to resolve its
- * own placement, which meant reimplementing (and risking drifting from) the
- * same parent-lookup logic — see `dashboard-insights`'s own
- * `getParentDirection` for what that duplication looked like from outside
- * the host bundle, where `DashboardProvider` isn't importable at all.
- * `children` (when present) is `react-grid-layout`'s own resize-handle
- * element, appended after this node's content rather than replacing it.
+ * `RootGrid` positions/sizes each child by wrapping it in a grid item element
+ * of its own and passing this component an explicit `style={{width:'100%',
+ * height:'100%'}}` to fill it — the same convention `flowContent.tsx`'s
+ * `FlowItem` already used for a flowed block, which is why this accepts
+ * `...rest` (covering that `style` prop, among others) and forwards a `ref`
+ * rather than each block doing that itself. That's deliberate: a block,
+ * built-in or extension-contributed, should only ever need to fill 100% of
+ * whatever box it's given, not know it's sitting in a grid at all, let alone
+ * that the grid is draggable/resizable. Before this existed, every block
+ * (and every third-party extension) had to resolve its own placement, which
+ * meant reimplementing (and risking drifting from) the same parent-lookup
+ * logic — see `dashboard-insights`'s own `getParentDirection` for what that
+ * duplication looked like from outside the host bundle, where
+ * `DashboardProvider` isn't importable at all.
+ * `children` (when present) is a block's own extra content layered on top of
+ * it rather than replacing it — see `flowContent.tsx`'s `ResizeGrip` for the
+ * one built-in use of this.
  *
  * Wrapped per-node in an ErrorBoundary: a block's content (e.g. an
  * AI-authored `echartsOptions` that turns out malformed at render/effect
@@ -210,10 +211,10 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
         // keys a control answers. The outline offers the same selection in a
         // tree, but a block you can point at and not reach from the keyboard
         // is still a block half the people using this cannot select.
-        // A real `button` is not available: react-grid-layout clones this
-        // element to inject its own ref, style and drag handlers, and a
-        // block's content is interactive in its own right — a chart, a
-        // table — which a `button` may not contain.
+        // A real `button` is not available: this element carries its own
+        // ref and an injected `style` (see this component's own doc
+        // comment), and a block's content is interactive in its own right —
+        // a chart, a table — which a `button` may not contain.
         // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="button"
         tabIndex={0}
@@ -237,19 +238,19 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
         style={{
           ...rest.style,
           // A block's contents are positioned against this element.
-          // react-grid-layout positions its children itself, so its own value
-          // is kept wherever it set one and `relative` only fills the gap
-          // when it did not.
+          // A caller that already set its own `position` (nothing does
+          // today) is kept; `relative` only fills the gap when it did not.
           position: rest.style?.position ?? 'relative',
           // Sized the same way every other block already is — everything
-          // that is not the root gets its width/height from
-          // react-grid-layout, which clones the grid item and injects both
-          // directly (captured above through `...rest.style`). Nothing
-          // clones the root; it is rendered directly, with no props, so
-          // without this it has no width or height at all and shrinks to
-          // whatever its own content happens to be — which is exactly one
-          // block tall, with nothing below it to drop onto and a scrollbar
-          // that flickers in and out as that one block resizes against it.
+          // that is not the root gets its width/height from whatever
+          // rendered it (`RootGrid`'s grid item wrapper, or `flowContent.tsx`'s
+          // `FlowItem`), passed in through `style` and captured above via
+          // `...rest.style`. The root gets no such caller — it is rendered
+          // directly, with no props — so without this it has no width or
+          // height at all and shrinks to whatever its own content happens to
+          // be — which is exactly one block tall, with nothing below it to
+          // drop onto and a scrollbar that flickers in and out as that one
+          // block resizes against it.
           width: isRoot ? '100%' : rest.style?.width,
           height: isRoot ? '100%' : rest.style?.height,
           // The card, drawn around the whole of a block rather than around
@@ -310,10 +311,10 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
             once instead of twice.
 
             `data-block-remove` is what keeps a press on the button from
-            starting a react-grid-layout drag; see RootGrid's
-            `draggableCancel`. The propagation stops are the same idea for the
-            two gestures it sits inside: a click here removes rather than
-            selects, and a pointer down here grabs nothing.
+            starting a grid drag; see RootGrid's own drag-cancel selector.
+            The propagation stops are the same idea for the two gestures it
+            sits inside: a click here removes rather than selects, and a
+            pointer down here grabs nothing.
 
             The button is nested inside a control, which is not ideal and is
             the price of the wrapper itself being selectable — the alternative

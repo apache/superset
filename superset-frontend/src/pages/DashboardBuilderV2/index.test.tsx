@@ -85,6 +85,93 @@ const paletteTransfer = (type: string) => {
   };
 };
 
+/**
+ * jsdom has no layout engine — `getBoundingClientRect` on any element
+ * returns all zeros unless overridden, which is exactly what the preview's
+ * own cursor-to-cell math (`cellAtPoint`/`resolveCellGeometry`) divides by.
+ * Stubbed here to a realistic, arbitrary size so that math produces real,
+ * assertable pixels instead of `NaN`/`Infinity` — the same reason
+ * `RootGrid.test.tsx` mocks `gridstack` rather than asserting real pixel
+ * geometry against a real DOM.
+ */
+function stubCanvasRect(canvas: HTMLElement, width: number, height: number) {
+  canvas.getBoundingClientRect = () =>
+    ({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: width,
+      bottom: height,
+      width,
+      height,
+      toJSON: () => ({}),
+    }) as DOMRect;
+}
+
+/**
+ * `fireEvent.dragOver(el, { clientX, clientY })` silently drops both —
+ * jsdom's `DragEvent` doesn't carry `MouseEvent`'s init properties through
+ * the way a real browser's does, so `event.clientX`/`clientY` come out
+ * `undefined` in the handler regardless of what's passed here. A plain
+ * `MouseEvent` (which jsdom *does* construct correctly) with `dataTransfer`
+ * attached after the fact gets the real pixel values the preview's own
+ * cursor-to-cell math needs, without needing an actual `DragEvent`.
+ */
+function dragOverAt(
+  el: HTMLElement,
+  type: string,
+  clientX: number,
+  clientY: number,
+) {
+  const event = new MouseEvent('dragover', {
+    bubbles: true,
+    cancelable: true,
+    clientX,
+    clientY,
+  });
+  Object.defineProperty(event, 'dataTransfer', {
+    value: paletteTransfer(type),
+  });
+  fireEvent(el, event);
+}
+
+test('the empty-canvas drop preview is sized like the first block, not the whole canvas', () => {
+  renderPage();
+
+  const canvas = screen.getByTestId('empty-canvas');
+  stubCanvasRect(canvas, 1000, 800);
+  fireEvent.dragEnter(canvas, { dataTransfer: paletteTransfer('markdown') });
+  dragOverAt(canvas, 'markdown', 500, 400);
+
+  const preview = screen.getByTestId('empty-canvas-drop-preview');
+  // Regression: this used to be `width: 100%; height: 100%`, so the
+  // preview always filled the entire canvas regardless of its own size —
+  // reading as ignoring the drag rather than answering it.
+  expect(parseFloat(preview.style.width)).toBeGreaterThan(0);
+  expect(parseFloat(preview.style.width)).toBeLessThan(1000);
+  expect(parseFloat(preview.style.height)).toBeGreaterThan(0);
+  expect(parseFloat(preview.style.height)).toBeLessThan(800);
+});
+
+test('a drag that ends without ever dropping (cancelled, or released off-canvas) still clears the empty-canvas preview', () => {
+  renderPage();
+
+  const canvas = screen.getByTestId('empty-canvas');
+  stubCanvasRect(canvas, 1000, 800);
+  fireEvent.dragEnter(canvas, { dataTransfer: paletteTransfer('markdown') });
+  dragOverAt(canvas, 'markdown', 500, 400);
+  expect(screen.getByTestId('empty-canvas-drop-preview')).toBeInTheDocument();
+
+  // No `dragleave`, no `drop` — just the drag concluding, the same way a
+  // release past the browser window's own edge or an `Escape` would.
+  fireEvent(document, new Event('dragend', { bubbles: true }));
+
+  expect(
+    screen.queryByTestId('empty-canvas-drop-preview'),
+  ).not.toBeInTheDocument();
+});
+
 test('dropping a palette block on a blank dashboard places it there', () => {
   renderPage();
 
