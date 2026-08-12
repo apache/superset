@@ -822,6 +822,13 @@ def test_streaming_export_applies_sql_mutator(mocker, mock_query, mock_result_pr
         "streaming export sent the raw, unmutated SQL to the engine -- "
         "Database.mutate_sql_based_on_config was never called on it"
     )
+    # Pin the contract the fix relies on: mutate_sql_based_on_config is
+    # called exactly once, with is_split=True -- the complement of the
+    # is_split=False mutation applied upstream. Without this, the assertion
+    # above still passes with is_split=False (rstrip is idempotent).
+    mock_query.database.mutate_sql_based_on_config.assert_called_once_with(
+        "SELECT * FROM test_table;", is_split=True
+    )
 
 
 def test_streaming_export_preserves_impersonated_user_context(

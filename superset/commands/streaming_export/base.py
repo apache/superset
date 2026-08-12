@@ -85,6 +85,14 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         """
         Get the SQL query, database, catalog, and schema for execution.
 
+        The returned SQL is expected to already carry any
+        ``is_split=False`` mutation applied upstream (e.g. by
+        ``get_query_str_extended`` for charts, or SQL Lab's stored
+        ``executed_sql``); ``run()`` applies the complementary
+        ``is_split=True`` mutation exactly once before execution, so the
+        mutator fires once total under either ``MUTATE_AFTER_SPLIT``
+        setting.
+
         Returns:
             Tuple of (sql_query, database_object, catalog, schema)
         """
