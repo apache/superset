@@ -717,7 +717,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 channels = channels[start : start + page_size]
             return self.response(200, count=count, result=channels)
         except SupersetException as ex:
-            logger.error("Error fetching slack channels %s", str(ex))
+            logger.warning("Error fetching slack channels %s", str(ex))
             return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/execute", methods=("POST",))
