@@ -18,7 +18,7 @@
 import builtins
 from datetime import datetime
 from decimal import Decimal
-from types import ModuleType
+from types import SimpleNamespace
 from typing import Any, Optional
 from unittest.mock import Mock, patch
 
@@ -333,15 +333,9 @@ def test_get_datatype_pymysql_fallback() -> None:
 
     try:
         # Build a fake pymysql module with constants.FIELD_TYPE
-        fake_field_type = ModuleType("pymysql.constants.FIELD_TYPE")
-        setattr(fake_field_type, "TINY", 1)  # noqa: B010
-        setattr(fake_field_type, "VARCHAR", 15)  # noqa: B010
-
-        fake_constants = ModuleType("pymysql.constants")
-        setattr(fake_constants, "FIELD_TYPE", fake_field_type)  # noqa: B010
-
-        fake_pymysql = ModuleType("pymysql")
-        setattr(fake_pymysql, "constants", fake_constants)  # noqa: B010
+        fake_field_type = SimpleNamespace(TINY=1, VARCHAR=15)
+        fake_constants = SimpleNamespace(FIELD_TYPE=fake_field_type)
+        fake_pymysql = SimpleNamespace(constants=fake_constants)
 
         original_import = builtins.__import__
 
@@ -370,10 +364,8 @@ def test_get_datatype_mysqlconnector_fallback() -> None:
     MySQLEngineSpec.type_code_map = {}
 
     try:
-        fake_field_type = ModuleType("mysql.connector.constants.FieldType")
-        setattr(fake_field_type, "NEWDECIMAL", 246)  # noqa: B010
-        fake_constants = ModuleType("mysql.connector.constants")
-        setattr(fake_constants, "FieldType", fake_field_type)  # noqa: B010
+        fake_field_type = SimpleNamespace(NEWDECIMAL=246)
+        fake_constants = SimpleNamespace(FieldType=fake_field_type)
         original_import = builtins.__import__
 
         def mock_import(name: str, *args: Any, **kwargs: Any) -> Any:
