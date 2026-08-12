@@ -18,10 +18,13 @@
 """Regression tests for MCP chart dashboard time-range binding."""
 
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.common.query_context_factory import QueryContextFactory
+from superset.common.query_object import QueryObject
 from superset.mcp_service.chart.chart_utils import (
     _bind_dashboard_time_range_filter,
     adhoc_filters_to_query_filters,
@@ -41,9 +44,12 @@ from superset.mcp_service.chart.schemas import (
     WaterfallChartConfig,
     XYChartConfig,
 )
-from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.dataset_validator import (
+    build_dataset_context_from_orm,
+    DatasetValidator,
+)
 from superset.mcp_service.common.error_schemas import DatasetContext
-from superset.utils.core import merge_extra_form_data
+from superset.utils.core import GenericDataType, merge_extra_form_data
 
 METRIC = ColumnRef(name="revenue", aggregate="SUM")
 CATEGORY = ColumnRef(name="region")
@@ -163,6 +169,12 @@ def test_unbound_charts_get_dashboard_temporal_filter(
             columns=[CATEGORY, METRIC],
             temporal_column="created_at",
         ),
+        WaterfallChartConfig(
+            x_axis=CATEGORY,
+            metric=METRIC,
+            time_grain="P1D",
+            temporal_column="created_at",
+        ),
         BigNumberChartConfig(
             chart_type="big_number",
             metric=METRIC,
@@ -196,6 +208,12 @@ def test_explicit_temporal_column_takes_precedence(
             y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
             temporal_column="created_at",
         ),
+        WaterfallChartConfig(
+            x_axis=CATEGORY,
+            metric=METRIC,
+            time_grain="P1D",
+            temporal_column="created_at",
+        ),
     ],
 )
 @patch(
@@ -208,7 +226,9 @@ def test_explicit_temporal_column_overrides_temporal_granularity(
 ) -> None:
     form_data = map_config_to_form_data(config, dataset_id=42)
 
-    assert form_data["granularity_sqla"] == "event_time"
+    # QueryContextFactory gives granularity precedence over temporal filters, so
+    # retaining event_time here would silently bind the range to both columns.
+    assert form_data["granularity_sqla"] is None
     assert form_data["adhoc_filters"] == [
         {
             "clause": "WHERE",
@@ -217,6 +237,30 @@ def test_explicit_temporal_column_overrides_temporal_granularity(
             "operator": "TEMPORAL_RANGE",
             "comparator": "No filter",
         }
+    ]
+
+    query_object = QueryObject(
+        columns=[form_data.get("x_axis") or "event_time"],
+        filters=cast(Any, adhoc_filters_to_query_filters(form_data["adhoc_filters"])),
+        granularity=form_data["granularity_sqla"],
+        time_range="Last week",
+    )
+    datasource = SimpleNamespace(
+        columns=[
+            SimpleNamespace(column_name="event_time", is_dttm=True),
+            SimpleNamespace(column_name="created_at", is_dttm=True),
+        ],
+        main_dttm_col="event_time",
+        currency_code_column=None,
+    )
+
+    processed = QueryContextFactory()._process_query_object(
+        datasource, form_data, query_object
+    )
+
+    assert processed.granularity is None
+    assert processed.filter == [
+        {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "Last week"}
     ]
 
 
@@ -393,6 +437,75 @@ def test_dataset_validation_rejects_non_temporal_time_column() -> None:
     assert error is not None
     assert error.error_code == "NON_TEMPORAL_COLUMN"
     assert "fiscal_year" in error.message
+
+
+def test_dataset_validation_rejects_missing_explicit_time_column() -> None:
+    config = TableChartConfig(
+        columns=[CATEGORY, METRIC],
+        temporal_column="missing_at",
+    )
+    dataset_context = DatasetContext(
+        id=42,
+        table_name="orders",
+        schema="public",
+        database_name="examples",
+        available_columns=[
+            {"name": "region", "type": "VARCHAR", "is_temporal": False},
+            {"name": "revenue", "type": "NUMERIC", "is_temporal": False},
+        ],
+        available_metrics=[],
+    )
+
+    is_valid, error = DatasetValidator.validate_against_dataset(
+        config, dataset_id=42, dataset_context=dataset_context
+    )
+
+    assert not is_valid
+    assert error is not None
+    assert error.error_code == "MISSING_TEMPORAL_COLUMN"
+
+
+def test_saved_metric_name_does_not_hide_explicit_temporal_column_reference() -> None:
+    config = BigNumberChartConfig(
+        chart_type="big_number",
+        metric=ColumnRef(name="created_at", saved_metric=True),
+        temporal_column="created_at",
+    )
+
+    refs = DatasetValidator._extract_column_references(config)
+
+    assert [(ref.name, ref.saved_metric) for ref in refs] == [
+        ("created_at", True),
+        ("created_at", False),
+    ]
+
+
+def test_dataset_context_uses_binding_temporal_predicate() -> None:
+    engine_spec = MagicMock()
+    engine_spec.get_column_spec.return_value = SimpleNamespace(
+        generic_type=GenericDataType.NUMERIC
+    )
+    column = SimpleNamespace(
+        column_name="fiscal_year",
+        type="INTEGER",
+        is_dttm=True,
+        is_temporal=True,
+        is_numeric=True,
+        python_date_format=None,
+    )
+    dataset = SimpleNamespace(
+        id=42,
+        table_name="orders",
+        schema="public",
+        columns=[column],
+        metrics=[],
+        database=SimpleNamespace(database_name="examples", db_engine_spec=engine_spec),
+    )
+
+    context = build_dataset_context_from_orm(dataset)
+
+    assert context is not None
+    assert context.available_columns[0]["is_temporal"] is False
 
 
 def test_temporal_column_is_normalized_to_dataset_casing() -> None:

@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
+    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     merge_table_column_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -112,24 +113,17 @@ def _preserve_previous_adhoc_filters(
         return
 
     generated_filters = new_form_data.get("adhoc_filters", [])
-    generated_temporal_subjects = {
-        filter_.get("subject")
-        for filter_ in generated_filters
-        if isinstance(filter_, dict) and filter_.get("operator") == "TEMPORAL_RANGE"
-    }
-    previous_temporal_subjects = {
-        filter_.get("subject")
-        for filter_ in previous_filters
-        if isinstance(filter_, dict) and filter_.get("operator") == "TEMPORAL_RANGE"
-    }
-    replace_temporal_binding = generated_temporal_subjects != previous_temporal_subjects
+    previous_binding = previous_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    new_binding = new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
     merged_filters = [
         filter_
         for filter_ in previous_filters
         if not (
-            replace_temporal_binding
+            previous_binding
+            and previous_binding != new_binding
             and isinstance(filter_, dict)
             and filter_.get("operator") == "TEMPORAL_RANGE"
+            and filter_.get("subject") == previous_binding
         )
     ]
     for generated_filter in generated_filters:

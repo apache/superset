@@ -53,11 +53,16 @@ from superset.mcp_service.chart.schemas import (
     WaterfallChartConfig,
     XYChartConfig,
 )
+from superset.mcp_service.chart.validation.dataset_validator import (
+    is_dataset_column_temporal,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
 logger = logging.getLogger(__name__)
+
+MCP_DASHBOARD_TIME_FILTER_SUBJECT = "_mcp_dashboard_time_filter_subject"
 
 
 @dataclass
@@ -92,8 +97,6 @@ def validate_chart_dataset(
     Returns:
         DatasetValidationResult with validation status and any warnings
     """
-    from sqlalchemy.exc import SQLAlchemyError
-
     from superset.daos.dataset import DatasetDAO
     from superset.mcp_service.auth import has_dataset_access
 
@@ -187,8 +190,6 @@ def generate_explore_link(
     this skips the permalink path and returns an ``/explore/?form_data_key=...``
     URL directly.
     """
-    from sqlalchemy.exc import SQLAlchemyError
-
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
@@ -296,51 +297,6 @@ def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> "SqlaTable | No
     return DatasetDAO.find_by_id_or_uuid(str(dataset_id))
 
 
-def _is_dataset_column_temporal(
-    col: Any, column_name: str, db_engine_spec: Any
-) -> bool:
-    """Decide temporality for a single dataset column, mirroring
-    TableColumn.is_temporal: native temporal SQL types are always
-    temporal, and is_dttm=True is otherwise trusted over the raw SQL
-    type -- this is the standard, supported way to mark a non-temporal
-    column (e.g. a VARCHAR "ds" partition column on Hive/Presto/Trino)
-    as a date.
-
-    The one case guarded against is a plain NUMERIC column (e.g. an
-    integer "year"/"month" column) that Superset's column-name
-    heuristics may have mis-flagged as is_dttm=True with no
-    python_date_format to parse it -- applying DATE_TRUNC/time_grain to
-    that would fail at query time.
-    """
-    from superset.utils.core import GenericDataType
-
-    is_dttm = bool(getattr(col, "is_dttm", False))
-    col_type = col.type
-    if not col_type:
-        return is_dttm  # No type info, trust is_dttm flag
-
-    column_spec = db_engine_spec.get_column_spec(col_type)
-    generic_type = column_spec.generic_type if column_spec else None
-
-    if generic_type == GenericDataType.TEMPORAL:
-        return True
-    if not is_dttm:
-        return False
-    if generic_type != GenericDataType.NUMERIC or getattr(
-        col, "python_date_format", None
-    ):
-        return True
-
-    logger.debug(
-        "Column '%s' is marked is_dttm=True but has numeric type '%s' with "
-        "no python_date_format; treating as non-temporal to avoid an "
-        "invalid DATE_TRUNC on a numeric column",
-        column_name,
-        col_type,
-    )
-    return False
-
-
 def is_column_truly_temporal(
     column_name: str,
     dataset_id: int | str | None,
@@ -348,7 +304,7 @@ def is_column_truly_temporal(
 ) -> bool:
     """
     Check if a column is truly temporal, mirroring TableColumn.is_temporal
-    (see ``_is_dataset_column_temporal`` for the precedence rules).
+    using the shared dataset temporal predicate.
 
     Args:
         column_name: Name of the column to check
@@ -374,7 +330,7 @@ def is_column_truly_temporal(
         for col in dataset.columns:
             if col.column_name.lower() == column_lower:
                 db_engine_spec = dataset.database.db_engine_spec
-                return _is_dataset_column_temporal(col, column_name, db_engine_spec)
+                return is_dataset_column_temporal(col, column_name, db_engine_spec)
 
         return True  # Default if column not found
 
@@ -806,13 +762,17 @@ def _bind_dashboard_time_range_filter(
     """Bind charts without time configuration to a temporal filter subject."""
     if temporal_column := getattr(config, "temporal_column", None):
         if _is_temporal_for_dashboard_binding(temporal_column, dataset_id):
+            granularity = form_data.get("granularity_sqla")
+            if isinstance(granularity, str) and granularity != temporal_column:
+                # QueryContextFactory gives granularity precedence over a temporal
+                # filter, so a different granularity would bind both columns.
+                form_data["granularity_sqla"] = None
             _ensure_temporal_adhoc_filter(form_data, temporal_column)
+            form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = temporal_column
         return
 
     dataset = None
     if dataset_id:
-        from sqlalchemy.exc import SQLAlchemyError
-
         try:
             dataset = _find_dataset_by_id_or_uuid(dataset_id)
         except (AttributeError, RuntimeError, ValueError, SQLAlchemyError) as ex:
@@ -834,6 +794,7 @@ def _bind_dashboard_time_range_filter(
         x_axis, dataset_id, dataset
     ):
         _ensure_temporal_adhoc_filter(form_data, x_axis)
+        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = x_axis
         return
 
     main_dttm_col = getattr(dataset, "main_dttm_col", None)
@@ -841,6 +802,7 @@ def _bind_dashboard_time_range_filter(
         main_dttm_col, dataset_id, dataset
     ):
         _ensure_temporal_adhoc_filter(form_data, main_dttm_col)
+        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = main_dttm_col
 
 
 def _is_temporal_for_dashboard_binding(
@@ -849,8 +811,6 @@ def _is_temporal_for_dashboard_binding(
     dataset: "SqlaTable | None" = None,
 ) -> bool:
     """Check temporal metadata without making chart mapping fail on lookup errors."""
-    from sqlalchemy.exc import SQLAlchemyError
-
     try:
         return is_column_truly_temporal(column, dataset_id, dataset=dataset)
     except (AttributeError, RuntimeError, ValueError, SQLAlchemyError) as ex:

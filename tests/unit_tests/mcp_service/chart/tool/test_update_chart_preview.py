@@ -675,11 +675,15 @@ class TestUpdateChartPreview:
             "operator": "TEMPORAL_RANGE",
             "subject": "ds",
         }
-        new_form_data = {"adhoc_filters": [new_temporal_filter]}
+        new_form_data: dict[str, Any] = {"adhoc_filters": [new_temporal_filter]}
+        new_form_data["_mcp_dashboard_time_filter_subject"] = "created_at"
 
         update_chart_preview_module._preserve_previous_adhoc_filters(
             new_form_data,
-            {"adhoc_filters": [region_filter, previous_temporal_filter]},
+            {
+                "adhoc_filters": [region_filter, previous_temporal_filter],
+                "_mcp_dashboard_time_filter_subject": "ds",
+            },
         )
 
         assert new_form_data["adhoc_filters"] == [
@@ -707,10 +711,51 @@ class TestUpdateChartPreview:
 
         update_chart_preview_module._preserve_previous_adhoc_filters(
             new_form_data,
-            {"adhoc_filters": [region_filter, previous_temporal_filter]},
+            {
+                "adhoc_filters": [region_filter, previous_temporal_filter],
+                "_mcp_dashboard_time_filter_subject": "ds",
+            },
         )
 
         assert new_form_data["adhoc_filters"] == [region_filter]
+
+    def test_rebinding_preserves_unrelated_cached_temporal_filter(self) -> None:
+        """Only the generated binding is replaced; user filters retain provenance."""
+        previous_binding = {
+            "expressionType": "SIMPLE",
+            "clause": "WHERE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+            "comparator": "Last month",
+        }
+        unrelated_filter = {
+            "expressionType": "SIMPLE",
+            "clause": "WHERE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "processed_at",
+            "comparator": "Last year",
+        }
+        new_binding = {
+            "expressionType": "SIMPLE",
+            "clause": "WHERE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "created_at",
+            "comparator": "No filter",
+        }
+        new_form_data = {
+            "adhoc_filters": [new_binding],
+            "_mcp_dashboard_time_filter_subject": "created_at",
+        }
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {
+                "adhoc_filters": [previous_binding, unrelated_filter],
+                "_mcp_dashboard_time_filter_subject": "ds",
+            },
+        )
+
+        assert new_form_data["adhoc_filters"] == [unrelated_filter, new_binding]
 
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
