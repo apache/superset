@@ -28,6 +28,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
+from superset.common.form_data_query_context import is_raw_query_mode
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
@@ -143,8 +144,7 @@ def _append_table_columns(
     merged = dict(existing_form_data)
     metric_columns = [column for column in columns if column.is_metric]
     dimension_columns = [column for column in columns if not column.is_metric]
-    query_mode = existing_form_data.get("query_mode")
-    if query_mode == "raw":
+    if is_raw_query_mode(existing_form_data):
         if metric_columns:
             return _validation_error_response(
                 message="Cannot add metrics to a table in raw query mode.",
@@ -302,8 +302,8 @@ def _build_preview_form_data(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
-        # An explicit filters list, including [], replaces saved filters. An
-        # omitted filters field preserves them through the shallow merge.
+        # In the preview, an explicit filters list, including [], replaces saved
+        # filters. An omitted filters field preserves them through the shallow merge.
         merged = _merge_replacement_config(
             existing_form_data, new_form_data, parsed_config
         )

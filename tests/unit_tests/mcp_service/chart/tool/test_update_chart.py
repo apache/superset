@@ -698,6 +698,34 @@ class TestBuildUpdatePayload:
         assert isinstance(result, dict)
         assert result["datasource_id"] == 22
         assert result["datasource_type"] == "table"
+        assert result["slice_name"] == "Existing"
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+
+    def test_add_columns_recognizes_implicit_raw_query_mode(self) -> None:
+        """A table with all_columns and no query_mode still has raw semantics."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="amount", aggregate="SUM")],
+        )
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "all_columns": ["employer", "state"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert (
+            result.error.message == "Cannot add metrics to a table in raw query mode."
+        )
 
     @pytest.mark.parametrize(
         "metric",
