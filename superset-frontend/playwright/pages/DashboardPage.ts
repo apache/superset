@@ -20,6 +20,7 @@
 import { Page, Download, Locator, expect } from '@playwright/test';
 import { Button, Input, Menu, Tabs } from '../components/core';
 import { DashboardFilterBar } from '../components/dashboard';
+import { DrillDetailModal } from '../components/modals';
 import { gotoWithRetry } from '../helpers/navigation';
 import { html5DragAndDrop } from '../helpers/dnd';
 import { TIMEOUT } from '../utils/constants';
@@ -491,26 +492,8 @@ export class DashboardPage {
   /**
    * The DrillDetailModal dialog (titled "Drill to detail: <chart name>").
    */
-  drillModal(): Locator {
-    return this.page.getByRole('dialog', { name: /^Drill to detail:/ });
-  }
-
-  /**
-   * Close the drill-to-detail modal if it is open (idempotent).
-   */
-  async closeDrillModal(): Promise<void> {
-    const close = this.page.locator('[data-test="close-drilltodetail-modal"]');
-    if (await close.count()) {
-      await close.first().click();
-      await this.drillModal().waitFor({ state: 'hidden' });
-    }
-  }
-
-  /**
-   * The applied-filter value tags inside the drill modal (`<col>=<val>`).
-   */
-  drillFilterValues(): Locator {
-    return this.page.locator('[data-test="filter-val"]');
+  drillModal(): DrillDetailModal {
+    return new DrillDetailModal(this.page);
   }
 
   /**

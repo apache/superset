@@ -299,8 +299,10 @@ async function expectCanvasDrillByValueRoundTrips(
   await dashboard.contextMenuDrillToDetailBy(value);
   await samples;
 
-  await expect(dashboard.drillModal()).toBeVisible();
-  await expect(dashboard.drillFilterValues().first()).toContainText(value);
+  await expect(dashboard.drillModal().element).toBeVisible();
+  await expect(dashboard.drillModal().filterValues.first()).toContainText(
+    value,
+  );
 }
 
 // Shared form-data fragment for the echarts time-series family (line/scatter/
@@ -332,40 +334,31 @@ testWithAssets(
     await samplesOnOpen;
 
     const modal = dashboard.drillModal();
-    await expect(modal).toBeVisible();
-    await expect(modal).toContainText('Drill to detail:');
+    await expect(modal.element).toBeVisible();
+    await expect(modal.element).toContainText('Drill to detail:');
     // The metadata bar and a real row count prove the modal loaded backend data.
-    await expect(modal.locator('[data-test="metadata-bar"]')).toBeVisible();
-    await expect(modal.locator('[data-test="row-count-label"]')).toContainText(
-      'rows',
-    );
+    await expect(modal.metadataBar).toBeVisible();
+    await expect(modal.rowCountLabel).toContainText('rows');
     // No drill filter was applied (whole-chart drill).
-    await expect(dashboard.drillFilterValues()).toHaveCount(0);
+    await expect(modal.filterValues).toHaveCount(0);
 
     // The full dataset spans multiple pages, and the grid has rendered rows.
-    const pageItems = modal.locator('.ant-pagination-item');
-    expect(await pageItems.count()).toBeGreaterThan(1);
-    await expect(modal.locator('.virtual-table-cell').first()).toBeVisible();
-    await expect(modal.locator('.ant-pagination-item-active')).toContainText(
-      '1',
-    );
+    expect(await modal.pageItems.count()).toBeGreaterThan(1);
+    await expect(modal.gridCells.first()).toBeVisible();
+    await expect(modal.activePageItem).toContainText('1');
 
     // Paginate forward: clicking page 2 fires a real samples fetch and moves the
     // active page to 2.
     const samplesOnPage2 = expectSamplesPost(page);
-    await modal.locator('.ant-pagination-item').nth(1).click();
+    await modal.goToPage(2);
     await samplesOnPage2;
-    await expect(modal.locator('.ant-pagination-item-active')).toContainText(
-      '2',
-    );
+    await expect(modal.activePageItem).toContainText('2');
 
     // Reload re-fetches and resets back to the first page.
     const samplesOnReload = expectSamplesPost(page);
-    await modal.getByRole('button', { name: 'Reload' }).click();
+    await modal.reload();
     await samplesOnReload;
-    await expect(modal.locator('.ant-pagination-item-active')).toContainText(
-      '1',
-    );
+    await expect(modal.activePageItem).toContainText('1');
   },
 );
 
@@ -391,12 +384,10 @@ testWithAssets(
     await dashboard.contextMenuDrillToDetail();
     await samples;
 
-    await expect(dashboard.drillModal()).toBeVisible();
+    await expect(dashboard.drillModal().element).toBeVisible();
     // Whole-chart drill: no per-value filter tag.
-    await expect(dashboard.drillFilterValues()).toHaveCount(0);
-    await expect(
-      dashboard.drillModal().locator('[data-test="row-count-label"]'),
-    ).toContainText('rows');
+    await expect(dashboard.drillModal().filterValues).toHaveCount(0);
+    await expect(dashboard.drillModal().rowCountLabel).toContainText('rows');
   },
 );
 
@@ -430,25 +421,19 @@ testWithAssets(
     await samplesOnDrill;
 
     const modal = dashboard.drillModal();
-    await expect(modal).toBeVisible();
-    await expect(dashboard.drillFilterValues().first()).toContainText('boy');
+    await expect(modal.element).toBeVisible();
+    await expect(modal.filterValues.first()).toContainText('boy');
 
-    const filteredCount = parseRowCount(
-      await modal.locator('[data-test="row-count-label"]').innerText(),
-    );
+    const filteredCount = parseRowCount(await modal.rowCountLabel.innerText());
     expect(filteredCount).toBeGreaterThan(0);
 
     // Clearing the filter reloads the samples and restores the larger, unfiltered total.
     const samplesOnClear = expectSamplesPost(page);
-    await modal.locator('[data-test="filter-col"]').getByLabel('Close').click();
+    await modal.clearFirstFilter();
     await samplesOnClear;
-    await expect(dashboard.drillFilterValues()).toHaveCount(0);
+    await expect(modal.filterValues).toHaveCount(0);
     await expect
-      .poll(async () =>
-        parseRowCount(
-          await modal.locator('[data-test="row-count-label"]').innerText(),
-        ),
-      )
+      .poll(async () => parseRowCount(await modal.rowCountLabel.innerText()))
       .toBeGreaterThan(filteredCount);
   },
 );
@@ -488,8 +473,10 @@ testWithAssets(
     await dashboard.contextMenuDrillToDetailBy(value);
     await samples;
 
-    await expect(dashboard.drillModal()).toBeVisible();
-    await expect(dashboard.drillFilterValues().first()).toContainText(value);
+    await expect(dashboard.drillModal().element).toBeVisible();
+    await expect(dashboard.drillModal().filterValues.first()).toContainText(
+      value,
+    );
   },
 );
 
@@ -519,8 +506,10 @@ testWithAssets(
     await dashboard.contextMenuDrillToDetailBy(value);
     await samples;
 
-    await expect(dashboard.drillModal()).toBeVisible();
-    await expect(dashboard.drillFilterValues().first()).toContainText(value);
+    await expect(dashboard.drillModal().element).toBeVisible();
+    await expect(dashboard.drillModal().filterValues.first()).toContainText(
+      value,
+    );
   },
 );
 
@@ -563,8 +552,10 @@ testWithAssets(
     await dashboard.contextMenuDrillToDetailBy(value);
     await samples;
 
-    await expect(dashboard.drillModal()).toBeVisible();
-    await expect(dashboard.drillFilterValues().first()).toContainText(value);
+    await expect(dashboard.drillModal().element).toBeVisible();
+    await expect(dashboard.drillModal().filterValues.first()).toContainText(
+      value,
+    );
   },
 );
 
@@ -595,11 +586,9 @@ testWithAssets(
     await dashboard.contextMenuDrillToDetail();
     await samples;
 
-    await expect(dashboard.drillModal()).toBeVisible();
-    await expect(dashboard.drillFilterValues()).toHaveCount(0);
-    await expect(
-      dashboard.drillModal().locator('[data-test="row-count-label"]'),
-    ).toContainText('rows');
+    await expect(dashboard.drillModal().element).toBeVisible();
+    await expect(dashboard.drillModal().filterValues).toHaveCount(0);
+    await expect(dashboard.drillModal().rowCountLabel).toContainText('rows');
   },
 );
 
@@ -805,10 +794,10 @@ testWithAssets(
     await dashboard.contextMenuDrillToDetailBy('all');
     await samples;
 
-    await expect(dashboard.drillModal()).toBeVisible();
-    expect(await dashboard.drillFilterValues().count()).toBeGreaterThanOrEqual(
-      2,
-    );
+    await expect(dashboard.drillModal().element).toBeVisible();
+    expect(
+      await dashboard.drillModal().filterValues.count(),
+    ).toBeGreaterThanOrEqual(2);
   },
 );
 
@@ -842,9 +831,9 @@ testWithAssets(
       await samples;
 
       const modal = dashboard.drillModal();
-      await expect(modal).toBeVisible();
-      await expect(dashboard.drillFilterValues().first()).toContainText(value);
-      await dashboard.closeDrillModal();
+      await expect(modal.element).toBeVisible();
+      await expect(modal.filterValues.first()).toContainText(value);
+      await modal.close();
     }
   },
 );
