@@ -869,3 +869,16 @@ body {
   border-radius: var(--sv-radius-sm);
   padding: 5px 8px;
 }
+
+/* Data that may disagree with Superset. Louder than the substitution note:
+   a wrong chart type is visible, wrong ordering is not. */
+.sv-fidelity {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--sv-text-primary);
+  background: rgba(224, 67, 85, 0.1);
+  border: 1px solid rgba(224, 67, 85, 0.4);
+  border-radius: var(--sv-radius-sm);
+  padding: 5px 8px;
+}

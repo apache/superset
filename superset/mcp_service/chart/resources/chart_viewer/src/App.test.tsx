@@ -510,3 +510,27 @@ it('shows the CSV when the host refuses the save', async () => {
   // a refusal is never reported as a save.
   expect(container!.textContent).not.toContain('CSV saved.');
 });
+
+it('warns when the data was not post-processed by Superset', async () => {
+  // Charts without a saved query_context take a fallback path that rebuilds
+  // the query from form_data and never emits post_processing — so rows come
+  // back unsorted, unpivoted and unjoined. The values are real, which is what
+  // makes it dangerous: a "Top Customers" table renders in arbitrary order and
+  // nothing on screen says the ordering is not the chart's.
+  initialize.mockResolvedValue({
+    ...CONNECTED_HANDSHAKE,
+    chartData: {
+      ...WRAPPED,
+      fidelity_warning: 'This chart has no saved query context, so ordering may differ.',
+    },
+  });
+  await renderApp();
+  const note = container!.querySelector('.sv-fidelity');
+  expect(note).not.toBeNull();
+  expect(note!.textContent).toContain('may not match Superset');
+});
+
+it('stays silent when the data came from the chart’s own query context', async () => {
+  await renderApp();
+  expect(container!.querySelector('.sv-fidelity')).toBeNull();
+});

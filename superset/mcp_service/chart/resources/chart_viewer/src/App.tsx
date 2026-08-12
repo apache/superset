@@ -1055,6 +1055,12 @@ function shell(
         {actionToast}
         {toast && <div className="sv-toast">{toast}</div>}
       </div>
+      {data?.fidelity_warning && (
+        <div className="sv-fidelity">
+          <strong>Data may not match Superset.</strong>{' '}
+          {stripUntrustedMarkers(data.fidelity_warning)}
+        </div>
+      )}
       {substitutedFrom && (
         <div className="sv-substitution">
           Shown as a {substitutedView} chart — Superset renders this as a{' '}

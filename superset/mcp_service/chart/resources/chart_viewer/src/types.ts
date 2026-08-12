@@ -56,6 +56,12 @@ export interface ChartData {
   /** Superset design tokens (subset) so the widget matches the deployment. */
   theme?: Record<string, string>;
   [key: string]: unknown;
+  /**
+   * Set when Superset's post-processing was NOT applied, so ordering,
+   * pivoting and series joins may differ from the chart in Superset. The
+   * numbers are real; their arrangement may not be the chart's.
+   */
+  fidelity_warning?: string | null;
 }
 
 /** Optional extras the host may pass in the tool result `_meta`. */

@@ -560,6 +560,9 @@ async def get_chart_data_core(  # noqa: C901
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
+            # Set only when we fall back to reconstructing the query from
+            # form_data, which drops Superset's post_processing stage.
+            fidelity_warning: str | None = None
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
@@ -595,6 +598,17 @@ async def get_chart_data_core(  # noqa: C901
             if query_context_json is None and not using_unsaved_state:
                 # Fallback: Chart has no saved query_context
                 # This can happen with older charts that haven't been re-saved
+                # This warning went only to the MCP log, where no user or
+                # client could see it — so charts on this path rendered
+                # plausible-looking numbers that silently disagreed with
+                # Superset. It travels with the data now.
+                fidelity_warning = (
+                    "This chart has no saved query context, so Superset's "
+                    "post-processing (sorting, pivoting, series joins, time "
+                    "ordering) was not applied. The values are correct but "
+                    "their order and shape may differ from the chart in "
+                    "Superset. Re-save the chart in Superset to fix this."
+                )
                 await ctx.warning(
                     "Chart has no saved query_context. "
                     "Data may not match the chart visualization exactly. "
@@ -909,6 +923,7 @@ async def get_chart_data_core(  # noqa: C901
                     chart_id=chart.id,
                     chart_name=chart.slice_name or f"Chart {chart.id}",
                     chart_type=chart.viz_type or "unknown",
+                    fidelity_warning=fidelity_warning,
                     columns=columns,
                     data=data[: request.limit] if request.limit else data,
                     row_count=len(data),

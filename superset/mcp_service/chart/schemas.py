@@ -2568,6 +2568,16 @@ class ChartData(BaseModel):
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
     api_version: str = Field("v1", description="MCP API version")
+    fidelity_warning: str | None = Field(
+        None,
+        description=(
+            "Set when this data was NOT produced by the chart's own saved "
+            "query context, so Superset's post-processing (sorting, pivoting, "
+            "series joins, time ordering) was not applied and the numbers may "
+            "differ from what the chart shows in Superset. Clients MUST "
+            "surface this rather than presenting the data as the chart's."
+        ),
+    )
 
 
 class GetChartPreviewRequest(QueryCacheControl):
