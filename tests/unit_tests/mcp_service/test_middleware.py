@@ -499,7 +499,12 @@ class TestResponseSizeGuardMiddleware:
         assert isinstance(result, dict)
         assert result["_response_truncated"] is True
         assert all(query["data"] for query in result["query_results"])
-        assert all(len(query["data"]) < 200 for query in result["query_results"])
+        returned_counts = [len(query["data"]) for query in result["query_results"]]
+        assert len(set(returned_counts)) == 1
+        assert returned_counts[0] < 200
+        assert [
+            query["row_count"] for query in result["query_results"]
+        ] == returned_counts
 
     @pytest.mark.asyncio
     async def test_data_query_truncation_updates_row_count(self) -> None:
