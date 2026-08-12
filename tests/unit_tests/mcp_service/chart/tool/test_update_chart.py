@@ -123,10 +123,7 @@ class TestUpdateChart:
     def test_unrelated_config_update_preserves_existing_column_config(self) -> None:
         chart = Mock(
             datasource_id=7,
-            params=(
-                '{"viz_type":"table",'
-                '"column_config":{"Revenue":{"columnWidth":160}}}'
-            ),
+            params='{"viz_type":"table","column_config":{"Revenue":{"columnWidth":160}}}',
             slice_name="Revenue table",
         )
         request = UpdateChartRequest(

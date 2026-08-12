@@ -32,6 +32,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    TableColumnConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
@@ -187,6 +188,26 @@ class TestNormalizeColumnNames:
         assert normalized.columns[0].name == "OrderDate"
         assert normalized.columns[1].name == "ProductLine"
         assert normalized.columns[2].name == "Sales"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_table_normalization_preserves_partial_column_config(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Normalization must not materialize omitted formatting fields as null."""
+        mock_get_context.return_value = mock_dataset_context
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="sales", aggregate="SUM")],
+            column_config={"SUM(Sales)": TableColumnConfig(columnWidth=120)},
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.columns[0].name == "Sales"
+        assert normalized.column_config is not None
+        assert normalized.column_config["SUM(Sales)"].model_dump(
+            by_alias=True, exclude_unset=True
+        ) == {"columnWidth": 120}
 
     @patch.object(DatasetValidator, "_get_dataset_context")
     def test_table_sql_expression_column_skips_name_normalization(
