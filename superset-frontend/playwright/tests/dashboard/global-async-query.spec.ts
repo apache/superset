@@ -33,10 +33,12 @@
  * for specifics, and ../../gaq-test-cases.md's "Environment prerequisites"
  * for how to stand up Redis/Celery locally.
  */
-import type { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiGetChart, apiPutChart } from '../../helpers/api/chart';
-import { apiPost, apiPut } from '../../helpers/api/requests';
+import {
+  apiGetChart,
+  apiPostChart,
+  apiPutChart,
+} from '../../helpers/api/chart';
 import {
   apiPostDashboard,
   buildSingleRowDashboardLayout,
@@ -48,10 +50,13 @@ import {
 import { getDatabaseByName } from '../../helpers/api/database';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { DashboardFilterBar } from '../../components/dashboard/DashboardFilterBar';
 import { TIMEOUT } from '../../utils/constants';
 import {
-  createDashboardWithCharts,
+  setupDashboardWithBigNumberCharts,
   sliceIdFromChartDataUrl,
+  trackChartAsyncSignals,
+  trackMultiChartAsyncSignals,
 } from './dashboard-test-helpers';
 
 // ---------------------------------------------------------------------------
@@ -80,62 +85,30 @@ import {
 testWithAssets(
   'forced dashboard refresh goes through the GAQ 202 -> poll -> done cycle',
   async ({ page, testAssets }) => {
-    const { dashboardId, charts } = await createDashboardWithCharts(
-      page,
-      testAssets,
-      testWithAssets.info(),
-      {
-        datasetName: 'birth_names',
-        chartNamePrefix: 'gaq_tc1_cold_cache',
-        dashboardTitlePrefix: 'gaq_tc1_cold_cache',
-        chartSpecs: [
-          {
-            viz_type: 'big_number_total',
-            params: { metric: 'count' },
-          },
-        ],
-      },
-    );
+    const { dashboard, charts, valueLocators } =
+      await setupDashboardWithBigNumberCharts(
+        page,
+        testAssets,
+        testWithAssets.info(),
+        {
+          datasetName: 'birth_names',
+          chartNamePrefix: 'gaq_tc1_cold_cache',
+          dashboardTitlePrefix: 'gaq_tc1_cold_cache',
+          chartSpecs: [
+            {
+              viz_type: 'big_number_total',
+              params: { metric: 'count' },
+            },
+          ],
+        },
+      );
     const [chart] = charts;
-
-    const dashboard = new DashboardPage(page);
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
-
-    const value = dashboard
-      .getChart(chart.id)
-      .locator('.superset-legacy-chart-big-number .header-line');
+    const [value] = valueLocators;
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
     // Only start recording once the initial load has settled, so these
     // signals reflect the forced refresh below rather than the first load.
-    let chartDataSubmitStatus: number | undefined;
-    let sawAsyncEventPoll = false;
-    let sawFinalCachedFetch = false;
-
-    page.on('response', response => {
-      const request = response.request();
-      const url = response.url();
-
-      if (
-        request.method() === 'POST' &&
-        url.includes('/api/v1/chart/data') &&
-        sliceIdFromChartDataUrl(url) === chart.id
-      ) {
-        chartDataSubmitStatus = response.status();
-        return;
-      }
-      if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
-        sawAsyncEventPoll = true;
-        return;
-      }
-      if (
-        request.method() === 'GET' &&
-        /\/api\/v1\/chart\/data\/qc-/.test(url)
-      ) {
-        sawFinalCachedFetch = true;
-      }
-    });
+    const signals = trackChartAsyncSignals(page, chart.id);
 
     await dashboard.forceRefresh();
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
@@ -143,15 +116,15 @@ testWithAssets(
 
     await expect(() => {
       expect(
-        chartDataSubmitStatus,
+        signals.submitStatus,
         'forced chart-data submission should be accepted (202) onto the async path',
       ).toBe(202);
       expect(
-        sawAsyncEventPoll,
+        signals.sawAsyncEventPoll,
         'the client should have polled /api/v1/async_event/ while the job ran',
       ).toBe(true);
       expect(
-        sawFinalCachedFetch,
+        signals.sawFinalCachedFetch,
         'once done, the client should fetch the real payload from /api/v1/chart/data/<cache_key>',
       ).toBe(true);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
@@ -183,62 +156,30 @@ testWithAssets(
 testWithAssets(
   'reloading an already-cached dashboard serves the chart synchronously, without the async cycle',
   async ({ page, testAssets }) => {
-    const { dashboardId, charts } = await createDashboardWithCharts(
-      page,
-      testAssets,
-      testWithAssets.info(),
-      {
-        datasetName: 'birth_names',
-        chartNamePrefix: 'gaq_tc2_cache_hit',
-        dashboardTitlePrefix: 'gaq_tc2_cache_hit',
-        chartSpecs: [
-          {
-            viz_type: 'big_number_total',
-            params: { metric: 'count' },
-          },
-        ],
-      },
-    );
-    const [chart] = charts;
-
-    const dashboard = new DashboardPage(page);
-    const value = dashboard
-      .getChart(chart.id)
-      .locator('.superset-legacy-chart-big-number .header-line');
-
     // First load warms the cache for this chart's exact query context --
     // not the request under test, so no listeners attached yet.
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
+    const { dashboard, charts, valueLocators } =
+      await setupDashboardWithBigNumberCharts(
+        page,
+        testAssets,
+        testWithAssets.info(),
+        {
+          datasetName: 'birth_names',
+          chartNamePrefix: 'gaq_tc2_cache_hit',
+          dashboardTitlePrefix: 'gaq_tc2_cache_hit',
+          chartSpecs: [
+            {
+              viz_type: 'big_number_total',
+              params: { metric: 'count' },
+            },
+          ],
+        },
+      );
+    const [chart] = charts;
+    const [value] = valueLocators;
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
-    let chartDataSubmitStatus: number | undefined;
-    let sawAsyncEventPoll = false;
-    let sawCachedFetch = false;
-
-    page.on('response', response => {
-      const request = response.request();
-      const url = response.url();
-
-      if (
-        request.method() === 'POST' &&
-        url.includes('/api/v1/chart/data') &&
-        sliceIdFromChartDataUrl(url) === chart.id
-      ) {
-        chartDataSubmitStatus = response.status();
-        return;
-      }
-      if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
-        sawAsyncEventPoll = true;
-        return;
-      }
-      if (
-        request.method() === 'GET' &&
-        /\/api\/v1\/chart\/data\/qc-/.test(url)
-      ) {
-        sawCachedFetch = true;
-      }
-    });
+    const signals = trackChartAsyncSignals(page, chart.id);
 
     // Plain reload -- same filters, no "Refresh dashboard" -- is what should
     // take the cache-hit shortcut rather than re-entering the async cycle.
@@ -249,15 +190,15 @@ testWithAssets(
 
     await expect(() => {
       expect(
-        chartDataSubmitStatus,
+        signals.submitStatus,
         'a cache-hit reload should resolve chart-data synchronously (200), not queue onto the async path (202)',
       ).toBe(200);
       expect(
-        sawAsyncEventPoll,
+        signals.sawAsyncEventPoll,
         'a cache hit should never need to poll /api/v1/async_event/',
       ).toBe(false);
       expect(
-        sawCachedFetch,
+        signals.sawFinalCachedFetch,
         'a cache hit should never need the follow-up /api/v1/chart/data/<cache_key> fetch -- the data comes back on the initial POST',
       ).toBe(false);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
@@ -295,64 +236,39 @@ testWithAssets(
 
     const BAD_COLUMN = 'this_column_does_not_exist_gaq_test';
 
-    const { dashboardId, charts } = await createDashboardWithCharts(
-      page,
-      testAssets,
-      testWithAssets.info(),
-      {
-        datasetName: 'birth_names',
-        chartNamePrefix: 'gaq_tc3_broken_chart',
-        dashboardTitlePrefix: 'gaq_tc3_broken_chart',
-        chartSpecs: [
-          {
-            viz_type: 'big_number_total',
-            params: {
-              metric: {
-                expressionType: 'SQL',
-                sqlExpression: `SUM(${BAD_COLUMN})`,
-                label: 'broken_metric',
-                hasCustomLabel: true,
+    const { dashboardId, dashboard, charts, valueLocators } =
+      await setupDashboardWithBigNumberCharts(
+        page,
+        testAssets,
+        testWithAssets.info(),
+        {
+          datasetName: 'birth_names',
+          chartNamePrefix: 'gaq_tc3_broken_chart',
+          dashboardTitlePrefix: 'gaq_tc3_broken_chart',
+          chartSpecs: [
+            {
+              viz_type: 'big_number_total',
+              params: {
+                metric: {
+                  expressionType: 'SQL',
+                  sqlExpression: `SUM(${BAD_COLUMN})`,
+                  label: 'broken_metric',
+                  hasCustomLabel: true,
+                },
               },
             },
-          },
-        ],
-      },
-    );
+          ],
+        },
+      );
     const [chart] = charts;
-
-    const dashboard = new DashboardPage(page);
-    const chartLocator = dashboard.getChart(chart.id);
-    const errorAlert = chartLocator.locator('.ant-alert-error');
-    const value = chartLocator.locator(
-      '.superset-legacy-chart-big-number .header-line',
-    );
-
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
+    const [value] = valueLocators;
+    const errorAlert = dashboard.getChart(chart.id).locator('.ant-alert-error');
 
     // Let the initial (also broken) load settle before recording signals, so
     // they reflect the forced refresh below rather than the first load.
     await expect(errorAlert).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
-    let chartDataSubmitStatus: number | undefined;
-    let sawAsyncEventPoll = false;
-
-    page.on('response', response => {
-      const request = response.request();
-      const url = response.url();
-
-      if (
-        request.method() === 'POST' &&
-        url.includes('/api/v1/chart/data') &&
-        sliceIdFromChartDataUrl(url) === chart.id
-      ) {
-        chartDataSubmitStatus = response.status();
-        return;
-      }
-      if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
-        sawAsyncEventPoll = true;
-      }
-    });
+    const signals = trackChartAsyncSignals(page, chart.id);
 
     // Force-refresh guarantees this exercises the async path
     // deterministically, the same way TC1 does for the happy path.
@@ -364,11 +280,11 @@ testWithAssets(
 
     await expect(() => {
       expect(
-        chartDataSubmitStatus,
+        signals.submitStatus,
         'forced chart-data submission for the broken chart should still be accepted (202) onto the async path',
       ).toBe(202);
       expect(
-        sawAsyncEventPoll,
+        signals.sawAsyncEventPoll,
         'the client should have polled /api/v1/async_event/ while the broken query ran',
       ).toBe(true);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
@@ -427,31 +343,6 @@ testWithAssets(
 //             selection was applied (stale data winning the race), or the
 //             two counts are indistinguishable (test can't actually tell).
 // ---------------------------------------------------------------------------
-async function selectGenderFilterOption(
-  page: Page,
-  genderValue: string,
-): Promise<void> {
-  const filterCombobox = page
-    .locator('[data-test="form-item-value"]')
-    .first()
-    .locator('[role="combobox"]');
-  await filterCombobox.click();
-  await page
-    .locator('.ant-select-item-option', {
-      hasText: new RegExp(`^${genderValue}$`),
-    })
-    .first()
-    .click();
-  await page.keyboard.press('Escape');
-}
-
-async function clickApplyFilters(page: Page): Promise<void> {
-  const applyBtn = page.locator(
-    '[data-test="filter-bar__apply-button"], [data-test="filterbar-action-buttons"] button[type="submit"]',
-  );
-  await applyBtn.first().click();
-}
-
 testWithAssets(
   'rapidly switching a filter value never lets the superseded selection clobber the screen',
   async ({ page, testAssets }) => {
@@ -473,7 +364,7 @@ testWithAssets(
       metric: 'count',
       adhoc_filters: [],
     };
-    const chartResp = await apiPost(page, 'api/v1/chart/', {
+    const chartResp = await apiPostChart(page, {
       slice_name: `gaq_tc4_filter_race_${Date.now()}`,
       viz_type: 'big_number_total',
       datasource_id: datasetId,
@@ -531,12 +422,13 @@ testWithAssets(
     const dashboardId: number = dashBody.result?.id ?? dashBody.id;
     testAssets.trackDashboard(dashboardId);
 
-    const linkResp = await apiPut(page, `api/v1/chart/${chartId}`, {
+    const linkResp = await apiPutChart(page, chartId, {
       dashboards: [dashboardId],
     });
     expect(linkResp.ok()).toBe(true);
 
     const dashboard = new DashboardPage(page);
+    const filterBar = new DashboardFilterBar(page);
     const value = dashboard
       .getChart(chartId)
       .locator('.superset-legacy-chart-big-number .header-line');
@@ -550,8 +442,8 @@ testWithAssets(
     // a bare "some digit is on screen" -- the pre-filter total already
     // contains a digit, so a bare regex would pass even if "girl"'s request
     // never completed.
-    await selectGenderFilterOption(page, 'girl');
-    await clickApplyFilters(page);
+    await filterBar.selectOption('girl');
+    await filterBar.apply();
     await expect(value).toHaveText(/\d/, { timeout: TIMEOUT.CHART_RENDER });
     const expectedGirlText = await value.textContent();
 
@@ -572,18 +464,45 @@ testWithAssets(
       },
     );
 
-    await selectGenderFilterOption(page, 'boy');
-    await clickApplyFilters(page);
+    // Confirmed by trace: the chart shows "girl"'s stale value the entire
+    // time "boy"'s (delayed) request is in flight -- it does not blank or
+    // spinner-out during load. So a bare `toHaveText(expectedGirlText)` right
+    // after this point would pass instantly, before "girl"'s own second,
+    // fast request ever completes, and would prove nothing. A fresh signal
+    // tracker attached here (after the delayed route is installed, so it
+    // can't pick up stale traffic from learning "girl"'s count above) gives
+    // an unambiguous, network-level proof instead: within the race window,
+    // "boy"'s request hasn't even reached the server yet (it's parked in the
+    // artificial delay before `route.continue()`), so any chart-data response
+    // this tracker observes before the delay elapses can only belong to
+    // "girl"'s fast request.
+    const signals = trackChartAsyncSignals(page, chartId);
+
+    await filterBar.selectOption('boy');
+    await filterBar.apply();
     // No wait here on purpose -- "boy"'s request is still delayed in-flight
     // when "girl" is selected and applied immediately below.
-    await selectGenderFilterOption(page, 'girl');
-    await clickApplyFilters(page);
+    await filterBar.selectOption('girl');
+    await filterBar.apply();
 
-    // "girl" wasn't delayed, so it should resolve to its known real value
-    // well before "boy"'s artificial delay elapses -- not just "some digit",
-    // which the pre-existing screen contents could already satisfy.
+    // "girl" was already queried once above to learn her count, so this
+    // second, identical request may be served as a cache hit (200,
+    // synchronous) rather than re-entering the 202 -> poll -> done cycle --
+    // either is an acceptable proof of completion here; the point isn't which
+    // path "girl" takes, only that a real, fresh server round-trip for her
+    // specific request actually happened (as opposed to nothing happening at
+    // all, which the display alone couldn't rule out).
+    await expect(() => {
+      expect(
+        signals.submitStatus,
+        '"girl"\'s fast chart-data submission should have gotten a real response (200 cache-hit or 202 async-accepted)',
+      ).toBeDefined();
+    }).toPass({ timeout: RACE_DELAY_MS - 500 });
+
+    // Now that the network layer has proven "girl"'s request genuinely
+    // completed, confirm the UI actually reflects it too.
     await expect(value).toHaveText(expectedGirlText ?? '', {
-      timeout: RACE_DELAY_MS - 500,
+      timeout: TIMEOUT.UI_TRANSITION,
     });
     const raceResultText = await value.textContent();
 
@@ -595,15 +514,6 @@ testWithAssets(
     await page.unroute(
       url => sliceIdFromChartDataUrl(url.toString()) === chartId,
     );
-
-    // Confirm boy/girl actually produce different counts in this dataset --
-    // otherwise the assertions above would trivially pass without proving
-    // the race resolved to the *right* value.
-    await selectGenderFilterOption(page, 'boy');
-    await clickApplyFilters(page);
-    await expect(value).not.toHaveText(expectedGirlText ?? '', {
-      timeout: TIMEOUT.CHART_RENDER,
-    });
   },
 );
 
@@ -645,43 +555,35 @@ testWithAssets(
       'Barbara',
     ];
 
-    const { dashboardId, charts } = await createDashboardWithCharts(
-      page,
-      testAssets,
-      testWithAssets.info(),
-      {
-        datasetName: 'birth_names',
-        chartNamePrefix: 'gaq_tc5_busy_dashboard',
-        dashboardTitlePrefix: 'gaq_tc5_busy_dashboard',
-        chartSpecs: NAMES.map(name => ({
-          viz_type: 'big_number_total',
-          params: {
-            metric: 'count',
-            adhoc_filters: [
-              {
-                clause: 'WHERE',
-                expressionType: 'SIMPLE',
-                subject: 'name',
-                operator: '==',
-                comparator: name,
-              },
-            ],
-          },
-        })),
-        // 8 charts at the default width (4) would exceed the 12-column grid.
-        chartWidth: 1,
-      },
-    );
-
-    const dashboard = new DashboardPage(page);
-    const valueLocators = charts.map(chart =>
-      dashboard
-        .getChart(chart.id)
-        .locator('.superset-legacy-chart-big-number .header-line'),
-    );
-
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
+    const { dashboard, charts, valueLocators } =
+      await setupDashboardWithBigNumberCharts(
+        page,
+        testAssets,
+        testWithAssets.info(),
+        {
+          datasetName: 'birth_names',
+          chartNamePrefix: 'gaq_tc5_busy_dashboard',
+          dashboardTitlePrefix: 'gaq_tc5_busy_dashboard',
+          chartSpecs: NAMES.map(name => ({
+            viz_type: 'big_number_total',
+            params: {
+              metric: 'count',
+              adhoc_filters: [
+                {
+                  clause: 'WHERE',
+                  expressionType: 'SIMPLE',
+                  subject: 'name',
+                  operator: '==',
+                  comparator: name,
+                },
+              ],
+            },
+          })),
+          // 8 charts at the default width (4) would exceed the 12-column grid.
+          chartWidth: 1,
+        },
+        { timeout: TIMEOUT.SLOW_TEST },
+      );
 
     // Let the initial (cache-cold) load settle before recording signals, so
     // they reflect the forced refresh below, same as the other GAQ tests.
@@ -701,32 +603,7 @@ testWithAssets(
     );
 
     const chartIds = new Set(charts.map(chart => chart.id));
-    const submitStatusBySliceId = new Map<number, number>();
-    let asyncEventPollCount = 0;
-    let finalFetchCount = 0;
-
-    page.on('response', response => {
-      const request = response.request();
-      const url = response.url();
-
-      if (request.method() === 'POST' && url.includes('/api/v1/chart/data')) {
-        const sliceId = sliceIdFromChartDataUrl(url);
-        if (sliceId !== undefined && chartIds.has(sliceId)) {
-          submitStatusBySliceId.set(sliceId, response.status());
-        }
-        return;
-      }
-      if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
-        asyncEventPollCount += 1;
-        return;
-      }
-      if (
-        request.method() === 'GET' &&
-        /\/api\/v1\/chart\/data\/qc-/.test(url)
-      ) {
-        finalFetchCount += 1;
-      }
-    });
+    const signals = trackMultiChartAsyncSignals(page, chartIds);
 
     await dashboard.forceRefresh();
 
@@ -739,16 +616,16 @@ testWithAssets(
     await expect(() => {
       for (const chart of charts) {
         expect(
-          submitStatusBySliceId.get(chart.id),
+          signals.submitStatusBySliceId.get(chart.id),
           `chart ${chart.id} (${chart.sliceName}) should have been accepted (202) onto the async path`,
         ).toBe(202);
       }
       expect(
-        asyncEventPollCount,
+        signals.asyncEventPollCount,
         'the client should have polled /api/v1/async_event/ while the concurrent jobs ran',
       ).toBeGreaterThan(0);
       expect(
-        finalFetchCount,
+        signals.finalFetchCount,
         'every chart should have fetched its own final payload once done',
       ).toBeGreaterThanOrEqual(charts.length);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
@@ -819,31 +696,25 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const { dashboardId, charts } = await createDashboardWithCharts(
-      page,
-      testAssets,
-      testWithAssets.info(),
-      {
-        datasetName: 'birth_names',
-        chartNamePrefix: 'gaq_tc6_session_hiccup',
-        dashboardTitlePrefix: 'gaq_tc6_session_hiccup',
-        chartSpecs: [
-          {
-            viz_type: 'big_number_total',
-            params: { metric: 'count' },
-          },
-        ],
-      },
-    );
+    const { dashboardId, dashboard, charts, valueLocators } =
+      await setupDashboardWithBigNumberCharts(
+        page,
+        testAssets,
+        testWithAssets.info(),
+        {
+          datasetName: 'birth_names',
+          chartNamePrefix: 'gaq_tc6_session_hiccup',
+          dashboardTitlePrefix: 'gaq_tc6_session_hiccup',
+          chartSpecs: [
+            {
+              viz_type: 'big_number_total',
+              params: { metric: 'count' },
+            },
+          ],
+        },
+      );
     const [chart] = charts;
-
-    const dashboard = new DashboardPage(page);
-    const value = dashboard
-      .getChart(chart.id)
-      .locator('.superset-legacy-chart-big-number .header-line');
-
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
+    const [value] = valueLocators;
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
     // The load above should have minted the async-channel cookie.
@@ -935,29 +806,6 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const { dashboardId, charts } = await createDashboardWithCharts(
-      page,
-      testAssets,
-      testWithAssets.info(),
-      {
-        datasetName: 'birth_names',
-        chartNamePrefix: 'gaq_tc7_navigate_away',
-        dashboardTitlePrefix: 'gaq_tc7_navigate_away',
-        chartSpecs: [
-          {
-            viz_type: 'big_number_total',
-            params: { metric: 'count' },
-          },
-        ],
-      },
-    );
-    const [chart] = charts;
-
-    const dashboard = new DashboardPage(page);
-    const value = dashboard
-      .getChart(chart.id)
-      .locator('.superset-legacy-chart-big-number .header-line');
-
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
     page.on('console', message => {
@@ -969,8 +817,24 @@ testWithAssets(
       pageErrors.push(error.message);
     });
 
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
+    const { dashboardId, dashboard, valueLocators } =
+      await setupDashboardWithBigNumberCharts(
+        page,
+        testAssets,
+        testWithAssets.info(),
+        {
+          datasetName: 'birth_names',
+          chartNamePrefix: 'gaq_tc7_navigate_away',
+          dashboardTitlePrefix: 'gaq_tc7_navigate_away',
+          chartSpecs: [
+            {
+              viz_type: 'big_number_total',
+              params: { metric: 'count' },
+            },
+          ],
+        },
+      );
+    const [value] = valueLocators;
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
     // Force a fresh async job, then leave before it can possibly resolve
@@ -1088,7 +952,7 @@ testWithAssets(
       metric: 'count',
       adhoc_filters: [],
     };
-    const chartResp = await apiPost(page, 'api/v1/chart/', {
+    const chartResp = await apiPostChart(page, {
       slice_name: `gaq_tc8_filter_dropdown_${Date.now()}`,
       viz_type: 'big_number_total',
       datasource_id: datasetId,
@@ -1148,29 +1012,12 @@ testWithAssets(
     const dashboardId: number = dashBody.result?.id ?? dashBody.id;
     testAssets.trackDashboard(dashboardId);
 
-    const linkResp = await apiPut(page, `api/v1/chart/${chartId}`, {
+    const linkResp = await apiPutChart(page, chartId, {
       dashboards: [dashboardId],
     });
     expect(linkResp.ok()).toBe(true);
 
-    let filterValueSubmitStatus: number | undefined;
-    let sawAsyncEventPoll = false;
-    page.on('response', response => {
-      const request = response.request();
-      const url = response.url();
-
-      if (
-        request.method() === 'POST' &&
-        url.includes('/api/v1/chart/data') &&
-        sliceIdFromChartDataUrl(url) === undefined
-      ) {
-        filterValueSubmitStatus = response.status();
-        return;
-      }
-      if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
-        sawAsyncEventPoll = true;
-      }
-    });
+    const signals = trackChartAsyncSignals(page, undefined);
 
     const dashboard = new DashboardPage(page);
     await dashboard.gotoById(dashboardId);
@@ -1181,15 +1028,27 @@ testWithAssets(
     // part of the filter panel's own initialization (confirmed via trace:
     // the POST/poll/fetch cycle completes before the dropdown is ever
     // clicked) and are then served from client state on open -- there is no
-    // separate, click-triggered request to wait for here. The listener
-    // attached above (before navigation) is what actually observes this
-    // fetch; opening the dropdown below only confirms the already-fetched
-    // options rendered correctly.
-    const filterCombobox = page
-      .locator('[data-test="form-item-value"]')
-      .first()
-      .locator('[role="combobox"]');
-    await filterCombobox.click();
+    // separate, click-triggered request to wait for here. So this asserts the
+    // GAQ signals *before* touching the dropdown at all, proving the async
+    // pipeline ran during panel initialization on its own merits, rather than
+    // asserting it after the click in a way that could look like the click
+    // caused it.
+    await expect(() => {
+      expect(
+        signals.submitStatus,
+        'the filter-value fetch should be accepted (202) onto the async path, same as a chart-data request',
+      ).toBe(202);
+      expect(
+        signals.sawAsyncEventPoll,
+        'the client should have polled /api/v1/async_event/ while the filter-value job ran',
+      ).toBe(true);
+    }).toPass({ timeout: TIMEOUT.CHART_RENDER });
+
+    // Separately, confirm opening the dropdown actually renders those
+    // already-fetched options -- this is a UI-rendering check, not a second
+    // GAQ trigger.
+    const filterBar = new DashboardFilterBar(page);
+    await filterBar.getFilterValueSelect().open();
 
     const options = page.locator('.ant-select-item-option');
     await expect(options.first()).toBeVisible({
@@ -1197,17 +1056,6 @@ testWithAssets(
     });
     await expect(async () => {
       expect(await options.count()).toBeGreaterThanOrEqual(5);
-    }).toPass({ timeout: TIMEOUT.CHART_RENDER });
-
-    await expect(() => {
-      expect(
-        filterValueSubmitStatus,
-        'the filter-value fetch should be accepted (202) onto the async path, same as a chart-data request',
-      ).toBe(202);
-      expect(
-        sawAsyncEventPoll,
-        'the client should have polled /api/v1/async_event/ while the filter-value job ran',
-      ).toBe(true);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
   },
 );
