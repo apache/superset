@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fs from 'fs';
+import path from 'path';
 import { countryOptions } from '../src/countries';
+
+type ItalyFeature = { properties: { ISO: string; NAME_1: string } };
 
 test('countryOptions includes labeled entries for the Italy region variants', () => {
   expect(countryOptions).toContainEqual(['italy_regions', 'Italy (regions)']);
@@ -24,4 +28,31 @@ test('countryOptions includes labeled entries for the Italy region variants', ()
     'italy_regions_and_autonomous_provinces',
     'Italy (regions and autonomous provinces)',
   ]);
+});
+
+test('italy_regions_and_autonomous_provinces geojson has the expected shape', () => {
+  // jest maps `.geojson` imports to an empty object mock, so the file is
+  // read from disk directly to verify its actual shape.
+  const geojsonPath = path.join(
+    __dirname,
+    '../src/countries/italy_regions_and_autonomous_provinces.geojson',
+  );
+  const geojson = JSON.parse(fs.readFileSync(geojsonPath, 'utf-8'));
+  const features: ItalyFeature[] = geojson.features;
+
+  expect(features).toHaveLength(21);
+  features.forEach(feature => {
+    expect(feature.properties).toEqual(
+      expect.objectContaining({
+        ISO: expect.any(String),
+        NAME_1: expect.any(String),
+      }),
+    );
+  });
+
+  const isoCodes = features.map(feature => feature.properties.ISO);
+  expect(new Set(isoCodes).size).toBe(isoCodes.length);
+  expect(isoCodes).toContain('IT-BZ');
+  expect(isoCodes).toContain('IT-TN');
+  expect(isoCodes).not.toContain('IT-32');
 });
