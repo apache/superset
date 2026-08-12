@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import type { Page, TestInfo } from '@playwright/test';
+import type { Locator, Page, TestInfo } from '@playwright/test';
 import { expect, type TestAssets } from '../../helpers/fixtures';
 import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
 import {
@@ -27,6 +27,7 @@ import {
 } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
+import { DashboardPage } from '../../pages/DashboardPage';
 
 /**
  * Extracts the chart id that a `/api/v1/chart/data` request was issued for.
@@ -306,4 +307,170 @@ export async function createDashboardWithCharts(
   }
 
   return { dashboardId, charts };
+}
+
+interface SetupDashboardWithChartsResult {
+  dashboardId: number;
+  charts: DashboardLayoutChart[];
+  dashboard: DashboardPage;
+  /** Big-number value locator per chart, in the same order as `charts`. */
+  valueLocators: Locator[];
+}
+
+/**
+ * Combines {@link createDashboardWithCharts} with navigating to the result and
+ * waiting for it to load -- the setup every GAQ test case that renders a plain
+ * big-number dashboard needs before it starts recording its own signals or
+ * assertions. Callers still assert on `valueLocators` themselves (a happy-path
+ * test wants them visible; a broken-chart test wants an error alert instead),
+ * so this only removes the identical creation/navigation boilerplate, not the
+ * per-test assertions layered on top of it.
+ *
+ * @example
+ * const { charts, dashboard, valueLocators } =
+ *   await setupDashboardWithBigNumberCharts(page, testAssets, testInfo, {
+ *     datasetName: 'birth_names',
+ *     chartNamePrefix: 'gaq_tc1_cold_cache',
+ *     dashboardTitlePrefix: 'gaq_tc1_cold_cache',
+ *     chartSpecs: [{ viz_type: 'big_number_total', params: { metric: 'count' } }],
+ *   });
+ * const [chart] = charts;
+ * const [value] = valueLocators;
+ * await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
+ */
+export async function setupDashboardWithBigNumberCharts(
+  page: Page,
+  testAssets: TestAssets,
+  testInfo: TestInfo,
+  options: CreateDashboardWithChartsOptions,
+  navigateOptions?: { timeout?: number },
+): Promise<SetupDashboardWithChartsResult> {
+  const { dashboardId, charts } = await createDashboardWithCharts(
+    page,
+    testAssets,
+    testInfo,
+    options,
+  );
+  const dashboard = new DashboardPage(page);
+  const valueLocators = charts.map(chart =>
+    dashboard
+      .getChart(chart.id)
+      .locator('.superset-legacy-chart-big-number .header-line'),
+  );
+
+  await dashboard.gotoById(dashboardId);
+  await dashboard.waitForLoad(navigateOptions);
+
+  return { dashboardId, charts, dashboard, valueLocators };
+}
+
+export interface ChartAsyncSignals {
+  /** Status of the chart-data POST matching `matchSliceId`, once observed. */
+  submitStatus?: number;
+  /** Whether the client polled `/api/v1/async_event/` at least once. */
+  sawAsyncEventPoll: boolean;
+  /** Whether the client fetched the final payload from `/api/v1/chart/data/<cache_key>`. */
+  sawFinalCachedFetch: boolean;
+}
+
+/**
+ * Attaches a `page.on('response', ...)` listener that records the three GAQ
+ * lifecycle signals for a single chart-data request: the submission's status,
+ * whether the client polled the async-event endpoint, and whether it fetched
+ * the final cached payload.
+ *
+ * `matchSliceId` distinguishes a chart's own chart-data request (a numeric
+ * slice id) from a native filter's value fetch, which carries no slice id at
+ * all (see `sliceIdFromChartDataUrl`) -- pass `undefined` to track a
+ * filter-value request instead of a chart's.
+ *
+ * Returns a single mutable object, rather than a tuple of `let` bindings, so
+ * callers can read the latest values from inside a `toPass` retry block
+ * without closing over stale variables.
+ */
+export function trackChartAsyncSignals(
+  page: Page,
+  matchSliceId: number | undefined,
+): ChartAsyncSignals {
+  const signals: ChartAsyncSignals = {
+    submitStatus: undefined,
+    sawAsyncEventPoll: false,
+    sawFinalCachedFetch: false,
+  };
+
+  page.on('response', response => {
+    const request = response.request();
+    const url = response.url();
+
+    if (
+      request.method() === 'POST' &&
+      url.includes('/api/v1/chart/data') &&
+      sliceIdFromChartDataUrl(url) === matchSliceId
+    ) {
+      signals.submitStatus = response.status();
+      return;
+    }
+    if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
+      signals.sawAsyncEventPoll = true;
+      return;
+    }
+    if (
+      request.method() === 'GET' &&
+      /\/api\/v1\/chart\/data\/qc-/.test(url)
+    ) {
+      signals.sawFinalCachedFetch = true;
+    }
+  });
+
+  return signals;
+}
+
+export interface MultiChartAsyncSignals {
+  /** Chart-data submit status keyed by slice id, for the charts in `chartIds`. */
+  submitStatusBySliceId: Map<number, number>;
+  asyncEventPollCount: number;
+  finalFetchCount: number;
+}
+
+/**
+ * Same signals as {@link trackChartAsyncSignals}, shaped for a dashboard with
+ * several charts in flight at once: each chart's own submit status is kept
+ * (keyed by slice id) instead of a single status, and poll/final-fetch events
+ * are counted instead of recorded as a single boolean, since they arrive from
+ * every chart concurrently.
+ */
+export function trackMultiChartAsyncSignals(
+  page: Page,
+  chartIds: Set<number>,
+): MultiChartAsyncSignals {
+  const signals: MultiChartAsyncSignals = {
+    submitStatusBySliceId: new Map(),
+    asyncEventPollCount: 0,
+    finalFetchCount: 0,
+  };
+
+  page.on('response', response => {
+    const request = response.request();
+    const url = response.url();
+
+    if (request.method() === 'POST' && url.includes('/api/v1/chart/data')) {
+      const sliceId = sliceIdFromChartDataUrl(url);
+      if (sliceId !== undefined && chartIds.has(sliceId)) {
+        signals.submitStatusBySliceId.set(sliceId, response.status());
+      }
+      return;
+    }
+    if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
+      signals.asyncEventPollCount += 1;
+      return;
+    }
+    if (
+      request.method() === 'GET' &&
+      /\/api\/v1\/chart\/data\/qc-/.test(url)
+    ) {
+      signals.finalFetchCount += 1;
+    }
+  });
+
+  return signals;
 }
