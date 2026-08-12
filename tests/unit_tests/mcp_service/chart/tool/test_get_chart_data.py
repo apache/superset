@@ -228,9 +228,9 @@ class TestBigNumberChartFallback:
                 "viz_type": viz_type,
             }
             metrics, _ = _extract_metrics_and_groupby(form_data)
-            assert metrics == [
-                {"label": "plural_metric"}
-            ], f"{viz_type} should use plural metrics"
+            assert metrics == [{"label": "plural_metric"}], (
+                f"{viz_type} should use plural metrics"
+            )
 
     def test_pop_kpi_uses_singular_metric(self):
         """Test that pop_kpi (BigNumberPeriodOverPeriod) uses singular metric."""
@@ -1259,9 +1259,9 @@ class TestChartLookupEagerLoading:
             call = mock_find.call_args
             assert call.args == (42,)
             query_options = call.kwargs.get("query_options")
-            assert (
-                query_options is not None
-            ), "Chart lookup must pass query_options for eager-loading."
+            assert query_options is not None, (
+                "Chart lookup must pass query_options for eager-loading."
+            )
             assert len(query_options) == 1
             load_path = _extract_metrics_load_path(query_options[0])
             assert load_path == [
@@ -1292,9 +1292,9 @@ class TestChartLookupEagerLoading:
             assert call.args == (uuid,)
             assert call.kwargs.get("id_column") == "uuid"
             query_options = call.kwargs.get("query_options")
-            assert (
-                query_options is not None
-            ), "UUID chart lookup must pass query_options for eager-loading."
+            assert query_options is not None, (
+                "UUID chart lookup must pass query_options for eager-loading."
+            )
             load_path = _extract_metrics_load_path(query_options[0])
             assert load_path == [
                 "table",
