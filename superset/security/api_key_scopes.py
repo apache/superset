@@ -23,6 +23,7 @@ METHOD_PERMISSION_SCOPE_ACTION: dict[str, str] = {
     "read": "read",
     "get": "read",
     "write": "write",
+    "update": "write",
     "delete": "write",
     "execute_sql_query": "write",
 }
