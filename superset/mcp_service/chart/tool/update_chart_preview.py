@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
     MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     merge_table_column_config,
+    NO_TIME_RANGE,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -124,6 +125,7 @@ def _preserve_previous_adhoc_filters(
             and isinstance(filter_, dict)
             and filter_.get("operator") == "TEMPORAL_RANGE"
             and filter_.get("subject") == previous_binding
+            and filter_.get("comparator") == NO_TIME_RANGE
         )
     ]
     for generated_filter in generated_filters:

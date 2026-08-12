@@ -670,7 +670,7 @@ class TestUpdateChartPreview:
         }
         previous_temporal_filter = {
             "clause": "WHERE",
-            "comparator": "Last month",
+            "comparator": "No filter",
             "expressionType": "SIMPLE",
             "operator": "TEMPORAL_RANGE",
             "subject": "ds",
@@ -702,7 +702,7 @@ class TestUpdateChartPreview:
         }
         previous_temporal_filter = {
             "clause": "WHERE",
-            "comparator": "Last month",
+            "comparator": "No filter",
             "expressionType": "SIMPLE",
             "operator": "TEMPORAL_RANGE",
             "subject": "ds",
@@ -718,6 +718,34 @@ class TestUpdateChartPreview:
         )
 
         assert new_form_data["adhoc_filters"] == [region_filter]
+
+    def test_preserves_user_temporal_filter_on_generated_subject(self) -> None:
+        """A user-authored range on the binding subject is not generated state."""
+        generated_binding = {
+            "clause": "WHERE",
+            "comparator": "No filter",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+        }
+        user_filter = {
+            "clause": "WHERE",
+            "comparator": "Last month",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "ds",
+        }
+
+        new_form_data: dict[str, Any] = {}
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {
+                "adhoc_filters": [generated_binding, user_filter],
+                "_mcp_dashboard_time_filter_subject": "ds",
+            },
+        )
+
+        assert new_form_data["adhoc_filters"] == [user_filter]
 
     def test_rebinding_preserves_unrelated_cached_temporal_filter(self) -> None:
         """Only the generated binding is replaced; user filters retain provenance."""
