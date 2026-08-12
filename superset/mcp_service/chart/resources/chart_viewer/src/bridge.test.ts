@@ -761,3 +761,93 @@ describe('host refusal is not success', () => {
     }
   });
 });
+
+describe('failure reporting through the model context', () => {
+  // Every capability question on this branch cost multiple round trips because
+  // the host's answer lives only inside the iframe, so diagnosing it needed a
+  // person to read JSON off a screen. The host advertises updateModelContext,
+  // so the widget hands the detail to the assistant directly.
+  it('reports a declined operation, with what was sent and returned', async () => {
+    const host = desktopHost((msg) => {
+      if (msg.method === 'ui/download-file') return { isError: true };
+      if (msg.method === 'ui/update-model-context') return {};
+      return undefined;
+    });
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await bridge.downloadViaHost('chart.csv', 'text/csv', 'a,b', 300);
+      const report = host.sent.find((m) => m.method === 'ui/update-model-context');
+      expect(report).toBeTruthy();
+      const text = JSON.stringify(report?.params);
+      expect(text).toContain('ui/download-file');
+      expect(text).toContain('isError');
+      // The params we sent must be in there — that is the thing under suspicion.
+      expect(text).toContain('file:///chart.csv');
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('reports each operation once, so a retry cannot flood the context', async () => {
+    const host = desktopHost((msg) => {
+      if (msg.method === 'ui/download-file') return { isError: true };
+      if (msg.method === 'ui/update-model-context') return {};
+      return undefined;
+    });
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await bridge.downloadViaHost('a.csv', 'text/csv', 'x', 300);
+      await bridge.downloadViaHost('b.csv', 'text/csv', 'y', 300);
+      await bridge.downloadViaHost('c.csv', 'text/csv', 'z', 300);
+      const reports = host.sent.filter(
+        (m) => m.method === 'ui/update-model-context',
+      );
+      expect(reports).toHaveLength(1);
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('does not recurse when the report itself is refused', async () => {
+    // A report that failed and then reported its own failure would loop. Two
+    // things prevent it: updateModelContext sends via `request` rather than
+    // `requestOk`, so it never reaches the reporter at all, and the reporter
+    // also skips that method explicitly. Assert the exact count — an earlier
+    // version of this test used `<= 1`, which passed with BOTH guards removed
+    // and so proved nothing.
+    const host = desktopHost((msg) =>
+      msg.method === 'ui/update-model-context' ? { isError: true } : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await bridge.downloadViaHost('a.csv', 'text/csv', 'x', 200);
+      const reports = host.sent.filter(
+        (m) => m.method === 'ui/update-model-context',
+      );
+      expect(reports).toHaveLength(1);
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('stays silent when the host cannot take context updates', async () => {
+    const host = withFakeHost((msg) =>
+      msg.method === 'ui/initialize'
+        ? { hostCapabilities: { downloadFile: {} }, hostContext: {} }
+        : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await bridge.downloadViaHost('a.csv', 'text/csv', 'x', 200);
+      expect(
+        host.sent.some((m) => m.method === 'ui/update-model-context'),
+      ).toBe(false);
+    } finally {
+      host.restore();
+    }
+  });
+});

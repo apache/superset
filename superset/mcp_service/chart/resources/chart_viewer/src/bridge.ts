@@ -432,10 +432,17 @@ export class ChartBridge {
       const result = (await this.request(method, params, timeoutMs)) as
         | { isError?: boolean }
         | undefined;
-      this.record({ method, params, result });
-      return result?.isError !== true;
+      const exchange: HostExchange = { method, params, result };
+      this.record(exchange);
+      if (result?.isError === true) {
+        this.reportFailure(exchange);
+        return false;
+      }
+      return true;
     } catch (err) {
-      this.record({ method, params, failure: String(err) });
+      const exchange: HostExchange = { method, params, failure: String(err) };
+      this.record(exchange);
+      this.reportFailure(exchange);
       return false;
     }
   }
@@ -443,6 +450,41 @@ export class ChartBridge {
   private record(exchange: HostExchange): void {
     const kept = [...this.diagnostics.exchanges, exchange].slice(-6);
     this.diagnostics = { ...this.diagnostics, exchanges: kept };
+  }
+
+  /** Operations already reported, so a repeated failure cannot spam context. */
+  private reportedFailures = new Set<string>();
+
+  /**
+   * Push a failed host operation into the model's context.
+   *
+   * Every capability question on this branch — serverTools, the display modes,
+   * the download and open-link routes — took several round trips for one
+   * reason: the host's answer is visible only inside the iframe, so diagnosing
+   * it needed a person to read JSON off a screen and retype it. The host
+   * advertises `updateModelContext`, so the widget can hand the detail to the
+   * assistant directly instead.
+   *
+   * Failures only, once per operation, and never for the reporting call itself
+   * — a report that could fail and then report its own failure would loop.
+   */
+  private reportFailure(exchange: HostExchange): void {
+    // Defensive, not load-bearing: updateModelContext sends via `request`
+    // rather than `requestOk`, so it cannot reach here today. Kept so that
+    // routing it through the shared helper later cannot create a report that
+    // reports its own failure.
+    if (exchange.method === 'ui/update-model-context') return;
+    if (!this.capabilities.canUpdateModelContext) return;
+    if (this.reportedFailures.has(exchange.method)) return;
+    this.reportedFailures.add(exchange.method);
+    const detail = exchange.failure
+      ? `no reply (${exchange.failure})`
+      : `replied ${safeJson(exchange.result)}`;
+    void this.updateModelContext(
+      `Superset chart widget diagnostic: the host declined ${exchange.method}. ` +
+        `It ${detail}. Sent: ${safeJson(exchange.params)}. ` +
+        `Developer detail, not something the user asked about.`,
+    );
   }
 
   /** Report intrinsic content size so the host can size the iframe. */
@@ -708,6 +750,16 @@ function emptyCapabilities(): HostCapabilities {
     canOpenLinks: false,
     canDownloadFile: false,
   };
+}
+
+/** JSON that cannot itself throw, for diagnostic strings. */
+function safeJson(value: unknown, max = 400): string {
+  try {
+    const out = JSON.stringify(value);
+    return out.length > max ? `${out.slice(0, max)}\u2026` : out;
+  } catch {
+    return String(value);
+  }
 }
 
 /** Narrow a host-reported mode to one this widget knows how to render. */

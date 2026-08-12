@@ -469,9 +469,22 @@ export function App(): JSX.Element {
     // disappears after a few seconds is not a way to hand someone a link they
     // still have to click.
     const copied = await copyText(exploreUrl);
+    // Hosts routinely refuse to open http:// or localhost URLs on security
+    // grounds. When that is the shape of the URL, say so — otherwise the user
+    // reads a refusal as a broken button, when against a real HTTPS
+    // deployment the same click would work.
+    const local = /^http:\/\/|localhost|127\.0\.0\.1/.test(exploreUrl);
     setCopyPanel({
-      title: copied ? 'Link copied \u2014 Open in Superset' : 'Open in Superset',
-      text: exploreUrl,
+      title: local
+        ? 'Open in Superset (host blocked a local URL)'
+        : copied
+          ? 'Link copied \u2014 Open in Superset'
+          : 'Open in Superset',
+      text: local
+        ? `${exploreUrl}\n\nThe host declined to open this automatically. ` +
+          `Hosts commonly refuse http:// and localhost addresses; a Superset ` +
+          `deployed over HTTPS is expected to open normally.`
+        : exploreUrl,
     });
   }, [exploreUrl, showToast]);
 
