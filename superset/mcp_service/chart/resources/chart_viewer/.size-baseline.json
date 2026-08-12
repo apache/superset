@@ -1,4 +1,4 @@
 {
-  "bytes": 890984,
+  "bytes": 891612,
   "note": "Baseline for the size-step check in scripts/report-size.mjs. Update in the same commit as an intended increase, and say why."
 }

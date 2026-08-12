@@ -481,27 +481,39 @@ export function App(): JSX.Element {
     const csv = (): string => toCsv(data);
     const actions: ExportAction[] = [];
 
-    if (!downloadsBlocked) {
+    // ONE download entry, host route first. The host-mediated ui/download-file
+    // is the supported path — a sandboxed iframe blocks <a download>, which is
+    // exactly why the spec defines it — but a top-level page (standalone dev)
+    // has no host and the browser path works there. Offering both as separate
+    // menu items would just ask the user to know which one their host allows.
+    if (caps?.canDownloadFile || !downloadsBlocked) {
       actions.push({
         key: 'csv',
         label: 'Download CSV',
         onSelect: () => {
-          const ok = downloadFile(
-            exportFilename(data, 'csv'),
-            'text/csv',
-            csv(),
-          );
-          // `ok` only means the click dispatched. A sandbox without
-          // allow-downloads blocks it silently, without throwing, so claiming
-          // "downloaded" here would be a success we cannot observe.
-          showToast(
-            ok
-              ? 'Saving CSV — if nothing arrives, use "Show CSV".'
-              : 'The host blocked the download. Use "Show CSV" instead.',
-          );
+          void (async () => {
+            const name = exportFilename(data, 'csv');
+            const text = csv();
+            if (
+              caps?.canDownloadFile &&
+              (await bridge.downloadViaHost(name, 'text/csv', text))
+            ) {
+              showToast('CSV saved.');
+              return;
+            }
+            // Either the host declined/cancelled, or it has no download route.
+            if (!downloadsBlocked && downloadFile(name, 'text/csv', text)) {
+              showToast('Saving CSV — if nothing arrives, use "Show CSV".');
+              return;
+            }
+            // Nothing could save it. Show the text rather than claim a file.
+            setCopyPanel({ title: 'CSV', text });
+          })();
         },
       });
-      if (isEChartsView(view)) {
+    }
+
+    if (!downloadsBlocked && isEChartsView(view)) {
         actions.push({
           key: 'png',
           label: 'Download PNG',
@@ -523,9 +535,8 @@ export function App(): JSX.Element {
                 ? 'Saving image — if nothing arrives, the host blocked it.'
                 : 'The host blocked the download.',
             );
-          },
-        });
-      }
+        },
+      });
     }
 
     actions.push({
@@ -580,7 +591,7 @@ export function App(): JSX.Element {
     }
 
     return actions;
-  }, [canAsk, data, downloadsBlocked, showToast, theme.bg, view]);
+  }, [canAsk, caps, data, downloadsBlocked, showToast, theme.bg, view]);
 
   const exportNote = downloadsBlocked
     ? 'This host sandboxes the widget, so it cannot save files. Copy the data or send it to the assistant instead.'

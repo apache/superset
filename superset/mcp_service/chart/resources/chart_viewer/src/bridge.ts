@@ -60,6 +60,10 @@ export interface HostCapabilities {
   canSendMessage: boolean;
   /** Whether tools/call is available at all. */
   canCallTools: boolean;
+  /** Whether the host will open external URLs on our behalf (ui/open-link). */
+  canOpenLinks: boolean;
+  /** Whether the host will save files on our behalf (ui/download-file). */
+  canDownloadFile: boolean;
 }
 
 /**
@@ -330,27 +334,74 @@ export class ChartBridge {
    * Returns false when the link could not be opened by either route, so the
    * caller can offer the URL another way instead of failing silently.
    */
-  async openLink(url: string, timeoutMs = 1500): Promise<boolean> {
-    // Direct open first, while still synchronously inside the click's user
-    // gesture — awaiting the host first would spend transient activation and
-    // get this popup-blocked. In a sandboxed iframe (what hosts actually give
-    // us) this fails immediately and we reach the host path with no delay, so
-    // the sandbox itself routes each environment to the right branch.
-    try {
-      if (window.open(url, '_blank', 'noopener,noreferrer')) return true;
-    } catch {
-      // Sandboxed without allow-popups.
-    }
-    if (this.isEmbedded) {
+  async openLink(url: string, timeoutMs = 4000): Promise<boolean> {
+    // Ask the host FIRST when it says it can do this. `openLinks` is a
+    // spec-named capability backed by ui/open-link; going to window.open first
+    // meant a sandboxed iframe (which blocks it) fell through to a host request
+    // we then treated as a last resort. The host is the supported route.
+    if (this.isEmbedded && this.capabilities.canOpenLinks) {
       try {
         await this.request('ui/open-link', { url }, timeoutMs);
         return true;
       } catch {
-        // The spec says hosts SHOULD implement ui/open-link, not MUST, so an
-        // unanswered request is conformant and the caller must handle false.
+        /* fall through to the browser attempt */
+      }
+    }
+    // Synchronously, inside the click's user gesture: awaiting anything first
+    // spends transient activation and gets the popup blocked.
+    try {
+      if (typeof window !== 'undefined' && window.open(url, '_blank', 'noopener'))
+        return true;
+    } catch {
+      /* sandboxed without allow-popups */
+    }
+    if (this.isEmbedded && !this.capabilities.canOpenLinks) {
+      // Unadvertised, but the spec says hosts SHOULD implement it — worth one
+      // attempt before giving up.
+      try {
+        await this.request('ui/open-link', { url }, timeoutMs);
+        return true;
+      } catch {
+        /* host declined or stayed silent */
       }
     }
     return false;
+  }
+
+
+  /**
+   * Ask the host to save a file for the user.
+   *
+   * The spec exists for exactly our situation: "Since MCP Apps run in
+   * sandboxed iframes where direct downloads are blocked, this provides a
+   * host-mediated mechanism for file exports." The widget was instead building
+   * a blob and clicking an anchor — a browser primitive the sandbox blocks
+   * silently — while the host advertised `downloadFile` the whole time.
+   *
+   * Returns false when the host cannot do it or the user declined, so the
+   * caller can fall back to showing the text instead of claiming a save.
+   */
+  async downloadViaHost(
+    filename: string,
+    mimeType: string,
+    text: string,
+  ): Promise<boolean> {
+    if (!this.isEmbedded || !this.capabilities.canDownloadFile) return false;
+    try {
+      const res = (await this.request('ui/download-file', {
+        contents: [
+          {
+            type: 'resource',
+            resource: { uri: `file:///${filename}`, mimeType, text },
+          },
+        ],
+      })) as { isError?: boolean } | undefined;
+      // The host reports refusal and cancellation as isError, so a resolved
+      // promise is not on its own a saved file.
+      return res?.isError !== true;
+    } catch {
+      return false;
+    }
   }
 
   /** Report intrinsic content size so the host can size the iframe. */
@@ -584,6 +635,13 @@ function deriveCapabilities(
       appTools.size > 0,
     canUpdateModelContext: has('updateModelContext') || has('modelContext'),
     canSendMessage: has('message') || has('messages'),
+    // Both are spec-named HostCapabilities backed by dedicated requests. The
+    // widget used browser primitives for these instead — window.open and an
+    // <a download> click — which a sandboxed iframe blocks. The spec says so
+    // explicitly: ui/download-file exists "since MCP Apps run in sandboxed
+    // iframes where direct downloads are blocked".
+    canOpenLinks: has('openLinks'),
+    canDownloadFile: has('downloadFile'),
   };
 }
 
@@ -593,6 +651,8 @@ function emptyCapabilities(): HostCapabilities {
     canUpdateModelContext: false,
     canSendMessage: false,
     canCallTools: false,
+    canOpenLinks: false,
+    canDownloadFile: false,
   };
 }
 

@@ -49,6 +49,7 @@ vi.mock('./components/EChart', () => ({
 
 const reportSize = vi.fn();
 const initialize = vi.fn();
+const downloadViaHost = vi.fn().mockResolvedValue(false);
 const supportsDisplayMode = vi.fn((_mode: string): boolean => true);
 const requestDisplayMode = vi.fn().mockResolvedValue(null);
 let contextListener: ((ctx: Record<string, unknown>) => void) | null = null;
@@ -86,6 +87,7 @@ vi.mock('./bridge', () => ({
     });
     hasTool = vi.fn(() => false);
     supportsDisplayMode = supportsDisplayMode;
+    downloadViaHost = downloadViaHost;
     getDiagnostics = vi.fn(() => ({
       protocolVersion: '2026-01-26',
       hostCapabilities: {},
@@ -147,6 +149,7 @@ afterEach(() => {
   vi.clearAllMocks();
   initialize.mockResolvedValue(CONNECTED_HANDSHAKE);
   supportsDisplayMode.mockReturnValue(true);
+  downloadViaHost.mockResolvedValue(false);
 });
 
 function maximizeButton(): HTMLButtonElement {
@@ -463,4 +466,45 @@ it('reports the mode the host applied when it substitutes one', async () => {
   expect(
     container!.querySelector('.sv-maximize')!.getAttribute('aria-pressed'),
   ).toBe('true');
+});
+
+it('saves through the host when it advertises downloadFile', async () => {
+  // Desktop advertises `downloadFile` and sandboxes the iframe, so <a download>
+  // is blocked silently. The host route is the one that can actually produce a
+  // file — the widget never used it, which is why Download CSV did nothing.
+  initialize.mockResolvedValue({
+    ...CONNECTED_HANDSHAKE,
+    capabilities: { canDownloadFile: true, canOpenLinks: true },
+  });
+  downloadViaHost.mockResolvedValue(true);
+  await renderApp();
+  const menu = container!.querySelector('[aria-haspopup="menu"]') as HTMLButtonElement;
+  await act(async () => { menu.click(); });
+  const item = Array.from(container!.querySelectorAll('[role="menuitem"]')).find(
+    (b) => b.textContent === 'Download CSV',
+  ) as HTMLButtonElement;
+  expect(item).toBeTruthy();
+  await act(async () => { item.click(); });
+  expect(downloadViaHost).toHaveBeenCalled();
+  const [name, mime] = downloadViaHost.mock.calls[0] as [string, string, string];
+  expect(name.endsWith('.csv')).toBe(true);
+  expect(mime).toBe('text/csv');
+});
+
+it('shows the CSV when the host refuses the save', async () => {
+  initialize.mockResolvedValue({
+    ...CONNECTED_HANDSHAKE,
+    capabilities: { canDownloadFile: true },
+  });
+  downloadViaHost.mockResolvedValue(false); // refused or cancelled
+  await renderApp();
+  const menu = container!.querySelector('[aria-haspopup="menu"]') as HTMLButtonElement;
+  await act(async () => { menu.click(); });
+  const item = Array.from(container!.querySelectorAll('[role="menuitem"]')).find(
+    (b) => b.textContent === 'Download CSV',
+  ) as HTMLButtonElement;
+  await act(async () => { item.click(); });
+  // jsdom is top-level so the browser path succeeds here; what matters is that
+  // a refusal is never reported as a save.
+  expect(container!.textContent).not.toContain('CSV saved.');
 });

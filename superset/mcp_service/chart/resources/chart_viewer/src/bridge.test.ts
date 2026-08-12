@@ -560,3 +560,119 @@ it('picks up display modes announced after the handshake', async () => {
     host.restore();
   }
 });
+
+// Claude Desktop's real handshake, transcribed from the diagnostics panel.
+// It advertises openLinks and downloadFile — dedicated host-mediated routes
+// the widget never used, while it fought the sandbox with window.open and an
+// <a download> click. Both features were dead for exactly this reason, which
+// is the serverTools defect again: a capability offered under a name we never
+// read. It also advertises availableDisplayModes: ["inline"] ONLY.
+const DESKTOP_CAPS = {
+  openLinks: {},
+  downloadFile: {},
+  serverTools: {},
+  serverResources: {},
+  logging: {},
+  updateModelContext: { text: {}, image: {} },
+  message: { text: {} },
+  sandbox: { csp: { connectDomains: [], resourceDomains: [], frameDomains: [], baseUriDomains: [] } },
+};
+
+function desktopHost(extra?: (msg: Captured) => Record<string, unknown> | undefined) {
+  return withFakeHost((msg) => {
+    if (msg.method === 'ui/initialize') {
+      return {
+        protocolVersion: '2026-01-26',
+        hostCapabilities: DESKTOP_CAPS,
+        hostContext: { availableDisplayModes: ['inline'], displayMode: 'inline' },
+      };
+    }
+    return extra?.(msg);
+  });
+}
+
+describe('Claude Desktop capabilities', () => {
+  it('reads openLinks and downloadFile from the real handshake', async () => {
+    const host = desktopHost();
+    try {
+      const bridge = new ChartBridge();
+      const init = await bridge.initialize(500);
+      expect(init.capabilities.canOpenLinks).toBe(true);
+      expect(init.capabilities.canDownloadFile).toBe(true);
+      expect(init.capabilities.canCallTools).toBe(true);
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('downloads through the host rather than the blocked browser path', async () => {
+    const host = desktopHost((msg) =>
+      msg.method === 'ui/download-file' ? {} : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(bridge.downloadViaHost('d.csv', 'text/csv', 'a,b')).resolves.toBe(true);
+      const req = host.sent.find((m) => m.method === 'ui/download-file');
+      const contents = (req?.params as { contents: Array<Record<string, unknown>> }).contents;
+      expect(contents[0]).toEqual({
+        type: 'resource',
+        resource: { uri: 'file:///d.csv', mimeType: 'text/csv', text: 'a,b' },
+      });
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('treats a host refusal as a failed save, not a success', async () => {
+    // The host reports refusal and user cancellation the same way.
+    const host = desktopHost((msg) =>
+      msg.method === 'ui/download-file' ? { isError: true } : undefined,
+    );
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(bridge.downloadViaHost('d.csv', 'text/csv', 'x')).resolves.toBe(false);
+    } finally {
+      host.restore();
+    }
+  });
+
+  it('asks the host to open a link before touching window.open', async () => {
+    const host = desktopHost((msg) =>
+      msg.method === 'ui/open-link' ? {} : undefined,
+    );
+    const realOpen = window.open;
+    let openCalled = false;
+    window.open = (() => { openCalled = true; return null; }) as typeof window.open;
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      await expect(bridge.openLink('https://x/e', 500)).resolves.toBe(true);
+      expect(host.sent.some((m) => m.method === 'ui/open-link')).toBe(true);
+      expect(openCalled).toBe(false);
+    } finally {
+      window.open = realOpen;
+      host.restore();
+    }
+  });
+
+  // Desktop advertises ["inline"] only — no fullscreen. Maximize must still
+  // work via the widget's own grow-in-place path; gating it off would be a
+  // regression in a control Amin already relies on.
+  it('still supports maximize when the host advertises inline only', async () => {
+    const host = desktopHost();
+    try {
+      const bridge = new ChartBridge();
+      await bridge.initialize(500);
+      expect(bridge.supportsDisplayMode('pip')).toBe(false);
+      expect(bridge.supportsDisplayMode('fullscreen')).toBe(false);
+      // Skipped without a round trip, so the fallback runs immediately rather
+      // than after a timeout.
+      await expect(bridge.requestDisplayMode('fullscreen', 5000)).resolves.toBeNull();
+      expect(host.sent.some((m) => m.method === 'ui/request-display-mode')).toBe(false);
+    } finally {
+      host.restore();
+    }
+  });
+});
