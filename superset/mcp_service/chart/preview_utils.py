@@ -39,26 +39,14 @@ SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
 
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
-    """Build query columns list from form_data, including both x_axis and groupby."""
-    # Table charts in raw mode use all_columns or columns
-    all_columns = form_data.get("all_columns", [])
-    raw_columns_field = form_data.get("columns", [])
-    if form_data.get("query_mode") == "raw" and (all_columns or raw_columns_field):
-        return list(all_columns or raw_columns_field)
+    """Build query columns list from form_data, including both x_axis and groupby.
 
-    x_axis_config = form_data.get("x_axis")
-    groupby_columns: list[str] = form_data.get("groupby") or []
-    raw_columns: list[str] = form_data.get("columns") or []
+    Delegates to the shared builder so the MCP and dashboard-export paths stay in
+    sync (single source of truth).
+    """
+    from superset.common.form_data_query_context import columns_from_form_data
 
-    columns = raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-    if x_axis_config and isinstance(x_axis_config, str):
-        if x_axis_config not in columns:
-            columns.insert(0, x_axis_config)
-    elif x_axis_config and isinstance(x_axis_config, dict):
-        col_name = x_axis_config.get("column_name")
-        if col_name and col_name not in columns:
-            columns.insert(0, col_name)
-    return columns
+    return columns_from_form_data(form_data)
 
 
 def generate_preview_from_form_data(

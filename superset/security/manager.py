@@ -60,6 +60,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_babel import lazy_gettext as _
+from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, func as sa_func, inspect, or_
@@ -1615,7 +1616,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.extensions import feature_flag_manager
 
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
-            return self.get_guest_user_from_request(request)
+            raw_guest_token = request.headers.get(
+                get_conf()["GUEST_TOKEN_HEADER_NAME"]
+            ) or request.form.get("guest_token")
+            if guest_user := self.get_guest_user_from_request(request):
+                return guest_user
+            if raw_guest_token is not None:
+                # Keep invalid guest tokens from falling through to Bearer auth here.
+                return None
+
+        if request.headers.get("Authorization", "").lower().startswith("bearer "):
+            try:
+                verify_jwt_in_request()
+                user = self.load_user(get_jwt_identity())
+            except Exception:  # pylint: disable=broad-except
+                return None
+            if user is None:
+                return None
+            g.user = user
+            return user
         return None
 
     def get_catalog_perm(
@@ -3952,6 +3971,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if query in self.session:
                 self.session.expunge(query)
 
+        # When only ``database`` is provided, enforce database-level access
+        # here so the call is not a no-op.
+        if database and not (table or query):
+            if not self.can_access_database(database):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                        message=_(
+                            "You need access to the following database: %(name)s",
+                            name=database.database_name,
+                        ),
+                        level=ErrorLevel.WARNING,
+                    )
+                )
+
         if database and table or query:
             if query:
                 # Type narrow: only SQL Lab Query objects have .database attribute
@@ -4030,6 +4064,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                 "could not be fully parsed. Qualify tables "
                                 "explicitly and avoid dynamic SQL inside "
                                 "stored-procedure or vendor-specific calls."
+                            ),
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
+                # Statements that rebind how unqualified table names resolve
+                # (``USE``, ``SET SCHEMA``, or a ``search_path`` change) make
+                # the qualification below diverge from what the engine uses at
+                # execution time, so reject them regardless of engine.
+                if force_dataset_match and parse_result.script.changes_default_schema():
+                    raise SupersetSecurityException(
+                        SupersetError(
+                            error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                            message=_(
+                                "SQL Lab cannot authorise a script that "
+                                "changes the schema used to resolve "
+                                "unqualified table names (e.g. USE or "
+                                "search_path changes). Qualify tables "
+                                "explicitly instead."
                             ),
                             level=ErrorLevel.ERROR,
                         )

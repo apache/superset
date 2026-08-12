@@ -175,6 +175,16 @@ ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 
 When enabled, Superset rejects webhook configurations that use `http://` URLs.
 
+#### Request Timeout
+
+Webhook deliveries use a socket timeout so a request can't hang forever if the webhook target is unreachable, which would otherwise leave the report schedule stuck in a `WORKING` state. Configure it with:
+
+```python
+ALERT_REPORTS_WEBHOOK_TIMEOUT = 60  # seconds
+```
+
+Set to `None` to disable the timeout (not recommended).
+
 #### Retry Behavior
 
 Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff. Retries are bounded to roughly 120 seconds of cumulative wall-clock time (worst case ~210 seconds, because the bound is checked against the time elapsed before each attempt, so the final request can begin just under the limit and still run its full request timeout), after which the delivery is abandoned.
