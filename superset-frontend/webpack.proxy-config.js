@@ -208,8 +208,10 @@ module.exports = newManifest => {
       try {
         copyHeaders(proxyResponse, response);
         if (isHTML(response)) {
-          // For HTML responses, flush headers before processing starts
-          // processHTML sets up async handlers that will call response.end()
+          // For HTML responses, flush headers before processing starts.
+          // processHTML awaits pipeline() and calls response.end() once it
+          // resolves; the .catch() below handles a stream failure that
+          // surfaces after those headers are already sent.
           response.flushHeaders();
           processHTML(proxyResponse, response).catch(e => {
             // eslint-disable-next-line no-console
