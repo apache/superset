@@ -165,6 +165,11 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 crontab="* * * * *",
                 chart=chart,
             )
+            # SQLAlchemy 2.0 removes the legacy cascade_backrefs behavior, so
+            # assigning `chart=chart` on a transient ReportSchedule no longer
+            # implicitly adds it to the session via the Slice.report_schedules
+            # backref - it must be added explicitly.
+            db.session.add(report_schedule)
             db.session.commit()
 
             yield chart

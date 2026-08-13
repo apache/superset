@@ -496,7 +496,17 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         "OAuth2 required"
     )
 
-    query = mocker.MagicMock(select_as_cta=False, database=database)
+    # `limit` and `select_as_cta_used` must match the real `Query` model's
+    # defaults (nullable Integer -> None, Boolean default=False) so that
+    # `apply_limit` -- called unconditionally before the mocked OAuth2 error
+    # is ever reached -- doesn't try to compare an unconfigured MagicMock
+    # against an int.
+    query = mocker.MagicMock(
+        select_as_cta=False,
+        select_as_cta_used=False,
+        limit=None,
+        database=database,
+    )
     mocker.patch("superset.sql_lab.get_query", return_value=query)
 
     payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
@@ -509,7 +519,9 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     assert error["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
     assert error["level"] == ErrorLevel.WARNING
     assert error["extra"]["tab_id"] == "fb11f528-6eba-4a8a-837e-6b0d39ee9187"
-    assert error["extra"]["redirect_uri"] == "http://localhost/api/v1/database/oauth2/"
+    assert (
+        error["extra"]["redirect_uri"] == "http://example.com/api/v1/database/oauth2/"
+    )
 
     # Parse the OAuth2 authorization URL and verify components individually,
     # since the JWT state and PKCE code_challenge are computed deterministically
@@ -522,7 +534,7 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     params = parse_qs(url.query)
     assert params["scope"] == ["refresh_token session:role:USERADMIN"]
     assert params["response_type"] == ["code"]
-    assert params["redirect_uri"] == ["http://localhost/api/v1/database/oauth2/"]
+    assert params["redirect_uri"] == ["http://example.com/api/v1/database/oauth2/"]
     assert params["client_id"] == ["my_client_id"]
     assert params["code_challenge_method"] == ["S256"]
 
