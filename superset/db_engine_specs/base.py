@@ -923,7 +923,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else requests.post(uri, json=req_body, timeout=timeout)
         )
         if response.status_code in (400, 401, 403):
-            raise OAuth2TokenRefreshError(response.text)
+            raise OAuth2TokenRefreshError()
         response.raise_for_status()
         return response.json()
 
@@ -2876,6 +2876,11 @@ class BasicParametersMixin:
     # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
     encryption_parameters: dict[str, str] = {}
 
+    # query parameter to explicitly disable encryption, for drivers that do not
+    # treat the absence of `encryption_parameters` as an unencrypted connection
+    # for Databend this would be `{"sslmode": "disable"}`, eg.
+    encryption_disable_parameters: dict[str, str] = {}
+
     @classmethod
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
@@ -2891,28 +2896,36 @@ class BasicParametersMixin:
                     "Unable to build a URL with encryption enabled"
                 )
             query.update(cls.encryption_parameters)
+        else:
+            query.update(cls.encryption_disable_parameters)
 
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
-                username=parameters.get("username"),
-                password=parameters.get("password"),
-                host=parameters["host"],
-                port=parameters["port"],
-                database=parameters["database"],
-                query=query,
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=parameters["database"],
+            query=query,
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: dict[str, Any] | None = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
+        encryption_items = [
+            *cls.encryption_parameters.items(),
+            *cls.encryption_disable_parameters.items(),
+        ]
         query = {
             key: value
             for (key, value) in url.query.items()
-            if (key, value) not in cls.encryption_parameters.items()
+            if (key, value) not in encryption_items
         }
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()

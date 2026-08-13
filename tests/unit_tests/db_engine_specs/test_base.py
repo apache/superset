@@ -23,7 +23,7 @@ import json  # noqa: TID251
 import re
 from datetime import timedelta
 from textwrap import dedent
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -33,7 +33,11 @@ from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
-from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersType,
+    convert_inspector_columns,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError
 from superset.sql.parse import Table
@@ -1158,7 +1162,7 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
 
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.status_code = status_code
-    mock_post.return_value.text = '{"error": "invalid_grant"}'
+    mock_post.return_value.text = '{"error": "provider-payload-sentinel"}'
 
     config: OAuth2ClientConfig = {
         "id": "client-id",
@@ -1173,7 +1177,7 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
     with pytest.raises(OAuth2TokenRefreshError) as exc_info:
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
-    assert exc_info.value.error.extra["error"] == '{"error": "invalid_grant"}'
+    assert "provider-payload-sentinel" not in str(exc_info.value.to_dict())
 
 
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
@@ -1383,3 +1387,96 @@ def test_base_spec_public_information_includes_supports_offset() -> None:
 
     assert "supports_offset" in info
     assert info["supports_offset"] is True
+
+
+def _parameters(encryption: bool) -> BasicParametersType:
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "pwd",
+        "host": "localhost",
+        "port": 5432,
+        "database": "db",
+        "query": {},
+        "encryption": encryption,
+    }
+    return cast(BasicParametersType, parameters)
+
+
+def test_build_sqlalchemy_uri_omits_disable_parameters_by_default() -> None:
+    """
+    Specs that do not define ``encryption_disable_parameters`` must keep
+    emitting nothing at all when encryption is off.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+
+    uri = TestEngineSpec.build_sqlalchemy_uri(_parameters(encryption=False))
+
+    assert make_url(uri).query == {}
+
+
+@pytest.mark.parametrize(
+    "encryption,expected_query",
+    [
+        (True, {"sslmode": "require"}),
+        (False, {"sslmode": "disable"}),
+    ],
+)
+def test_build_sqlalchemy_uri_applies_disable_parameters(
+    encryption: bool, expected_query: dict[str, str]
+) -> None:
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    uri = TestEngineSpec.build_sqlalchemy_uri(_parameters(encryption=encryption))
+
+    assert dict(make_url(uri).query) == expected_query
+
+
+@pytest.mark.parametrize(
+    "uri,expected_encryption",
+    [
+        ("testdb://user:pwd@localhost:5432/db?sslmode=require", True),
+        ("testdb://user:pwd@localhost:5432/db?sslmode=disable", False),
+    ],
+)
+def test_get_parameters_from_uri_strips_both_parameter_sets(
+    uri: str, expected_encryption: bool
+) -> None:
+    """
+    Both sets share a key with differing values, so neither may leak into
+    ``query`` and reappear as a user-supplied extra parameter.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    parameters = TestEngineSpec.get_parameters_from_uri(uri)
+
+    assert parameters["encryption"] is expected_encryption
+    assert parameters["query"] == {}
+
+
+def test_get_parameters_from_uri_keeps_unrelated_query_parameters() -> None:
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    parameters = TestEngineSpec.get_parameters_from_uri(
+        "testdb://user:pwd@localhost:5432/db?sslmode=disable&application_name=superset"
+    )
+
+    assert parameters["query"] == {"application_name": "superset"}

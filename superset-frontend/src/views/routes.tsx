@@ -195,8 +195,8 @@ const RedirectWarning = lazy(
 
 type Routes = {
   path: string;
-  Component: ComponentType<any>;
-  Fallback?: ComponentType<any>;
+  Component: ComponentType;
+  Fallback?: ComponentType;
   props?: ComponentProps<any>;
   /**
    * Marks a route as usable in the mobile consumption-only experience.
@@ -259,7 +259,6 @@ export const routes: Routes = [
   { path: RoutePaths.SQLLAB, Component: SqlLab },
   { path: RoutePaths.USER_INFO, Component: UserInfo, mobileSupported: true },
   { path: RoutePaths.ACTION_LOG, Component: ActionLogList },
-  { path: RoutePaths.REGISTRATIONS, Component: UserRegistrations },
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
