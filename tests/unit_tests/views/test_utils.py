@@ -125,9 +125,15 @@ def test_get_dashboard_extra_filters_includes_native_filter_defaults(
 
     extra_filters = get_dashboard_extra_filters(chart.id, dashboard.id)
 
-    assert extra_filters, (
-        "get_dashboard_extra_filters returned no filters for a dashboard "
-        "with a native filter default value -- it currently only reads the "
-        "legacy default_filters/filter_scopes metadata, so native filter "
-        "defaults are silently dropped from cache warming."
+    # Pin the actual predicate, not just non-emptiness -- a fix that returns
+    # any placeholder/non-empty value without extracting the native filter's
+    # own col/op/val (from defaultDataMask.extraFormData.filters) would
+    # otherwise still pass this test while producing a cache key that
+    # diverges from what the browser actually requests.
+    assert {"col": "region", "op": "IN", "val": ["APAC"]} in extra_filters, (
+        "get_dashboard_extra_filters must surface the native filter's "
+        "region=APAC predicate from defaultDataMask.extraFormData.filters -- "
+        "it currently only reads the legacy default_filters/filter_scopes "
+        "metadata, so native filter defaults are silently dropped from "
+        f"cache warming. Got: {extra_filters!r}"
     )
