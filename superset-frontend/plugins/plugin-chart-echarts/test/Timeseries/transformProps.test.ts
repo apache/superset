@@ -1662,6 +1662,91 @@ test('clamps series values to the yAxis bounds when colorByPrimaryAxis wraps poi
   expect(data[1].value[1]).toBe(10);
 });
 
+test('does not clamp a timeseries annotation series to the Y axis bounds (#27449)', () => {
+  const timeseries: TimeseriesAnnotationLayer = {
+    annotationType: AnnotationType.Timeseries,
+    name: 'My Timeseries',
+    show: true,
+    showLabel: true,
+    sourceType: AnnotationSourceType.Line,
+    style: AnnotationStyle.Solid,
+    titleColumn: '',
+    value: 3,
+  };
+  const annotationData = {
+    'My Timeseries': {
+      records: [
+        { x: 0, y: 11000 },
+        { x: 300000000, y: 21000 },
+      ],
+    },
+  };
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+      { annotation_data: annotationData },
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+      annotationLayers: [timeseries],
+    },
+    annotationData,
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const annotationSeries = series.find(s => s.id === 'My Timeseries');
+  expect(annotationSeries).toBeDefined();
+  const data = annotationSeries!.data as [number, number][];
+
+  // The annotation carries its own configured values (11000, 21000), which
+  // are unrelated to the chart's own out-of-range-data problem this PR
+  // fixes. They must be left untouched by the Y axis clamp rather than
+  // rewritten to the yAxisBounds max of 10.
+  expect(data[0][1]).toBe(11000);
+  expect(data[1][1]).toBe(21000);
+});
+
+test('clamps series values at the correct tuple index for horizontal bar charts (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      yAxisBounds: [0, 16000],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  // In horizontal orientation the value sits at tuple index 0 (the axes are
+  // swapped), so the clamp must target that index rather than index 1.
+  expect(data).toHaveLength(3);
+  expect(data[1][0]).toBe(16000);
+});
+
 test('legend is visible on tall charts when enabled by the user', () => {
   const chartProps = createTestChartProps({
     height: 400,
