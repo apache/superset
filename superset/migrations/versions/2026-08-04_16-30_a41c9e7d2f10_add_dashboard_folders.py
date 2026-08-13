@@ -17,7 +17,7 @@
 """add dashboard folders
 
 Revision ID: a41c9e7d2f10
-Revises: c4a1b8e2d739
+Revises: 2d6ad72e4af6
 Create Date: 2026-08-04 16:30:00.000000
 
 """
@@ -34,7 +34,7 @@ from superset.migrations.shared.utils import (
 )
 
 revision: str = "a41c9e7d2f10"
-down_revision: str = "c4a1b8e2d739"
+down_revision: str = "2d6ad72e4af6"
 
 
 def upgrade() -> None:
