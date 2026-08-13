@@ -23,6 +23,15 @@ import {
 } from '@superset-ui/core';
 
 /**
+ * A missing date can arrive as either `null`/`undefined` or an empty string
+ * (e.g. a blank cell in an otherwise-numeric epoch column, which also has the
+ * side effect of degrading the whole column's formatter to `String` - see
+ * `isNumeric` in transformProps.ts). Both should be treated as "no value".
+ */
+export const isEmptyDateInput = (input: DataRecordValue): boolean =>
+  input === null || input === undefined || input === '';
+
+/**
  * Extended Date object with a custom formatter, and retains the original input
  * when the formatter is simple `String(..)`.
  */
