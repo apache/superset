@@ -4786,9 +4786,8 @@ msgstr "No se ha encontrado el panel de control %(dashboard_id)s"
 msgid "Dashboard Filter"
 msgstr "Titulo del panel de control"
 
-#, fuzzy
 msgid "Dashboard Id"
-msgstr "panel de control"
+msgstr "ID del panel de control"
 
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
