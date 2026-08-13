@@ -399,7 +399,7 @@ class ToolRegistry:
                 f"No tool named {call.name!r}. Available tools: {available}."
             )
 
-        # Every tool here reads a permissioned resource, so all of them need a
+        # Every tool here acts on a permissioned resource, so all of them need a
         # principal to check against. Gated once, here, rather than in each tool:
         # a tool that forgot would otherwise fall through to whatever the
         # security manager does with an absent user, which is not a decision
@@ -514,10 +514,8 @@ def _configured_max_bytes() -> int:
         return _DEFAULT_MAX_BYTES
 
 
-#: Every built-in tool name. The single source of truth for configuration
-#: validation and documentation: an operator naming a tool in an agent profile's
-#: allowlist is naming one of these.
-ALL_TOOL_NAMES: tuple[str, ...] = (
+#: Tools that inspect Superset or run a read-only warehouse query.
+READ_ONLY_TOOL_NAMES: tuple[str, ...] = (
     "search_assets",
     "list_databases",
     "get_schema",
@@ -526,6 +524,18 @@ ALL_TOOL_NAMES: tuple[str, ...] = (
     "get_chart_context",
     "get_dashboard_context",
 )
+
+#: Asset mutations that a deployment must explicitly add to an agent profile.
+AUTHORING_TOOL_NAMES: tuple[str, ...] = (
+    "create_virtual_dataset",
+    "generate_chart",
+    "generate_dashboard",
+)
+
+#: Every built-in tool name. The single source of truth for configuration
+#: validation and documentation: an operator naming a tool in an agent profile's
+#: allowlist is naming one of these.
+ALL_TOOL_NAMES: tuple[str, ...] = READ_ONLY_TOOL_NAMES + AUTHORING_TOOL_NAMES
 
 #: Names in :data:`ALL_TOOL_NAMES` that do not run a warehouse query.
 DISCOVERY_TOOL_NAMES: tuple[str, ...] = (
@@ -544,6 +554,11 @@ def _all_tools() -> list[AITool]:
     Imports are local because these modules reach into models, DAOs and the
     security manager, and this one is imported from configuration-time code.
     """
+    from superset.ai.tools.authoring import (
+        CreateVirtualDatasetTool,
+        GenerateChartTool,
+        GenerateDashboardTool,
+    )
     from superset.ai.tools.context import GetChartContextTool, GetDashboardContextTool
     from superset.ai.tools.metadata import GetSchemaTool, ListDatabasesTool
     from superset.ai.tools.search import SearchAssetsTool
@@ -557,10 +572,15 @@ def _all_tools() -> list[AITool]:
         ValidateSqlTool(),
         GetChartContextTool(),
         GetDashboardContextTool(),
+        CreateVirtualDatasetTool(),
+        GenerateChartTool(),
+        GenerateDashboardTool(),
     ]
 
 
-#: The full read-only surface. The default for an analysis agent.
+#: Every built-in tool, including explicit asset authoring operations.
+BUNDLE_ALL = "all"
+#: The full read-only surface. The default for shipped agent profiles.
 BUNDLE_READ_ONLY = "read_only"
 #: Metadata and context only; cannot execute SQL. Useful for a cheap routing or
 #: classification pass that should not be able to reach a warehouse.
@@ -570,7 +590,8 @@ BUNDLE_DISCOVERY = "discovery"
 #: ask for instead of enumerating tools, and every member is in
 #: :data:`ALL_TOOL_NAMES`.
 BUNDLES: dict[str, tuple[str, ...]] = {
-    BUNDLE_READ_ONLY: ALL_TOOL_NAMES,
+    BUNDLE_ALL: ALL_TOOL_NAMES,
+    BUNDLE_READ_ONLY: READ_ONLY_TOOL_NAMES,
     BUNDLE_DISCOVERY: DISCOVERY_TOOL_NAMES,
 }
 
