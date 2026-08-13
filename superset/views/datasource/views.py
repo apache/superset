@@ -83,12 +83,32 @@ class Datasource(BaseSupersetView):
         orm_datasource = DatasourceDAO.get_datasource(
             DatasourceType(datasource_type), datasource_id
         )
-        orm_datasource.database_id = database_id
 
         try:
             security_manager.raise_for_editorship(orm_datasource)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
+
+        if database_id != orm_datasource.database_id:
+            new_database = DatasetDAO.get_database_by_id(database_id)
+            if new_database is None:
+                return json_error_response(_("Database not found."), status=422)
+            try:
+                security_manager.raise_for_access(
+                    database=new_database,
+                    # Check access against the table/schema/catalog the
+                    # request is repointing to, not the dataset's current
+                    # values -- update_from_object (below) applies whatever
+                    # table_name/schema/catalog the request supplies.
+                    table=Table(
+                        datasource_dict.get("table_name", orm_datasource.table_name),
+                        datasource_dict.get("schema", orm_datasource.schema),
+                        datasource_dict.get("catalog", orm_datasource.catalog),
+                    ),
+                )
+            except SupersetSecurityException as ex:
+                raise DatasetForbiddenError() from ex
+            orm_datasource.database_id = database_id
 
         duplicates = [
             name
@@ -202,6 +222,23 @@ class Datasource(BaseSupersetView):
             payload = SamplesPayloadSchema().load(request.json)
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
+
+        # Refuse early for datasource types that don't model raw rows
+        # (e.g. semantic views, which only expose pre-defined metrics and
+        # dimensions). Without this gate the request would still go through
+        # the standard query pipeline and fail with an opaque 500.
+        # ``supports_samples`` defaults to True for any datasource class that
+        # doesn't explicitly opt out, so SqlaTable/Query/SavedQuery continue
+        # to work without needing the attribute declared on each class.
+        ds_class = DatasourceDAO.sources.get(
+            DatasourceType(params["datasource_type"]),
+        )
+        if ds_class is not None and not getattr(ds_class, "supports_samples", True):
+            return json_error_response(
+                _("Samples are not available for this datasource type."),
+                status=400,
+            )
+
         dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:

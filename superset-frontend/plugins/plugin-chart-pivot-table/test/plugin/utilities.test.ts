@@ -26,7 +26,11 @@ import buildGroupbyCombinations, {
   splitGroupingSetsResult,
   groupingMarkerLabel,
 } from '../../src/plugin/utilities';
-import { PivotTableQueryFormData, MetricsLayoutEnum } from '../../src/types';
+import {
+  PivotTableQueryFormData,
+  MetricsLayoutEnum,
+  ShowValuesAsEnum,
+} from '../../src/types';
 
 const baseFormData = {
   groupbyRows: ['row1', 'row2'],
@@ -361,6 +365,70 @@ test('pruning: empty column dims keep the [] (leaf) level regardless of rowTotal
   expect(combinations).toEqual([
     { rows: [], columns: [] },
     { rows: ['row1', 'row2'], columns: [] },
+  ]);
+});
+
+test('pruning: percent_row forces the row-total (columns collapsed) level even with rowTotals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_ROW,
+  });
+  expect(combinations).toEqual([
+    { rows: ['row1', 'row2'], columns: [] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: percent_col forces the column-total (rows collapsed) level even with colTotals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_COLUMN,
+  });
+  expect(combinations).toEqual([
+    { rows: [], columns: ['col1', 'col2'] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: percent_total forces the grand-total level even with both totals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_TOTAL,
+  });
+  // Rows is the outer loop and columns the inner loop (see
+  // buildGroupbyCombinations's flatMap), so the rows-collapsed level pairs
+  // with every column prefix before the leaf row prefix does.
+  expect(combinations).toEqual([
+    { rows: [], columns: [] },
+    { rows: [], columns: ['col1', 'col2'] },
+    { rows: ['row1', 'row2'], columns: [] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: actual (no percent mode) does not force any extra level', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.ACTUAL,
+  });
+  expect(combinations).toEqual([
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
   ]);
 });
 

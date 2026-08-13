@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_filter_operator,
     map_table_config,
     map_xy_config,
+    merge_table_column_config,
     validate_chart_dataset,
 )
 from superset.mcp_service.chart.schemas import (
@@ -142,6 +143,76 @@ class TestMapFilterOperator:
     def test_map_filter_operator_unknown(self) -> None:
         """Test mapping of unknown operator returns original"""
         assert map_filter_operator("UNKNOWN") == "UNKNOWN"
+
+
+class TestMergeTableColumnConfig:
+    def test_partial_update_preserves_other_labels_and_settings(self) -> None:
+        existing = {
+            "viz_type": "table",
+            "column_config": {
+                "Revenue": {"columnWidth": 80, "visible": False},
+                "Region": {"customColumnName": "Sales region"},
+            },
+        }
+        updated = {
+            "viz_type": "table",
+            "column_config": {
+                "Revenue": {"columnWidth": 120, "d3NumberFormat": "$,.2f"}
+            },
+        }
+
+        merge_table_column_config(existing, updated)
+
+        assert updated["column_config"] == {
+            "Revenue": {
+                "columnWidth": 120,
+                "d3NumberFormat": "$,.2f",
+                "visible": False,
+            },
+            "Region": {"customColumnName": "Sales region"},
+        }
+
+    def test_omitted_preserves_and_explicit_empty_clears(self) -> None:
+        existing = {
+            "viz_type": "table",
+            "column_config": {"Revenue": {"columnWidth": 80}},
+        }
+        omitted: dict[str, Any] = {"viz_type": "table"}
+        explicit_empty: dict[str, Any] = {
+            "viz_type": "table",
+            "column_config": {},
+        }
+
+        merge_table_column_config(existing, omitted)
+        merge_table_column_config(existing, explicit_empty)
+
+        assert omitted["column_config"] == existing["column_config"]
+        assert explicit_empty["column_config"] == {}
+
+    @pytest.mark.parametrize("existing_viz_type", ["line", None])
+    def test_does_not_copy_config_from_non_table_chart(
+        self, existing_viz_type: str | None
+    ) -> None:
+        existing = {
+            "viz_type": existing_viz_type,
+            "column_config": {"Revenue": {"columnWidth": 80}},
+        }
+        updated: dict[str, Any] = {"viz_type": "table"}
+
+        merge_table_column_config(existing, updated)
+
+        assert "column_config" not in updated
+
+    def test_does_not_copy_config_to_non_table_chart(self) -> None:
+        existing = {
+            "viz_type": "table",
+            "column_config": {"Revenue": {"columnWidth": 80}},
+        }
+        updated: dict[str, Any] = {"viz_type": "line"}
+
+        merge_table_column_config(existing, updated)
+
+        assert "column_config" not in updated
 
 
 class TestMapTableConfig:
@@ -1945,9 +2016,8 @@ class TestValidateChartDataset:
     def test_validate_chart_dataset_no_datasource_id(
         self, mock_find: MagicMock, mock_access: MagicMock
     ) -> None:
-        """Chart with no datasource_id returns invalid result."""
-        chart = MagicMock(spec=[])  # no datasource_id attribute
-        result = validate_chart_dataset(chart)
+        """A chart with no datasource_id returns invalid result."""
+        result = validate_chart_dataset(None)
         assert not result.is_valid
         assert result.dataset_id is None
         assert "no dataset reference" in (result.error or "").lower()
@@ -1959,9 +2029,7 @@ class TestValidateChartDataset:
         self, mock_find: MagicMock, mock_access: MagicMock
     ) -> None:
         """Chart whose dataset was deleted returns invalid result."""
-        chart = MagicMock()
-        chart.datasource_id = 42
-        result = validate_chart_dataset(chart)
+        result = validate_chart_dataset(42)
         assert not result.is_valid
         assert result.dataset_id == 42
         assert "deleted" in (result.error or "").lower()
@@ -1976,9 +2044,7 @@ class TestValidateChartDataset:
         dataset.table_name = "my_table"
         dataset.sql = None
         mock_find.return_value = dataset
-        chart = MagicMock()
-        chart.datasource_id = 7
-        result = validate_chart_dataset(chart)
+        result = validate_chart_dataset(7)
         assert result.is_valid
         assert result.dataset_id == 7
         assert result.dataset_name == "my_table"
@@ -1994,9 +2060,7 @@ class TestValidateChartDataset:
         dataset.table_name = "virt_ds"
         dataset.sql = "SELECT 1"
         mock_find.return_value = dataset
-        chart = MagicMock()
-        chart.datasource_id = 10
-        result = validate_chart_dataset(chart)
+        result = validate_chart_dataset(10)
         assert result.is_valid
         assert len(result.warnings) == 1
         assert "virtual" in result.warnings[0].lower()
@@ -2010,9 +2074,7 @@ class TestValidateChartDataset:
         from sqlalchemy.exc import SQLAlchemyError
 
         mock_find.side_effect = SQLAlchemyError("connection lost")
-        chart = MagicMock()
-        chart.datasource_id = 99
-        result = validate_chart_dataset(chart)
+        result = validate_chart_dataset(99)
         assert not result.is_valid
         assert result.dataset_id == 99
         assert "error" in (result.error or "").lower()

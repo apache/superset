@@ -45,6 +45,10 @@ from superset.exceptions import (
 )
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.error_sanitization import (
+    sanitize_error_message,
+    sanitize_superset_errors,
+)
 from superset.utils.log import get_logger_from_status
 from superset.views.utils import redirect_to_login
 
@@ -74,12 +78,16 @@ def json_error_response(
 ) -> FlaskResponse:
     payload = payload or {}
 
+    if isinstance(error_details, SupersetError):
+        error_details = [error_details]
+
     if isinstance(error_details, list):
-        payload["errors"] = [dataclasses.asdict(error) for error in error_details]
-    elif isinstance(error_details, SupersetError):
-        payload["errors"] = [dataclasses.asdict(error_details)]
+        payload["errors"] = [
+            dataclasses.asdict(error)
+            for error in sanitize_superset_errors(error_details)
+        ]
     elif isinstance(error_details, str):
-        payload["error"] = error_details
+        payload["error"] = sanitize_error_message(error_details, status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
@@ -170,6 +178,30 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     def show_superset_errors(ex: SupersetErrorsException) -> FlaskResponse:
         logger.warning("SupersetErrorsException", exc_info=True)
         return json_error_response(ex.errors, status=ex.status)
+
+    @app.errorhandler(SupersetException)
+    def show_superset_exception(ex: SupersetException) -> FlaskResponse:
+        logger_func, _ = get_logger_from_status(ex.status)
+        logger_func(ex.message, exc_info=True)
+
+        if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
+            path = files("superset") / "static/assets/500.html"
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), ex.status
+            except FileNotFoundError:
+                pass
+
+        return json_error_response(
+            [
+                SupersetError(
+                    message=ex.message,
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                    level=get_error_level_from_status(ex.status),
+                ),
+            ],
+            status=ex.status,
+        )
 
     @app.errorhandler(CSRFError)
     def refresh_csrf_token(ex: CSRFError) -> FlaskResponse:

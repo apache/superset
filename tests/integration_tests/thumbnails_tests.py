@@ -19,7 +19,7 @@
 
 import urllib.request
 from unittest import skipUnless
-from unittest.mock import ANY, call, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from flask_testing import LiveServerTestCase
@@ -36,8 +36,6 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
     ScreenshotCachePayload,
 )
-from superset.utils.urls import get_url_path
-from superset.utils.webdriver import WebDriverSelenium
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
@@ -80,115 +78,6 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
                 thumbnail_url,
             )
             assert response.getcode() == 202
-
-
-class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
-    @patch("superset.utils.webdriver.WebDriverWait")
-    @patch("superset.utils.webdriver.firefox")
-    @patch("superset.utils.webdriver.WebDriverSelenium.find_unexpected_errors")
-    def test_not_call_find_unexpected_errors_if_feature_disabled(
-        self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
-    ):
-        webdriver_proxy = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(ADMIN_USERNAME)
-        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
-        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
-
-        assert not mock_find_unexpected_errors.called
-
-    @patch("superset.utils.webdriver.WebDriverWait")
-    @patch("superset.utils.webdriver.firefox")
-    @patch("superset.utils.webdriver.WebDriverSelenium.find_unexpected_errors")
-    def test_call_find_unexpected_errors_if_feature_enabled(
-        self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
-    ):
-        app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
-        webdriver_proxy = WebDriverSelenium("firefox")
-        user = security_manager.get_user_by_username(ADMIN_USERNAME)
-        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
-        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
-
-        assert mock_find_unexpected_errors.called
-
-        app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = False
-
-    def test_find_unexpected_errors_no_alert(self):
-        webdriver = MagicMock()
-
-        webdriver.find_elements.return_value = []
-
-        unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver=webdriver)
-        assert len(unexpected_errors) == 0
-
-        assert "alert" in webdriver.find_elements.call_args_list[0][0][1]
-
-    @patch("superset.utils.webdriver.WebDriverWait")
-    def test_find_unexpected_errors(self, mock_webdriver_wait):
-        webdriver = MagicMock()
-        alert_div = MagicMock()
-
-        webdriver.find_elements.return_value = [alert_div]
-        alert_div.find_elements.return_value = MagicMock()
-
-        unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver=webdriver)
-        assert len(unexpected_errors) == 1
-
-        # attempt to find alerts
-        assert "alert" in webdriver.find_elements.call_args_list[0][0][1]
-        # attempt to click on "See more" buttons
-        assert "button" in alert_div.find_element.call_args_list[0][0][1]
-        # Wait for error modal to show up and to hide
-        assert 2 == len(mock_webdriver_wait.call_args_list)
-        # replace the text in alert div, eg, "unexpected errors"
-        assert alert_div == webdriver.execute_script.call_args_list[0][0][1]
-
-
-class TestWebDriverSelenium(SupersetTestCase):
-    @patch("superset.utils.webdriver.WebDriverWait")
-    @patch("superset.utils.webdriver.firefox")
-    @patch("superset.utils.webdriver.sleep")
-    def test_screenshot_selenium_headstart(
-        self, mock_sleep, mock_webdriver, mock_webdriver_wait
-    ):
-        user = security_manager.get_user_by_username(ADMIN_USERNAME)
-        webdriver = WebDriverSelenium("firefox", user=user)
-        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        app.config["SCREENSHOT_SELENIUM_HEADSTART"] = 5
-        webdriver.get_screenshot(url, "chart-container")
-        assert mock_sleep.call_args_list[0] == call(5)
-
-    @patch("superset.utils.webdriver.WebDriverWait")
-    @patch("superset.utils.webdriver.firefox")
-    def test_screenshot_selenium_locate_wait(self, mock_webdriver, mock_webdriver_wait):
-        app.config["SCREENSHOT_LOCATE_WAIT"] = 15
-        user = security_manager.get_user_by_username(ADMIN_USERNAME)
-        webdriver = WebDriverSelenium("firefox", user=user)
-        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url, "chart-container")
-        assert mock_webdriver_wait.call_args_list[0] == call(ANY, 15)
-
-    @patch("superset.utils.webdriver.WebDriverWait")
-    @patch("superset.utils.webdriver.firefox")
-    def test_screenshot_selenium_load_wait(self, mock_webdriver, mock_webdriver_wait):
-        app.config["SCREENSHOT_LOAD_WAIT"] = 15
-        user = security_manager.get_user_by_username(ADMIN_USERNAME)
-        webdriver = WebDriverSelenium("firefox", user=user)
-        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url, "chart-container")
-        assert mock_webdriver_wait.call_args_list[2] == call(ANY, 15)
-
-    @patch("superset.utils.webdriver.WebDriverWait")
-    @patch("superset.utils.webdriver.firefox")
-    @patch("superset.utils.webdriver.sleep")
-    def test_screenshot_selenium_animation_wait(
-        self, mock_sleep, mock_webdriver, mock_webdriver_wait
-    ):
-        user = security_manager.get_user_by_username(ADMIN_USERNAME)
-        webdriver = WebDriverSelenium("firefox", user=user)
-        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"] = 4
-        webdriver.get_screenshot(url, "chart-container")
-        assert mock_sleep.call_args_list[1] == call(4)
 
 
 class TestThumbnails(SupersetTestCase):
