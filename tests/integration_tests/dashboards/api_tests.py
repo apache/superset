@@ -473,6 +473,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             "form_data",
             "id",
             "slice_name",
+            "localized_name",
             "slice_url",
         }
         assert result["id"] == dashboard.slices[0].id
@@ -603,6 +604,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 "uuid": str(dashboard.uuid),
                 "css": "",
                 "dashboard_title": "title",
+                "localized_title": "title",
                 "datasources": [],
                 "json_metadata": "",
                 "editors": [
