@@ -356,19 +356,21 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             dict[str, Any]
         ] = None,
     ) -> str:
-        return str(
-            URL.create(
-                "snowflake",
-                username=parameters.get("username"),
-                password=parameters.get("password"),
-                host=parameters.get("account"),
-                database=parameters.get("database"),
-                query={
-                    "role": parameters.get("role"),
-                    "warehouse": parameters.get("warehouse"),
-                },
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            "snowflake",
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters.get("account"),
+            database=parameters.get("database"),
+            query={
+                "role": parameters.get("role"),
+                "warehouse": parameters.get("warehouse"),
+            },
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(

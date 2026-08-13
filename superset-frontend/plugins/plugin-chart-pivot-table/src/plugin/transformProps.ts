@@ -30,7 +30,11 @@ import {
   TimeFormats,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { getColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorSchemeEnum,
+  ConditionalFormattingConfig,
+  getColorFormatters,
+} from '@superset-ui/chart-controls';
 import { DateFormatter, PivotTableQueryFormData, QueryData } from '../types';
 import buildGroupbyCombinations, {
   additiveReducerFor,
@@ -206,8 +210,17 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       },
       {},
     );
+  // The "Green"/"Red" trend-color tokens are resolved by the Table chart's
+  // own comparison-aware formatter, which this renderer does not implement.
+  // Filter them out so a stale config (e.g. carried over from switching viz
+  // types) doesn't leak the raw token name through as a literal CSS color.
+  const pivotConditionalFormatting = conditionalFormatting?.filter(
+    (config: ConditionalFormattingConfig) =>
+      config.colorScheme !== ColorSchemeEnum.Green &&
+      config.colorScheme !== ColorSchemeEnum.Red,
+  );
   const metricColorFormatters = getColorFormatters(
-    conditionalFormatting,
+    pivotConditionalFormatting,
     mainQuery.data,
     theme,
   );
