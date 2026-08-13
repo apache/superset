@@ -222,12 +222,6 @@
         "description": "When impersonating a user, use the email prefix instead of username"
       },
       {
-        "name": "PLAYWRIGHT_REPORTS_AND_THUMBNAILS",
-        "default": false,
-        "lifecycle": "testing",
-        "description": "Replace Selenium with Playwright for reports and thumbnails. Supports deck.gl visualizations. Requires playwright pip package."
-      },
-      {
         "name": "RLS_IN_SQLLAB",
         "default": false,
         "lifecycle": "testing",
