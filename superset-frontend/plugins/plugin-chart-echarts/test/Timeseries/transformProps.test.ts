@@ -2528,6 +2528,7 @@ describe('EchartsTimeseries tooltip truncation', () => {
     const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
     expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
   });
+});
 
 test('tooltip formats each series with its own metric format instead of the default formatter', () => {
   // Two saved metrics with different formats: `pct_change` carries a percentage
@@ -2607,4 +2608,58 @@ test('tooltip resolves per-metric formats for series renamed by verbose_name', (
 
   expect(result).toContain('12.34%');
   expect(result).toContain('$');
+});
+
+test('tooltip keeps per-metric formats on time-comparison (time-shifted) series', () => {
+  // A time-shifted series renders under a name carrying the offset, and its
+  // `label_map` entry leads with that offset rather than the metric. The
+  // formatter lookup has to land on the underlying metric so the shifted row is
+  // formatted like the series it is compared against.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+      timeCompare: ['1 year ago'],
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            count: 1000,
+            pct_change: 0.1234,
+            'count, 1 year ago': 900,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            count: ['count'],
+            pct_change: ['pct_change'],
+            'count, 1 year ago': ['1 year ago', 'count'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    { seriesId: 'count', seriesName: 'count', value: [BASE_TIMESTAMP, 1000] },
+    {
+      seriesId: 'count, 1 year ago',
+      seriesName: 'count, 1 year ago',
+      value: [BASE_TIMESTAMP, 900],
+    },
+  ]);
+
+  // The base series and its time-shifted counterpart keep the currency format.
+  expect(result).toContain('$ 1k');
+  expect(result).toContain('$ 900');
 });
