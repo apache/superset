@@ -283,7 +283,7 @@ describe('CountryMap conditional formatting', () => {
     expect(region).toHaveStyle({ fill: '#FF0000' });
   });
 
-  test('falls back to default color when no formatter matches', async () => {
+  test('falls back to default color when conditional formatter threshold is not met', async () => {
     d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
       cb(null, mockMapData),
     );
