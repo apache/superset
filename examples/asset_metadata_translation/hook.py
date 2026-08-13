@@ -14,15 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Reference ``TRANSLATION_HOOK`` backed by the ``AssetTranslation`` table.
+"""Reference translation hooks backed by the ``AssetTranslation`` table.
 
-NOT part of Superset core -- see this directory's README. Assign ``translation_hook``
-to ``TRANSLATION_HOOK`` in ``superset_config.py``.
+NOT part of Superset core -- see this directory's README. Assign
+``translation_hook`` to ``TRANSLATION_HOOK`` in ``superset_config.py``, or
+``translation_batch_hook`` to ``TRANSLATION_BATCH_HOOK`` to resolve a whole
+collection in a single query (preferred for a table-backed store).
 """
 
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -60,3 +63,48 @@ def translation_hook(
         return None
 
     return row[0] if row else None
+
+
+def translation_batch_hook(
+    default_texts: Sequence[str],
+    locale: str,
+    **kwargs: object,
+) -> dict[str, str | None]:
+    """Look up many stored translations in one query.
+
+    The batch counterpart to :func:`translation_hook`: Superset passes every
+    string it is about to render for one context -- all of a dashboard's chart
+    names, say -- so a table-backed store answers with a single ``IN`` query
+    instead of one per string. Strings with no stored translation are simply
+    absent from the result; Superset falls back to the canonical text.
+    """
+    # Local imports: these are only importable inside the running app context.
+    from superset import db
+
+    from .model import AssetTranslation
+
+    if not default_texts:
+        return {}
+
+    try:
+        rows = (
+            db.session.query(
+                AssetTranslation.default_text,
+                AssetTranslation.translated_text,
+            )
+            .filter(
+                AssetTranslation.language_code == locale,
+                AssetTranslation.default_text.in_(list(default_texts)),
+                AssetTranslation.model_name == kwargs.get("model_name", ""),
+                AssetTranslation.field_name == kwargs.get("field_name", ""),
+            )
+            .all()
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "asset translation batch lookup failed for %d strings",
+            len(default_texts),
+        )
+        return {}
+
+    return dict(rows)
