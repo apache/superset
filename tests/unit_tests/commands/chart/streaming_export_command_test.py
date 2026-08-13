@@ -39,6 +39,9 @@ def _setup_chart_mocks(
     datasource = mocker.MagicMock()
     datasource.get_query_str.return_value = sql
     datasource.database = mocker.MagicMock()
+    datasource.database.mutate_sql_based_on_config.side_effect = (
+        lambda sql_, **kwargs: sql_
+    )
     datasource.catalog = catalog
     datasource.schema = schema
     query_context.datasource = datasource
@@ -295,4 +298,47 @@ def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
     datasource.database.get_sqla_engine.assert_called_once_with(
         catalog="my_catalog",
         schema="my_schema",
+    )
+
+
+def test_streaming_export_mutation_does_not_double_apply(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression test for a bug caught in review of apache/superset#40465's fix:
+    ``datasource.get_query_str()`` (used to build the SQL for chart streaming
+    exports) already runs it through
+    ``Database.mutate_sql_based_on_config(sql)`` -- with ``is_split=False`` --
+    upstream in ``get_query_str_extended``. If
+    ``_execute_query_and_stream`` mutated again with the same default
+    ``is_split=False``, a ``SQL_QUERY_MUTATOR`` would run twice under the
+    default ``MUTATE_AFTER_SPLIT=False`` config, and never run at all under
+    ``MUTATE_AFTER_SPLIT=True`` (since neither call would use
+    ``is_split=True``). Passing ``is_split=True`` here is the complement of
+    the upstream call, so exactly one of the two fires for either setting.
+    """
+    mock_db, query_context, datasource = _setup_chart_mocks(
+        mocker, sql="SELECT * FROM test /* mutated */"
+    )
+
+    mock_result = mocker.MagicMock()
+    mock_result.keys.return_value = ["col1"]
+    mock_result.fetchmany.side_effect = [[("val",)], []]
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = mocker.MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingCSVExportCommand(query_context)
+    list(command.run()())
+
+    datasource.database.mutate_sql_based_on_config.assert_called_once_with(
+        "SELECT * FROM test /* mutated */", is_split=True
     )
