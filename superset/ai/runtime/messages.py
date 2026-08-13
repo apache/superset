@@ -186,10 +186,13 @@ class MessagesApiRuntime(BaseAgentRuntime):
                 return
 
         # Budget exhausted without the model choosing to stop.
+        self._result.answer = _NO_ANSWER
+        self._result.error = "Agent reached the step limit before a final answer."
         yield thinking_event(
             ProgressStage.FALLBACK,
-            "Reached the step limit — answering with what I have",
+            "Reached the step limit before finishing",
         )
+        yield error_event(_NO_ANSWER)
 
     async def _consume(
         self,

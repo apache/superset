@@ -335,12 +335,12 @@ def test_unexpected_exception_is_contained() -> None:
     assert runtime.result.ok is False
 
 
-def test_turn_budget_still_produces_an_answer() -> None:
+def test_turn_budget_is_reported_as_an_incomplete_run() -> None:
     """
-    Exhausting the step budget answers with what it has.
+    Exhausting the step budget is not reported as a successful answer.
 
-    Raising instead would leave the user with a spinner and no reply, since the
-    response headers went out long ago.
+    The runtime still emits a terminal error frame because response headers went
+    out long ago, while the result lets persistence and telemetry record failure.
     """
     call = ToolCall(id="c", name="execute_sql", arguments={"sql": "SELECT 1"})
     provider = EchoProvider([ScriptedTurn(tool_calls=(call,)) for _ in range(5)])
@@ -349,7 +349,10 @@ def test_turn_budget_still_produces_an_answer() -> None:
     events = _run(runtime, _request(tools=StubTools(), max_turns=2))
 
     assert runtime.result.turns == 2
-    assert StreamEventType.FINAL in _types(events)
+    assert runtime.result.ok is False
+    assert runtime.result.error is not None
+    assert StreamEventType.ERROR in _types(events)
+    assert StreamEventType.FINAL not in _types(events)
     stages = [p["stage"] for p in _payloads(events, StreamEventType.THINKING)]
     assert "fallback" in stages
 
