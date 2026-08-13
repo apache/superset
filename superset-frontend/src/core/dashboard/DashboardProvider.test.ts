@@ -273,7 +273,7 @@ test('updateLayout displaces an explicitly placed sibling it now collides with',
   // Growing `first` down into row 2 now overlaps `second`, which is also
   // explicitly placed — this mirrors what an AI tool call (not a mouse
   // drag) can do, since it goes through this method directly rather than
-  // through RootGrid/react-grid-layout's own collision handling.
+  // through RootGrid/the grid engine's own collision handling.
   provider.updateLayout(firstId, { rowSpan: 2 });
 
   expect(provider.getNode(firstId)?.layout).toEqual({

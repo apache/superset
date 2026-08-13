@@ -86,6 +86,20 @@ const DEFAULT_ROW_SPAN: Record<string, number> = {
 export const FALLBACK_ROW_SPAN = 6;
 
 /**
+ * The widest an open-space palette drop is ever allowed to preview or land
+ * at, in columns (half of {@link DEFAULT_COLUMNS}) — `availableDropSpan`'s
+ * own `maxColSpan`. Without a cap, "open space" includes a wholly empty
+ * grid, where nothing anywhere is occupied and the free run in any row
+ * spans every column there is — so a drop there would always be full-width,
+ * regardless of where the cursor actually sits, which reads as the ghost
+ * (and the block it produces) ignoring the drag entirely rather than
+ * following it. A real gap between two existing blocks narrower than this
+ * is untouched by it — `availableDropSpan` still returns exactly that gap's
+ * own width, never wider.
+ */
+export const FALLBACK_COL_SPAN = Math.floor(DEFAULT_COLUMNS / 2);
+
+/**
  * Places a new block of `type` at the end of `parentId`'s children and
  * selects it, returning its id.
  *
@@ -126,11 +140,11 @@ export function placeBlock(parentId: string, type: string): string {
  * *where* (and how wide, next to whatever it landed beside) was the entire
  * point of the gesture.
  *
- * `position` arrives already resolved: react-grid-layout ran its own
- * collision avoidance live, during the drag itself, the same as it does for
- * repositioning an existing block (see `RootGrid`'s own `isDroppable`
- * wiring) — nothing here recomputes a position, only writes the one already
- * shown as the drop's own preview.
+ * `position` arrives already resolved: `RootGrid` ran `availableDropSpan`
+ * live, during the drag itself, to draw the drop's own live preview — the
+ * same collision-aware placement a repositioning drag gets from the grid
+ * engine itself — so nothing here recomputes a position, only writes the
+ * one already shown as that preview.
  *
  * `index`, unlike `placeBlock`'s own implicit "at the end," is the caller's
  * to get right: `DashboardProvider`'s own collision resolution (see

@@ -102,6 +102,22 @@ Once an experimental test has proven stable (consistent CI passes over time):
   - Includes: Delete dataset test with API-based test data
   - Supporting infrastructure: API helpers, Modal components, page objects
 
+### Dashboard v2 (GridStack canvas) Tests
+
+- **`dashboard-v2/empty-canvas.spec.ts`**, **`reposition-and-resize.spec.ts`**,
+  **`split.spec.ts`**, **`layout-regressions.spec.ts`** - E2E coverage for the
+  GridStack-backed root grid at `/dashboard/v2/new/`
+  - Status: Infrastructure complete, validating stability
+  - Covers: live drop-preview tracking/sizing/clearing, drag-to-reposition
+    and resize persistence, the left/right split gesture (from the palette
+    and by repositioning an existing block), and single-scroll-owner layout
+  - Every case here was a real bug found only by driving GridStack in a
+    real browser during development — none are reachable from the
+    jsdom-based unit suite (`RootGrid.test.tsx`, `gridPacking.test.ts`),
+    since jsdom has no layout engine and never runs GridStack's own DOM/CSS
+    logic at all
+  - Supporting infrastructure: `pages/DashboardV2Page.ts`
+
 ## Infrastructure Location
 
 **Important**: Supporting infrastructure (components, page objects, API helpers) should live in **stable locations**, NOT under `experimental/`:

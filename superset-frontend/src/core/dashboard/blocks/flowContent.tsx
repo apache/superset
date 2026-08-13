@@ -59,11 +59,10 @@ const RESIZE_STEP = 16;
  * A flowed block's own resize handle.
  *
  * `BuildingBlockView` renders whatever it is given as `children` last, after
- * its own header and content — the slot `react-grid-layout` injects its
- * handles through on the root's own grid. A flowed block has no grid, and so
- * no react-grid-layout handle of its own, but the slot serves the same
- * purpose for the same reason: this needs to sit inside the block's own box,
- * on top of it, without becoming part of what the block itself renders.
+ * its own header and content — this needs to sit inside the block's own box,
+ * on top of it, without becoming part of what the block itself renders, and
+ * that slot is the one place that's true for any block, built-in or
+ * extension-contributed.
  *
  * A strip along the whole bottom edge rather than a corner square: this
  * resizes one axis, not two (a flow's blocks are already full width, so
@@ -163,11 +162,11 @@ export function FlowItem({
 
   const startDrag = (event: PointerEvent<HTMLDivElement>): void => {
     // This block sits inside the root's own grid (the flow's own container
-    // is a grid item like any other), whose react-draggable instance
-    // otherwise reads this same pointer-down as the start of a drag on that
-    // item — the whole container moving on the root grid instead of this
-    // one block resizing inside it. `data-block-resize` is `RootGrid`'s own
-    // `draggableCancel` half of the same guard (see `BuildingBlockView`'s
+    // is a grid item like any other), which otherwise reads this same
+    // pointer-down as the start of a drag on that item — the whole
+    // container moving on the root grid instead of this one block resizing
+    // inside it. `data-block-resize` is `RootGrid`'s own drag-cancel
+    // selector's half of the same guard (see `BuildingBlockView`'s
     // `data-block-remove`, which exists for the identical reason).
     event.stopPropagation();
     from.current = { y: event.clientY, height: currentHeight() };

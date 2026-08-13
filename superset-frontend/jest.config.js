@@ -39,6 +39,9 @@ module.exports = {
     // mapping @apache-superset/core to local package
     '^@apache-superset/core$': '<rootDir>/packages/superset-core/src',
     '^@apache-superset/core/(.*)$': '<rootDir>/packages/superset-core/src/$1',
+    // jsdom has no layout engine, so the real GridStack.init cannot run in a
+    // test at all (see spec/__mocks__/gridstackMock.ts for why).
+    '^gridstack$': '<rootDir>/spec/__mocks__/gridstackMock.ts',
   },
   testEnvironment: '<rootDir>/spec/helpers/jsDomWithFetchAPI.ts',
   modulePathIgnorePatterns: [

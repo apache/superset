@@ -213,9 +213,10 @@ class DashboardProvider {
    * two ways an extension's AI tools place a node without going through
    * `RootGrid`'s interactive drag/resize at all — this gives that
    * programmatic path the same "nothing ends up stuck overlapping"
-   * guarantee a mouse-driven resize gets for free from `react-grid-layout`,
-   * rather than leaving it to whatever the renderer happens to paper over
-   * on screen without ever writing the correction back to the store.
+   * guarantee a mouse-driven resize gets for free from the grid engine
+   * itself, rather than leaving it to whatever the renderer happens to
+   * paper over on screen without ever writing the correction back to the
+   * store.
    */
   private resolveParentCollisions(
     parentId: string,

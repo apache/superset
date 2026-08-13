@@ -16,50 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from './DashboardProvider';
 import RootGrid from './RootGrid';
+import { registerBuiltInBuildingBlocks } from './registerBuiltInBuildingBlocks';
+import {
+  __getLastGridStackInstance,
+  __resetGridStackMock,
+} from '../../../spec/__mocks__/gridstackMock';
+
+beforeAll(() => {
+  registerBuiltInBuildingBlocks();
+});
 
 /**
- * What a gesture on the grid commits.
- *
- * `react-grid-layout` is mocked down to the props RootGrid feeds it. Everything
- * about how it draws is its own business and covered by its own tests; what
- * matters here is that RootGrid always compacts and never allows overlap.
+ * `GridStack.init` measures the container it's given — meaningless in
+ * jsdom, which has no layout engine — so every test that exercises the live
+ * drop preview or an actual drop position needs a non-zero width to divide
+ * columns into. 1200 is an arbitrary round number; nothing here asserts an
+ * exact pixel value (that's `layoutStyle.test.ts`'s job), only that a ghost
+ * appears/disappears and a drop lands in the right *cell*.
  */
-jest.mock('react-grid-layout/legacy', () => ({
-  __esModule: true,
-  default: ({
-    children,
-    compactType,
-    allowOverlap,
-    draggableCancel,
-    resizeHandles,
-  }: {
-    children: React.ReactNode;
-    compactType: string | null;
-    allowOverlap?: boolean;
-    draggableCancel?: string;
-    resizeHandles?: string[];
-  }) => (
-    <div
-      data-test="rgl"
-      data-compact-type={String(compactType)}
-      data-allow-overlap={String(!!allowOverlap)}
-      data-draggable-cancel={draggableCancel ?? ''}
-      data-resize-handles={(resizeHandles ?? []).join(',')}
-    >
-      {children}
-    </div>
-  ),
-  WidthProvider: (component: unknown) => component,
-}));
-jest.mock('react-grid-layout/css/styles.css', () => ({}), { virtual: true });
+const CONTAINER_WIDTH = 1200;
 
 const provider = DashboardProvider.getInstance();
 
 beforeEach(() => {
   provider.reset();
+  __resetGridStackMock();
+  // jsdom has no layout engine and does not implement this at all (not
+  // even as a stub returning `null`) — every test that ends a drag has to
+  // go through it (`findContainerIdAt`), whether or not that particular
+  // test cares where it points.
+  document.elementFromPoint = jest.fn().mockReturnValue(null);
+  jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: CONTAINER_WIDTH,
+    height: 800,
+    top: 0,
+    left: 0,
+    right: CONTAINER_WIDTH,
+    bottom: 800,
+    x: 0,
+    y: 0,
+    toJSON: () => {},
+  });
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 const mount = () => {
@@ -69,28 +73,6 @@ const mount = () => {
   render(<RootGrid nodeId={rootId} />);
   return { rootId, first, second };
 };
-
-test('a grid compacts its children and does not let them overlap', () => {
-  mount();
-
-  const grid = screen.getByTestId('rgl');
-  expect(grid).toHaveAttribute('data-compact-type', 'vertical');
-  expect(grid).toHaveAttribute('data-allow-overlap', 'false');
-});
-
-test('a block resizes from all four corners', () => {
-  mount();
-
-  // Used to exclude the north-east corner, which sat under the remove
-  // control -- react-grid-layout appends its handles after a block's own
-  // content, so a handle there took every click aimed at the button beneath
-  // it. The single card-wide inset (see `BuildingBlockView`) moved the
-  // button far enough from the true corner that both now fit.
-  expect(screen.getByTestId('rgl')).toHaveAttribute(
-    'data-resize-handles',
-    'se,sw,nw,ne',
-  );
-});
 
 /** A drag payload jsdom's synthetic events do not carry on their own. */
 const paletteTransfer = (type: string) => {
@@ -104,7 +86,191 @@ const paletteTransfer = (type: string) => {
   };
 };
 
-test('dropping a palette block on a container places it there', () => {
+test('the grid initializes with the root layout mapped onto GridStack options', () => {
+  mount();
+
+  const grid = __getLastGridStackInstance();
+  expect(grid?.options).toMatchObject({
+    column: 24,
+    // 48/8: rowUnitPx(32) + gap(16), and gap(16)/2 — pinned explicitly since
+    // getting either wrong silently regresses every block's own height.
+    cellHeight: 48,
+    margin: 8,
+    // Collision avoidance is always on regardless of this; `float: true`
+    // only disables GridStack's own compaction pass, which would otherwise
+    // fight `packChildLayout`'s own auto-placement for the same job.
+    float: true,
+    acceptWidgets: false,
+    removable: false,
+    animate: false,
+    // GridStack's own default (`auto: true`) claims every `.grid-stack-item`
+    // already in the DOM the moment `init` runs, with no `id` — and React
+    // has already rendered every initially-mounted item by then. Left on,
+    // every one of those items' `id` stays undefined forever, so every
+    // future gesture-end commit (`readGestureItems`'s `!!node?.id` filter)
+    // silently drops it and it springs back to its last position on the
+    // very next drag or resize.
+    auto: false,
+  });
+});
+
+test('a block resizes from all four corners', () => {
+  mount();
+
+  const grid = __getLastGridStackInstance();
+  expect(grid?.options.resizable).toEqual({ handles: 'se, sw, nw, ne' });
+});
+
+test('the grid is told not to start a drag from the remove control, a nested container, a flow resize grip, or a header control', () => {
+  mount();
+
+  // GridStack's own draggable engine matches this selector up the ancestors
+  // of whatever was pressed — aiming at the bin would otherwise drag the
+  // block it is attached to, and dragging a chart out of a `tabs` block
+  // would instead drag the whole `tabs` block on the root grid.
+  const grid = __getLastGridStackInstance()!;
+  const { cancel } = grid.options.draggable as { cancel: string };
+  expect(cancel).toContain('[data-block-remove]');
+  expect(cancel).toContain('[data-container-id]');
+  expect(cancel).toContain('[data-block-resize]');
+  expect(cancel).toContain('[data-block-header-control]');
+});
+
+test('every child is registered with GridStack at its packed position', () => {
+  const { first, second } = mount();
+
+  const grid = __getLastGridStackInstance();
+  expect(grid?.makeWidget).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ id: first, x: 0, y: 0 }),
+  );
+  expect(grid?.makeWidget).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ id: second }),
+  );
+});
+
+test('ending a drag on empty grid space commits every item’s settled position', () => {
+  const { first, second } = mount();
+
+  const grid = __getLastGridStackInstance()!;
+  const el = grid
+    .getGridItems()
+    .find(item => item.gridstackNode?.id === first)!;
+  el.gridstackNode = { id: first, x: 4, y: 2, w: 6, h: 3 };
+
+  grid.__trigger('dragstop', el);
+
+  expect(provider.getNode(first)?.layout).toMatchObject({
+    col: 5,
+    row: 3,
+    colSpan: 6,
+    rowSpan: 3,
+  });
+  // The untouched sibling still commits its own unchanged position — the
+  // commit reads every item GridStack currently knows about, not just the
+  // one the gesture ended on.
+  expect(provider.getNode(second)?.layout).toBeDefined();
+});
+
+test('ending a resize on empty grid space commits the resized item’s new span', () => {
+  const { first } = mount();
+
+  const grid = __getLastGridStackInstance()!;
+  const el = grid
+    .getGridItems()
+    .find(item => item.gridstackNode?.id === first)!;
+  el.gridstackNode = { id: first, x: 0, y: 0, w: 12, h: 5 };
+
+  grid.__trigger('resizestop', el);
+
+  expect(provider.getNode(first)?.layout).toMatchObject({
+    colSpan: 12,
+    rowSpan: 5,
+  });
+});
+
+test('ending a drag over a nested container reparents instead of committing a layout', () => {
+  const { rootId, first } = mount();
+  let collapsibleId = '';
+  act(() => {
+    collapsibleId = provider.addBuildingBlock(rootId, 1, {
+      type: 'collapsible',
+    });
+  });
+
+  const grid = __getLastGridStackInstance()!;
+  const el = grid
+    .getGridItems()
+    .find(item => item.gridstackNode?.id === first)!;
+
+  // Stubbed (see the `beforeEach` above) to return the collapsible's own
+  // rendered container element, exactly what a real hit-test would find if
+  // the drag actually ended over it.
+  (document.elementFromPoint as jest.Mock).mockReturnValue(
+    document.querySelector(`[data-container-id="${collapsibleId}"]`),
+  );
+
+  grid.__trigger('dragstop', el);
+
+  expect(provider.getNode(collapsibleId)?.children).toContain(first);
+  expect(provider.getNode(rootId)?.children).not.toContain(first);
+});
+
+test('ending a drag over its own container commits a layout instead of reparenting', () => {
+  const { rootId, first } = mount();
+
+  const grid = __getLastGridStackInstance()!;
+  const el = grid
+    .getGridItems()
+    .find(item => item.gridstackNode?.id === first)!;
+  el.gridstackNode = { id: first, x: 3, y: 1, w: 4, h: 2 };
+
+  // The root grid's own surface also carries `data-container-id` — landing
+  // back on the container the block already belongs to must not be read as
+  // a reparent onto itself.
+  (document.elementFromPoint as jest.Mock).mockReturnValue(
+    screen.getByTestId('grid-container'),
+  );
+
+  grid.__trigger('dragstop', el);
+
+  expect(provider.getNode(rootId)?.children).toContain(first);
+  expect(provider.getNode(first)?.layout).toMatchObject({
+    col: 4,
+    row: 2,
+    colSpan: 4,
+    rowSpan: 2,
+  });
+});
+
+test('dropping a palette block on the grid places it at the resolved cell', () => {
+  const { rootId } = mount();
+
+  fireEvent.dragOver(
+    screen.getByTestId('grid-container').querySelector('.grid-stack')!,
+    {
+      dataTransfer: paletteTransfer('markdown'),
+      clientX: 50,
+      clientY: 10,
+    },
+  );
+
+  fireEvent.drop(
+    screen.getByTestId('grid-container').querySelector('.grid-stack')!,
+    {
+      dataTransfer: paletteTransfer('markdown'),
+      clientX: 50,
+      clientY: 10,
+    },
+  );
+
+  const children = provider.getNode(rootId)?.children ?? [];
+  expect(children).toHaveLength(3);
+  expect(provider.getNode(children[2])?.type).toBe('markdown');
+});
+
+test('dropping a palette block past the grid’s own rendered rows appends it at the end', () => {
   const { rootId } = mount();
 
   fireEvent.drop(screen.getByTestId('grid-container'), {
@@ -153,41 +319,6 @@ test('the remove control removes that block and nothing else', () => {
   expect(provider.getNode(rootId)?.children).toEqual([second]);
 });
 
-test('the grid is told not to start a drag from the remove control', () => {
-  const { first } = mount();
-
-  // react-grid-layout begins a drag on a press anywhere in the block it is
-  // positioning, and the button sits inside that block. `draggableCancel` is
-  // what it reads to exclude a region, so the selector and the attribute the
-  // control carries have to agree — aiming at the bin would otherwise drag the
-  // block it is attached to.
-  const cancel = screen
-    .getByTestId('rgl')
-    .getAttribute('data-draggable-cancel');
-  expect(cancel).toContain('[data-block-remove]');
-  // On the control or above it: react-draggable matches the selector against
-  // the pressed element and then walks its ancestors up to the grid item, so
-  // the attribute excludes the whole region it is set on. The bin is the
-  // shared `ActionButton`, which renders its own element and forwards no
-  // arbitrary attributes to it — the region is what carries this.
-  expect(
-    screen.getByTestId(`block-remove-${first}`).closest('[data-block-remove]'),
-  ).not.toBeNull();
-});
-
-test('the grid is also told not to start a drag from a nested block resize handle', () => {
-  mount();
-
-  // The same guard as the remove control, for the same reason — a `tabs`
-  // block sitting on this grid renders its own resize handle (see
-  // `TabsBlock`'s `FlowItem`) for a block flowed into one of its panes, and
-  // without this, resizing that block also drags the `tabs` item holding it.
-  const cancel = screen
-    .getByTestId('rgl')
-    .getAttribute('data-draggable-cancel');
-  expect(cancel).toContain('[data-block-resize]');
-});
-
 test('clicking the remove control removes rather than selects', () => {
   const { first, second } = mount();
 
@@ -198,4 +329,14 @@ test('clicking the remove control removes rather than selects', () => {
   expect(provider.getSelection()).toBeUndefined();
   expect(provider.getNode(second)).toBeUndefined();
   expect(provider.getNode(first)).toBeDefined();
+});
+
+test('unmounting a block removes its widget from GridStack without touching the DOM', () => {
+  const { rootId, first } = mount();
+
+  act(() => provider.removeBuildingBlock(first));
+
+  const grid = __getLastGridStackInstance();
+  expect(grid?.removeWidget).toHaveBeenCalled();
+  expect(provider.getNode(rootId)?.children).not.toContain(first);
 });
