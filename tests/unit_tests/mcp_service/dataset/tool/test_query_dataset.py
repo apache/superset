@@ -194,6 +194,7 @@ async def test_query_dataset_exposes_filters_to_jinja_macros(
         "columns": ["category"],
         "metrics": ["count"],
     }
+    query.time_range = None
     query_context = SimpleNamespace(queries=[query], form_data={})
     observed: dict[str, Any] = {}
 

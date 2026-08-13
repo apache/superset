@@ -23,11 +23,20 @@ from flask import g
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
+    from superset.common.query_object import QueryObject
 
 
 def set_form_data(form_data: dict[str, Any]) -> None:
     """Expose chart data request fields to Jinja template macros."""
     g.form_data = form_data
+
+
+def _serialize_query(query: QueryObject) -> dict[str, Any]:
+    """Serialize query fields consumed by the Jinja form-data fallback."""
+    query_data = dict(query.to_dict())
+    if query.time_range is not None:
+        query_data["time_range"] = query.time_range
+    return query_data
 
 
 def set_query_context_form_data(
@@ -39,9 +48,7 @@ def set_query_context_form_data(
     set_form_data(
         {
             "datasource": {"id": datasource_id, "type": datasource_type},
-            "queries": [
-                query.to_dict() for query in getattr(query_context, "queries", [])
-            ],
+            "queries": [_serialize_query(query) for query in query_context.queries],
             "form_data": getattr(query_context, "form_data", None) or {},
         }
     )

@@ -146,6 +146,7 @@ def test_query_context_form_data_supports_request_dependent_jinja_macros() -> No
         "filters": [{"col": "region", "op": "IN", "val": ["North"]}],
         "url_params": {"tenant": "acme"},
     }
+    query.time_range = "Last week"
     query_context: Any = SimpleNamespace(queries=[query], form_data={})
 
     with current_app.test_request_context():
@@ -157,6 +158,7 @@ def test_query_context_form_data_supports_request_dependent_jinja_macros() -> No
             {"col": "region", "op": "IN", "val": ["North"]}
         ]
         assert extra_cache.url_param("tenant") == "acme"
+        assert extra_cache.get_time_filter().time_range == "Last week"
         # metric() without an explicit dataset ID performs this lookup.
         assert get_dataset_id_from_context("count") == 7
 
