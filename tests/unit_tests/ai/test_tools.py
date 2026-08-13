@@ -472,7 +472,17 @@ def test_all_tool_names_matches_what_is_actually_built() -> None:
 
 def test_bundles_expose_the_expected_tools() -> None:
     """The assigned tool set, and nothing else."""
-    from superset.ai.tools import build_registry, BUNDLE_DISCOVERY, BUNDLE_READ_ONLY
+    from superset.ai.tools import (
+        build_registry,
+        BUNDLE_ALL,
+        BUNDLE_DISCOVERY,
+        BUNDLE_READ_ONLY,
+    )
+
+    all_tools = build_registry(BUNDLE_ALL)
+    assert "create_virtual_dataset" in all_tools
+    assert "generate_chart" in all_tools
+    assert "generate_dashboard" in all_tools
 
     read_only = build_registry(BUNDLE_READ_ONLY)
     assert set(read_only.names()) == {
@@ -484,6 +494,9 @@ def test_bundles_expose_the_expected_tools() -> None:
         "get_chart_context",
         "get_dashboard_context",
     }
+    assert "generate_chart" not in read_only
+    assert "generate_dashboard" not in read_only
+    assert build_registry().names() == read_only.names()
 
     discovery = build_registry(BUNDLE_DISCOVERY)
     # The point of this bundle is that it cannot reach a warehouse.

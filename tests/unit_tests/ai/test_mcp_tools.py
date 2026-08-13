@@ -1015,6 +1015,20 @@ def test_a_profile_with_no_tools_and_no_servers_still_gets_none() -> None:
     assert get_tools_for_profile(profile(tools=(), mcp_servers=())) is None
 
 
+def test_a_profile_can_opt_into_authoring_tools() -> None:
+    """Mutation tools exist only when the selected profile names them."""
+    from superset.ai.factories import get_tools_for_profile
+
+    registry = get_tools_for_profile(
+        profile(
+            tools=("generate_chart", "generate_dashboard"),
+            mcp_servers=(),
+        )
+    )
+
+    assert registry.names() == ["generate_chart", "generate_dashboard"]
+
+
 def test_a_profile_with_only_servers_gets_a_registry(mocker: MockerFixture) -> None:
     """A profile may grant foreign tools and no built-in ones."""
     from superset.ai.factories import get_tools_for_profile

@@ -10,7 +10,8 @@ version: 1
 The AI Assistant is a conversational interface for exploring your data. A user
 asks a question in plain language; the assistant finds relevant datasets,
 inspects their schema, writes and runs read-only SQL, and answers with both the
-result and the query it used.
+result and the query it used. The shipped profiles are read-only. A deployment
+can explicitly add chart and dashboard authoring tools to a gated profile.
 
 Superset ships **no model provider and talks to no model vendor by default**.
 The feature is disabled, and even when enabled it returns `404` until you point
@@ -52,8 +53,10 @@ infrastructure is needed for the default configuration.
 ### Which roles get access
 
 `superset init` grants `can_read`/`can_write` on `AIAssistant` to **Admin** and
-**Alpha** only. "Write" here means writing one's own conversation — the
-assistant's tools are read-only and it cannot create or modify assets.
+**Alpha** only. "Write" here means writing one's own conversation. The shipped
+profiles remain read-only; an operator who enables asset-authoring tools must
+also gate that profile, and each tool enforces the current user's normal asset
+and dataset permissions.
 
 **Gamma does not get it by default.** The assistant runs queries and costs
 money per question, so it is granted deliberately rather than inherited. To
@@ -131,6 +134,19 @@ AI_AGENT_PROFILES = {
         "tools": ["search_assets", "get_schema", "execute_sql"],
         "required_permission": ("can_write", "AIAssistant"),
     },
+
+    # Opt-in authoring. The tools still enforce normal asset and dataset RBAC.
+    "builder": {
+        "name": "Dashboard builder",
+        "tools": [
+            "search_assets",
+            "get_schema",
+            "create_virtual_dataset",
+            "generate_chart",
+            "generate_dashboard",
+        ],
+        "required_permission": ("can_write", "Dashboard"),
+    },
 }
 ```
 
@@ -152,6 +168,9 @@ profile a user cannot see is also one they cannot invoke by posting its key.
 | `validate_sql` | Checks a query without running it |
 | `get_chart_context` | Reads a chart's definition |
 | `get_dashboard_context` | Reads a dashboard's definition |
+| `create_virtual_dataset` | Saves a read-only SQL query as a chartable dataset; opt-in only |
+| `generate_chart` | Previews or saves a native chart; opt-in only |
+| `generate_dashboard` | Creates a dashboard from saved chart IDs; opt-in only |
 
 ## Customising the prompt
 
