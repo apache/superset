@@ -79,6 +79,41 @@ Keep `**kwargs` last so future context can be added without breaking your
 implementation. Treat the hook as a pure, deterministic lookup where possible.
 :::
 
+## The `TRANSLATION_BATCH_HOOK`
+
+`TRANSLATION_HOOK` is called once per string, which is fine for an in-memory
+lookup but costly if every call is a query or a network round trip. Rendering a
+dashboard resolves every chart name on it; a page of recent activity resolves
+every entry.
+
+For those stores, define `TRANSLATION_BATCH_HOOK` instead. Superset hands it
+every string it is about to render for one context and expects a mapping back:
+
+```python
+def TRANSLATION_BATCH_HOOK(
+    default_texts: list[str],
+    locale: str,
+    **kwargs,  # e.g. model_name="Slice", field_name="slice_name"
+) -> dict[str, str | None]:
+    ...
+```
+
+Keys that are missing from the returned mapping — or that map to a falsy value
+— fall back to the canonical text, so returning only the strings you actually
+have a translation for is fine.
+
+When set, this **fully replaces** `TRANSLATION_HOOK`: individual lookups are
+routed through it as a one-element batch, so there is no need to configure
+both. Superset also memoizes resolutions for the duration of a request, so a
+repeated string costs one lookup no matter how many times it is rendered.
+
+:::note
+Batching applies where Superset holds a whole collection before rendering it —
+dashboard loads and the "Recents" list. On the chart and dashboard **list**
+pages each row is serialized independently, so those still resolve per row;
+back your hook with a cache or an in-process map if that path matters to you.
+:::
+
 ## The `i18n` Jinja macro
 
 Templated fields (for example a chart axis label or a native filter name, when
@@ -166,11 +201,14 @@ A self-contained reference for this pattern — table model, hook, and a minimal
 seeding/admin flow — is provided as an example rather than shipped in core; see
 the example referenced from the project repository.
 
+Prefer the batch form here — one `IN` query per collection instead of one query
+per string:
+
 ```python
-def TRANSLATION_HOOK(default_text, locale, **kwargs):
-    return my_translation_store.lookup(
+def TRANSLATION_BATCH_HOOK(default_texts, locale, **kwargs):
+    return my_translation_store.lookup_many(
         locale=locale,
-        text=default_text,
+        texts=default_texts,
         model_name=kwargs.get("model_name"),
         field_name=kwargs.get("field_name"),
     )
