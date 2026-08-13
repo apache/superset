@@ -54,6 +54,7 @@ const defaultProps = {
   vizType: VizType.Table,
   annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
   sourceType: 'Table',
+  canReadAnnotation: true,
 };
 
 beforeAll(() => {
