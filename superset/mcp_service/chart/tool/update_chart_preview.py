@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
+    merge_table_column_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -186,6 +187,8 @@ def update_chart_preview(  # noqa: C901
                 old_adhoc_filters = previous_form_data.get("adhoc_filters")
                 if old_adhoc_filters:
                     new_form_data["adhoc_filters"] = old_adhoc_filters
+            if previous_form_data:
+                merge_table_column_config(previous_form_data, new_form_data)
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.

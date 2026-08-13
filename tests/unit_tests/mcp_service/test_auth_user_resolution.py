@@ -465,7 +465,8 @@ def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
                 SAOperationalError(
                     "SSL connection has been closed unexpectedly", None, None
                 ),
-                None,  # second call succeeds
+                None,  # retry succeeds
+                None,  # exit-path cleanup in _request_tool_call_context
             ]
 
             with patch(
@@ -476,8 +477,8 @@ def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
 
     assert result == "fresh"
     assert mock_db.session.invalidate.called, "invalidate() must be called on SSL error"
-    assert mock_db.session.remove.call_count == 2, (
-        "remove() must be retried after SSL error"
+    assert mock_db.session.remove.call_count == 3, (
+        "remove() must be retried after SSL error, plus once more on exit"
     )
 
 

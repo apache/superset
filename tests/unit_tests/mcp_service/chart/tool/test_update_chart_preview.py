@@ -689,7 +689,9 @@ class TestUpdateChartPreview:
             }
         ]
         mock_get_previous_form_data.return_value = {
-            "adhoc_filters": cached_adhoc_filters
+            "viz_type": "table",
+            "adhoc_filters": cached_adhoc_filters,
+            "column_config": {"Sales": {"d3NumberFormat": "$,.2f", "visible": False}},
         }
         mock_generate_explore_link.return_value = (
             "http://localhost:8088/explore/?form_data_key=new_preview_key"
@@ -707,6 +709,7 @@ class TestUpdateChartPreview:
                     ColumnRef(name="sales", label="Sales", aggregate="SUM"),
                 ],
                 sort_by=["sales"],
+                column_config={"Sales": {"columnWidth": 120}},
             ),
             generate_preview=True,
             preview_formats=["table"],
@@ -718,6 +721,13 @@ class TestUpdateChartPreview:
 
         generated_form_data = mock_generate_explore_link.call_args.args[1]
         assert generated_form_data["adhoc_filters"] == cached_adhoc_filters
+        assert generated_form_data["column_config"] == {
+            "Sales": {
+                "columnWidth": 120,
+                "d3NumberFormat": "$,.2f",
+                "visible": False,
+            }
+        }
         assert result["success"] is True
         assert result["error"] is None
         assert result["warnings"] == []
