@@ -98,9 +98,15 @@ def _match(column: Any, term: str) -> Any:
     the ``escape`` argument must be passed alongside it — without that pairing a
     term containing ``%`` degrades into a full scan that matches everything.
     """
+    from sqlalchemy import and_
+
     from superset.mcp_service.utils.sanitization import escape_like
 
-    return column.ilike(f"%{escape_like(term)}%", escape="\\")
+    tokens = term.replace("-", " ").split() or [term]
+    predicates = [
+        column.ilike(f"%{escape_like(token)}%", escape="\\") for token in tokens
+    ]
+    return predicates[0] if len(predicates) == 1 else and_(*predicates)
 
 
 def _untrusted(value: Any) -> Any:
