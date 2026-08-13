@@ -25,6 +25,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app
+from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -50,6 +51,88 @@ def test_security_manager(app_context: None) -> None:
     """
     sm = SupersetSecurityManager(appbuilder)
     assert sm
+
+
+def _register_views_with_mock_appbuilder(
+    mocker: MockerFixture, auth_type: int
+) -> MagicMock:
+    """
+    Build a SupersetSecurityManager bound to a fresh mock appbuilder and call
+    register_views() on it, with FlaskAppBuilder's own register_views (the
+    super() call, which does its own large auth_type dispatch and permission
+    registration) stubbed out so the test stays scoped to just the override.
+    Returns the mock appbuilder so the caller can inspect what got registered.
+    """
+    from flask import current_app
+
+    # patch.dict restores the previous config values on teardown, so these
+    # overrides don't leak into other tests sharing the module-scoped app.
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AUTH_TYPE": auth_type,
+            "AUTH_USER_REGISTRATION": False,
+            "AUTH_RATE_LIMITED": False,
+        },
+    )
+
+    mock_appbuilder = mocker.MagicMock()
+    mock_appbuilder.baseviews = []
+    mock_appbuilder.menu.get_list.return_value = []
+
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = mock_appbuilder
+    sm.register_superset_auth_view = True
+    sm.register_superset_registeruser_view = False
+    sm.userstatschartview = None
+
+    mocker.patch(
+        "flask_appbuilder.security.sqla.manager.SecurityManager.register_views",
+        autospec=True,
+    )
+
+    sm.register_views()
+    return mock_appbuilder
+
+
+def test_register_views_does_not_shadow_auth_remote_user(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    AUTH_REMOTE_USER must not register SupersetAuthView at "/login/".
+
+    AuthRemoteUserView performs a silent, header-driven login with no
+    interactive UI. SupersetAuthView (the SPA login shell) previously
+    registered at the same route unconditionally and always won the routing
+    dispatch, so the remote-user header was never even checked -- reported in
+    apache/superset#36117 as a regression from the frontend login migration
+    (#31590). See also the related opt-out added in #39098.
+    """
+    from superset.views.auth import SupersetAuthView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(mocker, AUTH_REMOTE_USER)
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetAuthView not in registered
+
+
+def test_register_views_still_registers_superset_auth_view_for_db_auth(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    Control case: AUTH_DB (the common, interactive case) is unaffected --
+    SupersetAuthView still registers at "/login/" as before.
+    """
+    from superset.views.auth import SupersetAuthView
+
+    mock_appbuilder = _register_views_with_mock_appbuilder(mocker, AUTH_DB)
+
+    registered = [
+        call.args[0] for call in mock_appbuilder.add_view_no_menu.call_args_list
+    ]
+    assert SupersetAuthView in registered
 
 
 @pytest.fixture

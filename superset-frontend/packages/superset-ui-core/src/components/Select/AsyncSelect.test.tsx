@@ -989,6 +989,52 @@ test('shows all options when filterOption is false', async () => {
   expect(options[0]).toHaveTextContent('Server 0');
 });
 
+test('renders a server-matched option whose label diverges from the search term when filterOption is false (regression for #42041)', async () => {
+  // Mirrors the real permissions-search bug: the remote fetch legitimately
+  // matches the raw, underscore-containing value (e.g. a schema name like
+  // "stg_silver"), but the returned option's displayed label has had
+  // underscores replaced with spaces (see formatPermissionLabel in
+  // features/roles/utils.ts). filterOption defaults to true, which
+  // re-filters already-matched options against that same relabeled text
+  // client-side, so the underscore search term never matches and the
+  // legitimately fetched option gets hidden -- this is why
+  // PermissionsField (features/roles/RoleFormItems.tsx) sets
+  // filterOption={false}: the loader is already the authoritative filter,
+  // and its match doesn't depend on the label used to render the option.
+  const searchData = [{ label: 'stg silver', value: 100 }];
+  const loadOptions = jest.fn(async (search: string) =>
+    // totalCount must exceed the empty initial page here, otherwise
+    // AsyncSelect marks allValuesLoaded and short-circuits every later
+    // fetch, including the search request this test depends on.
+    search === ''
+      ? { data: [], totalCount: 1 }
+      : { data: searchData, totalCount: 1 },
+  );
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={loadOptions}
+      filterOption={false}
+    />,
+  );
+  await open();
+
+  await type('stg_silver');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'stg_silver',
+      expect.anything(),
+      expect.anything(),
+    ),
+  );
+
+  // The backend legitimately matched and returned this option (asserted
+  // above); it should render in the dropdown despite the search term using
+  // underscores while the label uses spaces.
+  expect(await findSelectOption('stg silver')).toBeInTheDocument();
+});
+
 test('preserves new option entry across search fetch when allowNewOptions is on', async () => {
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
