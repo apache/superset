@@ -245,7 +245,7 @@ test('does not dispatch a title change when dismissed with the close button', as
   expect(store.getActions()).toEqual([]);
 });
 
-test('returns focus to the tab header after the modal is cancelled', async () => {
+test('returns focus to the menu-dots trigger after the modal is cancelled', async () => {
   openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
@@ -256,11 +256,11 @@ test('returns focus to the tab header after the modal is cancelled', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
   await waitFor(() =>
-    expect(screen.getByTestId('sql-editor-tab-header')).toHaveFocus(),
+    expect(screen.getByTestId('dropdown-trigger')).toHaveFocus(),
   );
 });
 
-test('returns focus to the tab header after a successful rename', async () => {
+test('returns focus to the menu-dots trigger after a successful rename', async () => {
   openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
@@ -272,7 +272,7 @@ test('returns focus to the tab header after a successful rename', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() =>
-    expect(screen.getByTestId('sql-editor-tab-header')).toHaveFocus(),
+    expect(screen.getByTestId('dropdown-trigger')).toHaveFocus(),
   );
 });
 
