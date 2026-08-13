@@ -2754,6 +2754,106 @@ def test_calculated_column_non_boolean_filter_is_parenthesized(
     )
 
 
+def test_get_sqla_query_in_filter_preserves_float_precision(
+    database: Database,
+) -> None:
+    """
+    Test that mixing integer and float values in an "IN" filter does not
+    truncate the float value's decimal precision when the compiled query
+    binds parameters (see #33206).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="global_sales", type="FLOAT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["global_sales"],
+        filter=[
+            {
+                "col": "global_sales",
+                "op": "IN",
+                "val": [33, 29.02],
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The decimal value must retain its precision in the compiled SQL,
+    # rather than being silently truncated to the integer 29.
+    assert "29.02" in sql, (
+        f"Expected float value 29.02 to be preserved in the IN clause, "
+        f"but it was likely truncated. Generated SQL: {sql}"
+    )
+
+
+def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
+    database: Database,
+) -> None:
+    """
+    Test that mixing integer and float values with a NULL in an "IN" filter
+    does not truncate the float value's decimal precision, even though this
+    triggers the separate `eq_without_none` code path (see #33206).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="global_sales", type="FLOAT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["global_sales"],
+        filter=[
+            {
+                "col": "global_sales",
+                "op": "IN",
+                "val": [33, 29.02, None],  # type: ignore[list-item]
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The decimal value must retain its precision in the compiled SQL,
+    # rather than being silently truncated to the integer 29, even when
+    # the filter list also contains a NULL value.
+    assert "29.02" in sql, (
+        f"Expected float value 29.02 to be preserved in the IN clause "
+        f"even with a NULL present, but it was likely truncated. "
+        f"Generated SQL: {sql}"
+    )
+
+
 def test_multiple_calculated_columns_each_parenthesized(
     database: Database,
 ) -> None:

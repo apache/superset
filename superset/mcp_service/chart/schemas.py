@@ -36,6 +36,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
     ValidationError,
 )
 from typing_extensions import Self
@@ -2202,6 +2203,19 @@ class ListChartsRequest(
 ):
     """Request schema for list_charts with clear, unambiguous types."""
 
+    certified: Annotated[
+        StrictBool | None,
+        Field(
+            default=None,
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified charts (preferred when selecting governed "
+                "assets), false to return only uncertified charts, or omit to "
+                "return both (default)."
+            ),
+        ),
+    ]
+
     deleted_state: Annotated[
         Literal["include", "only"] | None,
         Field(
@@ -2351,6 +2365,14 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         None,
         description="Chart configuration. Optional; omit to only update chart_name.",
     )
+    add_columns: List[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Table columns or metrics to append while preserving every existing "
+            "column and metric. Use this instead of config.columns when adding "
+            "columns to an existing table chart."
+        ),
+    )
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
@@ -2382,6 +2404,19 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
             "is always an explore URL."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_column_patch(self) -> "UpdateChartRequest":
+        """Keep full-config replacement and additive table updates unambiguous."""
+        if self.config is not None and self.add_columns is not None:
+            raise ValueError(
+                "Use either 'config' for a full visualization replacement or "
+                "'add_columns' to append table columns while preserving the existing "
+                "configuration, not both."
+            )
+        if self.add_columns == []:
+            raise ValueError("'add_columns' must contain at least one column")
+        return self
 
     @field_validator("chart_name")
     @classmethod

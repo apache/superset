@@ -835,7 +835,17 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             '{{ user_email }}' as email,
             '{{ current_user_roles()|tojson }}' as roles
             """,
-            {1, "abc", "abc@test.com", '["role1", "role2"]'},
+            # The leading `{% set %}` block isn't valid SQL, so parsing this
+            # virtual dataset's SQL for RLS predicates fails and the cache key
+            # picks up the per-user parse-failure sentinel (no user is logged
+            # in for this test, hence "user-None").
+            {
+                1,
+                "abc",
+                "abc@test.com",
+                '["role1", "role2"]',
+                "rls-predicate-parse-failed-for-user-None",
+            },
             True,
         ),
         (
@@ -845,7 +855,9 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             SELECT
             '{{ user_conditional_id }}' as conditional
             """,
-            {1, "abc@test.com"},
+            # Same parse-failure sentinel as above: the leading `{% set %}`
+            # block breaks SQL parsing for RLS predicate collection.
+            {1, "abc@test.com", "rls-predicate-parse-failed-for-user-None"},
             True,
         ),
         (
