@@ -1003,6 +1003,58 @@ describe('Does transformProps transform series correctly', () => {
     expect(totalLabels).toEqual(['32']);
   });
 
+  test('should exclude a sort-only metric time-comparison column from the stacked total (#43068)', () => {
+    // Time comparison emits `<label>__<offset>` per query metric, and sort-only
+    // metrics are in the query, so `sort_metric__1 year ago` appears in the
+    // data. It keeps the raw label (rebaseForecastDatum only resolves the
+    // forecast context name through verboseMap), so a verbose-mapped exclusion
+    // alone does not match it and its value leaks into the total.
+    const sortMetricVerboseMap = { sort_metric: 'Sort By Metric' };
+    const sortFormData: SqlaFormData = {
+      ...formData,
+      onlyTotal: true,
+      groupby: [],
+      metrics: ['San Francisco', 'New York', 'Boston'],
+      timeseries_limit_metric: 'sort_metric',
+      x_axis_sort: 'sort_metric',
+      time_compare: ['1 year ago'],
+    };
+    const sortQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': 32,
+              'New York': 0,
+              Boston: 0,
+              'Sort By Metric': 2,
+              'sort_metric__1 year ago': 100,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      formData: sortFormData,
+      queriesData: sortQueriesData,
+      datasource: { verboseMap: sortMetricVerboseMap },
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    const totalLabels = transformedSeries
+      .flatMap((series, seriesIndex) =>
+        series.data.map((value, dataIndex) =>
+          series.label.formatter({ value, dataIndex, seriesIndex }),
+        ),
+      )
+      .filter(label => label !== '');
+
+    expect(totalLabels).toEqual(['32']);
+  });
+
   test('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps = createTestChartProps({ formData, queriesData });
 

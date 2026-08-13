@@ -54,6 +54,7 @@ import {
   getOriginalSeries,
   getTimeOffset,
   isDerivedSeries,
+  TIME_COMPARISON_SEPARATOR,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type {
@@ -458,9 +459,23 @@ export default function transformProps(
   // metric. extraMetricLabels must be mapped the same way, or a sort-only
   // metric with a verbose_name set would silently fail to match here (and in
   // extractSeries below, which has the same requirement).
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
-    .map(getMetricLabel)
-    .map(label => verboseMap[label] ?? label);
+  const rawExtraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
+    getMetricLabel,
+  );
+  const extraMetricLabels = rawExtraMetricLabels.map(
+    label => verboseMap[label] ?? label,
+  );
+  // Time comparison emits a derived column per query metric, and sort-only
+  // metrics are part of the query, so they get one too. These keep the *raw*
+  // metric label - rebaseForecastDatum only resolves the forecast context name
+  // through verboseMap, which never matches a `<label>__<offset>` key. Build
+  // the exact keys from the configured offsets rather than prefix-matching, so
+  // a displayed metric that merely looks like a derived one is still counted.
+  const extraMetricOffsetLabels = rawExtraMetricLabels.flatMap(label =>
+    ensureIsArray(chartProps.rawFormData?.time_compare).map(
+      offset => `${label}${TIME_COMPARISON_SEPARATOR}${offset}`,
+    ),
+  );
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -468,7 +483,7 @@ export default function transformProps(
       percentageThreshold,
       xAxisCol: xAxisLabel,
       legendState,
-      extraMetricLabels,
+      extraMetricLabels: [...extraMetricLabels, ...extraMetricOffsetLabels],
     },
   );
 
