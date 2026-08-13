@@ -14,16 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Write-ahead purge audit record.
+"""Write-ahead purge audit records and retained purge outcomes.
 
-Every purge — time-based or force — writes an immutable record that
-**survives** the entity it names, on a **dedicated session** outside the
+Every purge evaluation — scheduled or force — writes a provisional record on
+a **dedicated session** outside the
 purge transaction so it neither entangles with the ``DBEventLogger``
 (which shares ``db.session`` and commits mid-request) nor vanishes if the
 purge rolls back. The record is written ``pending`` *before* the purge and
 flipped to ``confirmed`` *after* it commits, so a crash leaves at most a
 ``pending`` row, never a missing one. ``pending`` rows are reconciled on the
-next run (the purge is convergent).
+next run. Completed records are immutable. Consecutive scheduled evaluations
+that remain blocked may discard only their current redundant provisional row;
+force-purge and other meaningful outcomes are retained independently.
 
 The dedicated ``purge_audit_log`` table is content-free (no name or PII; only
 action, actor, UTC time, entity type, UUID, and affected referrers) and is never
@@ -39,11 +41,13 @@ removed by the purge cascade.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, cast
+from typing import Any, cast, Literal, TypeAlias
 from uuid import UUID
 
 import sqlalchemy as sa
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from superset import db
@@ -72,6 +76,17 @@ TRIGGER_RETENTION = "retention"
 TRIGGER_FORCE = "force"
 
 ACTOR_SYSTEM = "system"
+
+RetentionBlockedDisposition: TypeAlias = Literal["retained", "suppressed", "fallback"]
+
+
+@dataclass(frozen=True)
+class _AuditRecoverySnapshot:
+    id: UUID
+    actor: str
+    entity_type: str
+    entity_uuid: str | None
+    created_on: datetime
 
 
 def _utc_now() -> datetime:
@@ -180,6 +195,163 @@ def fail(record_id: UUID | None) -> None:
 def block(record_id: UUID | None) -> None:
     """Mark an attempt blocked by ordinary deletion policy."""
     finalize(record_id, STATUS_BLOCKED)
+
+
+def _capture_recovery_snapshot(record: PurgeAuditLog) -> _AuditRecoverySnapshot:
+    """Capture the content-free fields needed for fail-safe recovery."""
+    return _AuditRecoverySnapshot(
+        id=cast(UUID, record.id),
+        actor=str(record.actor),
+        entity_type=str(record.entity_type),
+        entity_uuid=record.entity_uuid,
+        created_on=cast(datetime, record.created_on),
+    )
+
+
+def _retention_predecessor(
+    session: Session, current: PurgeAuditLog
+) -> PurgeAuditLog | None:
+    """Return the latest row that could unambiguously precede ``current``."""
+    predecessor: PurgeAuditLog | None = session.execute(
+        sa.select(PurgeAuditLog)
+        .where(PurgeAuditLog.entity_uuid == current.entity_uuid)
+        .where(PurgeAuditLog.entity_type == current.entity_type)
+        .where(PurgeAuditLog.trigger == TRIGGER_RETENTION)
+        .where(PurgeAuditLog.created_on <= current.created_on)
+        .where(PurgeAuditLog.id != current.id)
+        .order_by(PurgeAuditLog.created_on.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if predecessor is None:
+        return predecessor
+    tied_mixed_status_exists: bool = session.execute(
+        sa.select(
+            sa.exists().where(
+                PurgeAuditLog.entity_uuid == current.entity_uuid,
+                PurgeAuditLog.entity_type == current.entity_type,
+                PurgeAuditLog.trigger == TRIGGER_RETENTION,
+                PurgeAuditLog.created_on == predecessor.created_on,
+                PurgeAuditLog.id != current.id,
+                PurgeAuditLog.status != predecessor.status,
+            )
+        )
+    ).scalar_one()
+    if tied_mixed_status_exists:
+        return None
+    return predecessor
+
+
+def _suppress_redundant_block(
+    session: Session, current: PurgeAuditLog, predecessor: PurgeAuditLog | None
+) -> bool:
+    """Delete only a pending row with a strictly older blocked predecessor."""
+    if (
+        predecessor is None
+        or predecessor.created_on >= current.created_on
+        or predecessor.status != STATUS_BLOCKED
+    ):
+        return False
+    deleted_rows: int | None = session.execute(
+        sa.delete(PurgeAuditLog.__table__).where(
+            PurgeAuditLog.__table__.c.id == current.id,
+            PurgeAuditLog.__table__.c.status == STATUS_PENDING,
+        )
+    ).rowcount
+    if deleted_rows not in (0, 1):
+        raise SQLAlchemyError(
+            f"indeterminate purge audit suppression rowcount: {deleted_rows}"
+        )
+    return deleted_rows == 1
+
+
+def _retain_blocked(session: Session, record_id: UUID) -> None:
+    """Conditionally retain the current provisional row as blocked."""
+    session.execute(
+        sa.update(PurgeAuditLog.__table__)
+        .where(
+            PurgeAuditLog.__table__.c.id == record_id,
+            PurgeAuditLog.__table__.c.status == STATUS_PENDING,
+        )
+        .values(status=STATUS_BLOCKED, removed_dashboard_slices=0)
+    )
+
+
+def _recover_retention_blocked(
+    record_id: UUID, snapshot: _AuditRecoverySnapshot | None
+) -> RetentionBlockedDisposition:
+    """Retain blocked evidence on a fresh session after persistence uncertainty."""
+    recovery_session: Session = _dedicated_session()
+    try:
+        current: PurgeAuditLog | None = recovery_session.get(PurgeAuditLog, record_id)
+        if current is not None:
+            if current.status == STATUS_PENDING:
+                _retain_blocked(recovery_session, record_id)
+                recovery_session.commit()
+            return "fallback"
+        if snapshot is None:
+            return "fallback"
+        recovery_session.add(
+            PurgeAuditLog(
+                id=snapshot.id,
+                status=STATUS_BLOCKED,
+                trigger=TRIGGER_RETENTION,
+                actor=snapshot.actor,
+                entity_type=snapshot.entity_type,
+                entity_uuid=snapshot.entity_uuid,
+                removed_dashboard_slices=0,
+                created_on=snapshot.created_on,
+            )
+        )
+        recovery_session.commit()
+    except SQLAlchemyError:
+        recovery_session.rollback()
+        logger.warning(
+            "deletion_retention: failed to recover blocked audit row %s "
+            "entity_type=%s entity_uuid=%s",
+            record_id,
+            snapshot.entity_type if snapshot else None,
+            snapshot.entity_uuid if snapshot else None,
+            exc_info=True,
+        )
+    finally:
+        recovery_session.close()
+    return "fallback"
+
+
+def finalize_retention_blocked(
+    record_id: UUID | None,
+) -> RetentionBlockedDisposition:
+    """Finalize a scheduled blocker, suppressing only proven redundant evidence."""
+    if record_id is None:
+        return "fallback"
+    session: Session = _dedicated_session()
+    snapshot: _AuditRecoverySnapshot | None = None
+    try:
+        current: PurgeAuditLog | None = session.get(PurgeAuditLog, record_id)
+        if current is None:
+            return "fallback"
+        snapshot = _capture_recovery_snapshot(current)
+        if current.status != STATUS_PENDING or current.trigger != TRIGGER_RETENTION:
+            return "retained"
+        predecessor: PurgeAuditLog | None = None
+        if current.entity_uuid is not None:
+            predecessor = _retention_predecessor(session, current)
+        suppressed: bool = _suppress_redundant_block(session, current, predecessor)
+        if not suppressed:
+            _retain_blocked(session, record_id)
+        session.commit()
+        return "suppressed" if suppressed else "retained"
+    except SQLAlchemyError:
+        session.rollback()
+        logger.warning(
+            "deletion_retention: persistence uncertainty finalizing blocked "
+            "audit row %s",
+            record_id,
+            exc_info=True,
+        )
+    finally:
+        session.close()
+    return _recover_retention_blocked(record_id, snapshot)
 
 
 def _entity_exists(session: Session, record: PurgeAuditLog) -> bool | None:

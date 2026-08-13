@@ -40,6 +40,7 @@ const defaultProps = {
   value: '',
   vizType: VizType.Table,
   annotationType: ANNOTATION_TYPES_METADATA.FORMULA.value,
+  canReadAnnotation: true,
 };
 
 const nativeLayerApiRoute = 'glob:*/api/v1/annotation_layer/*';
@@ -47,6 +48,11 @@ const chartApiRoute = /\/api\/v1\/chart\/\?q=.+/;
 const chartApiWithIdRoute = /\/api\/v1\/chart\/\w+\?q=.+/;
 
 const chartApiWithIdRouteName = 'chart-with-id';
+const nativeLayerRouteName = 'native-layer';
+
+const nativeLayerResult = {
+  result: [{ name: 'Chart A', id: 'a' }],
+};
 
 const withIdResult = {
   result: {
@@ -107,8 +113,8 @@ beforeAll(() => {
     value => value.value,
   );
 
-  fetchMock.get(nativeLayerApiRoute, {
-    result: [{ name: 'Chart A', id: 'a' }],
+  fetchMock.get(nativeLayerApiRoute, nativeLayerResult, {
+    name: nativeLayerRouteName,
   });
 
   fetchMock.get(chartApiRoute, {
@@ -130,6 +136,12 @@ beforeAll(() => {
       canBeAnnotationTypes: ['EVENT'],
     }),
   );
+});
+
+// Call history is shared across tests; without this, call-count assertions
+// depend on execution order and fail under `jest --randomize`.
+beforeEach(() => {
+  fetchMock.clearHistory();
 });
 
 const waitForRender = (props?: any) =>
@@ -257,6 +269,137 @@ test('fetches chart on mount if value present', async () => {
     sourceType: 'Table',
   });
   expect(fetchMock.callHistory.calls(chartApiWithIdRoute).length).toBe(1);
+});
+
+test('hides the Superset annotation source without annotation read access', async () => {
+  await waitForRender({
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+    canReadAnnotation: false,
+  });
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Annotation source type' }),
+  );
+  expect(await screen.findByText('Table')).toBeInTheDocument();
+  expect(screen.queryByText('Superset annotation')).not.toBeInTheDocument();
+});
+
+test('keeps formula annotations available without annotation read access', async () => {
+  await waitForRender({ canReadAnnotation: false });
+  expect(screen.getByRole('textbox', { name: 'Formula' })).toBeInTheDocument();
+});
+
+test('keeps a saved native layer intact without annotation read access', async () => {
+  const addAnnotationLayer = jest.fn();
+  await waitForRender({
+    name: 'Test',
+    value: 1,
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+    sourceType: 'NATIVE',
+    canReadAnnotation: false,
+    addAnnotationLayer,
+  });
+
+  // The saved source stays selected, and the value select is inert with an
+  // explanation instead of surfacing a Forbidden error.
+  expect(await screen.findByText('Superset annotation')).toBeInTheDocument();
+  expect(
+    screen.getByRole('combobox', { name: 'Annotation layer value' }),
+  ).toBeDisabled();
+  expect(
+    screen.getByText("You don't have permission to view annotation layers."),
+  ).toBeInTheDocument();
+
+  // The saved reference is still valid: re-applying preserves it as is.
+  userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+  expect(addAnnotationLayer).toHaveBeenCalledWith(
+    expect.objectContaining({
+      sourceType: 'NATIVE',
+      value: 1,
+    }),
+  );
+
+  // Neither the by-id fetch nor the listing may fire; both are known 403s.
+  expect(fetchMock.callHistory.calls(nativeLayerApiRoute).length).toBe(0);
+});
+
+test('hydrates the applied native layer name for authorized users', async () => {
+  // The show endpoint returns a single object, unlike the list mock.
+  fetchMock.modifyRoute(nativeLayerRouteName, {
+    response: { result: { id: 1, name: 'My layer' } },
+  });
+
+  try {
+    await waitForRender({
+      name: 'Test',
+      value: 1,
+      annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+      sourceType: 'NATIVE',
+    });
+
+    expect(await screen.findByText('My layer')).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(nativeLayerApiRoute).length).toBe(1);
+  } finally {
+    fetchMock.modifyRoute(nativeLayerRouteName, {
+      response: nativeLayerResult,
+    });
+  }
+});
+
+test('lets a saved native layer switch to a permitted source', async () => {
+  await waitForRender({
+    name: 'Test',
+    value: 1,
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+    sourceType: 'NATIVE',
+    canReadAnnotation: false,
+  });
+
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Annotation source type' }),
+  );
+  userEvent.click(await screen.findByText('Table'));
+
+  // The chart selector takes over, enabled.
+  expect(await screen.findByText('Chart')).toBeInTheDocument();
+  expect(
+    screen.getByRole('combobox', { name: 'Annotation layer value' }),
+  ).toBeEnabled();
+
+  // Reopen the source dropdown: it re-renders from the new options, and the
+  // native option is gone for good.
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Annotation source type' }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByText('Superset annotation')).not.toBeInTheDocument(),
+  );
+});
+
+test('survives a native annotation layer fetch that fails', async () => {
+  const logError = jest.spyOn(logging, 'error').mockImplementation(() => {});
+  fetchMock.modifyRoute(nativeLayerRouteName, { response: 403 });
+
+  try {
+    await waitForRender({
+      name: 'Test',
+      value: 1,
+      annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+      sourceType: 'NATIVE',
+    });
+
+    expect(screen.getByRole('textbox', { name: 'Name' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(logError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load annotation layer 1'),
+        expect.anything(),
+      ),
+    );
+  } finally {
+    fetchMock.modifyRoute(nativeLayerRouteName, {
+      response: nativeLayerResult,
+    });
+    logError.mockRestore();
+  }
 });
 
 test('keeps apply disabled when missing required fields', async () => {
