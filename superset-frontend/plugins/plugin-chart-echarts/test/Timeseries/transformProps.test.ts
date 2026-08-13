@@ -23,6 +23,7 @@ import {
   AxisType,
   ChartProps,
   ComparisonType,
+  ContributionType,
   DataRecord,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
@@ -755,6 +756,55 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
+  test('should exclude a verbose-named sort-only metric from the stacked total (#42881)', () => {
+    // rebaseForecastDatum renames a data column to its verboseMap entry when
+    // one is configured, so extraMetricLabels (derived from raw metric
+    // labels) must be resolved through the same verboseMap to still match —
+    // otherwise the sort-only metric's value leaks back into the total.
+    const sortMetricVerboseMap = { sort_metric: 'Sort By Metric' };
+    const sortFormData: SqlaFormData = {
+      ...formData,
+      onlyTotal: true,
+      groupby: [],
+      metrics: ['San Francisco', 'New York', 'Boston'],
+      timeseries_limit_metric: 'sort_metric',
+      x_axis_sort: 'sort_metric',
+    };
+    const sortQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': 32,
+              'New York': 0,
+              Boston: 0,
+              'Sort By Metric': 2,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      formData: sortFormData,
+      queriesData: sortQueriesData,
+      datasource: { verboseMap: sortMetricVerboseMap },
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    const totalLabels = transformedSeries
+      .flatMap((series, seriesIndex) =>
+        series.data.map((value, dataIndex) =>
+          series.label.formatter({ value, dataIndex, seriesIndex }),
+        ),
+      )
+      .filter(label => label !== '');
+
+    expect(totalLabels).toEqual(['32']);
+  });
+
   test('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps = createTestChartProps({ formData, queriesData });
 
@@ -1391,6 +1441,310 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   const xAxisRaw = transformedProps.echartOptions.xAxis as any;
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
+});
+
+test('should not clip small segments when row-contribution percentages float above 1 in horizontal stacked bar charts', () => {
+  // These three shares are individually normalized (each column sums to 1),
+  // but due to floating point rounding their sum can land fractionally
+  // over 1. See https://github.com/apache/superset/issues/30914
+  //
+  // The margin above 1 is chosen large enough (~1e-7) that the sum stays
+  // above 1 no matter which order the underlying series get summed in
+  // (series are sorted by name for stacking, not in the order declared
+  // here), unlike a single-ULP overflow which can round differently
+  // depending on summation order and make this assertion order-dependent.
+  const shareA = 0.42;
+  const shareB = 0.38;
+  const shareC = 0.2000001;
+  expect(shareA + shareB + shareC).toBeGreaterThan(1);
+
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': shareA, 'Series B': shareB, 'Series C': shareC }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      contributionMode: ContributionType.Row,
+      stack: StackControlsValue.Stack,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis.
+  // The axis max must not be hard-capped at exactly 1, otherwise echarts
+  // clips the topmost stacked segment entirely instead of just rendering
+  // a negligible sub-pixel overflow.
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBeGreaterThanOrEqual(shareA + shareB + shareC);
+});
+
+test('keeps the 0-1 axis range for Expand (100% stacked) charts instead of padding to the raw row total', () => {
+  // Unlike row-contribution mode, an Expand stack is not pre-normalized in
+  // the query result -- these are raw values (summing to 100, not 1) that
+  // get divided down to a 0-1 range internally. The un-normalized row total
+  // must not be used to pad the axis max, or the chart would only occupy a
+  // sliver of the plot.
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 42, 'Series B': 38, 'Series C': 20 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      stack: StackControlsValue.Expand,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBe(1);
+});
+
+test('computes row-contribution axis padding per stack when time_compare splits a row into multiple normalized stacks', () => {
+  // With time_compare, each comparison period is normalized and stacked
+  // independently (see getTimeCompareStackId), so the current-period
+  // columns sum to ~1 in their own stack and the comparison-period columns
+  // (suffixed with the offset) sum to ~1 in a separate stack. The combined
+  // row total across both stacks is therefore ~2, but the axis max must be
+  // computed per stack, not from that combined total, or a 100% bar would
+  // only occupy about half the plot.
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            'Series A': 0.6,
+            'Series B': 0.4,
+            'Series A__1 year ago': 0.55,
+            'Series B__1 year ago': 0.45,
+          },
+        ],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      contributionMode: ContributionType.Row,
+      stack: StackControlsValue.Stack,
+      time_compare: ['1 year ago'],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBeGreaterThanOrEqual(1);
+  expect(xAxisRaw.max).toBeLessThan(1.5);
+});
+
+test('clamps series values to the yAxis max instead of dropping out-of-range points (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [
+          { 'Series A': 1 },
+          { 'Series A': 2 },
+          { 'Series A': 3 },
+          { 'Series A': 4 },
+          { 'Series A': 1000 },
+          { 'Series A': 4 },
+          { 'Series A': 2 },
+        ],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  // The point that was 1000 should be present (not dropped) and clamped to
+  // the configured yAxis max of 10, rather than disappearing entirely.
+  expect(data).toHaveLength(7);
+  expect(data[4][1]).toBe(10);
+});
+
+test('clamps series values to the yAxis min when a value falls below it', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': -1000 }, { 'Series A': 2 }, { 'Series A': 3 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  expect(data).toHaveLength(3);
+  expect(data[0][1]).toBe(0);
+});
+
+test('clamps series values to the yAxis bounds when colorByPrimaryAxis wraps points in objects (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': 1 }, { 'Series A': 1000 }, { 'Series A': 2 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+      colorByPrimaryAxis: true,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as { value: [number, number] }[];
+
+  // colorByPrimaryAxis wraps each point as `{ value: [x, y], itemStyle }`
+  // rather than a bare tuple; the wrapped value must still be clamped
+  // instead of being skipped and left for ECharts to drop.
+  expect(data).toHaveLength(3);
+  expect(data[1].value[1]).toBe(10);
+});
+
+test('does not clamp a timeseries annotation series to the Y axis bounds (#27449)', () => {
+  const timeseries: TimeseriesAnnotationLayer = {
+    annotationType: AnnotationType.Timeseries,
+    name: 'My Timeseries',
+    show: true,
+    showLabel: true,
+    sourceType: AnnotationSourceType.Line,
+    style: AnnotationStyle.Solid,
+    titleColumn: '',
+    value: 3,
+  };
+  const annotationData = {
+    'My Timeseries': {
+      records: [
+        { x: 0, y: 11000 },
+        { x: 300000000, y: 21000 },
+      ],
+    },
+  };
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+      { annotation_data: annotationData },
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+      annotationLayers: [timeseries],
+    },
+    annotationData,
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const annotationSeries = series.find(s => s.id === 'My Timeseries');
+  expect(annotationSeries).toBeDefined();
+  const data = annotationSeries!.data as [number, number][];
+
+  // The annotation carries its own configured values (11000, 21000), which
+  // are unrelated to the chart's own out-of-range-data problem this PR
+  // fixes. They must be left untouched by the Y axis clamp rather than
+  // rewritten to the yAxisBounds max of 10.
+  expect(data[0][1]).toBe(11000);
+  expect(data[1][1]).toBe(21000);
+});
+
+test('clamps series values at the correct tuple index for horizontal bar charts (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      yAxisBounds: [0, 16000],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  // In horizontal orientation the value sits at tuple index 0 (the axes are
+  // swapped), so the clamp must target that index rather than index 1.
+  expect(data).toHaveLength(3);
+  expect(data[1][0]).toBe(16000);
 });
 
 test('legend is visible on tall charts when enabled by the user', () => {

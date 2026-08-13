@@ -23,6 +23,7 @@ import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
+import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
 const PNG_SCALE = 2; // Higher quality for PNG
@@ -337,6 +338,11 @@ export default function downloadAsImageOptimized(
       return;
     }
 
+    // Force any virtualized (unmounted) charts to render before capturing, so
+    // off-screen rows are not exported as loading spinners. Must be restored on
+    // every exit path below.
+    const didForceLoad = await forceLoadAllCharts(elementToPrint);
+
     const filter = (node: Element) =>
       typeof node.className === 'string'
         ? !node.className.includes('mapboxgl-control-container') &&
@@ -374,6 +380,11 @@ export default function downloadAsImageOptimized(
         addWarningToast(
           t('The chart is still loading. Please wait a moment and try again.'),
         );
+        // This early return skips the capture, so restore virtualization here;
+        // otherwise it would stay forced-on for the rest of the session.
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
         return;
       }
 
@@ -483,6 +494,9 @@ export default function downloadAsImageOptimized(
             });
           }
         }
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
       }
       return;
     }
@@ -533,6 +547,9 @@ export default function downloadAsImageOptimized(
       );
     } finally {
       if (cleanup) cleanup();
+      if (didForceLoad) {
+        restoreVirtualization();
+      }
     }
   };
 }
