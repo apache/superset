@@ -173,6 +173,7 @@ async function rightClickCanvasDatum(
   // The submenu *title* element only exists when "Drill to detail by" is an
   // enabled submenu (a real datum was hit); a miss renders a disabled item.
   const enabledDrillBy = dashboard.drillBySubmenuTitle();
+  const contextMenu = page.locator('[data-test="chart-context-menu"]');
 
   for (const pt of candidates) {
     await canvas.click({ button: 'right', position: pt });
@@ -182,6 +183,12 @@ async function rightClickCanvasDatum(
       .catch(() => false);
     if (hit) return;
     await page.keyboard.press('Escape');
+    // Wait for the portal to actually close before the next right-click;
+    // otherwise a still-open (or mid-close-animation) menu can make the
+    // next click/locator behave nondeterministically on slower/contended CI.
+    await contextMenu
+      .waitFor({ state: 'hidden', timeout: 400 })
+      .catch(() => {});
   }
   throw new Error(
     `no drillable datum found on canvas after scanning ${candidates.length} points`,

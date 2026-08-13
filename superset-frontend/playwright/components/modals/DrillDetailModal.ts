@@ -28,6 +28,7 @@ import { Modal } from '../core';
  */
 export class DrillDetailModal extends Modal {
   private static readonly SELECTORS = {
+    CLOSE_BUTTON: '[data-test="close-drilltodetail-modal"]',
     ROW_COUNT_LABEL: '[data-test="row-count-label"]',
     METADATA_BAR: '[data-test="metadata-bar"]',
     FILTER_COLUMN: '[data-test="filter-col"]',
@@ -106,9 +107,16 @@ export class DrillDetailModal extends Modal {
     await this.element.getByRole('button', { name: 'Reload' }).click();
   }
 
-  /** Closes the modal via its footer Close button. */
+  /**
+   * Closes the modal via its footer Close button.
+   *
+   * Targets the button by data-test rather than Modal.clickFooterButton,
+   * which finds buttons by their visible text. The button label is i18n'd
+   * ("Close" / "Fermer" / …), so name-based lookups break in non-English
+   * locales; see DeleteConfirmationModal.clickDelete for the same rationale.
+   */
   async close(): Promise<void> {
-    await this.clickFooterButton('Close');
+    await this.element.locator(DrillDetailModal.SELECTORS.CLOSE_BUTTON).click();
     await this.waitForHidden();
   }
 }
