@@ -33,7 +33,11 @@ from werkzeug.routing import BuildError
 
 from superset import db
 from superset.distributed_lock import DistributedLock
-from superset.exceptions import AcquireDistributedLockFailedException, OAuth2Error
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    OAuth2Error,
+    OAuth2TokenRefreshError,
+)
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
@@ -164,23 +168,26 @@ def refresh_oauth2_token(
         except db_engine_spec.oauth2_exception as ex:
             # OAuth token is no longer valid, delete it and start OAuth2 dance
             logger.warning(
-                "OAuth2 token refresh failed for user=%s db=%s, "
-                "deleting token. Error: %s",
-                user_id,
+                "OAuth2 token refresh failed: database_id=%s engine=%s error_type=%s; "
+                "deleting token",
                 database_id,
-                ex,
+                db_engine_spec.engine,
+                type(ex).__name__,
             )
             db.session.delete(token)
             db.session.flush()
-            raise
-        except Exception:
-            # non-OAuth related failure, log the exception
-            logger.warning(
-                "OAuth2 token refresh failed for user=%s db=%s",
-                user_id,
+            raise OAuth2TokenRefreshError() from None
+        # Engine specs can delegate to arbitrary provider clients that do not share an
+        # exception base class. Sanitize every other provider-boundary failure while
+        # preserving the refresh token for a later retry.
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error(
+                "OAuth2 token refresh failed: database_id=%s engine=%s error_type=%s",
                 database_id,
+                db_engine_spec.engine,
+                type(ex).__name__,
             )
-            raise
+            raise OAuth2Error("Token refresh failed") from None
 
         # store new access token; note that the refresh token might be revoked, in which
         # case there would be no access token in the response
@@ -315,6 +322,9 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     try:
         yield
     except Exception as ex:
-        if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex):
+        if database.is_oauth2_enabled() and (
+            isinstance(ex, OAuth2TokenRefreshError)
+            or database.db_engine_spec.needs_oauth2(ex)
+        ):
             database.db_engine_spec.start_oauth2_dance(database)
         raise
