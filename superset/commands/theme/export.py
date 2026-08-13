@@ -67,8 +67,12 @@ class ExportThemesCommand(ExportModelsCommand):
 
     @staticmethod
     def _export(
-        model: Theme, export_related: bool = True
+        model: Theme, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided (for consistency)
+        if seen is None:
+            seen = set()
+
         yield (
             ExportThemesCommand._file_name(model),
             lambda: ExportThemesCommand._file_content(model),
