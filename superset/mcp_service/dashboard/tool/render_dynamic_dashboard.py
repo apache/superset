@@ -52,6 +52,7 @@ class _RenderResponse(BaseModel):
     error_text: Optional[str] = None
     screenshot_base64: Optional[str] = None
     page_title: Optional[str] = None
+    render_time_ms: Optional[int] = None
     error: Optional[str] = None
 
 
@@ -85,6 +86,9 @@ def render_dynamic_dashboard(
             error="Playwright not installed. Run: pip install playwright && playwright install chromium",
         )
 
+    import time as _time
+
+    start_time = _time.time()
     base_url = os.environ.get("SUPERSET_BASE_URL", "http://localhost:8088").rstrip("/")
     dashboard_url = f"{base_url}/superset/dashboard/{request.dashboard_id}/"
 
@@ -172,6 +176,7 @@ def render_dynamic_dashboard(
                 error_text=error_text if error_text else None,
                 screenshot_base64=screenshot_base64,
                 page_title=page_title,
+                render_time_ms=int((_time.time() - start_time) * 1000),
             )
 
     except Exception as e:

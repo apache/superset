@@ -24,6 +24,7 @@ from .dynamic_dashboard import (
     update_dynamic_dashboard,
 )
 from .render_dynamic_dashboard import render_dynamic_dashboard
+from .render_handlebars_sidecar import render_handlebars_sidecar
 from .generate_dashboard import generate_dashboard
 from .get_dashboard_datasets import get_dashboard_datasets
 from .get_dashboard_info import get_dashboard_info
@@ -57,4 +58,5 @@ __all__ = [
     "get_dynamic_dashboard_config",
     "update_dynamic_dashboard",
     "render_dynamic_dashboard",
+    "render_handlebars_sidecar",
 ]

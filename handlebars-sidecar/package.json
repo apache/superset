@@ -1,0 +1,25 @@
+{
+  "name": "handlebars-sidecar",
+  "version": "1.0.0",
+  "description": "Node.js sidecar that renders Handlebars templates server-side for Dynamic dashboards",
+  "private": true,
+  "scripts": {
+    "build": "npx tsc",
+    "start": "node dist/index.js",
+    "dev": "npx ts-node src/index.ts"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8",
+    "playwright": "^1.62.1",
+    "rehype-parse": "^9.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
