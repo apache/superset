@@ -251,7 +251,7 @@ describe('TabsRenderer', () => {
   });
 
   test('drags from the tab title and shows the drag indicator only then', async () => {
-    render(<TabsRenderer {...draggableTabProps} />);
+    render(<TabsRenderer {...draggableTabProps} />, { useRedux: true });
     const container = screen.getByTestId('dashboard-component-tabs');
     const title = container.querySelector('textarea') as HTMLTextAreaElement;
 
@@ -290,6 +290,7 @@ describe('TabsRenderer', () => {
       <StickyTabsOffsetContext.Provider value={64}>
         <TabsRenderer {...mockProps} />
       </StickyTabsOffsetContext.Provider>,
+      { useRedux: true },
     );
     const container = screen.getByTestId('dashboard-component-tabs');
 
@@ -298,7 +299,7 @@ describe('TabsRenderer', () => {
   });
 
   test('leaves the tab bar in document flow without a dashboard offset', () => {
-    render(<TabsRenderer {...mockProps} />);
+    render(<TabsRenderer {...mockProps} />, { useRedux: true });
     const container = screen.getByTestId('dashboard-component-tabs');
 
     expect(container).not.toHaveStyleRule('position', 'sticky', TAB_BAR);
@@ -309,6 +310,7 @@ describe('TabsRenderer', () => {
       <StickyTabsOffsetContext.Provider value={64}>
         <TabsRenderer {...mockProps} editMode />
       </StickyTabsOffsetContext.Provider>,
+      { useRedux: true },
     );
     const container = screen.getByTestId('dashboard-component-tabs');
 
@@ -339,6 +341,7 @@ describe('TabsRenderer', () => {
         <StickyTabsOffsetContext.Provider value={64}>
           <TabsRenderer {...mockProps} tabItems={nestedTabItems} />
         </StickyTabsOffsetContext.Provider>,
+        { useRedux: true },
       );
 
       expect(screen.getByTestId('nested-offset')).toHaveTextContent('104');
@@ -374,6 +377,7 @@ describe('TabsRenderer', () => {
         <StickyTabsOffsetContext.Provider value={64}>
           <TabsRenderer {...mockProps} tabItems={nestedTabItems} />
         </StickyTabsOffsetContext.Provider>,
+        { useRedux: true },
       );
       expect(screen.getByTestId('nested-offset')).toHaveTextContent('104');
 
@@ -405,6 +409,7 @@ describe('TabsRenderer', () => {
       <StickyTabsOffsetContext.Provider value={offset}>
         <TabsRenderer {...mockProps} />
       </StickyTabsOffsetContext.Provider>,
+      { useRedux: true },
     );
     fireEvent.click(screen.getByText('Tab 2').closest('[role="tab"]')!);
     rectSpy.mockRestore();
