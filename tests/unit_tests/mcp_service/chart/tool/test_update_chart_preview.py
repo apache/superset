@@ -754,7 +754,7 @@ class TestUpdateChartPreview:
             "clause": "WHERE",
             "operator": "TEMPORAL_RANGE",
             "subject": "ds",
-            "comparator": "Last month",
+            "comparator": "No filter",
         }
         unrelated_filter = {
             "expressionType": "SIMPLE",
