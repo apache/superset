@@ -412,6 +412,9 @@
     "lerna": {
       "js-yaml": "^4.3.0"
     },
+    "minimatch@>=10": {
+      "brace-expansion": ">=5.0.8"
+    },
     "nwsapi": "^2.2.13",
     "puppeteer": "^22.4.1",
     "tar": "^7.5.16",
