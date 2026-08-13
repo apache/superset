@@ -448,11 +448,11 @@ def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
     )
     mock_cmd_cls.return_value.run.side_effect = wrapped
 
-    # Mock the dataset's db_engine_spec to return GENERIC_DB_ENGINE_ERROR
+    # Mock the dataset's db_engine_spec to return a specific connection error.
     mock_db = Mock()
     mock_db.db_engine_spec.extract_errors.return_value = [
         SupersetError(
-            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
             message="connection to server failed",
             level=ErrorLevel.ERROR,
             extra={"engine_name": "PostgreSQL"},
@@ -494,7 +494,8 @@ def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
     mock_cmd_cls.return_value.run.side_effect = OperationalError(
         "connection to server at '10.0.0.1', port 5432 failed: Connection timed out",
         None,
-        None,
+        RuntimeError("connection timed out"),
+        connection_invalidated=True,
     )
 
     result = _compile_chart(
@@ -510,6 +511,44 @@ def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
     assert result.error_obj is not None
     assert result.error_obj.error_type == "database_connection_error"
     assert result.error_obj.error_code == "DATABASE_CONNECTION_ERROR"
+
+
+@patch("superset.daos.dataset.DatasetDAO")
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_keeps_query_error_as_compile_error(
+    mock_factory, mock_cmd_cls, mock_dataset_dao
+):
+    """An OperationalError can describe invalid SQL, not a connection outage."""
+    from sqlalchemy.exc import OperationalError
+
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.validate.return_value = None
+    mock_cmd_cls.return_value.run.side_effect = OperationalError(
+        "SELECT category, COUNT(*) FROM sample_events",
+        None,
+        RuntimeError("column category must appear in GROUP BY"),
+    )
+    mock_db = Mock()
+    mock_db.db_engine_spec.extract_errors.return_value = [
+        SupersetError(
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            message="column category must appear in GROUP BY",
+            level=ErrorLevel.ERROR,
+            extra={"engine_name": "Example database"},
+        )
+    ]
+    mock_dataset_dao.find_by_id.return_value = Mock(database=mock_db)
+
+    result = _compile_chart({"metrics": []}, dataset_id=1)
+
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert "GROUP BY" in result.error_obj.details
 
 
 @pytest.mark.parametrize(
