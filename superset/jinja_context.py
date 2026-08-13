@@ -915,6 +915,18 @@ class BaseTemplateProcessor:
         """
         return self._context.copy()
 
+    def get_template_context(self, **kwargs: Any) -> dict[str, Any]:
+        """
+        Build the validated context used to render a template.
+
+        Split out from ``process_template`` so that validation paths which
+        render a pre-parsed template (``superset.sql.parse.process_jinja_sql``)
+        use exactly the same context as execution, keeping the validated SQL
+        identical to the executed SQL.
+        """
+        kwargs.update(self._context)
+        return validate_template_context(self.engine, kwargs)
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
 
@@ -984,8 +996,7 @@ class BaseTemplateProcessor:
 
             raise SupersetTemplateException(message) from ex
 
-        kwargs.update(self._context)
-        context = validate_template_context(self.engine, kwargs)
+        context = self.get_template_context(**kwargs)
 
         try:
             return template.render(context)
@@ -1133,27 +1144,21 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
 class SparkTemplateProcessor(HiveTemplateProcessor):
     engine = "spark"
 
-    def process_template(self, sql: str, **kwargs: Any) -> str:
-        template = self.env.from_string(sql)
-        kwargs.update(self._context)
-
+    def get_template_context(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_template_context(**kwargs)
         # Backwards compatibility if migrating from Hive.
-        context = validate_template_context(self.engine, kwargs)
         context["hive"] = context["spark"]
-        return template.render(context)
+        return context
 
 
 class TrinoTemplateProcessor(PrestoTemplateProcessor):
     engine = "trino"
 
-    def process_template(self, sql: str, **kwargs: Any) -> str:
-        template = self.env.from_string(sql)
-        kwargs.update(self._context)
-
+    def get_template_context(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_template_context(**kwargs)
         # Backwards compatibility if migrating from Presto.
-        context = validate_template_context(self.engine, kwargs)
         context["presto"] = context["trino"]
-        return template.render(context)
+        return context
 
 
 DEFAULT_PROCESSORS = {

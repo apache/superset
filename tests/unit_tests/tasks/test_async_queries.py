@@ -28,6 +28,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
 )
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 
 @mock.patch("superset.tasks.async_queries.security_manager")
@@ -262,3 +263,43 @@ def test_load_chart_data_into_cache_preserves_oauth2_redirect_error(
         "tab_id": "tab-123",
         "redirect_uri": "https://superset.example.com/oauth2/redirect",
     }
+
+
+@mock.patch("superset.security.SupersetSecurityManager.is_guest_user")
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_redacts_error_for_guest_user(
+    mock_query_context_schema_cls,
+    mock_async_query_manager,
+    mock_security_manager,
+    mock_is_guest_user,
+    app_context: None,
+):
+    """An embedded viewer gets a generic message instead of the engine's."""
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1}
+    err = SupersetErrorsException(
+        [
+            SupersetError(
+                message="Table mydb.myschema.mytable was not found",
+                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": "BigQuery"},
+            )
+        ]
+    )
+
+    mock_is_guest_user.return_value = True
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    mock_async_query_manager.STATUS_ERROR = "error"
+    mock_query_context_schema_cls.return_value.load.side_effect = err
+
+    with pytest.raises(SupersetErrorsException):
+        load_chart_data_into_cache(job_metadata, {})
+
+    errors = mock_async_query_manager.update_job.call_args[1]["errors"]
+    assert errors[0]["message"] == str(GENERIC_ERROR_MESSAGE)
+    assert errors[0]["error_type"] == SupersetErrorType.GENERIC_BACKEND_ERROR
+    assert "engine_name" not in errors[0]["extra"]
