@@ -17,6 +17,7 @@
 # pylint: disable=redefined-outer-name, import-outside-toplevel, unused-argument
 
 import os
+import re
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
@@ -35,6 +36,15 @@ from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+
+def _normalize_sqla_doc_link(message: str) -> str:
+    """
+    Replace the SQLAlchemy error-doc URL's version segment (e.g. ``/e/20/``)
+    with a placeholder so assertions don't need updating every time
+    SQLAlchemy bumps its minor version.
+    """
+    return re.sub(r"/e/\d+/", "/e/XX/", message)
 
 
 @pytest.fixture
@@ -282,11 +292,11 @@ def test_dml(
             conn.execute(
                 text("""INSERT INTO "database2.table2" (a, b) VALUES (3, 'thirty')""")
             )
-    assert str(excinfo.value).strip() == (
+    assert _normalize_sqla_doc_link(str(excinfo.value).strip()) == (
         "(shillelagh.exceptions.ProgrammingError) DML not enabled in database "
         '"database2"\n[SQL: INSERT INTO "database2.table2" (a, b) '
         "VALUES (3, 'thirty')]\n(Background on this error at: "
-        "https://sqlalche.me/e/14/f405)"
+        "https://sqlalche.me/e/XX/f405)"
     )
 
 
@@ -374,10 +384,10 @@ def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> 
     with engine.connect() as conn:
         with pytest.raises(ProgrammingError) as excinfo:
             conn.execute(text('SELECT * FROM "database2.table2"'))
-    assert str(excinfo.value) == (
+    assert _normalize_sqla_doc_link(str(excinfo.value)) == (
         """
 (shillelagh.exceptions.ProgrammingError) Unsupported table: database2.table2
 [SQL: SELECT * FROM "database2.table2"]
-(Background on this error at: https://sqlalche.me/e/14/f405)
+(Background on this error at: https://sqlalche.me/e/XX/f405)
         """.strip()
     )

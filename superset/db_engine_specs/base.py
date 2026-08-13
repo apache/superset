@@ -923,7 +923,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else requests.post(uri, json=req_body, timeout=timeout)
         )
         if response.status_code in (400, 401, 403):
-            raise OAuth2TokenRefreshError(response.text)
+            raise OAuth2TokenRefreshError()
         response.raise_for_status()
         return response.json()
 
@@ -2899,17 +2899,19 @@ class BasicParametersMixin:
         else:
             query.update(cls.encryption_disable_parameters)
 
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
-                username=parameters.get("username"),
-                password=parameters.get("password"),
-                host=parameters["host"],
-                port=parameters["port"],
-                database=parameters["database"],
-                query=query,
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=parameters["database"],
+            query=query,
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument

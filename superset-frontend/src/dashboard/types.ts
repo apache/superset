@@ -161,6 +161,7 @@ export type DashboardState = {
   inactiveTabs?: string[];
   datasetsStatus?: ResourceStatus;
   expandedSlices?: Record<number, boolean>;
+  expandAllSlices?: boolean;
   refreshFrequency: number;
   shouldPersistRefreshFrequency?: boolean;
   colorNamespace?: string;
