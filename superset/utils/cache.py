@@ -162,9 +162,12 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
         def wrapped_f(*args: Any, **kwargs: Any) -> Any:
             should_cache = kwargs.pop("cache", True)
             force = kwargs.pop("force", False)
-            cache_timeout = kwargs.pop(
-                "cache_timeout", app.config["CACHE_DEFAULT_TIMEOUT"]
-            )
+            # callers may explicitly pass ``cache_timeout=None`` (eg, when a database
+            # has no custom metadata cache timeout configured), which should fall back
+            # to the default timeout rather than be forwarded to the cache backend.
+            cache_timeout = kwargs.pop("cache_timeout", None)
+            if cache_timeout is None:
+                cache_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
 
             if not should_cache:
                 return f(*args, **kwargs)
