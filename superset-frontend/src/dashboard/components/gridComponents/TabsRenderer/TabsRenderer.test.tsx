@@ -244,7 +244,7 @@ describe('TabsRenderer', () => {
   });
 
   test('drags from the tab title and shows the drag indicator only then', () => {
-    render(<TabsRenderer {...draggableTabProps} />);
+    render(<TabsRenderer {...draggableTabProps} />, { useRedux: true });
     const container = screen.getByTestId('dashboard-component-tabs');
     const title = container.querySelector('textarea') as HTMLTextAreaElement;
 
