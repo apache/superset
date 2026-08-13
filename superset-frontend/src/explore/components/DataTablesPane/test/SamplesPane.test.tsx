@@ -60,6 +60,12 @@ describe('SamplesPane', () => {
     400,
   );
 
+  // A 200 response that carries no `result` payload, as reported in #36840.
+  fetchMock.post(
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=37&per_page=100&page=1',
+    {},
+  );
+
   const setForceQuery = jest.fn();
 
   afterAll(() => {
@@ -113,5 +119,18 @@ describe('SamplesPane', () => {
     expect(queryByText('2 rows')).toBeVisible();
     expect(queryByText('Action')).toBeVisible();
     expect(queryByText('Horror')).toBeVisible();
+  });
+
+  test('renders the empty state when the response carries no result payload', async () => {
+    const props = createSamplesPaneProps({ datasourceId: 37 });
+    const { findByText, queryByRole } = render(<SamplesPane {...props} />, {
+      useRedux: true,
+    });
+
+    expect(
+      await findByText('No samples were returned for this dataset'),
+    ).toBeVisible();
+    // The pane should not leak an internal TypeError through the error alert.
+    expect(queryByRole('alert')).not.toBeInTheDocument();
   });
 });

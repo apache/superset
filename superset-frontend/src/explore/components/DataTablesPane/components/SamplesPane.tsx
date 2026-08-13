@@ -105,10 +105,13 @@ export const SamplesPane = ({
         1,
       )
         .then(response => {
-          setData(ensureIsArray(response.data));
-          setColnames(ensureIsArray(response.colnames));
-          setColtypes(ensureIsArray(response.coltypes));
-          setRowCount(response.rowcount);
+          // A 200 that carries no `result` payload resolves to undefined here.
+          // Read through it so the pane falls back to its empty state instead
+          // of throwing a TypeError that surfaces as an internal error message.
+          setData(ensureIsArray(response?.data));
+          setColnames(ensureIsArray(response?.colnames));
+          setColtypes(ensureIsArray(response?.coltypes));
+          setRowCount(response?.rowcount ?? 0);
           setResponseError('');
           cache.set(queryFormData, true);
           if (queryForce) {
