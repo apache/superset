@@ -2537,6 +2537,10 @@ def test_set_limit_value(
 
 
 @pytest.mark.parametrize(
+    "method",
+    [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL],
+)
+@pytest.mark.parametrize(
     "engine",
     [
         # Engines whose sqlglot dialect parses `SHOW` into a real `exp.Show`
@@ -2556,10 +2560,10 @@ def test_set_limit_value(
     ],
 )
 def test_set_limit_value_leaves_show_statements_unchanged(
-    sql: str, engine: str
+    sql: str, engine: str, method: LimitMethod
 ) -> None:
     """
-    Regression for #36939: FORCE_LIMIT must not touch ``SHOW`` statements.
+    Regression for #36939: no limit method may touch ``SHOW`` statements.
 
     ``SHOW`` statements have no `LIMIT` clause in sqlglot's expression tree,
     so forcing one via ``args["limit"]`` doesn't reject cleanly, it produces
@@ -2570,16 +2574,74 @@ def test_set_limit_value_leaves_show_statements_unchanged(
     left untouched instead, matching how ``SELECT`` statements without a
     scannable row source aren't force-limited either.
 
+    ``WRAP_SQL`` is wrong on a ``SHOW`` for the same reason but fails more
+    quietly, rewriting it as ``SELECT * FROM (SHOW DATABASES)``, so both
+    methods are covered here.
+
     Covers multiple engines, not just StarRocks: the fix guards on the AST
-    node type (``exp.Show``), not the dialect, so any engine whose sqlglot
-    dialect parses ``SHOW`` into a real ``Show`` node (e.g. MySQL, Snowflake)
-    is equally exposed and must be equally protected.
+    node category (``exp.Query``), not the dialect, so any engine whose
+    sqlglot dialect parses ``SHOW`` into a real ``Show`` node (e.g. MySQL,
+    Snowflake) is equally exposed and must be equally protected.
     """
     statement = SQLStatement(sql, engine)
     original = statement.format()
-    statement.set_limit_value(1000, LimitMethod.FORCE_LIMIT)
+    statement.set_limit_value(1000, method)
     assert statement.format() == original
     assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "method",
+    [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL],
+)
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "DESCRIBE test.will_test1",
+        "USE test",
+        "SET time_zone = 'UTC'",
+        "GRANT SELECT ON t1 TO u1",
+    ],
+)
+def test_set_limit_value_leaves_non_query_statements_unchanged(
+    sql: str, method: LimitMethod
+) -> None:
+    """
+    ``SHOW`` is not the only statement with nowhere to put a `LIMIT`.
+
+    `apply_limit()` only skips *mutating* statements, so every read-only
+    non-query statement reaches ``set_limit_value``. These happen to survive
+    a forced limit today only because their sqlglot generators ignore an
+    unexpected ``limit`` arg -- a silent dependency on generator internals.
+    Guarding on ``exp.Query`` makes leaving them alone explicit, so a future
+    sqlglot that starts rendering `limit` for one of these node types can't
+    reintroduce the ``SHOW`` bug under a different keyword.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    original = statement.format()
+    statement.set_limit_value(1000, method)
+    assert statement.format() == original
+    assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # `UNION` parses as `exp.Union` and a parenthesized query as
+        # `exp.Subquery` -- neither is an `exp.Select`, so narrowing the guard
+        # to `is_select()` would silently stop limiting them.
+        "SELECT 1 UNION SELECT 2",
+        "(SELECT 1)",
+        "WITH t AS (SELECT 1) SELECT * FROM t",
+    ],
+)
+def test_set_limit_value_limits_non_select_query_expressions(sql: str) -> None:
+    """
+    Query expressions that aren't `SELECT` must still be limited.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    statement.set_limit_value(1000, LimitMethod.FORCE_LIMIT)
+    assert "LIMIT 1000" in statement.format()
 
 
 @pytest.mark.parametrize(
