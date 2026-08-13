@@ -158,6 +158,7 @@ def test_run_logs_token_exchange_failure(
         "get_database",
         return_value=mock_database,
     )
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=1)
     mock_database.db_engine_spec.get_oauth2_token.side_effect = HTTPError(
         "provider-payload-sentinel"
     )
