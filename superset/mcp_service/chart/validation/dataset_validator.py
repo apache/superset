@@ -593,7 +593,15 @@ class DatasetValidator:
                     col_ref.aggregate in numeric_aggs
                     and not col_info.get("is_numeric", False)
                     and col_info.get("type", "").upper()
-                    not in ["INTEGER", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC"]
+                    not in [
+                        "",
+                        "UNKNOWN",
+                        "INTEGER",
+                        "FLOAT",
+                        "DOUBLE",
+                        "DECIMAL",
+                        "NUMERIC",
+                    ]
                 ):
                     from superset.mcp_service.utils.error_builder import (  # noqa: E501
                         ChartErrorBuilder,
