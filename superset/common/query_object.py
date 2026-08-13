@@ -548,9 +548,34 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _(
                             "Unsupported post processing operation: %(operation)s",
-                            type=operation,
+                            operation=operation,
                         )
                     )
                 options = post_process.get("options", {})
+                if operation == "resample":
+                    options = self._resolve_resample_options(options)
                 df = getattr(pandas_postprocessing, operation)(df, **options)
             return df
+
+    def _resolve_resample_options(self, options: dict[str, Any]) -> dict[str, Any]:
+        """
+        Translate the `fill_time_range` flag into explicit resample boundaries.
+
+        Clients cannot supply the boundaries themselves because time ranges may be
+        expressed in natural language (e.g. `Last week`) and are only resolved into
+        concrete datetimes server side.
+
+        :param options: Options of the `resample` post processing operation.
+        :return: Options with the boundaries of the queried time range applied.
+        """
+        if not options.get("fill_time_range"):
+            return options
+
+        resolved = {
+            key: value
+            for key, value in options.items()
+            if key not in ("fill_time_range", "time_range_start", "time_range_end")
+        }
+        resolved["time_range_start"] = self.from_dttm
+        resolved["time_range_end"] = self.to_dttm
+        return resolved

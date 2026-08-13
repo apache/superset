@@ -14,12 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from unittest.mock import call, patch
 
+import pandas as pd
+import pytest
 from flask_appbuilder.security.sqla.models import User
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
+from superset.exceptions import InvalidPostProcessingError
 from superset.models.core import Database
 from superset.superset_typing import Metric
 from superset.utils.core import override_user
@@ -64,6 +68,117 @@ def test_default_query_object_to_dict():
         "time_compare_full_range": False,
         "to_dttm": None,
     }
+
+
+def test_exec_post_processing_rejects_unsupported_operation():
+    """
+    An unknown operation reports itself in the error message rather than failing
+    to interpolate it.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[{"operation": "no_such_operation"}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError) as excinfo:
+        query_object.exec_post_processing(pd.DataFrame({"y": [1.0]}))
+
+    assert "no_such_operation" in excinfo.value.message
+
+
+def test_exec_post_processing_requires_an_operation():
+    query_object = QueryObject(row_limit=1, post_processing=[{"options": {}}])
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(pd.DataFrame({"y": [1.0]}))
+
+
+def test_exec_post_processing_resample_fills_time_range():
+    """
+    `fill_time_range` is resolved into the boundaries of the queried time range
+    so the resampled series covers the whole period.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {
+                    "method": "asfreq",
+                    "rule": "1D",
+                    "fill_value": 0,
+                    "fill_time_range": True,
+                },
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.date_range("2019-01-01", "2019-01-04", freq="1D")
+    )
+
+
+def test_exec_post_processing_resample_ignores_client_time_bounds():
+    """
+    Client-supplied bounds must not override the resolved query window.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {
+                    "method": "asfreq",
+                    "rule": "1D",
+                    "fill_value": 0,
+                    "fill_time_range": True,
+                    "time_range_start": datetime(2010, 1, 1),
+                    "time_range_end": datetime(2030, 1, 1),
+                },
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.date_range("2019-01-01", "2019-01-04", freq="1D")
+    )
+
+
+def test_exec_post_processing_resample_without_fill_time_range():
+    """
+    Without the flag the result stays bound to the extremes of the data.
+    """
+    query_object = QueryObject(
+        row_limit=1,
+        post_processing=[
+            {
+                "operation": "resample",
+                "options": {"method": "asfreq", "rule": "1D", "fill_value": 0},
+            }
+        ],
+        from_dttm=datetime(2019, 1, 1),
+        to_dttm=datetime(2019, 1, 5),
+    )
+    df = pd.DataFrame(
+        index=pd.to_datetime(["2019-01-03"]),
+        data={"y": [1.0]},
+    )
+
+    assert query_object.exec_post_processing(df).index.equals(
+        pd.to_datetime(["2019-01-03"])
+    )
 
 
 def test_cache_key_consistent_for_query_object():

@@ -217,6 +217,7 @@ describe('should collect control values and create SFD', () => {
     // advanced analytics - resample
     resample_rule: '1D',
     resample_method: 'zerofill',
+    resample_fill_time_range: true,
     // dashboard context
     dashboardId: 123,
   };

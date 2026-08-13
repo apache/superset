@@ -328,6 +328,12 @@ the median value within the seven daily data points. For more information on the
 various options in this section, refer to the
 [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.resample.html).
 
+By default, resampling only fills the periods between the first and the last data point returned by
+the query. If your data starts after the beginning of the selected time range, or stops before its
+end, enable **Fill the entire time range** to pad the series so it spans the whole range. This is
+what you want when, for example, you chart hourly counts with Zero imputation and expect empty hours
+to be drawn as zero across the entire day rather than only around the hours that have data.
+
 Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboard. Go to the
 tutorial dashboard to see the four charts side by side and compare the different outputs.
 
