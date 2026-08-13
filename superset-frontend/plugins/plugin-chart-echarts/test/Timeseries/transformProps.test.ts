@@ -1555,6 +1555,198 @@ test('computes row-contribution axis padding per stack when time_compare splits 
   expect(xAxisRaw.max).toBeLessThan(1.5);
 });
 
+test('clamps series values to the yAxis max instead of dropping out-of-range points (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [
+          { 'Series A': 1 },
+          { 'Series A': 2 },
+          { 'Series A': 3 },
+          { 'Series A': 4 },
+          { 'Series A': 1000 },
+          { 'Series A': 4 },
+          { 'Series A': 2 },
+        ],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  // The point that was 1000 should be present (not dropped) and clamped to
+  // the configured yAxis max of 10, rather than disappearing entirely.
+  expect(data).toHaveLength(7);
+  expect(data[4][1]).toBe(10);
+});
+
+test('clamps series values to the yAxis min when a value falls below it', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': -1000 }, { 'Series A': 2 }, { 'Series A': 3 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  expect(data).toHaveLength(3);
+  expect(data[0][1]).toBe(0);
+});
+
+test('clamps series values to the yAxis bounds when colorByPrimaryAxis wraps points in objects (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': 1 }, { 'Series A': 1000 }, { 'Series A': 2 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+      colorByPrimaryAxis: true,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as { value: [number, number] }[];
+
+  // colorByPrimaryAxis wraps each point as `{ value: [x, y], itemStyle }`
+  // rather than a bare tuple; the wrapped value must still be clamped
+  // instead of being skipped and left for ECharts to drop.
+  expect(data).toHaveLength(3);
+  expect(data[1].value[1]).toBe(10);
+});
+
+test('does not clamp a timeseries annotation series to the Y axis bounds (#27449)', () => {
+  const timeseries: TimeseriesAnnotationLayer = {
+    annotationType: AnnotationType.Timeseries,
+    name: 'My Timeseries',
+    show: true,
+    showLabel: true,
+    sourceType: AnnotationSourceType.Line,
+    style: AnnotationStyle.Solid,
+    titleColumn: '',
+    value: 3,
+  };
+  const annotationData = {
+    'My Timeseries': {
+      records: [
+        { x: 0, y: 11000 },
+        { x: 300000000, y: 21000 },
+      ],
+    },
+  };
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 1 }, { 'Series A': 2 }], {
+        intervalMs: 300000000,
+      }),
+      { annotation_data: annotationData },
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      groupby: [],
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      truncateYAxis: true,
+      yAxisBounds: [0, 10],
+      annotationLayers: [timeseries],
+    },
+    annotationData,
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const annotationSeries = series.find(s => s.id === 'My Timeseries');
+  expect(annotationSeries).toBeDefined();
+  const data = annotationSeries!.data as [number, number][];
+
+  // The annotation carries its own configured values (11000, 21000), which
+  // are unrelated to the chart's own out-of-range-data problem this PR
+  // fixes. They must be left untouched by the Y axis clamp rather than
+  // rewritten to the yAxisBounds max of 10.
+  expect(data[0][1]).toBe(11000);
+  expect(data[1][1]).toBe(21000);
+});
+
+test('clamps series values at the correct tuple index for horizontal bar charts (#27449)', () => {
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': 15000 }, { 'Series A': 20000 }, { 'Series A': 18000 }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      yAxisBounds: [0, 16000],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const series = transformedProps.echartOptions.series as SeriesOption[];
+  const seriesA = series.find(s => s.name === 'Series A');
+  expect(seriesA).toBeDefined();
+  const data = seriesA!.data as [number, number][];
+
+  // In horizontal orientation the value sits at tuple index 0 (the axes are
+  // swapped), so the clamp must target that index rather than index 1.
+  expect(data).toHaveLength(3);
+  expect(data[1][0]).toBe(16000);
+});
+
 test('legend is visible on tall charts when enabled by the user', () => {
   const chartProps = createTestChartProps({
     height: 400,
