@@ -38,6 +38,7 @@ from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
     PermissionViewMenuApi,
@@ -3090,7 +3091,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning(
                 "Dataset has no database will retry with database_id to set permission"
             )
-            database = self.session.query(Database).get(target.database_id)
+            database = self.session.get(Database, target.database_id)
             dataset_perm = self.get_dataset_perm(
                 target.id, target.table_name, database.database_name
             )
@@ -4370,6 +4371,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             elif chart.datasource and self.can_access_datasource(chart.datasource):
                 return
 
+            # An embedded guest may access a member chart of a dashboard their
+            # guest token grants. Embedded dashboards render their member charts
+            # client-side, so the chart definitions must be served even though a
+            # guest holds no standalone datasource grant. The chart's dataset
+            # must still satisfy any allowlist the token carries, and data
+            # queries are re-checked through the datasource branch above (which
+            # receives the dashboard context in the chart-data form_data).
+            if (
+                is_feature_enabled("EMBEDDED_SUPERSET")
+                and self.is_guest_user()
+                and any(
+                    self.has_guest_access(dashboard_) for dashboard_ in chart.dashboards
+                )
+                and self._guest_token_allows_dataset(
+                    chart.datasource.id if chart.datasource else None
+                )
+            ):
+                return
+
             raise SupersetSecurityException(self.get_chart_access_error_object(chart))
 
     def get_user_by_username(self, username: str) -> Optional[User]:
@@ -4927,6 +4947,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return user
         return None
 
+    def _guest_token_allows_dataset(self, datasource_id: Optional[int]) -> bool:
+        """Return whether the current guest token permits this dataset.
+
+        A token without a ``datasets`` allowlist permits every dataset
+        (backward compatible). A token that carries one permits only the listed
+        integer IDs; a malformed allowlist permits nothing. Non-guest callers
+        are unaffected: they hold no guest token and always get ``True``.
+        """
+        guest_user = self.get_current_guest_user_if_guest()
+        if not guest_user:
+            return True
+        allowed_datasets: Optional[list[int]] = guest_user.guest_token.get("datasets")
+        if allowed_datasets is None:
+            return True
+        return (
+            isinstance(allowed_datasets, list)
+            and all(isinstance(d, int) for d in allowed_datasets)
+            and datasource_id in allowed_datasets
+        )
+
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
         if not user:
@@ -5100,7 +5140,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def register_views(self) -> None:
         from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
 
-        if self.register_superset_auth_view:
+        # AUTH_REMOTE_USER has no interactive login form to render: the whole
+        # point is that an upstream proxy already authenticated the request and
+        # passes the identity via a header/env var, so FlaskAppBuilder's
+        # AuthRemoteUserView performs a silent GET-time login with no UI. That
+        # view registers at the same "/login/" route as SupersetAuthView, and
+        # since both add distinct Flask endpoints for the same URL rule,
+        # whichever gets registered first wins the dispatch -- SupersetAuthView
+        # always wins because it's added before super().register_views() runs
+        # FlaskAppBuilder's own auth_type dispatch. That silently shadows
+        # AUTH_REMOTE_USER: the SPA login shell renders instead of the header
+        # ever being checked. Skip registering it for this auth type so
+        # FlaskAppBuilder's AuthRemoteUserView actually claims the route.
+        if self.register_superset_auth_view and self.auth_type != AUTH_REMOTE_USER:
             self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
         if self.register_superset_registeruser_view:
             self.registeruser_view = self.appbuilder.add_view_no_menu(
