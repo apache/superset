@@ -34,8 +34,10 @@
  * Only a real browser sees layout, so this is pinned here rather than in the
  * DOM-contract unit suite. Because the failure mode is
  * render-then-collapse, a single "rows are visible" read could pass during
- * the initial flash — the assertion therefore requires the table body to hold
- * a real height across two consecutive reads.
+ * the initial flash — the assertion therefore lets the height settle once,
+ * then requires it to hold across further spaced reads with no more
+ * retrying, so a later or partial collapse cannot be masked by an early-exit
+ * retry that stopped at the first passing sample.
  *
  * CI green => the drill modal's table renders rows at a stable, non-collapsed
  *             height.
@@ -48,10 +50,16 @@ import { DashboardPage } from '../../pages/DashboardPage';
 import { createDashboardWithCharts } from './dashboard-test-helpers';
 
 const MIN_STABLE_BODY_HEIGHT = 100;
-// Max fraction the body height may drift between the two reads below; a
+// Max fraction the body height may drift from the settled baseline below; a
 // partial collapse (e.g. 400px -> 150px) still clears MIN_STABLE_BODY_HEIGHT
 // but fails this, so the check enforces stability, not just a floor.
 const HEIGHT_DRIFT_TOLERANCE = 0.25;
+// Extra spaced reads taken *after* the height has settled, and the gap
+// between them. These are plain assertions, not wrapped in a retrying
+// helper: once settled, a retry would return on the first passing sample
+// and could mask a collapse that only shows up later in the window.
+const HEIGHT_SAMPLE_COUNT = 2;
+const HEIGHT_SAMPLE_INTERVAL_MS = 300;
 
 testWithAssets(
   'drill to detail modal renders result rows at a stable height',
@@ -114,21 +122,36 @@ testWithAssets(
     const tableBody = modal.locator('.virtual-grid');
     await expect(tableBody).toBeAttached({ timeout: TIMEOUT.CHART_RENDER });
 
-    // The regression collapses the body *after* first paint, so require the
-    // height to hold across two consecutive reads rather than sampling once
-    // (a single read could land inside the flash and pass a broken build).
-    await expect(async () => {
-      const first = await tableBody.boundingBox();
-      const firstHeight = first?.height ?? 0;
-      expect(firstHeight).toBeGreaterThan(MIN_STABLE_BODY_HEIGHT);
-      await page.waitForTimeout(300);
-      const second = await tableBody.boundingBox();
-      const secondHeight = second?.height ?? 0;
-      expect(secondHeight).toBeGreaterThan(MIN_STABLE_BODY_HEIGHT);
-      expect(Math.abs(secondHeight - firstHeight)).toBeLessThanOrEqual(
-        firstHeight * HEIGHT_DRIFT_TOLERANCE,
+    // The regression collapses the body *after* first paint, so first let the
+    // height settle above the floor (retrying is safe here: the collapse is
+    // persistent, so a broken build never finds a passing read and this
+    // still times out red), then, without any further retrying, take extra
+    // spaced reads and require each to hold within tolerance of that settled
+    // baseline — a delayed or partial collapse can no longer be masked by an
+    // early-exit retry that stopped at the first passing sample.
+    let baselineHeight = 0;
+    await expect
+      .poll(
+        async () => {
+          baselineHeight = (await tableBody.boundingBox())?.height ?? 0;
+          return baselineHeight;
+        },
+        { timeout: TIMEOUT.CHART_RENDER },
+      )
+      .toBeGreaterThan(MIN_STABLE_BODY_HEIGHT);
+    for (let sample = 0; sample < HEIGHT_SAMPLE_COUNT; sample += 1) {
+      // eslint-disable-next-line no-await-in-loop -- reads must be sequential
+      // and spaced out to observe a delayed collapse; there is nothing to
+      // parallelize.
+      await page.waitForTimeout(HEIGHT_SAMPLE_INTERVAL_MS);
+      // eslint-disable-next-line no-await-in-loop -- see above
+      const box = await tableBody.boundingBox();
+      const height = box?.height ?? 0;
+      expect(height).toBeGreaterThan(MIN_STABLE_BODY_HEIGHT);
+      expect(Math.abs(height - baselineHeight)).toBeLessThanOrEqual(
+        baselineHeight * HEIGHT_DRIFT_TOLERANCE,
       );
-    }).toPass({ timeout: TIMEOUT.CHART_RENDER });
+    }
 
     // And the rows are real data, not just an expanded empty scroller:
     // birth_names sample rows always carry a gender value.
