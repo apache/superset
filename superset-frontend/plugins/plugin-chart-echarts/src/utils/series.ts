@@ -33,7 +33,11 @@ import {
 } from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
+import {
+  SortSeriesType,
+  LegendPaddingType,
+  TIME_COMPARISON_SEPARATOR,
+} from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
@@ -403,10 +407,21 @@ export function extractDataTotalValues(
     extraMetricLabels,
   } = opts;
   const excludedKeys = new Set([xAxisCol, ...(extraMetricLabels ?? [])]);
+  // Time comparison post-processing emits a derived column per metric, named
+  // `<label>__<offset>`. Sort-only metrics are part of the query, so they get
+  // one too and it must be excluded alongside the base label. Matching on the
+  // separator keeps a distinct metric that merely shares a prefix (`SortTotal`
+  // vs `Sort`) in the total.
+  const excludedPrefixes = (extraMetricLabels ?? []).map(
+    label => `${label}${TIME_COMPARISON_SEPARATOR}`,
+  );
+  const isExcluded = (key: string) =>
+    excludedKeys.has(key) ||
+    excludedPrefixes.some(prefix => key.startsWith(prefix));
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
-        if (excludedKeys.has(curr)) {
+        if (isExcluded(curr)) {
           return prev;
         }
         if (legendState && !legendState[curr]) {
