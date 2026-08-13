@@ -46,6 +46,12 @@ import { Dispatch } from 'redux';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
+import {
+  CHART_STATUS_ATTR,
+  CHART_STATUS_ATTR_VALUES,
+  getChartStatusAttrValue,
+  type ChartStatusAttrValue,
+} from '../../utils/screenshotContract';
 
 export type ChartErrorType = Partial<ClientErrorObject>;
 export interface ChartProps {
@@ -125,6 +131,13 @@ const BLANK = {};
 const NONEXISTENT_DATASET = t(
   'The dataset associated with this chart no longer exists',
 );
+
+// JSX prop names must be static identifiers, so the CHART_STATUS_ATTR
+// constant (the single source of truth for the attribute name) is bound via
+// a computed-key spread rather than a literal `data-chart-status=` prop.
+const chartStatusAttrProps = (value: ChartStatusAttrValue) => ({
+  [CHART_STATUS_ATTR]: value,
+});
 
 const Styles = styled.div<{ height: number; width?: number }>`
   min-height: ${p => p.height}px;
@@ -430,8 +443,30 @@ function Chart({
   const showSpinner = isLoading && !suppressLoadingSpinner;
 
   if (chartStatus === 'failed') {
+    // If none of the query responses carry a backend error, renderErrorMessage
+    // falls back to a "datasource still loading" spinner instead of an error
+    // message (see the condition mirrored below). In that sub-case, the
+    // terminal "failed" value would misrepresent an in-progress state to
+    // consumers of this attribute, so publish "loading" instead.
+    const hasQueryErrors = ensureIsArray(queriesResponse).some(
+      item => (item as ChartErrorType)?.errors?.[0],
+    );
+    const isDatasourceStillLoading =
+      !hasQueryErrors &&
+      chartAlert !== undefined &&
+      chartAlert !== NONEXISTENT_DATASET &&
+      datasource === PLACEHOLDER_DATASOURCE &&
+      datasetsStatus !== ResourceStatus.Error;
+
     return (
-      <ErrorContainer height={height}>
+      <ErrorContainer
+        height={height}
+        {...chartStatusAttrProps(
+          isDatasourceStillLoading
+            ? CHART_STATUS_ATTR_VALUES.LOADING
+            : CHART_STATUS_ATTR_VALUES.FAILED,
+        )}
+      >
         {queriesResponse?.map(item =>
           renderErrorMessage(item as ChartErrorType),
         )}
@@ -441,43 +476,53 @@ function Chart({
 
   if (chartStatus === 'stopped') {
     return (
-      <EmptyState
-        size="large"
-        title={chartAlert || t('Updating chart was stopped')}
-        description={
-          <span>
-            {t('Run a new query using the "Update chart" button or')}{' '}
-            <button
-              type="button"
-              onClick={onQuery}
-              css={css`
-                appearance: none;
-                border: none;
-                background: none;
-                padding: 0;
-                font: inherit;
-                cursor: pointer;
-                text-decoration: underline;
-              `}
-            >
-              {t('click here')}
-            </button>
-            .
-          </span>
-        }
-        image="chart.svg"
-      />
+      <div
+        {...chartStatusAttrProps(CHART_STATUS_ATTR_VALUES.STOPPED)}
+        css={{ width: '100%', height: '100%' }}
+      >
+        <EmptyState
+          size="large"
+          title={chartAlert || t('Updating chart was stopped')}
+          description={
+            <span>
+              {t('Run a new query using the "Update chart" button or')}{' '}
+              <button
+                type="button"
+                onClick={onQuery}
+                css={css`
+                  appearance: none;
+                  border: none;
+                  background: none;
+                  padding: 0;
+                  font: inherit;
+                  cursor: pointer;
+                  text-decoration: underline;
+                `}
+              >
+                {t('click here')}
+              </button>
+              .
+            </span>
+          }
+          image="chart.svg"
+        />
+      </div>
     );
   }
 
   if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
     return (
-      <EmptyState
-        size="large"
-        title={t('Add required control values to preview chart')}
-        description={getChartRequiredFieldsMissingMessage(true)}
-        image="chart.svg"
-      />
+      <div
+        {...chartStatusAttrProps(CHART_STATUS_ATTR_VALUES.STOPPED)}
+        css={{ width: '100%', height: '100%' }}
+      >
+        <EmptyState
+          size="large"
+          title={t('Add required control values to preview chart')}
+          description={getChartRequiredFieldsMissingMessage(true)}
+          image="chart.svg"
+        />
+      </div>
     );
   }
   if (
@@ -488,34 +533,39 @@ function Chart({
     ensureIsArray(queriesResponse).length === 0
   ) {
     return (
-      <EmptyState
-        size="large"
-        title={t('Your chart is ready to go!')}
-        description={
-          <span>
-            {t(
-              'Click on "Create chart" button in the control panel on the left to preview a visualization or',
-            )}{' '}
-            <button
-              type="button"
-              onClick={onQuery}
-              css={css`
-                appearance: none;
-                border: none;
-                background: none;
-                padding: 0;
-                font: inherit;
-                cursor: pointer;
-                text-decoration: underline;
-              `}
-            >
-              {t('click here')}
-            </button>
-            .
-          </span>
-        }
-        image="chart.svg"
-      />
+      <div
+        {...chartStatusAttrProps(CHART_STATUS_ATTR_VALUES.STOPPED)}
+        css={{ width: '100%', height: '100%' }}
+      >
+        <EmptyState
+          size="large"
+          title={t('Your chart is ready to go!')}
+          description={
+            <span>
+              {t(
+                'Click on "Create chart" button in the control panel on the left to preview a visualization or',
+              )}{' '}
+              <button
+                type="button"
+                onClick={onQuery}
+                css={css`
+                  appearance: none;
+                  border: none;
+                  background: none;
+                  padding: 0;
+                  font: inherit;
+                  cursor: pointer;
+                  text-decoration: underline;
+                `}
+              >
+                {t('click here')}
+              </button>
+              .
+            </span>
+          }
+          image="chart.svg"
+        />
+      </div>
     );
   }
 
@@ -525,6 +575,7 @@ function Chart({
         data-ui-anchor="chart"
         className="chart-container"
         data-test="chart-container"
+        {...chartStatusAttrProps(getChartStatusAttrValue(chartStatus))}
         height={height}
         width={width}
       >
