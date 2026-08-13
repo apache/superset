@@ -107,21 +107,9 @@ export class DrillDetailModal extends Modal {
     await this.element.getByRole('button', { name: 'Reload' }).click();
   }
 
-  /** Navigates to Explore for the drilled chart (hidden when embedded). */
-  async editChart(): Promise<void> {
-    await this.element.getByRole('button', { name: 'Edit chart' }).click();
-  }
-
-  /**
-   * Closes the modal via its footer Close button, if open (idempotent).
-   */
+  /** Closes the modal via its footer Close button. */
   async close(): Promise<void> {
-    const closeButton = this.element.locator(
-      DrillDetailModal.SELECTORS.CLOSE_BUTTON,
-    );
-    if (await closeButton.count()) {
-      await closeButton.first().click();
-      await this.waitForHidden();
-    }
+    await this.element.locator(DrillDetailModal.SELECTORS.CLOSE_BUTTON).click();
+    await this.waitForHidden();
   }
 }

@@ -467,21 +467,13 @@ export class DashboardPage {
   // ---------------------------------------------------------------------------
 
   /**
-   * Locator for a chart card on the dashboard by its visualization type, e.g.
-   * `table`, `pie`, `big_number_total`.
-   */
-  chartByVizType(vizType: string): Locator {
-    return this.page.locator(`[data-test-viz-type="${vizType}"]`);
-  }
-
-  /**
    * Open the "Drill to detail" item from a chart's "More Options" header menu.
    * This is the whole-chart entry point (no row-level filters applied).
    */
-  async openDrillToDetailFromMenu(vizType: string): Promise<void> {
+  async openDrillToDetailFromMenu(chartId: number): Promise<void> {
     const moreOptions = new Button(
       this.page,
-      this.chartByVizType(vizType).getByLabel('More Options', { exact: true }),
+      this.getChart(chartId).getByLabel('More Options', { exact: true }),
     );
     await moreOptions.click();
     await this.page
@@ -512,7 +504,7 @@ export class DashboardPage {
    * appends the arrow-icon name ("right") to the accessible name, and the leaf
    * items ("Drill to detail by boy") would otherwise match a role+name lookup.
    */
-  private drillBySubmenuTitle(): Locator {
+  drillBySubmenuTitle(): Locator {
     return this.page.locator('.ant-dropdown-menu-submenu-title', {
       hasText: 'Drill to detail by',
     });

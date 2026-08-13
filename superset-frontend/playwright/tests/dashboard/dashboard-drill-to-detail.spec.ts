@@ -55,13 +55,15 @@
  * Excluded (kept out, matching the original's own `describe.skip`s): Bar, Area,
  * World Map, Radar — skipped upstream for chart-specific reasons.
  */
-import { testWithAssets, expect } from '../../helpers/fixtures';
-import type { Page } from '@playwright/test';
-import { apiPost, apiPut } from '../../helpers/api/requests';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
-import { getDatasetByName } from '../../helpers/api/dataset';
+import {
+  testWithAssets,
+  expect,
+  type TestAssets,
+} from '../../helpers/fixtures';
+import type { Page, TestInfo } from '@playwright/test';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { createDashboardWithCharts } from './dashboard-test-helpers';
 
 const DATASET_NAME = 'birth_names';
 
@@ -82,88 +84,35 @@ function parseRowCount(text: string): number {
 
 interface ChartSpec {
   vizType: string;
-  sliceName: string;
+  chartNamePrefix: string;
   params: Record<string, unknown>;
 }
 
 /**
  * API-build a hermetic single-chart dashboard from birth_names and return its
- * id. Mirrors the build pattern used by the other migrated dashboard specs
- * (create chart → build positionJson → create dashboard → link chart).
+ * dashboard and chart ids. Thin single-chart wrapper around
+ * `createDashboardWithCharts`, the build helper shared by the other migrated
+ * dashboard specs — reused here rather than hand-rolling position-json and id
+ * extraction again.
  */
 async function buildSingleChartDashboard(
   page: Page,
-  testAssets: {
-    trackChart(id: number): void;
-    trackDashboard(id: number): void;
-  },
+  testAssets: TestAssets,
+  testInfo: TestInfo,
   spec: ChartSpec,
-): Promise<number> {
-  const dataset = await getDatasetByName(page, DATASET_NAME);
-  if (!dataset) {
-    throw new Error(`Dataset ${DATASET_NAME} not found`);
-  }
-  const datasetId = dataset.id;
-  const datasource = `${datasetId}__table`;
-
-  const chartResp = await apiPost(page, 'api/v1/chart/', {
-    slice_name: `${spec.sliceName}_${Date.now()}`,
-    viz_type: spec.vizType,
-    datasource_id: datasetId,
-    datasource_type: 'table',
-    params: JSON.stringify({
-      datasource,
-      viz_type: spec.vizType,
-      ...spec.params,
-    }),
-  });
-  expect(chartResp.ok()).toBe(true);
-  const chart = await chartResp.json();
-  const chartId: number = chart.id ?? chart.result?.id;
-  testAssets.trackChart(chartId);
-
-  const chartLayoutKey = `CHART-${chartId}`;
-  const positionJson = {
-    DASHBOARD_VERSION_KEY: 'v2',
-    ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-    GRID_ID: {
-      type: 'GRID',
-      id: 'GRID_ID',
-      children: ['ROW-1'],
-      parents: ['ROOT_ID'],
+): Promise<{ dashboardId: number; chartId: number }> {
+  const { dashboardId, charts } = await createDashboardWithCharts(
+    page,
+    testAssets,
+    testInfo,
+    {
+      datasetName: DATASET_NAME,
+      chartNamePrefix: spec.chartNamePrefix,
+      dashboardTitlePrefix: spec.chartNamePrefix,
+      chartSpecs: [{ viz_type: spec.vizType, params: spec.params }],
     },
-    'ROW-1': {
-      type: 'ROW',
-      id: 'ROW-1',
-      children: [chartLayoutKey],
-      parents: ['ROOT_ID', 'GRID_ID'],
-      meta: { background: 'BACKGROUND_TRANSPARENT' },
-    },
-    [chartLayoutKey]: {
-      type: 'CHART',
-      id: chartLayoutKey,
-      children: [],
-      parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-      meta: { chartId, width: 12, height: 60, sliceName: spec.sliceName },
-    },
-  };
-
-  const dashResp = await apiPostDashboard(page, {
-    dashboard_title: `${spec.sliceName}_dash_${Date.now()}`,
-    published: true,
-    position_json: JSON.stringify(positionJson),
-  });
-  expect(dashResp.ok()).toBe(true);
-  const dashBody = await dashResp.json();
-  const dashboardId: number = dashBody.result?.id ?? dashBody.id;
-  testAssets.trackDashboard(dashboardId);
-
-  const linkResp = await apiPut(page, `api/v1/chart/${chartId}`, {
-    dashboards: [dashboardId],
-  });
-  expect(linkResp.ok()).toBe(true);
-
-  return dashboardId;
+  );
+  return { dashboardId, chartId: charts[0].id };
 }
 
 /**
@@ -181,6 +130,7 @@ async function buildSingleChartDashboard(
  */
 async function rightClickCanvasDatum(
   page: Page,
+  dashboard: DashboardPage,
   canvas: ReturnType<Page['locator']>,
   pattern: 'ring' | 'grid' | 'dense',
 ): Promise<void> {
@@ -222,9 +172,7 @@ async function rightClickCanvasDatum(
 
   // The submenu *title* element only exists when "Drill to detail by" is an
   // enabled submenu (a real datum was hit); a miss renders a disabled item.
-  const enabledDrillBy = page
-    .locator('.ant-dropdown-menu-submenu-title')
-    .filter({ hasText: 'Drill to detail by' });
+  const enabledDrillBy = dashboard.drillBySubmenuTitle();
 
   for (const pt of candidates) {
     await canvas.click({ button: 'right', position: pt });
@@ -253,16 +201,40 @@ function expectSamplesPost(page: Page) {
 async function loadDashboardWithChart(
   dashboard: DashboardPage,
   dashboardId: number,
-  vizType: string,
+  chartId: number,
 ): Promise<void> {
   await dashboard.gotoById(dashboardId);
   await dashboard.waitForLoad();
   await dashboard
-    .chartByVizType(vizType)
+    .getChart(chartId)
     .locator('[data-test="chart-container"]')
     .first()
     .waitFor({ state: 'visible', timeout: TIMEOUT.QUERY_EXECUTION });
   await dashboard.waitForChartsToLoad();
+}
+
+/**
+ * From an already-open "Drill to detail by" submenu, drill by the first
+ * offered value and assert that same value lands in the modal filter. The
+ * shared tail of every "drill by whatever value is under the cursor" test —
+ * canvas charts and the pivot table alike, which differ only in how they open
+ * the submenu in the first place.
+ */
+async function drillByFirstOfferedValueAndAssert(
+  page: Page,
+  dashboard: DashboardPage,
+): Promise<void> {
+  const offered = await dashboard.drillByOfferedValues();
+  expect(offered.length).toBeGreaterThan(0);
+  const [value] = offered;
+  const samples = expectSamplesPost(page);
+  await dashboard.contextMenuDrillToDetailBy(value);
+  await samples;
+
+  await expect(dashboard.drillModal().element).toBeVisible();
+  await expect(dashboard.drillModal().filterValues.first()).toContainText(
+    value,
+  );
 }
 
 /**
@@ -274,35 +246,50 @@ async function loadDashboardWithChart(
  */
 async function expectCanvasDrillByValueRoundTrips(
   page: Page,
-  testAssets: {
-    trackChart(id: number): void;
-    trackDashboard(id: number): void;
-  },
+  testAssets: TestAssets,
+  testInfo: TestInfo,
   spec: ChartSpec,
   pattern: 'ring' | 'grid' | 'dense',
 ): Promise<void> {
   const dashboard = new DashboardPage(page);
-  const dashboardId = await buildSingleChartDashboard(page, testAssets, spec);
-  await loadDashboardWithChart(dashboard, dashboardId, spec.vizType);
+  const { dashboardId, chartId } = await buildSingleChartDashboard(
+    page,
+    testAssets,
+    testInfo,
+    spec,
+  );
+  await loadDashboardWithChart(dashboard, dashboardId, chartId);
 
-  const canvas = dashboard
-    .chartByVizType(spec.vizType)
-    .locator('canvas')
-    .first();
+  const canvas = dashboard.getChart(chartId).locator('canvas').first();
   await expect(canvas).toBeVisible();
-  await rightClickCanvasDatum(page, canvas, pattern);
+  await rightClickCanvasDatum(page, dashboard, canvas, pattern);
 
-  const offered = await dashboard.drillByOfferedValues();
-  expect(offered.length).toBeGreaterThan(0);
-  const value = offered[0];
+  await drillByFirstOfferedValueAndAssert(page, dashboard);
+}
+
+/**
+ * Right-click a big-number chart's rendered value to open its context menu,
+ * drill the whole chart (no row/point filter), and assert the modal opened
+ * with no filter tags and a real row count. Shared by Big Number and Big
+ * Number with Trendline, which differ only in their chart params.
+ */
+async function expectWholeChartDrillFromContextMenu(
+  page: Page,
+  dashboard: DashboardPage,
+  chartId: number,
+): Promise<void> {
   const samples = expectSamplesPost(page);
-  await dashboard.contextMenuDrillToDetailBy(value);
+  await dashboard
+    .getChart(chartId)
+    .locator('.header-line')
+    .click({ button: 'right' });
+  await dashboard.contextMenuDrillToDetail();
   await samples;
 
   await expect(dashboard.drillModal().element).toBeVisible();
-  await expect(dashboard.drillModal().filterValues.first()).toContainText(
-    value,
-  );
+  // Whole-chart drill: no per-value filter tag.
+  await expect(dashboard.drillModal().filterValues).toHaveCount(0);
+  await expect(dashboard.drillModal().rowCountLabel).toContainText('rows');
 }
 
 // Shared form-data fragment for the echarts time-series family (line/scatter/
@@ -320,17 +307,22 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
     const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'big_number_total',
-      sliceName: 'drill_bignum',
-      params: { metric: 'count', adhoc_filters: [] },
-    });
+    const { dashboardId, chartId } = await buildSingleChartDashboard(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        vizType: 'big_number_total',
+        chartNamePrefix: 'drill_bignum',
+        params: { metric: 'count', adhoc_filters: [] },
+      },
+    );
 
-    await loadDashboardWithChart(dashboard, dashboardId, 'big_number_total');
+    await loadDashboardWithChart(dashboard, dashboardId, chartId);
 
     // Open the modal from the chart's "More Options" header menu.
     const samplesOnOpen = expectSamplesPost(page);
-    await dashboard.openDrillToDetailFromMenu('big_number_total');
+    await dashboard.openDrillToDetailFromMenu(chartId);
     await samplesOnOpen;
 
     const modal = dashboard.drillModal();
@@ -367,27 +359,19 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
     const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'big_number_total',
-      sliceName: 'drill_bignum_rc',
-      params: { metric: 'count', adhoc_filters: [] },
-    });
+    const { dashboardId, chartId } = await buildSingleChartDashboard(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        vizType: 'big_number_total',
+        chartNamePrefix: 'drill_bignum_rc',
+        params: { metric: 'count', adhoc_filters: [] },
+      },
+    );
 
-    await loadDashboardWithChart(dashboard, dashboardId, 'big_number_total');
-
-    // Right-click the rendered number itself opens the context menu.
-    const samples = expectSamplesPost(page);
-    await dashboard
-      .chartByVizType('big_number_total')
-      .locator('.header-line')
-      .click({ button: 'right' });
-    await dashboard.contextMenuDrillToDetail();
-    await samples;
-
-    await expect(dashboard.drillModal().element).toBeVisible();
-    // Whole-chart drill: no per-value filter tag.
-    await expect(dashboard.drillModal().filterValues).toHaveCount(0);
-    await expect(dashboard.drillModal().rowCountLabel).toContainText('rows');
+    await loadDashboardWithChart(dashboard, dashboardId, chartId);
+    await expectWholeChartDrillFromContextMenu(page, dashboard, chartId);
   },
 );
 
@@ -396,24 +380,29 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
     const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'table',
-      sliceName: 'drill_table',
-      params: {
-        query_mode: 'aggregate',
-        groupby: ['gender'],
-        metrics: ['count'],
-        row_limit: 100,
-        server_pagination: false,
+    const { dashboardId, chartId } = await buildSingleChartDashboard(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        vizType: 'table',
+        chartNamePrefix: 'drill_table',
+        params: {
+          query_mode: 'aggregate',
+          groupby: ['gender'],
+          metrics: ['count'],
+          row_limit: 100,
+          server_pagination: false,
+        },
       },
-    });
+    );
 
-    await loadDashboardWithChart(dashboard, dashboardId, 'table');
+    await loadDashboardWithChart(dashboard, dashboardId, chartId);
 
     // Right-click the "boy" dimension cell and drill by it.
     const samplesOnDrill = expectSamplesPost(page);
     await dashboard
-      .chartByVizType('table')
+      .getChart(chartId)
       .getByText('boy', { exact: true })
       .first()
       .click({ button: 'right' });
@@ -443,40 +432,35 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
     const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'pivot_table_v2',
-      sliceName: 'drill_pivot',
-      params: {
-        groupbyRows: ['gender'],
-        groupbyColumns: [],
-        metrics: ['count'],
-        aggregateFunction: 'Sum',
-        rowTotals: false,
-        colTotals: false,
+    const { dashboardId, chartId } = await buildSingleChartDashboard(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        vizType: 'pivot_table_v2',
+        chartNamePrefix: 'drill_pivot',
+        params: {
+          groupbyRows: ['gender'],
+          groupbyColumns: [],
+          metrics: ['count'],
+          aggregateFunction: 'Sum',
+          rowTotals: false,
+          colTotals: false,
+        },
       },
-    });
+    );
 
-    await loadDashboardWithChart(dashboard, dashboardId, 'pivot_table_v2');
+    await loadDashboardWithChart(dashboard, dashboardId, chartId);
 
     await dashboard
-      .chartByVizType('pivot_table_v2')
+      .getChart(chartId)
       .locator('[role="gridcell"]')
       .first()
       .click({ button: 'right' });
 
     // The cell's row dimension determines the offered value; drill by it and
     // assert the same value lands in the modal filter.
-    const offered = await dashboard.drillByOfferedValues();
-    expect(offered.length).toBeGreaterThan(0);
-    const value = offered[0];
-    const samples = expectSamplesPost(page);
-    await dashboard.contextMenuDrillToDetailBy(value);
-    await samples;
-
-    await expect(dashboard.drillModal().element).toBeVisible();
-    await expect(dashboard.drillModal().filterValues.first()).toContainText(
-      value,
-    );
+    await drillByFirstOfferedValueAndAssert(page, dashboard);
   },
 );
 
@@ -484,31 +468,17 @@ testWithAssets(
   'drill-to-detail modal: pie slice right-click (canvas) drills by the slice value',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'pie',
-      sliceName: 'drill_pie',
-      params: { groupby: ['gender'], metric: 'count' },
-    });
-
-    await loadDashboardWithChart(dashboard, dashboardId, 'pie');
-
-    const canvas = dashboard.chartByVizType('pie').locator('canvas').first();
-    await expect(canvas).toBeVisible();
-
     // Pie is a donut by default (center is a hole), so scan the ring for a slice.
-    await rightClickCanvasDatum(page, canvas, 'ring');
-
-    const offered = await dashboard.drillByOfferedValues();
-    expect(offered.length).toBeGreaterThan(0);
-    const value = offered[0];
-    const samples = expectSamplesPost(page);
-    await dashboard.contextMenuDrillToDetailBy(value);
-    await samples;
-
-    await expect(dashboard.drillModal().element).toBeVisible();
-    await expect(dashboard.drillModal().filterValues.first()).toContainText(
-      value,
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        vizType: 'pie',
+        chartNamePrefix: 'drill_pie',
+        params: { groupby: ['gender'], metric: 'count' },
+      },
+      'ring',
     );
   },
 );
@@ -517,44 +487,17 @@ testWithAssets(
   'drill-to-detail modal: line chart point right-click (canvas) drills by the point value',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'echarts_timeseries_line',
-      sliceName: 'drill_line',
-      params: {
-        x_axis: 'ds',
-        time_grain_sqla: 'P1Y',
-        metrics: ['count'],
-        groupby: ['gender'],
-        row_limit: 1000,
-      },
-    });
-
-    await loadDashboardWithChart(
-      dashboard,
-      dashboardId,
-      'echarts_timeseries_line',
-    );
-
-    const canvas = dashboard
-      .chartByVizType('echarts_timeseries_line')
-      .locator('canvas')
-      .first();
-    await expect(canvas).toBeVisible();
-
     // Scan the plot grid for a point on one of the series lines.
-    await rightClickCanvasDatum(page, canvas, 'grid');
-
-    const offered = await dashboard.drillByOfferedValues();
-    expect(offered.length).toBeGreaterThan(0);
-    const value = offered[0];
-    const samples = expectSamplesPost(page);
-    await dashboard.contextMenuDrillToDetailBy(value);
-    await samples;
-
-    await expect(dashboard.drillModal().element).toBeVisible();
-    await expect(dashboard.drillModal().filterValues.first()).toContainText(
-      value,
+    await expectCanvasDrillByValueRoundTrips(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        vizType: 'echarts_timeseries_line',
+        chartNamePrefix: 'drill_line',
+        params: TIMESERIES_PARAMS,
+      },
+      'grid',
     );
   },
 );
@@ -564,227 +507,180 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
     const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'big_number',
-      sliceName: 'drill_bignum_trend',
-      params: {
-        metric: 'count',
-        x_axis: 'ds',
-        time_grain_sqla: 'P1Y',
-        adhoc_filters: [],
-      },
-    });
-
-    await loadDashboardWithChart(dashboard, dashboardId, 'big_number');
-
-    // Right-click the rendered number opens the context menu; whole-chart drill.
-    const samples = expectSamplesPost(page);
-    await dashboard
-      .chartByVizType('big_number')
-      .locator('.header-line')
-      .click({ button: 'right' });
-    await dashboard.contextMenuDrillToDetail();
-    await samples;
-
-    await expect(dashboard.drillModal().element).toBeVisible();
-    await expect(dashboard.drillModal().filterValues).toHaveCount(0);
-    await expect(dashboard.drillModal().rowCountLabel).toContainText('rows');
-  },
-);
-
-testWithAssets(
-  'drill-to-detail modal: scatter chart point right-click (canvas) drills by the point value',
-  async ({ page, testAssets }) => {
-    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    await expectCanvasDrillByValueRoundTrips(
+    const { dashboardId, chartId } = await buildSingleChartDashboard(
       page,
       testAssets,
+      testWithAssets.info(),
       {
-        vizType: 'echarts_timeseries_scatter',
-        sliceName: 'drill_scatter',
-        // Enlarge the markers so a region scan reliably lands on a point;
-        // scatter's default dots are a few pixels wide and a sparse grid misses
-        // them.
-        params: { ...TIMESERIES_PARAMS, markerSize: 20 },
-      },
-      'dense',
-    );
-  },
-);
-
-testWithAssets(
-  'drill-to-detail modal: generic time-series point right-click (canvas) drills by the point value',
-  async ({ page, testAssets }) => {
-    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    await expectCanvasDrillByValueRoundTrips(
-      page,
-      testAssets,
-      {
-        vizType: 'echarts_timeseries',
-        sliceName: 'drill_generic',
-        params: TIMESERIES_PARAMS,
-      },
-      'grid',
-    );
-  },
-);
-
-testWithAssets(
-  'drill-to-detail modal: smooth line point right-click (canvas) drills by the point value',
-  async ({ page, testAssets }) => {
-    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    await expectCanvasDrillByValueRoundTrips(
-      page,
-      testAssets,
-      {
-        vizType: 'echarts_timeseries_smooth',
-        sliceName: 'drill_smooth',
-        params: TIMESERIES_PARAMS,
-      },
-      'grid',
-    );
-  },
-);
-
-testWithAssets(
-  'drill-to-detail modal: step line point right-click (canvas) drills by the point value',
-  async ({ page, testAssets }) => {
-    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    await expectCanvasDrillByValueRoundTrips(
-      page,
-      testAssets,
-      {
-        vizType: 'echarts_timeseries_step',
-        sliceName: 'drill_step',
-        params: TIMESERIES_PARAMS,
-      },
-      'grid',
-    );
-  },
-);
-
-testWithAssets(
-  'drill-to-detail modal: mixed time-series point right-click (canvas) drills by the point value',
-  async ({ page, testAssets }) => {
-    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    await expectCanvasDrillByValueRoundTrips(
-      page,
-      testAssets,
-      {
-        vizType: 'mixed_timeseries',
-        sliceName: 'drill_mixed',
+        vizType: 'big_number',
+        chartNamePrefix: 'drill_bignum_trend',
         params: {
+          metric: 'count',
           x_axis: 'ds',
           time_grain_sqla: 'P1Y',
-          metrics: ['count'],
-          groupby: ['gender'],
-          metrics_b: ['count'],
-          groupby_b: ['gender'],
-          row_limit: 1000,
+          adhoc_filters: [],
         },
       },
-      'grid',
     );
+
+    await loadDashboardWithChart(dashboard, dashboardId, chartId);
+    await expectWholeChartDrillFromContextMenu(page, dashboard, chartId);
   },
 );
 
-testWithAssets(
-  'drill-to-detail modal: box plot right-click (canvas) drills by the box value',
-  async ({ page, testAssets }) => {
+interface CanvasDrillCase {
+  title: string;
+  spec: ChartSpec;
+  pattern: 'ring' | 'grid' | 'dense';
+}
+
+// Every remaining canvas (echarts) chart is a thin caller of
+// expectCanvasDrillByValueRoundTrips, differing only in viz type, chart
+// params, and which point-scan pattern finds a drillable mark.
+const CANVAS_DRILL_CASES: CanvasDrillCase[] = [
+  {
+    title:
+      'drill-to-detail modal: scatter chart point right-click (canvas) drills by the point value',
+    spec: {
+      vizType: 'echarts_timeseries_scatter',
+      chartNamePrefix: 'drill_scatter',
+      // Enlarge the markers so a region scan reliably lands on a point;
+      // scatter's default dots are a few pixels wide and a sparse grid misses
+      // them.
+      params: { ...TIMESERIES_PARAMS, markerSize: 20 },
+    },
+    pattern: 'dense',
+  },
+  {
+    title:
+      'drill-to-detail modal: generic time-series point right-click (canvas) drills by the point value',
+    spec: {
+      vizType: 'echarts_timeseries',
+      chartNamePrefix: 'drill_generic',
+      params: TIMESERIES_PARAMS,
+    },
+    pattern: 'grid',
+  },
+  {
+    title:
+      'drill-to-detail modal: smooth line point right-click (canvas) drills by the point value',
+    spec: {
+      vizType: 'echarts_timeseries_smooth',
+      chartNamePrefix: 'drill_smooth',
+      params: TIMESERIES_PARAMS,
+    },
+    pattern: 'grid',
+  },
+  {
+    title:
+      'drill-to-detail modal: step line point right-click (canvas) drills by the point value',
+    spec: {
+      vizType: 'echarts_timeseries_step',
+      chartNamePrefix: 'drill_step',
+      params: TIMESERIES_PARAMS,
+    },
+    pattern: 'grid',
+  },
+  {
+    title:
+      'drill-to-detail modal: mixed time-series point right-click (canvas) drills by the point value',
+    spec: {
+      vizType: 'mixed_timeseries',
+      chartNamePrefix: 'drill_mixed',
+      params: {
+        x_axis: 'ds',
+        time_grain_sqla: 'P1Y',
+        metrics: ['count'],
+        groupby: ['gender'],
+        metrics_b: ['count'],
+        groupby_b: ['gender'],
+        row_limit: 1000,
+      },
+    },
+    pattern: 'grid',
+  },
+  {
+    title:
+      'drill-to-detail modal: box plot right-click (canvas) drills by the box value',
+    spec: {
+      vizType: 'box_plot',
+      chartNamePrefix: 'drill_boxplot',
+      params: {
+        groupby: ['gender'],
+        metrics: ['count'],
+        columns: ['ds'],
+      },
+    },
+    pattern: 'dense',
+  },
+  {
+    title:
+      'drill-to-detail modal: funnel segment right-click (canvas) drills by the segment value',
+    spec: {
+      vizType: 'funnel',
+      chartNamePrefix: 'drill_funnel',
+      params: { groupby: ['gender'], metric: 'count' },
+    },
+    pattern: 'dense',
+  },
+  {
+    title:
+      'drill-to-detail modal: gauge right-click (canvas) drills by the gauge value',
+    spec: {
+      vizType: 'gauge_chart',
+      chartNamePrefix: 'drill_gauge',
+      params: { groupby: ['gender'], metric: 'count' },
+    },
+    pattern: 'dense',
+  },
+  {
+    title:
+      'drill-to-detail modal: treemap tile right-click (canvas) drills by the tile value',
+    spec: {
+      vizType: 'treemap_v2',
+      chartNamePrefix: 'drill_treemap',
+      params: { metric: 'count', groupby: ['gender'] },
+    },
+    pattern: 'dense',
+  },
+];
+
+for (const { title, spec, pattern } of CANVAS_DRILL_CASES) {
+  testWithAssets(title, async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
     await expectCanvasDrillByValueRoundTrips(
       page,
       testAssets,
-      {
-        vizType: 'box_plot',
-        sliceName: 'drill_boxplot',
-        params: {
-          groupby: ['gender'],
-          metrics: ['count'],
-          columns: ['ds'],
-        },
-      },
-      'dense',
+      testWithAssets.info(),
+      spec,
+      pattern,
     );
-  },
-);
-
-testWithAssets(
-  'drill-to-detail modal: funnel segment right-click (canvas) drills by the segment value',
-  async ({ page, testAssets }) => {
-    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    await expectCanvasDrillByValueRoundTrips(
-      page,
-      testAssets,
-      {
-        vizType: 'funnel',
-        sliceName: 'drill_funnel',
-        params: { groupby: ['gender'], metric: 'count' },
-      },
-      'dense',
-    );
-  },
-);
-
-testWithAssets(
-  'drill-to-detail modal: gauge right-click (canvas) drills by the gauge value',
-  async ({ page, testAssets }) => {
-    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    await expectCanvasDrillByValueRoundTrips(
-      page,
-      testAssets,
-      {
-        vizType: 'gauge_chart',
-        sliceName: 'drill_gauge',
-        params: { groupby: ['gender'], metric: 'count' },
-      },
-      'dense',
-    );
-  },
-);
-
-testWithAssets(
-  'drill-to-detail modal: treemap tile right-click (canvas) drills by the tile value',
-  async ({ page, testAssets }) => {
-    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
-    await expectCanvasDrillByValueRoundTrips(
-      page,
-      testAssets,
-      {
-        vizType: 'treemap_v2',
-        sliceName: 'drill_treemap',
-        params: { metric: 'count', groupby: ['gender'] },
-      },
-      'dense',
-    );
-  },
-);
+  });
+}
 
 testWithAssets(
   'drill-to-detail modal: drilling a time-series point "by all" applies every dimension of that point',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
     const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'echarts_timeseries_line',
-      sliceName: 'drill_all',
-      // Two groupby dimensions so each point genuinely carries more than one
-      // drillable value — the whole point of "Drill to detail by all".
-      params: { ...TIMESERIES_PARAMS, groupby: ['gender', 'state'] },
-    });
-
-    await loadDashboardWithChart(
-      dashboard,
-      dashboardId,
-      'echarts_timeseries_line',
+    const { dashboardId, chartId } = await buildSingleChartDashboard(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        vizType: 'echarts_timeseries_line',
+        chartNamePrefix: 'drill_all',
+        // Two groupby dimensions so each point genuinely carries more than one
+        // drillable value — the whole point of "Drill to detail by all".
+        params: { ...TIMESERIES_PARAMS, groupby: ['gender', 'state'] },
+      },
     );
 
-    const canvas = dashboard
-      .chartByVizType('echarts_timeseries_line')
-      .locator('canvas')
-      .first();
+    await loadDashboardWithChart(dashboard, dashboardId, chartId);
+
+    const canvas = dashboard.getChart(chartId).locator('canvas').first();
     await expect(canvas).toBeVisible();
-    await rightClickCanvasDatum(page, canvas, 'grid');
+    await rightClickCanvasDatum(page, dashboard, canvas, 'grid');
 
     // A line point carries two dimensions (the temporal value and the gender
     // series), so "Drill to detail by all" must apply both as filters.
@@ -806,24 +702,29 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
     const dashboard = new DashboardPage(page);
-    const dashboardId = await buildSingleChartDashboard(page, testAssets, {
-      vizType: 'table',
-      sliceName: 'drill_table_multi',
-      params: {
-        query_mode: 'aggregate',
-        groupby: ['gender'],
-        metrics: ['count'],
-        row_limit: 100,
-        server_pagination: false,
+    const { dashboardId, chartId } = await buildSingleChartDashboard(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        vizType: 'table',
+        chartNamePrefix: 'drill_table_multi',
+        params: {
+          query_mode: 'aggregate',
+          groupby: ['gender'],
+          metrics: ['count'],
+          row_limit: 100,
+          server_pagination: false,
+        },
       },
-    });
+    );
 
-    await loadDashboardWithChart(dashboard, dashboardId, 'table');
+    await loadDashboardWithChart(dashboard, dashboardId, chartId);
 
     for (const value of ['boy', 'girl']) {
       const samples = expectSamplesPost(page);
       await dashboard
-        .chartByVizType('table')
+        .getChart(chartId)
         .getByText(value, { exact: true })
         .first()
         .click({ button: 'right' });
