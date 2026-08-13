@@ -1419,6 +1419,22 @@ export default function transformProps(
             value.forecastTrend || value.forecastLower || value.forecastUpper,
         );
 
+        // Resolve the value formatter per series so each metric keeps its own
+        // D3/currency format, matching how the series labels are formatted.
+        // Without the series key, `getCustomFormatter` returns undefined for
+        // multi-metric charts and every row falls back to `defaultFormatter`,
+        // rendering the y-axis/currency format for all metrics.
+        const getSeriesFormatter = (seriesKey: string) =>
+          forcePercentFormatter
+            ? percentFormatter
+            : (getCustomFormatter(
+                customFormatters,
+                metrics,
+                labelMap?.[seriesKey]?.[0],
+              ) ?? defaultFormatter);
+
+        // The total row aggregates every series, so it keeps the chart-level
+        // formatter rather than any single metric's format.
         const formatter = forcePercentFormatter
           ? percentFormatter
           : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
@@ -1449,7 +1465,7 @@ export default function transformProps(
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
-              formatter,
+              formatter: getSeriesFormatter(key),
               marker,
               truncation: tooltipTruncation,
             });

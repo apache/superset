@@ -2528,4 +2528,41 @@ describe('EchartsTimeseries tooltip truncation', () => {
     const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
     expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
   });
+
+test('tooltip formats each series with its own metric format instead of the default formatter', () => {
+  // Two saved metrics with different formats: `pct_change` carries a percentage
+  // D3 format, `count` carries a currency format. The series labels already
+  // honor each metric's format; the tooltip must do the same.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ count: 1000, pct_change: 0.1234, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { count: ['count'], pct_change: ['pct_change'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    { seriesId: 'count', seriesName: 'count', value: [BASE_TIMESTAMP, 1000] },
+    {
+      seriesId: 'pct_change',
+      seriesName: 'pct_change',
+      value: [BASE_TIMESTAMP, 0.1234],
+    },
+  ]);
+
+  expect(result).toContain('12.34%');
+  expect(result).toContain('$');
 });
