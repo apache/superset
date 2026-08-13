@@ -28,7 +28,6 @@ import { Modal } from '../core';
  */
 export class DrillDetailModal extends Modal {
   private static readonly SELECTORS = {
-    CLOSE_BUTTON: '[data-test="close-drilltodetail-modal"]',
     ROW_COUNT_LABEL: '[data-test="row-count-label"]',
     METADATA_BAR: '[data-test="metadata-bar"]',
     FILTER_COLUMN: '[data-test="filter-col"]',
@@ -109,7 +108,7 @@ export class DrillDetailModal extends Modal {
 
   /** Closes the modal via its footer Close button. */
   async close(): Promise<void> {
-    await this.element.locator(DrillDetailModal.SELECTORS.CLOSE_BUTTON).click();
+    await this.clickFooterButton('Close');
     await this.waitForHidden();
   }
 }
