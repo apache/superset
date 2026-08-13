@@ -83,22 +83,36 @@ type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 const DASHBOARD_FILTERS_STORAGE_PREFIX = 'superset_dashboard_filters_';
 
-function getSavedDashboardFilters(dashboardId: number) {
+function getStorageKey(dashboardId: number, userId: number | undefined) {
+  // Scope the key to userId to prevent one user's filter state from
+  // leaking into another user's session on the same browser profile.
+  // Guest users (no userId) are not scoped — guest sessions are ephemeral.
+  return userId
+    ? `${DASHBOARD_FILTERS_STORAGE_PREFIX}${userId}_${dashboardId}`
+    : `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`;
+}
+
+function getSavedDashboardFilters(
+  dashboardId: number,
+  userId: number | undefined,
+) {
   try {
-    const raw = localStorage.getItem(
-      `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`,
-    );
+    const raw = localStorage.getItem(getStorageKey(dashboardId, userId));
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function saveDashboardFilters(dashboardId: number, dataMask: unknown) {
+function saveDashboardFilters(
+  dashboardId: number,
+  userId: number | undefined,
+  nativeFilterMask: Record<string, unknown>,
+) {
   try {
     localStorage.setItem(
-      `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`,
-      JSON.stringify(dataMask),
+      getStorageKey(dashboardId, userId),
+      JSON.stringify(nativeFilterMask),
     );
   } catch {
     // fail silently — persistence is a nice-to-have, not critical path
@@ -195,6 +209,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const hydratedDashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
+  const userId = useSelector(
+    (state: RootState) => state.user?.userId,
+  );
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
@@ -251,7 +268,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       } else {
-        const savedFilters = getSavedDashboardFilters(id);
+        const savedFilters = getSavedDashboardFilters(id, userId);
         if (savedFilters) {
           dataMask = savedFilters;
         }
@@ -411,12 +428,22 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const relevantDataMask = useSelector(selectRelevantDatamask);
   const fullDataMask = useSelector(selectDataMask);
+  const nativeFilters = useSelector(selectNativeFilters);
   const activeFilters = useSelector(selectActiveFilters);
 
   useEffect(() => {
     if (!id || hydratedDashboardId !== id) return;
-    saveDashboardFilters(id, fullDataMask);
-  }, [id, hydratedDashboardId, fullDataMask]);
+    // Persist only entries that correspond to configured native filters.
+    // This avoids saving chart customization or other transient dataMask
+    // entries that are not part of the user's filter selections.
+    const nativeFilterIds = Object.keys(nativeFilters);
+    const nativeFilterMask = Object.fromEntries(
+      nativeFilterIds
+        .filter(filterId => filterId in fullDataMask)
+        .map(filterId => [filterId, fullDataMask[filterId]]),
+    );
+    saveDashboardFilters(id, userId, nativeFilterMask);
+  }, [id, hydratedDashboardId, fullDataMask, nativeFilters, userId]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
