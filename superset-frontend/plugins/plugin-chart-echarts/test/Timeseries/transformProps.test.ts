@@ -23,6 +23,7 @@ import {
   AxisType,
   ChartProps,
   ComparisonType,
+  ContributionType,
   DataRecord,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
@@ -1440,6 +1441,118 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   const xAxisRaw = transformedProps.echartOptions.xAxis as any;
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
+});
+
+test('should not clip small segments when row-contribution percentages float above 1 in horizontal stacked bar charts', () => {
+  // These three shares are individually normalized (each column sums to 1),
+  // but due to floating point rounding their sum can land fractionally
+  // over 1. See https://github.com/apache/superset/issues/30914
+  //
+  // The margin above 1 is chosen large enough (~1e-7) that the sum stays
+  // above 1 no matter which order the underlying series get summed in
+  // (series are sorted by name for stacking, not in the order declared
+  // here), unlike a single-ULP overflow which can round differently
+  // depending on summation order and make this assertion order-dependent.
+  const shareA = 0.42;
+  const shareB = 0.38;
+  const shareC = 0.2000001;
+  expect(shareA + shareB + shareC).toBeGreaterThan(1);
+
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [{ 'Series A': shareA, 'Series B': shareB, 'Series C': shareC }],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      contributionMode: ContributionType.Row,
+      stack: StackControlsValue.Stack,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  // In horizontal orientation, axes are swapped, so yAxis becomes xAxis.
+  // The axis max must not be hard-capped at exactly 1, otherwise echarts
+  // clips the topmost stacked segment entirely instead of just rendering
+  // a negligible sub-pixel overflow.
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBeGreaterThanOrEqual(shareA + shareB + shareC);
+});
+
+test('keeps the 0-1 axis range for Expand (100% stacked) charts instead of padding to the raw row total', () => {
+  // Unlike row-contribution mode, an Expand stack is not pre-normalized in
+  // the query result -- these are raw values (summing to 100, not 1) that
+  // get divided down to a 0-1 range internally. The un-normalized row total
+  // must not be used to pad the axis max, or the chart would only occupy a
+  // sliver of the plot.
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData([{ 'Series A': 42, 'Series B': 38, 'Series C': 20 }], {
+        intervalMs: 300000000,
+      }),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      stack: StackControlsValue.Expand,
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBe(1);
+});
+
+test('computes row-contribution axis padding per stack when time_compare splits a row into multiple normalized stacks', () => {
+  // With time_compare, each comparison period is normalized and stacked
+  // independently (see getTimeCompareStackId), so the current-period
+  // columns sum to ~1 in their own stack and the comparison-period columns
+  // (suffixed with the offset) sum to ~1 in a separate stack. The combined
+  // row total across both stacks is therefore ~2, but the axis max must be
+  // computed per stack, not from that combined total, or a 100% bar would
+  // only occupy about half the plot.
+  const queriesData: ChartDataResponseResult[] = [
+    createTestQueryData(
+      createTestData(
+        [
+          {
+            'Series A': 0.6,
+            'Series B': 0.4,
+            'Series A__1 year ago': 0.55,
+            'Series B__1 year ago': 0.45,
+          },
+        ],
+        { intervalMs: 300000000 },
+      ),
+    ),
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      ...baseFormDataHorizontalBar,
+      contributionMode: ContributionType.Row,
+      stack: StackControlsValue.Stack,
+      time_compare: ['1 year ago'],
+    },
+    queriesData,
+  });
+
+  const transformedProps = transformProps(chartProps);
+
+  const xAxisRaw = transformedProps.echartOptions.xAxis as any;
+  expect(xAxisRaw.max).toBeGreaterThanOrEqual(1);
+  expect(xAxisRaw.max).toBeLessThan(1.5);
 });
 
 test('legend is visible on tall charts when enabled by the user', () => {

@@ -57,6 +57,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleXlsxFailedError,
     ReportScheduleXlsxTimeout,
 )
+from superset.commands.report.slack_upgrade import SlackV1UpgradeCoordinator
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
@@ -81,14 +82,20 @@ from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import (
     NotificationError,
     NotificationParamException,
-    SlackV1NotificationError,
+)
+from superset.reports.notifications.slack import SlackNotification
+from superset.reports.notifications.slack_transport import (
+    get_slack_send_retry_deadline,
 )
 from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
+from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.decorators import logs_context, transaction
+from superset.utils.decorators import (
+    logs_context,
+    transaction,
+)
 from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.report_execution import (
@@ -98,7 +105,6 @@ from superset.utils.report_execution import (
     resolve_report_execution_budget_seconds,
 )
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.slack import get_channels_with_search, SlackChannelTypes
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
@@ -279,7 +285,26 @@ class BaseReportState:
         self._start_dttm: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
         self._execution_id = execution_id
         self._report_execution_context = report_execution_context
-        self._filter_warnings: list[str] = []
+        self._execution_warnings: list[str] = []
+        self._slack_v1_upgrade = SlackV1UpgradeCoordinator(
+            report_schedule,
+            execution_id,
+            self._execution_warnings,
+        )
+
+    def _get_slack_retry_deadline(self) -> float:
+        """Return the monotonic deadline for Slack delivery in this execution."""
+        report_deadline = None
+        if self._report_schedule.working_timeout is not None:
+            elapsed = (
+                datetime.now(timezone.utc).replace(tzinfo=None) - self._start_dttm
+            ).total_seconds()
+            remaining = max(
+                float(self._report_schedule.working_timeout) - elapsed,
+                0,
+            )
+            report_deadline = time.monotonic() + remaining
+        return get_slack_send_retry_deadline(report_deadline)
 
     @property
     def _log_context(self) -> str:
@@ -321,13 +346,18 @@ class BaseReportState:
         self,
         state: ReportState,
         error_message: Optional[str] = None,
+        *,
+        include_execution_warnings: bool = True,
     ) -> None:
         """
         Update the report schedule state et al. and reflect the change in the execution
         log.
         """
         self.update_report_schedule(state)
-        self.create_log(error_message)
+        self.create_log(
+            error_message,
+            include_execution_warnings=include_execution_warnings,
+        )
         if state != ReportState.WORKING:
             elapsed, remaining = self._budget_values()
             logger.info(
@@ -359,63 +389,14 @@ class BaseReportState:
         )
 
     def update_report_schedule_slack_v2(self) -> None:
-        """
-        Update the report schedule type and channels for all slack recipients to v2.
-        V2 uses ids instead of names for channels.
-
-        Channel ids for every Slack recipient are resolved first and the
-        recipients are only mutated once all of them resolve. This keeps the
-        upgrade all-or-nothing: a single unresolvable channel can no longer
-        leave the schedule with some recipients already switched to v2 (and
-        persisted by a later error-log commit) while others are untouched.
-        """
-        resolved: list[tuple[ReportRecipients, str]] = []
-        try:
-            for recipient in self._report_schedule.recipients:
-                if recipient.type != ReportRecipientType.SLACK:
-                    continue
-                slack_recipients = json.loads(recipient.recipient_config_json)
-                # V1 method allowed to use leading `#` in the channel name
-                channel_names = (slack_recipients["target"] or "").replace("#", "")
-                # we need to ensure that existing reports can also fetch
-                # ids from private channels
-                channels = get_channels_with_search(
-                    search_string=channel_names,
-                    types=[
-                        SlackChannelTypes.PRIVATE,
-                        SlackChannelTypes.PUBLIC,
-                    ],
-                    exact_match=True,
-                )
-                channels_list = recipients_string_to_list(channel_names)
-                if len(channels_list) != len(channels):
-                    missing_channels = set(channels_list) - {
-                        channel["name"] for channel in channels
-                    }
-                    msg = (
-                        "Could not find the following channels: "
-                        f"{', '.join(missing_channels)}"
-                    )
-                    raise UpdateFailedError(msg)
-                channel_ids = ",".join(channel["id"] for channel in channels)
-                resolved.append((recipient, json.dumps({"target": channel_ids})))
-        except Exception as ex:
-            # No recipient has been mutated yet, so there is no partial upgrade
-            # to revert; surface the failure so the configuration can be fixed
-            # manually.
-            msg = f"Failed to update slack recipients to v2: {str(ex)}"
-            logger.exception(msg)
-            raise UpdateFailedError(msg) from ex
-
-        # Every Slack recipient resolved; apply the upgrade atomically.
-        for recipient, recipient_config_json in resolved:
-            recipient.type = ReportRecipientType.SLACKV2
-            recipient.recipient_config_json = recipient_config_json
+        """Update every Slack v1 recipient atomically to Slack v2."""
+        self._slack_v1_upgrade.update_recipients()
 
     def create_log(
         self,
         error_message: Optional[str] = None,
         *,
+        include_execution_warnings: bool = True,
         log_state: ReportState | None = None,
         reuse_working_log: bool = True,
     ) -> None:
@@ -436,6 +417,15 @@ class BaseReportState:
         ``log_state`` and ``reuse_working_log`` support that case.
         """
         from sqlalchemy.orm.exc import StaleDataError
+
+        log_message: Optional[str]
+        if error_message == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER:
+            log_message = error_message
+        else:
+            messages = [*self._execution_warnings] if include_execution_warnings else []
+            if error_message:
+                messages.append(error_message)
+            log_message = ";".join(messages) if messages else None
 
         try:
             # Reuse the in-flight WORKING trigger row for this execution, if any,
@@ -464,7 +454,7 @@ class BaseReportState:
             log.value = self._report_schedule.last_value
             log.value_row_json = self._report_schedule.last_value_row_json
             log.state = effective_state
-            log.error_message = error_message
+            log.error_message = log_message
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process
@@ -586,7 +576,7 @@ class BaseReportState:
                 self._report_schedule.get_native_filters_params()
             )
             if filter_warnings:
-                self._filter_warnings.extend(filter_warnings)
+                self._execution_warnings.extend(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list = json.loads(anchor)
@@ -630,7 +620,7 @@ class BaseReportState:
             self._report_schedule.get_native_filters_params()
         )
         if filter_warnings:
-            self._filter_warnings.extend(filter_warnings)
+            self._execution_warnings.extend(filter_warnings)
         if native_filter_params and native_filter_params != "()":
             # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
             # set via API even when ALERT_REPORT_TABS is off — same merge
@@ -1280,6 +1270,7 @@ class BaseReportState:
                     text=error_text,
                     header_data=header_data,
                     url=url,
+                    slack_retry_deadline=self._get_slack_retry_deadline(),
                     include_cta=include_cta,
                 )
 
@@ -1313,8 +1304,39 @@ class BaseReportState:
             xlsx=xlsx_data,
             embedded_data=embedded_data,
             header_data=header_data,
+            slack_retry_deadline=self._get_slack_retry_deadline(),
             include_cta=include_cta,
         )
+
+    def _send_notification(
+        self,
+        notification_content: NotificationContent,
+        recipient: ReportRecipients,
+    ) -> None:
+        """Send one notification, upgrading Slack v1 recipients when required."""
+        notification = create_notification(recipient, notification_content)
+        if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
+            logger.info(
+                "Would send notification for alert %s, to %s. "
+                "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
+                "set it to False to send notifications.",
+                self._report_schedule.name,
+                recipient.recipient_config_json,
+            )
+            return
+
+        if isinstance(notification, SlackNotification):
+            self._slack_v1_upgrade.send(
+                notification,
+                notification_content,
+                create_upgraded_notification=lambda: create_notification(
+                    recipient,
+                    notification_content,
+                ),
+            )
+            return
+
+        notification.send()
 
     def _send(
         self,
@@ -1327,54 +1349,34 @@ class BaseReportState:
         :raises: CommandException
         """
         notification_errors: list[SupersetError] = []
+        upgraded_delivery_failed = False
+        self._slack_v1_upgrade.reset()
         report_context = getattr(self, "_report_execution_context", None)
         for recipient in recipients:
-            notification = create_notification(recipient, notification_content)
             try:
-                try:
-                    log_report_delivery_phase(
-                        report_context,
-                        getattr(recipient, "type", None),
-                        "start",
-                        enforce_budget=True,
-                    )
-                    if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
-                        logger.info(
-                            "Would send notification for alert %s, to %s. "
-                            "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
-                            "set it to False to send notifications.",
-                            self._report_schedule.name,
-                            recipient.recipient_config_json,
-                        )
-                    else:
-                        notification.send()
-                    log_report_delivery_phase(
-                        report_context,
-                        getattr(recipient, "type", None),
-                        "complete",
-                        enforce_budget=False,
-                    )
-                except SlackV1NotificationError as ex:
-                    # The slack notification should be sent with the v2 api
-                    logger.info(
-                        "Attempting to upgrade the report to Slackv2: %s", str(ex)
-                    )
-                    self.update_report_schedule_slack_v2()
-                    recipient.type = ReportRecipientType.SLACKV2
-                    notification = create_notification(recipient, notification_content)
-                    log_report_delivery_phase(
-                        report_context,
-                        recipient.type,
-                        "retry",
-                        enforce_budget=True,
-                    )
-                    notification.send()
+                log_report_delivery_phase(
+                    report_context,
+                    getattr(recipient, "type", None),
+                    "start",
+                    enforce_budget=True,
+                )
+                self._send_notification(notification_content, recipient)
+                log_report_delivery_phase(
+                    report_context,
+                    getattr(recipient, "type", None),
+                    "complete",
+                    enforce_budget=False,
+                )
             except (
                 UpdateFailedError,
                 NotificationParamException,
                 NotificationError,
                 SupersetException,
             ) as ex:
+                upgraded_delivery_failed = (
+                    upgraded_delivery_failed
+                    or self._slack_v1_upgrade.is_upgraded_recipient(recipient)
+                )
                 # collect errors but keep processing them
                 notification_errors.append(
                     SupersetError(
@@ -1385,6 +1387,12 @@ class BaseReportState:
                         ),
                     )
                 )
+            except Exception:
+                if self._slack_v1_upgrade.is_upgraded_recipient(recipient):
+                    self._slack_v1_upgrade.restore_upgraded_recipients()
+                raise
+        if upgraded_delivery_failed:
+            self._slack_v1_upgrade.restore_upgraded_recipients()
         if notification_errors:
             # log all errors but raise based on the most severe
             for error in notification_errors:
@@ -1735,12 +1743,11 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     )
                     return
             self.send()
-            # Include filter warnings in the log if any were collected
-            warning_message = (
-                ";".join(self._filter_warnings) if self._filter_warnings else None
-            )
             # Clear any retry state from previous failed attempts in this window.
             self._reset_retry_counter()
+            warning_message = (
+                ";".join(self._execution_warnings) if self._execution_warnings else None
+            )
             self.update_report_schedule_and_log(
                 ReportState.SUCCESS, error_message=warning_message
             )
@@ -1810,7 +1817,9 @@ class ReportNotTriggeredErrorState(BaseReportState):
                 finally:
                     try:
                         self.update_report_schedule_and_log(
-                            ReportState.ERROR, error_message=second_error_message
+                            ReportState.ERROR,
+                            error_message=second_error_message,
+                            include_execution_warnings=False,
                         )
                     except ReportScheduleUnexpectedError:
                         # Logging failed again, log it but don't let it hide first_ex
@@ -1985,15 +1994,10 @@ class ReportSuccessState(BaseReportState):
                 raise ex from logging_ex
             raise
 
-        # send() succeeded — clear retry state and log success.
-        # Include filter warnings in the log if any were collected.
-        warning_message = (
-            ";".join(self._filter_warnings) if self._filter_warnings else None
-        )
+        # send() succeeded — clear retry state and log success. Any execution
+        # warnings are incorporated by create_log().
         self._reset_retry_counter()
-        self.update_report_schedule_and_log(
-            ReportState.SUCCESS, error_message=warning_message
-        )
+        self.update_report_schedule_and_log(ReportState.SUCCESS, error_message=None)
 
 
 class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
