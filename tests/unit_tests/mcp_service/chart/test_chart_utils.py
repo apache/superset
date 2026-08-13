@@ -390,6 +390,25 @@ class TestMapTableConfig:
 
         assert result["row_limit"] == 500
 
+    def test_map_table_config_supports_null_filter(self) -> None:
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="optional_value")],
+            filters=[FilterConfig(column="optional_value", op="IS NOT NULL")],
+        )
+
+        result = map_table_config(config)
+
+        assert result["adhoc_filters"] == [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "optional_value",
+                "operator": "IS NOT NULL",
+                "comparator": None,
+            }
+        ]
+
     def test_map_table_config_default_row_limit(self) -> None:
         """Test that default row_limit is mapped to form_data."""
         config = TableChartConfig(
