@@ -25,8 +25,12 @@ import {
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
-import type { ScatterSeriesOption } from 'echarts/charts';
-import { EchartsTimeseriesSeriesType } from '../../src';
+import type {
+  BarSeriesOption,
+  LineSeriesOption,
+  ScatterSeriesOption,
+} from 'echarts/charts';
+import { BarValueLabelPosition, EchartsTimeseriesSeriesType } from '../../src';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
   LegendOrientation,
@@ -158,6 +162,182 @@ describe('transformSeries', () => {
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
     expect((result as ScatterSeriesOption).symbolSize).toBe(7);
+  });
+});
+
+test('Auto bar labels move outside narrow stacked segments', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      showValue: true,
+    },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(result.label).toMatchObject({
+    show: true,
+    position: 'insideTop',
+  });
+  expect((result.label as { color?: string }).color).toBeUndefined();
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '1,000',
+      align: 'center',
+      verticalAlign: 'middle',
+      rect: { x: 10, y: 20, width: 12, height: 20 },
+      labelRect: { x: 1, y: 22, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 16,
+    y: 15,
+    align: 'center',
+    verticalAlign: 'bottom',
+  });
+});
+
+test('Auto bar labels stay inside when they use at most 80% of bar length', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 1]] },
+    mockColorScale,
+    'test-key',
+    { seriesType: EchartsTimeseriesSeriesType.Bar },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '1,000',
+      align: 'center',
+      verticalAlign: 'top',
+      rect: { x: 10, y: 20, width: 12, height: 40 },
+      labelRect: { x: 0, y: 25, width: 32, height: 14 },
+    }),
+  ).toEqual({});
+});
+
+test('Auto bar labels use horizontal bar length and move to the value end', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[1, 2026]] },
+    mockColorScale,
+    'test-key',
+    { seriesType: EchartsTimeseriesSeriesType.Bar, isHorizontal: true },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '1,000',
+      align: 'right',
+      verticalAlign: 'middle',
+      rect: { x: 10, y: 20, width: 20, height: 12 },
+      labelRect: { x: 0, y: 19, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 35,
+    y: 26,
+    align: 'left',
+    verticalAlign: 'middle',
+  });
+});
+
+test.each([
+  [BarValueLabelPosition.InsideEnd, 'insideTop'],
+  [BarValueLabelPosition.OutsideEnd, 'top'],
+  [BarValueLabelPosition.InsideCenter, 'inside'],
+  [BarValueLabelPosition.InsideBase, 'insideBottom'],
+] as const)(
+  'manual %s bar labels use fixed position %s',
+  (position, expected) => {
+    const result = transformSeries(
+      { name: 'test-series', type: 'bar', data: [[2026, 1]] },
+      mockColorScale,
+      'test-key',
+      {
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        valueLabelPosition: position,
+        theme: supersetTheme,
+      },
+    ) as BarSeriesOption;
+
+    expect(result.labelLayout).toBeUndefined();
+    expect(result.label).toMatchObject({
+      position: expected,
+      color: supersetTheme.colorText,
+    });
+  },
+);
+
+test('Auto positions negative stacked segments at their inside end', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, -1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+    },
+  ) as BarSeriesOption;
+
+  expect(result.data).toEqual([
+    {
+      value: [2026, -1],
+      label: { position: 'insideBottom' },
+    },
+  ]);
+  expect(typeof result.labelLayout).toBe('function');
+  if (typeof result.labelLayout !== 'function') return;
+  expect(
+    result.labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '-1,000',
+      align: 'center',
+      verticalAlign: 'bottom',
+      rect: { x: 10, y: 20, width: 12, height: 10 },
+      labelRect: { x: 1, y: 15, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 16,
+    y: 35,
+    align: 'center',
+    verticalAlign: 'top',
+  });
+});
+
+test('Auto label layout does not change non-Bar series', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'line', data: [[2026, 1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      theme: supersetTheme,
+    },
+  ) as LineSeriesOption;
+
+  expect(result).not.toHaveProperty('labelLayout');
+  expect(result.label).toMatchObject({
+    position: 'top',
+    color: supersetTheme.colorText,
   });
 });
 

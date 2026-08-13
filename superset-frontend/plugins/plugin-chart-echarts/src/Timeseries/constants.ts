@@ -23,6 +23,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import { LegendOrientation, LegendType } from '../types';
 import {
+  BarValueLabelPosition,
   OrientationType,
   EchartsTimeseriesSeriesType,
   EchartsTimeseriesFormData,
@@ -86,6 +87,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisLabelInterval: defaultXAxis.xAxisLabelInterval,
   groupby: [],
   showValue: false,
+  valueLabelPosition: BarValueLabelPosition.Auto,
   onlyTotal: false,
   percentageThreshold: 0,
   orientation: OrientationType.Vertical,

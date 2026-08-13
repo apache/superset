@@ -35,6 +35,9 @@ import type {
   CallbackDataParams,
   DefaultStatesMixin,
   ItemStyleOption,
+  LabelLayoutOption,
+  LabelLayoutOptionCallback,
+  LabelLayoutOptionCallbackParams,
   LineStyleOption,
   OptionName,
   SeriesLabelOption,
@@ -49,6 +52,7 @@ import type {
 import type { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 import { extractForecastSeriesContext } from '../utils/forecast';
 import {
+  BarValueLabelPosition,
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
   LegendOrientation,
@@ -68,6 +72,84 @@ import {
   StackControlsValue,
   TIMESERIES_CONSTANTS,
 } from '../constants';
+
+const AUTO_LABEL_FIT_RATIO = 0.8;
+const BAR_LABEL_DISTANCE = 5;
+
+type BarLabelPosition =
+  | 'bottom'
+  | 'inside'
+  | 'insideBottom'
+  | 'insideLeft'
+  | 'insideRight'
+  | 'insideTop'
+  | 'left'
+  | 'right'
+  | 'top';
+
+type NegativeBarLabelPosition = BarLabelPosition | 'outside';
+
+/** Resolve the fixed ECharts label position for a bar value. */
+function getBarLabelPosition(
+  position: BarValueLabelPosition,
+  isHorizontal: boolean,
+  isNegative = false,
+): BarLabelPosition {
+  if (position === BarValueLabelPosition.OutsideEnd) {
+    if (isHorizontal) return isNegative ? 'left' : 'right';
+    return isNegative ? 'bottom' : 'top';
+  }
+  if (position === BarValueLabelPosition.InsideCenter) return 'inside';
+  const isEnd = position !== BarValueLabelPosition.InsideBase;
+  const usePositiveEnd = isEnd !== isNegative;
+  if (isHorizontal) return usePositiveEnd ? 'insideRight' : 'insideLeft';
+  return usePositiveEnd ? 'insideTop' : 'insideBottom';
+}
+
+/** Place a horizontal bar label just beyond its value end. */
+function getHorizontalOutsideLayout(
+  params: LabelLayoutOptionCallbackParams,
+  isNegative: boolean,
+): LabelLayoutOption {
+  return {
+    x: isNegative
+      ? params.rect.x - BAR_LABEL_DISTANCE
+      : params.rect.x + params.rect.width + BAR_LABEL_DISTANCE,
+    y: params.rect.y + params.rect.height / 2,
+    align: isNegative ? 'right' : 'left',
+    verticalAlign: 'middle',
+  };
+}
+
+/** Place a vertical bar label just beyond its value end. */
+function getVerticalOutsideLayout(
+  params: LabelLayoutOptionCallbackParams,
+  isNegative: boolean,
+): LabelLayoutOption {
+  return {
+    x: params.rect.x + params.rect.width / 2,
+    y: isNegative
+      ? params.rect.y + params.rect.height + BAR_LABEL_DISTANCE
+      : params.rect.y - BAR_LABEL_DISTANCE,
+    align: 'center',
+    verticalAlign: isNegative ? 'top' : 'bottom',
+  };
+}
+
+/** Keep fitting labels inside and move oversized labels outside the bar. */
+export function getAutoBarLabelLayout(
+  params: LabelLayoutOptionCallbackParams,
+  isHorizontal: boolean,
+  isNegative = false,
+): LabelLayoutOption {
+  const barLength = Math.abs(
+    isHorizontal ? params.rect.width : params.rect.height,
+  );
+  if (params.labelRect.width <= barLength * AUTO_LABEL_FIT_RATIO) return {};
+  return isHorizontal
+    ? getHorizontalOutsideLayout(params, isNegative)
+    : getVerticalOutsideLayout(params, isNegative);
+}
 
 function parseTimeShiftToMs(timeShift?: string | null): number {
   if (!timeShift) return 0;
@@ -167,31 +249,69 @@ export const getBaselineSeriesForStream = (
   };
 };
 
+/** Identify object-form ECharts data items. */
+function isDataItemObject(
+  dataItem: unknown,
+): dataItem is Record<string, unknown> {
+  return (
+    typeof dataItem === 'object' &&
+    dataItem !== null &&
+    !Array.isArray(dataItem)
+  );
+}
+
+/** Return whether an ECharts bar datum is negative on its value axis. */
+function isNegativeBarDataItem(
+  dataItem: unknown,
+  isHorizontal: boolean,
+): boolean {
+  const value = isDataItemObject(dataItem) ? dataItem.value : dataItem;
+  const axisValue = Array.isArray(value)
+    ? value[isHorizontal ? 0 : 1]
+    : undefined;
+  return typeof axisValue === 'number' && axisValue < 0;
+}
+
+/** Create a fit-aware layout callback bound to one bar series. */
+function createAutoBarLabelLayout(
+  data: unknown,
+  isHorizontal: boolean,
+): LabelLayoutOptionCallback {
+  return params => {
+    const dataItem =
+      Array.isArray(data) && params.dataIndex !== undefined
+        ? data[params.dataIndex]
+        : undefined;
+    return getAutoBarLabelLayout(
+      params,
+      isHorizontal,
+      isNegativeBarDataItem(dataItem, isHorizontal),
+    );
+  };
+}
+
+/** Apply the value-end label position to a negative bar datum. */
+function transformNegativeLabel(
+  dataItem: unknown,
+  isHorizontal: boolean,
+  negativePosition: NegativeBarLabelPosition,
+): unknown {
+  if (!isNegativeBarDataItem(dataItem, isHorizontal)) return dataItem;
+  const value = isDataItemObject(dataItem) ? dataItem.value : dataItem;
+  const item = isDataItemObject(dataItem) ? dataItem : { value };
+  const label = isDataItemObject(item.label) ? item.label : {};
+  return { ...item, label: { ...label, position: negativePosition } };
+}
+
+/** Adjust label positions for negative values in a bar series. */
 export function transformNegativeLabelsPosition(
   series: SeriesOption,
   isHorizontal: boolean,
+  negativePosition: NegativeBarLabelPosition = 'outside',
 ): TimeseriesDataRecord[] {
-  /*
-   * Adjusts label position for negative values in bar series
-   * @param series - Array of series options
-   * @param isHorizontal - Whether chart is horizontal
-   * @returns data with adjusted label positions for negative values
-   */
-  const transformValue = (value: any) => {
-    const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
-    const axisValue = isHorizontal ? xValue : yValue;
-
-    return axisValue < 0
-      ? {
-          value,
-          label: {
-            position: 'outside',
-          },
-        }
-      : value;
-  };
-
-  return (series.data as TimeseriesDataRecord[]).map(transformValue);
+  return (series.data as unknown[]).map(dataItem =>
+    transformNegativeLabel(dataItem, isHorizontal, negativePosition),
+  ) as TimeseriesDataRecord[];
 }
 
 export function applyColorByPrimaryAxis(
@@ -237,6 +357,7 @@ export function transformSeries(
     stackIdSuffix?: string;
     yAxisIndex?: number;
     showValue?: boolean;
+    valueLabelPosition?: BarValueLabelPosition;
     onlyTotal?: boolean;
     legendState?: LegendState;
     formatter?: ValueFormatter;
@@ -272,6 +393,7 @@ export function transformSeries(
     stackIdSuffix,
     yAxisIndex = 0,
     showValue,
+    valueLabelPosition = BarValueLabelPosition.Auto,
     onlyTotal,
     formatter,
     legendState,
@@ -392,23 +514,30 @@ export function transformSeries(
     symbol = opts.lineSymbol || (isDarkMode ? 'circle' : 'emptyCircle');
   }
 
+  let transformedData = data;
+  if (Array.isArray(data) && colorByPrimaryAxis) {
+    transformedData = applyColorByPrimaryAxis(
+      series,
+      colorScale,
+      sliceId,
+      opacity,
+      isHorizontal,
+    );
+  }
+  if (Array.isArray(transformedData) && plotType === 'bar') {
+    transformedData = transformNegativeLabelsPosition(
+      { ...series, data: transformedData },
+      isHorizontal,
+      getBarLabelPosition(valueLabelPosition, isHorizontal, true),
+    );
+  }
+
+  const isAutoBarLabel =
+    plotType === 'bar' && valueLabelPosition === BarValueLabelPosition.Auto;
+
   return {
     ...series,
-    ...(Array.isArray(data)
-      ? colorByPrimaryAxis
-        ? {
-            data: applyColorByPrimaryAxis(
-              series,
-              colorScale,
-              sliceId,
-              opacity,
-              isHorizontal,
-            ),
-          }
-        : seriesType === 'bar' && !stack
-          ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
-          : null
-      : null),
+    ...(Array.isArray(data) ? { data: transformedData } : null),
     connectNulls,
     queryIndex,
     yAxisIndex,
@@ -441,10 +570,21 @@ export function transformSeries(
     showSymbol,
     symbol,
     symbolSize: symbolSizeFn ?? markerSize,
+    ...(isAutoBarLabel
+      ? {
+          labelLayout: createAutoBarLabelLayout(transformedData, isHorizontal),
+        }
+      : {}),
     label: {
       show: !!showValue,
-      position: isHorizontal ? 'right' : 'top',
-      color: theme?.colorText,
+      position:
+        plotType === 'bar'
+          ? getBarLabelPosition(valueLabelPosition, isHorizontal)
+          : isHorizontal
+            ? 'right'
+            : 'top',
+      // ECharts derives contrast-aware colors from the bar fill when unset.
+      ...(isAutoBarLabel ? {} : { color: theme?.colorText }),
       textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip
