@@ -1162,7 +1162,7 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
 
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.status_code = status_code
-    mock_post.return_value.text = '{"error": "invalid_grant"}'
+    mock_post.return_value.text = '{"error": "provider-payload-sentinel"}'
 
     config: OAuth2ClientConfig = {
         "id": "client-id",
@@ -1177,7 +1177,7 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
     with pytest.raises(OAuth2TokenRefreshError) as exc_info:
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
-    assert exc_info.value.error.extra["error"] == '{"error": "invalid_grant"}'
+    assert "provider-payload-sentinel" not in str(exc_info.value.to_dict())
 
 
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
