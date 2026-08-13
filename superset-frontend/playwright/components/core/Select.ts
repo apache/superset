@@ -80,14 +80,30 @@ export class Select {
   }
 
   /**
+   * The currently open dropdown. Excludes hidden ones, and uses .last() since
+   * the most recently opened is the one in play when several exist in the DOM.
+   */
+  private get visibleDropdown(): Locator {
+    return this.page
+      .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
+      .last();
+  }
+
+  /**
+   * Options rendered in the currently open dropdown (assumes {@link open} was
+   * called first).
+   */
+  get options(): Locator {
+    return this.visibleDropdown.locator(SELECT_SELECTORS.OPTION);
+  }
+
+  /**
    * Waits for dropdown to close after selection
    * This prevents strict mode violations when multiple selects are used sequentially
    */
   private async waitForDropdownClose(): Promise<void> {
     // Wait for dropdown to actually close (become hidden)
-    await this.page
-      .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
-      .last()
+    await this.visibleDropdown
       .waitFor({ state: 'hidden', timeout: TIMEOUT.UI_TRANSITION })
       .catch(error => {
         // Only ignore TimeoutError (dropdown may already be closed); re-throw others
@@ -111,11 +127,7 @@ export class Select {
    * @param optionText - The text of the option to click (partial match for filtered results)
    */
   async clickOption(optionText: string): Promise<void> {
-    // Target visible dropdown (excludes hidden ones via :not(.ant-select-dropdown-hidden))
-    // Use .last() in case multiple dropdowns exist - the most recent one is what we want
-    const dropdown = this.page
-      .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
-      .last();
+    const dropdown = this.visibleDropdown;
     await dropdown.waitFor({ state: 'visible' });
 
     // Find option by text content - use partial match since filtered results may have prefixes
