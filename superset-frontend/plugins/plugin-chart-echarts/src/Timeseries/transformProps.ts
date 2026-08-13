@@ -1424,13 +1424,18 @@ export default function transformProps(
         // Without the series key, `getCustomFormatter` returns undefined for
         // multi-metric charts and every row falls back to `defaultFormatter`,
         // rendering the y-axis/currency format for all metrics.
+        //
+        // The tooltip key is the rendered series name, so resolve it through
+        // `labelMap`, whose values lead with the raw metric label. Series
+        // renamed by a verbose_name are absent from that map, so fall back to
+        // the verbose-name inversion, as MixedTimeseries does.
         const getSeriesFormatter = (seriesKey: string) =>
           forcePercentFormatter
             ? percentFormatter
             : (getCustomFormatter(
                 customFormatters,
                 metrics,
-                labelMap?.[seriesKey]?.[0],
+                labelMap?.[seriesKey]?.[0] ?? inverted[seriesKey],
               ) ?? defaultFormatter);
 
         // The total row aggregates every series, so it keeps the chart-level

@@ -2566,3 +2566,45 @@ test('tooltip formats each series with its own metric format instead of the defa
   expect(result).toContain('12.34%');
   expect(result).toContain('$');
 });
+
+test('tooltip resolves per-metric formats for series renamed by verbose_name', () => {
+  // With a verbose_name configured, the rendered series name (and so the
+  // tooltip key) is the verbose label, while `label_map` stays keyed by the
+  // raw metric label. The formatter lookup has to bridge that gap.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ count: 1000, pct_change: 0.1234, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { count: ['count'], pct_change: ['pct_change'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: { count: 'Total Count', pct_change: 'Percent Change' },
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'Total Count',
+      seriesName: 'Total Count',
+      value: [BASE_TIMESTAMP, 1000],
+    },
+    {
+      seriesId: 'Percent Change',
+      seriesName: 'Percent Change',
+      value: [BASE_TIMESTAMP, 0.1234],
+    },
+  ]);
+
+  expect(result).toContain('12.34%');
+  expect(result).toContain('$');
+});
