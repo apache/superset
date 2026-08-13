@@ -291,8 +291,7 @@ describe('CountryMap conditional formatting', () => {
     const mockFormatters = [
       {
         column: 'metric',
-        getColorFromValue: (val: number) =>
-          val > 500 ? '#FF0000' : undefined,
+        getColorFromValue: (val: number) => (val > 500 ? '#FF0000' : undefined),
       },
     ];
 
@@ -323,8 +322,7 @@ describe('CountryMap conditional formatting', () => {
     const mockFormatters = [
       {
         column: 'metric',
-        getColorFromValue: (val: number) =>
-          val > 200 ? '#FF0000' : undefined,
+        getColorFromValue: (val: number) => (val > 200 ? '#FF0000' : undefined),
       },
       {
         column: 'metric',
