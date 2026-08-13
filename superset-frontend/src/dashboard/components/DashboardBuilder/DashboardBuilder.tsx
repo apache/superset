@@ -454,7 +454,15 @@ const DashboardBuilder = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
-  const isNotMobile = !useIsMobile();
+  // Standalone/embedded consumers (standalone=1/2/3) render their own chrome
+  // and may hide DashboardHeader entirely (see hideDashboardHeader below),
+  // which is the only place the mobile filter drawer's trigger lives. Rather
+  // than leave native filters unreachable in that case, standalone views
+  // always get the desktop layout -- matching the pre-existing behavior the
+  // docs already promise for embedded dashboards.
+  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isNotMobile =
+    !useIsMobile() || standaloneMode !== DashboardStandaloneMode.None;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Reset the drawer's open state when leaving mobile mode so it doesn't
@@ -531,7 +539,6 @@ const DashboardBuilder = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.Report;
   // Report mode (standalone=3) hides the filter bar by default, since it's used
   // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK

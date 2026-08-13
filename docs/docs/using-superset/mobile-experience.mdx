@@ -87,3 +87,7 @@ available immediately.
 - Embedded dashboards are unaffected: the embedded SDK controls its own
   layout, and the viewport meta tag is only interpreted by the top-level
   page.
+- Dashboards loaded with a `standalone` URL param (used for iframe embeds
+  and kiosk-style displays) always render the desktop layout, regardless
+  of viewport width, since the standalone chrome doesn't expose the mobile
+  filter drawer's trigger.
