@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import { act, fireEvent, render } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import * as redux from 'redux';
 
@@ -654,4 +654,182 @@ test('should pass chartStackTrace to ChartContainer so dashboard chart errors st
     'chartStackTrace',
     stackTrace,
   );
+});
+
+function installResizeObserverMock() {
+  const observeMock = jest.fn();
+  const disconnectMock = jest.fn();
+  let observerCallback: ResizeObserverCallback | undefined;
+  const mockResizeObserver = jest.fn().mockImplementation(callback => {
+    observerCallback = callback;
+    return { observe: observeMock, disconnect: disconnectMock };
+  });
+  global.ResizeObserver = mockResizeObserver as any;
+
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  return {
+    observeMock,
+    getObserverCallback: () => observerCallback,
+    restore: () => {
+      delete (global as any).ResizeObserver;
+      getComputedStyleSpy.mockRestore();
+    },
+  };
+}
+
+test('A chart description configured to start expanded is visible after initial render', () => {
+  const { observeMock, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    expect(observeMock).toHaveBeenCalled();
+  } finally {
+    restore();
+  }
+});
+
+test('The description height is correctly updated after asynchronous markdown rendering completes', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 300 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 100,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(300 - 22 - 100);
+  } finally {
+    restore();
+  }
+});
+
+test('The ResizeObserver callback updates the measured height', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 400 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 200,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(400 - 22 - 200);
+  } finally {
+    restore();
+  }
+});
+
+test('Existing expand/collapse behavior continues to work', () => {
+  const { restore } = installResizeObserverMock();
+  try {
+    const collapsedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: false },
+        },
+      },
+    );
+    expect(
+      collapsedSetup.container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+
+    const expandedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(
+      expandedSetup.container.querySelector('.slice_description'),
+    ).toBeInTheDocument();
+  } finally {
+    restore();
+  }
 });

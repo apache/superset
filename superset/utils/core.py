@@ -61,6 +61,7 @@ from typing import (
 )
 from urllib.parse import unquote_plus, urlparse
 from zipfile import ZipFile
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import markdown as md
 import nh3
@@ -815,6 +816,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # the SELECT of a scalar value without a table is
             # appropriately formatted for the backend
             connection.scalar(select(1))
+            connection.rollback()  # pylint: disable=consider-using-transaction
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
@@ -827,6 +829,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
                 # here also causes the whole connection pool to be invalidated
                 # so that all stale connections are discarded.
                 connection.scalar(select(1))
+                connection.rollback()  # pylint: disable=consider-using-transaction
             else:
                 raise
         finally:
@@ -1965,6 +1968,7 @@ class DateColumn:
     timestamp_format: str | None = None
     offset: int | None = None
     time_shift: str | None = None
+    timezone: str | None = None  # IANA timezone name
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -1978,11 +1982,13 @@ class DateColumn:
         timestamp_format: str | None,
         offset: int | None,
         time_shift: str | None,
+        timezone: str | None = None,
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
             offset=offset,
             time_shift=time_shift,
+            timezone=timezone,
             col_label=DTTM_ALIAS,
         )
 
@@ -2080,8 +2086,28 @@ def normalize_dttm_col(
 
         _process_datetime_column(df, _col)
 
-        if _col.offset:
+        if _col.timezone and isinstance(_col.timezone, str):
+            try:
+                tz = ZoneInfo(_col.timezone)
+                # Data is stored in UTC, convert to the dataset's configured timezone
+                # First make the datetime UTC-aware, then convert to target timezone
+                series = df[_col.col_label]
+                if not series.empty and series.notna().any():
+                    # Convert UTC to target timezone
+                    df[_col.col_label] = (
+                        series.dt.tz_localize("UTC")
+                        .dt.tz_convert(tz)
+                        .dt.tz_localize(None)  # Remove timezone info for display
+                    )
+            except ZoneInfoNotFoundError:
+                logging.warning(
+                    "Unknown timezone '%s', falling back to offset", _col.timezone
+                )
+                if _col.offset:
+                    df[_col.col_label] += timedelta(hours=_col.offset)
+        elif _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
+
         if _col.time_shift is not None:
             df[_col.col_label] += parse_human_timedelta(_col.time_shift)
 
