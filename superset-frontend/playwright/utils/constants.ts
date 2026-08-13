@@ -101,7 +101,7 @@ export const EMBEDDED = {
   /** Timeout for iframe to appear in the DOM */
   IFRAME_LOAD: 15000, // 15s
   /** Timeout for dashboard content to render inside the iframe */
-  DASHBOARD_RENDER: 30000, // 30s
+  DASHBOARD_RENDER: 60000, // 60s (embedded dashboards are slow to render on cold CI)
   /** Timeout for individual chart cells to finish rendering */
   CHART_RENDER: TIMEOUT.CHART_RENDER,
 } as const;
