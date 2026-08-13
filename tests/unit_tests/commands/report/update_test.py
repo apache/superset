@@ -81,6 +81,12 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         UpdateReportScheduleCommand,
         "validate_report_frequency",
     )
+    # Alert-query validation has dedicated coverage in base_test.py; these
+    # tests focus on database-presence handling, so stub it out here.
+    mocker.patch.object(
+        UpdateReportScheduleCommand,
+        "validate_alert_query",
+    )
     mocker.patch(
         "superset.commands.report.update.compute_subjects",
     )
