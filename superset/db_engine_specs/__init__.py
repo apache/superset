@@ -165,7 +165,24 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
         except Exception as ex:  # pylint: disable=broad-except
             logger.debug("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
-            backend = dialect.name
+            # A third-party entry point can load successfully yet not resolve to
+            # a usable dialect -- e.g. a malformed ``name = pkg:module`` entry
+            # point yields a module, which has no ``name``. Reading ``.name``
+            # unguarded here would raise and abort the whole enumeration, taking
+            # down every page that builds the bootstrap payload rather than just
+            # marking that one connector unavailable. Skip it with a warning
+            # instead, mirroring the defensiveness of the native-dialect loop
+            # above.
+            backend = getattr(dialect, "name", None)
+            if not isinstance(backend, (str, bytes)):
+                logger.warning(
+                    "Skipping SQLAlchemy dialect entry point %r: %r did not "
+                    "resolve to a usable dialect (%r)",
+                    ep.name,
+                    ep.value,
+                    dialect,
+                )
+                continue
             if isinstance(backend, bytes):
                 backend = backend.decode()
             backend = backend_replacements.get(backend, backend)

@@ -50,6 +50,49 @@ def test_get_available_engine_specs(mocker: MockerFixture) -> None:
     ]
 
 
+def test_get_available_engine_specs_skips_malformed_dialect_entry_point(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A third-party ``sqlalchemy.dialects`` entry point that loads successfully but
+    does not resolve to a usable dialect (e.g. a malformed entry point that
+    yields a module, which has no ``name``) must be skipped, not raise.
+
+    Regression test: an unguarded ``dialect.name`` there aborted the whole
+    enumeration with ``AttributeError``, which 500s every page that builds the
+    bootstrap payload (e.g. ``/welcome/``), not just that one connector.
+    """
+    import types
+
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([]),
+    )
+
+    malformed_ep = mocker.MagicMock()
+    malformed_ep.name = "bogus"
+    malformed_ep.value = "bogus_pkg:base"
+    # ``ep.load()`` returns a module (no ``name`` attribute), as a real
+    # ``name = pkg:submodule`` entry point would.
+    malformed_ep.load.return_value = types.ModuleType("bogus_pkg.base")
+
+    def entry_points(group: str) -> list[object]:
+        return [malformed_ep] if group == "sqlalchemy.dialects" else []
+
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        side_effect=entry_points,
+    )
+    warning = mocker.patch("superset.db_engine_specs.logger.warning")
+
+    # Must not raise (previously ``AttributeError`` on ``dialect.name``).
+    available = get_available_engine_specs()
+
+    assert isinstance(available, dict)
+    # The malformed entry point is skipped with a warning that identifies it.
+    assert any("bogus" in str(call) for call in warning.call_args_list)
+
+
 @pytest.mark.parametrize(
     "app",
     [{"DBS_AVAILABLE_DENYLIST": {"databricks": {"pyhive", "pyodbc"}}}],
