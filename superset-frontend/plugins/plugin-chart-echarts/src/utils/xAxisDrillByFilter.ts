@@ -100,6 +100,21 @@ export const getTimeBucketRange = (
   return { since: new Date(bucketLabel.getTime()), until };
 };
 
+// Matches an explicit timezone designator (Z or ±HH:MM/±HHMM) at the end of
+// a datetime string.
+const TIMEZONE_SUFFIX_RE = /(Z|[+-]\d{2}:?\d{2})$/;
+
+/**
+ * Parse a datetime string the same way regardless of the host's local
+ * timezone. Superset's backend returns naive datetime strings (no timezone
+ * designator) that represent UTC instants; passing those directly to `new
+ * Date()` would interpret them as local wall-clock time and shift the
+ * result by the browser's UTC offset. Strings that already carry an
+ * explicit timezone designator are parsed as-is.
+ */
+const parseAsUtc = (value: string): Date =>
+  new Date(TIMEZONE_SUFFIX_RE.test(value) ? value : `${value}Z`);
+
 /**
  * Build a drill-by filter clause matching the clicked value on a temporal
  * x-axis. When a known time grain is active, the clause is a TEMPORAL_RANGE
@@ -120,7 +135,14 @@ export const getTemporalXAxisDrillByFilter = (
   ) {
     return undefined;
   }
-  const bucketLabel = value instanceof Date ? value : new Date(value);
+  let bucketLabel: Date;
+  if (value instanceof Date) {
+    bucketLabel = value;
+  } else if (typeof value === 'string') {
+    bucketLabel = parseAsUtc(value);
+  } else {
+    bucketLabel = new Date(value);
+  }
   if (Number.isNaN(bucketLabel.getTime())) {
     return undefined;
   }
