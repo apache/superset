@@ -20,16 +20,14 @@ import {
   CategoricalColorScale,
   ChartProps,
   TimeGranularity,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import type { ScatterSeriesOption } from 'echarts/charts';
 import { EchartsTimeseriesSeriesType } from '../../src';
-import {
-  TIMESERIES_CONSTANTS,
-  StackControlsValue,
-} from '../../src/constants';
+import { TIMESERIES_CONSTANTS, StackControlsValue } from '../../src/constants';
 import {
   LegendOrientation,
   EchartsTimeseriesChartProps,
@@ -98,7 +96,7 @@ describe('transformSeries', () => {
         showValue: true,
         stack: StackControlsValue.Stack,
         onlyTotal: false,
-        formatter: (v: any) => String(v),
+        formatter: ((v: number) => String(v)) as unknown as ValueFormatter,
         totalStackedValues: [32],
         thresholdValues,
       });
