@@ -19,6 +19,13 @@
 import { ControlPanelsContainerProps } from '@superset-ui/chart-controls/types';
 import controlPanel from '../../src/MixedTimeseries/controlPanel';
 
+// Narrow shape of the controls under test: enough to exercise `visibility`
+// without reaching for `any`.
+type VisibilityControl = {
+  name: string;
+  config: { visibility: (props: ControlPanelsContainerProps) => boolean };
+};
+
 const config = controlPanel;
 
 const getControl = (controlName: string) => {
@@ -54,7 +61,9 @@ jest.mock('@superset-ui/chart-controls', () => {
 });
 
 test('should have correct visibility for label_position', () => {
-  const labelPositionCtrl: any = getControl('label_position');
+  const labelPositionCtrl = getControl(
+    'label_position',
+  ) as unknown as VisibilityControl;
   expect(labelPositionCtrl).toBeDefined();
   expect(labelPositionCtrl.config.visibility).toBeDefined();
 
@@ -76,7 +85,9 @@ test('should have correct visibility for label_position', () => {
 });
 
 test('should have correct visibility for label_positionB', () => {
-  const labelPositionBCtrl: any = getControl('label_positionB');
+  const labelPositionBCtrl = getControl(
+    'label_positionB',
+  ) as unknown as VisibilityControl;
   expect(labelPositionBCtrl).toBeDefined();
   expect(labelPositionBCtrl.config.visibility).toBeDefined();
 

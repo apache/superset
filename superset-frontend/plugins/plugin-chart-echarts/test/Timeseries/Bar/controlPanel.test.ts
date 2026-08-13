@@ -25,6 +25,13 @@ import {
 } from '../../../src/constants';
 import { OrientationType } from '../../../src/Timeseries/types';
 
+// Narrow shape of the control under test: enough to exercise `visibility`
+// without reaching for `any`.
+type VisibilityControl = {
+  name: string;
+  config: { visibility: (props: ControlPanelsContainerProps) => boolean };
+};
+
 const config = controlPanel;
 
 const getControl = (controlName: string) => {
@@ -294,7 +301,9 @@ test('x_axis_time_format should be hidden for numeric columns', () => {
 });
 
 test('should have visibility function for label_position', () => {
-  const labelPositionCtrl: any = getControl('label_position');
+  const labelPositionCtrl = getControl(
+    'label_position',
+  ) as unknown as VisibilityControl;
   expect(labelPositionCtrl).toBeDefined();
   expect(labelPositionCtrl.config.visibility).toBeDefined();
   expect(typeof labelPositionCtrl.config.visibility).toBe('function');
