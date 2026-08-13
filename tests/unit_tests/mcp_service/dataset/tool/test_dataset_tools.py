@@ -2079,6 +2079,37 @@ async def test_create_virtual_dataset_create_failed(mcp_server: object) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_virtual_dataset_sql_error_is_actionable(
+    mcp_server: object,
+) -> None:
+    """Warehouse SQL errors are recoverable tool results, not adapter crashes."""
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = SupersetGenericDBErrorException(
+        "Invalid column name 'missing_value'"
+    )
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT missing_value FROM sample_events",
+                dataset_name="Test",
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert "Invalid column name" in data["error"]
+
+
+@pytest.mark.asyncio
 async def test_create_virtual_dataset_permission_denied(mcp_server: object) -> None:
     """SQL access denied surfaces as DatasetInvalidError with id=None."""
     from superset.commands.dataset.exceptions import (
