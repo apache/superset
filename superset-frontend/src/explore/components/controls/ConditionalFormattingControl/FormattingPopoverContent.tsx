@@ -264,8 +264,10 @@ export const FormattingPopoverContent = ({
     config?.column || columns[0]?.value,
   );
   const visibleAllColumns = useMemo(
-    () => !!(allColumns && Array.isArray(allColumns) && allColumns.length),
-    [allColumns],
+    () =>
+      !columnMetricFlag &&
+      !!(allColumns && Array.isArray(allColumns) && allColumns.length),
+    [allColumns, columnMetricFlag],
   );
 
   const [columnFormatting, setColumnFormatting] = useState<string | undefined>(

@@ -135,8 +135,8 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     const regionData = regionMap.get(feature.properties.ISO);
 
     if (regionData && formatters?.length > 0) {
-      for (const formatter of formatters) {
-        const cfColor = formatter.getColorFromValue(regionData.metric);
+      for (const colorFormatter of formatters) {
+        const cfColor = colorFormatter.getColorFromValue(regionData.metric);
         if (cfColor) return cfColor;
       }
     }

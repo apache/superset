@@ -375,11 +375,15 @@ test('should not display tooltip icon when extraColorChoices is empty', () => {
 });
 
 test('hides formatting column and formatting object when columnMetricFlag is true', () => {
+  const mockColumns = [
+    { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  ];
+
   render(
     <FormattingPopoverContent
       onChange={mockOnChange}
-      columns={[]}
-      allColumns={[]}
+      columns={mockColumns}
+      allColumns={mockColumns}
       columnMetricFlag
     />,
   );
