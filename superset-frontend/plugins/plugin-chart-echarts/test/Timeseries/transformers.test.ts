@@ -19,12 +19,13 @@
 import {
   CategoricalColorScale,
   ChartProps,
+  getNumberFormatter,
   TimeGranularity,
   getNumberFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
-import type { SeriesOption } from 'echarts';
+import { init, type SeriesOption } from 'echarts';
 import type {
   BarSeriesOption,
   LineSeriesOption,
@@ -204,7 +205,7 @@ test('Auto bar labels move outside narrow stacked segments', () => {
   });
 });
 
-test('Auto bar labels stay inside when they use at most 80% of bar length', () => {
+test('Auto labels stay inside when both dimensions fit within 80% of the bar', () => {
   const result = transformSeries(
     { name: 'test-series', type: 'bar', data: [[2026, 1]] },
     mockColorScale,
@@ -223,10 +224,73 @@ test('Auto bar labels stay inside when they use at most 80% of bar length', () =
       text: '1,000',
       align: 'center',
       verticalAlign: 'top',
-      rect: { x: 10, y: 20, width: 12, height: 40 },
-      labelRect: { x: 0, y: 25, width: 32, height: 14 },
+      rect: { x: 10, y: 20, width: 50, height: 40 },
+      labelRect: { x: 19, y: 25, width: 32, height: 14 },
     }),
   ).toEqual({});
+});
+
+test('Auto moves wide labels outside tall narrow vertical bars', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 100]] },
+    mockColorScale,
+    'test-key',
+    { seriesType: EchartsTimeseriesSeriesType.Bar },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '1,000',
+      align: 'center',
+      verticalAlign: 'top',
+      rect: { x: 10, y: 20, width: 12, height: 200 },
+      labelRect: { x: 1, y: 25, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 16,
+    y: 15,
+    align: 'center',
+    verticalAlign: 'bottom',
+  });
+});
+
+test('Auto overflow uses ECharts outside-label text color', () => {
+  const darkBarColorScale = jest.fn(() => '#111111');
+  const series = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[0, 123456789]] },
+    darkBarColorScale as unknown as CategoricalColorScale,
+    'test-key',
+    {
+      formatter: getNumberFormatter('d'),
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      showValue: true,
+    },
+  ) as BarSeriesOption;
+  const chart = init(null, null, {
+    renderer: 'svg',
+    ssr: true,
+    width: 300,
+    height: 220,
+  });
+
+  chart.setOption({
+    animation: false,
+    darkMode: false,
+    xAxis: { type: 'category', data: ['A'], show: false },
+    yAxis: { type: 'value', max: 1_000_000_000, show: false },
+    series: [series],
+  });
+
+  expect(chart.renderToSVGString()).toMatch(
+    /fill="#333"[^>]*>123456789<\/text>/,
+  );
+  chart.dispose();
 });
 
 test('Auto bar labels use horizontal bar length and move to the value end', () => {
@@ -320,6 +384,40 @@ test('Auto positions negative stacked segments at their inside end', () => {
     y: 35,
     align: 'center',
     verticalAlign: 'top',
+  });
+});
+
+test('Auto moves horizontal negative labels beyond their value end', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[-1, 2026]] },
+    mockColorScale,
+    'test-key',
+    { seriesType: EchartsTimeseriesSeriesType.Bar, isHorizontal: true },
+  ) as BarSeriesOption;
+
+  expect(result.data).toEqual([
+    {
+      value: [-1, 2026],
+      label: { position: 'insideLeft' },
+    },
+  ]);
+  expect(typeof result.labelLayout).toBe('function');
+  if (typeof result.labelLayout !== 'function') return;
+  expect(
+    result.labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '-1,000',
+      align: 'left',
+      verticalAlign: 'middle',
+      rect: { x: 10, y: 20, width: 20, height: 12 },
+      labelRect: { x: 10, y: 19, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 5,
+    y: 26,
+    align: 'right',
+    verticalAlign: 'middle',
   });
 });
 

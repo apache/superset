@@ -142,10 +142,13 @@ export function getAutoBarLabelLayout(
   isHorizontal: boolean,
   isNegative = false,
 ): LabelLayoutOption {
-  const barLength = Math.abs(
-    isHorizontal ? params.rect.width : params.rect.height,
-  );
-  if (params.labelRect.width <= barLength * AUTO_LABEL_FIT_RATIO) return {};
+  const fitsWidth =
+    params.labelRect.width <=
+    Math.abs(params.rect.width) * AUTO_LABEL_FIT_RATIO;
+  const fitsHeight =
+    params.labelRect.height <=
+    Math.abs(params.rect.height) * AUTO_LABEL_FIT_RATIO;
+  if (fitsWidth && fitsHeight) return {};
   return isHorizontal
     ? getHorizontalOutsideLayout(params, isNegative)
     : getVerticalOutsideLayout(params, isNegative);
@@ -583,7 +586,8 @@ export function transformSeries(
           : isHorizontal
             ? 'right'
             : 'top',
-      // ECharts derives contrast-aware colors from the bar fill when unset.
+      // ECharts derives contrast from the bar fill while the label is inside.
+      // Returning x/y clears the attached position, selecting its outside fill.
       ...(isAutoBarLabel ? {} : { color: theme?.colorText }),
       textBorderWidth: 0,
       formatter: (params: any) => {
