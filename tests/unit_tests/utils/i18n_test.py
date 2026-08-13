@@ -16,6 +16,8 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import pytest
 from flask import current_app
 from pytest_mock import MockerFixture
@@ -26,6 +28,14 @@ MULTI_LANG = {
     "en": {"flag": "us", "name": "English"},
     "fr": {"flag": "fr", "name": "French"},
 }
+
+
+@pytest.fixture(autouse=True)
+def reset_hooks() -> Iterator[None]:
+    """Keep hook config from leaking between tests."""
+    yield
+    current_app.config["TRANSLATION_HOOK"] = None
+    current_app.config["TRANSLATION_BATCH_HOOK"] = None
 
 
 @pytest.fixture
@@ -186,3 +196,186 @@ def test_i18n_macro_returns_original_when_disabled(mocker: MockerFixture) -> Non
     current_app.config["TRANSLATION_HOOK"] = lambda *a, **k: "Ventes"
 
     assert i18n_macro("Sales") == "Sales"
+
+
+def test_translate_many_resolves_batch_in_one_hook_call(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """The whole collection is resolved with a single batch-hook invocation."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    batch_hook = mocker.MagicMock(return_value={"Sales": "Ventes", "Costs": "Coûts"})
+    current_app.config["TRANSLATION_BATCH_HOOK"] = batch_hook
+
+    resolved = i18n.translate_many(
+        ["Sales", "Costs"], model_name="Slice", field_name="slice_name"
+    )
+
+    assert resolved == {"Sales": "Ventes", "Costs": "Coûts"}
+    batch_hook.assert_called_once_with(
+        ["Sales", "Costs"], "fr", model_name="Slice", field_name="slice_name"
+    )
+
+
+def test_translate_many_falls_back_to_single_hook(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """Without a batch hook, priming still works via the per-string hook."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    hook = mocker.MagicMock(side_effect=lambda text, _locale, **_k: f"{text}-fr")
+    current_app.config["TRANSLATION_HOOK"] = hook
+
+    resolved = i18n.translate_many(["Sales", "Costs"])
+
+    assert resolved == {"Sales": "Sales-fr", "Costs": "Costs-fr"}
+    assert hook.call_count == 2
+
+
+def test_translate_many_dedupes_and_skips_empty_texts(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    batch_hook = mocker.MagicMock(return_value={"Sales": "Ventes"})
+    current_app.config["TRANSLATION_BATCH_HOOK"] = batch_hook
+
+    resolved = i18n.translate_many(["Sales", "Sales", None, ""])
+
+    assert resolved == {"Sales": "Ventes"}
+    # Duplicates and empties never reach the hook.
+    batch_hook.assert_called_once_with(["Sales"], "fr")
+
+
+def test_translate_many_falls_back_for_untranslated_entries(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """A partial batch result keeps canonical text for the missing keys."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    current_app.config["TRANSLATION_BATCH_HOOK"] = lambda texts, locale, **k: {
+        "Sales": "Ventes"
+    }
+
+    assert i18n.translate_many(["Sales", "Costs"]) == {
+        "Sales": "Ventes",
+        "Costs": "Costs",
+    }
+
+
+def test_translate_many_falls_back_when_batch_hook_raises(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+
+    def _boom(*_a: object, **_k: object) -> dict[str, str]:
+        raise RuntimeError("translation service down")
+
+    current_app.config["TRANSLATION_BATCH_HOOK"] = _boom
+
+    # A broken batch hook must never blank out names.
+    assert i18n.translate_many(["Sales", "Costs"]) == {
+        "Sales": "Sales",
+        "Costs": "Costs",
+    }
+
+
+def test_translate_many_ignores_non_mapping_result(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """A hook returning the wrong shape degrades to canonical text."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    current_app.config["TRANSLATION_BATCH_HOOK"] = lambda texts, locale, **k: ["Ventes"]
+
+    assert i18n.translate_many(["Sales"]) == {"Sales": "Sales"}
+
+
+def test_translate_many_returns_original_when_feature_disabled(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    _enable(mocker, enabled=False)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    batch_hook = mocker.MagicMock(return_value={"Sales": "Ventes"})
+    current_app.config["TRANSLATION_BATCH_HOOK"] = batch_hook
+
+    assert i18n.translate_many(["Sales"]) == {"Sales": "Sales"}
+    batch_hook.assert_not_called()
+
+
+def test_translate_routes_through_batch_hook_when_only_batch_configured(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """The batch hook is a complete replacement, not an add-on."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    current_app.config["TRANSLATION_HOOK"] = None
+    current_app.config["TRANSLATION_BATCH_HOOK"] = lambda texts, locale, **k: {
+        "Sales": "Ventes"
+    }
+
+    assert i18n.translate("Sales") == "Ventes"
+
+
+def test_prefetched_batch_serves_later_single_lookups(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """Priming a collection makes the per-item lookups free for the request."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    batch_hook = mocker.MagicMock(return_value={"Sales": "Ventes", "Costs": "Coûts"})
+    current_app.config["TRANSLATION_BATCH_HOOK"] = batch_hook
+
+    with current_app.test_request_context():
+        i18n.translate_many(["Sales", "Costs"])
+        assert i18n.translate("Sales") == "Ventes"
+        assert i18n.translate("Costs") == "Coûts"
+
+    # The two follow-up lookups hit the request memo, not the hook.
+    batch_hook.assert_called_once()
+
+
+def test_repeated_lookups_are_memoized_within_a_request(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    hook = mocker.MagicMock(return_value="Ventes")
+    current_app.config["TRANSLATION_HOOK"] = hook
+
+    with current_app.test_request_context():
+        assert i18n.translate("Sales") == "Ventes"
+        assert i18n.translate("Sales") == "Ventes"
+
+    hook.assert_called_once()
+
+
+def test_memo_distinguishes_the_same_text_across_fields(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """Identical strings in different fields resolve independently."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    current_app.config["TRANSLATION_HOOK"] = lambda text, locale, **kwargs: (
+        "Ventes" if kwargs.get("model_name") == "Slice" else "Tableau des ventes"
+    )
+
+    with current_app.test_request_context():
+        assert i18n.translate("Sales", model_name="Slice") == "Ventes"
+        assert i18n.translate("Sales", model_name="Dashboard") == "Tableau des ventes"
+
+
+def test_memo_is_skipped_outside_a_request(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """Background jobs have no request scope and simply resolve directly."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    hook = mocker.MagicMock(return_value="Ventes")
+    current_app.config["TRANSLATION_HOOK"] = hook
+
+    assert i18n.translate("Sales") == "Ventes"
+    assert i18n.translate("Sales") == "Ventes"
+
+    assert hook.call_count == 2
