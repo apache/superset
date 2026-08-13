@@ -54,7 +54,7 @@ import { LegendOrientation, Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
-// funnel charts need a taller default height than the regular default of 20.
+// horizontal funnel legends need a taller default height than the regular default of 20.
 const DEFAULT_HORIZONTAL_LEGEND_MARGIN = 40;
 
 export function parseParams({
