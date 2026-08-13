@@ -38,6 +38,7 @@ import pytest
 from flask import Flask
 from sqlalchemy.sql.elements import TextClause
 
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import ExploreMixin
 from superset.sql.parse import RLSMethod, SQLStatement, Table
 
@@ -380,3 +381,36 @@ class TestRLSSubqueryAlias:
 
         assert "is_green" in result
         assert "WHERE" in result  # RLS predicate applied
+
+
+# ---------------------------------------------------------------------------
+# 4. RLS injection failures must fail closed when predicates apply
+# ---------------------------------------------------------------------------
+
+
+class TestVirtualDatasetRLSFailClosed:
+    """
+    When RLS predicates exist for the underlying tables but cannot be
+    injected into the virtual dataset SQL, the query must be aborted
+    instead of running against the unfiltered inner SQL.
+    """
+
+    @patch(
+        "superset.models.helpers.get_predicates_for_table",
+        return_value=["user_id = 42"],
+    )
+    @patch(
+        "superset.models.helpers.apply_rls",
+        side_effect=NotImplementedError("engine cannot apply RLS"),
+    )
+    def test_raises_when_rls_predicates_cannot_be_applied(
+        self,
+        mock_apply_rls: MagicMock,
+        mock_get_predicates: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+    ) -> None:
+        _set_virtual_sql(virtual_datasource, "SELECT pen_id FROM public.pens")
+
+        with pytest.raises(QueryObjectValidationError):
+            virtual_datasource.get_from_clause(template_processor=None)

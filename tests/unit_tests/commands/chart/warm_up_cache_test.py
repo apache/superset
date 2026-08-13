@@ -30,14 +30,14 @@ def mock_security_manager():
 
 @patch("superset.commands.chart.warm_up_cache.get_dashboard_extra_filters")
 @patch("superset.commands.chart.warm_up_cache.ChartDataCommand")
-def test_applies_dashboard_filters_to_non_legacy_chart(
+def test_prepends_dashboard_filters_to_non_legacy_chart(
     mock_chart_data_command, mock_get_dashboard_filters
 ):
-    """Verify dashboard filters are added to query.filter for non-legacy viz"""
+    """Verify dashboard filters precede saved chart filters."""
     # Setup: Mock dashboard filters response
-    mock_get_dashboard_filters.return_value = [
-        {"col": "country", "op": "in", "val": ["USA", "France"]}
-    ]
+    legacy_filter = {"col": "region", "op": "in", "val": ["Americas"]}
+    native_filter = {"col": "country", "op": "IN", "val": ["USA", "France"]}
+    mock_get_dashboard_filters.return_value = [legacy_filter, native_filter]
 
     # Create a chart with non-legacy viz type
     chart = Slice(
@@ -48,9 +48,10 @@ def test_applies_dashboard_filters_to_non_legacy_chart(
         datasource_type="table",
     )
 
-    # Create mock query with empty filter list
+    # Create mock query with a saved chart filter
+    chart_filter = {"col": "state", "op": "==", "val": "CA"}
     mock_query = Mock()
-    mock_query.filter = []
+    mock_query.filter = [chart_filter]
     mock_qc = Mock()
     mock_qc.queries = [mock_query]
     mock_qc.force = False
@@ -64,13 +65,8 @@ def test_applies_dashboard_filters_to_non_legacy_chart(
         # Execute with dashboard_id
         result = ChartWarmUpCacheCommand(chart, 42, None).run()
 
-        # VALIDATE: Filters were added to query.filter
-        assert len(mock_query.filter) == 1, "Filter should be added to query"
-        assert mock_query.filter[0] == {
-            "col": "country",
-            "op": "in",
-            "val": ["USA", "France"],
-        }, "Filter content should match dashboard filter"
+        # VALIDATE: Dashboard filters precede the chart's saved filters
+        assert mock_query.filter == [legacy_filter, native_filter, chart_filter]
 
         # VALIDATE: get_dashboard_extra_filters was called correctly
         mock_get_dashboard_filters.assert_called_once_with(123, 42)
