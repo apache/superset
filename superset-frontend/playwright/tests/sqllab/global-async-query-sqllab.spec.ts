@@ -18,34 +18,20 @@
  */
 
 /**
- * GAQ (Global Async Queries) TC9 -- SQL Lab keeps working with GAQ turned
- * on. See ../../GAQ_Architecture.md and ../../gaq-test-cases.md (TC9) for
- * the design this test implements.
+ * Global Async Queries (GAQ): SQL Lab keeps working with the flag turned on.
  *
- * Precondition: `GLOBAL_ASYNC_QUERIES` feature flag enabled instance-wide.
- * Does NOT require Redis/Celery for this test itself -- SQL Lab's own async
- * execution (`ASynchronousSqlJsonExecutor`) is a separate, older Celery
- * mechanism unrelated to GAQ (see below).
+ * SQL Lab's own async execution (`ASynchronousSqlJsonExecutor`) is a separate,
+ * older Celery mechanism that shares no code with GAQ. The only thing worth
+ * confirming is that enabling GLOBAL_ASYNC_QUERIES instance-wide does not leak
+ * into or break the unrelated system next to it -- so this is deliberately one
+ * shallow smoke check, not a SQL Lab suite (see sqllab.spec.ts for that).
  *
- * Scope, explicit (per gaq-test-cases.md): this is a basic regression/smoke
- * check, not a test of SQL Lab's own async execution mechanism.
- * `ASynchronousSqlJsonExecutor` is a separate, older Celery mechanism that
- * shares no code with GAQ (see GAQ_Architecture.md's "SQL Lab and GAQ"
- * section) -- the only thing worth confirming here is that having
- * GLOBAL_ASYNC_QUERIES enabled instance-wide doesn't leak into or break the
- * unrelated system next to it. Deliberately kept to a single, shallow test
- * -- do not grow this into a deeper SQL Lab suite here; see sqllab.spec.ts
- * for that coverage. Placed in tests/sqllab/ (not tests/dashboard/ like the
- * other GAQ specs) so it runs under the `chromium-sqllab` project, same as
- * sqllab.spec.ts -- SQL Lab's tab state is server-side per user, so it needs
- * sequential execution, not the parallel default project.
+ * Requires only the `GLOBAL_ASYNC_QUERIES` feature flag; no Redis/Celery,
+ * since nothing here should reach GAQ's pipeline at all.
  *
- * CI green => a plain SELECT in SQL Lab returns 200 synchronously and
- *             renders results exactly as it would with the flag off -- no
- *             /api/v1/async_event/ polling triggered by SQL Lab itself.
- * CI red   => the query fails or hangs, or GAQ's polling endpoint gets hit
- *             at all (a sign GLOBAL_ASYNC_QUERIES started leaking into SQL
- *             Lab's execution path).
+ * Lives in tests/sqllab/ rather than alongside the other GAQ specs so it runs
+ * under the `chromium-sqllab` project: SQL Lab's tab state is server-side per
+ * user and needs sequential execution.
  */
 import { test, expect } from '../../helpers/fixtures/testAssets';
 import { SqlLabPage } from '../../pages/SqlLabPage';
@@ -82,6 +68,6 @@ test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never tou
 
   expect(
     sawAsyncEventPoll,
-    'SQL Lab execution should never touch GAQ\'s async_event polling endpoint -- it has its own, separate async mechanism',
+    "SQL Lab execution should never touch GAQ's async_event polling endpoint -- it has its own, separate async mechanism",
   ).toBe(false);
 });

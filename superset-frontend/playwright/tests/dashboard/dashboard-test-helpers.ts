@@ -28,6 +28,7 @@ import {
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { DashboardFilterBar } from '../../components/dashboard/DashboardFilterBar';
 
 /**
  * Extracts the chart id that a `/api/v1/chart/data` request was issued for.
@@ -229,13 +230,21 @@ export interface DashboardChartSpec {
   params: Record<string, unknown>;
 }
 
+/** "A chart that renders a number" -- all most GAQ tests need from their fixture. */
+export const BIG_NUMBER_COUNT_SPEC: DashboardChartSpec = {
+  viz_type: 'big_number_total',
+  params: { metric: 'count' },
+};
+
 interface CreateDashboardWithChartsOptions {
-  /** Example dataset the charts query (e.g. 'birth_names'). */
-  datasetName: string;
+  /** Example dataset the charts query, by name (e.g. 'birth_names'). */
+  datasetName?: string;
+  /** Dataset id, for datasets without a stable name (e.g. a per-run virtual one). */
+  datasetId?: number;
   /** Chart slice-name prefix: `${chartNamePrefix}_${viz_type}_${suffix}`. */
   chartNamePrefix: string;
-  /** Dashboard title prefix: `${dashboardTitlePrefix}_${suffix}`. */
-  dashboardTitlePrefix: string;
+  /** Dashboard title prefix (default: `chartNamePrefix`). */
+  dashboardTitlePrefix?: string;
   chartSpecs: DashboardChartSpec[];
   /**
    * Grid width per chart, passed through to `buildSingleRowDashboardLayout`.
@@ -244,6 +253,13 @@ interface CreateDashboardWithChartsOptions {
    * single-row grid.
    */
   chartWidth?: number;
+  /**
+   * When set, the dashboard gets one single-select native filter on this
+   * column, scoped to every chart. Single-select is load-bearing for the tests
+   * that use it: each selection replaces the previous one rather than
+   * accumulating, so a rapid swap is unambiguously a swap.
+   */
+  selectFilter?: { column: string; name?: string };
 }
 
 /**
@@ -259,11 +275,18 @@ export async function createDashboardWithCharts(
   testInfo: TestInfo,
   options: CreateDashboardWithChartsOptions,
 ): Promise<{ dashboardId: number; charts: DashboardLayoutChart[] }> {
-  const dataset = await getDatasetByName(page, options.datasetName);
-  if (!dataset) {
-    throw new Error(`Dataset ${options.datasetName} not found`);
+  let datasetId = options.datasetId;
+  if (datasetId === undefined) {
+    if (!options.datasetName) {
+      throw new Error('Provide either datasetName or datasetId');
+    }
+    const dataset = await getDatasetByName(page, options.datasetName);
+    if (!dataset) {
+      throw new Error(`Dataset ${options.datasetName} not found`);
+    }
+    datasetId = dataset.id;
   }
-  const datasource = `${dataset.id}__table`;
+  const datasource = `${datasetId}__table`;
 
   // Parallel-safe suffix so chart/dashboard names never collide across workers.
   const uniqueSuffix = `${Date.now()}_${testInfo.parallelIndex}`;
@@ -274,7 +297,7 @@ export async function createDashboardWithCharts(
     const resp = await apiPostChart(page, {
       slice_name: sliceName,
       viz_type: spec.viz_type,
-      datasource_id: dataset.id,
+      datasource_id: datasetId,
       datasource_type: 'table',
       params: JSON.stringify({
         // Caller params first so the helper-owned datasource/viz_type always win
@@ -292,10 +315,26 @@ export async function createDashboardWithCharts(
 
   // Lay all charts out in a single row.
   const positionJson = buildSingleRowDashboardLayout(charts);
+  const chartIds = charts.map(chart => chart.id);
   const dashResp = await apiPostDashboard(page, {
-    dashboard_title: `${options.dashboardTitlePrefix}_${uniqueSuffix}`,
+    dashboard_title: `${options.dashboardTitlePrefix ?? options.chartNamePrefix}_${uniqueSuffix}`,
     published: true,
     position_json: JSON.stringify(positionJson),
+    ...(options.selectFilter && {
+      json_metadata: JSON.stringify(
+        buildFilterJsonMetadata({
+          chartsInScope: chartIds,
+          nativeFilters: [
+            buildSelectFilter({
+              datasetId,
+              column: options.selectFilter.column,
+              chartsInScope: chartIds,
+              name: options.selectFilter.name,
+            }),
+          ],
+        }),
+      ),
+    }),
   });
   expect(dashResp.ok()).toBe(true);
   const dashboardId = await extractIdFromResponse(dashResp);
@@ -307,6 +346,16 @@ export async function createDashboardWithCharts(
   }
 
   return { dashboardId, charts };
+}
+
+/** The rendered value of a big-number chart. */
+export function bigNumberValueLocator(
+  dashboard: DashboardPage,
+  chartId: number,
+): Locator {
+  return dashboard
+    .getChart(chartId)
+    .locator('.superset-legacy-chart-big-number .header-line');
 }
 
 interface SetupDashboardWithChartsResult {
@@ -331,8 +380,7 @@ interface SetupDashboardWithChartsResult {
  *   await setupDashboardWithBigNumberCharts(page, testAssets, testInfo, {
  *     datasetName: 'birth_names',
  *     chartNamePrefix: 'gaq_tc1_cold_cache',
- *     dashboardTitlePrefix: 'gaq_tc1_cold_cache',
- *     chartSpecs: [{ viz_type: 'big_number_total', params: { metric: 'count' } }],
+ *     chartSpecs: [BIG_NUMBER_COUNT_SPEC],
  *   });
  * const [chart] = charts;
  * const [value] = valueLocators;
@@ -353,9 +401,7 @@ export async function setupDashboardWithBigNumberCharts(
   );
   const dashboard = new DashboardPage(page);
   const valueLocators = charts.map(chart =>
-    dashboard
-      .getChart(chart.id)
-      .locator('.superset-legacy-chart-big-number .header-line'),
+    bigNumberValueLocator(dashboard, chart.id),
   );
 
   await dashboard.gotoById(dashboardId);
@@ -364,113 +410,125 @@ export async function setupDashboardWithBigNumberCharts(
   return { dashboardId, charts, dashboard, valueLocators };
 }
 
-export interface ChartAsyncSignals {
-  /** Status of the chart-data POST matching `matchSliceId`, once observed. */
-  submitStatus?: number;
-  /** Whether the client polled `/api/v1/async_event/` at least once. */
-  sawAsyncEventPoll: boolean;
-  /** Whether the client fetched the final payload from `/api/v1/chart/data/<cache_key>`. */
-  sawFinalCachedFetch: boolean;
+export interface GaqSignals {
+  /**
+   * Chart-data submit status by slice id. A native filter's value fetch hits
+   * the same endpoint without a `slice_id`, so it is keyed under `undefined`
+   * (see {@link sliceIdFromChartDataUrl}).
+   */
+  submitStatusFor(sliceId?: number): number | undefined;
+  /** Poll/fetch events are counted, not flagged: on a busy dashboard they arrive per chart. */
+  readonly asyncEventPollCount: number;
+  readonly finalFetchCount: number;
+  readonly sawAsyncEventPoll: boolean;
+  readonly sawFinalCachedFetch: boolean;
 }
 
 /**
- * Attaches a `page.on('response', ...)` listener that records the three GAQ
- * lifecycle signals for a single chart-data request: the submission's status,
- * whether the client polled the async-event endpoint, and whether it fetched
- * the final cached payload.
+ * Records the GAQ lifecycle signals seen from now on: each chart-data
+ * submission's status, polls of the async-event endpoint, and fetches of the
+ * final cached payload.
  *
- * `matchSliceId` distinguishes a chart's own chart-data request (a numeric
- * slice id) from a native filter's value fetch, which carries no slice id at
- * all (see `sliceIdFromChartDataUrl`) -- pass `undefined` to track a
- * filter-value request instead of a chart's.
+ * Attach only once the traffic you care about is the *next* thing to happen --
+ * an initial dashboard load fires the same three signals, so tracking from
+ * before it would attribute that load's cycle to whatever you trigger after.
  *
- * Returns a single mutable object, rather than a tuple of `let` bindings, so
- * callers can read the latest values from inside a `toPass` retry block
- * without closing over stale variables.
+ * Reads are live getters rather than a snapshot, so callers can poll them from
+ * inside an `expect(...).toPass()` retry block.
  */
-export function trackChartAsyncSignals(
-  page: Page,
-  matchSliceId: number | undefined,
-): ChartAsyncSignals {
-  const signals: ChartAsyncSignals = {
-    submitStatus: undefined,
-    sawAsyncEventPoll: false,
-    sawFinalCachedFetch: false,
-  };
-
-  page.on('response', response => {
-    const request = response.request();
-    const url = response.url();
-
-    if (
-      request.method() === 'POST' &&
-      url.includes('/api/v1/chart/data') &&
-      sliceIdFromChartDataUrl(url) === matchSliceId
-    ) {
-      signals.submitStatus = response.status();
-      return;
-    }
-    if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
-      signals.sawAsyncEventPoll = true;
-      return;
-    }
-    if (
-      request.method() === 'GET' &&
-      /\/api\/v1\/chart\/data\/qc-/.test(url)
-    ) {
-      signals.sawFinalCachedFetch = true;
-    }
-  });
-
-  return signals;
-}
-
-export interface MultiChartAsyncSignals {
-  /** Chart-data submit status keyed by slice id, for the charts in `chartIds`. */
-  submitStatusBySliceId: Map<number, number>;
-  asyncEventPollCount: number;
-  finalFetchCount: number;
-}
-
-/**
- * Same signals as {@link trackChartAsyncSignals}, shaped for a dashboard with
- * several charts in flight at once: each chart's own submit status is kept
- * (keyed by slice id) instead of a single status, and poll/final-fetch events
- * are counted instead of recorded as a single boolean, since they arrive from
- * every chart concurrently.
- */
-export function trackMultiChartAsyncSignals(
-  page: Page,
-  chartIds: Set<number>,
-): MultiChartAsyncSignals {
-  const signals: MultiChartAsyncSignals = {
-    submitStatusBySliceId: new Map(),
-    asyncEventPollCount: 0,
-    finalFetchCount: 0,
-  };
+export function trackGaqSignals(page: Page): GaqSignals {
+  const submitStatuses = new Map<number | undefined, number>();
+  let asyncEventPollCount = 0;
+  let finalFetchCount = 0;
 
   page.on('response', response => {
     const request = response.request();
     const url = response.url();
 
     if (request.method() === 'POST' && url.includes('/api/v1/chart/data')) {
-      const sliceId = sliceIdFromChartDataUrl(url);
-      if (sliceId !== undefined && chartIds.has(sliceId)) {
-        signals.submitStatusBySliceId.set(sliceId, response.status());
-      }
+      submitStatuses.set(sliceIdFromChartDataUrl(url), response.status());
       return;
     }
     if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
-      signals.asyncEventPollCount += 1;
+      asyncEventPollCount += 1;
       return;
     }
-    if (
-      request.method() === 'GET' &&
-      /\/api\/v1\/chart\/data\/qc-/.test(url)
-    ) {
-      signals.finalFetchCount += 1;
+    if (request.method() === 'GET' && /\/api\/v1\/chart\/data\/qc-/.test(url)) {
+      finalFetchCount += 1;
     }
   });
 
-  return signals;
+  return {
+    submitStatusFor: sliceId => submitStatuses.get(sliceId),
+    get asyncEventPollCount() {
+      return asyncEventPollCount;
+    },
+    get finalFetchCount() {
+      return finalFetchCount;
+    },
+    get sawAsyncEventPoll() {
+      return asyncEventPollCount > 0;
+    },
+    get sawFinalCachedFetch() {
+      return finalFetchCount > 0;
+    },
+  };
+}
+
+interface SetupFilteredDashboardOptions {
+  /** Dataset backing both the chart and the filter's value lookup -- see {@link CreateDashboardWithChartsOptions}. */
+  datasetName?: string;
+  datasetId?: number;
+  /** Prefix for the generated chart and dashboard names. */
+  namePrefix: string;
+  /** Column the native filter targets. */
+  filterColumn: string;
+  /** Label shown in the filter bar (default: the column name). */
+  filterName?: string;
+}
+
+interface SetupFilteredDashboardResult {
+  dashboardId: number;
+  chartId: number;
+  dashboard: DashboardPage;
+  filterBar: DashboardFilterBar;
+  /** Big-number value locator for the dashboard's single chart. */
+  value: Locator;
+}
+
+/**
+ * Builds a dashboard with one big-number chart plus a single-select native
+ * filter scoped to it. Does NOT navigate: some callers must attach network
+ * listeners before the first load (the filter's value fetch fires during the
+ * filter panel's own initialization).
+ */
+export async function setupDashboardWithSelectFilter(
+  page: Page,
+  testAssets: TestAssets,
+  testInfo: TestInfo,
+  options: SetupFilteredDashboardOptions,
+): Promise<SetupFilteredDashboardResult> {
+  const { dashboardId, charts } = await createDashboardWithCharts(
+    page,
+    testAssets,
+    testInfo,
+    {
+      datasetName: options.datasetName,
+      datasetId: options.datasetId,
+      chartNamePrefix: options.namePrefix,
+      chartSpecs: [BIG_NUMBER_COUNT_SPEC],
+      chartWidth: 6,
+      selectFilter: { column: options.filterColumn, name: options.filterName },
+    },
+  );
+  const [chart] = charts;
+  const dashboard = new DashboardPage(page);
+
+  return {
+    dashboardId,
+    chartId: chart.id,
+    dashboard,
+    filterBar: new DashboardFilterBar(page),
+    value: bigNumberValueLocator(dashboard, chart.id),
+  };
 }
