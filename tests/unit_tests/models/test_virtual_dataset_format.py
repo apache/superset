@@ -164,6 +164,21 @@ class TestVirtualDatasetNoRLS:
         inner_sql = _get_subquery_sql(virtual_datasource)
         assert "::varchar(256)" in inner_sql
 
+    @patch("superset.models.helpers.apply_rls", return_value=False)
+    def test_mssql_unbounded_order_by_removed_when_embedded(
+        self,
+        mock_apply_rls: MagicMock,
+        virtual_datasource: MagicMock,
+        app: Flask,
+    ) -> None:
+        virtual_datasource.db_engine_spec.engine = "mssql"
+        _set_virtual_sql(
+            virtual_datasource,
+            "SELECT category, amount FROM sample_events ORDER BY category, amount",
+        )
+
+        assert "ORDER BY" not in _get_subquery_sql(virtual_datasource)
+
 
 class TestVirtualDatasetWithRLS:
     """
