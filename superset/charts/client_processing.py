@@ -25,6 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+from functools import partial
 from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -41,6 +42,12 @@ from superset.utils.core import (
     get_column_names,
     get_metric_names,
 )
+from superset.utils.number_format import (
+    AUTO_CURRENCY,
+    format_number_with_config,
+    resolve_auto_currency,
+    SMART_NUMBER,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -48,6 +55,11 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+# Default d3 format the Table plugin applies to percent metrics, mirroring
+# ``number-format/NumberFormats.ts::PERCENT_3_POINT`` as used in the frontend's
+# ``transformProps`` formatter selection.
+PERCENT_3_POINT = ",.3%"
 
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
@@ -74,8 +86,9 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     show_rows_total: bool = False,
     show_columns_total: bool = False,
     apply_metrics_on_rows: bool = False,
+    metric_name_aggfunc: Optional[str] = None,
 ) -> pd.DataFrame:
-    metric_name = __("Total (%(aggfunc)s)", aggfunc=aggfunc)
+    metric_name = __("Total (%(aggfunc)s)", aggfunc=metric_name_aggfunc or aggfunc)
 
     if transpose_pivot:
         rows, columns = columns, rows
@@ -198,9 +211,12 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     )
                     raise
 
-                subtotal = pivot_v2_aggfunc_map[aggfunc](
-                    df.iloc[slice_, :].apply(pd.to_numeric, errors="coerce"), axis=0
-                )
+                subtotal_values = df.iloc[slice_, :]
+                if aggfunc != CURRENCY_CONTEXT_AGGREGATION:
+                    subtotal_values = subtotal_values.apply(
+                        pd.to_numeric, errors="coerce"
+                    )
+                subtotal = pivot_v2_aggfunc_map[aggfunc](subtotal_values, axis=0)
                 depth = groups.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
@@ -232,6 +248,41 @@ def list_unique_values(series: pd.Series) -> str:
     return ", ".join({str(v) for v in pd.Series.unique(series)})
 
 
+def union_currency_context(
+    values: Union[pd.Series, pd.DataFrame], axis: int = 0
+) -> Union[tuple[str, ...], pd.Series]:
+    """Union the currency sets contributing to a Pivot Table cell or total."""
+    if isinstance(values, pd.DataFrame):
+        contexts = (
+            [union_currency_context(values[column]) for column in values.columns]
+            if axis == 0
+            else [union_currency_context(values.loc[index]) for index in values.index]
+        )
+        index = values.columns if axis == 0 else values.index
+        return pd.Series(contexts, index=index, dtype=object)
+
+    currencies: dict[str, None] = {}
+    for value in values:
+        if isinstance(value, (list, set, frozenset, tuple)):
+            currencies.update((str(currency), None) for currency in value)
+    return tuple(currencies)
+
+
+CURRENCY_CONTEXT_AGGREGATION = "__currency_context__"
+
+# The frontend's plain Count aggregator is the only Pivot Table aggregator
+# without ``getCurrencies()``. Fraction wrappers inherit that absence, so these
+# modes use the query-wide detected fallback instead of per-cell context.
+PIVOT_AGGREGATIONS_WITHOUT_CURRENCY_CONTEXT = frozenset(
+    {
+        "Count",
+        "Count as Fraction of Total",
+        "Count as Fraction of Rows",
+        "Count as Fraction of Columns",
+    }
+)
+
+
 pivot_v2_aggfunc_map = {
     "Count": pd.Series.count,
     "Count Unique Values": pd.Series.nunique,
@@ -253,53 +304,403 @@ pivot_v2_aggfunc_map = {
     "Count as Fraction of Total": pd.Series.count,
     "Count as Fraction of Rows": pd.Series.count,
     "Count as Fraction of Columns": pd.Series.count,
+    CURRENCY_CONTEXT_AGGREGATION: union_currency_context,
 }
+
+
+def format_column(
+    df: pd.DataFrame,
+    column: Any,
+    d3_format: Optional[str],
+    currency: dict[str, Any],
+    detected_currency: Optional[str] = None,
+    currency_context: Optional[pd.Series] = None,
+    fallback_to_detected: bool = True,
+) -> None:
+    """
+    Format a column in place when a number or currency format is configured.
+
+    ``detected_currency`` represents the query-wide single currency. When a
+    parallel ``currency_context`` series is present, AUTO uses each row/cell's
+    contributing currencies first. Mixed context renders a neutral number;
+    empty context optionally falls back to query-wide detection.
+    """
+    if d3_format or currency.get("symbol"):
+        if currency_context is None:
+            resolved_currency = resolve_auto_currency(currency, detected_currency)
+            df[column] = df[column].apply(
+                partial(format_number_with_config, d3_format, resolved_currency)
+            )
+            return
+
+        contexts = currency_context.reindex(df.index)
+        df[column] = [
+            format_number_with_config(
+                d3_format,
+                resolve_auto_currency(
+                    currency,
+                    detected_currency,
+                    context,
+                    fallback_to_detected,
+                ),
+                value,
+            )
+            for value, context in zip(df[column], contexts, strict=True)
+        ]
+
+
+def get_datasource_column_formats(
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> tuple[dict[str, str | None], dict[str, str]]:
+    """Return saved metric formats and verbose labels from a datasource."""
+    if not datasource:
+        return {}, {}
+
+    datasource_data = datasource.data
+    return (
+        datasource_data.get("column_formats") or {},
+        datasource_data.get("verbose_map") or {},
+    )
+
+
+def get_datasource_currency_formats(
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
+    """Return saved metric currencies and verbose labels from a datasource.
+
+    The frontend derives ``datasource.currencyFormats`` from each metric's
+    ``currency`` property in ``hydrateExplore.ts``. Report processing receives
+    the raw datasource payload, so it performs the same derivation here.
+    """
+    if not datasource:
+        return {}, {}
+
+    datasource_data = datasource.data
+    stored_currency_formats = datasource_data.get("currency_formats")
+    currency_formats: dict[str, dict[str, Any]] = (
+        {
+            metric: currency
+            for metric, currency in stored_currency_formats.items()
+            if isinstance(metric, str) and isinstance(currency, dict)
+        }
+        if isinstance(stored_currency_formats, dict)
+        else {}
+    )
+    currency_formats.update(
+        {
+            metric["metric_name"]: metric["currency"]
+            for metric in datasource_data.get("metrics") or []
+            if isinstance(metric, dict)
+            and isinstance(metric.get("metric_name"), str)
+            and isinstance(metric.get("currency"), dict)
+            and metric["currency"].get("symbol")
+        }
+    )
+    return currency_formats, datasource_data.get("verbose_map") or {}
+
+
+def get_datasource_currency_column(
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+    df: pd.DataFrame,
+) -> Optional[str]:
+    """Return the currency-code column name as represented in ``df``."""
+    if not datasource:
+        return None
+
+    datasource_data = datasource.data
+    currency_column = datasource_data.get("currency_code_column")
+    if not isinstance(currency_column, str):
+        return None
+    if currency_column in df.columns:
+        return currency_column
+
+    verbose_column = (datasource_data.get("verbose_map") or {}).get(
+        currency_column, currency_column
+    )
+    return verbose_column if verbose_column in df.columns else None
+
+
+def currency_context_value(value: Any) -> tuple[str, ...]:
+    """Convert a truthy row currency value to frontend-compatible context."""
+    try:
+        if value is None or pd.isna(value) or not value:
+            return ()
+    except (TypeError, ValueError):
+        return ()
+    return (str(value),)
+
+
+def build_pivot_currency_context(
+    df: pd.DataFrame,
+    currency_column: str,
+    metrics: list[str],
+    pivot_options: dict[str, Any],
+) -> pd.DataFrame:
+    """
+    Pivot contributing currency sets through the same layout as metric values.
+
+    This mirrors the frontend Pivot Table aggregators' ``currencySet``: every
+    output cell, subtotal, and total carries the union of currencies from its
+    contributing records while numeric aggregation remains unchanged.
+    """
+    currency_source = df.copy()
+    row_context = currency_source[currency_column].map(currency_context_value)
+    for metric in metrics:
+        currency_source[metric] = row_context
+
+    currency_pivot_options = {
+        **pivot_options,
+        "aggfunc": CURRENCY_CONTEXT_AGGREGATION,
+        "metric_name_aggfunc": pivot_options["aggfunc"],
+    }
+    return pivot_df(currency_source, **currency_pivot_options)
+
+
+def get_pivot_currency_format(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Return Pivot Table currency config from transformed or stored form data."""
+    currency_format = form_data.get("currencyFormat") or form_data.get(
+        "currency_format"
+    )
+    return currency_format if isinstance(currency_format, dict) else {}
+
+
+def has_auto_currency_format(
+    form_data: dict[str, Any],
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+) -> bool:
+    """Return whether the Pivot Table has a global or per-metric AUTO format."""
+    currency_formats = [
+        get_pivot_currency_format(form_data),
+        *merge_currency_formats(form_data, datasource).values(),
+    ]
+    return any(
+        isinstance(currency, dict) and currency.get("symbol") == AUTO_CURRENCY
+        for currency in currency_formats
+    )
+
+
+def merge_column_formats(
+    form_data: dict[str, Any],
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> dict[str, str | None]:
+    """Merge saved formats with truthy chart overrides using verbose labels."""
+    saved_formats, verbose_map = get_datasource_column_formats(datasource)
+    column_formats = {
+        verbose_map.get(metric, metric): d3_format
+        for metric, d3_format in saved_formats.items()
+    }
+    column_formats.update(
+        {
+            verbose_map.get(metric, metric): d3_format
+            for metric, d3_format in (form_data.get("columnFormats") or {}).items()
+            if d3_format
+        }
+    )
+    return column_formats
+
+
+def merge_currency_formats(
+    form_data: dict[str, Any],
+    datasource: Optional[Union["BaseDatasource", "Query"]],
+) -> dict[str, dict[str, Any]]:
+    """Merge saved metric currencies with chart overrides by verbose label."""
+    saved_formats, verbose_map = get_datasource_currency_formats(datasource)
+    currency_formats = {
+        verbose_map.get(metric, metric): currency
+        for metric, currency in saved_formats.items()
+    }
+    currency_formats.update(
+        {
+            verbose_map.get(metric, metric): currency
+            for metric, currency in (form_data.get("currencyFormats") or {}).items()
+            if isinstance(currency, dict) and currency.get("symbol")
+        }
+    )
+    return currency_formats
 
 
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: dict[str, Any],
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    apply_number_format: bool = True,
+    detected_currency: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Pivot table v2.
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
+    metrics = get_metric_names(form_data["metrics"], verbose_map)
+    pivot_options: dict[str, Any] = {
+        "rows": get_column_names(form_data.get("groupbyRows"), verbose_map),
+        "columns": get_column_names(form_data.get("groupbyColumns"), verbose_map),
+        "metrics": metrics,
+        "aggfunc": form_data.get("aggregateFunction", "Sum"),
+        "transpose_pivot": bool(form_data.get("transposePivot")),
+        "combine_metrics": bool(form_data.get("combineMetric")),
+        "show_rows_total": bool(form_data.get("rowTotals")),
+        "show_columns_total": bool(form_data.get("colTotals")),
+        "apply_metrics_on_rows": form_data.get("metricsLayout") == "ROWS",
+    }
 
-    return pivot_df(
-        df,
-        rows=get_column_names(form_data.get("groupbyRows"), verbose_map),
-        columns=get_column_names(form_data.get("groupbyColumns"), verbose_map),
-        metrics=get_metric_names(form_data["metrics"], verbose_map),
-        aggfunc=form_data.get("aggregateFunction", "Sum"),
-        transpose_pivot=bool(form_data.get("transposePivot")),
-        combine_metrics=bool(form_data.get("combineMetric")),
-        show_rows_total=bool(form_data.get("rowTotals")),
-        show_columns_total=bool(form_data.get("colTotals")),
-        apply_metrics_on_rows=form_data.get("metricsLayout") == "ROWS",
-    )
+    pivoted = pivot_df(df, **pivot_options)
+    if apply_number_format:
+        currency_context = None
+        if (
+            pivot_options["aggfunc"] not in PIVOT_AGGREGATIONS_WITHOUT_CURRENCY_CONTEXT
+            and has_auto_currency_format(form_data, datasource)
+            and (currency_column := get_datasource_currency_column(datasource, df))
+        ):
+            currency_context = build_pivot_currency_context(
+                df,
+                currency_column,
+                metrics,
+                pivot_options,
+            )
+        return apply_pivot_number_formats(
+            pivoted,
+            form_data,
+            detected_currency,
+            datasource,
+            currency_context,
+        )
+    return pivoted
+
+
+def apply_pivot_number_formats(
+    df: pd.DataFrame,
+    form_data: dict[str, Any],
+    detected_currency: Optional[str] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    currency_context: Optional[pd.DataFrame] = None,
+) -> pd.DataFrame:
+    """
+    Apply `valueFormat`/`columnFormats` and currency config to pivot values.
+
+    The metric name is the first column level, or the last when `combineMetric`
+    moves it there; in the ROWS metrics layout it is on the index instead.
+    Per-metric overrides fall back to the global value format.
+    """
+    value_format = form_data.get("valueFormat")
+    column_formats = merge_column_formats(form_data, datasource)
+    currency_format = get_pivot_currency_format(form_data)
+    currency_formats = merge_currency_formats(form_data, datasource)
+    metric_level = -1 if form_data.get("combineMetric") else 0
+    metrics_on_rows = form_data.get("metricsLayout") == "ROWS"
+
+    if metrics_on_rows:
+        df = df.T
+        if currency_context is not None:
+            currency_context = currency_context.T
+
+    for column in df.columns:
+        metric = column[metric_level] if isinstance(column, tuple) else column
+        column_currency_context = (
+            currency_context[column]
+            if currency_context is not None and column in currency_context.columns
+            else None
+        )
+        column_number_format = column_formats.get(metric) or value_format
+        column_currency = currency_formats.get(metric) or currency_format
+        if not column_number_format and not column_currency.get("symbol"):
+            # The frontend Pivot Table formatter falls back to SMART_NUMBER when
+            # neither a value format nor a currency is configured
+            # (``getNumberFormatter``'s default key), so unconfigured metric
+            # cells must not be left raw.
+            column_number_format = SMART_NUMBER
+        format_column(
+            df,
+            column,
+            column_number_format,
+            column_currency,
+            detected_currency,
+            column_currency_context,
+        )
+
+    return df.T if metrics_on_rows else df
 
 
 def table(
     df: pd.DataFrame,
     form_data: dict[str, Any],
-    datasource: Optional[  # pylint: disable=unused-argument
-        Union["BaseDatasource", "Query"]
-    ] = None,
+    datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    apply_number_format: bool = True,
+    detected_currency: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Table.
     """
-    # apply `d3NumberFormat` to columns, if present
-    column_config = form_data.get("column_config", {})
-    for column, config in column_config.items():
-        if "d3NumberFormat" in config:
-            format_ = "{:" + config["d3NumberFormat"] + "}"
-            try:
-                df[column] = df[column].apply(format_.format)
-            except Exception:  # pylint: disable=broad-except  # noqa: S110
-                # if we can't format the column for any reason, send as is
-                pass
+    if not apply_number_format:
+        return df
+
+    saved_formats, verbose_map = get_datasource_column_formats(datasource)
+    saved_currency_formats, _ = get_datasource_currency_formats(datasource)
+    currency_column = get_datasource_currency_column(datasource, df)
+    row_currency_context = (
+        df[currency_column].map(currency_context_value) if currency_column else None
+    )
+    column_config = form_data.get("column_config") or {}
+
+    def label_of(name: str) -> str:
+        """Return the column label as it appears in ``df`` (verbose-renamed)."""
+        return name if name in df.columns else verbose_map.get(name, name)
+
+    # Index the per-column overrides by the label present in ``df`` so numeric
+    # and metric columns can be looked up while iterating the frame.
+    number_format_by_label = {
+        label_of(name): fmt for name, fmt in saved_formats.items()
+    }
+    currency_by_label = {
+        label_of(name): currency for name, currency in saved_currency_formats.items()
+    }
+    config_by_label = {label_of(name): config for name, config in column_config.items()}
+    metric_labels = {
+        label_of(name) for name in get_metric_names(form_data.get("metrics"))
+    }
+    # Percent metric columns are emitted with a leading ``%`` and are not
+    # verbose-renamed, so match them by that prefixed label.
+    percent_metric_labels = {
+        f"%{name}"
+        for name in get_metric_names(form_data.get("percent_metrics"))
+        if f"%{name}" in df.columns
+    }
+
+    # Mirror the Table plugin's per-column formatter selection in
+    # ``plugin-chart-table/src/transformProps.ts``: percent metrics default to
+    # PERCENT_3_POINT, every (numeric) metric gets a formatter that defaults to
+    # SMART_NUMBER, and other numeric columns are only formatted when an explicit
+    # format or currency is configured. Dimension and non-numeric columns are
+    # left untouched, matching the browser.
+    for column in df.columns:
+        config = config_by_label.get(column) or {}
+        configured_currency = config.get("currencyFormat") or {}
+        number_format = config.get("d3NumberFormat") or number_format_by_label.get(
+            column
+        )
+        currency = (
+            configured_currency
+            if configured_currency.get("symbol")
+            else currency_by_label.get(column) or {}
+        )
+
+        is_number = pd.api.types.is_numeric_dtype(df[column])
+
+        if column in percent_metric_labels:
+            format_column(df, column, number_format or PERCENT_3_POINT, {})
+        elif (column in metric_labels and is_number) or (
+            is_number and (number_format or currency.get("symbol"))
+        ):
+            if not number_format and not currency.get("symbol"):
+                number_format = SMART_NUMBER
+            format_column(
+                df,
+                column,
+                number_format,
+                currency,
+                detected_currency,
+                row_currency_context,
+                fallback_to_detected=False,
+            )
 
     return df
 
@@ -393,7 +794,14 @@ def apply_client_processing(  # noqa: C901
         if datasource:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
-        processed_df = post_processor(df, form_data, datasource)
+        apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
+        processed_df = post_processor(
+            df,
+            form_data,
+            datasource,
+            apply_number_format,
+            query.get("detected_currency"),
+        )
 
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)
