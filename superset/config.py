@@ -33,6 +33,7 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
@@ -2431,6 +2432,24 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
 # NOTE: keep **kwargs last so new context can be added without breaking
 # existing implementations.
 TRANSLATION_HOOK: Callable[..., str | None] | None = None
+
+# Optional batch counterpart to ``TRANSLATION_HOOK``, for stores where one
+# lookup per string is too expensive (a database table, a remote service).
+# Superset calls it once with every string it is about to render for a given
+# context -- all of a dashboard's chart names, a page of recent activity --
+# instead of calling ``TRANSLATION_HOOK`` per string.
+#
+# It receives the list of default texts and the target locale, plus the same
+# keyword context, and returns a mapping of default text to translation.
+# Missing keys and falsy values fall back to the default text, so a partial
+# result is fine. When set, this fully replaces ``TRANSLATION_HOOK``: single
+# lookups are routed through it as a one-element batch, so configuring both is
+# unnecessary.
+#
+# Example:
+#    def TRANSLATION_BATCH_HOOK(default_texts, locale, **kwargs):
+#        return my_translation_store.get_many(locale, default_texts)
+TRANSLATION_BATCH_HOOK: Callable[..., Mapping[str, str | None] | None] | None = None
 
 
 # A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query  # noqa: E501
