@@ -36,6 +36,7 @@ from superset.extensions import (
     security_manager,
 )
 from superset.utils.core import override_user
+from superset.utils.error_sanitization import sanitize_error_dicts
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -136,6 +137,8 @@ def load_chart_data_into_cache(
                 error = str(ex.message if hasattr(ex, "message") else ex)
                 errors = [{"message": error}]
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, errors=errors
+                job_metadata,
+                async_query_manager.STATUS_ERROR,
+                errors=sanitize_error_dicts(errors),
             )
             raise

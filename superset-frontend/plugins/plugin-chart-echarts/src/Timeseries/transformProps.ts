@@ -182,6 +182,50 @@ function getSymbolMarker(symbol: string, color: string) {
   }
 }
 
+/**
+ * Given the fully-built ECharts series (each already carrying its resolved
+ * `stack` id, see `getTimeCompareStackId`), find the largest per-index total
+ * across all series sharing a stack, then return the largest such total
+ * across all stacks. Series without a `stack` id (e.g. annotation layers)
+ * are ignored since they aren't part of any stacked total.
+ */
+function getMaxStackedValueByStack(
+  series: SeriesOption[],
+  isHorizontal: boolean,
+): number {
+  const totalsByStack = new Map<string, number[]>();
+  series.forEach(entry => {
+    const rawStackId = (entry as { stack?: unknown }).stack;
+    const stackId = typeof rawStackId === 'string' ? rawStackId : undefined;
+    if (!stackId || !Array.isArray(entry.data)) return;
+    const totals = totalsByStack.get(stackId) ?? [];
+    (entry.data as unknown[]).forEach((datum, idx) => {
+      let value: unknown = datum;
+      if (Array.isArray(datum)) {
+        value = isHorizontal ? datum[0] : datum[1];
+      } else if (datum && typeof datum === 'object' && 'value' in datum) {
+        const rawValue = (datum as { value: unknown }).value;
+        if (Array.isArray(rawValue)) {
+          value = isHorizontal ? rawValue[0] : rawValue[1];
+        } else {
+          value = rawValue;
+        }
+      }
+      if (typeof value === 'number' && !Number.isNaN(value)) {
+        totals[idx] = (totals[idx] ?? 0) + value;
+      }
+    });
+    totalsByStack.set(stackId, totals);
+  });
+  let max = Number.NEGATIVE_INFINITY;
+  totalsByStack.forEach(totals => {
+    totals.forEach(value => {
+      if (value > max) max = value;
+    });
+  });
+  return max;
+}
+
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
@@ -318,6 +362,14 @@ export default function transformProps(
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
+  // rebasedData's keys have already been through rebaseForecastDatum, which
+  // renames a key to its verboseMap entry when one is configured for that
+  // metric. extraMetricLabels must be mapped the same way, or a sort-only
+  // metric with a verbose_name set would silently fail to match here (and in
+  // extractSeries below, which has the same requirement).
+  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
+    .map(getMetricLabel)
+    .map(label => verboseMap[label] ?? label);
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -325,10 +377,8 @@ export default function transformProps(
       percentageThreshold,
       xAxisCol: xAxisLabel,
       legendState,
+      extraMetricLabels,
     },
-  );
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
-    getMetricLabel,
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
@@ -777,6 +827,14 @@ export default function transformProps(
 
     series.unshift(baselineSeries);
   }
+
+  // Snapshot the observation-series count before annotation layers are
+  // appended below. Annotation series (formula/interval/event/timeseries)
+  // carry their own configured values, which the Y axis clamp further
+  // below must not rewrite, or an annotation could be moved to a location
+  // that doesn't match its configuration.
+  const observationSeriesCount = series.length;
+
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = series.findIndex(({ name }) => name === selectedValue);
@@ -869,7 +927,38 @@ export default function transformProps(
   // default to 0-100% range when doing row-level contribution chart
   if ((contributionMode === 'row' || isAreaExpand) && stack) {
     if (yAxisMin === undefined) yAxisMin = 0;
-    if (yAxisMax === undefined) yAxisMax = 1;
+    if (yAxisMax === undefined) {
+      if (contributionMode === 'row') {
+        // Contribution percentages are normalized so each stacked row should
+        // sum to 1, but floating point rounding can push the actual stacked
+        // total fractionally above 1 (e.g. 1.0000000000000002). Hard-capping
+        // the axis max at exactly 1 in that case causes echarts to clip the
+        // topmost stacked segment entirely rather than just rounding the
+        // pixel width, which is most visible in horizontal orientation where
+        // this axis is swapped onto the x-axis. Pad the max up to the actual
+        // stacked total when it exceeds 1 so no segment gets clipped.
+        //
+        // This padding only applies in row-contribution mode: for an Expand
+        // ("100% stacked") chart, `sortedTotalValues` holds the raw,
+        // pre-normalization row totals (e.g. 100), not values near 1, so
+        // padding against them here would stretch the axis out to the raw
+        // total instead of the intended 0-1 range.
+        //
+        // `sortedTotalValues` sums every series value per row regardless of
+        // which ECharts stack it belongs to, but with time_compare each
+        // comparison period is its own independently-normalized stack (see
+        // getTimeCompareStackId), so a chart with N comparison periods would
+        // sum to ~N instead of ~1. Compute the max per stack instead, using
+        // the already-built series (which carry the resolved stack ids).
+        const stackedTotalMax = getMaxStackedValueByStack(series, isHorizontal);
+        yAxisMax =
+          Number.isFinite(stackedTotalMax) && stackedTotalMax > 1
+            ? stackedTotalMax
+            : 1;
+      } else {
+        yAxisMax = 1;
+      }
+    }
   } else if (
     logAxis &&
     yAxisMin === undefined &&
@@ -903,6 +992,60 @@ export default function transformProps(
     if (dataMin !== undefined && yAxisMin === undefined && dataMin < 0) {
       yAxisMin = dataMin;
     }
+  }
+
+  // Whenever a Y axis bound is defined, whether explicitly configured or
+  // derived above from the data, clamp series values to those bounds
+  // instead of leaving raw out-of-range values in place. ECharts axis
+  // clipping can otherwise drop an out-of-bounds point (and the line
+  // segments around it) entirely rather than truncating it at the
+  // boundary (see https://github.com/apache/superset/issues/27449).
+  if (yAxisMin !== undefined || yAxisMax !== undefined) {
+    const valueIndex = isHorizontal ? 0 : 1;
+    type AxisValue = string | number | null | undefined;
+    type AxisPoint = AxisValue[];
+    const clampAxisValue = (value: AxisValue): AxisValue => {
+      if (typeof value !== 'number' || Number.isNaN(value)) return value;
+      let clamped = value;
+      if (yAxisMin !== undefined) clamped = Math.max(clamped, yAxisMin);
+      if (yAxisMax !== undefined) clamped = Math.min(clamped, yAxisMax);
+      return clamped;
+    };
+    const clampPoint = (point: AxisPoint): AxisPoint => {
+      const newPoint = [...point];
+      newPoint[valueIndex] = clampAxisValue(newPoint[valueIndex]);
+      return newPoint;
+    };
+    series.forEach((s, index) => {
+      // Skip annotation series appended above; only clamp the chart's own
+      // observation/legend/baseline series.
+      if (index >= observationSeriesCount) return;
+      if (!Array.isArray(s.data)) return;
+      const clampedData = (
+        s.data as (AxisPoint | Record<string, unknown>)[]
+      ).map(point => {
+        if (Array.isArray(point)) {
+          return clampPoint(point);
+        }
+        // Some series paths (e.g. colorByPrimaryAxis, or negative bar
+        // label positioning) wrap the tuple in an object of the shape
+        // `{ value: [x, y], ... }` instead of passing the tuple
+        // directly; clamp the wrapped tuple in place so those points
+        // aren't skipped and left to be dropped by ECharts axis clipping.
+        if (
+          point &&
+          typeof point === 'object' &&
+          Array.isArray((point as { value?: unknown }).value)
+        ) {
+          return {
+            ...point,
+            value: clampPoint((point as { value: AxisPoint }).value),
+          };
+        }
+        return point;
+      });
+      s.data = clampedData as typeof s.data;
+    });
   }
 
   // A dashboard-level time grain override (e.g. via a filter or the temporal
