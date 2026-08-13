@@ -46,6 +46,10 @@ def initial_report_cleanup():
 
 def remove_tabs_from_dashboard(dashboard: Dashboard, tabs: list[str]):
     data = dashboard.data.copy()
+    # ``data`` is a read serialization, not an update payload: drop the
+    # display-only localized title, which is a read-only property and would
+    # raise when the DAO assigns each attribute back onto the model.
+    data.pop("localized_title", None)
     position = data["position_json"]
     for tab in tabs:
         del position[tab]

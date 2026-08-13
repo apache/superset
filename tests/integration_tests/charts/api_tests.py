@@ -1102,6 +1102,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "viewers": [],
             "params": None,
             "slice_name": "title",
+            "localized_name": "title",
             "tags": [],
             "viz_type": None,
             "query_context": None,

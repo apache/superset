@@ -253,7 +253,7 @@ class TestLogApi(SupersetTestCase):
         ours = [
             item
             for item in response["result"]
-            if item.get("item_url") == "/superset/dashboard/loc_slug/"
+            if item.get("item_url") == "/dashboard/loc_slug/"
         ]
         assert ours, "expected the seeded dashboard in recent activity"
         assert ours[0]["item_title"] == "Papatohu Hokohoko"

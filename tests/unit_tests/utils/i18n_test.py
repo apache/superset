@@ -374,6 +374,9 @@ def test_memo_is_skipped_outside_a_request(
     current_app.config["LANGUAGES"] = MULTI_LANG
     hook = mocker.MagicMock(return_value="Ventes")
     current_app.config["TRANSLATION_HOOK"] = hook
+    # Patched rather than relying on the ambient context: the test harness may
+    # push one, and this asserts the no-request branch specifically.
+    mocker.patch.object(i18n, "has_request_context", return_value=False)
 
     assert i18n.translate("Sales") == "Ventes"
     assert i18n.translate("Sales") == "Ventes"
