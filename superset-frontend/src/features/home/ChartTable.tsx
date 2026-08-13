@@ -59,6 +59,7 @@ interface ChartTableProps {
   otherTabData?: Array<object>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
+  onActivityRefresh?: () => void;
 }
 
 function ChartTable({
@@ -70,6 +71,7 @@ function ChartTable({
   otherTabData,
   otherTabFilters,
   otherTabTitle,
+  onActivityRefresh,
 }: ChartTableProps) {
   const history = useHistory();
   const initialTab = getItem(
@@ -94,6 +96,10 @@ function ChartTable({
     [],
     false,
   );
+  const handleRefreshData = (config?: Parameters<typeof refreshData>[0]) => {
+    refreshData(config);
+    onActivityRefresh?.();
+  };
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -232,7 +238,7 @@ function ChartTable({
               hasPerm={hasPerm}
               showThumbnails={showThumbnails}
               bulkSelectEnabled={bulkSelectEnabled}
-              refreshData={refreshData}
+              refreshData={handleRefreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
               getData={getData}
