@@ -48,7 +48,10 @@ def set_query_context_form_data(
     set_form_data(
         {
             "datasource": {"id": datasource_id, "type": datasource_type},
-            "queries": [_serialize_query(query) for query in query_context.queries],
+            "queries": [
+                _serialize_query(query)
+                for query in getattr(query_context, "queries", ())
+            ],
             "form_data": getattr(query_context, "form_data", None) or {},
         }
     )
