@@ -1184,9 +1184,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         and ``docs/sip/authenticated-encryption-at-rest.md``).
         """
         # pylint: disable=import-outside-toplevel
-        from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine
-
         from superset.utils.encrypt import (
+            BackwardCompatibleAesEngine,
             DEFAULT_ENCRYPTION_ENGINE_NAME,
             resolve_encryption_engine,
         )
@@ -1200,7 +1199,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # An unrecognized value already fails closed at field construction
             # (see ``resolve_encryption_engine``); nothing more to warn about.
             return
-        if engine_cls is not AesEngine:
+        # "aes" resolves to BackwardCompatibleAesEngine (see superset.utils.encrypt),
+        # not the raw sqlalchemy_utils AesEngine, so check against that subclass.
+        if engine_cls is not BackwardCompatibleAesEngine:
             return
         self._log_config_warning(
             "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE is set to the legacy 'aes' "
