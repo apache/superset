@@ -134,6 +134,47 @@ test('Auto Bar labels enable theme-aware ECharts contrast', () => {
   expect(echartOptions.darkMode).toBe(false);
 });
 
+test('legacy Bar labels without a saved position enable Auto contrast', () => {
+  const legacyFormData: Partial<EchartsTimeseriesFormData> = {
+    ...DEFAULT_FORM_DATA,
+  };
+  delete legacyFormData.valueLabelPosition;
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: legacyFormData as EchartsTimeseriesFormData,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  expect(chartProps.formData).not.toHaveProperty('valueLabelPosition');
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(typeof series.labelLayout).toBe('function');
+  expect(echartOptions.darkMode).toBe(false);
+
+  Reflect.set(chartProps.formData, 'valueLabelPosition', undefined);
+  const undefinedPositionOptions = transformProps(chartProps).echartOptions;
+  const [undefinedPositionSeries] =
+    undefinedPositionOptions.series as BarSeriesOption[];
+
+  expect(typeof undefinedPositionSeries.labelLayout).toBe('function');
+  expect(undefinedPositionOptions.darkMode).toBe(false);
+});
+
 describe('Bar Chart X-axis Time Formatting', () => {
   const baseFormData: SqlaFormData = {
     ...DEFAULT_FORM_DATA,

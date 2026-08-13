@@ -537,6 +537,9 @@ export function transformSeries(
 
   const isAutoBarLabel =
     plotType === 'bar' && valueLabelPosition === BarValueLabelPosition.Auto;
+  const isInsideBarLabel =
+    plotType === 'bar' &&
+    valueLabelPosition !== BarValueLabelPosition.OutsideEnd;
 
   return {
     ...series,
@@ -586,9 +589,9 @@ export function transformSeries(
           : isHorizontal
             ? 'right'
             : 'top',
-      // ECharts derives contrast from the bar fill while the label is inside.
-      // Returning x/y clears the attached position, selecting its outside fill.
-      ...(isAutoBarLabel ? {} : { color: theme?.colorText }),
+      // ECharts derives contrast from the bar fill for inside positions.
+      // Auto x/y overflow clears the position, selecting its outside fill.
+      ...(isInsideBarLabel ? {} : { color: theme?.colorText }),
       textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip

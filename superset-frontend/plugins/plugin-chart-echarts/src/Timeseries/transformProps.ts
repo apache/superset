@@ -330,6 +330,8 @@ export default function transformProps(
     zoomable,
     stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  const resolvedValueLabelPosition =
+    valueLabelPosition ?? BarValueLabelPosition.Auto;
 
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
@@ -740,7 +742,7 @@ export default function transformProps(
               labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter),
         showValue,
-        valueLabelPosition,
+        valueLabelPosition: resolvedValueLabelPosition,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
         showValueIndexes,
@@ -1375,7 +1377,7 @@ export default function transformProps(
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     ...(seriesType === EchartsTimeseriesSeriesType.Bar &&
-    valueLabelPosition === BarValueLabelPosition.Auto
+    resolvedValueLabelPosition === BarValueLabelPosition.Auto
       ? { darkMode: isThemeDark(theme) }
       : {}),
     grid: {

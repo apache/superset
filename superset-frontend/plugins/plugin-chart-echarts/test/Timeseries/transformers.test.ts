@@ -343,12 +343,35 @@ test.each([
     ) as BarSeriesOption;
 
     expect(result.labelLayout).toBeUndefined();
-    expect(result.label).toMatchObject({
-      position: expected,
-      color: supersetTheme.colorText,
-    });
+    expect(result.label).toMatchObject({ position: expected });
+    if (position === BarValueLabelPosition.OutsideEnd) {
+      expect(result.label).toMatchObject({ color: supersetTheme.colorText });
+    } else {
+      expect(result.label).not.toHaveProperty('color');
+    }
   },
 );
+
+test('manual Outside End positions negative stacked segments below the bar', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, -1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+    },
+  ) as BarSeriesOption;
+
+  expect(result.data).toEqual([
+    {
+      value: [2026, -1],
+      label: { position: 'bottom' },
+    },
+  ]);
+  expect(result.labelLayout).toBeUndefined();
+});
 
 test('Auto positions negative stacked segments at their inside end', () => {
   const result = transformSeries(
