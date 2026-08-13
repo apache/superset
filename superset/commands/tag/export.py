@@ -71,8 +71,8 @@ class ExportTagsCommand(ExportModelsCommand):
                     elif tagged_object.object_type == ObjectType.chart:
                         chart_ids.append(tagged_object.object_id)
 
-        dashboard_ids = list(set(dashboard_ids))
-        chart_ids = list(set(chart_ids))
+        dashboard_ids = list(dict.fromkeys(dashboard_ids))
+        chart_ids = list(dict.fromkeys(chart_ids))
 
         yield (
             ExportTagsCommand._file_name(),
