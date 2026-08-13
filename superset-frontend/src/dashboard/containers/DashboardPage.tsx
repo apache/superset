@@ -81,6 +81,30 @@ import {
 
 type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
+const DASHBOARD_FILTERS_STORAGE_PREFIX = 'superset_dashboard_filters_';
+
+function getSavedDashboardFilters(dashboardId: number) {
+  try {
+    const raw = localStorage.getItem(
+      `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`,
+    );
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDashboardFilters(dashboardId: number, dataMask: unknown) {
+  try {
+    localStorage.setItem(
+      `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`,
+      JSON.stringify(dataMask),
+    );
+  } catch {
+    // fail silently — persistence is a nice-to-have, not critical path
+  }
+}
+
 export const DashboardPageIdContext = createContext('');
 
 const DashboardBuilder = lazy(
@@ -226,6 +250,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
+      } else {
+        const savedFilters = getSavedDashboardFilters(id);
+        if (savedFilters) {
+          dataMask = savedFilters;
+        }
       }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
@@ -381,7 +410,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch, isNotFoundError]);
 
   const relevantDataMask = useSelector(selectRelevantDatamask);
+  const fullDataMask = useSelector(selectDataMask);
   const activeFilters = useSelector(selectActiveFilters);
+
+  useEffect(() => {
+    if (!id || hydratedDashboardId !== id) return;
+    saveDashboardFilters(id, fullDataMask);
+  }, [id, hydratedDashboardId, fullDataMask]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
