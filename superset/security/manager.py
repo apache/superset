@@ -1107,6 +1107,76 @@ def _orderby_modified(
     return False
 
 
+def _collect_allowed_sql_extras(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> tuple[set[str], set[str]]:
+    """
+    Collect the ``extras.where`` and ``extras.having`` values that a guest user
+    is allowed to send, derived from the stored chart and its query context.
+    """
+    from superset.common.form_data_query_context import freeform_where_having
+
+    allowed_where: set[str] = set()
+    allowed_having: set[str] = set()
+
+    stored_extras = freeform_where_having(stored_chart.params_dict)
+    if stored_extras.get("where"):
+        allowed_where.add(stored_extras["where"])
+    if stored_extras.get("having"):
+        allowed_having.add(stored_extras["having"])
+
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            extras = query.get("extras") or {}
+            if extras.get("where"):
+                allowed_where.add(extras["where"])
+            if extras.get("having"):
+                allowed_having.add(extras["having"])
+
+    return allowed_where, allowed_having
+
+
+def _sql_filters_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request injects custom SQL predicates (``extras.where``,
+    ``extras.having``, or SQL-type adhoc filters) that are not present on the
+    stored chart.
+
+    Structured ``{col, op, val}`` filters are intentionally not constrained
+    here: they cannot carry arbitrary SQL and are legitimately added by
+    dashboard native filters, cross-filters, and drill interactions.
+    """
+    allowed_where, allowed_having = _collect_allowed_sql_extras(
+        stored_chart, stored_query_context
+    )
+
+    for query in query_context.queries:
+        extras = query.extras or {}
+        if extras.get("where") and extras["where"] not in allowed_where:
+            return True
+        if extras.get("having") and extras["having"] not in allowed_having:
+            return True
+
+    stored_sql_filters: set[str] = {
+        freeze_value(flt)
+        for flt in stored_chart.params_dict.get("adhoc_filters") or []
+        if flt.get("expressionType") == "SQL"
+    }
+
+    for flt in form_data.get("adhoc_filters") or []:
+        if flt.get("expressionType") == "SQL":
+            if freeze_value(flt) not in stored_sql_filters:
+                return True
+
+    return False
+
+
 #: Chart params keys that hold the metrics a chart renders. Different chart
 #: types store their metrics under control-specific keys (``metric`` for
 #: big number, ``x``/``y``/``size`` for bubble, and so on); a guest requesting
@@ -1300,6 +1370,19 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         logger.warning(
             "Guest chart payload rejected for slice %s: order-by references a "
             "term not on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
+
+    # SQL predicates (extras.where/having, SQL adhoc filters) must match
+    # what was saved on the chart; injected custom SQL is rejected.
+    if _sql_filters_modified(
+        query_context, form_data, stored_chart, stored_query_context
+    ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: SQL filter/extras "
+            "not on the stored chart (stored query_context %s)",
             stored_chart.id,
             stored_context_state,
         )

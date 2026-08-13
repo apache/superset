@@ -36,6 +36,7 @@ from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
     _collect_sortable_identifiers,
+    _sql_filters_modified,
     freeze_value,
     query_context_modified,
     SupersetSecurityManager,
@@ -3702,3 +3703,238 @@ def test_validate_guest_token_resources_accepts_embedded_int_id(
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
     )
+
+
+# ---------------------------------------------------------------------------
+# _sql_filters_modified – block custom SQL injection by guest users
+# ---------------------------------------------------------------------------
+
+
+def test_sql_filters_extras_where_injected_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Injecting extras.where when the chart has no SQL filters is blocked."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"metrics": ["count"]}
+
+    query = QueryObject(extras={"where": "1=1"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_extras_having_injected_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Injecting extras.having when the chart has no SQL filters is blocked."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject(extras={"having": "COUNT(*) > 0"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_extras_where_replay_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Replaying the chart's own SQL WHERE filter is allowed."""
+    sql_filter = {
+        "expressionType": "SQL",
+        "sqlExpression": "region = 'EMEA'",
+        "clause": "WHERE",
+    }
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"adhoc_filters": [sql_filter]}
+
+    # freeform_where_having wraps each clause in parens
+    query = QueryObject(extras={"where": "(region = 'EMEA')"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_extras_having_replay_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Replaying the chart's own SQL HAVING filter is allowed."""
+    sql_filter = {
+        "expressionType": "SQL",
+        "sqlExpression": "SUM(sales) > 100",
+        "clause": "HAVING",
+    }
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"adhoc_filters": [sql_filter]}
+
+    query = QueryObject(extras={"having": "(SUM(sales) > 100)"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_adhoc_sql_filter_injected_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Injecting a new SQL adhoc filter not on the stored chart is blocked."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject()
+    query_context.queries = [query]
+
+    injected_filter = {
+        "expressionType": "SQL",
+        "sqlExpression": "1=1",
+        "clause": "WHERE",
+    }
+    form_data: dict[str, Any] = {"slice_id": 1, "adhoc_filters": [injected_filter]}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_adhoc_sql_filter_replay_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Replaying the exact stored SQL adhoc filter is allowed."""
+    sql_filter = {
+        "expressionType": "SQL",
+        "sqlExpression": "region = 'EMEA'",
+        "clause": "WHERE",
+    }
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"adhoc_filters": [sql_filter]}
+
+    query = QueryObject()
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1, "adhoc_filters": [sql_filter]}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_empty_extras_always_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """No SQL in extras is always allowed, even when the chart has SQL filters."""
+    sql_filter = {
+        "expressionType": "SQL",
+        "sqlExpression": "region = 'EMEA'",
+        "clause": "WHERE",
+    }
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"adhoc_filters": [sql_filter]}
+
+    query = QueryObject()
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_from_stored_qc_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """extras.where from stored query_context is allowed."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    stored_qc = {
+        "queries": [{"extras": {"where": "(col > 5)"}}],
+    }
+
+    query = QueryObject(extras={"where": "(col > 5)"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, stored_qc)
+
+
+def test_sql_filters_different_sql_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Modified SQL (appending extra predicates) is blocked."""
+    sql_filter = {
+        "expressionType": "SQL",
+        "sqlExpression": "col > 5",
+        "clause": "WHERE",
+    }
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"adhoc_filters": [sql_filter]}
+
+    # Attacker appends extra predicate
+    query = QueryObject(
+        extras={"where": "(col > 5) AND (1=1)"},
+    )
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_simple_filters_not_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """SIMPLE structured filters (from dashboard native filters) are not blocked."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject(
+        filters=[{"col": "country", "op": "==", "val": "US"}],
+    )
+    query_context.queries = [query]
+
+    simple_adhoc_filter = {
+        "expressionType": "SIMPLE",
+        "subject": "country",
+        "operator": "==",
+        "comparator": "US",
+        "clause": "WHERE",
+    }
+    form_data: dict[str, Any] = {
+        "slice_id": 1,
+        "adhoc_filters": [simple_adhoc_filter],
+    }
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_query_context_modified_sql_filter_injection_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """End-to-end: query_context_modified rejects injected SQL filters."""
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {"metrics": ["count"]}
+
+    query_context.form_data = {"slice_id": 42, "metrics": ["count"]}
+    query_context.queries = [
+        QueryObject(
+            metrics=["count"],
+            extras={"where": "1=1 UNION SELECT password FROM users"},
+        )
+    ]
+
+    assert query_context_modified(query_context)
