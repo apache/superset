@@ -510,27 +510,45 @@ export class DashboardPage {
     });
   }
 
-  /** The "Drill to detail by" submenu popup (its leaf value items live here). */
-  private drillBySubmenu(): Locator {
-    return this.page.locator('.chart-context-submenu');
+  /**
+   * The chart context menu's Menu component, scoped to the open context
+   * menu's root. Used to open the "Drill to detail by" submenu robustly:
+   * plain hover is not reliably picked up by Ant Design's submenu trigger in
+   * headless Chromium, so this falls back to keyboard and dispatchEvent - see
+   * {@link Menu.openSubmenu}.
+   */
+  private contextMenu(): Menu {
+    return new Menu(this.page, '[data-test="chart-context-menu"]');
   }
 
   /**
-   * From an open chart context menu, hover the "Drill to detail by" submenu and
+   * Opens the "Drill to detail by" submenu and returns its popup, containing
+   * the leaf value items (e.g. "Drill to detail by boy").
+   */
+  private openDrillBySubmenu(): Promise<Locator> {
+    return this.contextMenu().openSubmenu('Drill to detail by', {
+      popupSelector: '.chart-context-submenu',
+    });
+  }
+
+  /**
+   * From an open chart context menu, open the "Drill to detail by" submenu and
    * click the entry for a specific value (e.g. "boy", "1965", "all").
    */
   async contextMenuDrillToDetailBy(value: string): Promise<void> {
-    await this.drillBySubmenuTitle().hover();
-    await this.drillBySubmenu()
+    const popup = await this.openDrillBySubmenu();
+    // Use dispatchEvent instead of click to bypass viewport and pointer
+    // interception issues - see Menu.selectSubmenuItem.
+    await popup
       .getByRole('menuitem', {
         name: `Drill to detail by ${value}`,
         exact: true,
       })
-      .click();
+      .dispatchEvent('click');
   }
 
   /**
-   * From an open chart context menu, hover "Drill to detail by" and return the
+   * From an open chart context menu, open "Drill to detail by" and return the
    * concrete values offered by the submenu (e.g. ["1965", "boy"]), skipping the
    * aggregate "all" entry. Used by canvas charts where the value under the
    * cursor is data-dependent: the test drills by whatever the menu actually
@@ -538,8 +556,8 @@ export class DashboardPage {
    * the assertion independent of exact pixel/slice geometry.
    */
   async drillByOfferedValues(): Promise<string[]> {
-    await this.drillBySubmenuTitle().hover();
-    const items = this.drillBySubmenu().locator('[role="menuitem"]');
+    const popup = await this.openDrillBySubmenu();
+    const items = popup.locator('[role="menuitem"]');
     await items.first().waitFor();
     const labels = await items.allInnerTexts();
     return labels
