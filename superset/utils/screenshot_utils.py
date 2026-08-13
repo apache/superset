@@ -20,6 +20,7 @@ from __future__ import annotations
 import io
 import logging
 import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from celery import current_task
@@ -31,6 +32,23 @@ from superset.utils.report_execution import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ScreenshotCaptureResult:
+    """
+    Result of a screenshot capture attempt.
+
+    ``readiness`` is untyped (``object | None``) because the readiness-report
+    type does not exist yet; a later slice introduces it and narrows this
+    field's type. This dataclass intentionally has no ``__bool__`` override --
+    callers must test ``.image`` explicitly rather than the truthiness of the
+    result itself.
+    """
+
+    image: bytes | None
+    readiness: object | None = None
+
 
 # Time to wait after scrolling for content to settle and load (in milliseconds)
 SCROLL_SETTLE_TIMEOUT_MS = 1000

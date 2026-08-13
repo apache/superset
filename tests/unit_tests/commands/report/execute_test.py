@@ -70,6 +70,7 @@ from superset.utils.report_execution import (
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
+from superset.utils.screenshot_utils import ScreenshotCaptureResult
 from superset.utils.screenshots import ChartScreenshot
 from tests.integration_tests.conftest import with_feature_flags
 
@@ -1586,7 +1587,9 @@ def test_screenshot_width_calculation(
         # Mock user
         mock_user = mocker.MagicMock()
         mock_security_manager.find_user.return_value = mock_user
-        mock_get_screenshot.return_value = b"screenshot bytes"
+        mock_get_screenshot.return_value = ScreenshotCaptureResult(
+            image=b"screenshot bytes", readiness=None
+        )
 
         # Mock get_executor to avoid database lookups
         with patch(

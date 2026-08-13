@@ -149,7 +149,7 @@ class TestWebDriverPlaywrightFallback:
                 "http://example.com", "test-element", mock_user
             )
 
-        assert result == b"fake_screenshot"
+        assert result.image == b"fake_screenshot"
         mock_page.goto.assert_called_once_with(
             "http://example.com", wait_until="networkidle"
         )
@@ -201,7 +201,7 @@ class TestWebDriverPlaywrightFallback:
         # page.goto() timeout is caught and logged without aborting; execution
         # continues to the element waits, which succeed here, so a screenshot
         # is taken and returned (not None).
-        assert result is not None
+        assert result.image is not None
         mock_logger.exception.assert_called()
         exception_call = mock_logger.exception.call_args[0][0]
         assert "Web event %s not detected" in exception_call
@@ -535,7 +535,7 @@ class TestWebDriverPlaywrightErrorHandling:
                     "http://example.com", "dashboard", mock_user
                 )
 
-        assert result == b"fake_screenshot"
+        assert result.image == b"fake_screenshot"
         # chart_count (1) is well below the tiling threshold (20), so this is
         # the benign/expected case and must not be logged as a WARNING.
         mock_logger.debug.assert_any_call(
@@ -625,7 +625,7 @@ class TestWebDriverPlaywrightErrorHandling:
                     "http://example.com", "dashboard", mock_user
                 )
 
-        assert result == b"tiled_screenshot"
+        assert result.image == b"tiled_screenshot"
         mock_take_tiled.assert_called_once()
         mock_logger.warning.assert_any_call(
             "Could not determine dashboard height for element %s "
@@ -892,7 +892,7 @@ class TestWebDriverPlaywrightChartReadiness:
                 "http://example.com", "test-element", mock_user
             )
 
-        assert result == b"screenshot"
+        assert result.image == b"screenshot"
         # Readiness diagnostics are emitted before polling so a task killed by
         # an outer limit still leaves useful state in the logs.
         assert mock_page.evaluate.call_count == 2
@@ -990,7 +990,7 @@ class TestWebDriverPlaywrightChartReadiness:
 
         predicate = mock_page.wait_for_function.call_args.args[0]
         assert "holders.length > 0" not in predicate
-        assert result == mock_page.screenshot.return_value
+        assert result.image == mock_page.screenshot.return_value
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1467,7 +1467,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
                 "http://example.com", "test-element", mock_user
             )
 
-        assert result == b"screenshot"
+        assert result.image == b"screenshot"
         mock_take_tiled.assert_not_called()
         mock_page.set_viewport_size.assert_not_called()
 
@@ -1500,7 +1500,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
                 "http://example.com", "standalone", mock_user
             )
 
-        assert result == b"tiled_screenshot"
+        assert result.image == b"tiled_screenshot"
         mock_take_tiled.assert_called_once_with(
             mock_page,
             "standalone",

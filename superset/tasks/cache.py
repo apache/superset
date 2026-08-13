@@ -338,8 +338,8 @@ def _warmup_urls(
         for url in urls:
             try:
                 logger.info("Fetching %s", url)
-                screenshot = wd.get_screenshot(url, "grid-container", user=user)
-                if not screenshot:
+                capture_result = wd.get_screenshot(url, "grid-container", user=user)
+                if capture_result.image is None:
                     raise RuntimeError("No screenshot captured")
                 results["success"].append(url)
             except Exception:  # noqa: BLE001

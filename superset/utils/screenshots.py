@@ -34,6 +34,7 @@ from superset.exceptions import (
 from superset.extensions import event_logger
 from superset.utils.hashing import hash_from_dict
 from superset.utils.report_execution import ReportExecutionContext
+from superset.utils.screenshot_utils import ScreenshotCaptureResult
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
@@ -216,16 +217,17 @@ class BaseScreenshot:
         window_size: WindowSize | None = None,
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
-    ) -> bytes | None:
+    ) -> ScreenshotCaptureResult:
         driver = self.driver(window_size)
-        self.screenshot = driver.get_screenshot(
+        driver_result = driver.get_screenshot(
             self.url,
             self.element,
             user,
             log_context=log_context,
             report_execution_context=report_execution_context,
         )
-        return self.screenshot
+        self.screenshot = driver_result.image
+        return ScreenshotCaptureResult(image=self.screenshot, readiness=None)
 
     def get_cache_key(
         self,
@@ -326,11 +328,12 @@ class BaseScreenshot:
                     with event_logger.log_context(
                         f"screenshot.compute.{self.thumbnail_type}"
                     ):
-                        image = self.get_screenshot(
+                        capture_result = self.get_screenshot(
                             user=user,
                             window_size=window_size,
                             log_context=f"cache_key={cache_key}",
                         )
+                        image = capture_result.image
                 except Exception as ex:  # pylint: disable=broad-except
                     logger.warning(
                         "Failed at generating thumbnail for cache_key=%s: %s",

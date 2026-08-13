@@ -89,6 +89,7 @@ from superset.tasks.types import ExecutorType
 from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.utils.report_execution import ReportExecutionContext
+from superset.utils.screenshot_utils import ScreenshotCaptureResult
 from superset.utils.webdriver import PlaywrightTimeout
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -756,7 +757,9 @@ def test_email_chart_report_schedule_with_cc_bcc(
     ExecuteReport Command: Test chart email report schedule with screenshot and email cc, bcc options
     """  # noqa: E501
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -822,7 +825,9 @@ def test_email_chart_report_schedule(
     ExecuteReport Command: Test chart email report schedule with screenshot
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -868,7 +873,9 @@ def test_email_chart_report_schedule_single_log_per_execution(
     (the "trigger" row and the "result" row). This test asserts that one
     execution -- identified by its execution uuid -- yields exactly one log row.
     """
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -911,11 +918,11 @@ def test_email_chart_report_schedule_alpha_owner(
         user: User,
         log_context: Optional[str] = None,
         report_execution_context: ReportExecutionContext | None = None,
-    ) -> Optional[bytes]:
+    ) -> ScreenshotCaptureResult:
         nonlocal username
         username = user.username
 
-        return SCREENSHOT_FILE
+        return ScreenshotCaptureResult(image=SCREENSHOT_FILE, readiness=None)
 
     screenshot_mock.side_effect = _screenshot_side_effect
 
@@ -967,7 +974,9 @@ def test_email_chart_report_schedule_force_screenshot(
     reflect that.
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -1008,7 +1017,9 @@ def test_email_chart_alert_schedule(
     ExecuteReport Command: Test chart email alert schedule with screenshot
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -1045,7 +1056,9 @@ def test_email_chart_report_dry_run(
     ExecuteReport Command: Test chart email report schedule dry run
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
     app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = True
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -1169,7 +1182,9 @@ def test_email_chart_report_schedule_with_csv_no_query_context(
     ExecuteReport Command: Test chart email report schedule with CSV (no query context)
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     # setup csv mock
     response = Mock()
@@ -1332,7 +1347,9 @@ def test_email_dashboard_report_schedule(
     ExecuteReport Command: Test dashboard email report schedule
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
@@ -1473,7 +1490,9 @@ def test_email_dashboard_report_schedule_force_screenshot(
     ExecuteReport Command: Test dashboard email report schedule
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -1512,7 +1531,9 @@ def test_slack_chart_report_schedule_converts_to_v2(
     while converting the recipients list to SlackV2.
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
     channel_id = "slack_channel_id"
     get_channels_with_search_mock.return_value = [
         {
@@ -1573,7 +1594,9 @@ def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
     the channel name includes the leading hash (supported in v1).
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
     channel_id = "slack_channel_id"
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -1636,7 +1659,9 @@ def test_slack_chart_report_schedule_fails_to_converts_to_v2(
     ExecuteReport Command: Test converting a Slack report to v2 fails.
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
     channel_id = "slack_channel_id"
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -1686,7 +1711,9 @@ def test_slack_chart_report_schedule_v2(
     ExecuteReport Command: Test chart slack report schedule using Slack v2.
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch(
@@ -1725,7 +1752,9 @@ def test_slack_chart_report_schedule_with_errors(
     properly log something
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     slack_errors = [
         BotUserAccessError(),
@@ -2106,7 +2135,9 @@ def test_report_schedule_success_grace_end(
     ExecuteReport Command: Test report schedule on grace to noop
     """
 
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     # set current time to after the grace period
     current_time = create_alert_slack_chart_grace.last_eval_dttm + timedelta(
@@ -2144,7 +2175,9 @@ def test_alert_limit_is_applied(
     """
     ExecuteReport Command: Test that all alerts apply a SQL limit to stmts
     """
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with patch.object(
         create_alert_email_chart.database.db_engine_spec, "execute", return_value=None
@@ -2174,7 +2207,9 @@ def test_email_dashboard_report_fails(
     # setup screenshot mock
     from smtplib import SMTPException
 
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
     email_mock.side_effect = SMTPException("Could not connect to SMTP XPTO")
 
     with pytest.raises(ReportScheduleSystemErrorsException):
@@ -2200,7 +2235,9 @@ def test_email_dashboard_report_fails_uncaught_exception(
     # setup screenshot mock
     from smtplib import SMTPException  # noqa: F401
 
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
     email_mock.side_effect = Exception("Uncaught exception")
     app.config["EMAIL_REPORTS_CTA"] = "Call to action"
 
@@ -2235,7 +2272,9 @@ def test_slack_chart_alert(
     ExecuteReport Command: Test chart slack alert
     """
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
@@ -2319,7 +2358,9 @@ def test_slack_token_callable_chart_report(
     slack_token_mock = Mock(return_value="cool_code")
     with patch.dict("flask.current_app.config", {"SLACK_API_TOKEN": slack_token_mock}):
         # setup screenshot mock
-        screenshot_mock.return_value = SCREENSHOT_FILE
+        screenshot_mock.return_value = ScreenshotCaptureResult(
+            image=SCREENSHOT_FILE, readiness=None
+        )
 
         with freeze_time("2020-01-01T00:00:00Z"):
             AsyncExecuteReportScheduleCommand(
@@ -2598,7 +2639,9 @@ def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule
 
     next_execution_id = str(uuid4())
     screenshot_mock.side_effect = None
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    screenshot_mock.return_value = ScreenshotCaptureResult(
+        image=SCREENSHOT_FILE, readiness=None
+    )
 
     AsyncExecuteReportScheduleCommand(
         next_execution_id,
@@ -3230,7 +3273,9 @@ def test_success_after_retry_clears_retry_state(
 
     try:
         # Screenshot succeeds this time
-        screenshot_mock.return_value = SCREENSHOT_FILE
+        screenshot_mock.return_value = ScreenshotCaptureResult(
+            image=SCREENSHOT_FILE, readiness=None
+        )
 
         AsyncExecuteReportScheduleCommand(
             TEST_ID, report_schedule.id, scheduled_dttm

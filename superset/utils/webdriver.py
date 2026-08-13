@@ -37,6 +37,7 @@ from superset.utils.screenshot_utils import (
     FIND_CHART_HOLDER_STATES_JS,
     REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
+    ScreenshotCaptureResult,
     ScreenshotTaskBudgetExceededError,
     take_tiled_screenshot,
 )
@@ -155,7 +156,7 @@ class WebDriverProxy(ABC):
         user: User | None = None,
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
-    ) -> bytes | None:
+    ) -> ScreenshotCaptureResult:
         """
         Run webdriver and return a screenshot
 
@@ -506,7 +507,7 @@ class WebDriverPlaywright(WebDriverProxy):
         user: User | None = None,
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
-    ) -> bytes | None:
+    ) -> ScreenshotCaptureResult:
         screenshot_started_at = time.monotonic()
         if report_execution_context:
             log_context = report_execution_context.log_context
@@ -947,4 +948,4 @@ class WebDriverPlaywright(WebDriverProxy):
                 )
         finally:
             context.close()
-        return img
+        return ScreenshotCaptureResult(image=img, readiness=None)

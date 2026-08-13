@@ -28,6 +28,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.exceptions import LockAlreadyHeldException
+from superset.utils.screenshot_utils import ScreenshotCaptureResult
 from superset.utils.screenshots import (
     BaseScreenshot,
     ScreenshotCachePayload,
@@ -87,7 +88,8 @@ class TestCacheOnlyOnSuccess:
         mocker.patch(DISTRIBUTED_LOCK_PATH)
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         get_screenshot = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
+            BASE_SCREENSHOT_PATH + ".get_screenshot",
+            return_value=ScreenshotCaptureResult(image=FAKE_PNG_BYTES, readiness=None),
         )
         # Mock resize_image to avoid PIL errors with fake image data
         mocker.patch(
@@ -171,7 +173,7 @@ class TestCacheOnlyOnSuccess:
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
-            return_value=b"",
+            return_value=ScreenshotCaptureResult(image=b"", readiness=None),
         )
         mock_logger = mocker.patch("superset.utils.screenshots.logger")
         BaseScreenshot.cache = MockCache()
@@ -200,7 +202,9 @@ class TestCacheOnlyOnSuccess:
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
-            return_value=b"this-is-not-a-real-image",
+            return_value=ScreenshotCaptureResult(
+                image=b"this-is-not-a-real-image", readiness=None
+            ),
         )
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".resize_image",
@@ -233,14 +237,16 @@ class TestCacheOnlyOnSuccess:
         mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
         BaseScreenshot.cache = MockCache()
 
-        def check_cache_during_screenshot(*args: object, **kwargs: object) -> bytes:
+        def check_cache_during_screenshot(
+            *args: object, **kwargs: object
+        ) -> ScreenshotCaptureResult:
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
             assert cached_value is not None, (
                 "Cache should be set to COMPUTING before screenshot starts"
             )
             assert cached_value["status"] == "Computing"
-            return FAKE_PNG_BYTES
+            return ScreenshotCaptureResult(image=FAKE_PNG_BYTES, readiness=None)
 
         mocker.patch(
             BASE_SCREENSHOT_PATH + ".get_screenshot",
@@ -472,7 +478,8 @@ class TestIntegrationCacheBugFix:
         BaseScreenshot.cache.set(cache_key, stale_payload.to_dict())
 
         mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
+            BASE_SCREENSHOT_PATH + ".get_screenshot",
+            return_value=ScreenshotCaptureResult(image=FAKE_PNG_BYTES, readiness=None),
         )
         # Mock resize to avoid PIL errors
         mocker.patch(

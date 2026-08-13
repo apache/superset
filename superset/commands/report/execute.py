@@ -788,11 +788,12 @@ class BaseReportState:
         try:
             imges = []
             for screenshot in screenshots:
-                imge = screenshot.get_screenshot(
+                capture_result = screenshot.get_screenshot(
                     user=user,
                     log_context=self._log_context,
                     report_execution_context=self._report_execution_context,
                 )
+                imge = capture_result.image
                 if imge is None:
                     raise ReportScheduleScreenshotFailedError(
                         "Screenshot failed; aborting to avoid sending a partial report"

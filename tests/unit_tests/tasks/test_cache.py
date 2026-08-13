@@ -17,6 +17,8 @@
 from typing import Any, Optional
 from unittest import mock
 
+from superset.utils.screenshot_utils import ScreenshotCaptureResult
+
 
 def _fake_app(config: Optional[dict[str, Any]] = None) -> mock.MagicMock:
     """Build a stand-in for ``current_app`` with a controllable config dict."""
@@ -112,8 +114,9 @@ def test_cache_warmup_treats_none_screenshot_as_error(app_context: None) -> None
     urls: list[str] = ["http://localhost/dash/ok", "http://localhost/dash/none"]
     user: mock.MagicMock = mock.MagicMock()
 
-    def side_effect(url: str, _element: str, **kwargs: Any) -> Any:
-        return None if url.endswith("none") else b"PNG"
+    def side_effect(url: str, _element: str, **kwargs: Any) -> ScreenshotCaptureResult:
+        image = None if url.endswith("none") else b"PNG"
+        return ScreenshotCaptureResult(image=image, readiness=None)
 
     with (
         mock.patch(
@@ -142,10 +145,10 @@ def test_cache_warmup_collects_errors_and_destroys(app_context: None) -> None:
     urls: list[str] = ["http://localhost/dash/ok", "http://localhost/dash/boom"]
     user: mock.MagicMock = mock.MagicMock()
 
-    def side_effect(url: str, _element: str, **kwargs: Any) -> bytes | None:
+    def side_effect(url: str, _element: str, **kwargs: Any) -> ScreenshotCaptureResult:
         if url.endswith("boom"):
             raise Exception("screenshot failed")
-        return b"PNG"
+        return ScreenshotCaptureResult(image=b"PNG", readiness=None)
 
     with (
         mock.patch(

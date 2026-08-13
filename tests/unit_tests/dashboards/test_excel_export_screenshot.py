@@ -26,6 +26,7 @@ from superset.charts.data.dashboard_filter_context import DashboardFilterContext
 from superset.dashboards.excel_export import screenshot as screenshot_module
 from superset.dashboards.excel_export.screenshot import render_chart_image
 from superset.utils import json
+from superset.utils.screenshot_utils import ScreenshotCaptureResult
 
 MODULE = "superset.dashboards.excel_export.screenshot"
 
@@ -56,7 +57,9 @@ def test_render_chart_image_builds_url_with_slice_id_and_filters() -> None:
     )
 
     screenshot_instance = MagicMock()
-    screenshot_instance.get_screenshot.return_value = b"PNGBYTES"
+    screenshot_instance.get_screenshot.return_value = ScreenshotCaptureResult(
+        image=b"PNGBYTES", readiness=None
+    )
 
     with (
         patch(
@@ -100,7 +103,9 @@ def test_render_chart_image_omits_extra_form_data_when_no_filters() -> None:
     chart = _chart()
     filter_context = DashboardFilterContext(extra_form_data={})
     screenshot_instance = MagicMock()
-    screenshot_instance.get_screenshot.return_value = b"PNG"
+    screenshot_instance.get_screenshot.return_value = ScreenshotCaptureResult(
+        image=b"PNG", readiness=None
+    )
 
     with (
         patch(f"{MODULE}.get_dashboard_filter_context", return_value=filter_context),
@@ -118,7 +123,9 @@ def test_render_chart_image_omits_extra_form_data_when_no_filters() -> None:
 def test_render_chart_image_returns_none_when_screenshot_fails() -> None:
     chart = _chart()
     screenshot_instance = MagicMock()
-    screenshot_instance.get_screenshot.return_value = None
+    screenshot_instance.get_screenshot.return_value = ScreenshotCaptureResult(
+        image=None, readiness=None
+    )
 
     with (
         patch(

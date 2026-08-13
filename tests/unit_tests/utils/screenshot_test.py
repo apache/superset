@@ -23,6 +23,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.utils.hashing import hash_from_dict
+from superset.utils.screenshot_utils import ScreenshotCaptureResult
 from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
@@ -69,12 +70,14 @@ def screenshot_obj():
 
 
 def test_get_screenshot(mocker: MockerFixture, screenshot_obj):
-    """Get screenshot should return a Bytes object"""
+    """Get screenshot should return a ScreenshotCaptureResult wrapping the bytes"""
     fake_bytes = b"fake_screenshot_data"
     driver = mocker.patch(BASE_SCREENSHOT_PATH + ".driver")
-    driver.return_value.get_screenshot.return_value = fake_bytes
+    driver.return_value.get_screenshot.return_value = ScreenshotCaptureResult(
+        image=fake_bytes, readiness=None
+    )
     screenshot_data = screenshot_obj.get_screenshot(mock_user)
-    assert screenshot_data == fake_bytes
+    assert screenshot_data.image == fake_bytes
 
 
 def test_get_cache_key(app_context, screenshot_obj):
@@ -111,7 +114,8 @@ class TestComputeAndCache:
             BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
         )
         get_screenshot = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
+            BASE_SCREENSHOT_PATH + ".get_screenshot",
+            return_value=ScreenshotCaptureResult(image=FAKE_PNG_BYTES, readiness=None),
         )
         resize_image = mocker.patch(
             BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES

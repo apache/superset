@@ -27,6 +27,7 @@ from superset.commands.report.exceptions import ReportScheduleUnexpectedError
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSourceFormat
+from superset.utils.screenshot_utils import ScreenshotCaptureResult
 from superset.utils.urls import get_url_path
 from tests.integration_tests.fixtures.tabbed_dashboard import (
     tabbed_dashboard,  # noqa: F401
@@ -47,7 +48,9 @@ def test_report_for_dashboard_with_tabs(
     send_email_smtp_mock: MagicMock,
     tabbed_dashboard: Dashboard,  # noqa: F811
 ) -> None:
-    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard_screenshot_mock.get_screenshot.return_value = ScreenshotCaptureResult(
+        image=b"test-image", readiness=None
+    )
     current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
@@ -90,7 +93,9 @@ def test_report_with_header_data(
     send_email_smtp_mock: MagicMock,
     tabbed_dashboard: Dashboard,  # noqa: F811
 ) -> None:
-    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard_screenshot_mock.get_screenshot.return_value = ScreenshotCaptureResult(
+        image=b"test-image", readiness=None
+    )
     current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
 
     with create_dashboard_report(
@@ -137,7 +142,9 @@ def test_report_schedule_stale_data_error_preserves_cause(
     we surface ReportScheduleUnexpectedError while preserving the original
     StaleDataError as the cause.
     """
-    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard_screenshot_mock.get_screenshot.return_value = ScreenshotCaptureResult(
+        image=b"test-image", readiness=None
+    )
     current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
 
     with create_dashboard_report(

@@ -89,7 +89,8 @@ def render_chart_image(
             window_size=window_size,
             thumb_size=window_size,
         )
-        return screenshot.get_screenshot(user=user)
+        capture_result = screenshot.get_screenshot(user=user)
+        return capture_result.image
     except SoftTimeLimitExceeded:
         # A soft timeout aborts the whole export; don't let the broad handler
         # below turn it into a ``None`` (a per-chart "could not render") result.
