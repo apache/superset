@@ -197,10 +197,17 @@ class StubTools:
 class TimedInvocation:
     """What a rich dispatcher hands back, including its own timing."""
 
-    def __init__(self, result: ToolResult, duration_ms: int, truncated: bool) -> None:
+    def __init__(
+        self,
+        result: ToolResult,
+        duration_ms: int,
+        truncated: bool,
+        error_type: str | None = None,
+    ) -> None:
         self.result = result
         self.duration_ms = duration_ms
         self.truncated = truncated
+        self.error_type = error_type
         self.display: dict[str, Any] = {}
 
 
@@ -760,6 +767,29 @@ def test_a_raising_tool_reports_the_exception_class(
 
     assert sink.tool_calls[0][1].error_type == "ZeroDivisionError"
     assert sink.tool_calls[0][1].ok is False
+
+
+def test_a_rich_dispatcher_failure_preserves_its_exception_class(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """The registry's hidden exception class survives into the tool span."""
+
+    class Detached(RichStubTools):
+        def invoke(self, call: ToolCall) -> TimedInvocation:
+            return TimedInvocation(
+                ToolResult(call_id=call.id, content="failed", is_error=True),
+                duration_ms=12,
+                truncated=False,
+                error_type="DetachedInstanceError",
+            )
+
+    sink = CapturingTelemetry()
+    _configure(mocker, [sink])
+
+    _drive(_script_with_a_tool_call(), tools=Detached())
+
+    assert sink.tool_calls[0][1].error_type == "DetachedInstanceError"
 
 
 def test_a_call_for_a_tool_that_is_not_offered_is_reported(
