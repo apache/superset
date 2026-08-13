@@ -350,6 +350,7 @@ def test_a_failed_invocation_has_no_display_payload() -> None:
     )
     assert invocation.is_error is True
     assert invocation.display is None
+    assert invocation.error_type == "ToolError"
 
 
 def test_the_display_payload_is_bounded_too() -> None:

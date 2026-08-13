@@ -135,6 +135,7 @@ class ToolInvocation:
     duration_ms: int = 0
     truncated: bool = False
     arguments: dict[str, Any] = field(default_factory=dict)
+    error_type: str | None = None
 
     @property
     def is_error(self) -> bool:
@@ -383,20 +384,22 @@ class ToolRegistry:
         def elapsed() -> int:
             return int((time.monotonic() - started) * 1000)
 
-        def failure(message: str) -> ToolInvocation:
+        def failure(message: str, error_type: str) -> ToolInvocation:
             return ToolInvocation(
                 call_id=call.id,
                 tool_name=call.name,
                 result=ToolResult(call_id=call.id, content=message, is_error=True),
                 duration_ms=elapsed(),
                 arguments=dict(call.arguments),
+                error_type=error_type,
             )
 
         tool = self._tools.get(call.name)
         if tool is None:
             available = ", ".join(sorted(self._tools)) or "none"
             return failure(
-                f"No tool named {call.name!r}. Available tools: {available}."
+                f"No tool named {call.name!r}. Available tools: {available}.",
+                "ToolUnavailable",
             )
 
         # Every tool here reads a permissioned resource, so all of them need a
@@ -407,7 +410,8 @@ class ToolRegistry:
         if _current_user() is None:
             return failure(
                 f"{call.name} requires an authenticated user and none is "
-                f"available for this request."
+                f"available for this request.",
+                "AuthenticationRequired",
             )
 
         if max_bytes is None:
@@ -416,7 +420,7 @@ class ToolRegistry:
         try:
             output = tool.run(**call.arguments)
         except ToolError as ex:
-            return failure(str(ex))
+            return failure(str(ex), type(ex).__name__)
         except TypeError as ex:
             # Almost always the model supplying arguments that do not match the
             # schema. Reported as-is because the message names the offending
@@ -424,14 +428,16 @@ class ToolRegistry:
             logger.info("Tool %s called with bad arguments: %s", call.name, ex)
             return failure(
                 f"{call.name} was called with arguments that do not match its "
-                f"schema: {ex}"
+                f"schema: {ex}",
+                type(ex).__name__,
             )
-        except Exception:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except
             # A defect, not a recoverable condition. The real cause goes to the
             # log; the model gets a message that cannot leak a driver error.
             logger.exception("Tool %s failed", call.name)
             return failure(
-                f"{call.name} failed unexpectedly. Try a different approach."
+                f"{call.name} failed unexpectedly. Try a different approach.",
+                type(ex).__name__,
             )
 
         if output.payload is not None:
