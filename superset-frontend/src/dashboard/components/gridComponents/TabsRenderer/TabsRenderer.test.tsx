@@ -111,7 +111,9 @@ describe('TabsRenderer', () => {
   });
 
   test('applies correct tab bar padding', () => {
-    const { rerender } = render(<TabsRenderer {...mockProps} />, { useRedux: true });
+    const { rerender } = render(<TabsRenderer {...mockProps} />, {
+      useRedux: true,
+    });
 
     let editableTabs = screen.getByTestId('nav-list');
     expect(editableTabs).toBeInTheDocument();
