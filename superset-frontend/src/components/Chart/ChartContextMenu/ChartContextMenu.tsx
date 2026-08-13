@@ -170,7 +170,7 @@ const ChartContextMenu = (
   const handleDrillBy = useCallback(
     (
       column: Column,
-      dataset: Dataset,
+      _dataset: Dataset,
       drillByConfig?: ContextMenuFilters['drillBy'],
     ) => {
       setDrillByColumn(column);
