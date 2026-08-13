@@ -1137,6 +1137,62 @@ Events | take 100""",
     assert query.get_settings() == {"querytrace": True}
 
 
+def test_sqlscript_format_preserves_optimizer_hint_block() -> None:
+    """
+    Regression for #38189: an inline `--` comment trailing a query with a
+    `/*+ SET_VAR(...) */` optimizer hint must not get repositioned inside
+    the hint block during `format()` -- that would corrupt the hint syntax
+    (StarRocks and other engines using the `/*+ ... */` convention reject
+    a nested `/* */` inside it). `format()` is what Superset's execution
+    path actually sends to the engine (see `executor.py`/`celery_task.py`).
+    """
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100
+
+-- increase timeout for large scans"""
+    statement = SQLScript(sql, "starrocks").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    # the trailing comment must survive, and land outside (after) the hint
+    # block rather than being dropped or relocated into it
+    hint_end = formatted.index(hint) + len(hint)
+    assert "increase timeout for large scans" in formatted[hint_end:]
+
+
+@pytest.mark.xfail(
+    reason=(
+        "#38189 is not fully fixed: a `;`-terminated statement still hits "
+        "the comment-relocation branch and corrupts the hint block. Only "
+        "the no-semicolon form from the original repro was fixed."
+    ),
+    strict=True,
+)
+def test_sqlscript_format_preserves_optimizer_hint_block_with_semicolon() -> None:
+    """
+    Same as `test_sqlscript_format_preserves_optimizer_hint_block`, but with
+    a terminating `;` on the statement -- this still reproduces #38189: the
+    trailing `--` comment gets injected inside the `/*+ SET_VAR(...) */`
+    hint block, corrupting it for StarRocks/MySQL-style engines.
+    """
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100;
+
+-- increase timeout for large scans"""
+    statement = SQLScript(sql, "starrocks").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    hint_end = formatted.index(hint) + len(hint)
+    assert "increase timeout for large scans" in formatted[hint_end:]
+
+
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
