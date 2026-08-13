@@ -36,20 +36,24 @@ def test_file_size_bytes_does_not_consume_stream() -> None:
     assert file.stream.read() == b"abcdefghij"
 
 
-def _command(file: FileStorage) -> UploadCommand:
+def _command(file: FileStorage, schema: str | None = None) -> UploadCommand:
     # the reader is not exercised by validate(); a stub is sufficient
     return UploadCommand(
         model_id=1,
         table_name="t",
         file=file,
-        schema=None,
+        schema=schema,
         reader=MagicMock(),
     )
 
 
-def _stub_passing_checks(mocker: MockerFixture) -> None:
+def _stub_passing_checks(mocker: MockerFixture) -> MagicMock:
     model = mocker.MagicMock()
     model.db_engine_spec.supports_file_upload = True
+    # keep default-schema resolution inert so a MagicMock does not leak
+    # into the command's schema
+    model.get_default_catalog.return_value = None
+    model.get_default_schema.return_value = None
     mocker.patch(
         "superset.commands.database.uploaders.base.DatabaseDAO.find_by_id",
         return_value=model,
@@ -58,6 +62,7 @@ def _stub_passing_checks(mocker: MockerFixture) -> None:
         "superset.commands.database.uploaders.base.schema_allows_file_upload",
         return_value=True,
     )
+    return model
 
 
 def test_validate_rejects_file_over_limit(
@@ -147,10 +152,135 @@ def test_validate_file_size_skips_when_not_seekable(
     UploadCommand.validate_file_size(_non_seekable_file())
 
 
+def test_validate_resolves_default_schema(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    model = _stub_passing_checks(mocker)
+    model.get_default_schema.return_value = "public"
+    command = _command(_file(b"x"), schema=None)
+    command.validate()
+    assert command._schema == "public"
+    model.get_default_schema.assert_called_once_with(None)
+
+
+def test_validate_keeps_explicit_schema(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    model = _stub_passing_checks(mocker)
+    command = _command(_file(b"x"), schema="other")
+    command.validate()
+    assert command._schema == "other"
+    model.get_default_schema.assert_not_called()
+
+
+def test_validate_treats_empty_string_schema_as_unset(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    model = _stub_passing_checks(mocker)
+    model.get_default_schema.return_value = "public"
+    command = _command(_file(b"x"), schema="")
+    command.validate()
+    assert command._schema == "public"
+
+
+def test_validate_default_schema_resolution_failure_falls_back_to_none(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    model = _stub_passing_checks(mocker)
+    model.get_default_schema.side_effect = Exception("no inspector")
+    command = _command(_file(b"x"), schema=None)
+    command.validate()  # must not raise
+    assert command._schema is None
+
+
+def test_validate_resolved_schema_checked_against_allowlist(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    model = _stub_passing_checks(mocker)
+    model.get_default_schema.return_value = "public"
+    allows = mocker.patch(
+        "superset.commands.database.uploaders.base.schema_allows_file_upload",
+        return_value=True,
+    )
+    command = _command(_file(b"x"), schema=None)
+    command.validate()
+    allows.assert_called_once_with(model, "public", engine_resolved=True)
+
+
+def test_validate_explicit_schema_checked_exactly(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    model = _stub_passing_checks(mocker)
+    allows = mocker.patch(
+        "superset.commands.database.uploaders.base.schema_allows_file_upload",
+        return_value=True,
+    )
+    command = _command(_file(b"x"), schema="other")
+    command.validate()
+    allows.assert_called_once_with(model, "other", engine_resolved=False)
+
+
+@pytest.mark.parametrize(
+    "schema,allowed,expected",
+    [
+        # user-supplied schemas match the allow-list exactly: on engines with
+        # quoted, case-sensitive identifiers (e.g. PostgreSQL), ``PUBLIC`` and
+        # ``public`` are distinct physical schemas, and case-folding here
+        # would widen the allow-list to case-variant siblings
+        ("public", {"public"}, True),
+        ("PUBLIC", {"public"}, False),
+        ("public", {"PUBLIC"}, False),
+        ("other", {"public"}, False),
+        (None, {"public"}, False),
+    ],
+)
+def test_schema_allows_file_upload_explicit_schema_exact_match(
+    schema: str | None,
+    allowed: set[str],
+    expected: bool,
+    mocker: MockerFixture,
+) -> None:
+    from superset.views.database.validators import schema_allows_file_upload
+
+    database = mocker.MagicMock()
+    database.allow_file_upload = True
+    database.get_schema_access_for_file_upload.return_value = allowed
+    assert schema_allows_file_upload(database, schema) is expected
+
+
+@pytest.mark.parametrize(
+    "schema,allowed,expected",
+    [
+        # the engine may report its default schema in a different case than
+        # the manually-inputted allow-list; the write uses the engine-reported
+        # name itself, so the case-fold cannot change the physical target
+        ("PUBLIC", {"public"}, True),
+        ("public", {"PUBLIC"}, True),
+        ("public", {"public"}, True),
+        ("other", {"public"}, False),
+        (None, {"public"}, False),
+    ],
+)
+def test_schema_allows_file_upload_engine_resolved_case_insensitive(
+    schema: str | None,
+    allowed: set[str],
+    expected: bool,
+    mocker: MockerFixture,
+) -> None:
+    from superset.views.database.validators import schema_allows_file_upload
+
+    database = mocker.MagicMock()
+    database.allow_file_upload = True
+    database.get_schema_access_for_file_upload.return_value = allowed
+    assert schema_allows_file_upload(database, schema, engine_resolved=True) is expected
+
+
 def _stub_run_environment(mocker: MockerFixture) -> MagicMock:
     """Stub everything ``run()`` needs up to the dataset lookup."""
     model = mocker.MagicMock()
     model.db_engine_spec.supports_file_upload = True
+    model.get_default_catalog.return_value = None
+    model.get_default_schema.return_value = None
     model.db_engine_spec.normalize_table_name_for_upload.return_value = ("t", None)
     mocker.patch(
         "superset.commands.database.uploaders.base.DatabaseDAO.find_by_id",

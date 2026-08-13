@@ -32,11 +32,13 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+from urllib.parse import quote
 
 from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
     PermissionViewMenuApi,
@@ -59,6 +61,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_babel import lazy_gettext as _
+from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, func as sa_func, inspect, or_
@@ -164,6 +167,42 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
             subject_ids.append(subject_id)
             seen.add(subject_id)
     return subject_ids
+
+
+def _render_permission_instructions_link(
+    *,
+    datasource_id: str = "",
+    datasource_name: str = "",
+    table_names: str = "",
+) -> Optional[str]:
+    """Render the configured ``PERMISSION_INSTRUCTIONS_LINK``.
+
+    The configured URL may contain ``{datasource_id}``, ``{datasource_name}``,
+    ``{table_names}`` and ``{username}`` placeholders, which are substituted with
+    URL-encoded values so the link can deep-link into an organization's access
+    request system. A URL with no placeholders is returned unchanged, and an
+    empty/unset config returns ``None`` (no link). Unsupplied placeholders are
+    replaced with an empty string.
+    """
+    link = get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+    if not link:
+        return None
+
+    username = ""
+    user = getattr(g, "user", None)
+    if user is not None and not getattr(user, "is_anonymous", False):
+        username = getattr(user, "username", "") or ""
+
+    for token, value in (
+        ("datasource_id", datasource_id),
+        ("datasource_name", datasource_name),
+        ("table_names", table_names),
+        ("username", username),
+    ):
+        placeholder = "{" + token + "}"
+        if placeholder in link:
+            link = link.replace(placeholder, quote(str(value), safe=""))
+    return link
 
 
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
@@ -1578,7 +1617,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.extensions import feature_flag_manager
 
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
-            return self.get_guest_user_from_request(request)
+            raw_guest_token = request.headers.get(
+                get_conf()["GUEST_TOKEN_HEADER_NAME"]
+            ) or request.form.get("guest_token")
+            if guest_user := self.get_guest_user_from_request(request):
+                return guest_user
+            if raw_guest_token is not None:
+                # Keep invalid guest tokens from falling through to Bearer auth here.
+                return None
+
+        if request.headers.get("Authorization", "").lower().startswith("bearer "):
+            try:
+                verify_jwt_in_request()
+                user = self.load_user(get_jwt_identity())
+            except Exception:  # pylint: disable=broad-except
+                return None
+            if user is None:
+                return None
+            g.user = user
+            return user
         return None
 
     def get_catalog_perm(
@@ -1935,17 +1992,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def get_datasource_access_link(  # pylint: disable=unused-argument
+    def get_datasource_access_link(
         datasource: "BaseDatasource | Explorable",
     ) -> Optional[str]:
         """
         Return the link for the denied Superset datasource.
 
+        The configured ``PERMISSION_INSTRUCTIONS_LINK`` may template the denied
+        datasource's id/name (and the current username) into the access URL.
+
         :param datasource: The denied Superset datasource
         :returns: The access URL
         """
 
-        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+        return _render_permission_instructions_link(
+            datasource_id=str(datasource.data["id"]),
+            datasource_name=str(datasource.data["name"]),
+        )
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
         self, datasource: "BaseDatasource | Explorable"
@@ -1964,6 +2027,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 "link": self.get_datasource_access_link(datasource),
                 "datasource": datasource.data["id"],
                 "datasource_name": datasource.data["name"],
+                # Owner display names give the viewer someone to contact for
+                # access; sorted for a deterministic payload.
+                "owners": sorted(
+                    str(owner) for owner in getattr(datasource, "owners", []) or []
+                ),
             },
         )
 
@@ -2000,17 +2068,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             },
         )
 
-    def get_table_access_link(  # pylint: disable=unused-argument
-        self, tables: set["Table"]
-    ) -> Optional[str]:
+    def get_table_access_link(self, tables: set["Table"]) -> Optional[str]:
         """
         Return the access link for the denied SQL tables.
+
+        The configured ``PERMISSION_INSTRUCTIONS_LINK`` may template the denied
+        table names (and the current username) into the access URL.
 
         :param tables: The set of denied SQL tables
         :returns: The access URL
         """
 
-        return get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
+        # Build display names from the raw parts: Table.__str__ URL-encodes
+        # each segment, and the renderer encodes the whole value again, so
+        # using it here would double-encode. Sorted for deterministic links.
+        return _render_permission_instructions_link(
+            table_names=",".join(
+                sorted(
+                    ".".join(
+                        part
+                        for part in (table.catalog, table.schema, table.table)
+                        if part
+                    )
+                    for table in tables
+                )
+            ),
+        )
 
     def get_user_datasources(self) -> list["BaseDatasource"]:
         """
@@ -3008,7 +3091,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning(
                 "Dataset has no database will retry with database_id to set permission"
             )
-            database = self.session.query(Database).get(target.database_id)
+            database = self.session.get(Database, target.database_id)
             dataset_perm = self.get_dataset_perm(
                 target.id, target.table_name, database.database_name
             )
@@ -3889,6 +3972,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if query in self.session:
                 self.session.expunge(query)
 
+        # When only ``database`` is provided, enforce database-level access
+        # here so the call is not a no-op.
+        if database and not (table or query):
+            if not self.can_access_database(database):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                        message=_(
+                            "You need access to the following database: %(name)s",
+                            name=database.database_name,
+                        ),
+                        level=ErrorLevel.WARNING,
+                    )
+                )
+
         if database and table or query:
             if query:
                 # Type narrow: only SQL Lab Query objects have .database attribute
@@ -3967,6 +4065,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                 "could not be fully parsed. Qualify tables "
                                 "explicitly and avoid dynamic SQL inside "
                                 "stored-procedure or vendor-specific calls."
+                            ),
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
+                # Statements that rebind how unqualified table names resolve
+                # (``USE``, ``SET SCHEMA``, or a ``search_path`` change) make
+                # the qualification below diverge from what the engine uses at
+                # execution time, so reject them regardless of engine.
+                if force_dataset_match and parse_result.script.changes_default_schema():
+                    raise SupersetSecurityException(
+                        SupersetError(
+                            error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                            message=_(
+                                "SQL Lab cannot authorise a script that "
+                                "changes the schema used to resolve "
+                                "unqualified table names (e.g. USE or "
+                                "search_path changes). Qualify tables "
+                                "explicitly instead."
                             ),
                             level=ErrorLevel.ERROR,
                         )
@@ -4253,6 +4369,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 if self.is_viewer(chart):
                     return
             elif chart.datasource and self.can_access_datasource(chart.datasource):
+                return
+
+            # An embedded guest may access a member chart of a dashboard their
+            # guest token grants. Embedded dashboards render their member charts
+            # client-side, so the chart definitions must be served even though a
+            # guest holds no standalone datasource grant. The chart's dataset
+            # must still satisfy any allowlist the token carries, and data
+            # queries are re-checked through the datasource branch above (which
+            # receives the dashboard context in the chart-data form_data).
+            if (
+                is_feature_enabled("EMBEDDED_SUPERSET")
+                and self.is_guest_user()
+                and any(
+                    self.has_guest_access(dashboard_) for dashboard_ in chart.dashboards
+                )
+                and self._guest_token_allows_dataset(
+                    chart.datasource.id if chart.datasource else None
+                )
+            ):
                 return
 
             raise SupersetSecurityException(self.get_chart_access_error_object(chart))
@@ -4812,6 +4947,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return user
         return None
 
+    def _guest_token_allows_dataset(self, datasource_id: Optional[int]) -> bool:
+        """Return whether the current guest token permits this dataset.
+
+        A token without a ``datasets`` allowlist permits every dataset
+        (backward compatible). A token that carries one permits only the listed
+        integer IDs; a malformed allowlist permits nothing. Non-guest callers
+        are unaffected: they hold no guest token and always get ``True``.
+        """
+        guest_user = self.get_current_guest_user_if_guest()
+        if not guest_user:
+            return True
+        allowed_datasets: Optional[list[int]] = guest_user.guest_token.get("datasets")
+        if allowed_datasets is None:
+            return True
+        return (
+            isinstance(allowed_datasets, list)
+            and all(isinstance(d, int) for d in allowed_datasets)
+            and datasource_id in allowed_datasets
+        )
+
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
         if not user:
@@ -4985,7 +5140,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def register_views(self) -> None:
         from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
 
-        if self.register_superset_auth_view:
+        # AUTH_REMOTE_USER has no interactive login form to render: the whole
+        # point is that an upstream proxy already authenticated the request and
+        # passes the identity via a header/env var, so FlaskAppBuilder's
+        # AuthRemoteUserView performs a silent GET-time login with no UI. That
+        # view registers at the same "/login/" route as SupersetAuthView, and
+        # since both add distinct Flask endpoints for the same URL rule,
+        # whichever gets registered first wins the dispatch -- SupersetAuthView
+        # always wins because it's added before super().register_views() runs
+        # FlaskAppBuilder's own auth_type dispatch. That silently shadows
+        # AUTH_REMOTE_USER: the SPA login shell renders instead of the header
+        # ever being checked. Skip registering it for this auth type so
+        # FlaskAppBuilder's AuthRemoteUserView actually claims the route.
+        if self.register_superset_auth_view and self.auth_type != AUTH_REMOTE_USER:
             self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
         if self.register_superset_registeruser_view:
             self.registeruser_view = self.appbuilder.add_view_no_menu(
