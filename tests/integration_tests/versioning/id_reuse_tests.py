@@ -251,7 +251,7 @@ def test_shadow_rows_for_both_entities_share_the_id(
     assert successor.uuid in uuids, (
         f"successor's shadow rows missing under the recycled id; found {uuids}"
     )
-    assert sa.inspect(db.session.bind).has_table("slices_version")
+    assert sa.inspect(db.session.get_bind()).has_table("slices_version")
 
 
 def test_list_versions_excludes_the_predecessors_rows(

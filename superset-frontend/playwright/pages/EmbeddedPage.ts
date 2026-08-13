@@ -103,16 +103,40 @@ export class EmbeddedPage {
   /**
    * Wait for dashboard content to render inside the iframe.
    * Looks for the grid-container which indicates charts are loading/loaded.
+   *
+   * Races the grid against the test app's `#error` box so an embed failure
+   * surfaces its message immediately, instead of blindly timing out on the
+   * grid selector and hiding the real reason.
    */
   async waitForDashboardContent(options?: { timeout?: number }): Promise<void> {
-    const frame = this.iframe;
-    await frame
+    const timeout = options?.timeout ?? EMBEDDED.DASHBOARD_RENDER;
+    const grid = this.iframe
       .locator('.grid-container, [data-test="grid-container"]')
-      .first()
-      .waitFor({
-        state: 'visible',
-        timeout: options?.timeout ?? EMBEDDED.DASHBOARD_RENDER,
-      });
+      .first();
+    const errorBox = this.page.locator(EmbeddedPage.SELECTORS.ERROR);
+
+    const ready = grid
+      .waitFor({ state: 'visible', timeout })
+      .then(() => 'ready' as const)
+      .catch(() => 'gridTimeout' as const);
+    const failed = errorBox
+      .waitFor({ state: 'visible', timeout })
+      .then(() => 'error' as const)
+      .catch(() => 'errorTimeout' as const);
+
+    const outcome = await Promise.race([ready, failed]);
+    if (outcome === 'ready') return;
+    if (outcome === 'error') {
+      const message = (await errorBox.textContent())?.trim() || 'unknown error';
+      throw new Error(`Embedded dashboard failed to render: ${message}`);
+    }
+    const status = (
+      await this.page.locator(EmbeddedPage.SELECTORS.STATUS).textContent()
+    )?.trim();
+    throw new Error(
+      `Embedded dashboard did not render within ${timeout}ms ` +
+        `(status: ${status ?? 'unknown'})`,
+    );
   }
 
   /**
