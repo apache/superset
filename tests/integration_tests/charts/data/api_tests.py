@@ -1573,17 +1573,46 @@ class TestGetChartDataApi(BaseTestChartDataApi):
     def test_chart_data_as_guest_user(self, is_guest_user, has_guest_access):
         """
         Chart data API: Test response does not inlcude the SQL query for embedded
-        users.
+        users whose role lacks "can view query on Dashboard".
         """
         g.user.rls = []
         is_guest_user.return_value = True
         has_guest_access.return_value = True
 
-        rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
+        with mock.patch(
+            "superset.charts.data.api.security_manager.can_access",
+            side_effect=lambda permission, view: (
+                (permission, view) != ("can_view_query", "Dashboard")
+            ),
+        ):
+            rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
         excluded_key = "query"
         assert all([excluded_key not in query for query in result])  # noqa: C419
+
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_as_guest_user_allowed_to_view_query(
+        self, is_guest_user, has_guest_access
+    ):
+        """
+        Chart data API: Test response includes the SQL query for embedded users
+        whose role carries "can view query on Dashboard".
+        """
+        g.user.rls = []
+        is_guest_user.return_value = True
+        has_guest_access.return_value = True
+
+        with mock.patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ):
+            rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert all("query" in query for query in result)
 
     def test_chart_data_table_chart_with_time_grain_filter(self):
         """
