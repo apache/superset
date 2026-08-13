@@ -96,7 +96,14 @@ class ReadOnlySqlPolicy(ToolPolicy):
     name = "read_only_sql"
 
     #: Tools whose payload is SQL to execute.
-    sql_tools = frozenset({"execute_sql", "validate_sql", "run_scoped_sql"})
+    sql_tools = frozenset(
+        {
+            "execute_sql",
+            "validate_sql",
+            "run_scoped_sql",
+            "create_virtual_dataset",
+        }
+    )
 
     #: Argument names that may carry the SQL.
     sql_arguments = ("sql", "query")
@@ -122,7 +129,7 @@ class ReadOnlySqlPolicy(ToolPolicy):
         if not sql.strip():
             return Denial("The 'sql' argument is empty.")
 
-        engine = str(arguments.get("engine") or "")
+        engine = self._engine(arguments)
 
         try:
             from superset.sql.parse import SQLScript
@@ -158,6 +165,25 @@ class ReadOnlySqlPolicy(ToolPolicy):
                 "read-only. Send a plain SELECT."
             )
         return None
+
+    def _engine(self, arguments: dict[str, Any]) -> str:
+        """Resolve the parser dialect from the selected Superset database."""
+        if engine := arguments.get("engine"):
+            return str(engine)
+
+        database_id = arguments.get("database_id")
+        if not isinstance(database_id, int) or isinstance(database_id, bool):
+            return ""
+
+        try:
+            from superset.daos.database import DatabaseDAO
+
+            database = DatabaseDAO.find_by_id(database_id)
+            if database is not None:
+                return str(database.db_engine_spec.engine or "")
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Could not resolve SQL dialect for database %s", database_id)
+        return ""
 
     def _is_read_only_command(self, statement: Any) -> bool:
         """Whether a statement is one of the permitted introspection commands."""
