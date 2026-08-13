@@ -74,6 +74,10 @@ name_description = "The report schedule name."
 # :)
 description_description = "Use a nice description to give context to this Alert/Report"
 email_subject_description = "The report schedule subject line"
+include_cta_description = (
+    "Whether to include the call-to-action link back to Superset "
+    "(e.g. 'Explore in Superset') in the delivered notifications"
+)
 context_markdown_description = "Markdown description"
 crontab_description = (
     "A CRON expression."
@@ -269,6 +273,11 @@ class ReportSchedulePostSchema(Schema):
         dump_default=None,
     )
     force_screenshot = fields.Boolean(dump_default=False)
+    include_cta = fields.Boolean(
+        dump_default=True,
+        allow_none=True,
+        metadata={"description": include_cta_description},
+    )
     custom_width = fields.Integer(
         metadata={
             "description": _("Custom width of the screenshot in pixels"),
@@ -482,6 +491,11 @@ class ReportSchedulePutSchema(Schema):
     )
     extra = fields.Dict(dump_default=None)
     force_screenshot = fields.Boolean(dump_default=False)
+    include_cta = fields.Boolean(
+        dump_default=True,
+        allow_none=True,
+        metadata={"description": include_cta_description},
+    )
 
     custom_width = fields.Integer(
         metadata={

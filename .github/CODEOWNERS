@@ -1,22 +1,3 @@
-# Notify all committers of DB migration changes, per SIP-59
-
-/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho @sadpandajoe @rusackas
-
-# Notify some committers of changes in the components
-
-/superset-frontend/src/components/Select/ @michael-s-molina @geido @kgabryje
-/superset-frontend/src/components/MetadataBar/ @michael-s-molina @geido @kgabryje
-/superset-frontend/src/components/DropdownContainer/ @michael-s-molina @geido @kgabryje
-
-# Notify Helm Chart maintainers about changes in it
-
-/helm/superset/ @dpgaspar @villebro @nytai @michael-s-molina @mistercrunch @rusackas @Antonio-RiveroMartnez @hainenber
-
-# Notify E2E test maintainers of changes
-
-/superset-frontend/playwright/ @sadpandajoe @geido @eschutho @rusackas @mistercrunch
-/superset-frontend/cypress-base/ @sadpandajoe @geido @eschutho @rusackas @mistercrunch
-
 # Notify PMC members of changes to GitHub Actions
 
 /.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @sha174n @dpgaspar @sadpandajoe @hainenber
@@ -30,15 +11,11 @@
 
 /.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @kgabryje @dpgaspar @sha174n @Antonio-RiveroMartnez
 
-# Maps are a finicky contribution process we care about
+# Maps are fragile and political. GeoJson edits MUST be made in the Jupyter notebook or they'll be overwritten.
 
 **/*.geojson @villebro @rusackas
 **/*.ipynb @villebro @rusackas
 /superset-frontend/plugins/plugin-chart-country-map/ @villebro @rusackas
-
-# Notify translation maintainers of changes to translations
-
-/superset/translations/ @sfirke @rusackas @villebro @sadpandajoe @hainenber
 
 # Notify PMC members of changes to extension-related files
 
