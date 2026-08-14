@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Generator
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -140,7 +140,9 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
         ) as mock_factory_cls,
     ):
         mock_command_cls.return_value.run.return_value = query_result
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -419,7 +421,9 @@ async def test_get_table_unknown_filter_operator_passes_through(
         ) as mock_factory_cls,
     ):
         mock_command_cls.return_value.run.return_value = query_result
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -472,7 +476,9 @@ async def test_get_table_unicode_filter_value_passes_through(
         ) as mock_factory_cls,
     ):
         mock_command_cls.return_value.run.return_value = query_result
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -638,3 +644,77 @@ class TestGetTableTemporalRangeFilterValidation:
             }
         )
         assert req.filters[0].val == "banana"
+
+
+@pytest.mark.asyncio
+async def test_get_table_exposes_filters_to_jinja_macros(
+    mcp_server: FastMCP,
+) -> None:
+    """get_table publishes the same Jinja inputs as other ChartDataCommand paths."""
+    from superset.common.query_object import QueryObject
+    from tests.unit_tests.charts.data.form_data_test import (
+        assert_request_dependent_jinja_macros,
+    )
+
+    mock_ds = _make_dataset(7)
+    observed: dict[str, bool] = {}
+
+    def fake_create(*_args: Any, **kwargs: Any) -> SimpleNamespace:
+        query_dict = kwargs["queries"][0]
+        query = QueryObject(
+            filters=query_dict.get("filters"),
+            time_range=query_dict.get("time_range"),
+            columns=query_dict.get("columns"),
+            metrics=query_dict.get("metrics"),
+        )
+        return SimpleNamespace(
+            queries=[query],
+            form_data=kwargs.get("form_data") or {},
+        )
+
+    def run_query(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        # get_table has no url_params; skip that chart-only assertion.
+        assert_request_dependent_jinja_macros(expected_url_param=None)
+        observed["ran"] = True
+        return {
+            "queries": [
+                {
+                    "data": [{"region": "North"}],
+                    "colnames": ["region"],
+                    "rowcount": 1,
+                }
+            ]
+        }
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            side_effect=run_query,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=fake_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 7,
+                        "metrics": ["revenue"],
+                        "dimensions": ["region"],
+                        "filters": [
+                            {"col": "region", "op": "IN", "val": ["North"]},
+                        ],
+                        "time_range": "Last week",
+                    }
+                },
+            )
+
+    assert not result.is_error
+    assert observed["ran"] is True

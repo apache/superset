@@ -111,6 +111,7 @@ def _compile_chart(
     Returns a :class:`CompileResult` with ``success=True`` when the
     query executes cleanly.
     """
+    from superset.charts.data.form_data import set_query_context_form_data
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
@@ -151,6 +152,7 @@ def _compile_chart(
             form_data=form_data,
         )
 
+        set_query_context_form_data(query_context, dataset_id, "table")
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()

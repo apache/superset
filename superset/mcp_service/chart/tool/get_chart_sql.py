@@ -28,6 +28,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -35,6 +36,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     extract_x_axis_col,
+    resolve_form_data_datasource,
     resolve_groupby,
     resolve_metrics,
     resolve_metrics_and_groupby,
@@ -185,6 +187,11 @@ def _sql_from_saved_query_context(
         query_context = ChartDataQueryContextSchema().load(qc_json)
         query_context.result_type = ChartDataResultType.QUERY
 
+        set_query_context_form_data(
+            query_context,
+            chart.datasource_id,
+            chart.datasource_type,
+        )
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
@@ -254,6 +261,11 @@ def _sql_from_form_data(
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
     query_context = _build_query_context_from_form_data(form_data, chart)
+    datasource_id, datasource_type = resolve_form_data_datasource(form_data, chart)
+    if datasource_id is None:
+        datasource_id = query_context.datasource.id
+        datasource_type = str(query_context.datasource.type)
+    set_query_context_form_data(query_context, datasource_id, datasource_type)
     command = ChartDataCommand(query_context)
     command.validate()
     result = command.run()
