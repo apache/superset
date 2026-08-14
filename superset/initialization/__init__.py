@@ -26,7 +26,16 @@ from typing import Any, Callable, TYPE_CHECKING
 import wtforms_json
 from colorama import Fore, Style
 from deprecation import deprecated
-from flask import abort, current_app, Flask, redirect, request, session, url_for
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    has_app_context,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
@@ -147,8 +156,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # pylint: disable=too-few-public-methods
             abstract = True
 
-            # Grab each call into the task and set up an app context
+            # Grab each call into the task and set up an app context, unless
+            # one is already active on this thread (e.g. Celery eager mode
+            # invoked from within an existing request/test context) - Flask-
+            # SQLAlchemy 3.x scopes db.session by the active app context's
+            # object identity rather than by thread, so pushing a redundant
+            # nested context here would silently hand the task a second,
+            # blind session unable to see the caller's uncommitted work.
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
+                if has_app_context():
+                    return task_base.__call__(self, *args, **kwargs)
                 with superset_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
@@ -1167,9 +1184,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         and ``docs/sip/authenticated-encryption-at-rest.md``).
         """
         # pylint: disable=import-outside-toplevel
-        from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine
-
         from superset.utils.encrypt import (
+            BackwardCompatibleAesEngine,
             DEFAULT_ENCRYPTION_ENGINE_NAME,
             resolve_encryption_engine,
         )
@@ -1183,7 +1199,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # An unrecognized value already fails closed at field construction
             # (see ``resolve_encryption_engine``); nothing more to warn about.
             return
-        if engine_cls is not AesEngine:
+        # "aes" resolves to BackwardCompatibleAesEngine (see superset.utils.encrypt),
+        # not the raw sqlalchemy_utils AesEngine, so check against that subclass.
+        if engine_cls is not BackwardCompatibleAesEngine:
             return
         self._log_config_warning(
             "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE is set to the legacy 'aes' "
@@ -1285,7 +1303,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     default=json.pessimistic_json_iso_dttm_ser,
                 )
 
-            return {"bootstrap_data": serialize_bootstrap_data}
+            return {
+                "bootstrap_data": serialize_bootstrap_data,
+                "is_feature_enabled": feature_flag_manager.is_feature_enabled,
+            }
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""
