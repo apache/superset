@@ -253,7 +253,11 @@ def _log_scope_denial(
     resource_scope = _required_resource_scope(
         class_permission_name, method_permission_name
     )
-    scope_desc = resource_scope or required_scope
+    scope_desc = (
+        resource_scope
+        or required_scope
+        or f"unmapped method permission '{method_permission_name}'"
+    )
     if log_denial:
         logger.warning(
             "Scope denied for user %s: token lacks required scope "
