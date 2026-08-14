@@ -318,28 +318,29 @@ def import_tag(
 
     for tag_name in target_tag_names:
         try:
-            tag = existing_tags.get(tag_name)
+            with db_session.begin_nested():
+                tag = existing_tags.get(tag_name)
 
-            # If tag does not exist, create it
-            if tag is None:
-                description = tag_descriptions.get(tag_name, None)
-                tag = Tag(name=tag_name, description=description, type="custom")
-                db_session.add(tag)
-                existing_tags[tag_name] = tag  # Update the existing_tags dictionary
+                # If tag does not exist, create it
+                if tag is None:
+                    description = tag_descriptions.get(tag_name, None)
+                    tag = Tag(name=tag_name, description=description, type="custom")
+                    db_session.add(tag)
+                    existing_tags[tag_name] = tag  # Update the existing_tags dict
 
-            # Ensure the association with the object
-            tagged_object = (
-                db_session.query(TaggedObject)
-                .filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id)
-                .first()
-            )
-            if not tagged_object:
-                new_tagged_object = TaggedObject(
-                    tag_id=tag.id, object_id=object_id, object_type=object_type
+                # Ensure the association with the object
+                tagged_object = (
+                    db_session.query(TaggedObject)
+                    .filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id)
+                    .first()
                 )
-                db_session.add(new_tagged_object)
+                if not tagged_object:
+                    new_tagged_object = TaggedObject(
+                        tag_id=tag.id, object_id=object_id, object_type=object_type
+                    )
+                    db_session.add(new_tagged_object)
 
-            new_tag_ids.append(tag.id)
+                new_tag_ids.append(tag.id)
 
         except SQLAlchemyError as err:
             logger.error(
@@ -349,7 +350,7 @@ def import_tag(
                 object_id,
                 err,
             )
-            continue  # No need for manual rollback, handled by transaction decorator
+            continue  # SAVEPOINT rolled back, session is clean
 
     # Remove old tags not in the new config
     for tag in existing_assocs:
