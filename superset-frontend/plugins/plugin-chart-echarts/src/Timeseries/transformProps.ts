@@ -82,6 +82,7 @@ import {
   extractShowValueIndexes,
   extractTooltipKeys,
   getAreaScaledSymbolSize,
+  getAxisLabelInterval,
   getAxisType,
   getColtypesMapping,
   getHorizontalLegendAvailableWidth,
@@ -1204,6 +1205,10 @@ export default function transformProps(
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
+  const {
+    interval: xAxisLabelIntervalValue,
+    showAllLabels: showAllXAxisLabels,
+  } = getAxisLabelInterval(xAxisLabelInterval);
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
@@ -1256,10 +1261,14 @@ export default function transformProps(
       // At 0° rotation, keep hideOverlap to prevent long labels
       // from overlapping each other, with showMaxLabel to ensure
       // the last data point label stays visible (#37181).
-      hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
+      // "All" has to beat hideOverlap, which would otherwise hide the labels
+      // the user explicitly asked to see.
+      hideOverlap: showAllXAxisLabels
+        ? false
+        : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
       formatter: deduplicatedFormatter,
       rotate: xAxisLabelRotation,
-      interval: xAxisLabelInterval,
+      interval: xAxisLabelIntervalValue,
       // Force the boundary labels on non-rotated time axes so the first
       // and last dates stay visible: hideOverlap can hide the last label,
       // and a min date that falls between "nice" ticks otherwise renders

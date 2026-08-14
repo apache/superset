@@ -66,6 +66,7 @@ import {
   extractSeries,
   extractShowValueIndexes,
   extractTooltipKeys,
+  getAxisLabelInterval,
   getAxisType,
   getColtypesMapping,
   getHorizontalLegendAvailableWidth,
@@ -654,6 +655,10 @@ export default function transformProps(
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
+  const {
+    interval: xAxisLabelIntervalValue,
+    showAllLabels: showAllXAxisLabels,
+  } = getAxisLabelInterval(xAxisLabelInterval);
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
@@ -767,10 +772,14 @@ export default function transformProps(
       nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
       axisLabel: {
-        hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
+        // "All" has to beat hideOverlap, which would otherwise hide the labels
+        // the user explicitly asked to see.
+        hideOverlap: showAllXAxisLabels
+          ? false
+          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
         formatter: deduplicatedFormatter,
         rotate: xAxisLabelRotation,
-        interval: xAxisLabelInterval,
+        interval: xAxisLabelIntervalValue,
         ...(showMaxLabel && {
           showMaxLabel: true,
           alignMaxLabel: 'right',

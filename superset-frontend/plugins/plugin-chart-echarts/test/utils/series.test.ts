@@ -35,6 +35,7 @@ import {
   extractTooltipKeys,
   formatSeriesName,
   getAreaScaledSymbolSize,
+  getAxisLabelInterval,
   getAxisType,
   getChartPadding,
   getLegendProps,
@@ -1893,4 +1894,34 @@ test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => 
   expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
     midAreaSize,
   );
+});
+
+test('getAxisLabelInterval normalizes the control value for ECharts (#36325)', () => {
+  // 'All' is stored as a string by the SelectControl
+  expect(getAxisLabelInterval('0')).toEqual({
+    interval: 0,
+    showAllLabels: true,
+  });
+  expect(getAxisLabelInterval('auto')).toEqual({
+    interval: 'auto',
+    showAllLabels: false,
+  });
+  expect(getAxisLabelInterval(undefined)).toEqual({
+    interval: 'auto',
+    showAllLabels: false,
+  });
+  expect(getAxisLabelInterval(null)).toEqual({
+    interval: 'auto',
+    showAllLabels: false,
+  });
+  // a nonsense value falls back to auto rather than breaking the axis
+  expect(getAxisLabelInterval('nope')).toEqual({
+    interval: 'auto',
+    showAllLabels: false,
+  });
+  // an explicit "every nth" stays a number but is not "show all"
+  expect(getAxisLabelInterval(2)).toEqual({
+    interval: 2,
+    showAllLabels: false,
+  });
 });

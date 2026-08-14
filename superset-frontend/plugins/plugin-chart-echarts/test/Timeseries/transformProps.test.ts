@@ -2437,3 +2437,31 @@ test('honors the snake_case flag the compare-chart migration stores in params', 
     [BASE_TIMESTAMP + 300000000, 2],
   ]);
 });
+
+test('x-axis label interval "All" shows every label instead of being ignored (#36325)', () => {
+  // The control stores "All" as the string '0', which ECharts' axisLabel
+  // interval does not accept, so the setting silently did nothing.
+  const chartProps = createTestChartProps({
+    formData: { ...formData, xAxisLabelInterval: '0' },
+    queriesData,
+  });
+
+  const xAxis = transformProps(chartProps).echartOptions.xAxis as {
+    axisLabel: { interval: number | string; hideOverlap: boolean };
+  };
+
+  expect(xAxis.axisLabel.interval).toBe(0);
+  // asking for every label has to beat hideOverlap
+  expect(xAxis.axisLabel.hideOverlap).toBe(false);
+});
+
+test('x-axis label interval defaults to auto (#36325)', () => {
+  const chartProps = createTestChartProps({ formData, queriesData });
+
+  const xAxis = transformProps(chartProps).echartOptions.xAxis as {
+    axisLabel: { interval: number | string; hideOverlap: boolean };
+  };
+
+  expect(xAxis.axisLabel.interval).toBe('auto');
+  expect(xAxis.axisLabel.hideOverlap).toBe(true);
+});

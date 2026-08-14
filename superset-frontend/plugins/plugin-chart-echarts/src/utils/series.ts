@@ -1116,3 +1116,28 @@ export function groupData(data: DataRecord[], by?: string | null) {
   }
   return seriesMap;
 }
+
+/**
+ * Normalize the "X Axis Label Interval" control for ECharts.
+ *
+ * The control offers Auto and All, storing All as the *string* `'0'`, while
+ * ECharts' `axisLabel.interval` only understands `'auto'` or a number — a
+ * string is ignored, so choosing All silently changed nothing. Asking for every
+ * label also has to win over `hideOverlap`, which would otherwise drop the very
+ * labels the user asked to see, so the caller is told when that happened.
+ */
+export function getAxisLabelInterval(interval?: string | number | null): {
+  interval: number | 'auto';
+  showAllLabels: boolean;
+} {
+  if (interval === undefined || interval === null || interval === 'auto') {
+    return { interval: 'auto', showAllLabels: false };
+  }
+
+  const parsed = Number(interval);
+  if (Number.isNaN(parsed)) {
+    return { interval: 'auto', showAllLabels: false };
+  }
+
+  return { interval: parsed, showAllLabels: parsed === 0 };
+}
