@@ -24,6 +24,7 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
 from superset.extensions import encrypted_field_factory
 from superset.utils.encrypt import (
     AbstractEncryptedFieldAdapter,
+    BackwardCompatibleAesEngine,
     ReEncryptStats,
     SecretsMigrator,
     SQLAlchemyUtilsAdapter,
@@ -202,8 +203,15 @@ class EncryptedFieldTest(SupersetTestCase):
         self.app.config["SECRET_KEY"] = key_b
 
         # Step 4: Re-encrypt with KEY_B (simulating SecretsMigrator logic)
-        # Decrypt using previous key
-        previous_field = EncryptedType(type_in=field.underlying_type, key=key_a)
+        # Decrypt using previous key, with the same engine the value was
+        # written under (BackwardCompatibleAesEngine, the default "aes"
+        # engine) -- mirroring how SecretsMigrator._source_decryptors tries
+        # the column's own configured engine first.
+        previous_field = EncryptedType(
+            type_in=field.underlying_type,
+            key=key_a,
+            engine=BackwardCompatibleAesEngine,
+        )
         decrypted_with_prev = previous_field.process_result_value(encrypted_a, dialect)
         assert decrypted_with_prev == test_value
 

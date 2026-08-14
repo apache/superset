@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    merge_table_column_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
@@ -60,6 +61,20 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+def _get_existing_form_data(chart: Any) -> dict[str, Any]:
+    """Return a chart's saved form data, treating malformed params as empty."""
+    if not getattr(chart, "params", None):
+        return {}
+    try:
+        parsed = json.loads(chart.params)
+    except (ValueError, TypeError):
+        parsed = None
+    if not isinstance(parsed, dict):
+        logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
+        return {}
+    return parsed
 
 
 def _validation_error_response(message: str, details: str) -> GenerateChartResponse:
@@ -186,7 +201,14 @@ def _merge_replacement_config(
     parsed_config: Any,
 ) -> dict[str, Any]:
     """Merge a replacement config, honoring an explicit empty filter list."""
-    merged = {**existing_form_data, **new_form_data}
+    merged = {
+        **{
+            key: value
+            for key, value in existing_form_data.items()
+            if key != "column_config"
+        },
+        **new_form_data,
+    }
     if getattr(parsed_config, "filters", None) == []:
         merged.pop("adhoc_filters", None)
     return merged
@@ -214,6 +236,7 @@ def _build_update_payload(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
+        merge_table_column_config(_get_existing_form_data(chart), new_form_data)
 
         chart_name = (
             request.chart_name
@@ -281,15 +304,7 @@ def _build_preview_form_data(
     GenerateChartResponse error when neither config nor chart_name is given.
     ``parsed_config`` is the pre-parsed chart config from the caller.
     """
-    existing_form_data: dict[str, Any] = {}
-    if getattr(chart, "params", None):
-        try:
-            existing_form_data = json.loads(chart.params) or {}
-        except (ValueError, TypeError):
-            logger.warning(
-                "Failed to parse existing chart.params for chart %s", chart.id
-            )
-            existing_form_data = {}
+    existing_form_data = _get_existing_form_data(chart)
 
     effective_dataset_id = (
         request.dataset_id
@@ -302,6 +317,7 @@ def _build_preview_form_data(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
+        merge_table_column_config(existing_form_data, new_form_data)
         # In the preview, an explicit filters list, including [], replaces saved
         # filters. An omitted filters field preserves them through the shallow merge.
         merged = _merge_replacement_config(
