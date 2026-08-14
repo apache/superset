@@ -464,8 +464,11 @@ export default typedMemo(function DataTable<D extends object>({
     const foundPageSizeIndex = pageSizeOptions.findIndex(
       ([option]) => option >= resultCurrentPageSize,
     );
-    if (foundPageSizeIndex === -1) {
-      resultCurrentPageSize = 0;
+    if (foundPageSizeIndex === -1 && pageSizeOptions.length > 0) {
+      // No option is large enough for the active page size: fall back to the
+      // largest available one instead of 0, which renders as an empty
+      // selection because it is not a valid server pagination page size.
+      resultCurrentPageSize = pageSizeOptions[pageSizeOptions.length - 1][0];
     }
     resultCurrentPage = serverPaginationData?.currentPage ?? 0;
     resultOnPageChange = (pageNumber: number) =>
