@@ -187,14 +187,14 @@ async def test_query_dataset_exposes_filters_to_jinja_macros(
     mcp_server: FastMCP,
 ) -> None:
     """The MCP query path populates the form data read by dataset Jinja macros."""
+    from superset.common.query_object import QueryObject
+
     dataset = _make_dataset()
-    query = Mock()
-    query.to_dict.return_value = {
-        "filters": [{"col": "category", "op": "IN", "val": ["Electronics"]}],
-        "columns": ["category"],
-        "metrics": ["count"],
-    }
-    query.time_range = None
+    query = QueryObject(
+        filters=[{"col": "category", "op": "IN", "val": ["Electronics"]}],
+        columns=["category"],
+        metrics=["count"],
+    )
     query_context = SimpleNamespace(queries=[query], form_data={})
     observed: dict[str, Any] = {}
 

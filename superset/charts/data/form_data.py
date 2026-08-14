@@ -31,11 +31,17 @@ def set_form_data(form_data: dict[str, Any]) -> None:
     g.form_data = form_data
 
 
-def _serialize_query(query: QueryObject) -> dict[str, Any]:
+def _serialize_query(
+    query: QueryObject,
+    form_data: dict[str, Any],
+) -> dict[str, Any]:
     """Serialize query fields consumed by the Jinja form-data fallback."""
     query_data = dict(query.to_dict())
+    query_data["filters"] = query.filter
     if query.time_range is not None:
         query_data["time_range"] = query.time_range
+    if url_params := form_data.get("url_params"):
+        query_data["url_params"] = url_params
     return query_data
 
 
@@ -45,13 +51,13 @@ def set_query_context_form_data(
     datasource_type: str,
 ) -> None:
     """Expose a programmatically-created query like a chart data API request."""
+    form_data = query_context.form_data or {}
     set_form_data(
         {
             "datasource": {"id": datasource_id, "type": datasource_type},
             "queries": [
-                _serialize_query(query)
-                for query in getattr(query_context, "queries", ())
+                _serialize_query(query, form_data) for query in query_context.queries
             ],
-            "form_data": getattr(query_context, "form_data", None) or {},
+            "form_data": form_data,
         }
     )

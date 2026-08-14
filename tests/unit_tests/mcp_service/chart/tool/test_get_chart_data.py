@@ -134,20 +134,20 @@ def _extract_metrics_and_groupby(
 
 def test_query_context_form_data_supports_request_dependent_jinja_macros() -> None:
     """Chart queries expose filters, URL parameters, and the datasource to Jinja."""
-    from unittest.mock import Mock
-
     from flask import current_app
 
     from superset.charts.data.form_data import set_query_context_form_data
+    from superset.common.query_object import QueryObject
     from superset.jinja_context import ExtraCache, get_dataset_id_from_context
 
-    query = Mock()
-    query.to_dict.return_value = {
-        "filters": [{"col": "region", "op": "IN", "val": ["North"]}],
-        "url_params": {"tenant": "acme"},
-    }
-    query.time_range = "Last week"
-    query_context: Any = SimpleNamespace(queries=[query], form_data={})
+    query = QueryObject(
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+        time_range="Last week",
+    )
+    query_context: Any = SimpleNamespace(
+        queries=[query],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
 
     with current_app.test_request_context():
         set_query_context_form_data(query_context, 7, "table")
@@ -1409,7 +1409,7 @@ class TestOAuthErrorRouting:
 
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class RaisingChartDataCommand:
             def __init__(self, query_context: object) -> None:
