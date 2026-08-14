@@ -408,7 +408,7 @@ class ModelListCore(BaseCore, Generic[L]):
         # including the alias) and before the DAO call, since DAO.list()
         # sorts via `getattr(model, order_column)` and would receive a
         # Python property/method instead of a SQL column otherwise.
-        if order_column is not None:
+        if order_column is not None and order_column in self._sortable_columns:
             order_column = _ORDER_COLUMN_ALIASES.get(order_column, order_column)
 
         deleted_state_bound = self._build_deleted_state_filter(deleted_state)

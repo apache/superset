@@ -1758,11 +1758,11 @@ class TestDatasetSortableColumns:
 
     def test_dataset_sortable_columns_definition(self):
         """Test that dataset sortable columns are properly defined."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
 
-        assert SORTABLE_DATASET_COLUMNS == [
+        assert DATASET_SORTABLE_COLUMNS == [
             "id",
             "table_name",
             "schema",
@@ -1771,9 +1771,9 @@ class TestDatasetSortableColumns:
             "created_on",
         ]
         # Ensure unsupported computed properties are excluded
-        assert "changed_by_name" not in SORTABLE_DATASET_COLUMNS
-        assert "database_name" not in SORTABLE_DATASET_COLUMNS
-        assert "uuid" not in SORTABLE_DATASET_COLUMNS
+        assert "changed_by_name" not in DATASET_SORTABLE_COLUMNS
+        assert "database_name" not in DATASET_SORTABLE_COLUMNS
+        assert "uuid" not in DATASET_SORTABLE_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
@@ -1805,16 +1805,16 @@ class TestDatasetSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            list_datasets,
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
+        from superset.mcp_service.dataset.tool.list_datasets import list_datasets
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
         assert "Sortable columns for" in list_datasets.__doc__
         assert "order_column" in list_datasets.__doc__
-        for col in SORTABLE_DATASET_COLUMNS:
+        for col in DATASET_SORTABLE_COLUMNS:
             assert col in list_datasets.__doc__
 
     @patch("superset.daos.dataset.DatasetDAO.list")

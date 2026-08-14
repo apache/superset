@@ -66,15 +66,6 @@ DEFAULT_DATASET_COLUMNS = [
     "changed_on_humanized",
 ]
 
-SORTABLE_DATASET_COLUMNS = [
-    "id",
-    "table_name",
-    "schema",
-    "changed_on",
-    "changed_on_delta_humanized",
-    "created_on",
-]
-
 _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
 
 

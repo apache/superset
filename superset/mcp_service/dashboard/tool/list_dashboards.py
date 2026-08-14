@@ -56,16 +56,6 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "changed_on_humanized",
 ]
 
-SORTABLE_DASHBOARD_COLUMNS = [
-    "id",
-    "dashboard_title",
-    "slug",
-    "published",
-    "changed_on",
-    "changed_on_delta_humanized",
-    "created_on",
-]
-
 _DEFAULT_LIST_DASHBOARDS_REQUEST = ListDashboardsRequest()
 
 

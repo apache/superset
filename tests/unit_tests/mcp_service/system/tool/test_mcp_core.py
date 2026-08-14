@@ -332,8 +332,16 @@ def test_model_list_tool_rejects_unknown_order_column_even_with_alias_declared()
 def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared():
     """When sortable_columns is not provided, order_column is passed through to the DAO
     without validation (backward-compatible behaviour)."""
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, order_column=None, **kwargs):
+            captured["order_column"] = order_column
+            return [], 0
+
     tool = ModelListCore(
-        dao_class=DummyDAO,
+        dao_class=CapturingDAO,
         output_schema=DummyOutputSchema,
         item_serializer=dummy_serializer,
         filter_type=None,
@@ -343,8 +351,10 @@ def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared(
         output_list_schema=DummyListSchema,
         # sortable_columns intentionally omitted
     )
-    # Should not raise even though "name" is not in the (empty) sortable list
-    tool.run_tool(order_column="name")
+    # The no-allowlist path preserves the order column without alias resolution.
+    tool.run_tool(order_column="changed_on_delta_humanized")
+
+    assert captured["order_column"] == "changed_on_delta_humanized"
 
 
 def test_model_list_tool_injects_current_user_id_for_created_by_me():

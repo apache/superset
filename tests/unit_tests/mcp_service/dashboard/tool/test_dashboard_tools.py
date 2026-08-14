@@ -1457,11 +1457,11 @@ class TestDashboardSortableColumns:
 
     def test_dashboard_sortable_columns_definition(self):
         """Test that dashboard sortable columns are properly defined."""
-        from superset.mcp_service.dashboard.tool.list_dashboards import (
-            SORTABLE_DASHBOARD_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DASHBOARD_SORTABLE_COLUMNS,
         )
 
-        assert SORTABLE_DASHBOARD_COLUMNS == [
+        assert DASHBOARD_SORTABLE_COLUMNS == [
             "id",
             "dashboard_title",
             "slug",
@@ -1471,8 +1471,8 @@ class TestDashboardSortableColumns:
             "created_on",
         ]
         # Ensure unsupported computed properties are excluded
-        assert "changed_by_name" not in SORTABLE_DASHBOARD_COLUMNS
-        assert "uuid" not in SORTABLE_DASHBOARD_COLUMNS
+        assert "changed_by_name" not in DASHBOARD_SORTABLE_COLUMNS
+        assert "uuid" not in DASHBOARD_SORTABLE_COLUMNS
 
     @patch("superset.daos.dashboard.DashboardDAO.list")
     @pytest.mark.asyncio
@@ -1501,16 +1501,16 @@ class TestDashboardSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
-        from superset.mcp_service.dashboard.tool.list_dashboards import (
-            list_dashboards,
-            SORTABLE_DASHBOARD_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DASHBOARD_SORTABLE_COLUMNS,
         )
+        from superset.mcp_service.dashboard.tool.list_dashboards import list_dashboards
 
         # Check list_dashboards docstring for sortable columns documentation
         assert list_dashboards.__doc__ is not None
         assert "Sortable columns for" in list_dashboards.__doc__
         assert "order_column" in list_dashboards.__doc__
-        for col in SORTABLE_DASHBOARD_COLUMNS:
+        for col in DASHBOARD_SORTABLE_COLUMNS:
             assert col in list_dashboards.__doc__
 
     @patch("superset.daos.dashboard.DashboardDAO.list")
