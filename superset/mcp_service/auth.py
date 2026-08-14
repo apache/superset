@@ -30,6 +30,7 @@ ensuring MCP tools respect the same permission model as the REST API.
 
 import logging
 from contextlib import AbstractContextManager
+from contextvars import ContextVar
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import g
@@ -43,6 +44,15 @@ if TYPE_CHECKING:
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# The resolved user's id for the current tool call, set by
+# _setup_user_context(). g.user is only valid for the lifetime of the
+# per-call app context pushed by _get_app_context_manager() (see its
+# docstring) and is gone by the time LoggingMiddleware's on_call_tool/
+# on_message finally-blocks run after call_next() returns. This ContextVar
+# survives that context pop (mirrors _mcp_call_id_var in middleware.py) so
+# audit logging can attribute the call to the right user.
+_mcp_user_id_var: ContextVar[int | None] = ContextVar("mcp_user_id", default=None)
 
 # Constants for RBAC permission attributes (mirrors FAB conventions)
 PERMISSION_PREFIX = "can_"
@@ -280,9 +290,9 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     return validate_chart_dataset(chart, check_access=True)
 
 
-def _setup_user_context() -> User | None:
+def _resolve_user_with_retry() -> User | None:
     """
-    Set up user context for MCP tool execution.
+    Resolve the current user, retrying once on a stale DB connection.
 
     Includes retry logic for stale database connections (e.g., SSL dropped
     by proxy/load balancer after idle periods). On OperationalError, the
@@ -291,15 +301,7 @@ def _setup_user_context() -> User | None:
     Returns:
         User object with roles and groups loaded, or None if no Flask context
     """
-    # Clear stale g.user to prevent user impersonation across
-    # tool calls when no per-request middleware refreshes it.
-    # Only clear in app-context-only mode; preserve g.user when
-    # a request context is active (external middleware set it).
     from flask import has_request_context
-
-    if not has_request_context():
-        g.pop("user", None)
-
     from sqlalchemy.exc import OperationalError
 
     user = None  # Ensure defined before loop in case of unexpected exit
@@ -316,7 +318,7 @@ def _setup_user_context() -> User | None:
             if hasattr(user, "groups"):
                 user_groups = user.groups  # noqa: F841
 
-            break
+            return user
         except RuntimeError as e:
             # No Flask application context (e.g., prompts before middleware runs)
             if "application context" in str(e):
@@ -350,7 +352,36 @@ def _setup_user_context() -> User | None:
                 g.pop("user", None)
             raise
 
+    return user
+
+
+def _setup_user_context() -> User | None:
+    """
+    Set up user context for MCP tool execution.
+
+    Returns:
+        User object with roles and groups loaded, or None if no Flask context
+    """
+    from flask import has_request_context
+
+    # Clear stale g.user to prevent user impersonation across
+    # tool calls when no per-request middleware refreshes it.
+    # Only clear in app-context-only mode; preserve g.user when
+    # a request context is active (external middleware set it).
+    if not has_request_context():
+        g.pop("user", None)
+    # Clear any user_id left over from a previous call in this context
+    # (e.g. sequential calls sharing one asyncio task) so a failed/
+    # unauthenticated lookup below doesn't inherit a stale value.
+    _mcp_user_id_var.set(None)
+
+    user = _resolve_user_with_retry()
+    if user is None:
+        return None
+
     g.user = user
+    if (user_id := getattr(user, "id", None)) is not None:
+        _mcp_user_id_var.set(user_id)
     return user
 
 
