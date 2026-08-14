@@ -22,6 +22,7 @@ import pytest
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.views.datasource.utils import get_limit_clause
 
 
 @patch("superset.views.datasource.utils.get_limit_clause")
@@ -215,3 +216,26 @@ def test_get_samples_count_star_access_denied(mock_get_limit_clause: MagicMock):
         mock_samples_context.raise_for_access.assert_called_once()
         # Verify count context was also checked
         mock_count_context.raise_for_access.assert_called_once()
+
+
+@pytest.mark.parametrize("per_page", [5000, 10000])
+def test_get_limit_clause_honors_per_page_above_samples_row_limit(
+    per_page: int,
+) -> None:
+    """Regression guard: the Explore Data panel "Samples" tab silently caps at
+    ``SAMPLES_ROW_LIMIT`` (config default 1000).
+
+    The samples row-limit dropdown offers 5k/10k options and the samples
+    endpoint's ``SamplesRequestSchema`` accepts ``per_page`` up to 10000, yet
+    ``get_limit_clause`` resets any ``per_page`` above ``SAMPLES_ROW_LIMIT``
+    back down to it. A user who selects 5k/10k therefore silently receives at
+    most 1000 rows, with no signal that the requested limit was overridden.
+
+    The rows a user is allowed to request and the rows actually returned must
+    stay consistent: a ``per_page`` the endpoint accepts must not be silently
+    reduced below the request.
+    """
+    assert get_limit_clause(page=1, per_page=per_page) == {
+        "row_offset": 0,
+        "row_limit": per_page,
+    }
