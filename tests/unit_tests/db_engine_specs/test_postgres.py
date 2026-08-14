@@ -423,10 +423,7 @@ def test_get_timestamp_expr_string_column_casts_to_timestamp() -> None:
     """DB Eng Specs (postgres): temporal string columns are cast before truncation."""
     col = column("event_timestamp", type_=types.String())
     expr = spec.get_timestamp_expr(col, None, "P1D")
-    assert (
-        _compile(expr)
-        == "DATE_TRUNC('day', CAST(event_timestamp AS TIMESTAMP))"
-    )
+    assert _compile(expr) == "DATE_TRUNC('day', CAST(event_timestamp AS TIMESTAMP))"
 
 
 def test_get_timestamp_expr_string_column_without_grain_not_cast() -> None:
@@ -441,8 +438,7 @@ def test_get_timestamp_expr_epoch_string_column_not_cast() -> None:
     col = column("event_timestamp", type_=types.String())
     expr = spec.get_timestamp_expr(col, "epoch_s", "P1D")
     assert _compile(expr) == (
-        "DATE_TRUNC('day', "
-        "(timestamp 'epoch' + event_timestamp * interval '1 second'))"
+        "DATE_TRUNC('day', (timestamp 'epoch' + event_timestamp * interval '1 second'))"
     )
 
 
