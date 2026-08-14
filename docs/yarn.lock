@@ -6164,10 +6164,10 @@ ansis@^3.2.0:
   resolved "https://registry.yarnpkg.com/ansis/-/ansis-3.17.0.tgz#fa8d9c2a93fe7d1177e0c17f9eeb562a58a832d7"
   integrity sha512-0qWUglt9JEqLFr3w1I1pbrChn1grhaiAR2ocX1PP/flRmxgtwTzPFFFnfIlD6aMOLQZgSuCRlidD70lvx8yhzg==
 
-antd@^6.5.3:
-  version "6.5.3"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-6.5.3.tgz#3c7d2ec4a20be116f72b7fbbdb4497d65ffd6dae"
-  integrity sha512-Q5r8sztf9Yk9B70bSUjnPYMCJ4A/eZM7uMoTj8UAhlSKR9aftjEuBEPcNSmRux7hB+87rxO8vN1X4HNjR97qyQ==
+antd@^6.5.4:
+  version "6.5.4"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-6.5.4.tgz#b41665e86a5f46ca761abd3b0abef7460116ca0d"
+  integrity sha512-jchA6i0rEwHjLpgC+l6HeLHP0gL4Q4yjs6Mxqt6PlhGD5ArxCj3ZH+fKFbNquCtd6Rlzzi+emfNFpP2dGLwZzg==
   dependencies:
     "@ant-design/colors" "^8.0.1"
     "@ant-design/cssinjs" "^2.1.2"
