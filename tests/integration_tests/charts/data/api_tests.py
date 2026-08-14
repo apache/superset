@@ -45,7 +45,7 @@ from superset.common.chart_data_timing import (
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.errors import SupersetErrorType
-from superset.extensions import async_query_manager_factory, db
+from superset.extensions import async_query_manager_factory, db, security_manager
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
@@ -1573,7 +1573,28 @@ class TestGetChartDataApi(BaseTestChartDataApi):
     def test_chart_data_as_guest_user(self, is_guest_user, has_guest_access):
         """
         Chart data API: Test response does not inlcude the SQL query for embedded
-        users.
+        users without the `can view query on Dashboard` permission.
+        """
+        g.user.rls = []
+        is_guest_user.return_value = True
+        has_guest_access.return_value = True
+
+        with self.deny_permission("can_view_query", "Dashboard"):
+            rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        excluded_key = "query"
+        assert all([excluded_key not in query for query in result])  # noqa: C419
+
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_as_guest_user_with_view_query_permission(
+        self, is_guest_user, has_guest_access
+    ):
+        """
+        Chart data API: Test response includes the SQL query for embedded users
+        whose role was granted `can view query on Dashboard` (issue #43100).
         """
         g.user.rls = []
         is_guest_user.return_value = True
@@ -1581,9 +1602,28 @@ class TestGetChartDataApi(BaseTestChartDataApi):
 
         rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
         data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        excluded_key = "query"
-        assert all([excluded_key not in query for query in result])  # noqa: C419
+        assert all("query" in query for query in data["result"])
+
+    @staticmethod
+    @contextmanager
+    def deny_permission(permission_name: str, view_name: str):
+        """
+        Make a single FAB permission read as denied for the current request.
+
+        The guest-user tests mock `is_guest_user` on top of a logged in Admin
+        session, so the underlying role still holds every permission. This
+        narrows the denial to the permission under test and leaves every other
+        access check (datasource access, guest access, ...) intact.
+        """
+        original_can_access = security_manager.can_access
+
+        def can_access(requested_permission: str, requested_view: str) -> bool:
+            if (requested_permission, requested_view) == (permission_name, view_name):
+                return False
+            return original_can_access(requested_permission, requested_view)
+
+        with mock.patch.object(security_manager, "can_access", can_access):
+            yield
 
     def test_chart_data_table_chart_with_time_grain_filter(self):
         """
