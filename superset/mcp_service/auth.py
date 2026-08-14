@@ -60,6 +60,7 @@ from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
 from superset.mcp_service.mcp_config import (
     default_user_resolver,
     get_mcp_api_key_enabled,
+    MCP_GUEST_ALLOWED_TOOLS,
     validate_multi_issuer_user_resolver,
 )
 from superset.mcp_service.session_scope import _mcp_session_token
@@ -244,21 +245,9 @@ def _log_scope_denial(
 
 # Default-deny allow-list for embedded guests: a guest may call only these tools,
 # regardless of MCP_RBAC_ENABLED or how the guest role (PUBLIC_ROLE_LIKE) is
-# configured. Everything else is denied, including newly added tools until listed
-# here. Sync with mcp_config.py.
-_DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(
-    {
-        # Dashboard structure, scoped to the token's embedded dashboards.
-        "get_dashboard_info",
-        "get_dashboard_layout",
-        "list_dashboards",
-        # Chart read + data, scoped by ChartFilter; data-model fields redacted.
-        "list_charts",
-        "get_chart_info",
-        "get_chart_data",
-        "get_chart_preview",
-    }
-)
+# configured. Everything else is denied, including newly added tools until listed.
+# Single source of truth: MCP_GUEST_ALLOWED_TOOLS in mcp_config.py.
+_DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(MCP_GUEST_ALLOWED_TOOLS)
 
 
 def _guest_allowed_tools() -> frozenset[str]:
