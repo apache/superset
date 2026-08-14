@@ -32,6 +32,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
@@ -675,6 +676,12 @@ async def get_chart_data(  # noqa: C901
             # raise_for_access authorizes the data query.
             if guest_dashboard_id is not None:
                 guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
+
+            set_query_context_form_data(
+                query_context,
+                chart.datasource_id,
+                chart.datasource_type,
+            )
 
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
