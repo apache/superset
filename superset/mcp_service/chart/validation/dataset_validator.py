@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 _NUMERIC_TYPE_PATTERN = re.compile(
     r"\b(?:(?:TINY|SMALL|MEDIUM|BIG)?INT(?:EGER)?|INT[248]|FLOAT[48]?|"
-    r"DOUBLE(?:\s+PRECISION)?|DECIMAL|NUMERIC|REAL|NUMBER)\b"
+    r"DOUBLE(?:\s+PRECISION)?|DECIMAL|NUMERIC|REAL|NUMBER|(?:SMALL)?MONEY)\b"
 )
 
 

@@ -54,6 +54,8 @@ def _validate_sum(sql_type: str) -> list[ChartGenerationError]:
         "INT8",
         "FLOAT8",
         "DECIMAL(10, 2)",
+        "MONEY",
+        "SMALLMONEY",
     ],
 )
 def test_numeric_type_spelling_is_accepted(sql_type: str) -> None:
