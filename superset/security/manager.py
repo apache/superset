@@ -4979,9 +4979,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.security.api_key_scopes import (
             RESOURCE_SCOPE_ACTIONS,
             RESOURCE_SCOPE_CLASS,
+            SCOPE_ACTION_METHOD_PERMISSIONS,
         )
 
-        is_admin = any(role.name == "Admin" for role in getattr(user, "roles", []))
+        admin_role_name = get_conf()["AUTH_ROLE_ADMIN"]
+        is_admin = any(
+            role.name == admin_role_name for role in getattr(user, "roles", [])
+        )
         for raw_scope in scopes.split(","):
             scope = raw_scope.strip()
             if not scope:
@@ -5000,7 +5004,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         f"Requested scope '{scope}' names an unrecognized "
                         f"action '{action}'"
                     )
-                if self._has_view_access(user, f"can_{action}", class_permission_name):
+                if any(
+                    self._has_view_access(user, f"can_{method}", class_permission_name)
+                    for method in SCOPE_ACTION_METHOD_PERMISSIONS[action]
+                ):
                     continue
                 raise ValueError(
                     f"Requested scope '{scope}' exceeds the issuing user's "

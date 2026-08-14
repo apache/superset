@@ -110,6 +110,17 @@ def test_check_tool_permission_no_class_permission_allows(app_context) -> None:
     assert check_tool_permission(func) is True
 
 
+def test_scoped_token_constrains_permissionless_tool(app_context) -> None:
+    """Resource-only scopes do not grant permission-less tools."""
+    g.user = MagicMock(username="admin")
+    func = _make_tool_func()
+
+    with _patch_token_scopes(["superset:dashboard:read"]):
+        assert check_tool_permission(func) is False
+    with _patch_token_scopes(["superset:read"]):
+        assert check_tool_permission(func) is True
+
+
 def test_check_tool_permission_no_user_denies(app_context) -> None:
     """If no g.user, permission check should deny."""
     g.user = None

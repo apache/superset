@@ -76,6 +76,42 @@ def test_per_resource_scope_rejected_when_user_lacks_permission(
         )
 
 
+@pytest.mark.parametrize(
+    ("scope", "registered_permission"),
+    [
+        ("superset:user:read", "can_get"),
+        ("superset:role:read", "can_get"),
+        ("superset:sqllab:write", "can_execute_sql_query"),
+    ],
+)
+def test_scope_issuance_uses_runtime_method_mapping(
+    sm: SupersetSecurityManager, scope: str, registered_permission: str
+) -> None:
+    """Issuance accepts the FAB method permission used by runtime tools."""
+    user = _make_user("Gamma")
+    sm._has_view_access = MagicMock(
+        side_effect=lambda _user, permission, _view: permission == registered_permission
+    )
+
+    sm._validate_requested_api_key_scopes(user, scope)
+
+    assert any(
+        call.args[1] == registered_permission
+        for call in sm._has_view_access.call_args_list
+    )
+
+
+def test_custom_admin_role_can_issue_flat_scope(
+    sm: SupersetSecurityManager,
+) -> None:
+    """Flat-scope issuance honors AUTH_ROLE_ADMIN rather than a fixed name."""
+    with patch("superset.security.manager.get_conf") as get_conf:
+        get_conf.return_value = {"AUTH_ROLE_ADMIN": "PlatformAdmin"}
+        sm._validate_requested_api_key_scopes(
+            _make_user("PlatformAdmin"), "superset:write"
+        )
+
+
 @pytest.mark.parametrize("action", ["delete", "update", "garbage"])
 def test_unrecognized_actions_are_rejected(
     sm: SupersetSecurityManager, action: str
