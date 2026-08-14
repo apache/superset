@@ -27,8 +27,10 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_utils import map_big_number_config
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
+    BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
     LegendConfig,
@@ -713,7 +715,6 @@ class TestUpdateChartPreview:
             new_form_data,
             {
                 "adhoc_filters": [previous_binding],
-                "granularity_sqla": "event_time",
                 "_mcp_dashboard_time_filter_subject": "event_time",
             },
         )
@@ -722,31 +723,39 @@ class TestUpdateChartPreview:
 
     def test_replaces_big_number_fallback_binding_when_subject_changes(self) -> None:
         """A Big Number fallback binding is replaced by a selected subject."""
-        previous_binding = {
-            "clause": "WHERE",
-            "comparator": "No filter",
-            "expressionType": "SIMPLE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "order_date",
-        }
-        new_binding = {
-            **previous_binding,
-            "subject": "created_at",
-        }
-        new_form_data = {
-            "adhoc_filters": [new_binding],
-            "_mcp_dashboard_time_filter_subject": "created_at",
-        }
+        dataset = Mock(
+            main_dttm_col=None,
+            columns=[Mock(column_name="order_date")],
+        )
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        rebound_config = config.model_copy(update={"temporal_column": "created_at"})
+
+        with (
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id_or_uuid",
+                return_value=dataset,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+                return_value=True,
+            ),
+        ):
+            previous_form_data = map_big_number_config(config, dataset_id=42)
+            new_form_data = map_big_number_config(rebound_config, dataset_id=42)
 
         update_chart_preview_module._preserve_previous_adhoc_filters(
             new_form_data,
-            {
-                "adhoc_filters": [previous_binding],
-                "_mcp_dashboard_time_filter_subject": "order_date",
-            },
+            previous_form_data,
         )
 
-        assert new_form_data["adhoc_filters"] == [new_binding]
+        assert previous_form_data["_mcp_dashboard_time_filter_subject"] == "order_date"
+        assert new_form_data["_mcp_dashboard_time_filter_subject"] == "created_at"
+        assert [filter_["subject"] for filter_ in new_form_data["adhoc_filters"]] == [
+            "created_at"
+        ]
 
     def test_removes_cached_temporal_filter_without_new_binding(self) -> None:
         """A mapping without a temporal subject drops the cached binding."""
