@@ -1,0 +1,895 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+:root {
+  --sv-radius: 12px;
+  --sv-radius-sm: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Available to screen readers, invisible on screen. */
+.sv-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* One visible focus ring for every interactive control. Keyboard focus must
+   never be invisible; :focus-visible keeps it off pointer interactions. */
+:focus-visible {
+  outline: 2px solid var(--sv-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--sv-font-sans);
+  background: var(--sv-bg);
+  color: var(--sv-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.sv-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+  height: 100%;
+  padding: 16px;
+  gap: 12px;
+  background: var(--sv-bg);
+  color: var(--sv-text-primary);
+}
+
+/* ---- Header ---- */
+.sv-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sv-maximize {
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 1;
+  padding: 5px 9px;
+}
+
+.sv-title-wrap {
+  min-width: 0;
+}
+
+.sv-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--sv-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-subtitle {
+  font-size: 12px;
+  color: var(--sv-text-secondary);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-accent-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sv-accent);
+  flex: 0 0 auto;
+}
+
+/* ---- Toolbar ---- */
+.sv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sv-chip-group {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--sv-zebra);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+}
+
+.sv-chip {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--sv-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sv-chip:hover {
+  color: var(--sv-text-primary);
+  background: var(--sv-hover);
+}
+
+.sv-chip[aria-pressed='true'] {
+  background: var(--sv-panel);
+  color: var(--sv-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.sv-metric-chip[aria-pressed='true'] {
+  background: var(--sv-panel);
+  color: var(--sv-text-primary);
+}
+
+.sv-metric-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.sv-spacer {
+  flex: 1 1 auto;
+}
+
+.sv-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--sv-radius-sm);
+  border: 1px solid var(--sv-accent);
+  background: var(--sv-accent);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    filter 0.15s ease,
+    opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.sv-btn:hover {
+  filter: brightness(1.05);
+}
+
+.sv-btn--ghost {
+  background: transparent;
+  color: var(--sv-accent);
+}
+
+.sv-btn--subtle {
+  background: var(--sv-zebra);
+  border-color: var(--sv-border);
+  color: var(--sv-text-secondary);
+  font-weight: 500;
+}
+
+.sv-btn--subtle:hover {
+  color: var(--sv-text-primary);
+}
+
+/* ---- Export menu ---- */
+.sv-menu-root {
+  position: relative;
+  display: inline-flex;
+}
+
+.sv-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  min-width: 210px;
+  padding: 4px;
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  animation: sv-rise-plain 0.14s ease;
+}
+
+@keyframes sv-rise-plain {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sv-menu-item {
+  appearance: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--sv-text-primary);
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sv-menu-item:hover {
+  background: var(--sv-hover);
+}
+
+.sv-menu-note {
+  margin: 4px 6px 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--sv-text-muted);
+  max-width: 230px;
+  white-space: normal;
+}
+
+/* ---- Copy panel (download-blocked fallback) ---- */
+.sv-panel-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: color-mix(in srgb, var(--sv-bg) 78%, transparent);
+}
+
+.sv-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  padding: 12px;
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+}
+
+.sv-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--sv-text-primary);
+}
+
+.sv-panel-hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--sv-text-secondary);
+}
+
+.sv-panel-text {
+  flex: 1 1 auto;
+  min-height: 140px;
+  resize: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--sv-text-primary);
+  background: var(--sv-bg);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  padding: 8px;
+  white-space: pre;
+}
+
+/* ---- Chart area ---- */
+.sv-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+
+.sv-echart {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+}
+
+/* ---- Insight bar ---- */
+.sv-insights {
+  font-size: 12px;
+  color: var(--sv-text-secondary);
+  line-height: 1.45;
+  border-top: 1px solid var(--sv-border);
+  padding-top: 10px;
+}
+
+.sv-insights strong {
+  color: var(--sv-text-primary);
+}
+
+/* Fixed to the iframe edge so the grip remains reachable even when a host
+   initially allocates only a very short frame. */
+.sv-resize-handle {
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 12px;
+  cursor: ns-resize;
+  touch-action: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 4px,
+    var(--sv-border) 4px,
+    var(--sv-border) 6px,
+    transparent 6px
+  );
+}
+
+.sv-resize-handle:hover {
+  background: linear-gradient(
+    to bottom,
+    transparent 4px,
+    var(--sv-accent) 4px,
+    var(--sv-accent) 7px,
+    transparent 7px
+  );
+}
+
+/* ---- Big number ---- */
+.sv-bignum {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  min-height: 220px;
+  gap: 6px;
+}
+
+.sv-bignum-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sv-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sv-bignum-value {
+  font-size: clamp(40px, 9vw, 72px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--sv-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.sv-bignum-full {
+  font-size: 13px;
+  color: var(--sv-text-muted);
+}
+
+.sv-bignum-spark {
+  height: 64px;
+  margin-top: 10px;
+  /* Belt and braces: even if the chart mis-sizes, it cannot paint over the
+     insight and diagnostics rows that follow it. */
+  overflow: hidden;
+}
+
+/* `.sv-echart` carries `min-height: 220px`, which is right for a primary chart
+   view and wrong here: min-height wins over the parent's `height`, so the
+   sparkline's canvas could not shrink into its 64px slot and overflowed by
+   ~156px onto the rows below. Scope the floor away for this one use. */
+.sv-bignum-spark > .sv-echart {
+  min-height: 0;
+  height: 100%;
+}
+
+/* ---- Table ---- */
+.sv-table-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 220px;
+  gap: 8px;
+}
+
+.sv-table-scroll {
+  height: 100%;
+  min-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+}
+
+/* Inside the paginated view the scroller shares the box with the footer, so
+   it has to be allowed to shrink below its content height. */
+.sv-table-view .sv-table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sv-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--sv-text-secondary);
+}
+
+.sv-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-page-size select {
+  font: inherit;
+  font-size: 12px;
+  color: var(--sv-text-primary);
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.sv-page-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sv-page-nav .sv-btn {
+  padding: 3px 10px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.sv-page-nav .sv-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sv-page-count {
+  font-variant-numeric: tabular-nums;
+  min-width: 46px;
+  text-align: center;
+}
+
+.sv-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+
+.sv-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--sv-panel);
+  color: var(--sv-text-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 0;
+  border-bottom: 1px solid var(--sv-border);
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* The sort control fills the header cell so the click target is unchanged. */
+.sv-th-sort {
+  appearance: none;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: inherit;
+  padding: 9px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sv-table thead th:hover .sv-th-sort {
+  color: var(--sv-text-primary);
+}
+
+.sv-table th.sv-num .sv-th-sort {
+  text-align: right;
+}
+
+.sv-table th.sv-num,
+.sv-table td.sv-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sv-sort-caret {
+  margin-left: 4px;
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.sv-table tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sv-grid-line);
+  color: var(--sv-text-primary);
+  white-space: nowrap;
+}
+
+.sv-table tbody tr:nth-child(even) {
+  background: var(--sv-zebra);
+}
+
+.sv-table tbody tr:hover {
+  background: var(--sv-hover);
+}
+
+/* ---- States (loading / empty / error) ---- */
+.sv-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 240px;
+  gap: 10px;
+  text-align: center;
+  padding: 24px;
+}
+
+.sv-state-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--sv-text-muted);
+}
+
+.sv-state-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sv-text-primary);
+}
+
+.sv-state-msg {
+  font-size: 12.5px;
+  color: var(--sv-text-secondary);
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.sv-state--error .sv-state-icon {
+  color: #e04355;
+}
+
+/* ---- Skeleton ---- */
+.sv-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  padding: 8px 0;
+}
+
+.sv-sk-line {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--sv-skeleton) 25%,
+    var(--sv-hover) 37%,
+    var(--sv-skeleton) 63%
+  );
+  background-size: 400% 100%;
+  animation: sv-shimmer 1.4s ease infinite;
+}
+
+.sv-sk-bars {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.sv-sk-bar {
+  flex: 1;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(
+    180deg,
+    var(--sv-hover) 0%,
+    var(--sv-skeleton) 100%
+  );
+  animation: sv-shimmer 1.4s ease infinite;
+  background-size: 100% 400%;
+}
+
+@keyframes sv-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* ---- Toast / action popover ---- */
+.sv-toast {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  padding: 8px 10px 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--sv-text-primary);
+  animation: sv-rise 0.18s ease;
+  max-width: 90%;
+  z-index: 5;
+}
+
+@keyframes sv-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.sv-reset-pill {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+}
+
+/* ---- Host diagnostics ----
+   Native <details>: no React handler, no host round-trip, so it still works
+   when the machinery it reports on does not. */
+.sv-diag {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: var(--sv-text-secondary);
+  border-top: 1px solid var(--sv-border);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+.sv-diag > summary {
+  cursor: pointer;
+  list-style: none;
+  opacity: 0.72;
+  /* Must WRAP, not ellipsize. This line carries the capability key names and
+     sandbox grants, and it is the only diagnostic that reliably makes it out
+     of a host — clipping it truncated the exact data it exists to convey. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.sv-diag > summary:hover {
+  opacity: 1;
+}
+
+.sv-diag-body {
+  max-height: 220px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px;
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- Dashboard (composite visualization) ---- */
+.sv-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  overflow: auto;
+}
+
+.sv-dash-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sv-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.sv-dash-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 220px;
+  padding: 10px 12px;
+  background: var(--sv-panel);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-sm);
+  /* Clip, for the same reason the sparkline slot does: a cell that mis-sizes
+     must not paint over its neighbours in a grid. */
+  overflow: hidden;
+}
+
+.sv-dash-cell--empty {
+  border-style: dashed;
+}
+
+.sv-dash-cell-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sv-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sv-dash-cell-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 180px;
+}
+
+/* Leaf charts fill their cell rather than claiming the 220px primary-view
+   floor, which would overflow the cell exactly as it did the sparkline. */
+.sv-dash-cell-body > .sv-echart {
+  min-height: 0;
+  height: 100%;
+}
+
+.sv-cell-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  min-height: 120px;
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--sv-text-muted);
+}
+
+.sv-cell-placeholder-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--sv-border);
+  font-weight: 700;
+}
+
+/* A tab with no cells in this render — still reachable, but marked so it does
+   not look like an empty dashboard. */
+.sv-chip--empty {
+  opacity: 0.45;
+}
+
+/* Says a chart is NOT the encoding Superset uses. Must be legible, not a
+   whisper: a substituted chart is a wrong answer that looks right. */
+.sv-substitution {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--sv-text-secondary);
+  background: var(--sv-warning-bg, rgba(255, 176, 0, 0.12));
+  border: 1px solid var(--sv-warning-border, rgba(255, 176, 0, 0.35));
+  border-radius: var(--sv-radius-sm);
+  padding: 5px 8px;
+}
+
+/* Data that may disagree with Superset.
+   Deliberately NOT an alarm. Almost every chart in a typical instance hits
+   this path — only 1 of 119 on the instance where it was found carries the
+   stored artifact — so a red banner would be on nearly everything, and a
+   warning that is always on is one nobody reads. It stays visible and plain,
+   and it disappears on its own once the query is built the way Superset
+   builds it, rather than being switched off. */
+.sv-fidelity {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--sv-text-secondary);
+  border-left: 2px solid var(--sv-border);
+  padding: 2px 0 2px 8px;
+}
+
+.sv-fidelity strong {
+  color: var(--sv-text-primary);
+  font-weight: 600;
+}

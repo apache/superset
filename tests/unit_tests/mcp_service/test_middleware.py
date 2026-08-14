@@ -19,11 +19,14 @@
 Unit tests for MCP service middleware.
 """
 
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
+from fastmcp.tools.tool import ToolResult
+from mcp.types import TextContent
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError
 
@@ -40,6 +43,7 @@ from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
     create_response_size_guard_middleware,
+    DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS,
     GlobalErrorHandlerMiddleware,
     RBACToolVisibilityMiddleware,
     ResponseSizeGuardMiddleware,
@@ -1701,6 +1705,83 @@ class TestRBACToolVisibilityMiddleware:
             result = await middleware.on_list_tools(MagicMock(), call_next)
 
         assert result == tools
+
+
+class TestStructuredContentStripperKeepList:
+    """The stripper exempts MCP Apps widget tools so their structured result
+    survives for the iframe to render (see render_chart)."""
+
+    def _tool(self, name: str) -> Any:
+        tool = MagicMock()
+        tool.name = name
+        tool.output_schema = {"type": "object"}
+        tool.model_copy = lambda update: SimpleNamespace(
+            name=name, output_schema=update["output_schema"]
+        )
+        return tool
+
+    @pytest.mark.asyncio
+    async def test_on_list_tools_keeps_schema_for_exempt_tool(self) -> None:
+        mw = StructuredContentStripperMiddleware(keep_tools=frozenset({"render_chart"}))
+
+        async def call_next(_ctx: Any) -> list[Any]:
+            return [self._tool("render_chart"), self._tool("get_chart_data")]
+
+        out = await mw.on_list_tools(SimpleNamespace(), call_next)
+        by_name = {t.name: t.output_schema for t in out}
+        assert by_name["render_chart"] is not None  # exempt: schema preserved
+        assert by_name["get_chart_data"] is None  # stripped
+
+    @pytest.mark.asyncio
+    async def test_on_call_tool_keeps_structured_for_exempt_tool(self) -> None:
+        mw = StructuredContentStripperMiddleware(keep_tools=frozenset({"render_chart"}))
+
+        async def call_next(_ctx: Any) -> ToolResult:
+            return ToolResult(
+                content=[TextContent(type="text", text="ok")],
+                structured_content={"chart_id": 1},
+            )
+
+        kept = await mw.on_call_tool(
+            SimpleNamespace(message=SimpleNamespace(name="render_chart")), call_next
+        )
+        stripped = await mw.on_call_tool(
+            SimpleNamespace(message=SimpleNamespace(name="get_chart_data")), call_next
+        )
+        assert kept.structured_content == {"chart_id": 1}
+        assert stripped.structured_content is None
+
+    def test_default_keep_list_contains_render_chart_tools(self) -> None:
+        # Both the initial render and the widget's re-query must be exempt so
+        # the widget can render results before and after an interaction.
+        assert "render_chart" in DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS
+        assert "render_chart_requery" in DEFAULT_STRUCTURED_CONTENT_KEEP_TOOLS
+
+    @pytest.mark.asyncio
+    async def test_error_result_keeps_structured_content_for_exempt_tool(self) -> None:
+        """A keep-list tool still advertises outputSchema, so its error result
+        must carry structured content or strict clients reject the call with
+        'has an output schema but did not return structured content'."""
+        mw = StructuredContentStripperMiddleware(keep_tools=frozenset({"render_chart"}))
+
+        async def boom(_ctx: Any) -> ToolResult:
+            raise RuntimeError("kaboom")
+
+        kept = await mw.on_call_tool(
+            SimpleNamespace(message=SimpleNamespace(name="render_chart")), boom
+        )
+        assert kept.structured_content is not None
+        payload = kept.structured_content["result"]
+        assert payload["error_type"] == "RuntimeError"
+        assert "kaboom" in payload["message"]
+        # `error` mirrors `message`, which is what the widget reads.
+        assert "kaboom" in payload["error"]
+
+        # Non-exempt tools had their schema stripped, so text-only stays correct.
+        stripped = await mw.on_call_tool(
+            SimpleNamespace(message=SimpleNamespace(name="get_chart_data")), boom
+        )
+        assert stripped.structured_content is None
 
 
 class TestGlobalErrorHandlerStatsMetrics:

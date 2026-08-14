@@ -257,6 +257,10 @@ _DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(
         "get_chart_info",
         "get_chart_data",
         "get_chart_preview",
+        # MCP Apps chart widget: identical data path + guest scoping as
+        # get_chart_data; render_chart_requery is the widget's drill/zoom.
+        "render_chart",
+        "render_chart_requery",
     }
 )
 

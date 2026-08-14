@@ -517,7 +517,9 @@ def wrap_sql_adhoc_metrics(form_data: Any) -> None:
                 )
 
 
-def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:  # noqa: C901
+def sanitize_chart_info_for_llm_context(
+    chart_info: ChartInfo,
+) -> ChartInfo:  # noqa: C901
     """Wrap chart read-path descriptive fields before LLM exposure."""
     payload = chart_info.model_dump(mode="python")
 
@@ -632,23 +634,29 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
             created_on=getattr(chart, "created_on", None),
             created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
-            uuid=str(getattr(chart, "uuid", ""))
-            if getattr(chart, "uuid", None)
-            else None,
+            uuid=(
+                str(getattr(chart, "uuid", ""))
+                if getattr(chart, "uuid", None)
+                else None
+            ),
             deleted_at=getattr(chart, "deleted_at", None),
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in getattr(chart, "tags", [])
-            ]
-            if getattr(chart, "tags", None)
-            else [],
-            editors=[
-                info
-                for editor in getattr(chart, "editors", [])
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if getattr(chart, "editors", None)
-            else [],
+            tags=(
+                [
+                    TagInfo.model_validate(tag, from_attributes=True)
+                    for tag in getattr(chart, "tags", [])
+                ]
+                if getattr(chart, "tags", None)
+                else []
+            ),
+            editors=(
+                [
+                    info
+                    for editor in getattr(chart, "editors", [])
+                    if (info := serialize_subject_object(editor)) is not None
+                ]
+                if getattr(chart, "editors", None)
+                else []
+            ),
         )
     )
 
@@ -2625,9 +2633,36 @@ class ChartData(BaseModel):
         None, description="Export format used (json, csv, excel)"
     )
 
+    # Deep link to open this chart in Superset's Explore view. Populated by the
+    # ``render_chart`` MCP Apps tool so the widget can offer "Open in Superset";
+    # ``None`` for other callers.
+    explore_url: str | None = Field(
+        None, description="Absolute URL to open the chart in Superset Explore"
+    )
+
+    # Subset of the instance's antd design tokens (colorPrimary, fontFamily,
+    # ...) so the MCP Apps widget renders in the deployment's own theme rather
+    # than hardcoded colors. Populated by ``render_chart``; ``None`` elsewhere.
+    theme: Dict[str, Any] | None = Field(
+        None, description="Superset theme design tokens for consistent branding"
+    )
+
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
     api_version: str = Field("v1", description="MCP API version")
+    fidelity_warning: str | None = Field(
+        None,
+        description=(
+            "Set when this data was NOT produced by the chart's own saved "
+            "query context. Superset builds each chart's query in its viz "
+            "plugin (buildQuery), which supplies the time grain, the "
+            "groupby/series columns, the sort, the pivot structure and any "
+            "second query. None of that is applied here, so the VALUES may be "
+            "wrong — not merely reordered. A monthly chart can return "
+            "individual days, and a pivot table a single total. Clients MUST "
+            "surface this and MUST NOT present the data as the chart's."
+        ),
+    )
 
 
 class GetChartPreviewRequest(QueryCacheControl):
@@ -3113,4 +3148,201 @@ class DeleteChartResponse(BaseModel):
             "True when the caller lacks permission to delete the chart (do not "
             "retry; ask the user)."
         ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# MCP Apps: render_chart (interactive chart widget)
+# ---------------------------------------------------------------------------
+
+
+class RenderChartRequest(QueryCacheControl):
+    """Request for the ``render_chart`` MCP Apps tool.
+
+    Mirrors the query surface of ``get_chart_data`` (minus the export formats,
+    which do not apply to an interactive visualization). The tool returns the
+    chart's data plus a ``_meta.ui.resourceUri`` descriptor so MCP Apps hosts
+    (Claude, ChatGPT, VS Code, ...) render the chart-viewer widget inline.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: int | str = Field(
+        ...,
+        description="Chart identifier (numeric ID or UUID) to render.",
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
+    )
+    limit: int | None = Field(
+        default=None,
+        description=(
+            "Maximum number of data rows to render. Defaults to the chart's "
+            "configured row limit (capped by the server for widget payloads)."
+        ),
+    )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the chart query (e.g. dashboard "
+            'native filters). Format: {"filters": [{"col": "country", "op": '
+            '"IN", "val": ["US"]}]}'
+        ),
+    )
+
+
+class RenderChartRequeryRequest(QueryCacheControl):
+    """Request for ``render_chart_requery`` — the app-visible re-query tool the
+    chart-viewer widget calls for drill-down, brush-to-zoom, and filtering.
+
+    This tool is intended to be invoked by the widget (``_meta.ui.visibility =
+    ["app"]``), not the model. It translates high-level interactions into an
+    ``extra_form_data`` override and re-runs the same authorized data query.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: int | str = Field(
+        ...,
+        description="Chart identifier (numeric ID or UUID) to re-query.",
+        validation_alias=AliasChoices("identifier", "id", "chart_id"),
+    )
+    filter_col: str | None = Field(
+        default=None,
+        description="Column to filter on (paired with filter_val) when drilling "
+        "into a clicked data point.",
+    )
+    filter_val: Any | None = Field(
+        default=None,
+        description="Value the clicked data point represents; filters "
+        "filter_col == filter_val.",
+    )
+    filter: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            'Drill filter as an object, e.g. {"col": "country", "val": "US"}. '
+            "Alternative to filter_col/filter_val; takes precedence when both "
+            "are provided. Sent by the chart-viewer widget on click-to-drill."
+        ),
+    )
+    time_range: str | None = Field(
+        default=None,
+        description=(
+            "Time range override (Superset time-range syntax, e.g. "
+            '"Last quarter" or an ISO "start : end" range) for brush-to-zoom.'
+        ),
+    )
+    granularity: str | None = Field(
+        default=None,
+        description=(
+            "Time grain override for the narrowed range (e.g. P1D, PT1H) when "
+            "zooming into a time-series. This is a best-effort hint: saved query "
+            "contexts for some chart configurations ignore time_grain_sqla."
+        ),
+    )
+    limit: int | None = Field(
+        default=None, description="Maximum number of data rows to return."
+    )
+
+
+class RenderDashboardRequest(QueryCacheControl):
+    """Request to render a whole dashboard as one composite visualization."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: str | int = Field(
+        ...,
+        description="Dashboard ID, UUID, or slug.",
+    )
+    tab_id: str | None = Field(
+        None,
+        description=(
+            "Render only the charts under this tab (from the layout's tab ids). "
+            "Omit to render every chart in the dashboard."
+        ),
+    )
+    max_charts: int = Field(
+        8,
+        ge=1,
+        le=24,
+        description=(
+            "Cap on how many charts are queried. Each chart is a separate "
+            "query and a separate live ECharts instance in the widget, so the "
+            "default is deliberately small. Cells beyond the cap are returned "
+            "as placeholders rather than dropped silently."
+        ),
+    )
+    limit: int | None = Field(
+        None,
+        description="Row limit applied to each chart's query.",
+    )
+
+
+class DashboardCell(BaseModel):
+    """One leaf of the dashboard layout, with its data or the reason it has none.
+
+    A cell always renders something. `status` tells the widget which: a real
+    chart, a placeholder for a viz type it has no renderer for, a placeholder
+    for a chart past `max_charts`, or an error for one whose query failed.
+    Partial renderers that silently drop cells are the failure mode most likely
+    to make a composite look broken, so nothing is ever omitted.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    chart_id: int | None = Field(None, description="Chart (slice) ID")
+    title: str | None = Field(None, description="Chart name as laid out")
+    tab_id: str | None = Field(None, description="Containing tab id, if any")
+    width: int | None = Field(None, description="Grid column width from layout")
+    height: int | None = Field(None, description="Grid row height from layout")
+    status: str = Field(
+        "ok",
+        description=(
+            "One of: 'ok' (data present), 'skipped' (beyond max_charts), "
+            "'error' (query failed). The widget renders a labelled placeholder "
+            "for anything that is not 'ok'."
+        ),
+    )
+    message: str | None = Field(
+        None, description="Why this cell has no data, when status is not 'ok'."
+    )
+    data: ChartData | None = Field(
+        None, description="The chart's data, when status is 'ok'."
+    )
+
+
+class DashboardRender(BaseModel):
+    """A dashboard as a composite visualization: a layout plus its leaves.
+
+    This is the composite-visualization prototype: a dashboard modelled as a
+    layout tree whose leaves are ordinary chart payloads, rendered by the same
+    leaf renderers a single chart uses. Deliberately STATIC — no native
+    filters, no cross-filters, no tab state beyond which tab a cell sits in.
+    The interaction graph is a separate capability and is not smuggled in here.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dashboard_id: int | None = Field(None, description="Dashboard ID")
+    dashboard_title: str | None = Field(None, description="Dashboard title")
+    dashboard_url: str | None = Field(
+        None, description="Deep link to the dashboard in Superset"
+    )
+    active_tab_id: str | None = Field(
+        None,
+        description=(
+            "The tab this render was filtered to, when `tab_id` was passed. "
+            "The full tab list is still returned so a client can offer the "
+            "others, so a client must not assume the first tab has cells."
+        ),
+    )
+    tabs: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Tabs from the layout: {id, name, parent_tab_id}.",
+    )
+    cells: list[DashboardCell] = Field(
+        default_factory=list, description="Leaves of the layout, in layout order."
+    )
+    chart_count: int = Field(0, description="Charts present in the layout")
+    rendered_count: int = Field(0, description="Cells that carry real data")
+    theme: dict[str, Any] | None = Field(
+        None, description="Superset theme tokens for the widget."
     )

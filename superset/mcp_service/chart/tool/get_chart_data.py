@@ -44,6 +44,10 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.constants import (
+    LARGE_RESULT_ROW_THRESHOLD,
+    WIDE_RESULT_COLUMN_THRESHOLD,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -118,6 +122,25 @@ def _coerce_row_limit(value: Any, default: int) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def build_shape_insights(row_count: int, column_count: int) -> list[str]:
+    """Advice about the *shape* of a result, or nothing at all.
+
+    Only speaks up when a reader could act on it. The row threshold used to sit
+    at 100, which fires on results that are entirely ordinary for a chart, so
+    the advice appeared constantly and meant nothing — and a field that always
+    warns is a field people learn to skip.
+    """
+    insights: list[str] = []
+    if row_count > LARGE_RESULT_ROW_THRESHOLD:
+        insights.append(
+            f"Large result ({row_count:,} rows) - consider filtering "
+            "or a coarser time grain"
+        )
+    if column_count > WIDE_RESULT_COLUMN_THRESHOLD:
+        insights.append("Many columns available - focus on key metrics")
+    return insights
 
 
 def _recommend_visualizations(
@@ -279,6 +302,46 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
     return ChartData.model_validate(payload)
 
 
+
+def _is_json_null(value: Any) -> bool:
+    """True for values JSON has no representation for: None, NaN, NaT.
+
+    Uses the self-inequality property (``x != x``) rather than importing
+    pandas, so it catches ``float('nan')``, ``numpy.nan`` and ``pandas.NaT``
+    without a hard dependency or a type-by-type list.
+    """
+    if value is None:
+        return True
+    try:
+        return bool(value != value)
+    except (TypeError, ValueError):  # pragma: no cover - exotic scalars
+        return False
+
+
+def _json_safe_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Replace null-ish scalars in query rows so the result can be serialized.
+
+    ``pandas.NaT`` subclasses ``datetime.datetime``, so pydantic_core takes the
+    datetime path and reads ``.year`` — which on NaT is ``nan``, a float. That
+    raises ``TypeError: 'float' object cannot be interpreted as an integer``
+    during serialization, AFTER the query has run and the response has been
+    built. The ``fallback=str`` FastMCP passes never fires, because NaT is not
+    an unknown type.
+
+    A single NULL in a temporal column was therefore enough to make any tool
+    embedding that chart fail — get_chart_data, render_chart and
+    render_dashboard alike. Bare ``nan`` is normalized too: it serializes to
+    the literal ``NaN``, which is not valid JSON and which strict clients
+    reject.
+    """
+    if not rows:
+        return rows
+    return [
+        {k: (None if _is_json_null(v) else v) for k, v in row.items()}
+        for row in rows
+    ]
+
+
 @tool(
     tags=["data"],
     class_permission_name="Chart",
@@ -288,7 +351,7 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
         destructiveHint=False,
     ),
 )
-async def get_chart_data(  # noqa: C901
+async def get_chart_data(
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
     """Get chart data by ID or UUID.
@@ -307,6 +370,19 @@ async def get_chart_data(  # noqa: C901
     actually sees in the Explore view (not the saved version).
 
     Returns underlying data in requested format with cache status.
+    """
+    return await get_chart_data_core(request, ctx)
+
+
+async def get_chart_data_core(  # noqa: C901
+    request: GetChartDataRequest, ctx: Context
+) -> ChartData | ChartError:
+    """Core chart-data retrieval shared by the ``get_chart_data`` tool and the
+    MCP Apps ``render_chart`` widget tool.
+
+    This is intentionally undecorated (no ``@tool`` / ``mcp_auth_hook``): callers
+    are already authenticated tools, so wrapping it again would push a second
+    app context and re-run RBAC. Keep all authorization on the public tools.
     """
     await ctx.info(
         "Starting chart data retrieval: identifier=%s, format=%s, limit=%s, "
@@ -510,6 +586,9 @@ async def get_chart_data(  # noqa: C901
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
+            # Set only when we fall back to reconstructing the query from
+            # form_data, which drops Superset's post_processing stage.
+            fidelity_warning: str | None = None
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
@@ -545,6 +624,20 @@ async def get_chart_data(  # noqa: C901
             if query_context_json is None and not using_unsaved_state:
                 # Fallback: Chart has no saved query_context
                 # This can happen with older charts that haven't been re-saved
+                # This warning went only to the MCP log, where no user or
+                # client could see it — so charts on this path rendered
+                # plausible-looking numbers that silently disagreed with
+                # Superset. It travels with the data now.
+                fidelity_warning = (
+                    "This chart was rendered without Superset's query "
+                    "pipeline. Time grouping, sorting, pivoting and "
+                    "multi-series joins were not applied, so BOTH the values "
+                    "and their arrangement may differ from Superset — a "
+                    "chart grouped by month can come back as individual "
+                    "days, and a pivot table can come back as a single "
+                    "total. Compare against Superset before relying on "
+                    "these numbers."
+                )
                 await ctx.warning(
                     "Chart has no saved query_context. "
                     "Data may not match the chart visualization exactly. "
@@ -689,7 +782,7 @@ async def get_chart_data(  # noqa: C901
 
             # Extract data from result (we've already validated it exists above)
             query_result = result["queries"][0]
-            data = query_result.get("data", [])
+            data = _json_safe_rows(query_result.get("data", []))
             raw_columns = query_result.get("colnames", [])
 
             await ctx.debug(
@@ -752,13 +845,7 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Generate insights and recommendations
-            insights = []
-            if len(data) > 100:
-                insights.append(
-                    "Large dataset - consider filtering for better performance"
-                )
-            if len(raw_columns) > 10:
-                insights.append("Many columns available - focus on key metrics")
+            insights = build_shape_insights(len(data), len(raw_columns))
 
             # Add cache-specific insights
             if cache_status.cache_hit:
@@ -881,6 +968,7 @@ async def get_chart_data(  # noqa: C901
                     chart_id=chart.id,
                     chart_name=chart.slice_name or f"Chart {chart.id}",
                     chart_type=chart.viz_type or "unknown",
+                    fidelity_warning=fidelity_warning,
                     columns=columns,
                     data=data[: request.limit] if request.limit else data,
                     row_count=len(data),
@@ -1026,7 +1114,7 @@ async def _query_from_form_data(
             )
 
         query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        data = _json_safe_rows(query_result.get("data", []))
         raw_columns = query_result.get("colnames", [])
 
         if not data:
