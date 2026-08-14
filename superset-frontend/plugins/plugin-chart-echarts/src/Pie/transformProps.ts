@@ -570,7 +570,7 @@ export default function transformProps(
           backgroundColor: theme.colorBgContainer,
         },
       },
-      data: transformedData as PieSeriesOption['data'],
+      data: transformedData as any,
     },
   ];
 
