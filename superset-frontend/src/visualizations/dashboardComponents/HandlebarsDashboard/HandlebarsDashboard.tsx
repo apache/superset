@@ -24,7 +24,7 @@ import {
   JsonObject,
 } from '@superset-ui/core';
 import { SafeMarkdown } from '@superset-ui/core/components';
-import { styled } from '@apache-superset/core/theme';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import Handlebars from 'handlebars';
 import { HELPER_IMPLEMENTATIONS } from './helpers';
@@ -90,6 +90,7 @@ const ErrorPre = styled.pre`
 `;
 
 const HandlebarsDashboard = ({ dashboardId }: Props) => {
+  const theme = useTheme();
   const [apiConfig, setApiConfig] = useState<DynamicDashboardApiConfig | null>(
     null,
   );
@@ -138,7 +139,7 @@ const HandlebarsDashboard = ({ dashboardId }: Props) => {
     if (!apiConfig) return;
     let cancelled = false;
 
-    const slots = apiConfig.slots;
+    const { slots } = apiConfig;
 
     Promise.allSettled(slots.map(fetchSlot)).then(results => {
       if (cancelled) return;
@@ -198,7 +199,7 @@ const HandlebarsDashboard = ({ dashboardId }: Props) => {
         hb.registerPartial(name, src),
       );
       const template = hb.compile(apiConfig.dashboard_template);
-      setRendered(template(context));
+      setRendered(template({ ...context, theme }));
       setRenderError('');
     } catch (e) {
       setRendered('');
