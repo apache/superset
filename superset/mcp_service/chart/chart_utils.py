@@ -108,9 +108,12 @@ def validate_chart_dataset(
             error="Chart has no dataset reference (datasource_id is None)",
         )
 
-    # Try to look up the dataset
+    # Skip the DatasourceFilter base filter when not checking access, so the
+    # lookup is a true existence check (it otherwise denies a guest outright).
     try:
-        dataset = DatasetDAO.find_by_id(datasource_id)
+        dataset = DatasetDAO.find_by_id(
+            datasource_id, skip_base_filter=not check_access
+        )
 
         if dataset is None:
             return DatasetValidationResult(
