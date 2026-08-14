@@ -23,6 +23,11 @@ from werkzeug.utils import secure_filename
 # SMTP headers, Content-Disposition filenames, and headless-browser document.title.
 _CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
+# Cap for a single export filename, well under the 255-character limit a path
+# component has on Windows and Linux, leaving room for the directories and the
+# extension wrapped around it inside the archive.
+MAX_FILENAME_LENGTH = 200
+
 
 def sanitize_title(title: str) -> str:
     """Remove all C0/C1 control characters from a title string."""
@@ -32,5 +37,13 @@ def sanitize_title(title: str) -> str:
 def get_filename(model_name: str, model_id: int, skip_id: bool = False) -> str:
     model_name = sanitize_title(model_name)
     slug = secure_filename(model_name)
-    filename = slug if skip_id else f"{slug}_{model_id}"
-    return filename if slug else str(model_id)
+    suffix = "" if skip_id else f"_{model_id}"
+    # The name goes into a ZIP entry that already carries an
+    # `<asset>_export_<timestamp>/<type>/` prefix and a `.yaml` suffix, and the
+    # user's own extraction directory sits in front of all of it. A chart titled
+    # with a couple of hundred characters therefore produced an entry Windows
+    # refuses to extract, even though the archive itself was written fine. Trim
+    # the slug rather than the id: the id is what keeps two similarly titled
+    # assets from colliding inside one archive.
+    slug = slug[: max(MAX_FILENAME_LENGTH - len(suffix), 0)].rstrip("._-")
+    return f"{slug}{suffix}" if slug else str(model_id)
