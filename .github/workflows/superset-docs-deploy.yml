@@ -76,12 +76,16 @@ jobs:
           node-version-file: "./docs/.nvmrc"
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: "zulu"
           java-version: "21"
       - name: Install Graphviz
-        run: sudo apt-get install -y graphviz
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: graphviz
+          version: 1.0
+          execute_install_scripts: true
       - name: Compute Entity Relationship diagram (ERD)
         env:
           SUPERSET_SECRET_KEY: not-a-secret
