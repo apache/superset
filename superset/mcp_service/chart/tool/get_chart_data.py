@@ -112,12 +112,14 @@ _MAX_RECOMMENDATIONS = 4
 
 def _coerce_row_limit(value: Any, default: int) -> int:
     """Coerce a row_limit (which may arrive as a str from chart.params) to int,
-    falling back to ``default`` when it is missing or non-numeric — downstream
-    apply_max_row_limit compares it against an int."""
+    falling back to ``default`` when it is missing, non-numeric, or non-positive.
+    A non-positive limit would otherwise flow through apply_max_row_limit as-is
+    and emit ``LIMIT -1`` (unbounded on some engines, an error on others)."""
     try:
-        return int(value)
+        coerced = int(value)
     except (TypeError, ValueError):
         return default
+    return coerced if coerced > 0 else default
 
 
 def _recommend_visualizations(
@@ -335,6 +337,13 @@ async def get_chart_data(  # noqa: C901
 
         # Handle unsaved chart (form_data_key only, no identifier)
         if not request.identifier and request.form_data_key:
+            # The unsaved-chart cache is not dashboard-scoped, so guests can't
+            # use it.
+            if guest_scope.is_guest_read():
+                return ChartError(
+                    error="No accessible chart found for this request.",
+                    error_type="NotFound",
+                )
             with event_logger.log_context(
                 action="mcp.get_chart_data.unsaved_chart_from_cache"
             ):
@@ -433,30 +442,30 @@ async def get_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
 
-        # Skip the dataset RBAC pre-check for guests (see guest_scope.is_guest_read).
-        if not guest_scope.is_guest_read():
-            validation_result = validate_chart_dataset(
-                chart.datasource_id, check_access=True
+        # Guests skip the RBAC check (authorize_query covers it) but keep the
+        # existence check, so a deleted dataset still returns
+        # DatasetNotAccessible.
+        validation_result = validate_chart_dataset(
+            chart.datasource_id, check_access=not guest_scope.is_guest_read()
+        )
+        if not validation_result.is_valid:
+            await ctx.warning(
+                "Chart found but dataset is not accessible: %s"
+                % (validation_result.error,)
             )
-            if not validation_result.is_valid:
-                await ctx.warning(
-                    "Chart found but dataset is not accessible: %s"
-                    % (validation_result.error,)
-                )
-                logger.warning(
-                    "get_chart_data: dataset not accessible for chart_id=%s: %s",
-                    chart.id,
-                    validation_result.error,
-                )
-                return ChartError(
-                    error=validation_result.error
-                    or "Chart's dataset is not accessible. "
-                    "Dataset may have been deleted.",
-                    error_type="DatasetNotAccessible",
-                )
-            # Log any warnings (e.g., virtual dataset warnings)
-            for warning in validation_result.warnings:
-                await ctx.warning("Dataset warning: %s" % (warning,))
+            logger.warning(
+                "get_chart_data: dataset not accessible for chart_id=%s: %s",
+                chart.id,
+                validation_result.error,
+            )
+            return ChartError(
+                error=validation_result.error
+                or "Chart's dataset is not accessible. Dataset may have been deleted.",
+                error_type="DatasetNotAccessible",
+            )
+        # Log any warnings (e.g., virtual dataset warnings)
+        for warning in validation_result.warnings:
+            await ctx.warning("Dataset warning: %s" % (warning,))
 
         start_time = time.time()
 
@@ -469,8 +478,10 @@ async def get_chart_data(  # noqa: C901
             from superset.charts.schemas import ChartDataQueryContextSchema
             from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-            # Check if form_data_key is provided - use cached form_data instead
-            if request.form_data_key:
+            # Guests always read the saved chart config: the cache isn't
+            # dashboard-scoped and its payload could point the query at another
+            # datasource.
+            if request.form_data_key and not guest_scope.is_guest_read():
                 with event_logger.log_context(
                     action="mcp.get_chart_data.unsaved_state_override"
                 ):
@@ -513,11 +524,13 @@ async def get_chart_data(  # noqa: C901
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
-                # Build query context from cached form_data (unsaved state)
-                row_limit = (
+                # row_limit may arrive as a str. The trailing fallback keeps a
+                # falsy 0 resolving to ROW_LIMIT.
+                row_limit = _coerce_row_limit(
                     request.limit
                     or cached_form_data_dict.get("row_limit")
-                    or current_app.config["ROW_LIMIT"]
+                    or current_app.config["ROW_LIMIT"],
+                    current_app.config["ROW_LIMIT"],
                 )
 
                 query_context = build_query_context_from_form_data(
@@ -628,8 +641,8 @@ async def get_chart_data(  # noqa: C901
                 # Apply request overrides to the saved query_context
                 query_context_json["force"] = request.force_refresh
 
-                # Apply row limit if specified (respects chart's configured limits)
-                if request.limit:
+                # Ignore a non-positive limit so it can't emit LIMIT -1 downstream.
+                if request.limit and request.limit > 0:
                     for query in query_context_json.get("queries", []):
                         query["row_limit"] = request.limit
 
@@ -994,8 +1007,11 @@ async def _query_from_form_data(
             error_type="InvalidFormData",
         )
 
-    row_limit = (
-        request.limit or form_data.get("row_limit") or current_app.config["ROW_LIMIT"]
+    # row_limit may arrive as a str. The trailing fallback keeps a falsy 0
+    # resolving to ROW_LIMIT.
+    row_limit = _coerce_row_limit(
+        request.limit or form_data.get("row_limit") or current_app.config["ROW_LIMIT"],
+        current_app.config["ROW_LIMIT"],
     )
     viz_type = form_data.get("viz_type", "unknown")
 
