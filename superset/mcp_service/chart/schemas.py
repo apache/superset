@@ -972,7 +972,8 @@ class FilterConfig(UnknownFieldCheckMixin):
     def validate_value(self) -> "FilterConfig":
         """Null checks have no comparator; every other operator requires one."""
         if self.op in {"IS NULL", "IS NOT NULL"}:
-            self.value = None
+            if self.value is not None:
+                raise ValueError(f"Filter operator {self.op!r} must not have 'value'.")
         elif self.value is None:
             raise ValueError(f"Filter operator {self.op!r} requires 'value'.")
         return self

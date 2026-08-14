@@ -192,6 +192,8 @@ class TestGenerateChart:
 
         null_filter = FilterConfig(column="optional_value", op="IS NOT NULL")
         assert null_filter.value is None
+        with pytest.raises(ValueError, match="must not have 'value'"):
+            FilterConfig(column="optional_value", op="IS NULL", value="unexpected")
         with pytest.raises(ValueError, match="requires 'value'"):
             FilterConfig(column="optional_value", op="=")
 
