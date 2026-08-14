@@ -154,9 +154,15 @@ class CategoricalColorScale extends ExtensibleFunction {
         this.incrementColorRange();
       }
 
-      if (this.isColorUsed(color)) {
+      // colors owned by other labels are reserved: handing one of them to a
+      // brand new label would render two identical colors in this chart as
+      // soon as the owner label is resolved from the shared map or from a
+      // forced color, which happens after this call
+      const reservedColors = this.getReservedColors(cleanedValue);
+
+      if (this.isColorUsed(color) || reservedColors.has(color)) {
         // fallback to least used color
-        color = this.getNextAvailableColor(cleanedValue, color);
+        color = this.getNextAvailableColor(cleanedValue, color, reservedColors);
       }
     }
 
@@ -179,7 +185,11 @@ class CategoricalColorScale extends ExtensibleFunction {
         ) {
           continue;
         }
-        const newColor = this.getNextAvailableColor(otherLabel, color);
+        const newColor = this.getNextAvailableColor(
+          otherLabel,
+          color,
+          this.getReservedColors(otherLabel),
+        );
         this.chartLabelsColorMap.set(otherLabel, newColor);
         if (sliceId) {
           this.labelsColorMapInstance.addSlice(
@@ -205,6 +215,36 @@ class CategoricalColorScale extends ExtensibleFunction {
       );
     }
     return color;
+  }
+
+  /**
+   * Colors that already belong to a label other than the given one, either
+   * because a custom label color forces them or because the shared dashboard
+   * color map assigned them. Such colors have an owner and must not be handed
+   * to a label that has no color yet.
+   *
+   * @param currentLabel the label a color is being resolved for
+   * @returns the set of colors owned by other labels
+   */
+  getReservedColors(currentLabel: string): Set<string> {
+    const reservedColors = new Set<string>();
+
+    Object.entries(this.forcedColors).forEach(([label, color]) => {
+      if (label !== currentLabel) {
+        reservedColors.add(color);
+      }
+    });
+
+    // outside of a dashboard there is no shared map to reserve colors from
+    if (this.labelsColorMapInstance.source === LabelsColorMapSource.Dashboard) {
+      this.labelsColorMapInstance.getColorMap().forEach((color, label) => {
+        if (label !== currentLabel) {
+          reservedColors.add(color);
+        }
+      });
+    }
+
+    return reservedColors;
   }
 
   /**
@@ -236,9 +276,14 @@ class CategoricalColorScale extends ExtensibleFunction {
    *
    * @param currentLabel the current label
    * @param currentColor the current color
+   * @param reservedColors colors owned by other labels, avoided when possible
    * @returns the least used color that is not the current color
    */
-  getNextAvailableColor(currentLabel: string, currentColor: string): string {
+  getNextAvailableColor(
+    currentLabel: string,
+    currentColor: string,
+    reservedColors: Set<string> = new Set(),
+  ): string {
     // Precompute color usage counts for all colors
     const colorUsageCounts = new Map(
       this.colors.map(color => [color, this.getColorUsageCount(color)]),
@@ -277,10 +322,14 @@ class CategoricalColorScale extends ExtensibleFunction {
       return usageCount + adjacencyPenalty;
     };
 
-    // If there is any color that has never been used, prioritize it
-    const unusedColor = this.colors.find(
-      color => (colorUsageCounts.get(color) || 0) === 0,
-    );
+    // If there is any color that has never been used, prioritize it,
+    // preferring one that no other label owns
+    const isUnused = (color: string) =>
+      (colorUsageCounts.get(color) || 0) === 0;
+    const unusedColor =
+      this.colors.find(
+        color => isUnused(color) && !reservedColors.has(color),
+      ) ?? this.colors.find(isUnused);
     if (unusedColor) {
       return unusedColor;
     }
