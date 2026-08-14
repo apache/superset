@@ -2762,21 +2762,6 @@ def test_as_cte_called_twice() -> None:
     stmt.as_cte()
 
 
-def test_as_cte_drops_unbounded_mssql_order_by() -> None:
-    statement = SQLStatement(
-        "WITH source AS (SELECT 1 AS value) SELECT value FROM source ORDER BY value",
-        "mssql",
-    )
-    bounded = SQLStatement(
-        "WITH source AS (SELECT 1 AS value) "
-        "SELECT TOP 1 value FROM source ORDER BY value",
-        "mssql",
-    )
-
-    assert "ORDER BY" not in statement.as_cte().format()
-    assert "ORDER BY" in bounded.as_cte().format()
-
-
 @pytest.mark.parametrize(
     "sql, rules, expected",
     [

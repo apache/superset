@@ -193,7 +193,7 @@ def _normalize_mssql_virtual_dataset_sql(
         return sql
 
     return (
-        f"{statement.format()}\n"
+        parsed_script.format()
         if statement.remove_unbounded_top_level_order_by()
         else sql
     )
