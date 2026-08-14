@@ -27,6 +27,7 @@ import {
   getExportScreenshotMenuItems,
 } from './index';
 import * as exploreUtils from 'src/explore/exploreUtils';
+import { Slice } from 'src/types/Chart';
 
 jest.mock('src/explore/exploreUtils', () => ({
   __esModule: true,
@@ -74,13 +75,22 @@ jest.mock('@superset-ui/core', () => ({
   })),
 }));
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      user_subjects: [1],
+    },
+  })),
+}));
+
 const defaultProps = {
   latestQueryFormData: {
     datasource: '1__table',
     viz_type: 'pivot_table_v2',
   },
   canDownloadCSV: true,
-  slice: { slice_id: 1, slice_name: 'Test Chart' },
+  slice: { slice_id: 1, slice_name: 'Test Chart' } as unknown as Slice,
   ownState: {},
   dashboards: [],
   onOpenInEditor: jest.fn(),
@@ -111,6 +121,63 @@ const TestComponent = (props: TestComponentProps) => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockExportChart.mockResolvedValue(undefined);
+});
+
+test('hides Edit chart properties from a user who is not an owner/editor of the chart (regression #38884)', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [2],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
+});
+
+test('shows Edit chart properties for a chart editor with chart write permission', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [1],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true, initialState: { explore: { can_add: true } } },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.getByText('Edit chart properties')).toBeInTheDocument();
+});
+
+test('hides Edit chart properties from a chart editor lacking chart write permission', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [1],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true, initialState: { explore: { can_add: false } } },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
 });
 
 test('shows 413 error toast when exportCSV fails with 413', async () => {
