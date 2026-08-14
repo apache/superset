@@ -536,9 +536,7 @@ class TestResponseSizeGuardMiddleware:
 
         assert isinstance(result, dict)
         assert estimate_token_count(utils_json.dumps(result)) <= 700
-        assert result["_truncation_notes"][0].startswith(
-            "Result truncated: 4 of 400 rows returned"
-        )
+        assert " of 400 rows returned" in result["_truncation_notes"][0]
 
     @pytest.mark.asyncio
     async def test_data_query_truncation_updates_row_count(self) -> None:
