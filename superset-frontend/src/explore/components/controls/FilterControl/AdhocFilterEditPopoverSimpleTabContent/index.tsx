@@ -160,7 +160,11 @@ export const useSimpleTabFilterProps = (props: Props) => {
       ].includes(operator);
     }
     if (operator === Operators.IsTrue || operator === Operators.IsFalse) {
-      return isColumnBoolean || isColumnNumber || isColumnFunction;
+      // An expression column may evaluate to a boolean, but that is only a
+      // safe assumption while its type is unknown; a declared type wins.
+      return (
+        isColumnBoolean || isColumnNumber || (isColumnFunction && !column?.type)
+      );
     }
     if (isColumnBoolean) {
       return operator === Operators.IsNull || operator === Operators.IsNotNull;
