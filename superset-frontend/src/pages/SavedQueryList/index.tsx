@@ -255,6 +255,7 @@ function SavedQueryList({
 
   const copyQueryLink = useCallback(
     async (savedQuery: SavedQueryObject) => {
+      let permalink: string;
       try {
         const payload = {
           dbId: savedQuery.db_id,
@@ -272,12 +273,19 @@ function SavedQueryList({
           body: JSON.stringify(payload),
         });
 
-        const { url: permalink } = response.json;
+        ({ url: permalink } = response.json);
+      } catch (error) {
+        addDangerToast(t('There was an error generating the permalink.'));
+        return;
+      }
 
+      try {
         await navigator.clipboard.writeText(permalink);
         addSuccessToast(t('Link Copied!'));
       } catch (error) {
-        addDangerToast(t('There was an error generating the permalink.'));
+        addDangerToast(
+          t('The link was generated but could not be copied: %s', permalink),
+        );
       }
     },
     [addDangerToast, addSuccessToast],
