@@ -419,6 +419,44 @@ def test_get_timestamp_expr_datetime_column_not_cast() -> None:
     assert _compile(expr) == "DATE_TRUNC('day', event_ts)"
 
 
+def test_get_timestamp_expr_string_column_casts_to_timestamp() -> None:
+    """DB Eng Specs (postgres): temporal string columns are cast before truncation."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, "P1D")
+    assert (
+        _compile(expr)
+        == "DATE_TRUNC('day', CAST(event_timestamp AS TIMESTAMP))"
+    )
+
+
+def test_get_timestamp_expr_string_column_without_grain_not_cast() -> None:
+    """DB Eng Specs (postgres): strings without a time grain remain unchanged."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, None)
+    assert _compile(expr) == "event_timestamp"
+
+
+def test_get_timestamp_expr_epoch_string_column_not_cast() -> None:
+    """DB Eng Specs (postgres): epoch conversion handles strings before truncation."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, "epoch_s", "P1D")
+    assert _compile(expr) == (
+        "DATE_TRUNC('day', "
+        "(timestamp 'epoch' + event_timestamp * interval '1 second'))"
+    )
+
+
+def test_get_timestamp_expr_string_column_casts_every_grain_reference() -> None:
+    """DB Eng Specs (postgres): compound grains cast every string reference."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, "PT5S")
+    assert _compile(expr) == (
+        "DATE_TRUNC('minute', CAST(event_timestamp AS TIMESTAMP)) "
+        "+ INTERVAL '5 seconds' * "
+        "FLOOR(EXTRACT(SECOND FROM CAST(event_timestamp AS TIMESTAMP)) / 5)"
+    )
+
+
 def test_get_timestamp_expr_date_column_without_grain_not_cast() -> None:
     """
     DB Eng Specs (postgres): without a time grain there is no DATE_TRUNC, so the
