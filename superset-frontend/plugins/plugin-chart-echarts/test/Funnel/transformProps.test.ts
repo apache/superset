@@ -82,6 +82,19 @@ describe('Funnel transformProps', () => {
     expect(series[0].top).toBe(40);
   });
 
+  test('should reserve extra space for a bottom horizontal legend by default (40 instead of 20)', () => {
+    const props = new ChartProps({
+      formData: { ...formData, legendOrientation: 'bottom' },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(props as EchartsFunnelChartProps);
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].bottom).toBe(40);
+  });
+
   test('should respect an explicit legend margin', () => {
     const props = new ChartProps({
       formData: { ...formData, legendMargin: 80 },
@@ -93,6 +106,16 @@ describe('Funnel transformProps', () => {
     const { echartOptions } = transformProps(props as EchartsFunnelChartProps);
     const series = echartOptions.series as FunnelSeriesOption[];
     expect(series[0].top).toBe(80);
+  });
+
+  test('does not apply a text border to segment labels', () => {
+    // A white textBorder washes out the dark text on light-colored segments.
+    const { echartOptions } = transformProps(chartProps as EchartsFunnelChartProps);
+    const series = echartOptions.series as FunnelSeriesOption[];
+    const label = series[0].label;
+    expect(label).toEqual(expect.objectContaining({ color: supersetTheme.colorText }));
+    expect(label).not.toHaveProperty('textBorderColor');
+    expect(label).not.toHaveProperty('textBorderWidth');
   });
 });
 
