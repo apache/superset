@@ -76,6 +76,8 @@ class RenderErrorBoundary extends Component<
 
   render() {
     if (this.state.hasError) {
+      // data-test is the configured testIdAttribute (see spec/helpers/setup.ts),
+      // so *ByTestId('render-error') resolves this node.
       return <div data-test="render-error">Render error</div>;
     }
 

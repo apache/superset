@@ -104,21 +104,19 @@ const sortTypes = {
 };
 
 // Prefer a stable identifier from original row data; otherwise use a deterministic
-// concatenation of visible values (keys sorted so column order changes are detected).
+// concatenation of visible values (keys sorted so the result does not depend on
+// column order).
 function stableRowKey<D extends object>(r: Row<D>): string {
   const orig = r.original as Record<string, unknown> | undefined;
   if (orig) {
-    const idLike =
-      (orig as any).id ??
-      (orig as any).ID ??
-      (orig as any).key ??
-      (orig as any).uuid;
+    const idLike = orig.id ?? orig.ID ?? orig.key ?? orig.uuid;
     if (idLike != null) return String(idLike);
   }
 
-  // Fallback: derive from row.values, but make it stable against column order changes.
+  // Fallback: derive from row.values, sorting the keys so that reordering the
+  // columns does not change the key.
   const v = r.values as Record<string, unknown>;
-  const keys = Object.keys(v).sort(); // detect column order changes
+  const keys = Object.keys(v).sort();
   return keys.map(k => String(v[k] ?? '')).join('|');
 }
 
