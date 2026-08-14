@@ -28,7 +28,15 @@ from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
-TERMINAL_CHART_HOLDER_STATES = frozenset({"rendered", "empty", "error", "virtualized"})
+# A holder counts as terminal/ready only if it reached a delivered outcome: a
+# painted chart (``rendered``), a legitimate ``empty`` result, or an ``error``.
+# ``virtualized`` (off-screen, never mounted or painted) is deliberately NOT
+# terminal: counting it as ready let blank reports ship when charts sat below the
+# fold. #42901 grows the capture viewport so off-screen holders mount, but a
+# holder still ``virtualized`` at readiness time -- e.g. a dashboard taller than
+# the standalone-capture viewport cap -- must be treated as not-ready and fail
+# loud rather than counted terminal and shipped blank.
+TERMINAL_CHART_HOLDER_STATES = frozenset({"rendered", "empty", "error"})
 CHART_HOLDER_SEMANTIC_POLICY = "deliver_terminal_errors_with_warning"
 
 # Minimum working allowance kept above the summed phase reserves when a

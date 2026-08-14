@@ -57,12 +57,15 @@ def test_chart_holder_diagnostics_separate_terminal_errors_from_success() -> Non
     )
 
     assert diagnostics.mounted_holders == 5
-    assert diagnostics.ready_holders == 5
+    # ``virtualized`` is no longer a terminal/ready state (it never painted), so
+    # only rendered + empty + error count as ready and the off-screen holder is
+    # unready.
+    assert diagnostics.ready_holders == 4
     assert diagnostics.rendered_holders == 2
     assert diagnostics.empty_holders == 1
     assert diagnostics.error_holders == 1
     assert diagnostics.virtualized_holders == 1
-    assert diagnostics.unready_holders == 0
+    assert diagnostics.unready_holders == 1
     assert diagnostics.semantic_success is False
 
 
@@ -250,3 +253,26 @@ def test_report_execution_config_rejects_invalid_startup_values(
 
 def test_report_execution_config_accepts_defaults() -> None:
     validate_report_execution_config(_report_config())
+
+
+def test_virtualized_holders_are_not_semantic_success() -> None:
+    # A blank report can ship when off-screen (``virtualized``) holders are
+    # counted terminal: 8 painted + 2 off-screen holders would log
+    # semantic_success=True and deliver a partially blank capture. ``virtualized``
+    # is not a ready state, so those holders stay unready and semantic_success is
+    # False. (#42901 grows the viewport so they normally mount; this is the
+    # defense-in-depth for holders still off-screen at readiness time.)
+    diagnostics = ChartHolderDiagnostics.from_holder_states(
+        [{"chartId": str(i), "state": "rendered"} for i in range(8)]
+        + [
+            {"chartId": "8", "state": "virtualized"},
+            {"chartId": "9", "state": "virtualized"},
+        ]
+    )
+
+    assert diagnostics.mounted_holders == 10
+    assert diagnostics.rendered_holders == 8
+    assert diagnostics.virtualized_holders == 2
+    assert diagnostics.ready_holders == 8
+    assert diagnostics.unready_holders == 2
+    assert diagnostics.semantic_success is False
