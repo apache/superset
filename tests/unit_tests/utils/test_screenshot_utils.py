@@ -1161,8 +1161,7 @@ def test_readiness_predicates_gate_on_unpainted_echarts_hosts() -> None:
     )
 
     assert (
-        ECHARTS_UNPAINTED_HOST_SELECTOR
-        == ".echarts-host:not(.echarts-render-finished)"
+        ECHARTS_UNPAINTED_HOST_SELECTOR == ".echarts-host:not(.echarts-render-finished)"
     )
     assert ECHARTS_UNPAINTED_HOST_SELECTOR in REPORT_CHART_HOLDERS_READY_JS
     assert ECHARTS_UNPAINTED_HOST_SELECTOR in CHART_CONTAINER_READY_JS
