@@ -89,7 +89,7 @@ jobs:
         with:
           repository: Webgains/superset-service
           ref: main
-          ssh-key: ${{ secrets.SSH_KEY }}
+          token: ${{ secrets.GH_PRIVATE_SOURCE_READ_PAT }}
           path: cdk
 
       - name: Assume AWS role
