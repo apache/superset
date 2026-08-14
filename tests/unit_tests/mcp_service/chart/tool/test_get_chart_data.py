@@ -394,7 +394,7 @@ class TestUnsavedChartDataQueryConstruction:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -475,7 +475,7 @@ class TestUnsavedChartDataQueryConstruction:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -540,6 +540,84 @@ class TestUnsavedChartDataQueryConstruction:
         assert queries[1]["columns"] == ["ds", "state"]
         assert queries[1]["metrics"] == ["sum__profit"]
         assert queries[1]["row_limit"] == 99
+
+    @pytest.mark.asyncio
+    async def test_form_data_key_path_exposes_jinja_context(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Unsaved-chart execution publishes the same Jinja inputs as get_chart_data."""
+        from flask import current_app
+
+        from superset.common.query_object import QueryObject
+        from tests.unit_tests.charts.data.form_data_test import (
+            assert_request_dependent_jinja_macros,
+        )
+
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        query = QueryObject(
+            filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+            time_range="Last week",
+        )
+        query_context = SimpleNamespace(
+            queries=[query],
+            form_data={"url_params": {"tenant": "acme"}},
+        )
+        observed: dict[str, bool] = {}
+
+        class ChartDataCommand:
+            def __init__(self, qc: object) -> None:
+                self.query_context = qc
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                assert_request_dependent_jinja_macros()
+                observed["ran"] = True
+                return {
+                    "queries": [
+                        {
+                            "data": [{"region": "North"}],
+                            "colnames": ["region"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            chart_data_module,
+            "build_query_context_from_form_data",
+            lambda *args, **kwargs: query_context,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+
+        with current_app.test_request_context():
+            await _query_from_form_data(
+                {
+                    "datasource_id": 7,
+                    "datasource_type": "table",
+                    "url_params": {"tenant": "acme"},
+                    "time_range": "Last week",
+                },
+                GetChartDataRequest(form_data_key="cached-key"),
+                _AsyncContext(),
+            )
+
+        assert observed["ran"] is True
 
 
 class TestWorldMapChartFallback:
@@ -1027,7 +1105,9 @@ class TestChartDataCommandValidation:
             ) as mock_factory,
         ):
             mock_db.session.get.return_value = mock_dataset
-            mock_factory.return_value.create.return_value = MagicMock()
+            mock_factory.return_value.create.return_value = SimpleNamespace(
+                queries=[], form_data={}
+            )
 
             from superset.mcp_service.chart.preview_utils import (
                 generate_preview_from_form_data,
@@ -1075,7 +1155,9 @@ class TestChartDataCommandValidation:
             ) as mock_factory,
         ):
             mock_db.session.get.return_value = mock_dataset
-            mock_factory.return_value.create.return_value = MagicMock()
+            mock_factory.return_value.create.return_value = SimpleNamespace(
+                queries=[], form_data={}
+            )
 
             from superset.mcp_service.chart.preview_utils import (
                 generate_preview_from_form_data,
@@ -1118,7 +1200,9 @@ class TestChartDataCommandValidation:
                 "superset.common.query_context_factory.QueryContextFactory"
             ) as mock_factory,
         ):
-            mock_factory.return_value.create.return_value = MagicMock()
+            mock_factory.return_value.create.return_value = SimpleNamespace(
+                queries=[], form_data={}
+            )
 
             from superset.mcp_service.chart.tool.generate_chart import _compile_chart
 
@@ -1159,7 +1243,9 @@ class TestChartDataCommandValidation:
                 "superset.common.query_context_factory.QueryContextFactory"
             ) as mock_factory,
         ):
-            mock_factory.return_value.create.return_value = MagicMock()
+            mock_factory.return_value.create.return_value = SimpleNamespace(
+                queries=[], form_data={}
+            )
 
             from superset.mcp_service.chart.tool.generate_chart import _compile_chart
 
@@ -1379,7 +1465,7 @@ class TestOAuthErrorRouting:
 
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class RaisingChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -1800,7 +1886,7 @@ class TestGuestScoping:
             ),
             patch(
                 "superset.charts.schemas.ChartDataQueryContextSchema.load",
-                lambda self, data: object(),
+                lambda self, data: SimpleNamespace(queries=[], form_data={}),
             ),
         ):
             async with Client(mcp_server) as client:
@@ -1926,7 +2012,7 @@ class TestGuestScoping:
             ),
             patch(
                 "superset.charts.schemas.ChartDataQueryContextSchema.load",
-                lambda self, data: object(),
+                lambda self, data: SimpleNamespace(queries=[], form_data={}),
             ),
         ):
             async with Client(mcp_server) as client:
@@ -1953,7 +2039,7 @@ async def test_query_from_form_data_zero_row_limit_falls_back_to_default(
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["row_limit"] = kwargs.get("row_limit")
-        return object()
+        return SimpleNamespace(queries=[], form_data={})
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
@@ -1994,7 +2080,7 @@ async def test_query_from_form_data_string_row_limit_is_coerced(
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["row_limit"] = kwargs.get("row_limit")
-        return object()
+        return SimpleNamespace(queries=[], form_data={})
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...

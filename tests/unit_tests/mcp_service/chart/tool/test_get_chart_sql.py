@@ -20,6 +20,8 @@ Unit tests for get_chart_sql MCP tool
 """
 
 import importlib
+from types import SimpleNamespace
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -40,6 +42,8 @@ from superset.mcp_service.chart.tool.get_chart_sql import (
     _resolve_groupby,
     _resolve_metrics,
     _resolve_metrics_and_groupby,
+    _sql_from_form_data,
+    _sql_from_saved_query_context,
     get_chart_sql,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
@@ -206,6 +210,132 @@ class TestExtractSqlFromResult:
         assert output.chart_id is None
         assert output.chart_name is None
         assert output.datasource_name is None
+
+
+class TestChartSqlJinjaContext:
+    """SQL generation must expose the same Jinja inputs as chart data execution."""
+
+    def _command_observing_jinja(self, observed: dict[str, bool]) -> type:
+        from tests.unit_tests.charts.data.form_data_test import (
+            assert_request_dependent_jinja_macros,
+        )
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                assert_request_dependent_jinja_macros()
+                observed["ran"] = True
+                return {"queries": [{"query": "SELECT 1", "language": "sql"}]}
+
+        return ChartDataCommand
+
+    def test_sql_from_form_data_exposes_jinja_context(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The form_data SQL path publishes filters, time_range, and url_params."""
+        from flask import current_app
+
+        from superset.common.query_object import QueryObject
+
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        query = QueryObject(
+            filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+            time_range="Last week",
+        )
+        query_context = SimpleNamespace(
+            queries=[query],
+            form_data={"url_params": {"tenant": "acme"}},
+        )
+        observed: dict[str, bool] = {}
+        monkeypatch.setattr(
+            _get_chart_sql_mod,
+            "_build_query_context_from_form_data",
+            lambda *args, **kwargs: query_context,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            self._command_observing_jinja(observed),
+        )
+
+        chart = SimpleNamespace(
+            id=1,
+            slice_name="Sales",
+            datasource_name="orders",
+            datasource_id=7,
+            datasource_type="table",
+        )
+        with current_app.test_request_context():
+            result = _sql_from_form_data(
+                {
+                    "datasource_id": 7,
+                    "datasource_type": "table",
+                    "url_params": {"tenant": "acme"},
+                    "time_range": "Last week",
+                },
+                chart,
+            )
+
+        assert isinstance(result, ChartSql)
+        assert observed["ran"] is True
+
+    def test_sql_from_saved_query_context_exposes_jinja_context(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Saved query_context SQL generation uses the shared Jinja helper."""
+        from flask import current_app
+
+        from superset.common.query_object import QueryObject
+
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        query = QueryObject(
+            filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+            time_range="Last week",
+        )
+        query_context = SimpleNamespace(
+            queries=[query],
+            form_data={"url_params": {"tenant": "acme"}},
+        )
+        observed: dict[str, bool] = {}
+
+        class FakeSchema:
+            def load(self, _data: object) -> SimpleNamespace:
+                return query_context
+
+        monkeypatch.setattr(
+            "superset.charts.schemas.ChartDataQueryContextSchema",
+            FakeSchema,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            self._command_observing_jinja(observed),
+        )
+
+        chart = SimpleNamespace(
+            id=1,
+            slice_name="Sales",
+            datasource_name="orders",
+            datasource_id=7,
+            datasource_type="table",
+            query_context='{"datasource": {"id": 7, "type": "table"}, "queries": [{}]}',
+        )
+        with current_app.test_request_context():
+            result = _sql_from_saved_query_context(chart)
+
+        assert isinstance(result, ChartSql)
+        assert observed["ran"] is True
 
 
 class TestFindChartByIdentifier:

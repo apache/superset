@@ -23,6 +23,8 @@ import ast
 import inspect
 from pathlib import Path
 
+import pytest
+
 from superset.mcp_service.chart import preview_utils
 
 
@@ -209,3 +211,80 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     assert preview_utils._build_query_columns(
         {"groupby": ["country"], "columns": []}
     ) == ["country"]
+
+
+def test_generate_preview_from_form_data_exposes_jinja_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unsaved-chart previews expose the same Jinja inputs as execution."""
+    from types import SimpleNamespace
+    from typing import Any
+    from unittest.mock import MagicMock
+
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from tests.unit_tests.charts.data.form_data_test import (
+        assert_request_dependent_jinja_macros,
+    )
+
+    query = QueryObject(
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+        time_range="Last week",
+    )
+    query_context = SimpleNamespace(
+        queries=[query],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    observed: dict[str, bool] = {}
+
+    class QueryContextFactory:
+        def create(self, **kwargs: Any) -> object:
+            return query_context
+
+    class ChartDataCommand:
+        def __init__(self, qc: object) -> None:
+            self.query_context = qc
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, Any]:
+            assert_request_dependent_jinja_macros()
+            observed["ran"] = True
+            return {
+                "queries": [
+                    {
+                        "data": [{"region": "North"}],
+                        "colnames": ["region"],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        "superset.common.query_context_factory.QueryContextFactory",
+        QueryContextFactory,
+    )
+    monkeypatch.setattr(
+        "superset.commands.chart.data.get_data_command.ChartDataCommand",
+        ChartDataCommand,
+    )
+    mock_db = MagicMock()
+    mock_db.session.get.return_value = MagicMock()
+    monkeypatch.setattr("superset.extensions.db", mock_db)
+
+    with current_app.test_request_context():
+        result = preview_utils.generate_preview_from_form_data(
+            {
+                "metrics": ["count"],
+                "groupby": ["region"],
+                "url_params": {"tenant": "acme"},
+                "time_range": "Last week",
+            },
+            dataset_id=7,
+            preview_format="table",
+        )
+
+    assert observed["ran"] is True
+    assert getattr(result, "error", None) is None

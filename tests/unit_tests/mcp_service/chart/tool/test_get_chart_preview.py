@@ -304,7 +304,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -366,6 +366,90 @@ class TestGetChartPreview:
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
         assert "adhoc_filters" not in query
 
+    def test_table_preview_exposes_jinja_context(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Chart preview queries expose the same Jinja inputs as get_chart_data."""
+        from flask import current_app
+
+        from superset.common.query_object import QueryObject
+        from tests.unit_tests.charts.data.form_data_test import (
+            assert_request_dependent_jinja_macros,
+        )
+
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        query = QueryObject(
+            filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+            time_range="Last week",
+            columns=["region"],
+            metrics=["count"],
+        )
+        query_context = SimpleNamespace(
+            queries=[query],
+            form_data={"url_params": {"tenant": "acme"}},
+        )
+        observed: dict[str, bool] = {}
+
+        class ChartDataCommand:
+            def __init__(self, qc: object) -> None:
+                self.query_context = qc
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                assert_request_dependent_jinja_macros()
+                observed["ran"] = True
+                return {
+                    "queries": [
+                        {
+                            "data": [{"region": "North"}],
+                            "colnames": ["region"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        preview_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_preview"
+        )
+        monkeypatch.setattr(
+            preview_module,
+            "build_query_context_from_form_data",
+            lambda *args, **kwargs: query_context,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        chart = SimpleNamespace(
+            id=1,
+            slice_name="Sales",
+            viz_type="table",
+            datasource_id=7,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "metrics": ["count"],
+                    "groupby": ["region"],
+                    "url_params": {"tenant": "acme"},
+                    "time_range": "Last week",
+                }
+            ),
+        )
+        with current_app.test_request_context():
+            preview = TablePreviewStrategy(
+                chart,
+                GetChartPreviewRequest(identifier=1, format="table"),
+            ).generate()
+
+        assert isinstance(preview, TablePreview)
+        assert observed["ran"] is True
+
     def test_table_preview_uses_singular_metric(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -383,7 +467,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -454,7 +538,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -586,7 +670,7 @@ class TestGetChartPreview:
 
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -672,7 +756,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:

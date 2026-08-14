@@ -26,6 +26,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import db, event_logger
@@ -280,6 +281,20 @@ class PreviewFormatStrategy:
         if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
             guest_scope.authorize_query(query_context, dashboard_id, self.chart)
 
+    def _run_chart_data_command(self, query_context: Any) -> dict[str, Any]:
+        """Execute ChartDataCommand with the same Jinja context as get_chart_data."""
+        from superset.commands.chart.data.get_data_command import ChartDataCommand
+
+        self._authorize_guest_query(query_context)
+        set_query_context_form_data(
+            query_context,
+            self.chart.datasource_id,
+            self.chart.datasource_type,
+        )
+        command = ChartDataCommand(query_context)
+        command.validate()
+        return command.run()
+
 
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based preview with explore link."""
@@ -304,7 +319,6 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
 
     def generate(self) -> ASCIIPreview | ChartError:
         try:
-            from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
@@ -332,10 +346,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             if not _first_query_has_fields(query_context):
                 return _no_query_fields_error(self.chart)
 
-            self._authorize_guest_query(query_context)
-            command = ChartDataCommand(query_context)
-            command.validate()
-            result = command.run()
+            result = self._run_chart_data_command(query_context)
 
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
@@ -374,7 +385,6 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
     def generate(self) -> TablePreview | ChartError:
         try:
-            from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
@@ -397,10 +407,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             if not _first_query_has_fields(query_context):
                 return _no_query_fields_error(self.chart)
 
-            self._authorize_guest_query(query_context)
-            command = ChartDataCommand(query_context)
-            command.validate()
-            result = command.run()
+            result = self._run_chart_data_command(query_context)
 
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
@@ -447,7 +454,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         try:
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
-            from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.daos.chart import ChartDAO
             from superset.utils import json as utils_json
 
@@ -488,11 +494,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 force=self.request.force_refresh,
             )
 
-            # Execute the query
-            self._authorize_guest_query(query_context)
-            command = ChartDataCommand(query_context)
-            command.validate()
-            result = command.run()
+            result = self._run_chart_data_command(query_context)
 
             # Extract data from result
             chart_data = []

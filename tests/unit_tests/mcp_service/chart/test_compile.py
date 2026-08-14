@@ -23,6 +23,7 @@ path so fast-path tools (``generate_explore_link``, ``update_chart_preview``)
 that only use Tier-1 validation are exercised end-to-end.
 """
 
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
@@ -478,7 +479,9 @@ def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.mcp_service.chart.compile import _compile_chart
 
-    mock_factory.return_value.create.return_value = Mock()
+    mock_factory.return_value.create.return_value = SimpleNamespace(
+        queries=[], form_data={}
+    )
     mock_cmd_cls.return_value.validate.return_value = None
 
     # Real scenario: __cause__ is NOT set, error is just a string
@@ -529,7 +532,9 @@ def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
 
     from superset.mcp_service.chart.compile import _compile_chart
 
-    mock_factory.return_value.create.return_value = Mock()
+    mock_factory.return_value.create.return_value = SimpleNamespace(
+        queries=[], form_data={}
+    )
     mock_cmd_cls.return_value.validate.return_value = None
     mock_cmd_cls.return_value.run.side_effect = OperationalError(
         "connection to server at '10.0.0.1', port 5432 failed: Connection timed out",
@@ -572,3 +577,59 @@ def test_valid_configs_pass_tier1(config_factory):
     ds = _orm_dataset()
     result = validate_and_compile(config_factory(), {}, ds, run_compile_check=False)
     assert result.success, result.error
+
+
+def test_compile_chart_exposes_jinja_context() -> None:
+    """Compile checks publish the same Jinja inputs used during chart execution."""
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.mcp_service.chart.compile import _compile_chart
+    from tests.unit_tests.charts.data.form_data_test import (
+        assert_request_dependent_jinja_macros,
+    )
+
+    query = QueryObject(
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+        time_range="Last week",
+    )
+    query_context = SimpleNamespace(
+        queries=[query],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    observed: dict[str, bool] = {}
+
+    class ChartDataCommand:
+        def __init__(self, qc: object) -> None:
+            self.query_context = qc
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict:
+            assert_request_dependent_jinja_macros()
+            observed["ran"] = True
+            return {"queries": [{"data": [{"region": "North"}]}]}
+
+    with (
+        current_app.test_request_context(),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            ChartDataCommand,
+        ),
+    ):
+        result = _compile_chart(
+            {
+                "metrics": ["count"],
+                "url_params": {"tenant": "acme"},
+                "time_range": "Last week",
+            },
+            dataset_id=7,
+        )
+
+    assert result.success is True
+    assert observed["ran"] is True

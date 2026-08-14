@@ -19,6 +19,7 @@
 Unit tests for MCP generate_chart tool
 """
 
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -352,7 +353,9 @@ class TestCompileChart:
     @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_compile_chart_success(self, mock_factory_cls, mock_cmd_cls):
         """Test _compile_chart returns success when query executes cleanly."""
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
         mock_cmd_cls.return_value.run.return_value = {
             "queries": [{"data": [{"col": 1}, {"col": 2}]}]
         }
@@ -373,7 +376,9 @@ class TestCompileChart:
     @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_compile_chart_query_error_in_payload(self, mock_factory_cls, mock_cmd_cls):
         """Test _compile_chart detects errors embedded in query results."""
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
         mock_cmd_cls.return_value.run.return_value = {
             "queries": [{"error": "column 'bad_col' does not exist"}]
         }
@@ -391,7 +396,9 @@ class TestCompileChart:
             ChartDataQueryFailedError,
         )
 
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
         mock_cmd_cls.return_value.run.side_effect = ChartDataQueryFailedError(
             "syntax error near FROM"
         )
