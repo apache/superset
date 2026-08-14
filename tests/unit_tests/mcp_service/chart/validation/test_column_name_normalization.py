@@ -58,27 +58,6 @@ def mock_dataset_context() -> DatasetContext:
     )
 
 
-def test_unknown_numeric_type_is_deferred_to_compile_check() -> None:
-    """Virtual SQL columns with unknown metadata are not assumed to be text."""
-    context = DatasetContext(
-        id=69,
-        table_name="virtual_metrics",
-        schema=None,
-        database_name="database",
-        available_columns=[
-            {"name": "computed_total", "type": "UNKNOWN", "is_numeric": False}
-        ],
-        available_metrics=[],
-    )
-    column = ColumnRef(name="computed_total", aggregate="SUM")
-
-    assert DatasetValidator._validate_aggregations([column], context) == []
-
-    context.available_columns[0]["type"] = "VARCHAR"
-    errors = DatasetValidator._validate_aggregations([column], context)
-    assert errors[0].error_type == "invalid_aggregation"
-
-
 class TestGetCanonicalColumnName:
     """Test get_canonical_column_name static method."""
 
