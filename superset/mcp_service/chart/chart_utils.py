@@ -757,6 +757,24 @@ def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> Non
     form_data["adhoc_filters"] = existing
 
 
+def _has_generated_temporal_filter(form_data: Dict[str, Any], column: str) -> bool:
+    """Return whether form data contains the neutral generated time binding."""
+    return any(
+        isinstance(filter_, dict)
+        and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        and filter_.get("subject") == column
+        and filter_.get("comparator") == NO_TIME_RANGE
+        for filter_ in form_data.get("adhoc_filters", [])
+    )
+
+
+def _ensure_generated_temporal_binding(form_data: Dict[str, Any], column: str) -> None:
+    """Add a neutral time filter and record its generated provenance."""
+    _ensure_temporal_adhoc_filter(form_data, column)
+    if _has_generated_temporal_filter(form_data, column):
+        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = column
+
+
 def _bind_dashboard_time_range_filter(
     form_data: Dict[str, Any],
     config: ChartConfig,
@@ -793,13 +811,7 @@ def _bind_dashboard_time_range_filter(
         # Temporal XY mappers create the neutral filter before this binding pass.
         # Record its provenance so preview updates can replace it if the subject
         # changes, without treating user-authored temporal ranges as generated.
-        if any(
-            isinstance(filter_, dict)
-            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
-            and filter_.get("subject") == granularity
-            and filter_.get("comparator") == NO_TIME_RANGE
-            for filter_ in form_data.get("adhoc_filters", [])
-        ):
+        if _has_generated_temporal_filter(form_data, granularity):
             form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = granularity
         return
 
@@ -1142,7 +1154,7 @@ def map_big_number_config(
     # panel, which exposes an `adhoc_filters` control even though there's no
     # dedicated time-column control for the total variant.
     if temporal_column := _resolve_big_number_temporal_column(config, dataset_id):
-        _ensure_temporal_adhoc_filter(form_data, temporal_column)
+        _ensure_generated_temporal_binding(form_data, temporal_column)
 
     return form_data
 

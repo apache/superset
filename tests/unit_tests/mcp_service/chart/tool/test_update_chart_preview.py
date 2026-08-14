@@ -720,6 +720,34 @@ class TestUpdateChartPreview:
 
         assert new_form_data["adhoc_filters"] == [new_binding]
 
+    def test_replaces_big_number_fallback_binding_when_subject_changes(self) -> None:
+        """A Big Number fallback binding is replaced by a selected subject."""
+        previous_binding = {
+            "clause": "WHERE",
+            "comparator": "No filter",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "order_date",
+        }
+        new_binding = {
+            **previous_binding,
+            "subject": "created_at",
+        }
+        new_form_data = {
+            "adhoc_filters": [new_binding],
+            "_mcp_dashboard_time_filter_subject": "created_at",
+        }
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {
+                "adhoc_filters": [previous_binding],
+                "_mcp_dashboard_time_filter_subject": "order_date",
+            },
+        )
+
+        assert new_form_data["adhoc_filters"] == [new_binding]
+
     def test_removes_cached_temporal_filter_without_new_binding(self) -> None:
         """A mapping without a temporal subject drops the cached binding."""
         region_filter = {
