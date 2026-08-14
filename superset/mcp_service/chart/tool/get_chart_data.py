@@ -48,6 +48,7 @@ from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
+    ChartQueryResult,
     DataColumn,
     GetChartDataRequest,
     PerformanceMetadata,
@@ -267,6 +268,12 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
         field_path=("data",),
         excluded_field_names=frozenset(),
     )
+    for query_index, query_result in enumerate(payload.get("query_results") or []):
+        query_result["data"] = sanitize_for_llm_context(
+            query_result.get("data", []),
+            field_path=("query_results", str(query_index), "data"),
+            excluded_field_names=frozenset(),
+        )
     payload["columns"] = [
         {
             **column,
@@ -280,6 +287,29 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
     ]
 
     return ChartData.model_validate(payload)
+
+
+def _build_query_results(
+    query_results: list[dict[str, Any]], limit: int | None
+) -> list[ChartQueryResult] | None:
+    """Preserve every result when a chart executes more than one query."""
+    if len(query_results) <= 1:
+        return None
+
+    results = []
+    for index, query_result in enumerate(query_results):
+        data = query_result.get("data", [])
+        returned_data = data[:limit] if limit else data
+        results.append(
+            ChartQueryResult(
+                query_index=index,
+                columns=query_result.get("colnames", []),
+                data=returned_data,
+                row_count=len(returned_data),
+                total_rows=query_result.get("rowcount"),
+            )
+        )
+    return results
 
 
 @tool(
@@ -723,7 +753,7 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not data:
+            if not any(query.get("data") for query in result["queries"]):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart.id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
@@ -903,6 +933,9 @@ async def get_chart_data(  # noqa: C901
                     chart_type=chart.viz_type or "unknown",
                     columns=columns,
                     data=data[: request.limit] if request.limit else data,
+                    query_results=_build_query_results(
+                        result["queries"], request.limit
+                    ),
                     row_count=len(data),
                     total_rows=query_result.get("rowcount"),
                     summary=summary,
@@ -1052,7 +1085,7 @@ async def _query_from_form_data(
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
 
-        if not data:
+        if not any(query.get("data") for query in result["queries"]):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
                 request.form_data_key,
@@ -1101,6 +1134,7 @@ async def _query_from_form_data(
                 chart_type=viz_type,
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
+                query_results=_build_query_results(result["queries"], request.limit),
                 row_count=len(data),
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
