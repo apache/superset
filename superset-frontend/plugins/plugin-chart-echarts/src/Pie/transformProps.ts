@@ -398,7 +398,9 @@ export default function transformProps(
     }
 
     return {
-      value: value as number,
+      // Number() coerces the value at runtime (datum[metricLabel] may be a
+      // string when the backend serialises numeric columns as text).
+      value: Number(value),
       name,
       itemStyle: {
         color: colorFn(name, sliceId),

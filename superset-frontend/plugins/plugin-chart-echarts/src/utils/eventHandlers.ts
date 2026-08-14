@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  BinaryQueryObjectFilterClause,
   ContextMenuFilters,
   DataMask,
   QueryFormColumn,
@@ -140,7 +141,7 @@ export const contextMenuEventHandler =
     if (onContextMenu) {
       e.event.stop();
       const pointerEvent = e.event.event;
-      const drillFilters: any[] = [];
+      const drillFilters: BinaryQueryObjectFilterClause[] = [];
       const key = e.data?.isOther ? `__other__${e.name}` : e.name;
       if (groupby.length > 0) {
         const values = labelMap[key];
@@ -148,28 +149,26 @@ export const contextMenuEventHandler =
           return;
         }
         const isMulti = Array.isArray(values[0]);
-        groupby.forEach((dimension, i) => {
-          const val = isMulti
-            ? (values as string[][]).map(v => {
-                const metricsCount = v.length - groupby.length;
-                return v[metricsCount + i];
-              })
-            : (values as string[])[
-                (values as string[]).length - groupby.length + i
-              ];
-          drillFilters.push({
-            col: dimension,
-            op: isMulti ? 'IN' : '==',
-            val,
-            formattedVal: isMulti
-              ? e.name
-              : formatSeriesName(val as string, {
-                  timeFormatter: getTimeFormatter(formData.dateFormat),
-                  numberFormatter: getNumberFormatter(formData.numberFormat),
-                  coltype: coltypeMapping?.[getColumnLabel(dimension)],
-                }),
+        // For aggregated "Other" rows, drill-to-detail is ambiguous because the
+        // slice represents multiple underlying rows — emit empty drill filters
+        // and rely on crossFilter only.
+        if (!isMulti) {
+          groupby.forEach((dimension, i) => {
+            const val = (values as string[])[
+              (values as string[]).length - groupby.length + i
+            ];
+            drillFilters.push({
+              col: dimension,
+              op: '==',
+              val,
+              formattedVal: formatSeriesName(val as string, {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype: coltypeMapping?.[getColumnLabel(dimension)],
+              }),
+            });
           });
-        });
+        }
       }
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
@@ -181,8 +180,8 @@ export const contextMenuEventHandler =
   };
 
 export const allEventHandlers = (
-  transformedProps: BaseTransformedProps<any> &
-    CrossFilterTransformedProps<any>,
+  transformedProps: BaseTransformedProps<QueryFormData> &
+    CrossFilterTransformedProps<string[] | string[][]>,
 ) => {
   const {
     groupby,
