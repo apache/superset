@@ -787,6 +787,17 @@ def _bind_dashboard_time_range_filter(
     if isinstance(granularity, str) and _is_temporal_for_dashboard_binding(
         granularity, dataset_id, dataset
     ):
+        # Temporal XY mappers create the neutral filter before this binding pass.
+        # Record its provenance so preview updates can replace it if the subject
+        # changes, without treating user-authored temporal ranges as generated.
+        if any(
+            isinstance(filter_, dict)
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+            and filter_.get("subject") == granularity
+            and filter_.get("comparator") == NO_TIME_RANGE
+            for filter_ in form_data.get("adhoc_filters", [])
+        ):
+            form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = granularity
         return
 
     x_axis = form_data.get("x_axis")

@@ -194,6 +194,21 @@ def test_explicit_temporal_column_takes_precedence(
     assert form_data["adhoc_filters"][0]["subject"] == "created_at"
 
 
+@patch(
+    "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+    return_value=True,
+)
+def test_temporal_xy_binding_records_generated_subject(
+    mock_is_temporal: MagicMock,
+) -> None:
+    form_data = map_config_to_form_data(
+        XYChartConfig(x=ColumnRef(name="event_time"), y=[METRIC]),
+        dataset_id=42,
+    )
+
+    assert form_data["_mcp_dashboard_time_filter_subject"] == "event_time"
+
+
 @pytest.mark.parametrize(
     "config",
     [

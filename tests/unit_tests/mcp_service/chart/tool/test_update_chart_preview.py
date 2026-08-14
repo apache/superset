@@ -691,6 +691,35 @@ class TestUpdateChartPreview:
             new_temporal_filter,
         ]
 
+    def test_replaces_temporal_xy_binding_when_subject_changes(self) -> None:
+        """A temporal XY binding does not survive rebinding to a new subject."""
+        previous_binding = {
+            "clause": "WHERE",
+            "comparator": "No filter",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "subject": "event_time",
+        }
+        new_binding = {
+            **previous_binding,
+            "subject": "created_at",
+        }
+        new_form_data = {
+            "adhoc_filters": [new_binding],
+            "_mcp_dashboard_time_filter_subject": "created_at",
+        }
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {
+                "adhoc_filters": [previous_binding],
+                "granularity_sqla": "event_time",
+                "_mcp_dashboard_time_filter_subject": "event_time",
+            },
+        )
+
+        assert new_form_data["adhoc_filters"] == [new_binding]
+
     def test_removes_cached_temporal_filter_without_new_binding(self) -> None:
         """A mapping without a temporal subject drops the cached binding."""
         region_filter = {
