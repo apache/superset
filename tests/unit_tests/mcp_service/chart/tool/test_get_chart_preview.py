@@ -29,6 +29,7 @@ import pytest
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
+    ChartError,
     ChartPreview,
     GetChartPreviewRequest,
     InteractivePreview,
@@ -41,6 +42,8 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _build_chart_description,
     _build_query_columns,
     _build_query_metrics,
+    _first_query_has_fields,
+    _no_query_fields_error,
     _sanitize_chart_preview_for_llm_context,
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
@@ -505,6 +508,127 @@ class TestGetChartPreview:
         assert query["columns"] == []
         assert query["metrics"] == [metric]
         assert query["row_limit"] == 50
+
+    def test_ascii_preview_ignores_populated_query_after_empty_first_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview validation must match the first query result it renders."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                queries = [
+                    SimpleNamespace(metrics=q.get("metrics"), columns=q.get("columns"))
+                    for q in kwargs["queries"]
+                ]
+                queries.append(SimpleNamespace(metrics=["secondary"], columns=[]))
+                return SimpleNamespace(queries=queries)
+
+        command_calls: list[str] = []
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                command_calls.append("validate")
+
+            def run(self) -> dict[str, Any]:
+                command_calls.append("run")
+                raise AssertionError("ChartDataCommand.run() should not be called")
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        chart = SimpleNamespace(
+            id=96,
+            slice_name="Big Number Preview",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps({"viz_type": "big_number"}),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=96, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ChartError)
+        assert preview.error_type == "NoQueryFields"
+        assert "no metrics or columns" in preview.error
+        assert command_calls == []
+
+    def test_ascii_preview_handles_none_data_gracefully(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A query result with an explicit ``"data": None`` (as opposed to a
+        missing key) must not crash ASCII rendering."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {"queries": [{"data": None, "colnames": [], "rowcount": 0}]}
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        chart = SimpleNamespace(
+            id=103,
+            slice_name="Line Chart Preview",
+            viz_type="echarts_timeseries_line",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "echarts_timeseries_line",
+                    "metrics": ["count"],
+                    "x_axis": "date",
+                }
+            ),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=103, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ASCIIPreview)
+        assert "No data" in preview.ascii_content
 
     @pytest.mark.asyncio
     async def test_form_data_key_overrides_saved_params_for_table_preview(
@@ -1039,6 +1163,51 @@ def test_build_query_metrics_mixed_timeseries():
 
 def test_build_query_metrics_empty():
     assert _build_query_metrics({}) == []
+
+
+def test_first_query_has_fields_true_with_metrics():
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["count"], columns=[])]
+    )
+    assert _first_query_has_fields(query_context) is True
+
+
+def test_first_query_has_fields_true_with_columns():
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=[], columns=["region"])]
+    )
+    assert _first_query_has_fields(query_context) is True
+
+
+def test_first_query_has_fields_false_when_both_empty():
+    query_context = SimpleNamespace(queries=[SimpleNamespace(metrics=[], columns=[])])
+    assert _first_query_has_fields(query_context) is False
+
+
+def test_first_query_has_fields_ignores_later_populated_query():
+    # Preview strategies render only the first query result, so a populated
+    # secondary mixed-timeseries query must not make an empty preview valid.
+    query_context = SimpleNamespace(
+        queries=[
+            SimpleNamespace(metrics=[], columns=[]),
+            SimpleNamespace(metrics=["count"], columns=[]),
+        ]
+    )
+    assert _first_query_has_fields(query_context) is False
+
+
+def test_first_query_has_fields_defers_when_queries_attr_missing():
+    # Test doubles / unexpected objects without a `.queries` attribute
+    # should not be treated as "no fields" — defer to normal execution.
+    assert _first_query_has_fields(object()) is True
+
+
+def test_no_query_fields_error_mentions_chart_and_viz_type():
+    chart = SimpleNamespace(id=96, slice_name="Total Sales", viz_type="big_number")
+    error = _no_query_fields_error(chart)
+    assert error.error_type == "NoQueryFields"
+    assert "Total Sales" in error.error
+    assert "big_number" in error.error
 
 
 def test_build_query_columns_pivot_overlapping_rows_and_columns():
