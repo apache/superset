@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sanitizeHtml, tooltipHtml } from '@superset-ui/core';
+import {
+  sanitizeHtml,
+  tooltipHtml,
+  truncateLabel,
+  TRUNCATION_MAX_CHARS,
+} from '@superset-ui/core';
 
 const TITLE_STYLE =
   'style="font-weight: 700;max-width:300px;overflow:hidden;text-overflow:ellipsis;"';
@@ -181,4 +186,84 @@ test('should preserve table styling after sanitization (fixes ECharts tooltip fo
   expect(html).toContain('padding-left:0px');
   expect(html).toContain('padding-left:16px');
   expect(html).toContain('max-width:300px');
+});
+
+describe('truncateLabel', () => {
+  const long = 'prod-us-east-1-service-checkout-latency-p99'; // 43 chars
+
+  it('returns text unchanged for off and end', () => {
+    expect(truncateLabel(long, 'off')).toBe(long);
+    expect(truncateLabel(long, 'end')).toBe(long);
+  });
+
+  it('defaults to end, which does not slice', () => {
+    expect(truncateLabel(long)).toBe(long);
+  });
+
+  it('truncates the start, keeping the distinguishing suffix', () => {
+    expect(truncateLabel(long, 'start')).toBe(
+      '…-us-east-1-service-checkout-latency-p99',
+    );
+    expect(truncateLabel(long, 'start')).toHaveLength(TRUNCATION_MAX_CHARS);
+  });
+
+  it('truncates the middle, keeping both ends', () => {
+    expect(truncateLabel(long, 'middle')).toBe(
+      'prod-us-east-1-servi…heckout-latency-p99',
+    );
+    expect(truncateLabel(long, 'middle')).toHaveLength(TRUNCATION_MAX_CHARS);
+  });
+
+  it('leaves text at or under the limit untouched', () => {
+    const atLimit = 'x'.repeat(TRUNCATION_MAX_CHARS);
+    expect(truncateLabel(atLimit, 'start')).toBe(atLimit);
+    expect(truncateLabel(atLimit, 'middle')).toBe(atLimit);
+    expect(truncateLabel('short', 'start')).toBe('short');
+    expect(truncateLabel('', 'middle')).toBe('');
+  });
+
+  it('truncates text one character over the limit', () => {
+    const overLimit = 'x'.repeat(TRUNCATION_MAX_CHARS + 1);
+    expect(truncateLabel(overLimit, 'start')).toBe(
+      `…${'x'.repeat(TRUNCATION_MAX_CHARS - 1)}`,
+    );
+  });
+});
+
+describe('tooltipHtml truncation modes', () => {
+  const rows = [['label', 'value']];
+
+  it('emits the 300px cap for end and for the default', () => {
+    expect(tooltipHtml(rows, 'Title', undefined, 'end')).toContain(
+      'max-width: 300px',
+    );
+    expect(tooltipHtml(rows, 'Title')).toBe(
+      tooltipHtml(rows, 'Title', undefined, 'end'),
+    );
+  });
+
+  it('emits no truncation style for off', () => {
+    const html = tooltipHtml(rows, 'Title', undefined, 'off');
+    expect(html).not.toContain('max-width');
+    expect(html).not.toContain('text-overflow');
+    expect(html).not.toContain('white-space');
+  });
+
+  it.each(['start', 'middle'] as const)(
+    'emits nowrap instead of a cap for %s',
+    mode => {
+      const html = tooltipHtml(rows, 'Title', undefined, mode);
+      expect(html).toContain('white-space: nowrap');
+      expect(html).not.toContain('max-width');
+    },
+  );
+
+  it('never slices cell text itself, whatever the mode', () => {
+    const longCell = 'y'.repeat(TRUNCATION_MAX_CHARS + 20);
+    (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
+      expect(tooltipHtml([[longCell]], undefined, undefined, mode)).toContain(
+        longCell,
+      );
+    });
+  });
 });
