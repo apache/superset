@@ -298,8 +298,8 @@ async def query_dataset(  # noqa: C901
         # Step 4: Build query dict
         # ------------------------------------------------------------------
         await ctx.report_progress(3, 5, "Building query")
-        # time_range is not passed through: the TEMPORAL_RANGE clause is already
-        # in query_filters above, alongside the effective_filters bookkeeping.
+        # TEMPORAL_RANGE is already in query_filters. Copy time_range onto the
+        # query dict so Jinja get_time_filter() sees QueryObject.time_range.
         query_dict: dict[str, Any] = build_query_dict(
             time_column=granularity,
             metrics=request.metrics,
@@ -309,6 +309,8 @@ async def query_dataset(  # noqa: C901
             order=[(name, request.order_desc) for name in (request.order_by or [])],
             order_desc=request.order_desc,
         )
+        if request.time_range:
+            query_dict["time_range"] = request.time_range
 
         await ctx.debug("Query dict keys: %s" % (sorted(query_dict.keys()),))
 
