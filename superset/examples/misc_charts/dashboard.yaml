@@ -68,6 +68,7 @@ metadata:
     - 1a48df88-fbab-4a09-a439-c5741c4ba2ba
     - 11c9b341-7bb0-4340-be49-9d9889a7152a
     - 959b269f-656d-4510-88a6-48e03a793c2b
+    - 5c200054-aa65-4d6b-aa64-42358a9ff4a8
     scope:
       excluded: []
       rootPath:
@@ -736,6 +737,7 @@ position:
     - ROW-misc-thumbs-9
     - ROW-misc-thumbs-10
     - ROW-misc-thumbs-11
+    - ROW-misc-thumbs-12
     id: TAB-misc-charts
     meta:
       text: 📊 Charts
@@ -1039,6 +1041,32 @@ position:
     - CHART-misc-tree
     - CHART-misc-horizon
     id: ROW-misc-thumbs-11
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-misc-root
+    - TAB-misc-charts
+    type: ROW
+  CHART-misc-deckgeojson:
+    children: []
+    id: CHART-misc-deckgeojson
+    meta:
+      chartId: 90042
+      height: 69
+      sliceName: Deck.gl GeoJson
+      uuid: 5c200054-aa65-4d6b-aa64-42358a9ff4a8
+      width: 12
+    parents:
+    - ROOT_ID
+    - TABS-misc-root
+    - TAB-misc-charts
+    - ROW-misc-thumbs-12
+    type: CHART
+  ROW-misc-thumbs-12:
+    children:
+    - CHART-misc-deckgeojson
+    id: ROW-misc-thumbs-12
     meta:
       background: BACKGROUND_TRANSPARENT
     parents:
