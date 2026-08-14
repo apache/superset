@@ -61,9 +61,7 @@ def _find_metric(metrics: list[Any], identifier: int | str) -> Any | None:
 
 
 def _metric_not_found_message(metrics: list[Any], identifier: int | str) -> str:
-    """Build a "metric not found" error, escaping caller- and stored-supplied
-    text so it can't break out of the LLM context delimiters (same treatment as
-    the success path in ``_serialize_metric``)."""
+    """Build a "metric not found" error while preserving supplied text."""
     names = [m.metric_name for m in metrics]
     safe_identifier = escape_llm_context_delimiters(str(identifier))
     msg = f"Metric '{safe_identifier}' not found on this dataset."
@@ -80,9 +78,8 @@ def _metric_not_found_message(metrics: list[Any], identifier: int | str) -> str:
 def _serialize_metric(metric: Any) -> DatasetMetricDetail:
     """Build a ``DatasetMetricDetail`` from a ``SqlMetric`` model.
 
-    Returns the metric's identifiers (id, uuid) and all updatable properties,
-    wrapping free-text fields in LLM-context sanitization the same way the
-    dataset read path does.
+    Returns identifiers and all updatable properties without changing the
+    values that a client may pass into a later update.
     """
     currency = getattr(metric, "currency", None)
     return DatasetMetricDetail(

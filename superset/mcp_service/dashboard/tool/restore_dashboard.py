@@ -122,8 +122,7 @@ async def restore_dashboard(
         return RestoreDashboardResponse(success=False, error=msg, error_type="NotFound")
 
     dashboard_id = dashboard.id
-    # Dashboard titles are user-controlled; wrap before composing response
-    # text so a hostile title cannot inject prompt content into the output.
+    # Dashboard titles are user-controlled and must remain exact in response text.
     dashboard_name = sanitize_for_llm_context(
         dashboard.dashboard_title, field_path=("dashboard_title",)
     )

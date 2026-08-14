@@ -128,8 +128,7 @@ async def create_theme(
         await ctx.info(
             "Theme created: id=%s, uuid=%s" % (theme.id, getattr(theme, "uuid", None))
         )
-        # Wrap the user-controlled name like the list/get responses do, so
-        # the create path is not an unsanitized echo channel into LLM context.
+        # Keep create and read responses on the same clean-value contract.
         safe_name = sanitize_for_llm_context(
             theme.theme_name, field_path=("theme_name",)
         )

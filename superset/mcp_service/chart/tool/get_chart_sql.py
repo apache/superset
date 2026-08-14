@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 def _sanitize_chart_sql_for_llm_context(chart_sql: ChartSql) -> ChartSql:
-    """Wrap chart SQL read-path descriptive fields before LLM exposure."""
+    """Serialize chart SQL without changing domain values."""
     payload = chart_sql.model_dump(mode="python")
 
     for field_name in ("chart_name", "datasource_name", "sql", "error"):

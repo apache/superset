@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 
 def _sanitize_preview_content_for_llm_context(content: dict[str, Any]) -> None:
-    """Wrap string-bearing preview content while preserving routing fields."""
+    """Preserve string-bearing preview content and routing fields."""
     content_type = content.get("type")
 
     if content_type == "ascii":
@@ -115,7 +115,7 @@ def _sanitize_preview_content_for_llm_context(content: dict[str, Any]) -> None:
 def _sanitize_chart_preview_for_llm_context(
     chart_preview: ChartPreview,
 ) -> ChartPreview:
-    """Wrap chart preview read-path descriptive fields before LLM exposure."""
+    """Serialize chart preview fields without changing domain values."""
     payload = chart_preview.model_dump(mode="python")
 
     for field_name in ("chart_name", "chart_description"):

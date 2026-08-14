@@ -280,7 +280,7 @@ class DatasetError(BaseModel):
     @field_validator("error")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
+        """Preserve error text exactly in the MCP result."""
         return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod
@@ -891,7 +891,7 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
 
 
 def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
-    """Wrap dataset read-path descriptive fields before LLM exposure."""
+    """Serialize dataset fields without changing domain values."""
     payload = dataset_info.model_dump(mode="python")
 
     for field_name in ("description", "certified_by", "certification_details", "sql"):

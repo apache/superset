@@ -128,7 +128,7 @@ class GetTagInfoRequest(BaseModel):
 
 
 def _sanitize_tag_info_for_llm_context(tag_info: TagInfo) -> TagInfo:
-    """Wrap user-controlled tag fields before LLM exposure."""
+    """Serialize tag fields without changing domain values."""
     payload = tag_info.model_dump(mode="python")
     for field_name in ("name", "description"):
         payload[field_name] = sanitize_for_llm_context(

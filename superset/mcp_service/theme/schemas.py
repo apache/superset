@@ -170,16 +170,7 @@ class CreateThemeResponse(BaseModel):
 
 
 def _sanitize_theme_info_for_llm_context(theme_info: ThemeInfo) -> ThemeInfo:
-    """Wrap user-controlled theme fields before LLM exposure.
-
-    ``theme_name`` is user-supplied free text. ``json_data`` is structured
-    configuration, but its token values (font families, URLs, arbitrary antd
-    tokens) are equally user-controlled and pass ``is_valid_theme`` /
-    ``sanitize_theme_tokens`` untouched, so the whole JSON string is wrapped
-    as one untrusted block — the JSON stays parseable inside the delimiters,
-    and embedded delimiter tokens are escaped so a hostile value cannot close
-    the wrapper early.
-    """
+    """Serialize user-controlled theme fields without changing their values."""
     payload = theme_info.model_dump(mode="python")
     payload["theme_name"] = sanitize_for_llm_context(
         payload.get("theme_name"),

@@ -26,6 +26,20 @@ assists people when migrating to a new version.
 
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 
+### MCP tool results preserve stored string values
+
+Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or
+rewrite delimiter-looking text inside string fields. Tool-result content remains
+user-controlled data, but clients must convey that trust boundary outside domain
+values instead of recognizing or removing marker strings.
+
+Clients that handled the former delimiter convention should stop stripping marker
+text: the same text can be legitimate stored content. Response models and content
+types are unchanged, and no metadata-database migration is required. Values that a
+client already wrote back with presentation wrappers cannot be distinguished safely
+from intentional content, so operators should review and correct those values rather
+than applying an automatic marker-removal migration.
+
 ### OAuth2 database callback metrics include their outcome
 
 The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with

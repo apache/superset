@@ -696,8 +696,8 @@ class TestChartSerializationEagerLoading:
         assert result.tags[0].name == sanitize_for_llm_context("Tag instructions")
         assert result.tags[0].description == sanitize_for_llm_context("Tag description")
 
-    def test_generate_chart_form_data_response_is_sanitized(self) -> None:
-        """Generated chart form data wraps user-controlled response values."""
+    def test_generate_chart_form_data_response_preserves_values(self) -> None:
+        """Generated chart form data preserves user-controlled response values."""
         form_data = {
             "viz_type": "table",
             "datasource": "42__table",
@@ -872,15 +872,12 @@ class TestGenerateChartSqlMetric:
                 }
             )
 
-    def test_response_form_data_wraps_sql_metric_strings(self) -> None:
-        """Regression: previously the generate_chart response's top-level
-        ``form_data`` skipped the per-key SQL-metric wrap, shipping LLM-
-        controlled sqlExpression/label back unwrapped."""
+    def test_response_form_data_preserves_sql_metric_strings(self) -> None:
         from superset.mcp_service.chart.tool.generate_chart import (
             _sanitize_generate_chart_form_data_for_llm_context,
         )
 
-        wrapped = _sanitize_generate_chart_form_data_for_llm_context(
+        result = _sanitize_generate_chart_form_data_for_llm_context(
             {
                 "viz_type": "echarts_timeseries_line",
                 "metrics": [
@@ -897,7 +894,7 @@ class TestGenerateChartSqlMetric:
                 ],
             }
         )
-        m = wrapped["metrics"][0]
-        assert "<UNTRUSTED-CONTENT>" in m["sqlExpression"]
-        assert "<UNTRUSTED-CONTENT>" in m["label"]
-        assert "<UNTRUSTED-CONTENT>" not in m["optionName"]
+        m = result["metrics"][0]
+        assert m["sqlExpression"] == _SQL_EXPR
+        assert m["label"] == "Win Rate"
+        assert m["optionName"] == "metric_sql_abcd1234"

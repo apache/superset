@@ -118,7 +118,7 @@ async def delete_chart(
         return DeleteChartResponse(success=False, error=msg, error_type="NotFound")
 
     chart_id = chart.id
-    # Chart names are user-controlled; wrap before composing response text.
+    # Chart names are user-controlled and must remain exact in response text.
     chart_name = sanitize_for_llm_context(chart.slice_name, field_path=("slice_name",))
 
     # The try/except sits inside log_context so failed attempts (forbidden,

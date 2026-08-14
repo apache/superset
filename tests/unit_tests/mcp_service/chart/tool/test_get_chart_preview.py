@@ -858,11 +858,11 @@ class TestGetChartPreview:
         assert len(metadata.optimization_suggestions) == 1
 
 
-class TestChartPreviewSanitization:
-    """Tests for chart preview read-path sanitization."""
+class TestChartPreviewValuePreservation:
+    """Tests for chart preview read-path value preservation."""
 
-    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self) -> None:
-        """ASCII previews should be wrapped while operational URLs stay raw."""
+    def test_chart_preview_preserves_ascii_and_alt_text(self) -> None:
+        """ASCII preview values and operational URLs remain exact."""
         preview = ChartPreview(
             chart_id=3,
             chart_name="Regional Trend",
@@ -890,8 +890,8 @@ class TestChartPreviewSanitization:
             "Preview of Regional Trend"
         )
 
-    def test_sanitize_chart_preview_wraps_vega_lite_data_values(self):
-        """Vega-Lite previews should wrap description and row string values."""
+    def test_chart_preview_preserves_vega_lite_data_values(self):
+        """Vega-Lite descriptions and row string values remain exact."""
         preview = ChartPreview(
             chart_id=4,
             chart_name="Category Share",
@@ -940,7 +940,7 @@ class TestChartPreviewSanitization:
         )
         assert specification["data"]["values"][0]["value"] == 10
 
-    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
+    def test_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
         self,
     ) -> None:
         """Non-mapping Vega-Lite data should not be treated as inline values."""
@@ -973,7 +973,7 @@ class TestChartPreviewSanitization:
         )
         assert specification["data"] == "named_dataset"
 
-    def test_sanitize_chart_preview_wraps_table_content(self):
+    def test_chart_preview_preserves_table_content(self):
         preview = ChartPreview(
             chart_id=5,
             chart_name="Top Customers",
@@ -1001,7 +1001,7 @@ class TestChartPreviewSanitization:
         assert result.content.row_count == 1
         assert result.content.supports_sorting is True
 
-    def test_sanitize_chart_preview_wraps_interactive_html_but_keeps_urls(self):
+    def test_chart_preview_preserves_interactive_html_and_urls(self):
         preview = ChartPreview(
             chart_id=6,
             chart_name="Interactive Trend",

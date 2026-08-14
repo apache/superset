@@ -250,7 +250,7 @@ def _filter_candidates(
 
 
 def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
-    """Wrap chart data read-path descriptive fields before LLM exposure."""
+    """Serialize chart data without changing domain values."""
     payload = chart_data.model_dump(mode="python")
 
     for field_name in ("chart_name", "summary", "csv_data"):

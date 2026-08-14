@@ -73,7 +73,7 @@ GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = (
 def _sanitize_generate_chart_form_data_for_llm_context(
     form_data: dict[str, Any],
 ) -> dict[str, Any]:
-    """Wrap generated-chart form_data before returning it to LLM clients."""
+    """Return generated chart form data without changing domain values."""
     wrapped = sanitize_for_llm_context(
         form_data,
         field_path=("form_data",),

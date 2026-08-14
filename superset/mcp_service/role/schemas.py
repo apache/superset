@@ -119,7 +119,7 @@ class RoleError(BaseModel):
     @field_validator("error")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
+        """Preserve error text exactly in the MCP result."""
         return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod

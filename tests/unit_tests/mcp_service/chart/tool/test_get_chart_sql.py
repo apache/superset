@@ -117,8 +117,8 @@ class TestExtractSqlFromResult:
         assert output.datasource_name == sanitize_for_llm_context("my_table")
         assert output.error is None
 
-    def test_successful_sql_extraction_sanitizes_datasource_name(self):
-        """Chart SQL wrapping treats datasource names as LLM-facing content."""
+    def test_successful_sql_extraction_preserves_datasource_name(self):
+        """Chart SQL preserves datasource names as domain values."""
         result = {
             "queries": [
                 {

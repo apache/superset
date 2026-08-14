@@ -255,12 +255,8 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
 
     Returns the id, name, filterType, and non-empty targets; empty target
     entries (e.g. for time filters) are dropped so the summary only lists
-    real dataset/column targets. The user-controlled ``name`` and ``targets``
-    come from dashboard metadata and are wrapped as untrusted content before
-    being exposed to LLM context (mirroring the get_dashboard_info read path).
-    The operational ``id`` and ``filter_type`` fields are delimiter-escaped
-    (not wrapped) so the LLM can pass them back verbatim in subsequent calls
-    while any embedded delimiter tokens are neutralized.
+    real dataset/column targets. All user-controlled and operational fields
+    preserve their application values so clients can pass them back verbatim.
     """
     name = conf.get("name")
     targets = [t for t in (conf.get("targets") or []) if t]

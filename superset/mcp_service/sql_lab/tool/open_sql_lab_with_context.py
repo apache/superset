@@ -41,7 +41,7 @@ SQL_LAB_QUERY_PARAMS_TO_SANITIZE = frozenset({"sql", "name"})
 
 
 def _sanitize_sql_lab_url_for_llm_context(url: str) -> str:
-    """Wrap user-controlled SQL Lab query values while preserving navigation."""
+    """Preserve SQL Lab query values while retaining the navigation URL."""
     if not url:
         return url
 
@@ -65,7 +65,7 @@ def _sanitize_sql_lab_url_for_llm_context(url: str) -> str:
 def _sanitize_sql_lab_response_for_llm_context(
     response: SqlLabResponse,
 ) -> SqlLabResponse:
-    """Wrap user-controlled SQL Lab response content before LLM exposure."""
+    """Serialize SQL Lab response content without changing domain values."""
     payload = response.model_dump(mode="python")
     payload["url"] = _sanitize_sql_lab_url_for_llm_context(payload.get("url", ""))
 

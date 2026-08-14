@@ -221,7 +221,7 @@ class ChartError(MCPBaseError):
     @field_validator("message")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
+        """Preserve error text exactly in the MCP result."""
         return sanitize_for_llm_context(value, field_path=("error",))
 
 
@@ -485,12 +485,12 @@ CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
 
 
 def wrap_sql_adhoc_metrics(form_data: Any) -> None:
-    """Wrap LLM-controlled SQL adhoc metric strings in-place.
+    """Compatibility helper that preserves SQL adhoc metric strings.
 
     ``metric``/``metrics`` are in ``CHART_FORM_DATA_EXCLUDED_FIELD_NAMES`` so
-    SIMPLE-metric content (bounded scalars) doesn't get wrapped. SQL adhoc
-    dicts carry up to 2000 chars of LLM-controlled SQL plus a 500-char label
-    that still need ``<UNTRUSTED-CONTENT>`` delimiters when echoed back.
+    callers retain the historical traversal and import path while the result
+    sanitizer is a strict identity operation. SQL and label values must remain
+    exact when echoed back or passed into a later write.
     """
     if not isinstance(form_data, dict):
         return
@@ -518,7 +518,7 @@ def wrap_sql_adhoc_metrics(form_data: Any) -> None:
 
 
 def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:  # noqa: C901
-    """Wrap chart read-path descriptive fields before LLM exposure."""
+    """Serialize chart read-path fields without changing domain values."""
     payload = chart_info.model_dump(mode="python")
 
     for field_name in (

@@ -133,7 +133,7 @@ class DashboardError(BaseModel):
     @field_validator("error")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
+        """Preserve error text exactly in the MCP result."""
         return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod
@@ -560,12 +560,7 @@ class AddChartToDashboardResponse(BaseModel):
     @field_validator("error")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Wrap error text before it is exposed to LLM context.
-
-        The error may echo user-supplied target_tab or dashboard-controlled tab
-        labels — both must be wrapped so the LLM treats them as data, not
-        instructions.
-        """
+        """Preserve errors, including user-supplied tab labels, exactly."""
         if value is None:
             return value
         return sanitize_for_llm_context(value, field_path=("error",))
@@ -612,12 +607,7 @@ class RemoveChartFromDashboardResponse(BaseModel):
     @field_validator("error")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Wrap error text before it is exposed to LLM context.
-
-        The error may echo dashboard-controlled text (e.g. the dashboard
-        title), which must be wrapped so the LLM treats it as data, not
-        instructions.
-        """
+        """Preserve errors, including dashboard-controlled text, exactly."""
         if value is None:
             return value
         return sanitize_for_llm_context(value, field_path=("error",))
@@ -1049,7 +1039,7 @@ class ManageDashboardOwnersRequest(BaseModel):
 class DashboardMutationErrorFields(BaseModel):
     """Shared ``error``/``permission_denied`` fields for dashboard governance
     mutation responses (owners/roles/certification), including the
-    validator that wraps ``error`` before it is exposed to LLM context.
+    compatibility validator that preserves ``error`` exactly.
     """
 
     error: str | None = Field(None, description="Error message, if operation failed")
@@ -1061,7 +1051,7 @@ class DashboardMutationErrorFields(BaseModel):
     @field_validator("error")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Wrap error text before it is exposed to LLM context."""
+        """Preserve error text exactly in the MCP result."""
         if value is None:
             return value
         return sanitize_for_llm_context(value, field_path=("error",))
@@ -1101,11 +1091,7 @@ class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
     def sanitize_owners_for_llm_context(
         cls, value: list[SubjectInfo]
     ) -> list[SubjectInfo]:
-        """Wrap owner labels before LLM exposure; owner display names are
-        user-controlled and render as plain text in this response, so an
-        unsanitized label could inject content into LLM context (CWE-79
-        analog for LLM-facing output). Entries that sanitize to an empty
-        label are dropped rather than surfaced with a blank identity."""
+        """Preserve every user-controlled owner label in the MCP result."""
         sanitized: list[SubjectInfo] = []
         for subject in value:
             if subject.label is None:
@@ -1114,8 +1100,6 @@ class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
             clean_label: str = sanitize_for_llm_context(
                 subject.label, field_path=("owners", "label")
             )
-            if not clean_label:
-                continue
             sanitized.append(subject.model_copy(update={"label": clean_label}))
         return sanitized
 
@@ -1225,11 +1209,7 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
     def sanitize_roles_for_llm_context(
         cls, value: list[SubjectInfo]
     ) -> list[SubjectInfo]:
-        """Wrap role labels before LLM exposure; role display names are
-        user-controlled and render as plain text in this response, so an
-        unsanitized label could inject content into LLM context (CWE-79
-        analog for LLM-facing output). Entries that sanitize to an empty
-        label are dropped rather than surfaced with a blank identity."""
+        """Preserve every user-controlled role label in the MCP result."""
         sanitized: list[SubjectInfo] = []
         for subject in value:
             if subject.label is None:
@@ -1238,8 +1218,6 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
             clean_label: str = sanitize_for_llm_context(
                 subject.label, field_path=("roles", "label")
             )
-            if not clean_label:
-                continue
             sanitized.append(subject.model_copy(update={"label": clean_label}))
         return sanitized
 
@@ -1348,7 +1326,7 @@ class ManageDashboardCertificationResponse(DashboardMutationErrorFields):
     def sanitize_output_for_llm_context(
         cls, value: str | None, info: Any
     ) -> str | None:
-        """Wrap dashboard-controlled certification text before LLM exposure."""
+        """Preserve dashboard-controlled certification text exactly."""
         if value is None:
             return value
         return sanitize_for_llm_context(value, field_path=(info.field_name,))
@@ -1493,12 +1471,7 @@ class DuplicateDashboardResponse(BaseModel):
     @field_validator("error")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Wrap error text before it is exposed to LLM context.
-
-        The error may echo dashboard-controlled content such as the source
-        dashboard title — wrap it so the LLM treats it as data, not
-        instructions.
-        """
+        """Preserve errors, including dashboard-controlled text, exactly."""
         if value is None:
             return value
         return sanitize_for_llm_context(value, field_path=("error",))
@@ -1832,7 +1805,7 @@ def redact_filter_state_data_model_metadata(
 def _sanitize_dashboard_info_for_llm_context(
     dashboard_info: DashboardInfo,
 ) -> DashboardInfo:
-    """Wrap dashboard read-path descriptive fields before LLM exposure."""
+    """Serialize dashboard fields without changing domain values."""
     payload = dashboard_info.model_dump(mode="python")
 
     for field_name in (
@@ -2068,7 +2041,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
 def _sanitize_dashboard_layout_for_llm_context(
     layout: DashboardLayout,
 ) -> DashboardLayout:
-    """Wrap layout text fields before LLM exposure."""
+    """Serialize layout text fields without changing domain values."""
     payload = layout.model_dump(mode="python")
     payload["dashboard_title"] = sanitize_for_llm_context(
         payload.get("dashboard_title"),
@@ -2377,12 +2350,7 @@ class ManageNativeFiltersResponse(BaseModel):
     @field_validator("error")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Wrap error text before it is exposed to LLM context.
-
-        The error may echo user-supplied filter names or dashboard-controlled
-        metadata - both must be wrapped so the LLM treats them as data, not
-        instructions.
-        """
+        """Preserve errors, including filter and dashboard text, exactly."""
         if value is None:
             return value
         return sanitize_for_llm_context(value, field_path=("error",))

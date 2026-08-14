@@ -110,7 +110,7 @@ def _missing_config_or_name_error() -> GenerateChartResponse:
 def _wrapped_form_data_for_response(
     new_form_data: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Wrap SQL-metric strings in form_data before LLM-facing return."""
+    """Return form data without changing SQL metric strings."""
     payload = dict(new_form_data) if new_form_data is not None else {}
     wrap_sql_adhoc_metrics(payload)
     return payload

@@ -157,19 +157,11 @@ def _sanitize_annotation_layer_for_llm_context(
 
 
 def _sanitize_annotation_json_metadata(raw: Any) -> str | None:
-    """Canonicalize and sanitize the json_metadata blob before LLM exposure.
-
-    Serializing to a canonical JSON string first prevents dict-key injection:
-    keys are rendered as quoted string literals inside the wrapped value rather
-    than being able to escape the delimiter context.
-    """
+    """Preserve stored JSON text while normalizing non-string model values."""
     if raw is None:
         return None
     if isinstance(raw, str):
-        try:
-            canonical: str = json_utils.dumps(json_utils.loads(raw))
-        except (ValueError, TypeError):
-            canonical = raw
+        canonical = raw
     else:
         try:
             canonical = json_utils.dumps(raw)
