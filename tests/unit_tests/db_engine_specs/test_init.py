@@ -55,8 +55,8 @@ def test_get_available_engine_specs_skips_malformed_dialect_entry_point(
 ) -> None:
     """
     A third-party ``sqlalchemy.dialects`` entry point that loads successfully but
-    does not resolve to a usable dialect (e.g. a malformed entry point that
-    yields a module, which has no ``name``) must be skipped, not raise.
+    does not resolve to a usable dialect (e.g. a module with no ``name`` or a
+    named class that does not implement the dialect contract) must be skipped.
 
     Regression test: an unguarded ``dialect.name`` there aborted the whole
     enumeration with ``AttributeError``, which 500s every page that builds the
@@ -76,8 +76,21 @@ def test_get_available_engine_specs_skips_malformed_dialect_entry_point(
     # ``name = pkg:submodule`` entry point would.
     malformed_ep.load.return_value = types.ModuleType("bogus_pkg.base")
 
+    named_but_invalid_ep = mocker.MagicMock()
+    named_but_invalid_ep.name = "named_bogus"
+    named_but_invalid_ep.value = "bogus_pkg:NamedButInvalidDialect"
+    named_but_invalid_ep.load.return_value = type(
+        "NamedButInvalidDialect",
+        (),
+        {"name": "bogus", "driver": "bogus"},
+    )
+
     def entry_points(group: str) -> list[object]:
-        return [malformed_ep] if group == "sqlalchemy.dialects" else []
+        return (
+            [malformed_ep, named_but_invalid_ep]
+            if group == "sqlalchemy.dialects"
+            else []
+        )
 
     mocker.patch(
         "superset.db_engine_specs.entry_points",
@@ -91,6 +104,7 @@ def test_get_available_engine_specs_skips_malformed_dialect_entry_point(
     assert isinstance(available, dict)
     # The malformed entry point is skipped with a warning that identifies it.
     assert any("bogus" in str(call) for call in warning.call_args_list)
+    assert any("named_bogus" in str(call) for call in warning.call_args_list)
 
 
 @pytest.mark.parametrize(

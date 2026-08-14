@@ -35,7 +35,7 @@ from collections import defaultdict
 from importlib import import_module
 from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, cast, Optional
 
 import sqlalchemy.dialects
 from flask import current_app as app
@@ -166,15 +166,17 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
             logger.debug("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
             # A third-party entry point can load successfully yet not resolve to
-            # a usable dialect -- e.g. a malformed ``name = pkg:module`` entry
-            # point yields a module, which has no ``name``. Reading ``.name``
-            # unguarded here would raise and abort the whole enumeration, taking
-            # down every page that builds the bootstrap payload rather than just
-            # marking that one connector unavailable. Skip it with a warning
-            # instead, mirroring the defensiveness of the native-dialect loop
-            # above.
+            # a usable dialect. Validate the same dialect contract as the native
+            # loop so malformed connectors are neither advertised nor allowed to
+            # abort the whole enumeration.
             backend = getattr(dialect, "name", None)
-            if not isinstance(backend, (str, bytes)):
+            if (
+                not isinstance(dialect, type)
+                or not issubclass(dialect, DefaultDialect)
+                or not isinstance(backend, (str, bytes))
+                or not hasattr(dialect, "driver")
+                or dialect.driver == "adodbapi"
+            ):
                 logger.warning(
                     "Skipping SQLAlchemy dialect entry point %r: %r did not "
                     "resolve to a usable dialect (%r)",
@@ -183,11 +185,19 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
                     dialect,
                 )
                 continue
+            dialect = cast(type[DefaultDialect], dialect)
+            try:
+                dialect.dbapi()
+            except ModuleNotFoundError:
+                continue
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.warning("Unable to load dialect %s: %s", dialect, ex)
+                continue
             if isinstance(backend, bytes):
                 backend = backend.decode()
             backend = backend_replacements.get(backend, backend)
 
-            driver = getattr(dialect, "driver", dialect.name)
+            driver = dialect.driver
             if isinstance(driver, bytes):
                 driver = driver.decode()
             drivers[backend].add(driver)
