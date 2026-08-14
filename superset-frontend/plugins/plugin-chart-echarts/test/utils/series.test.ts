@@ -51,7 +51,7 @@ import {
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
-import { NULL_STRING } from '../../src/constants';
+import { NULL_STRING, StackControlsValue } from '../../src/constants';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -548,6 +548,76 @@ describe('extractSeries', () => {
     ]);
   });
 
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // In "Expand" (100%/contribution) stacking mode, the raw datum value is
+  // divided by the row's total, which throws if the datum is still a
+  // BigInt at that point even though the total itself is a Number.
+  test('normalizes a BigInt datum value before dividing in Expand stack mode', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        metric_a: BigInt('9007199254740993'),
+        metric_b: 10,
+      },
+    ];
+    const totalStackedValues = [9007199254740993 + 10];
+
+    expect(() =>
+      extractSeries(data, {
+        totalStackedValues,
+        stack: StackControlsValue.Expand,
+      }),
+    ).not.toThrow();
+
+    const [series] = extractSeries(data, {
+      totalStackedValues,
+      stack: StackControlsValue.Expand,
+    });
+    const metricA = series.find(s => s.id === 'metric_a');
+    const expandedValue = (
+      metricA?.data as [string, number][] | undefined
+    )?.[0]?.[1];
+    expect(expandedValue).toBeCloseTo(9007199254740993 / totalStackedValues[0]);
+  });
+
+  // Regression for #36401: the default series sort (SortSeriesType.Sum)
+  // calls lodash's sumBy across all rows for a given series name. If one
+  // row's metric value was parsed as BigInt and another row's value for
+  // the same series is a Number, summing them throws before extractSeries
+  // ever reaches the Expand-mode conversion.
+  test('sorts series by sum without throwing when rows mix BigInt and Number values for the same series', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        a: BigInt('9007199254740993'),
+      },
+      {
+        __timestamp: '2000-02-01',
+        a: 5,
+      },
+    ];
+
+    expect(() =>
+      extractSeries(data, { sortSeriesType: SortSeriesType.Sum }),
+    ).not.toThrow();
+
+    const [series] = extractSeries(data, {
+      sortSeriesType: SortSeriesType.Sum,
+    });
+    expect(series).toEqual([
+      {
+        id: 'a',
+        name: 'a',
+        data: [
+          ['2000-01-01', 9007199254740992],
+          ['2000-02-01', 5],
+        ],
+      },
+    ]);
+  });
+
   test('should remove rows that have a null x-value', () => {
     const data = [
       {
@@ -735,6 +805,46 @@ describe('extractGroupbyLabel', () => {
       }),
     ).toEqual('');
     expect(extractGroupbyLabel({})).toEqual('');
+  });
+});
+
+describe('extractDataTotalValues', () => {
+  test('sums numeric metric values across a stacked datum', () => {
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      [{ __timestamp: '2000-01-01', metric_a: 10, metric_b: 20 }],
+      { stack: true, percentageThreshold: 50, xAxisCol: '__timestamp' },
+    );
+    expect(totalStackedValues).toEqual([30]);
+    expect(thresholdValues).toEqual([15]);
+  });
+
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // Summing a BigInt datum value against the Number accumulator here
+  // throws instead of producing a stacked total.
+  test('sums a stacked datum containing a BigInt metric value without throwing', () => {
+    const data: DataRecord[] = [
+      {
+        __timestamp: '2000-01-01',
+        metric_a: 10,
+        metric_b: BigInt('9007199254740993'),
+      },
+    ];
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      data,
+      {
+        stack: true,
+        percentageThreshold: 50,
+        xAxisCol: '__timestamp',
+      },
+    );
+    // BigInt('9007199254740993') exceeds Number.MAX_SAFE_INTEGER, so
+    // converting it to a Number loses precision (rounds to
+    // 9007199254740992). The assertions reflect that expected,
+    // best-effort numeric representation rather than exact BigInt math.
+    expect(totalStackedValues).toEqual([9007199254741002]);
+    expect(thresholdValues).toEqual([4503599627370501]);
   });
 });
 
