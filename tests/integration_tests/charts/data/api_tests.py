@@ -34,6 +34,7 @@ import pytest
 from flask import g, Response
 from flask.ctx import AppContext
 
+from superset import security_manager
 from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -96,6 +97,25 @@ INCOMPATIBLE_ADHOC_COLUMN_FIXTURE: AdhocColumn = {
     "label": "exciting_or_boring",
     "sqlExpression": "case when genre = 'Action' then 'Exciting' else 'Boring' end",
 }
+
+
+def _override_view_query_permission(granted: bool) -> Any:
+    """
+    Answer ("can_view_query", "Dashboard") with ``granted`` and let every other
+    permission check fall through to the real security manager, so the rest of
+    the request keeps its normal access rules.
+    """
+    real_can_access = security_manager.can_access
+
+    def can_access(permission_name: str, view_name: str) -> bool:
+        if (permission_name, view_name) == ("can_view_query", "Dashboard"):
+            return granted
+        return real_can_access(permission_name, view_name)
+
+    return mock.patch(
+        "superset.charts.data.api.security_manager.can_access",
+        side_effect=can_access,
+    )
 
 
 def _query_timing() -> QueryTiming:
@@ -1572,19 +1592,14 @@ class TestGetChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_as_guest_user(self, is_guest_user, has_guest_access):
         """
-        Chart data API: Test response does not inlcude the SQL query for embedded
+        Chart data API: Test response does not include the SQL query for embedded
         users whose role lacks "can view query on Dashboard".
         """
         g.user.rls = []
         is_guest_user.return_value = True
         has_guest_access.return_value = True
 
-        with mock.patch(
-            "superset.charts.data.api.security_manager.can_access",
-            side_effect=lambda permission, view: (
-                (permission, view) != ("can_view_query", "Dashboard")
-            ),
-        ):
+        with _override_view_query_permission(granted=False):
             rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
@@ -1605,10 +1620,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         is_guest_user.return_value = True
         has_guest_access.return_value = True
 
-        with mock.patch(
-            "superset.charts.data.api.security_manager.can_access",
-            return_value=True,
-        ):
+        with _override_view_query_permission(granted=True):
             rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
