@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { VariableSizeList as List } from 'react-window';
+import { useCallback, useMemo, useState } from 'react';
+import { List } from 'react-window';
 import { FlattenedItem, Folder } from './types';
 import DatasourcePanelItem from './DatasourcePanelItem';
 
@@ -98,7 +98,6 @@ export const DatasourceItems = ({
   height,
   folders,
 }: DatasourceItemsProps) => {
-  const listRef = useRef<List>(null);
   const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(
     new Set(
       folders.filter(folder => folder.isCollapsed).map(folder => folder.id),
@@ -122,17 +121,15 @@ export const DatasourceItems = ({
     });
   }, []);
 
-  useEffect(() => {
-    // reset the list cache when flattenedItems length changes to recalculate the heights
-    listRef.current?.resetAfterIndex(0);
-  }, [flattenedItems]);
-
-  const getItemSize = useCallback(
+  // No manual cache-reset is needed: `rowHeight` is a useCallback tied to
+  // `flattenedItems`, so react-window's internal size cache recomputes
+  // automatically whenever its reference changes.
+  const rowHeight = useCallback(
     (index: number) => flattenedItems[index].height,
     [flattenedItems],
   );
 
-  const itemData = useMemo(
+  const rowProps = useMemo(
     () => ({
       flattenedItems,
       folderMap,
@@ -151,15 +148,12 @@ export const DatasourceItems = ({
 
   return (
     <List
-      ref={listRef}
-      width={width - BORDER_WIDTH}
-      height={height}
-      itemSize={getItemSize}
-      itemCount={flattenedItems.length}
-      itemData={itemData}
+      style={{ width: width - BORDER_WIDTH, height }}
+      rowHeight={rowHeight}
+      rowCount={flattenedItems.length}
+      rowProps={rowProps}
+      rowComponent={DatasourcePanelItem}
       overscanCount={5}
-    >
-      {DatasourcePanelItem}
-    </List>
+    />
   );
 };

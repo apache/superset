@@ -307,6 +307,22 @@ to simplify the process of setting up a non-default root path across the service
 In `docker/.env-local` set `SUPERSET_APP_ROOT` to the desired prefix and then bring the
 services up with `docker compose up --detach`.
 
+### Swagger UI
+
+By default, Superset's Swagger UI and OpenAPI spec (enabled via `FAB_API_SWAGGER_UI`) are
+served by Flask-AppBuilder and don't account for a non-root `APPLICATION_ROOT` prefix. If
+you're running Superset behind a URL prefix and want the Swagger UI and OpenAPI spec to
+resolve correctly, set:
+
+```python
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = True
+```
+
+in your `superset_config.py` file. This serves an `APPLICATION_ROOT`-aware Swagger UI and
+OpenAPI spec at `/swagger/<version>` and `/api/<version>/_openapi` respectively, resolved
+through the configured prefix. This flag only takes effect when `FAB_API_SWAGGER_UI` is
+also enabled, and defaults to `False`.
+
 ## Custom OAuth2 Configuration
 
 Superset is built on Flask-AppBuilder (FAB), which supports many providers out of the box
