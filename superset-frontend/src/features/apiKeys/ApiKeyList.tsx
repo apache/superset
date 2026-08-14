@@ -163,6 +163,19 @@ export function ApiKeyList() {
       render: (_: unknown, record: ApiKey) => getStatusBadge(record),
     },
     {
+      title: t('Scopes'),
+      dataIndex: 'scopes',
+      key: 'scopes',
+      render: (scopes: string | null) =>
+        scopes ? (
+          <Tooltip title={scopes}>
+            <Tag>{t('%s scoped', scopes.split(',').length)}</Tag>
+          </Tooltip>
+        ) : (
+          <Tag>{t('RBAC only')}</Tag>
+        ),
+    },
+    {
       title: t('Actions'),
       key: 'actions',
       render: (_: unknown, record: ApiKey) => (
