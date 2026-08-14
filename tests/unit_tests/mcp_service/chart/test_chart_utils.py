@@ -616,6 +616,23 @@ class TestMapXYConfig:
         assert result["show_legend"] is False
         assert result["legendOrientation"] == "top"
 
+    def test_map_xy_config_with_legend_orientation(self) -> None:
+        config = XYChartConfig.model_validate(
+            {
+                "chart_type": "xy",
+                "x": {"name": "date"},
+                "y": [{"name": "revenue", "aggregate": "SUM"}],
+                "show_legend": True,
+                "legend_orientation": "bottom",
+            }
+        )
+
+        result = map_xy_config(config)
+
+        assert config.legend is not None
+        assert config.legend.show is True
+        assert result["legendOrientation"] == "bottom"
+
     def test_map_xy_config_with_color_scheme(self) -> None:
         """color_scheme propagates to form_data when set."""
         config = XYChartConfig(

@@ -1725,6 +1725,10 @@ class XYChartConfig(UnknownFieldCheckMixin):
         None,
         validation_alias=AliasChoices("legend", "show_legend"),
     )
+    legend_orientation: LEGEND_POSITION_LITERAL | None = Field(
+        None,
+        description="Legend placement around the chart",
+    )
     x_axis_time_format: str | None = Field(
         None,
         description=(
