@@ -531,6 +531,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
         dash.params = original_dash.params
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
         db.session.add(dash)
+        # Flush so the returned dashboard always has a real, persisted
+        # identity (dash.id populated) regardless of what the caller does
+        # next. Without this, whether `dash` ends up with a usable id was an
+        # accident of whatever query the caller happened to run afterward
+        # (autoflush would catch it) - the duplicate_slices=True path leaked
+        # this: it flushes internally per-cloned-slice already, and simple
+        # test/caller code that queries the DB again incidentally
+        # autoflushes too, masking that the plain-copy path never did.
+        db.session.flush()
         return dash
 
     @classmethod
