@@ -3038,7 +3038,7 @@ def test_success_state_send_failure_notifies_owner(
     # False immediately without sending anything.
     mocker.patch.object(state, "is_in_grace_period", return_value=False)
     mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
-    mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
     mock_send_error = mocker.patch.object(state, "send_error")
     if schedule_type == ReportScheduleType.ALERT:
         mocker.patch(
@@ -3054,6 +3054,10 @@ def test_success_state_send_failure_notifies_owner(
         state.next()
 
     mock_send_error.assert_called_once()
+    # The owner-notification path must also persist a terminal ERROR state,
+    # not leave the schedule stuck in WORKING (mirrors how the grace-period
+    # sibling test asserts the recorded terminal state).
+    assert mock_update.call_args_list[-1].args[0] == ReportState.ERROR
 
 
 def test_success_state_send_failure_skips_notification_in_error_grace(
@@ -3079,6 +3083,73 @@ def test_success_state_send_failure_skips_notification_in_error_grace(
     mock_send_error.assert_not_called()
     states = [call.args[0] for call in mock_update.call_args_list]
     assert ReportState.ERROR in states
+
+
+@pytest.mark.parametrize(
+    ("failure_kind", "expected_message"),
+    [
+        ("superset_errors", "smtp down;retry failed"),
+        ("generic", "smtp down"),
+    ],
+)
+def test_success_state_send_error_failure_overwrites_marker(
+    mocker: MockerFixture,
+    failure_kind: str,
+    expected_message: str,
+) -> None:
+    """When the Success/Grace path's own error notification fails, the
+    placeholder marker is overwritten with the real failure message before
+    ERROR is logged -- mirroring the first-run (ReportNotTriggeredErrorState)
+    path. A SupersetErrorsException contributes its joined error messages; any
+    other exception contributes its ``str()``."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetErrorsException
+
+    if failure_kind == "superset_errors":
+        send_error_exc: Exception = SupersetErrorsException(
+            [
+                SupersetError(
+                    message="smtp down",
+                    error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                SupersetError(
+                    message="retry failed",
+                    error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+            ]
+        )
+    else:
+        send_error_exc = RuntimeError("smtp down")
+
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.REPORT
+    )
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_send_error = mocker.patch.object(
+        state, "send_error", side_effect=send_error_exc
+    )
+    mocker.patch.object(
+        state,
+        "send",
+        side_effect=ReportScheduleScreenshotFailedError("blank screenshot"),
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError, match="blank screenshot"):
+        state.next()
+
+    mock_send_error.assert_called_once()
+    # The placeholder marker must be replaced by the real notification failure
+    # before the terminal ERROR row is written.
+    final_call = mock_update.call_args_list[-1]
+    assert final_call.args[0] == ReportState.ERROR
+    assert final_call.kwargs.get("error_message") == expected_message
+    assert (
+        final_call.kwargs.get("error_message")
+        != REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+    )
 
 
 def test_get_url_for_csv_uses_post_processed_type(
