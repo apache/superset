@@ -449,7 +449,9 @@ def test_scope_read_denied_when_token_lacks_read_scope(app_context) -> None:
     assert result is False
 
 
-def test_scope_denies_unmapped_method_for_scoped_token(app_context) -> None:
+def test_scope_denies_unmapped_method_for_scoped_token(
+    app_context, caplog: pytest.LogCaptureFixture
+) -> None:
     """A scoped token presented for a method permission that is NOT in the
     scope map fails closed (denied), even when RBAC grants, so an unmapped
     custom permission cannot silently bypass scope enforcement."""
@@ -465,6 +467,8 @@ def test_scope_denies_unmapped_method_for_scoped_token(app_context) -> None:
         result = check_tool_permission(func)
 
     assert result is False
+    assert "unmapped method permission 'some_custom_perm'" in caplog.text
+    assert "required scope 'None'" not in caplog.text
 
 
 def test_scope_execute_sql_query_requires_write_scope(app_context) -> None:

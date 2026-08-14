@@ -5006,7 +5006,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     f"Requested scope '{scope}' exceeds the issuing user's "
                     "own permissions"
                 )
-            if len(parts) == 2 and parts[0] == "superset" and is_admin:
+            if (
+                len(parts) == 2
+                and parts[0] == "superset"
+                and parts[1] in RESOURCE_SCOPE_ACTIONS
+                and is_admin
+            ):
                 continue
             raise ValueError(
                 f"Requested scope '{scope}' is not a recognized "

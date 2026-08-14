@@ -110,6 +110,16 @@ def test_flat_scope_allowed_for_admin(sm: SupersetSecurityManager) -> None:
     sm._has_view_access.assert_not_called()
 
 
+def test_unrecognized_flat_scope_rejected_for_admin(
+    sm: SupersetSecurityManager,
+) -> None:
+    """Admins cannot mint undefined flat scopes."""
+    sm._has_view_access = MagicMock()
+    with pytest.raises(ValueError, match="not a recognized"):
+        sm._validate_requested_api_key_scopes(_make_user("Admin"), "superset:garbage")
+    sm._has_view_access.assert_not_called()
+
+
 def test_flat_scope_rejected_for_non_admin(sm: SupersetSecurityManager) -> None:
     """A flat scope grants a method across every resource; non-Admins cannot
     self-issue it."""
