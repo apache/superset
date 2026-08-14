@@ -32,6 +32,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -245,6 +246,19 @@ class ListDatasetsRequest(
     validation instead. Preserved intentionally; see
     test_list_datasets_with_string_filters.
     """
+
+    certified: Annotated[
+        StrictBool | None,
+        Field(
+            default=None,
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified datasets (preferred when selecting governed "
+                "semantic-layer assets), false to return only uncertified "
+                "datasets, or omit to return both (default)."
+            ),
+        ),
+    ]
 
     @field_validator("filters", mode="before")
     @classmethod

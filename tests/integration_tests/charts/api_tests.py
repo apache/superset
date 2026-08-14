@@ -165,6 +165,11 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 crontab="* * * * *",
                 chart=chart,
             )
+            # SQLAlchemy 2.0 removes the legacy cascade_backrefs behavior, so
+            # assigning `chart=chart` on a transient ReportSchedule no longer
+            # implicitly adds it to the session via the Slice.report_schedules
+            # backref - it must be added explicitly.
+            db.session.add(report_schedule)
             db.session.commit()
 
             yield chart
@@ -2260,6 +2265,79 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert data["result"] == [
             {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
         ]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache_native_defaults_hit_browser_query_cache(self) -> None:
+        self.login(ADMIN_USERNAME)
+        chart = self.get_slice("Pivot Table v2")
+        dashboard = self.get_dash_by_slug("births")
+
+        saved_query_context = json.loads(chart.query_context)
+        chart_filter = {"col": "name", "op": "!=", "val": "__missing_name__"}
+        for query in saved_query_context["queries"]:
+            query["filters"] = [*(query.get("filters") or []), chart_filter]
+        chart.query_context = json.dumps(saved_query_context)
+
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        legacy_filter = {"col": "name", "op": "in", "val": ["Alice"]}
+        metadata["default_filters"] = json.dumps(
+            {"-1": {legacy_filter["col"]: legacy_filter["val"]}}
+        )
+        metadata["filter_scopes"] = {}
+        native_filter = {"col": "gender", "op": "IN", "val": ["girl"]}
+        metadata["native_filter_configuration"] = [
+            {
+                "id": "NATIVE_FILTER-gender",
+                "name": "Gender",
+                "type": "NATIVE_FILTER",
+                "filterType": "filter_select",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                "targets": [
+                    {
+                        "datasetId": chart.datasource_id,
+                        "column": {"name": "gender"},
+                    }
+                ],
+                "defaultDataMask": {
+                    "extraFormData": {"filters": [native_filter]},
+                    "filterState": {"value": ["girl"]},
+                },
+                "controlValues": {},
+            }
+        ]
+        dashboard.json_metadata = json.dumps(metadata)
+        db.session.commit()
+
+        warm_up_response = self.client.put(
+            "/api/v1/chart/warm_up_cache",
+            json={"chart_id": chart.id, "dashboard_id": dashboard.id},
+        )
+        assert warm_up_response.status_code == 200
+        assert warm_up_response.json["result"] == [
+            {"chart_id": chart.id, "viz_error": None, "viz_status": "success"}
+        ]
+
+        browser_query_context = json.loads(chart.query_context)
+        browser_query_context["force"] = False
+        for query in browser_query_context["queries"]:
+            query["filters"] = [
+                legacy_filter,
+                native_filter,
+                *(query.get("filters") or []),
+            ]
+
+        assert browser_query_context["queries"][0]["filters"] == [
+            legacy_filter,
+            native_filter,
+            chart_filter,
+        ]
+
+        chart_data_response = self.client.post(
+            "/api/v1/chart/data",
+            json=browser_query_context,
+        )
+        assert chart_data_response.status_code == 200
+        assert chart_data_response.json["result"][0]["is_cached"] is True
 
     def test_warm_up_cache_chart_id_required(self):
         self.login(ADMIN_USERNAME)

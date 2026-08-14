@@ -45,8 +45,8 @@ Configuration:
 """
 
 import logging
-from contextlib import AbstractContextManager, nullcontext
-from typing import Any, Callable, cast, TYPE_CHECKING, TypeAlias, TypeVar
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any, Callable, cast, Generator, TYPE_CHECKING, TypeAlias, TypeVar
 
 from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import User
@@ -62,6 +62,7 @@ from superset.mcp_service.mcp_config import (
     get_mcp_api_key_enabled,
     validate_multi_issuer_user_resolver,
 )
+from superset.mcp_service.session_scope import _mcp_session_token
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
 )
@@ -1021,7 +1022,8 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
 
     When a request context is present, external middleware (e.g.
     Preset's WorkspaceContextMiddleware) has already set ``g.user``
-    on a per-request app context — reuse it via ``nullcontext()``.
+    on a per-request app context — reuse it, but still tag the call
+    with a per-call session token (see ``_request_tool_call_context``).
 
     When only a bare app context exists (no request context), push a
     **new** app context so concurrent tool calls do not share one ``g``
@@ -1030,21 +1032,64 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
     When no context exists at all, push a fresh app context from the
     Flask singleton.
 
+    Every path tags the call with a per-call session token (see
+    session_scope.py) so each tool call gets its own SQLAlchemy
+    session — otherwise all in-flight async calls on one greenlet
+    share the greenlet-scoped session, and one call's teardown
+    detaches the others' ORM instances.
+
     This is the single source of truth for context selection — called
     from both ``mcp_auth_hook`` (tool execution) and
     ``RBACToolVisibilityMiddleware`` (tools/list filtering).
     """
     if has_request_context():
-        return nullcontext()
-    if has_app_context():
-        # Push a new context for the CURRENT app (not get_flask_app()
-        # which may return a different instance in test environments).
-        return current_app._get_current_object().app_context()
-    # Deferred: importing at module level would trigger create_app() before
-    # Superset is fully initialised (e.g. during unit-test collection).
-    from superset.mcp_service.flask_singleton import get_flask_app
+        return _request_tool_call_context()
+    return _mcp_tool_call_context()
 
-    return get_flask_app().app_context()
+
+@contextmanager
+def _request_tool_call_context() -> Generator[None, None, None]:
+    """Tag a request-backed tool call with a per-call session token.
+
+    The request context is reused as-is (middleware already populated
+    ``g.user``), so no new app context is pushed — but without the
+    token, concurrent tool calls on the request's greenlet would share
+    the greenlet-scoped SQLAlchemy session, the same race that
+    ``_mcp_tool_call_context()`` prevents on the no-request path.
+    """
+    token = _mcp_session_token.set(object())
+    try:
+        yield
+    finally:
+        # Deregister this call's session while the token still resolves
+        # the registry to it; the request's own greenlet-scoped session
+        # is left for the request lifecycle to tear down.
+        _remove_session_safe()
+        _mcp_session_token.reset(token)
+
+
+@contextmanager
+def _mcp_tool_call_context() -> Generator[None, None, None]:
+    """Push a fresh app context tagged with a per-call session token."""
+    token = _mcp_session_token.set(object())
+    try:
+        if has_app_context():
+            # Push a new context for the CURRENT app (not get_flask_app()
+            # which may return a different instance in test environments).
+            with current_app._get_current_object().app_context():
+                yield
+        else:
+            # Deferred: importing at module level would trigger create_app()
+            # before Superset is fully initialised (e.g. during unit-test
+            # collection).
+            from superset.mcp_service.flask_singleton import get_flask_app
+
+            with get_flask_app().app_context():
+                yield
+    finally:
+        # Reset only after the app context popped, so teardown's
+        # db.session.remove() still resolves to this call's session.
+        _mcp_session_token.reset(token)
 
 
 def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
