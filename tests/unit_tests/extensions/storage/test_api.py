@@ -96,10 +96,11 @@ def test_ephemeral_get_response_is_marked_no_store(
     ):
         g.user = MagicMock(id=7)
 
-        body, _status_code = ExtensionStorageRestApi().get_ephemeral(
+        body, status_code = ExtensionStorageRestApi().get_ephemeral(
             "acme", "dashboard", "my-key"
         )
 
+        assert status_code == 200
         assert body.cache_control.no_store is True
 
 
