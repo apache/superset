@@ -74,7 +74,7 @@ test('renders Tabs', async () => {
 test('recommends a registered client route for the default URL', async () => {
   await asyncRender(createProps());
 
-  userEvent.click(screen.getByTestId('collection-tab-Settings'));
+  userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
 
   expect(await screen.findByText('/dashboard/{id}/')).toBeInTheDocument();
   expect(
