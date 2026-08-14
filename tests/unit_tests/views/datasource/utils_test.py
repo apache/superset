@@ -239,3 +239,20 @@ def test_get_limit_clause_honors_per_page_above_samples_row_limit(
         "row_offset": 0,
         "row_limit": per_page,
     }
+
+
+@pytest.mark.parametrize(
+    "per_page,expected_row_limit",
+    [
+        (0, 0),
+        (-1, 1000),
+    ],
+)
+def test_get_limit_clause_preserves_zero_and_negative_per_page(
+    per_page: int,
+    expected_row_limit: int,
+) -> None:
+    assert get_limit_clause(page=1, per_page=per_page) == {
+        "row_offset": 0,
+        "row_limit": expected_row_limit,
+    }
