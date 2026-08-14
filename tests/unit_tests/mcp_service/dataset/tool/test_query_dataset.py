@@ -138,6 +138,23 @@ def _mock_command_result(
     }
 
 
+def _query_context_from_factory_kwargs(
+    *_args: Any,
+    **kwargs: Any,
+) -> SimpleNamespace:
+    """Build a QueryContext-shaped object from QueryContextFactory.create args."""
+    from superset.common.query_object import QueryObject
+
+    query_dict = kwargs["queries"][0]
+    query = QueryObject(
+        filters=query_dict.get("filters"),
+        time_range=query_dict.get("time_range"),
+        columns=query_dict.get("columns"),
+        metrics=query_dict.get("metrics"),
+    )
+    return SimpleNamespace(queries=[query], form_data=kwargs.get("form_data") or {})
+
+
 @pytest.mark.asyncio
 async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     """Happy path: metrics + columns returns data."""
@@ -159,7 +176,7 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -189,32 +206,24 @@ async def test_query_dataset_exposes_filters_to_jinja_macros(
     mcp_server: FastMCP,
 ) -> None:
     """The MCP query path populates the form data read by dataset Jinja macros."""
-    from superset.common.query_object import QueryObject
-
-    dataset = _make_dataset()
-    query = QueryObject(
-        filters=[{"col": "category", "op": "IN", "val": ["Electronics"]}],
-        columns=["category"],
-        metrics=["count"],
+    from tests.unit_tests.charts.data.form_data_test import (
+        assert_request_dependent_jinja_macros,
     )
-    query_context = SimpleNamespace(queries=[query], form_data={})
-    observed: dict[str, Any] = {}
 
-    def run_query() -> dict[str, Any]:
-        from superset.jinja_context import ExtraCache, get_dataset_id_from_context
+    dataset = _make_dataset(7, main_dttm_col="order_date")
+    observed: dict[str, bool] = {}
 
-        extra_cache = ExtraCache()
-        observed["filter_values"] = extra_cache.filter_values("category")
-        observed["get_filters"] = extra_cache.get_filters("category")
-        # metric() without an explicit dataset ID uses this same context lookup.
-        observed["metric_dataset_id"] = get_dataset_id_from_context("count")
+    def run_query(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        # query_dataset has no url_params; skip that chart-only assertion.
+        assert_request_dependent_jinja_macros(expected_url_param=None)
+        observed["ran"] = True
         return _mock_command_result()
 
     with (
         patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=query_context,
+            side_effect=_query_context_from_factory_kwargs,
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
@@ -229,26 +238,23 @@ async def test_query_dataset_exposes_filters_to_jinja_macros(
                 "query_dataset",
                 {
                     "request": {
-                        "dataset_id": 1,
+                        "dataset_id": 7,
                         "metrics": ["count"],
-                        "columns": ["category"],
+                        "columns": ["region"],
                         "filters": [
                             {
-                                "col": "category",
+                                "col": "region",
                                 "op": "IN",
-                                "val": ["Electronics"],
+                                "val": ["North"],
                             }
                         ],
+                        "time_range": "Last week",
                     }
                 },
             )
 
     assert not result.is_error
-    assert observed["filter_values"] == ["Electronics"]
-    assert observed["get_filters"] == [
-        {"col": "category", "op": "IN", "val": ["Electronics"]}
-    ]
-    assert observed["metric_dataset_id"] == 1
+    assert observed["ran"] is True
 
 
 @pytest.mark.asyncio
@@ -358,7 +364,7 @@ async def test_query_dataset_with_time_range(mcp_server: FastMCP) -> None:
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -444,7 +450,7 @@ async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -518,7 +524,7 @@ async def test_query_dataset_empty_results(mcp_server: FastMCP) -> None:
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -559,7 +565,7 @@ async def test_query_dataset_by_uuid(mcp_server: FastMCP) -> None:
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -598,7 +604,7 @@ async def test_query_dataset_permission_denied(mcp_server: FastMCP) -> None:
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
@@ -635,7 +641,7 @@ async def test_query_dataset_order_by_valid(mcp_server: FastMCP) -> None:
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -713,7 +719,7 @@ async def test_query_dataset_time_column_override(mcp_server: FastMCP) -> None:
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -774,7 +780,7 @@ async def test_query_dataset_non_dttm_time_column_warns(mcp_server: FastMCP) -> 
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -1288,7 +1294,7 @@ async def test_query_dataset_bracket_year_resolves_without_parse_error(
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -1359,7 +1365,7 @@ async def test_query_dataset_bracket_hour_resolves_without_parse_error(
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(

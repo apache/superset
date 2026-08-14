@@ -387,6 +387,10 @@ def build_query_dict(
         query_dict["row_offset"] = offset
     if time_column:
         query_dict["granularity"] = time_column
+    # Jinja get_time_filter() reads QueryObject.time_range, not only
+    # the TEMPORAL_RANGE filter used for SQL execution.
+    if time_range:
+        query_dict["time_range"] = time_range
     if time_grain:
         query_dict["extras"] = {"time_grain_sqla": time_grain}
     if order:
