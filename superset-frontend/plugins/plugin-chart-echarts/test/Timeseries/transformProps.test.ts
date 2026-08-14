@@ -837,6 +837,59 @@ describe('Does transformProps transform series correctly', () => {
     expect(totalLabels).toEqual(['32']);
   });
 
+  test("should keep a sort-only metric's time-comparison column out of the stacked total (#43068)", () => {
+    // #42881 excluded the sort-only metric from the total by exact name, which
+    // leaves its `__<offset>` column matching nothing, so the shifted value was
+    // summed into the total (and into the thresholds derived from it).
+    const sortMetricVerboseMap = { sort_metric: 'Sort By Metric' };
+    const sortFormData: SqlaFormData = {
+      ...formData,
+      onlyTotal: true,
+      groupby: [],
+      metrics: ['San Francisco', 'New York', 'Boston'],
+      timeseries_limit_metric: 'sort_metric',
+      x_axis_sort: 'sort_metric',
+      timeCompare: ['1 year ago'],
+      time_compare: ['1 year ago'],
+      comparison_type: 'values',
+    };
+    const sortQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': 32,
+              'New York': 0,
+              Boston: 0,
+              'Sort By Metric': 2,
+              // the sort metric's shifted column: must not reach the total
+              'sort_metric__1 year ago': 1000,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      formData: sortFormData,
+      queriesData: sortQueriesData,
+      datasource: { verboseMap: sortMetricVerboseMap },
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    const totalLabels = transformedSeries
+      .flatMap((series, seriesIndex) =>
+        series.data.map((value, dataIndex) =>
+          series.label.formatter({ value, dataIndex, seriesIndex }),
+        ),
+      )
+      .filter(label => label !== '');
+
+    expect(totalLabels).toEqual(['32']);
+  });
+
   test("should exclude a sort-only metric's time-comparison column from the series (#43138)", () => {
     // A sort-only metric is part of the query, so time comparison emits a
     // derived column for it too. That column keeps the raw metric label with
