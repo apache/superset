@@ -94,7 +94,9 @@ its data request immediately, regardless of scroll position.
 `DASHBOARD_VIRTUALIZATION_DEFER_DATA` is a supplementary flag that skips
 the data request itself for charts that aren't currently in view, useful
 for backends where opening a connection or compiling a query is expensive
-even if the result would be thrown away.
+even if the result would be thrown away. It only has an effect when
+`DASHBOARD_VIRTUALIZATION` is also enabled — with virtualization off,
+every chart is treated as in view, so there's nothing left to defer.
 
 **Feature flag**: `DASHBOARD_VIRTUALIZATION_DEFER_DATA` (default: `False`)
 
@@ -117,8 +119,10 @@ user goes looking.
 
 **No.** Superset does not implement a frontend-side concurrent-request
 limiter. Each chart issues its own data request when it mounts, and the
-browser handles parallelism (typically ~6 in-flight HTTP requests per
-origin, then the rest queue). Backend throughput is bounded by your
+browser handles parallelism — typically ~6 in-flight requests per origin
+under HTTP/1.1, though HTTP/2 or HTTP/3 (if your deployment terminates
+TLS that way) can multiplex considerably more over a single connection.
+Backend throughput is bounded by your
 Gunicorn worker count for synchronous query execution, or by your Celery
 worker pool when [async queries](./async-queries-celery.mdx) are enabled.
 
@@ -169,6 +173,12 @@ scheduled table in the warehouse so each chart query is a cheap lookup.
 
 - See [Feature Flags](./feature-flags.mdx) for the full list of supported
   flags and their lifecycle stages.
-- Report and screenshot jobs (alerts, scheduled reports, dashboard
-  exports) intentionally bypass row virtualization so the rendered
-  artifact includes every chart, not just the ones above the fold.
+- Server-side screenshot jobs (alerts, scheduled reports, thumbnails)
+  render the dashboard in a headless, webdriver-controlled browser, which
+  intentionally bypasses row virtualization so the rendered artifact
+  includes every chart, not just the ones above the fold. User-triggered
+  "download as image/PDF" is different: it captures whatever's currently
+  rendered in the user's own browser, so it's still subject to
+  virtualization like any other page view. Metadata/YAML dashboard export
+  doesn't render the frontend at all, so virtualization doesn't apply to
+  it either.
