@@ -242,4 +242,12 @@ class AppRootMiddleware:
             environ["PATH_INFO"] = original_path_info[len(self.app_root) :]
             environ["SCRIPT_NAME"] = self.app_root
             return self.wsgi_app(environ, start_response)
+        if original_path_info == "/static" or original_path_info.startswith("/static/"):
+            # Webpack bakes `/static/assets/` into the bundle as its publicPath,
+            # so lazily loaded chunks and the assets they reference are always
+            # requested without the app-root prefix. Serve those unprefixed
+            # paths as-is instead of 404ing them; the app root is left off
+            # PATH_INFO and SCRIPT_NAME because the static route is registered
+            # at `/static/...` on the unprefixed app.
+            return self.wsgi_app(environ, start_response)
         return NotFound()(environ, start_response)
