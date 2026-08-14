@@ -198,7 +198,12 @@ def test_explicit_temporal_column_takes_precedence(
     "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
     return_value=True,
 )
+@patch(
+    "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+    return_value=SimpleNamespace(main_dttm_col="event_time"),
+)
 def test_temporal_xy_binding_records_generated_subject(
+    mock_find_dataset: MagicMock,
     mock_is_temporal: MagicMock,
 ) -> None:
     form_data = map_config_to_form_data(
