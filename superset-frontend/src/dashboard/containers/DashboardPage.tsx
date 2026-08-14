@@ -81,14 +81,14 @@ import {
 
 type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
-const DASHBOARD_FILTERS_STORAGE_PREFIX = 'superset_dashboard_filters_';
+const DASHBOARD_FILTERS_STORAGE_PREFIX = 'dashboard__native_filters__';
 
 function getStorageKey(dashboardId: number, userId: number | undefined) {
   // Scope the key to userId to prevent one user's filter state from
   // leaking into another user's session on the same browser profile.
   // Guest users (no userId) are not scoped — guest sessions are ephemeral.
   return userId
-    ? `${DASHBOARD_FILTERS_STORAGE_PREFIX}${userId}_${dashboardId}`
+    ? `${DASHBOARD_FILTERS_STORAGE_PREFIX}${userId}__${dashboardId}`
     : `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`;
 }
 
@@ -110,10 +110,13 @@ function saveDashboardFilters(
   nativeFilterMask: Record<string, unknown>,
 ) {
   try {
-    localStorage.setItem(
-      getStorageKey(dashboardId, userId),
-      JSON.stringify(nativeFilterMask),
-    );
+    const key = getStorageKey(dashboardId, userId);
+    const nextValue = JSON.stringify(nativeFilterMask);
+    // Skip the write if the value has not changed to avoid unnecessary
+    // synchronous main-thread work on every dataMask state update.
+    if (localStorage.getItem(key) !== nextValue) {
+      localStorage.setItem(key, nextValue);
+    }
   } catch {
     // fail silently — persistence is a nice-to-have, not critical path
   }
@@ -209,9 +212,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const hydratedDashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
-  const userId = useSelector(
-    (state: RootState) => state.user?.userId,
-  );
+  const userId = useSelector((state: RootState) => state.user?.userId);
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
@@ -269,7 +270,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       } else {
         const savedFilters = getSavedDashboardFilters(id, userId);
-        if (savedFilters) {
+        // Guard against corrupted or unexpected localStorage data shapes
+        // (e.g. a JSON array or primitive) before assigning to dataMask.
+        if (
+          savedFilters &&
+          typeof savedFilters === 'object' &&
+          !Array.isArray(savedFilters)
+        ) {
           dataMask = savedFilters;
         }
       }
