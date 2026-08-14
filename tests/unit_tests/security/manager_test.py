@@ -3868,6 +3868,60 @@ def test_sql_filters_from_stored_qc_allowed(
     assert not _sql_filters_modified(query_context, form_data, stored_chart, stored_qc)
 
 
+def test_sql_filters_multi_query_stored_predicate_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Multiple queries replaying predicates from the stored chart are allowed.
+
+    The allowed set is global across all stored queries — per-query pinning is
+    intentionally not applied because there is no stable identity linking a
+    request query to a stored query, and all queries share the same
+    chart/datasource so predicates only restrict rows, never expand access.
+    """
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    stored_qc = {
+        "queries": [
+            {"extras": {"where": "(region = 'EMEA')"}},
+            {"extras": {"where": "(status = 'active')"}},
+        ],
+    }
+
+    # Both request queries use predicates from the stored chart.
+    query_context.queries = [
+        QueryObject(extras={"where": "(region = 'EMEA')"}),
+        QueryObject(extras={"where": "(status = 'active')"}),
+    ]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, stored_qc)
+
+
+def test_sql_filters_multi_query_novel_predicate_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A novel predicate on any query is blocked even when others are valid."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    stored_qc = {
+        "queries": [{"extras": {"where": "(region = 'EMEA')"}}],
+    }
+
+    query_context.queries = [
+        QueryObject(extras={"where": "(region = 'EMEA')"}),
+        QueryObject(extras={"where": "(1=1)"}),  # not stored
+    ]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, stored_qc)
+
+
 def test_sql_filters_different_sql_blocked(
     mocker: MockerFixture,
 ) -> None:
@@ -3920,21 +3974,28 @@ def test_sql_filters_simple_filters_not_blocked(
     assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
 
 
-def test_query_context_modified_sql_filter_injection_blocked(
+def test_raise_for_access_guest_user_sql_filter_injection_blocked(
     mocker: MockerFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
 ) -> None:
-    """End-to-end: query_context_modified rejects injected SQL filters."""
+    """Guest user injecting SQL via extras.where is rejected by raise_for_access."""
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
     query_context = mocker.MagicMock()
     query_context.slice_.id = 42
     query_context.slice_.query_context = None
-    query_context.slice_.params_dict = {"metrics": ["count"]}
+    query_context.slice_.params_dict = {"metrics": stored_metrics}
 
-    query_context.form_data = {"slice_id": 42, "metrics": ["count"]}
+    query_context.form_data = {"slice_id": 42, "metrics": stored_metrics}
     query_context.queries = [
         QueryObject(
-            metrics=["count"],
+            metrics=stored_metrics,  # type: ignore
             extras={"where": "1=1 UNION SELECT password FROM users"},
         )
     ]
 
-    assert query_context_modified(query_context)
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
