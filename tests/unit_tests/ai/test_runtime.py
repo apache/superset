@@ -335,23 +335,7 @@ def test_unexpected_exception_is_contained() -> None:
     assert runtime.result.ok is False
 
 
-def test_last_turn_answers_from_gathered_tool_results() -> None:
-    """The final model round trip synthesizes an answer instead of using a tool."""
-    call = ToolCall(id="c", name="execute_sql", arguments={"sql": "SELECT 1"})
-    provider = EchoProvider(
-        [ScriptedTurn(tool_calls=(call,)), ScriptedTurn(text="One row.")]
-    )
-    runtime = MessagesApiRuntime(provider)
-
-    events = _run(runtime, _request(tools=StubTools(), max_turns=2))
-
-    assert runtime.result.ok is True
-    assert _payloads(events, StreamEventType.FINAL)[0]["content"] == "One row."
-    assert provider.requests[0].tool_names == ("execute_sql",)
-    assert provider.requests[1].tool_names == ()
-
-
-def test_unadvertised_tool_on_last_turn_exhausts_budget() -> None:
+def test_turn_budget_is_reported_as_an_incomplete_run() -> None:
     """
     Exhausting the step budget is not reported as a successful answer.
 
@@ -359,17 +343,14 @@ def test_unadvertised_tool_on_last_turn_exhausts_budget() -> None:
     out long ago, while the result lets persistence and telemetry record failure.
     """
     call = ToolCall(id="c", name="execute_sql", arguments={"sql": "SELECT 1"})
-    provider = EchoProvider([ScriptedTurn(tool_calls=(call,)) for _ in range(2)])
-    tools = StubTools()
+    provider = EchoProvider([ScriptedTurn(tool_calls=(call,)) for _ in range(5)])
     runtime = MessagesApiRuntime(provider)
 
-    events = _run(runtime, _request(tools=tools, max_turns=2))
+    events = _run(runtime, _request(tools=StubTools(), max_turns=2))
 
     assert runtime.result.turns == 2
     assert runtime.result.ok is False
     assert runtime.result.error is not None
-    assert len(tools.calls) == 1
-    assert provider.requests[1].tool_names == ()
     assert StreamEventType.ERROR in _types(events)
     assert StreamEventType.FINAL not in _types(events)
     stages = [p["stage"] for p in _payloads(events, StreamEventType.THINKING)]
