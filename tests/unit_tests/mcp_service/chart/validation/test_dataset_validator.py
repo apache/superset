@@ -67,5 +67,8 @@ def test_unknown_type_is_deferred_to_compile_check(sql_type: str) -> None:
     assert _validate_sum(sql_type) == []
 
 
-def test_text_type_is_rejected_for_numeric_aggregation() -> None:
-    assert _validate_sum("VARCHAR")[0].error_type == "invalid_aggregation"
+@pytest.mark.parametrize("sql_type", ["VARCHAR", "INTERVAL", "POINT"])
+def test_non_numeric_type_is_rejected_for_numeric_aggregation(
+    sql_type: str,
+) -> None:
+    assert _validate_sum(sql_type)[0].error_type == "invalid_aggregation"
