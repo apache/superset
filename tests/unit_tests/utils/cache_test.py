@@ -120,6 +120,33 @@ def test_memoized_func_disabled_cache_timeout(mocker: MockerFixture) -> None:
     cache.set.assert_not_called()
 
 
+def test_memoized_func_skip_cache_pops_cache_timeout(mocker: MockerFixture) -> None:
+    """
+    ``cache=False`` skips caching without touching the config or the wrapped function.
+
+    ``cache_timeout`` must still be popped so it is not forwarded to the decorated
+    function, which does not accept it. Callers such as
+    ``get_all_table_names_in_schema`` pass ``cache`` and ``cache_timeout`` together.
+    """
+    from superset.utils.cache import memoized_func
+
+    mock_config = mocker.patch("superset.utils.cache.app.config", MagicMock())
+    cache = mocker.MagicMock()
+
+    decorator = memoized_func("db:{self.id}:schema:{schema}:table_list", cache)
+    decorated = decorator(lambda self, schema: 42)
+
+    self = mocker.MagicMock()
+    self.id = 1
+
+    result = decorated(self, "public", cache=False, cache_timeout=None)
+
+    assert result == 42
+    cache.get.assert_not_called()
+    cache.set.assert_not_called()
+    mock_config.__getitem__.assert_not_called()
+
+
 def _make_cache_instance(mocker: MockerFixture) -> MagicMock:
     """A cache instance whose ``.cache`` is not a ``NullCache``."""
     cache_instance = mocker.MagicMock()
