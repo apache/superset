@@ -762,6 +762,21 @@ def apply_client_processing(  # noqa: C901
 
         data = query["data"]
 
+        csv_export_config = current_app.config.get("CSV_EXPORT", {})
+
+        if query["result_format"] == ChartDataResultFormat.CSV and isinstance(
+            data, bytes
+        ):
+            # QueryContextProcessor.get_data encodes CSV `data` to bytes using
+            # the configured CSV_EXPORT encoding (default utf-8), matching
+            # the encoding SQL Lab's own CSV export uses -- decode with that
+            # same encoding rather than assuming `data` is already a `str`.
+            # Decode before the empty-data check below so whitespace-only
+            # payloads (e.g. a columnless frame serialized as a bare
+            # newline) are caught rather than reaching `pd.read_csv` and
+            # raising `EmptyDataError`.
+            data = data.decode(csv_export_config.get("encoding", "utf-8"))
+
         if isinstance(data, str):
             data = data.strip()
 
@@ -769,7 +784,6 @@ def apply_client_processing(  # noqa: C901
             # do not try to process empty data
             continue
 
-        csv_export_config = current_app.config.get("CSV_EXPORT", {})
         sep = csv_export_config.get("sep", ",")
         decimal = csv_export_config.get("decimal", ".")
 
