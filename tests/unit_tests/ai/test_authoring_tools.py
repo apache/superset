@@ -19,12 +19,14 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from superset.ai.tools.authoring import (
+    _call_mcp_tool,
     _run_mcp_tool,
     CreateVirtualDatasetTool,
     GenerateChartTool,
@@ -123,6 +125,36 @@ def test_mcp_runner_isolates_request_state(app_context: None) -> None:
     load_user.assert_called_once_with(username="admin", email="admin@example.test")
     assert seen == [(worker_user, True)]
     assert g.user is original_user
+
+
+@pytest.mark.asyncio
+async def test_mcp_call_prefers_structured_content() -> None:
+    client = MagicMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=None)
+    client.call_tool = AsyncMock(
+        return_value=SimpleNamespace(
+            is_error=False,
+            data=object(),
+            structured_content={"success": True},
+        )
+    )
+
+    with patch("fastmcp.Client", return_value=client):
+        result = await _call_mcp_tool(
+            "generate_chart",
+            GenerateChartRequest.model_validate(
+                {
+                    "dataset_id": 1,
+                    "config": {
+                        "chart_type": "big_number",
+                        "metric": {"name": "amount", "aggregate": "SUM"},
+                    },
+                }
+            ),
+        )
+
+    assert result == {"success": True}
 
 
 def test_generate_dashboard_returns_the_native_url() -> None:

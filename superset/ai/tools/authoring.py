@@ -97,7 +97,11 @@ async def _call_mcp_tool(tool_name: str, request: BaseModel) -> Any:
 
     if result.is_error:
         raise ToolError(f"Superset could not run {tool_name}.")
-    return result.data if result.data is not None else result.structured_content
+    return (
+        result.structured_content
+        if result.structured_content is not None
+        else result.data
+    )
 
 
 def _run_mcp_tool(tool_name: str, request: BaseModel) -> dict[str, Any]:
