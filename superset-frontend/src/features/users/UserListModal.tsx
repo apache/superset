@@ -31,7 +31,12 @@ import {
 import { Group, Role, UserObject } from 'src/pages/UsersList/types';
 import { Actions } from 'src/constants';
 import { BaseUserListModalProps, FormValues } from './types';
-import { createUser, updateUser, atLeastOneRoleOrGroup } from './utils';
+import {
+  createUser,
+  updateUser,
+  atLeastOneRoleOrGroup,
+  handleUserError,
+} from './utils';
 
 export interface UserModalProps extends BaseUserListModalProps {
   roles: Role[];
@@ -39,48 +44,6 @@ export interface UserModalProps extends BaseUserListModalProps {
   user?: UserObject;
   groups: Group[];
 }
-
-type AddDangerToast = (message: string) => void;
-
-export const handleUserError = async (
-  err: Response,
-  action: Actions.CREATE | Actions.UPDATE,
-  addDangerToast: AddDangerToast,
-): Promise<never> => {
-  let errorMessage =
-    action === Actions.CREATE
-      ? t('There was an error creating the user. Please, try again.')
-      : t('There was an error updating the user. Please, try again.');
-
-  if (err.status === 400 || err.status === 422) {
-    const { message }: { message?: unknown } = await err.json();
-
-    if (err.status === 400 && message && typeof message === 'object') {
-      const validationMessages = Object.values(message).flat();
-      const detail = validationMessages.find(
-        validationMessage => typeof validationMessage === 'string',
-      );
-      if (detail) {
-        errorMessage = detail;
-      }
-    } else if (err.status === 422 && typeof message === 'string') {
-      if (message.includes('duplicate key value')) {
-        if (message.includes('ab_user_username_key')) {
-          errorMessage = t(
-            'This username is already taken. Please choose another one.',
-          );
-        } else if (message.includes('ab_user_email_key')) {
-          errorMessage = t(
-            'This email is already associated with an account. Please choose another one.',
-          );
-        }
-      }
-    }
-  }
-
-  addDangerToast(errorMessage);
-  throw err;
-};
 
 function UserListModal({
   show,

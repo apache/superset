@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Actions } from 'src/constants';
-import { handleUserError } from './UserListModal';
+import { handleUserError } from './utils';
 
 test('shows the password validation message from a 400 response', async () => {
   const error = new Response(
@@ -53,5 +53,20 @@ test('keeps the duplicate username message for a 422 response', async () => {
   ).rejects.toBe(error);
   expect(addDangerToast).toHaveBeenCalledWith(
     'This username is already taken. Please choose another one.',
+  );
+});
+
+test('shows the generic message when a 400 response is not JSON', async () => {
+  const error = new Response('<html>Bad request</html>', {
+    status: 400,
+    headers: { 'Content-Type': 'text/html' },
+  });
+  const addDangerToast = jest.fn();
+
+  await expect(
+    handleUserError(error, Actions.CREATE, addDangerToast),
+  ).rejects.toBe(error);
+  expect(addDangerToast).toHaveBeenCalledWith(
+    'There was an error creating the user. Please, try again.',
   );
 });
