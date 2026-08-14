@@ -58,9 +58,13 @@ charts hitting a fast cache behaves very differently from a dashboard of
 ## Lazy rendering — `DASHBOARD_VIRTUALIZATION`
 
 Superset's dashboard layout is virtualized at the row level. Charts that
-are far below the user's current scroll position are not rendered (and
-therefore don't fetch data) until the user scrolls them into view, and they
-are unmounted again if scrolled well past. This is on by default.
+are far below the user's current scroll position render a placeholder
+instead of their visualization until the user scrolls them into view, and
+go back to a placeholder if scrolled well past. The chart component itself
+stays mounted throughout — only the visualization is swapped for a
+placeholder — so this alone does **not** reduce backend query load; see
+[Deferred data fetch](#deferred-data-fetch--dashboard_virtualization_defer_data)
+below for that. This is on by default.
 
 **Feature flag**: `DASHBOARD_VIRTUALIZATION` (default: `True`)
 
@@ -70,25 +74,27 @@ operators can disable it if a specific layout misbehaves.
 
 **Behavior** (from `superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx`):
 
-- A chart is rendered when its row scrolls within **1 viewport height** of
-  the visible area.
-- A chart is unmounted when its row scrolls more than **4 viewport
-  heights** away from the visible area.
+- A chart's visualization is rendered when its row scrolls within **1
+  viewport height** of the visible area.
+- A chart's visualization is swapped back for a placeholder when its row
+  scrolls more than **4 viewport heights** away from the visible area.
 - Tabs that aren't currently selected don't render their content at all
   (see below).
-- The unmounting half is skipped in **embedded** mode (so an embedded
-  dashboard keeps its charts mounted once they've been seen, which avoids
-  re-fetching on scroll-up). Both halves are skipped for **headless /
-  bot** rendering (so screenshot / report jobs load every chart).
+- The placeholder-swap-back is skipped in **embedded** mode (so an
+  embedded dashboard keeps its charts rendered once they've been seen,
+  which avoids re-rendering on scroll-up). Both halves are skipped for
+  **headless / bot** rendering (so screenshot / report jobs load every
+  chart).
 
 ## Deferred data fetch — `DASHBOARD_VIRTUALIZATION_DEFER_DATA`
 
-By default, `DASHBOARD_VIRTUALIZATION` controls *rendering* — but charts
-that don't render also don't fetch data, because Superset's chart
-components issue their data request on mount. `DASHBOARD_VIRTUALIZATION_DEFER_DATA`
-is a supplementary flag that further defers the data request itself, useful
+By default, `DASHBOARD_VIRTUALIZATION` only controls whether a chart's
+*visualization* is rendered — the chart component still mounts and issues
+its data request immediately, regardless of scroll position.
+`DASHBOARD_VIRTUALIZATION_DEFER_DATA` is a supplementary flag that skips
+the data request itself for charts that aren't currently in view, useful
 for backends where opening a connection or compiling a query is expensive
-even if the result is later thrown away.
+even if the result would be thrown away.
 
 **Feature flag**: `DASHBOARD_VIRTUALIZATION_DEFER_DATA` (default: `False`)
 
