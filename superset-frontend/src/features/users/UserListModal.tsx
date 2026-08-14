@@ -40,6 +40,48 @@ export interface UserModalProps extends BaseUserListModalProps {
   groups: Group[];
 }
 
+type AddDangerToast = (message: string) => void;
+
+export const handleUserError = async (
+  err: Response,
+  action: Actions.CREATE | Actions.UPDATE,
+  addDangerToast: AddDangerToast,
+): Promise<never> => {
+  let errorMessage =
+    action === Actions.CREATE
+      ? t('There was an error creating the user. Please, try again.')
+      : t('There was an error updating the user. Please, try again.');
+
+  if (err.status === 400 || err.status === 422) {
+    const { message }: { message?: unknown } = await err.json();
+
+    if (err.status === 400 && message && typeof message === 'object') {
+      const validationMessages = Object.values(message).flat();
+      const detail = validationMessages.find(
+        validationMessage => typeof validationMessage === 'string',
+      );
+      if (detail) {
+        errorMessage = detail;
+      }
+    } else if (err.status === 422 && typeof message === 'string') {
+      if (message.includes('duplicate key value')) {
+        if (message.includes('ab_user_username_key')) {
+          errorMessage = t(
+            'This username is already taken. Please choose another one.',
+          );
+        } else if (message.includes('ab_user_email_key')) {
+          errorMessage = t(
+            'This email is already associated with an account. Please choose another one.',
+          );
+        }
+      }
+    }
+  }
+
+  addDangerToast(errorMessage);
+  throw err;
+};
+
 function UserListModal({
   show,
   onHide,
@@ -51,36 +93,6 @@ function UserListModal({
 }: UserModalProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
   const handleFormSubmit = async (values: FormValues) => {
-    const handleError = async (
-      err: any,
-      action: Actions.CREATE | Actions.UPDATE,
-    ) => {
-      let errorMessage =
-        action === Actions.CREATE
-          ? t('There was an error creating the user. Please, try again.')
-          : t('There was an error updating the user. Please, try again.');
-
-      if (err.status === 422) {
-        const errorData = await err.json();
-        const detail = errorData?.message || '';
-
-        if (detail.includes('duplicate key value')) {
-          if (detail.includes('ab_user_username_key')) {
-            errorMessage = t(
-              'This username is already taken. Please choose another one.',
-            );
-          } else if (detail.includes('ab_user_email_key')) {
-            errorMessage = t(
-              'This email is already associated with an account. Please choose another one.',
-            );
-          }
-        }
-      }
-
-      addDangerToast(errorMessage);
-      throw err;
-    };
-
     if (isEditMode) {
       if (!user) {
         throw new Error('User is required in edit mode');
@@ -89,14 +101,14 @@ function UserListModal({
         await updateUser(user.id, values);
         addSuccessToast(t('The user has been updated successfully.'));
       } catch (err) {
-        await handleError(err, Actions.UPDATE);
+        await handleUserError(err as Response, Actions.UPDATE, addDangerToast);
       }
     } else {
       try {
         await createUser(values);
         addSuccessToast(t('The user has been created successfully.'));
       } catch (err) {
-        await handleError(err, Actions.CREATE);
+        await handleUserError(err as Response, Actions.CREATE, addDangerToast);
       }
     }
   };
