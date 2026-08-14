@@ -332,6 +332,30 @@ EXPAND_TABLE_CONTAINERS_JS = """
 }
 """
 
+# Big Number charts set font-size directly as an inline style attribute
+# (e.g. style="font-size: 32px; ...") via React.  CSS !important cannot
+# override inline styles, so the font-size tier for big numbers must be
+# applied by directly mutating the inline style before page.pdf() is called.
+#
+# This JS function accepts a target font-size in pixels (as a number) and
+# patches every .header-line element's inline style to use that value.
+#
+# big_number_px reference values (CSS px, rendered at 1600px viewport,
+# then scaled × 0.496 to A4 paper width):
+#   small  → no JS call; React default (32px) is the no-override baseline
+#   medium → 64px CSS  ≈ ~12pt on paper
+#   large  → 96px CSS  ≈ ~18pt on paper
+SET_PRINT_FONT_SIZE_JS = """
+(px) => {
+    let count = 0;
+    for (const el of document.querySelectorAll('.header-line')) {
+        // Preserve all other inline properties; only override font-size.
+        el.style.fontSize = px + 'px';
+        count++;
+    }
+    return count;
+}
+"""
 
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"

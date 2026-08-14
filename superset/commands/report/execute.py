@@ -938,16 +938,23 @@ class BaseReportState:
             )
             return None
 
+        pdf_font_size: str | None = app.config.get(
+            "BROWSER_PRINT_PDF_FONT_SIZE", None
+        )
+        dashboard_title: str = self._report_schedule.dashboard.dashboard_title or ""
         screenshot = DashboardPrintScreenshot(
             urls[0],
             self._report_schedule.dashboard.digest,
             window_size=window_size,
             thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+            font_size=pdf_font_size,
         )
         return screenshot.get_print_pdf(
             user=user,
             log_context=self._log_context,
             report_execution_context=self._report_execution_context,
+            header_title=dashboard_title or None,
+            font_size=pdf_font_size,
         )
 
     def _get_chart_data_request_payload(

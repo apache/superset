@@ -55,6 +55,7 @@ from superset.utils.screenshot_utils import (
     REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
     ScreenshotTaskBudgetExceededError,
+    SET_PRINT_FONT_SIZE_JS,
     take_tiled_screenshot,
     UNHIDE_TAB_PANELS_JS,
 )
@@ -982,12 +983,189 @@ class WebDriverPlaywright(WebDriverProxy):
             context.close()
         return img
 
+    @staticmethod
+    def _escape_html(text: str) -> str:
+        """HTML-escape a plain-text string for safe inline HTML embedding."""
+        return (
+            text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+        )
+
+    @staticmethod
+    def _resolve_slot(
+        raw: str,
+        title: str,
+    ) -> str:
+        """
+        Expand user-defined token placeholders in a header/footer slot string.
+
+        Supported tokens:
+          {title} — the dashboard title (HTML-escaped)
+          {date}  — replaced with a <span class="date"></span> element so
+                    Chromium injects the actual print date at render time.
+
+        The returned string is safe for direct insertion into an inline-HTML
+        Playwright template (all literal text is HTML-escaped; only the
+        Chromium-class <span> elements are allowed through unescaped).
+        """
+        # Split on {date} first so we can handle it as a Chromium span.
+        # Everything else: substitute {title} then HTML-escape the result,
+        # so a dashboard title containing "<", ">" or "&" cannot inject markup.
+        parts = raw.split("{date}")
+        resolved_parts = []
+        for i, part in enumerate(parts):
+            safe_part = WebDriverPlaywright._escape_html(
+                part.replace("{title}", title)
+            )
+            resolved_parts.append(safe_part)
+            if i < len(parts) - 1:
+                resolved_parts.append('<span class="date"></span>')
+        return "".join(resolved_parts)
+
+    @staticmethod
+    def _slot_span(content: str, extra_style: str = "") -> str:
+        """
+        Wrap resolved slot content in a flex-child <span> with overflow
+        protection so long strings are truncated with an ellipsis rather
+        than spilling into adjacent slots or off the page band.
+
+        Each slot is capped at 200px (paper pixels — templates are rendered
+        at full paper width, not scaled by page.pdf(scale)).
+        """
+        base = (
+            "display:inline-block;"
+            "max-width:200px;"
+            "overflow:hidden;"
+            "text-overflow:ellipsis;"
+            "white-space:nowrap;"
+            "vertical-align:bottom;"
+        )
+        style = base + extra_style
+        return f'<span style="{style}">{content}</span>'
+
+    @staticmethod
+    def _build_pdf_header_template(
+        title: str,
+        content: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Build the Playwright header_template HTML string.
+
+        Rules for Playwright/Chromium header templates:
+        - Must be a single root element.
+        - All styles must be inline — no <style> tags.
+        - font-size defaults to 0px; must be set explicitly or text is invisible.
+        - Special classes injected by Chromium: date, title, url,
+          pageNumber, totalPages.
+        - Template is rendered at full paper width, independent of page.pdf(scale).
+        - Lives entirely inside the top margin space.
+
+        ``content`` is a dict with optional keys "left", "center", "right"
+        whose values are plain-text strings supporting {title} and {date}
+        tokens (see _resolve_slot).  Defaults to the built-in layout when
+        None or when a key is absent.
+        """
+        _c = content or {}
+        raw_left = _c.get("left", "{title}")
+        raw_center = _c.get("center", "")
+        raw_right = _c.get("right", "Apache Superset | {date}")
+
+        left_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_left, title),
+            "font-weight:700;font-size:11px;letter-spacing:0.2px;",
+        )
+        center_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_center, title),
+            "font-size:8px;color:#57606a;",
+        )
+        right_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_right, title),
+            "font-size:8px;color:#57606a;text-align:right;",
+        )
+
+        return (
+            '<div style="'
+            "width:100%;"
+            "font-family:Arial,Helvetica,sans-serif;"
+            "font-size:9px;"
+            "color:#1f2328;"
+            "display:flex;"
+            "justify-content:space-between;"
+            "align-items:flex-end;"
+            "padding:0 10mm 4px 10mm;"
+            "box-sizing:border-box;"
+            "border-bottom:1.5px solid #3b82d4;"
+            '">'
+            f"{left_html}"
+            f"{center_html}"
+            f"{right_html}"
+            "</div>"
+        )
+
+    @staticmethod
+    def _build_pdf_footer_template(
+        content: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Build the Playwright footer_template HTML string.
+
+        The right slot is always "Page N of M" using Chromium's special
+        pageNumber / totalPages classes substituted at render time.  It
+        cannot be overridden via ``content``.
+
+        ``content`` is a dict with optional keys "left" and "center" whose
+        values are plain-text strings supporting {title} and {date} tokens.
+        Defaults to the built-in layout when None or when a key is absent.
+        """
+        _c = content or {}
+        raw_left = _c.get("left", "Confidential")
+        raw_center = _c.get("center", "Generated by Apache Superset")
+
+        left_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_left, ""),
+        )
+        center_html = WebDriverPlaywright._slot_span(
+            WebDriverPlaywright._resolve_slot(raw_center, ""),
+            "text-align:center;",
+        )
+        # Right slot: fixed page numbering — not user-overridable.
+        page_html = (
+            '<span style="white-space:nowrap;">'
+            'Page <span class="pageNumber"></span>'
+            ' of <span class="totalPages"></span>'
+            "</span>"
+        )
+
+        return (
+            '<div style="'
+            "width:100%;"
+            "font-family:Arial,Helvetica,sans-serif;"
+            "font-size:8px;"
+            "color:#57606a;"
+            "display:flex;"
+            "justify-content:space-between;"
+            "align-items:flex-start;"
+            "padding:4px 10mm 0 10mm;"
+            "box-sizing:border-box;"
+            "border-top:1px solid #e5e7eb;"
+            '">'
+            f"{left_html}"
+            f"{center_html}"
+            f"{page_html}"
+            "</div>"
+        )
+
     def get_print_pdf(
         self,
         url: str,
         user: "User | None" = None,
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
+        header_title: str | None = None,
+        font_size: str | None = None,
     ) -> bytes | None:
         """
         Render the dashboard in print-ready mode and call page.pdf().
@@ -996,11 +1174,21 @@ class WebDriverPlaywright(WebDriverProxy):
         viewport-visible) to detect readiness, then calls Playwright's
         native page.pdf() instead of page.screenshot().
 
-        The viewport width is set to the A4 printable width (794 px at
-        96 dpi) so the dashboard reflows at exactly the paper width.
-        This eliminates the blank-space problem that occurs when the
-        browser lays out at 1600 px and page.pdf() then maps that onto
-        a 794 px-wide A4 sheet.
+        The viewport width is set to the authored dashboard width (default
+        1600 px) so ECharts/canvas elements measure and draw at their design
+        resolution. page.pdf(scale=794/1600) maps the content onto A4 paper
+        width without blank guttering.
+
+        When header_title is provided (and BROWSER_PRINT_PDF_HEADER_FOOTER is
+        True in app config), Playwright's display_header_footer API is used to
+        stamp a title+date header and a confidential/page-count footer on every
+        page.  The header/footer template is rendered at full paper width by the
+        Chromium print engine and is NOT affected by page.pdf(scale).
+
+        font_size ('small' | 'medium' | None) controls DOM-rendered text sizes.
+        Big Number charts use an inline style for font-size which CSS !important
+        cannot override; SET_PRINT_FONT_SIZE_JS patches those inline styles
+        directly before page.pdf() is called.
 
         Returns None (never raises) so the caller can fall back to
         the existing screenshot path.
@@ -1091,6 +1279,30 @@ class WebDriverPlaywright(WebDriverProxy):
                     log_context or "",
                 )
 
+            # Big Number charts render font-size as an inline style attribute.
+            # CSS !important cannot override inline styles, so we patch the
+            # inline style directly here — after chart readiness, before pdf().
+            # 'small' (or None) uses the React-computed default (32px); no JS
+            # needed.  Tier values (CSS px at 1600px viewport, ×0.496 to paper):
+            #   medium → 64px  (~12pt on paper)
+            #   large  → 96px  (~18pt on paper)
+            _big_number_px: int | None = None
+            if font_size == "medium":
+                _big_number_px = 64
+            elif font_size == "large":
+                _big_number_px = 96
+            if _big_number_px is not None:
+                bn_patched = page.evaluate(SET_PRINT_FONT_SIZE_JS, _big_number_px)
+                logger.info(
+                    "browser_print_pdf_font_size url=%s font_size=%s "
+                    "big_number_px=%d elements_patched=%d log_context=%s",
+                    url,
+                    font_size,
+                    _big_number_px,
+                    bn_patched,
+                    log_context or "",
+                )
+
             # Native browser print — produces a real vector PDF.
             #
             # scale = A4 printable width / viewport width so the content
@@ -1102,17 +1314,49 @@ class WebDriverPlaywright(WebDriverProxy):
             # margins are applied symmetrically by the PDF engine.
             _a4_px = 794  # A4 width in CSS pixels at 96 dpi
             _pdf_scale = min(1.0, _a4_px / pdf_viewport_width)
-            pdf_bytes = page.pdf(
-                format="A4",
-                print_background=True,
-                scale=_pdf_scale,
-                margin={
-                    "top": "10mm",
-                    "bottom": "10mm",
+
+            # Header / footer: use Playwright's display_header_footer API.
+            # The header_template and footer_template are rendered by Chromium
+            # inside the top/bottom margin space at full paper width and are
+            # NOT scaled by page.pdf(scale), so the px values in those
+            # templates always refer to paper pixels, not viewport pixels.
+            # Top margin needs room for the header band (~14mm of content +
+            # 4mm breathing space = 18mm).  Bottom margin needs ~11mm of
+            # content + 4mm = 15mm.
+            use_header_footer = bool(
+                header_title
+                and app.config.get("BROWSER_PRINT_PDF_HEADER_FOOTER", True)
+            )
+            pdf_kwargs: dict[str, Any] = {
+                "format": "A4",
+                "print_background": True,
+                "scale": _pdf_scale,
+                "margin": {
+                    "top": "18mm" if use_header_footer else "10mm",
+                    "bottom": "15mm" if use_header_footer else "10mm",
                     "left": "10mm",
                     "right": "10mm",
                 },
-            )
+            }
+            if use_header_footer:
+                # Read operator-configurable slot content from app config.
+                # Falls back to the built-in defaults when the key is absent.
+                header_content: dict[str, str] | None = app.config.get(
+                    "BROWSER_PRINT_PDF_HEADER_CONTENT"
+                )
+                footer_content: dict[str, str] | None = app.config.get(
+                    "BROWSER_PRINT_PDF_FOOTER_CONTENT"
+                )
+                pdf_kwargs["display_header_footer"] = True
+                pdf_kwargs["header_template"] = self._build_pdf_header_template(
+                    header_title,  # type: ignore[arg-type]
+                    content=header_content,
+                )
+                pdf_kwargs["footer_template"] = self._build_pdf_footer_template(
+                    content=footer_content,
+                )
+
+            pdf_bytes = page.pdf(**pdf_kwargs)
             logger.info(
                 "browser_print_pdf_success url=%s bytes=%d log_context=%s",
                 url,

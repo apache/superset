@@ -48,9 +48,9 @@
 <div class="page">
 
 <h1>SIP-212: Browser-Print PDF Dashboard Reports</h1>
-<div class="subtitle">Active branch: <code>feature/sip-212-pdf-polish</code> (base: <code>feature/sip-212-implementation</code>) &nbsp;|&nbsp; Last updated: Session 3 &nbsp;|&nbsp; Status: tests + visualizations added, pre-commit + PR remaining</div>
+<div class="subtitle">Active branch: <code>feature/sip-212-pdf-polish</code> (base: <code>feature/sip-212-implementation</code>) &nbsp;|&nbsp; Last updated: Session 3 &nbsp;|&nbsp; Status: all implementation done, pre-commit + PR remaining</div>
 
-<div class="callout-green"><strong>Session 3 accomplishments:</strong> PDF layout polish committed (scale+grid stacking), table-expand JS committed, 15 frontend Jest tests (all pass), Python unit tests written, UPDATING.md entry added, dashboard 10 ("Large Table PDF Test") extended with 4 new charts (bar + pie + 2× big number), 238 KB mixed-content PDF verified end-to-end in Docker.</div>
+<div class="callout-green"><strong>Session 3 accomplishments:</strong> PDF layout polish committed (scale+grid stacking), table-expand JS committed (238 KB PDF verified), 15 frontend Jest tests (all pass), Python unit tests written, UPDATING.md entry added, dashboard 10 ("Large Table PDF Test") extended with 4 new charts (bar + pie + 2× big number), implementation record updated. Branch <code>feature/sip-212-pdf-polish</code> now has <strong>4 commits</strong> on top of the 3-commit base.</div>
 
 
 <h2>1. What the Feature Does (End-to-End Flow)</h2>
@@ -102,12 +102,13 @@
 <tr><td class="file">superset-frontend/src/dashboard/components/gridComponents/TabsRenderer/TabsRenderer.tsx</td><td>Added <code>forceRender?: boolean</code> to TabItem interface (type-only).</td><td><span class="tag tag-done">committed</span></td></tr>
 </table>
 
-<h3>Branch <code>feature/sip-212-pdf-polish</code> — Session 2 + Session 3 commits (5 commits on top of base)</h3>
+<h3>Branch <code>feature/sip-212-pdf-polish</code> — Session 2 + Session 3 commits (4 commits on top of base)</h3>
 <table>
 <tr><th>Commit</th><th>File(s)</th><th>What Changed</th></tr>
 <tr><td><code>df3ada1</code></td><td class="file">printMode.ts, webdriver.py</td><td><strong>Layout fix (Session 2):</strong> Viewport changed to 1600px wide; page.pdf(scale=794/1600) maps content to A4. printMode.ts: added <code>.grid-row { flex-direction: column }</code>, broadened <code>.resizable-container</code> width override, removed height:auto from resizable-container.</td></tr>
 <tr><td><code>f2c56ef</code></td><td class="file">printMode.ts, screenshot_utils.py, webdriver.py</td><td><strong>Table-expand fix (Session 3):</strong> Added EXPAND_TABLE_CONTAINERS_JS to screenshot_utils.py (removes inline height/overflow from scroll containers, walks DOM ancestors). webdriver.py: evaluates EXPAND_TABLE_CONTAINERS_JS before page.pdf(), logs tables_expanded count. printMode.ts: added :has(.superset-chart-table) overflow/height rules, .table-viz/.dataTable overflow reset, page-break-inside:avoid for chart holders.</td></tr>
 <tr><td><code>8e51ecb</code></td><td class="file">tests/unit_tests/utils/test_browser_print_pdf.py, superset-frontend/src/dashboard/components/__tests__/printModeLogic.test.ts, UPDATING.md</td><td><strong>Tests + docs (Session 3):</strong> Python unit tests (URL construction, flag routing, multi-URL guard). 15 frontend Jest tests (all passing: URL_PARAMS.print, Row/Tabs/SliceHeader print-mode logic). UPDATING.md entry for DASHBOARD_REPORTS_BROWSER_PRINT_PDF flag.</td></tr>
+<tr><td><code>5785052</code></td><td class="file">docs/features/sip-212-complete-implementation-record-next-steps.html</td><td><strong>Implementation record update (Session 3):</strong> Full rewrite of this document — 12 technical discoveries (D1–D12), Session 3 commit table, dashboard 10 chart inventory (ids 104–108), corrected next steps, updated context prompt.</td></tr>
 </table>
 
 <h3>2b — printMode.ts CSS Rules (what each rule does)</h3>
@@ -217,13 +218,14 @@
 <div class="callout-purple"><strong>Execute these in order. Do not hallucinate — read every file before editing it. Start by running <code>git log --oneline -8</code> to confirm branch state.</strong></div>
 
 <div class="step-block">
-  <div class="step-header"><span class="step-num step-num-done">✓</span> (DONE) Commit layout polish, table-expand, tests, UPDATING.md</div>
+  <div class="step-header"><span class="step-num step-num-done">✓</span> (DONE) Commit layout polish, table-expand, tests, docs, UPDATING.md</div>
   <div class="step-body">
-    <p>All completed in Session 3. Branches:</p>
+    <p>All completed in Session 3. Final state:</p>
     <ul>
-      <li><code>feature/sip-212-implementation</code> — 3 commits: base implementation</li>
-      <li><code>feature/sip-212-pdf-polish</code> — 3 more commits: df3ada1, f2c56ef, 8e51ecb</li>
+      <li><code>feature/sip-212-implementation</code> — 3 commits above upstream: base implementation (all Python + TypeScript)</li>
+      <li><code>feature/sip-212-pdf-polish</code> — 4 commits on top of that: df3ada1 (layout), f2c56ef (table expand), 8e51ecb (tests + UPDATING.md), 5785052 (this doc)</li>
     </ul>
+    <p>Total: <strong>7 commits above upstream</strong> on the polish branch. <code>git log --oneline -8</code> confirms this.</p>
   </div>
 </div>
 
@@ -334,10 +336,14 @@ return output.getvalue()</pre>
 
 ## Current Branch State
 
-Branch `feature/sip-212-pdf-polish` has 3 commits on top of `feature/sip-212-implementation` (which itself has 3 commits on upstream):
+Branch `feature/sip-212-pdf-polish` has 4 commits on top of `feature/sip-212-implementation` (which itself has 3 commits on upstream). Total 7 commits above upstream:
+- 5785052  docs: update SIP-212 implementation record — Session 3 complete
 - 8e51ecb  test: add SIP-212 browser-print PDF unit tests and UPDATING.md entry
-- f2c56ef  fix(reports): expand table scroll containers and polish print-mode CSS
+- f2c56ef  fix(reports): expand table scroll containers and polish print-mode CSS for browser-print PDF
 - df3ada1  fix(reports): polish browser-print PDF layout — A4 viewport + grid-row stacking
+- fdfa66e  fix(reports): unhide rc-tabs panels via JS in browser-print PDF path
+- 85365e7  fix(sip-212): force all tab panels to render in print mode
+- 70665d3  docs: add SIP-212 design document
 
 ## What Is Fully Implemented and Committed
 
@@ -389,11 +395,11 @@ Verified PDF: 238947 bytes, tables_expanded=2, panels_unhidden=0 (no tabs in thi
 - Worker container runs a .venv pip install, not the source mount. Run tests and scripts from superset-superset-1 (the web container) which has the volume mount.
 - pre-commit is at /app/.venv/bin/pre-commit inside the Docker container.
 
-Do not hallucinate. Read every file before editing it. Start by confirming the branch with git log --oneline -8.</div>
+Do not hallucinate. Read every file before editing it. Start by confirming the branch with `git log --oneline -8` — you should see exactly these 7 commits above upstream.</div>
 
 <hr class="divider" />
 
-<footer style="margin-top:48px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a;">Made with IBM Bob &nbsp;|&nbsp; SIP-212 implementation record &nbsp;|&nbsp; Active branch: feature/sip-212-pdf-polish &nbsp;|&nbsp; Session 3 complete</footer>
+<footer style="margin-top:48px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a;">Made with IBM Bob &nbsp;|&nbsp; SIP-212 implementation record &nbsp;|&nbsp; feature/sip-212-pdf-polish &nbsp;|&nbsp; 7 commits above upstream &nbsp;|&nbsp; pre-commit + PR remaining</footer>
 </div>
 </body>
 </html>

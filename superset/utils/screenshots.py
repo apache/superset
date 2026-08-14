@@ -498,6 +498,10 @@ class DashboardPrintScreenshot(DashboardScreenshot):
     Extends DashboardScreenshot for the browser-print PDF path.
     Appends ?print=1 to trigger print-mode CSS and force all
     charts to render regardless of viewport position.
+
+    Optionally accepts a font_size ('small' | 'medium' | 'large') that is
+    forwarded to the frontend via ?print_font_size=<value>.  When omitted or
+    'small', no font-size param is appended ('small' is the no-override default).
     """
 
     def __init__(
@@ -506,12 +510,18 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         digest: str | None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
+        font_size: str | None = None,
     ):
         # DashboardScreenshot.__init__ already adds standalone=3
         super().__init__(url, digest, window_size, thumb_size)
         # Add print=1 so the frontend applies print-mode CSS and
         # bypasses DashboardVirtualization for all chart rows.
         self.url = modify_url_query(self.url, print=1)
+        # Forward the font-size tier to the frontend when non-default.
+        # 'small' (or None) is the no-override tier; 'medium' and 'large'
+        # apply progressively larger CSS overrides.
+        if font_size and font_size in ("medium", "large"):
+            self.url = modify_url_query(self.url, print_font_size=font_size)
 
     def get_print_pdf(
         self,
@@ -519,10 +529,15 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         window_size: WindowSize | None = None,
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
+        header_title: str | None = None,
+        font_size: str | None = None,
     ) -> bytes | None:
         """
         Use Playwright's page.pdf() for native print output.
         Returns None on any failure so callers can fall back.
+        The font_size tier is embedded in self.url (CSS overrides) via __init__
+        AND passed to the webdriver (JS overrides for inline-styled elements).
+        header_title, when provided, stamps a header and footer on every page.
         """
         if not feature_flag_manager.is_feature_enabled(
             "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
@@ -538,4 +553,6 @@ class DashboardPrintScreenshot(DashboardScreenshot):
             user=user,
             log_context=log_context,
             report_execution_context=report_execution_context,
+            header_title=header_title,
+            font_size=font_size,
         )

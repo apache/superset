@@ -90,7 +90,12 @@ import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
-import { PRINT_MODE_CSS } from 'src/dashboard/styles/printMode';
+import {
+  getPrintFontSizeCSS,
+  PRINT_FONT_SIZE_MEDIUM,
+  PRINT_MODE_CSS,
+  PrintFontSize,
+} from 'src/dashboard/styles/printMode';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
@@ -510,13 +515,18 @@ const DashboardBuilder = () => {
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.Report;
   const isPrintMode = getUrlParam(URL_PARAMS.print) === 1;
+  const rawFontSize = getUrlParam(URL_PARAMS.printFontSize);
+  const printFontSize: PrintFontSize =
+    rawFontSize === 'small' || rawFontSize === 'medium' || rawFontSize === 'large'
+      ? rawFontSize
+      : PRINT_FONT_SIZE_MEDIUM;
 
   useEffect(() => {
     if (isPrintMode) {
       document.body.classList.add('print-mode');
       const styleEl = document.createElement('style');
       styleEl.id = 'superset-print-mode-css';
-      styleEl.textContent = PRINT_MODE_CSS;
+      styleEl.textContent = PRINT_MODE_CSS + getPrintFontSizeCSS(printFontSize);
       document.head.appendChild(styleEl);
       return () => {
         document.body.classList.remove('print-mode');
@@ -524,7 +534,7 @@ const DashboardBuilder = () => {
       };
     }
     return undefined;
-  }, [isPrintMode]);
+  }, [isPrintMode, printFontSize]);
   // Report mode (standalone=3) hides the filter bar by default, since it's used
   // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK
   // consumers also use standalone=3 to hide the title/tabs/nav, but may still

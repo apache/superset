@@ -119,6 +119,10 @@ export const URL_PARAMS = {
     name: 'print',
     type: 'number',
   },
+  printFontSize: {
+    name: 'print_font_size',
+    type: 'string',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [

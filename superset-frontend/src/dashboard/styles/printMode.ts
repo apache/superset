@@ -27,6 +27,143 @@
  * Import and inject this string via a <style> tag or a css-in-js call in
  * DashboardBuilder.tsx when print mode is active.
  */
+
+/**
+ * Valid values for the ?print_font_size URL param.
+ *
+ * - small:  compact — saves space, fits more content per page
+ * - medium: default sizing — matches the interactive dashboard as closely
+ *           as possible (no overrides applied beyond the layout changes)
+ * - large:  accessibility / presentation — easier to read when projected
+ *           or printed on paper and shared
+ *
+ * Font sizes target DOM-rendered elements only:
+ *   • Chart titles (.header-title inside [data-test="slice-header"])
+ *   • Table cells (td, th inside .dataTable)
+ *   • Markdown / text card content (.dashboard-markdown)
+ *   • Big Number DOM text (.header-line, .subheader-line)
+ *
+ * ECharts SVG/canvas labels (axis ticks, legend, pie slice labels) are
+ * drawn by the ECharts renderer directly onto SVG/canvas with inline
+ * font attributes and cannot be resized via CSS after render time.
+ */
+export type PrintFontSize = 'small' | 'medium' | 'large';
+
+export const PRINT_FONT_SIZE_SMALL = 'small' as const;
+export const PRINT_FONT_SIZE_MEDIUM = 'medium' as const;
+export const PRINT_FONT_SIZE_LARGE = 'large' as const;
+
+/**
+ * Returns additional CSS to inject alongside PRINT_MODE_CSS that scales
+ * all DOM-rendered text in the PDF to the requested size tier.
+ *
+ * Returns an empty string for 'medium' because the base PRINT_MODE_CSS
+ * already preserves the interactive dashboard's default sizes.
+ */
+export function getPrintFontSizeCSS(fontSize: PrintFontSize): string {
+  /*
+   * All pixel values below are CSS pixels rendered at 1600px viewport width.
+   * page.pdf(scale=794/1600≈0.496) halves every dimension in the output PDF.
+   * Rule of thumb: CSS px × 0.375 ≈ pt on paper (at 96 dpi screen, 72 dpi print).
+   * 0.496 × 0.375 ≈ 0.186 pt per CSS px in the final PDF.
+   *
+   * Tier targets (approximate printed point sizes):
+   *   small  — no overrides; React/dashboard defaults (~8pt title, ~6pt table)
+   *   medium — chart title ~13pt, table ~10pt  (presentation-ready)
+   *   large  — chart title ~19pt, table ~15pt  (extra-large / accessibility)
+   *
+   * NOTE: .header-line on Big Number charts has an inline style="font-size:Xpx"
+   * set by React. CSS !important cannot override inline styles. The big number
+   * font size is controlled via SET_PRINT_FONT_SIZE_JS in webdriver.py, which
+   * patches the inline font-size before page.pdf() is called.
+   * These CSS rules therefore do NOT target .header-line.
+   *
+   * Verified selectors from live DOM inspection:
+   *   Table td/th: .superset-chart-table td / .superset-chart-table th
+   *   (the inner <table> has class "table table-striped table-condensed";
+   *    there is no .dataTable or .table-viz class in the Superset table plugin)
+   */
+
+  // small: no overrides — base PRINT_MODE_CSS preserves dashboard defaults
+  if (fontSize === 'small') {
+    return '';
+  }
+
+  if (fontSize === 'medium') {
+    return `
+body.print-mode {
+  /* ── Medium font tier ────────────────────────────────────────────── */
+  /* Chart titles (~13pt on paper after 0.496x scale) */
+  [data-test="slice-header"] .header-title,
+  [data-test="slice-header"] .header-title a,
+  [data-test="slice-header"] .header-title span {
+    font-size: 26px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Table cells and headers (~10pt on paper) */
+  .superset-chart-table td,
+  .superset-chart-table th {
+    font-size: 20px !important;
+    line-height: 1.5 !important;
+    padding: 8px 14px !important;
+  }
+
+  /* Markdown / text cards */
+  .dashboard-markdown,
+  .dashboard-markdown p,
+  .dashboard-markdown li,
+  .dashboard-markdown td,
+  .dashboard-markdown th {
+    font-size: 20px !important;
+    line-height: 1.6 !important;
+  }
+  .dashboard-markdown h1 { font-size: 32px !important; }
+  .dashboard-markdown h2 { font-size: 28px !important; }
+  .dashboard-markdown h3 { font-size: 24px !important; }
+}
+`;
+  }
+
+  if (fontSize === 'large') {
+    return `
+body.print-mode {
+  /* ── Large font tier ─────────────────────────────────────────────── */
+  /* Chart titles (~19pt on paper after 0.496x scale) */
+  [data-test="slice-header"] .header-title,
+  [data-test="slice-header"] .header-title a,
+  [data-test="slice-header"] .header-title span {
+    font-size: 38px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Table cells and headers (~15pt on paper) */
+  .superset-chart-table td,
+  .superset-chart-table th {
+    font-size: 30px !important;
+    line-height: 1.5 !important;
+    padding: 10px 18px !important;
+  }
+
+  /* Markdown / text cards */
+  .dashboard-markdown,
+  .dashboard-markdown p,
+  .dashboard-markdown li,
+  .dashboard-markdown td,
+  .dashboard-markdown th {
+    font-size: 30px !important;
+    line-height: 1.6 !important;
+  }
+  .dashboard-markdown h1 { font-size: 48px !important; }
+  .dashboard-markdown h2 { font-size: 42px !important; }
+  .dashboard-markdown h3 { font-size: 36px !important; }
+}
+`;
+  }
+
+  return '';
+}
+
 export const PRINT_MODE_CSS = `
 body.print-mode {
   /* ── 1. Hide interactive chrome ─────────────────────────────────── */
