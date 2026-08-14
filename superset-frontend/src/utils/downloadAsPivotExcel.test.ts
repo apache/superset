@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { WorkBook } from 'xlsx';
+import { getNumberFormatterRegistry } from '@superset-ui/core';
 import exportPivotExcel from './downloadAsPivotExcel';
 
 const mockWriteFile = jest.fn();
@@ -75,6 +76,26 @@ test('restores unambiguous plain numbers to native Excel numeric cells', () => {
   // round-trip, so they stay as text rather than risk misparsing them.
   expect(sheet.C1).toMatchObject({ t: 's', v: '3.500' });
   expect(sheet.D1).toMatchObject({ t: 's', v: '1,234' });
+});
+
+test('does not restore grouped-thousands numbers under a "." thousands-separator locale', () => {
+  const registry = getNumberFormatterRegistry();
+  const original = registry.d3Format;
+  registry.setD3Format({ decimal: ',', thousands: '.', grouping: [3] });
+
+  try {
+    // Under a Spanish-style D3_FORMAT, "1.234" is the plain integer 1234
+    // rendered with a "." group separator, not the decimal 1.234. It also
+    // round-trips cleanly through Number(), so without the locale check it
+    // would be misrestored to the number 1.234, silently corrupting the
+    // value this PR exists to preserve. "42" has no "." and still round
+    // trips safely, so it's still restored.
+    const sheet = exportRowAndGetSheet(['1.234', '42']);
+    expect(sheet.A1).toMatchObject({ t: 's', v: '1.234' });
+    expect(sheet.B1).toMatchObject({ t: 'n', v: 42 });
+  } finally {
+    registry.setD3Format(original);
+  }
 });
 
 test('leaves date-shaped strings as text rather than reinterpreting them as dates', () => {
