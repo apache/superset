@@ -214,8 +214,9 @@ async def create_virtual_dataset(  # noqa: C901
             url=None,
             error=f"Failed to update dataset metadata (creation rolled back): {exc}",
         )
-    except SupersetGenericDBErrorException as exc:
-        await ctx.warning(f"Virtual dataset SQL failed validation: {exc}")
+    except SupersetGenericDBErrorException:
+        logger.warning("Virtual dataset SQL validation failed", exc_info=True)
+        await ctx.warning("Virtual dataset SQL failed validation")
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -223,7 +224,10 @@ async def create_virtual_dataset(  # noqa: C901
             database_id=request.database_id,
             columns=[],
             url=None,
-            error=f"Dataset SQL could not be executed: {exc}",
+            error=(
+                "Dataset SQL could not be executed. Check the query syntax, "
+                "referenced columns and tables, and database connectivity."
+            ),
         )
     except Exception as exc:
         await ctx.error(
