@@ -2125,8 +2125,7 @@ async def test_create_virtual_dataset_sql_error_is_actionable(
     assert data["id"] is None
     assert data["columns"] == []
     assert data["error"] is not None
-    assert "Check the query syntax" in data["error"]
-    assert "Invalid column name" not in data["error"]
+    assert "Invalid column name" in data["error"]
 
 
 @pytest.mark.asyncio
