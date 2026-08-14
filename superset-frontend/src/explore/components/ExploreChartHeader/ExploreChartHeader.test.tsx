@@ -31,15 +31,21 @@ import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import {
   FeatureFlag,
+  QueryFormData,
   VizType,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
+import { toChartStateHistoryState } from 'src/explore/exploreUtils/exploreHistory';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader, { ExploreChartHeaderProps } from '.';
 import fs from 'fs';
 import path from 'path';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
+
+const EDIT_PROPERTIES_INITIAL_STATE = {
+  explore: { can_overwrite: true, can_add: true },
+};
 
 fetchMock.get(chartEndpoint, { json: 'foo' });
 
@@ -168,7 +174,10 @@ describe('ExploreChartHeader', () => {
 
   test('Cancelling changes to the properties should reset previous properties', async () => {
     const props = createProps();
-    render(<ExploreHeader {...props} />, { useRedux: true });
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+      initialState: EDIT_PROPERTIES_INITIAL_STATE,
+    });
     const newChartName = 'New chart name';
     const prevChartName = props.sliceName;
 
@@ -388,6 +397,33 @@ describe('ExploreChartHeader', () => {
     );
   });
 
+  test('treats chart states of the same chart as in place transitions', async () => {
+    const formData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      slice_id: 318,
+    } as QueryFormData;
+    render(<ExploreHeader {...createProps({ formData })} />, {
+      useRedux: true,
+    });
+
+    const [{ isInPlaceTransition }] = (useUnsavedChangesPrompt as jest.Mock)
+      .mock.lastCall;
+
+    expect(
+      isInPlaceTransition(
+        toChartStateHistoryState({ ...formData, row_limit: 10 }),
+      ),
+    ).toBe(true);
+    expect(
+      isInPlaceTransition(
+        toChartStateHistoryState({ ...formData, slice_id: 42 }),
+      ),
+    ).toBe(false);
+    expect(isInPlaceTransition({ fromDashboard: true })).toBe(false);
+    expect(isInPlaceTransition(undefined)).toBe(false);
+  });
+
   test('Save chart', async () => {
     const setSaveChartModalVisibilitySpy = jest.spyOn(
       saveModalActions,
@@ -597,6 +633,7 @@ describe('Additional actions tests', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
+      initialState: EDIT_PROPERTIES_INITIAL_STATE,
     });
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
@@ -691,6 +728,7 @@ describe('Additional actions tests', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
+      initialState: EDIT_PROPERTIES_INITIAL_STATE,
     });
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));

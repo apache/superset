@@ -24,8 +24,11 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 import hashlib
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
+
+from sqlalchemy.exc import SQLAlchemyError
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -68,7 +71,7 @@ class DatasetValidationResult:
 
 
 def validate_chart_dataset(
-    chart: Any,
+    datasource_id: int | None,
     check_access: bool = True,
 ) -> DatasetValidationResult:
     """
@@ -77,8 +80,12 @@ def validate_chart_dataset(
     This shared utility should be called by MCP tools after creating or retrieving
     charts to detect issues like missing or deleted datasets early.
 
+    Takes the datasource id rather than the chart so that callers holding an ORM
+    instance read it while that instance is attached; reading it here can raise
+    ``DetachedInstanceError`` when a concurrent request has torn down the session.
+
     Args:
-        chart: A chart-like object with datasource_id, datasource_type attributes
+        datasource_id: The chart's ``datasource_id``, or None if it has none
         check_access: Whether to also check user permissions (default True)
 
     Returns:
@@ -90,7 +97,6 @@ def validate_chart_dataset(
     from superset.mcp_service.auth import has_dataset_access
 
     warnings: list[str] = []
-    datasource_id = getattr(chart, "datasource_id", None)
 
     # Check if chart has a datasource reference
     if datasource_id is None:
@@ -102,9 +108,12 @@ def validate_chart_dataset(
             error="Chart has no dataset reference (datasource_id is None)",
         )
 
-    # Try to look up the dataset
+    # Skip the DatasourceFilter base filter when not checking access, so the
+    # lookup is a true existence check (it otherwise denies a guest outright).
     try:
-        dataset = DatasetDAO.find_by_id(datasource_id)
+        dataset = DatasetDAO.find_by_id(
+            datasource_id, skip_base_filter=not check_access
+        )
 
         if dataset is None:
             return DatasetValidationResult(
@@ -456,18 +465,14 @@ def adhoc_filters_to_query_filters(
 
     Adhoc filters use ``{subject, operator, comparator}`` keys while
     ``QueryContextFactory`` expects ``{col, op, val}`` (QueryObjectFilterClause).
+    Delegates to the shared builder so the MCP and dashboard-export paths stay in
+    sync (single source of truth).
     """
-    result: list[Dict[str, Any]] = []
-    for f in adhoc_filters:
-        if f.get("expressionType") == "SIMPLE":
-            result.append(
-                {
-                    "col": f.get("subject"),
-                    "op": f.get("operator"),
-                    "val": f.get("comparator"),
-                }
-            )
-    return result
+    from superset.common.form_data_query_context import (
+        adhoc_filters_to_query_filters as _shared,
+    )
+
+    return _shared(adhoc_filters)
 
 
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
@@ -565,8 +570,53 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
 
     form_data["row_limit"] = config.row_limit
     add_color_scheme(form_data, config.color_scheme)
+    if config.column_config is not None:
+        form_data["column_config"] = {
+            label: column.model_dump(by_alias=True, exclude_unset=True)
+            for label, column in config.column_config.items()
+        }
 
     return form_data
+
+
+def merge_table_column_config(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Merge MCP table formatting without discarding UI-only settings.
+
+    An omitted ``column_config`` preserves the saved value, an explicit empty
+    mapping clears it, and a non-empty mapping updates only the supplied labels
+    and properties. The nested merge is important because the Superset UI stores
+    additional column settings that the MCP schema does not expose.
+    """
+    table_viz_types = {"table", "ag-grid-table"}
+    if (
+        existing_form_data.get("viz_type") not in table_viz_types
+        or new_form_data.get("viz_type") not in table_viz_types
+    ):
+        return
+
+    if "column_config" not in new_form_data:
+        if "column_config" in existing_form_data:
+            new_form_data["column_config"] = existing_form_data["column_config"]
+        return
+
+    new_column_config = new_form_data["column_config"]
+    if not isinstance(new_column_config, dict) or not new_column_config:
+        return
+
+    existing_column_config = existing_form_data.get("column_config")
+    if not isinstance(existing_column_config, dict):
+        return
+
+    merged_column_config = dict(existing_column_config)
+    for label, settings in new_column_config.items():
+        existing_settings = existing_column_config.get(label)
+        if isinstance(existing_settings, dict) and isinstance(settings, dict):
+            merged_column_config[label] = {**existing_settings, **settings}
+        else:
+            merged_column_config[label] = settings
+    new_form_data["column_config"] = merged_column_config
 
 
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
@@ -1067,23 +1117,39 @@ def _resolve_big_number_temporal_column(
 ) -> str | None:
     """Resolve the column to bind a Big Number's TEMPORAL_RANGE filter to.
 
-    Falls back to the dataset's main_dttm_col when the caller didn't specify
-    temporal_column, and guards the result with is_column_truly_temporal (same
-    check map_xy_config applies to its x-axis) so a non-temporal column never
-    gets a TEMPORAL_RANGE filter. The dataset is fetched at most once here and
-    reused by is_column_truly_temporal instead of letting it re-query by
-    dataset_id.
+    Matches the Explore UI default: use the dataset's main_dttm_col, or its
+    first temporal column when no main column is configured. Guards candidates
+    with is_column_truly_temporal (the same check map_xy_config applies to its
+    x-axis) so a non-temporal column never gets a TEMPORAL_RANGE filter. The
+    dataset is fetched at most once here and reused by the temporal checks
+    instead of letting them re-query by dataset_id.
     """
-    dataset = None
-    if not config.temporal_column:
+    if config.temporal_column:
+        if is_column_truly_temporal(config.temporal_column, dataset_id):
+            return config.temporal_column
+        return None
+
+    try:
         dataset = _find_dataset_by_id_or_uuid(dataset_id)
-    temporal_column = config.temporal_column or (
-        dataset.main_dttm_col if dataset else None
+    except SQLAlchemyError:
+        logger.warning(
+            "Unable to resolve a temporal column for dataset %s",
+            dataset_id,
+            exc_info=True,
+        )
+        return None
+    if not dataset:
+        return None
+
+    candidates: list[str] = []
+    if dataset.main_dttm_col:
+        candidates.append(dataset.main_dttm_col)
+    candidates.extend(
+        column.column_name for column in dataset.columns if column.column_name
     )
-    if temporal_column and is_column_truly_temporal(
-        temporal_column, dataset_id, dataset=dataset
-    ):
-        return temporal_column
+    for temporal_column in dict.fromkeys(candidates):
+        if is_column_truly_temporal(temporal_column, dataset_id, dataset=dataset):
+            return temporal_column
     return None
 
 
@@ -1091,7 +1157,10 @@ def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
     """Map handlebars chart config to Superset form_data."""
     form_data: Dict[str, Any] = {
         "viz_type": "handlebars",
-        "handlebars_template": config.handlebars_template,
+        # Persist under the camelCase key the Handlebars renderer reads
+        # (`formData.handlebarsTemplate`); the snake_case `handlebars_template`
+        # is the tool's request-contract field, not the persisted form_data key.
+        "handlebarsTemplate": config.handlebars_template,
         "row_limit": config.row_limit,
         "order_desc": config.order_desc,
     }
@@ -1506,11 +1575,9 @@ def get_table_chart_type_label(viz_type: str | None) -> str | None:
     return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
-def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
+def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabilities:
     """Analyze chart capabilities based on type and configuration."""
-    if chart:
-        viz_type = getattr(chart, "viz_type", "unknown")
-    else:
+    if not viz_type:
         viz_type = _resolve_viz_type(config)
 
     # Determine interaction capabilities based on chart type
@@ -1556,11 +1623,9 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     )
 
 
-def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
+def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics:
     """Generate semantic understanding of the chart."""
-    if chart:
-        viz_type = getattr(chart, "viz_type", "unknown")
-    else:
+    if not viz_type:
         viz_type = _resolve_viz_type(config)
 
     # Generate primary insight based on chart type

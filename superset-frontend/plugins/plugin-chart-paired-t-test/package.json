@@ -1,0 +1,34 @@
+{
+  "name": "@superset-ui/plugin-chart-paired-t-test",
+  "version": "0.20.3",
+  "description": "Superset Chart - Paired T Test",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-paired-t-test#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-paired-t-test"
+  },
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@apache-superset/core": "*",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^18.3.0"
+  }
+}

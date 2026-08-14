@@ -62,6 +62,8 @@ interface TestDashboardResult {
 interface CreateTestDashboardOptions {
   /** Prefix for generated name (default: 'test_dashboard') */
   prefix?: string;
+  /** Publish the dashboard on creation (default: false, the API default) */
+  published?: boolean;
 }
 
 /**
@@ -86,6 +88,8 @@ export async function createTestDashboard(
 
   const response = await apiPostDashboard(page, {
     dashboard_title: name,
+    // Serialized as JSON, which drops undefined — no need to omit the key.
+    published: options?.published,
   });
 
   if (!response.ok()) {
@@ -104,6 +108,113 @@ export async function createTestDashboard(
   testAssets.trackDashboard(id);
 
   return { id, name };
+}
+
+/** Scope covering the whole dashboard — every filter built here is unscoped. */
+const ROOT_SCOPE = { rootPath: ['ROOT_ID'], excluded: [] };
+
+interface DataMask {
+  filterState: Record<string, unknown>;
+  extraFormData: Record<string, unknown>;
+}
+
+export interface NativeFilterConfig {
+  id: string;
+  name: string;
+  filterType: string;
+  type: string;
+  targets: Array<{ datasetId: number; column: { name: string } }>;
+  controlValues: Record<string, boolean>;
+  defaultDataMask: DataMask;
+  cascadeParentIds: string[];
+  scope: typeof ROOT_SCOPE;
+  chartsInScope: number[];
+}
+
+interface SelectFilterOptions {
+  /** Dataset backing the filtered column. */
+  datasetId: number;
+  /** Column the filter targets. */
+  column: string;
+  /** Charts the filter applies to. */
+  chartsInScope: number[];
+  /** Label shown in the filter bar (default: the column name). */
+  name?: string;
+  /**
+   * Value preselected when the dashboard loads. Omit for a filter that starts
+   * unset — the distinction is load-bearing: a preselected filter is applied to
+   * the initial chart-data request, an unset one is not.
+   */
+  defaultValue?: string;
+}
+
+/**
+ * Builds one `filter_select` native filter for a dashboard's `json_metadata`.
+ * The filter id is generated here because no test needs to know it — filters are
+ * addressed through the filter bar UI, not by id.
+ */
+export function buildSelectFilter(
+  options: SelectFilterOptions,
+): NativeFilterConfig {
+  const { datasetId, column, chartsInScope, name, defaultValue } = options;
+  return {
+    id: `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`,
+    name: name ?? column,
+    filterType: 'filter_select',
+    type: 'NATIVE_FILTER',
+    targets: [{ datasetId, column: { name: column } }],
+    controlValues: {
+      multiSelect: false,
+      enableEmptyFilter: false,
+      defaultToFirstItem: false,
+      inverseSelection: false,
+      searchAllOptions: false,
+    },
+    defaultDataMask:
+      defaultValue === undefined
+        ? { filterState: {}, extraFormData: {} }
+        : {
+            filterState: { value: [defaultValue] },
+            extraFormData: {
+              filters: [{ col: column, op: 'IN', val: [defaultValue] }],
+            },
+          },
+    cascadeParentIds: [],
+    scope: ROOT_SCOPE,
+    chartsInScope,
+  };
+}
+
+interface FilterMetadataOptions {
+  /** Charts the dashboard's global filter scope covers. */
+  chartsInScope: number[];
+  nativeFilters: NativeFilterConfig[];
+  /**
+   * Display Controls, serialized as-is. Kept untyped and pass-through: only one
+   * spec builds them, so a second builder would be speculative.
+   */
+  chartCustomizations?: Record<string, unknown>[];
+}
+
+/**
+ * Builds the `json_metadata` envelope a filtered dashboard needs. Cross-filters
+ * are off so a click on one chart cannot perturb another test's assertions.
+ */
+export function buildFilterJsonMetadata(
+  options: FilterMetadataOptions,
+): Record<string, unknown> {
+  return {
+    native_filter_configuration: options.nativeFilters,
+    ...(options.chartCustomizations && {
+      chart_customization_config: options.chartCustomizations,
+    }),
+    chart_configuration: {},
+    cross_filters_enabled: false,
+    global_chart_configuration: {
+      scope: ROOT_SCOPE,
+      chartsInScope: options.chartsInScope,
+    },
+  };
 }
 
 export interface DashboardChartSpec {
