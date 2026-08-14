@@ -170,12 +170,23 @@ class MessagesApiRuntime(BaseAgentRuntime):
                     )
                 return
 
-            async for event in self._safe_turn(request, conversation, turn):
+            allow_tools = turn < request.max_turns
+            async for event in self._safe_turn(
+                request,
+                conversation,
+                turn,
+                allow_tools=allow_tools,
+            ):
                 yield event
             response = self._last_response
             if response is None:
                 yield error_event()
                 return
+
+            # The last model round trip is reserved for an answer. A provider
+            # that still asks for an unadvertised tool cannot exceed the budget.
+            if response.wants_tools and not allow_tools:
+                break
 
             async for event in self._consume(
                 request, response, conversation, answer_parts
@@ -275,6 +286,8 @@ class MessagesApiRuntime(BaseAgentRuntime):
         request: RunRequest,
         conversation: list[Message],
         turn: int,
+        *,
+        allow_tools: bool,
     ) -> AsyncIterator[StreamEvent]:
         """
         One model round trip, converting failure into a ``None`` response.
@@ -292,7 +305,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
         started = time.monotonic()
         self._last_response = None
         try:
-            async for event in self._one_turn(request, conversation):
+            async for event in self._one_turn(
+                request,
+                conversation,
+                allow_tools=allow_tools,
+            ):
                 yield event
         except LLMError as ex:
             logger.warning("AI provider error on turn %s: %s", turn, ex)
@@ -349,6 +366,8 @@ class MessagesApiRuntime(BaseAgentRuntime):
         self,
         request: RunRequest,
         conversation: list[Message],
+        *,
+        allow_tools: bool,
     ) -> AsyncIterator[StreamEvent]:
         """
         Call the model once, yielding answer text as the model produces it.
@@ -362,7 +381,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
             messages=conversation,
             system=request.system_prompt,
             model_alias=request.model_alias,
-            tools=tuple(request.tools.definitions()) if request.tools else (),
+            tools=(
+                tuple(request.tools.definitions())
+                if request.tools and allow_tools
+                else ()
+            ),
         )
 
         if not self.provider.supports_streaming:
