@@ -31,6 +31,14 @@ export const AGGREGATES = {
 };
 export const AGGREGATES_OPTIONS = Object.values(AGGREGATES);
 
+// Human-readable labels for aggregates whose raw enum value isn't
+// self-explanatory in the UI. Aggregates absent here (AVG, COUNT, MAX,
+// MEDIAN, MIN, SUM, ...) are already clear as their raw value.
+export const AGGREGATES_LABELS: Record<string, string> = {
+  STDDEV_SAMP: t('Sample Standard Deviation'),
+  VAR_SAMP: t('Sample Variance'),
+};
+
 export enum Operators {
   Equals = 'EQUALS',
   NotEquals = 'NOT_EQUALS',

@@ -102,6 +102,11 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     # function nor `PERCENTILE_CONT` (confirmed: both error). Its `VARIANCE()`
     # function is population variance, not sample variance, so it is not a
     # valid stand-in for VAR_SAMP either.
+    # Inherited by MariaDB (a MySQL fork implementing the same aggregate
+    # functions) and by Aurora MySQL / its Data API variant (AWS's wire- and
+    # SQL-compatible managed MySQL) -- unlike CockroachDB/Greenplum/HANA
+    # relative to Postgres, none of these run a materially different query
+    # engine, so no separate reset is needed.
     _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
         "STDDEV_SAMP": sa.func.stddev_samp,
         "VAR_SAMP": sa.func.var_samp,

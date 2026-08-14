@@ -200,6 +200,12 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     # Inherited by Redshift (a Postgres fork); its SQL function reference
     # documents the same PERCENTILE_CONT/STDDEV_SAMP/VAR_SAMP support, but
     # that has not been separately verified against a live Redshift instance.
+    # Also inherited by TimescaleDB (a Postgres extension, not a forked query
+    # engine -- it runs unmodified Postgres aggregate execution) and by
+    # Aurora PostgreSQL / its Data API variant (AWS's wire- and
+    # SQL-compatible managed Postgres). Engines that share the SQL dialect
+    # but run a materially different query engine (CockroachDB, Greenplum,
+    # SAP HANA) reset this to `{}` instead -- see those engine specs.
     _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
         "MEDIAN": lambda col: sa.func.percentile_cont(0.5).within_group(col),
         "STDDEV_SAMP": sa.func.stddev_samp,
