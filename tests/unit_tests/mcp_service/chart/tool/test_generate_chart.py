@@ -598,11 +598,13 @@ class TestGenerateChartDetachedInstance:
                 error="column category must appear in GROUP BY",
                 error_code="CHART_COMPILE_FAILED",
                 tier="compile",
+                warnings=["Database returned partial metadata"],
             ),
         )
 
         assert result.success is False
         assert result.chart is None
+        assert result.warnings == ["Database returned partial metadata"]
         assert chart._detached is False
         create_command.assert_not_called()
 

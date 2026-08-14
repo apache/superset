@@ -457,6 +457,12 @@ async def generate_chart(  # noqa: C901
                             "cache_status": "error",
                             "optimization_suggestions": [],
                         },
+                        "warnings": (
+                            sanitization_warnings
+                            + runtime_warnings
+                            + response_warnings
+                            + compile_result.warnings
+                        ),
                         "success": False,
                         "schema_version": "2.0",
                         "api_version": "v1",
