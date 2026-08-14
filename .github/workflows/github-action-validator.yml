@@ -45,5 +45,8 @@ jobs:
       - name: Run Script
         run: bash .github/workflows/github-action-validator.sh
 
+      - name: Test docs-deploy freshness gate
+        run: bash .github/workflows/scripts/check-docs-deploy-freshness.test.sh
+
       - name: Check for security issues on GHA workflows
         uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2

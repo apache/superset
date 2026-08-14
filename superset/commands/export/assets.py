@@ -70,12 +70,10 @@ class ExportAssetsCommand(BaseCommand):
             elif command == ExportChartsCommand:
                 chart_ids = ids
 
-        # FIXME: It would probably be better to align the tags export
-        # command with the other export commands
-        yield from ExportTagsCommand.export(
+        yield from ExportTagsCommand(
             dashboard_ids=dashboard_ids,
             chart_ids=chart_ids,
-        )
+        ).run()
 
     def validate(self) -> None:
         pass
