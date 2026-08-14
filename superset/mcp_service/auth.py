@@ -403,6 +403,7 @@ def check_tool_permission(  # noqa: C901
                 )
             return False
 
+        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
         class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
         if not class_permission_name:
             # No RBAC configured for this tool; allow by default. This is a
@@ -417,9 +418,17 @@ def check_tool_permission(  # noqa: C901
                     "class_permission_name; allowing access without an RBAC check",
                     func.__name__,
                 )
+            if not _token_scope_allows(method_permission_name):
+                if log_denial:
+                    logger.warning(
+                        "Scope denied for permission-less tool %s: token lacks "
+                        "flat scope for method %s",
+                        func.__name__,
+                        method_permission_name,
+                    )
+                return False
             return True
 
-        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
         permission_str = f"{PERMISSION_PREFIX}{method_permission_name}"
 
         has_permission = security_manager.can_access(

@@ -56,6 +56,14 @@ RESOURCE_SCOPE_CLASS: dict[str, str] = {
 RESOURCE_SCOPE_ACTIONS: frozenset[str] = frozenset(
     METHOD_PERMISSION_SCOPE_ACTION.values()
 )
+SCOPE_ACTION_METHOD_PERMISSIONS: dict[str, tuple[str, ...]] = {
+    action: tuple(
+        method
+        for method, mapped_action in METHOD_PERMISSION_SCOPE_ACTION.items()
+        if mapped_action == action
+    )
+    for action in RESOURCE_SCOPE_ACTIONS
+}
 
 
 def get_resource_scope(
