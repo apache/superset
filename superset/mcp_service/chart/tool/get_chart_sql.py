@@ -224,16 +224,20 @@ def _sql_from_saved_query_context(
             )
             return None
         query_context.result_type = ChartDataResultType.QUERY
-        # ChartDataDatasourceSchema only requires "id", so fall back to the
-        # chart's own datasource rather than raising on a context that the
-        # schema itself considers valid.
+        # Use the datasource the command will execute, not the chart row.
+        # A stale query_context after the chart is repointed would otherwise
+        # make metric() resolve a different dataset than the returned SQL.
+        datasource = getattr(query_context, "datasource", None)
         datasource_json = qc_json.get("datasource") or {}
         set_query_context_form_data(
             query_context,
-            datasource_json.get("id", chart.datasource_id),
-            datasource_json.get("type", chart.datasource_type),
+            getattr(datasource, "id", None)
+            or datasource_json.get("id", chart.datasource_id),
+            str(
+                getattr(datasource, "type", None)
+                or datasource_json.get("type", chart.datasource_type)
+            ),
         )
-
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
@@ -320,7 +324,7 @@ def _sql_from_form_data(
     set_query_context_form_data(
         query_context,
         query_context.datasource.id,
-        datasource_type,
+        str(query_context.datasource.type or datasource_type),
     )
     command = ChartDataCommand(query_context)
     command.validate()
