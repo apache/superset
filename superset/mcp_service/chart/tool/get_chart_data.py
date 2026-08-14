@@ -733,7 +733,7 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not data:
+            if not any(query.get("data") for query in result["queries"]):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart.id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
@@ -1062,7 +1062,7 @@ async def _query_from_form_data(
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
 
-        if not data:
+        if not any(query.get("data") for query in result["queries"]):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
                 request.form_data_key,

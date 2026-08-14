@@ -822,10 +822,11 @@ def _truncate_chart_query_results(
     if not any(originals):
         return None
 
-    original_count = sum(len(rows) for rows in originals)
+    original_count = sum(len(rows) for rows in originals[1:])
     data["_response_truncated"] = True
     data["_truncation_notes"] = [
-        f"Result truncated from {original_count} rows across multiple queries "
+        f"Result truncated: {original_count} of {original_count} rows returned "
+        f"across multiple queries "
         f"(limit ~{token_limit:,} tokens). {advice}"
     ]
 
@@ -842,7 +843,7 @@ def _truncate_chart_query_results(
     cap = max(lo, 1)
     for rows, original in zip(row_lists, originals, strict=False):
         rows[:] = original[:cap]
-    kept_count = sum(len(rows) for rows in row_lists)
+    kept_count = sum(len(rows) for rows in row_lists[1:])
     if kept_count >= original_count:
         del data["_response_truncated"]
         del data["_truncation_notes"]

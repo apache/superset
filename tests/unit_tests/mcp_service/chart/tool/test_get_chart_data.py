@@ -1755,7 +1755,7 @@ def test_multi_query_row_count_reflects_limit() -> None:
 
 
 @pytest.mark.asyncio
-async def test_unsaved_mixed_timeseries_returns_every_query(
+async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The tool response must not collapse a multi-query command result."""
@@ -1780,8 +1780,8 @@ async def test_unsaved_mixed_timeseries_returns_every_query(
                 "queries": [
                     {
                         "colnames": ["primary"],
-                        "data": [{"primary": 1}],
-                        "rowcount": 1,
+                        "data": [],
+                        "rowcount": 0,
                     },
                     {
                         "colnames": ["secondary"],
@@ -1812,10 +1812,10 @@ async def test_unsaved_mixed_timeseries_returns_every_query(
     )
 
     assert isinstance(response, ChartData)
-    assert response.data == [{"primary": 1}]
+    assert response.data == []
     assert response.query_results is not None
     assert [result.data for result in response.query_results] == [
-        [{"primary": 1}],
+        [],
         [{"secondary": 2}],
     ]
 
