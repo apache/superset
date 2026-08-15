@@ -21,6 +21,7 @@ import pandas as pd
 import pytest
 from flask import current_app
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError, TemplateSyntaxError
 
 from superset import db, sql_lab
 from superset.commands.sql_lab import estimate, export, results
@@ -49,8 +50,8 @@ class TestQueryEstimationCommand(SupersetTestCase):
         data: EstimateQueryCostSchema = schema.dump(params)
         command = estimate.QueryEstimationCommand(data)
 
-        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
-            mock_superset_db.session.query().get.return_value = None
+        with mock.patch("superset.commands.sql_lab.estimate.DatabaseDAO") as mock_dao:
+            mock_dao.find_by_id.return_value = None
             with pytest.raises(SupersetErrorException) as ex_info:
                 command.validate()
             assert (
@@ -81,8 +82,11 @@ class TestQueryEstimationCommand(SupersetTestCase):
         db_mock.db_engine_spec.query_cost_formatter = mock.Mock(return_value=None)
         is_feature_enabled.return_value = False
 
-        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
-            mock_superset_db.session.query().get.return_value = db_mock
+        with (
+            mock.patch("superset.commands.sql_lab.estimate.DatabaseDAO") as mock_dao,
+            mock.patch("superset.security_manager.raise_for_access"),
+        ):
+            mock_dao.find_by_id.return_value = db_mock
             with pytest.raises(SupersetErrorException) as ex_info:
                 command.run()
             assert (
@@ -107,8 +111,11 @@ class TestQueryEstimationCommand(SupersetTestCase):
         db_mock.db_engine_spec.estimate_query_cost = mock.Mock(return_value=100)
         db_mock.db_engine_spec.query_cost_formatter = mock.Mock(return_value=payload)
 
-        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
-            mock_superset_db.session.query().get.return_value = db_mock
+        with (
+            mock.patch("superset.commands.sql_lab.estimate.DatabaseDAO") as mock_dao,
+            mock.patch("superset.security_manager.raise_for_access"),
+        ):
+            mock_dao.find_by_id.return_value = db_mock
             result = command.run()
             assert result == payload
 
@@ -398,6 +405,29 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
                 == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
             )
             assert ex_info.value.status == 403
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    def test_validation_malformed_jinja(self) -> None:
+        # ``raise_for_access`` re-parses the query's unrendered Jinja via
+        # ``process_jinja_sql`` and can raise a raw ``TemplateError`` (e.g. an
+        # unclosed ``{% if %}``). ``TemplateSyntaxError`` is a subclass of
+        # ``TemplateError``. It must surface as a 400, not an opaque 500.
+        assert issubclass(TemplateSyntaxError, TemplateError)
+
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
+
+        with mock.patch(
+            "superset.models.sql_lab.Query.raise_for_access",
+            side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+        ):
+            with pytest.raises(SupersetErrorException) as ex_info:
+                command.run()
+            assert (
+                ex_info.value.error.error_type
+                == SupersetErrorType.GENERIC_COMMAND_ERROR
+            )
+            assert ex_info.value.status == 400
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
