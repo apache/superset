@@ -1560,6 +1560,74 @@ describe('plugin-chart-ag-grid-table', () => {
       expect(queries[1].columns).toEqual([]);
       expect(queries[1].metrics).toEqual(['count']);
     });
+
+    test('defaults aggregate-mode totals to SUM for a simple metric', () => {
+      const simpleMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'sales' },
+        aggregate: 'SUM' as const,
+        label: 'sum_sales',
+      };
+      const { queries } = buildQuery(
+        {
+          viz_type: VizType.Table,
+          datasource: '11__table',
+          query_mode: QueryMode.Aggregate,
+          groupby: ['state'],
+          metrics: [simpleMetric],
+          show_totals: true,
+        },
+        { ownState: {} },
+      );
+
+      expect(queries[1].metrics).toEqual([
+        { ...simpleMetric, aggregate: 'SUM' },
+      ]);
+    });
+
+    test('overrides aggregate-mode totals to AVG for a simple metric when totals_aggregate is set', () => {
+      const simpleMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'sales' },
+        aggregate: 'SUM' as const,
+        label: 'sum_sales',
+      };
+      const { queries } = buildQuery(
+        {
+          viz_type: VizType.Table,
+          datasource: '11__table',
+          query_mode: QueryMode.Aggregate,
+          groupby: ['state'],
+          metrics: [simpleMetric],
+          show_totals: true,
+          totals_aggregate: 'AVG',
+        },
+        { ownState: {} },
+      );
+
+      // Main query keeps the metric's own aggregation.
+      expect(queries[0].metrics).toEqual([simpleMetric]);
+      // Summary query uses the chosen totals aggregate instead.
+      expect(queries[1].metrics).toEqual([
+        { ...simpleMetric, aggregate: 'AVG' },
+      ]);
+    });
+
+    test('applies totals_aggregate to raw-mode summary columns', () => {
+      const { queries } = buildQuery(
+        { ...rawFormData, totals_aggregate: 'AVG' },
+        { ownState: { rawSummaryColumns: ['num'] } },
+      );
+
+      expect(queries[1].metrics).toEqual([
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'AVG',
+          column: { column_name: 'num' },
+          label: 'num',
+        },
+      ]);
+    });
   });
 
   describe('buildQuery - server pagination row limit', () => {
