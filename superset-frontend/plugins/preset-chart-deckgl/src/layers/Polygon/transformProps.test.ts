@@ -529,4 +529,66 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.extraProps?.['SUM(population)']).toBe(50000);
     expect(features[0]?.metrics?.['SUM(population)']).toBe(50000);
   });
+
+  // Regression test for #33669: a boundary column literally named "polygon"
+  // (the same key this transform uses internally for the parsed geometry)
+  // reportedly broke rendering, because the raw column value could
+  // theoretically collide with the `polygon` key this function builds on
+  // each feature. `line_column` is excluded before spreading a record's
+  // other properties onto the feature, and the parsed `polygon` key is
+  // assigned last in the returned object literal, so it should always win
+  // over anything copied from the raw record, even when they share a name.
+  //
+  // The fixture mirrors the GeoJSON `Feature` shape from the CSV attached to
+  // the issue (a `Feature` with nested `geometry.coordinates`), not a bare
+  // coordinate array, since those two shapes take different parsing paths
+  // in `getPolygonCoordinateParts`. Both reported column-name spellings,
+  // "polygon" and "Polygon", are covered.
+  test.each(['polygon', 'Polygon'])(
+    'should correctly parse polygon geometry when the boundary column is itself named "%s"',
+    columnName => {
+      const collidingColumnNameProps = {
+        ...mockChartProps,
+        rawFormData: {
+          ...mockChartProps.rawFormData,
+          line_column: columnName,
+        },
+        queriesData: [
+          {
+            data: [
+              {
+                [columnName]: JSON.stringify({
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [
+                      [
+                        [-122.4, 37.8],
+                        [-122.3, 37.8],
+                        [-122.3, 37.9],
+                        [-122.4, 37.9],
+                      ],
+                    ],
+                  },
+                  properties: { NOM_COM: 'TEST' },
+                }),
+                population: 50000,
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = transformProps(collidingColumnNameProps as ChartProps);
+      const features = result.payload.data.features as PolygonFeature[];
+
+      expect(features).toHaveLength(1);
+      expect(features[0]?.polygon).toEqual([
+        [-122.4, 37.8],
+        [-122.3, 37.8],
+        [-122.3, 37.9],
+        [-122.4, 37.9],
+      ]);
+    },
+  );
 });

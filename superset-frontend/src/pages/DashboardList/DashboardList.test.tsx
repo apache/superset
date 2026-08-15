@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import { isFeatureEnabled } from '@superset-ui/core';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   screen,
   selectPillOption,
@@ -44,6 +49,13 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
+
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
@@ -103,7 +115,7 @@ test('switches between card and table view', async () => {
 
   // Switch to table view via the list icon
   const listViewIcon = screen.getByRole('img', { name: 'unordered-list' });
-  const listViewButton = listViewIcon.closest('[role="button"]')!;
+  const listViewButton = listViewIcon.closest('button')!;
   fireEvent.click(listViewButton);
 
   await waitFor(() => {
@@ -112,7 +124,7 @@ test('switches between card and table view', async () => {
 
   // Switch back to card view
   const cardViewIcon = screen.getByRole('img', { name: 'appstore' });
-  const cardViewButton = cardViewIcon.closest('[role="button"]')!;
+  const cardViewButton = cardViewIcon.closest('button')!;
   fireEvent.click(cardViewButton);
 
   await waitFor(() => {

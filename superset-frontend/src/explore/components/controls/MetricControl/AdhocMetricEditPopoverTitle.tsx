@@ -26,7 +26,7 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
-import { styled, useTheme } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -113,7 +113,16 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
 
   return (
     <Tooltip placement="top" title={t('Click to edit label')}>
-      <span
+      <button
+        type="button"
+        css={css`
+          appearance: none;
+          border: none;
+          background: none;
+          padding: 0;
+          font: inherit;
+          cursor: pointer;
+        `}
         className="AdhocMetricEditPopoverTitle inline-editable"
         data-test="AdhocMetricEditTitle#trigger"
         onMouseOver={handleMouseOver}
@@ -121,8 +130,6 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         onFocus={handleMouseOver}
         onClick={handleClick}
         onBlur={handleBlur}
-        role="button"
-        tabIndex={0}
       >
         <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
         &nbsp;
@@ -130,7 +137,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
           iconColor={isHovered ? theme.colorPrimary : theme.colorIcon}
           iconSize="m"
         />
-      </span>
+      </button>
     </Tooltip>
   );
 };

@@ -30,6 +30,8 @@ import {
   createSmartDateDetailedFormatter,
   createMemoryFormatter,
   setCurrencyLocale,
+  createLengthFormatter,
+  createThroughputFormatter,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
@@ -105,6 +107,20 @@ export default function setupFormatters(
     .registerValue(
       'MEMORY_TRANSFER_RATE_BINARY',
       createMemoryFormatter({ binary: true, transfer: true }),
+    )
+    .registerValue('NETWORK_THROUGHPUT', createThroughputFormatter())
+    .registerValue(
+      'NETWORK_THROUGHPUT_FROM_BYTES',
+      createThroughputFormatter({ fromBytes: true }),
+    )
+    .registerValue('LENGTH', createLengthFormatter({ convertType: 'm => km' }))
+    .registerValue(
+      'LENGTH_CM_KM',
+      createLengthFormatter({ convertType: 'cm => km' }),
+    )
+    .registerValue(
+      'LENGTH_CM_M',
+      createLengthFormatter({ convertType: 'cm => m' }),
     );
 
   const timeFormatterRegistry = getTimeFormatterRegistry();

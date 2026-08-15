@@ -536,6 +536,7 @@ export function saveDashboardRequest(
           ? getColorSchemeDomain(colorScheme)
           : [],
         expanded_slices: data.metadata?.expanded_slices || {},
+        expand_all_slices: data.metadata?.expand_all_slices || false,
         label_colors: customLabelsColor,
         shared_label_colors: getFreshSharedLabels(sharedLabelsColor),
         map_label_colors: getFreshLabelsColorMapEntries(customLabelsColor),
@@ -629,8 +630,13 @@ export function saveDashboardRequest(
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
       dispatch(saveDashboardFinished());
-      // redirect to the new slug or id
-      navigateWithState(`/dashboard/${slug || id}/`, {
+      // Redirect using the slug from the update response, not the raw
+      // submitted slug. The backend sanitizes reserved URL characters out of
+      // the slug (BaseDashboardSchema.post_load strips `[^\w\-]`), so the raw
+      // slug can differ from what was persisted and would build a malformed
+      // URL on first render. Fall back to the id when the response has no slug.
+      const updatedSlug = updatedDashboard.slug as string | null | undefined;
+      navigateWithState(`/dashboard/${updatedSlug || id}/`, {
         event: 'dashboard_properties_changed',
       });
 
@@ -717,7 +723,8 @@ export function saveDashboardRequest(
                 updatedBy: dashboard.changed_by_name as string,
                 overwriteConfirmItems:
                   overwriteConfirmItems as DashboardState['overwriteConfirmMetadata'] extends
-                    { overwriteConfirmItems: infer I } | undefined
+                    | { overwriteConfirmItems: infer I }
+                    | undefined
                     ? I
                     : never,
                 dashboardId: id,

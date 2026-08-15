@@ -34,6 +34,7 @@ import {
   LatestQueryFormData,
   QueryFormData,
   Behavior,
+  getChartMetadataRegistry,
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -43,35 +44,37 @@ import {
   Button,
   Input,
 } from '@superset-ui/core/components';
-import { getChartMetadataRegistry } from '@superset-ui/core';
 import { Menu, MenuProps } from '@superset-ui/core/components/Menu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { logEvent } from 'src/logger/actions';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
 } from 'src/logger/LogUtils';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
-import {
-  useStreamingExport,
-  StreamingProgress,
-} from 'src/components/StreamingExportModal';
+import { StreamingProgress } from 'src/components/StreamingExportModal';
 import { Slice } from 'src/types/Chart';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { ReportObject } from 'src/features/reports/types';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
+import { useExploreDataExport } from './useExploreDataExport';
 
 export const SEARCH_THRESHOLD = 10;
 
@@ -88,9 +91,15 @@ const MENU_KEYS = {
   EXPORT_TO_JSON: 'export_to_json',
   EXPORT_TO_XLSX: 'export_to_xlsx',
   EXPORT_ALL_SCREENSHOT: 'export_all_screenshot',
+  EXPORT_ALL_PNG_TRANSPARENT: 'export_all_png_transparent',
+  EXPORT_ALL_PNG_SOLID: 'export_all_png_solid',
+  EXPORT_ALL_PDF: 'export_all_pdf',
   EXPORT_CURRENT_TO_CSV: 'export_current_to_csv',
   EXPORT_CURRENT_TO_JSON: 'export_current_to_json',
   EXPORT_CURRENT_SCREENSHOT: 'export_current_screenshot',
+  EXPORT_CURRENT_PNG_TRANSPARENT: 'export_current_png_transparent',
+  EXPORT_CURRENT_PNG_SOLID: 'export_current_png_solid',
+  EXPORT_CURRENT_PDF: 'export_current_pdf',
   EXPORT_CURRENT_XLSX: 'export_current_xlsx',
   SHARE_SUBMENU: 'share_submenu',
   COPY_PERMALINK: 'copy_permalink',
@@ -103,9 +112,102 @@ const MENU_KEYS = {
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  VERSION_HISTORY: 'version_history',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
+
+const CHART_EXPORT_SELECTOR = '.panel-body .chart-container';
+
+export function getExportScreenshotMenuItems({
+  chartSelector,
+  sliceName,
+  chartId,
+  theme,
+  setIsDropdownVisible,
+  dispatch,
+  submenuKey,
+  transparentKey,
+  solidKey,
+  pdfKey,
+}: {
+  chartSelector: string;
+  sliceName: string;
+  chartId?: number;
+  theme: ReturnType<typeof useTheme>;
+  setIsDropdownVisible: (visible: boolean) => void;
+  dispatch: Dispatch<any>;
+  submenuKey: string;
+  transparentKey: string;
+  solidKey: string;
+  pdfKey: string;
+}) {
+  return [
+    {
+      type: 'submenu' as const,
+      key: submenuKey,
+      label: t('Export screenshot (png)'),
+      icon: <Icons.FileImageOutlined />,
+      children: [
+        {
+          key: transparentKey,
+          label: t('Transparent background'),
+          onClick: (e: {
+            domEvent: React.MouseEvent | React.KeyboardEvent;
+          }) => {
+            downloadAsImage(chartSelector, sliceName, true, theme, {
+              format: 'png',
+              backgroundType: 'transparent',
+            })(e.domEvent);
+            setIsDropdownVisible(false);
+            dispatch(
+              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
+                chartId,
+                chartName: sliceName,
+                backgroundType: 'transparent',
+              }),
+            );
+          },
+        },
+        {
+          key: solidKey,
+          label: t('Solid background'),
+          onClick: (e: {
+            domEvent: React.MouseEvent | React.KeyboardEvent;
+          }) => {
+            downloadAsImage(chartSelector, sliceName, true, theme, {
+              format: 'png',
+              backgroundType: 'solid',
+            })(e.domEvent);
+            setIsDropdownVisible(false);
+            dispatch(
+              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
+                chartId,
+                chartName: sliceName,
+                backgroundType: 'solid',
+              }),
+            );
+          },
+        },
+      ],
+    },
+    {
+      key: pdfKey,
+      label: t('Export as PDF'),
+      icon: <Icons.FileOutlined />,
+      onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
+        downloadAsPdf(chartSelector, sliceName, true)(e.domEvent);
+        setIsDropdownVisible(false);
+        dispatch(
+          logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
+            chartId,
+            chartName: sliceName,
+          }),
+        );
+      },
+    },
+  ];
+}
 
 export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`
@@ -176,12 +278,15 @@ interface ExploreState {
   explore?: ExploreSlice & {
     chartStates?: Record<number, JsonObject>;
     can_export_image?: boolean;
+    can_overwrite?: boolean;
+    can_add?: boolean;
   };
   common?: {
     conf?: {
       CSV_STREAMING_ROW_THRESHOLD?: number;
     };
   };
+  user?: UserWithPermissionsAndRoles;
 }
 
 export type UseExploreAdditionalActionsMenuReturn = [
@@ -202,7 +307,8 @@ export const useExploreAdditionalActionsMenu = (
   onOpenPropertiesModal: () => void,
   ownState: OwnStateWithClientView | undefined,
   dashboards:
-    NonNullable<ExplorePageInitialData['metadata']>['dashboards'] | undefined,
+    | NonNullable<ExplorePageInitialData['metadata']>['dashboards']
+    | undefined,
   showReportModal: () => void,
   setCurrentReportDeleting: Dispatch<SetStateAction<ReportObject | null>>,
   ...rest: MenuProps[]
@@ -216,11 +322,6 @@ export const useExploreAdditionalActionsMenu = (
   const chart = useSelector<ExploreState, ChartState | undefined>(state =>
     state.explore ? state.charts?.[getChartKey(state.explore)] : undefined,
   );
-  const streamingThreshold = useSelector<ExploreState, number>(
-    state =>
-      state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
-      DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
-  );
   const exploreChartState = useSelector<ExploreState, JsonObject | undefined>(
     state => {
       const chartKey = state.explore ? getChartKey(state.explore) : undefined;
@@ -232,6 +333,33 @@ export const useExploreAdditionalActionsMenu = (
   const canExportImage = useSelector<ExploreState, boolean>(
     state => state.explore?.can_export_image ?? false,
   );
+  const canOverwrite = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_overwrite ?? false,
+  );
+  // Mirrors the `can_write` permission on the `Chart` view, the same
+  // permission `ChartRestApi.put` (and `restore_version`) require. An editor
+  // who satisfies `canOverwriteSlice` but lacks it would still be turned away
+  // by the API, so the properties editor stays hidden for them too.
+  const canWriteChart = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_add ?? false,
+  );
+  const user = useSelector<
+    ExploreState,
+    UserWithPermissionsAndRoles | undefined
+  >(state => state.user);
+  // `can_overwrite` alone hides version history (and edit-properties) on any
+  // chart without explicit editors — every seeded chart — even from admins.
+  // Same predicate SaveModal uses, so a user who can save a chart can also
+  // see its history and edit its properties.
+  const canModifySlice = useMemo(
+    () => canOverwriteSlice({ slice, user, canOverwrite }),
+    [slice, user, canOverwrite],
+  );
+  // `canModifySlice` alone governs version history, whose own read-only
+  // listing needs no write permission (only its restore action does, and
+  // that's gated server-side). Editing properties, however, always PUTs the
+  // chart, so it additionally needs the write permission above.
+  const canEditProperties = canModifySlice && canWriteChart;
 
   const dataExportDisabled = !canDownloadCSV;
   const imageExportDisabled = !canExportImage;
@@ -261,31 +389,19 @@ export const useExploreAdditionalActionsMenu = (
     );
 
   // Streaming export state and handlers
-  const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
   const {
-    progress,
-    isExporting: _isExporting,
-    startExport,
-    cancelExport: _cancelExport,
-    resetExport,
-    retryExport,
-  } = useStreamingExport({
-    onComplete: () => {
-      // Don't show toast here - wait for user to click Download button
-    },
-    onError: () => {
-      addDangerToast(t('Export failed - please try again'));
-    },
+    exportCSV,
+    exportCSVPivoted,
+    exportJson,
+    exportExcel,
+    handleExportError,
+    streamingExportState,
+  } = useExploreDataExport({
+    latestQueryFormData,
+    canDownloadCSV,
+    slice,
+    ownState,
   });
-
-  const handleCloseStreamingModal = useCallback(() => {
-    setIsStreamingModalVisible(false);
-    resetExport();
-  }, [resetExport]);
-
-  const handleDownloadComplete = useCallback(() => {
-    addSuccessToast(t('CSV file downloaded successfully'));
-  }, [addSuccessToast]);
 
   // Use the updated report menu items hook
   const reportMenuItem = useHeaderReportMenuItems({
@@ -337,159 +453,6 @@ export const useExploreAdditionalActionsMenu = (
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   }, [addDangerToast, latestQueryFormData, permalinkChartState]);
-
-  const handleExportError = useCallback(
-    (error: unknown) => {
-      const exportError = error as Error & {
-        status?: number;
-        statusText?: string;
-        response?: { status?: number };
-      };
-      const status = exportError.status || exportError.response?.status;
-      if (status === 413) {
-        addDangerToast(
-          t(
-            'The chart data is too large to download. Please try reducing the date range, limiting rows, or using fewer columns.',
-          ),
-        );
-      } else {
-        const errorMessage =
-          exportError.message ||
-          exportError.statusText ||
-          t(
-            'Failed to export chart data. Please try again or contact your administrator.',
-          );
-        addDangerToast(errorMessage);
-      }
-    },
-    [addDangerToast],
-  );
-
-  const exportCSV = useCallback(async () => {
-    if (!canDownloadCSV) return null;
-
-    // Determine row count for streaming threshold check
-    let actualRowCount;
-    const isTableViz = latestQueryFormData?.viz_type === 'table';
-    const queriesResponse = chart?.queriesResponse;
-
-    if (
-      isTableViz &&
-      queriesResponse &&
-      queriesResponse.length > 1 &&
-      queriesResponse[1]?.data?.[0]?.rowcount
-    ) {
-      actualRowCount = queriesResponse[1].data[0].rowcount;
-    } else if (queriesResponse && queriesResponse[0]?.sql_rowcount != null) {
-      actualRowCount = queriesResponse[0].sql_rowcount;
-    } else if (queriesResponse && queriesResponse[0]?.rowcount != null) {
-      actualRowCount = queriesResponse[0].rowcount;
-    } else {
-      actualRowCount = latestQueryFormData?.row_limit;
-    }
-
-    // Check if streaming should be used
-    const shouldUseStreaming =
-      actualRowCount && actualRowCount >= streamingThreshold;
-
-    let filename: string | undefined;
-    if (shouldUseStreaming) {
-      const now = new Date();
-      const date = now.toISOString().slice(0, 10);
-      const time = now.toISOString().slice(11, 19).replace(/:/g, '');
-      const timestamp = `_${date}_${time}`;
-      const chartName =
-        slice?.slice_name || latestQueryFormData.viz_type || 'chart';
-      const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
-      filename = `${safeChartName}${timestamp}.csv`;
-    }
-
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'full',
-        resultFormat: 'csv',
-        onStartStreamingExport: shouldUseStreaming
-          ? exportParams => {
-              if (exportParams.url) {
-                setIsStreamingModalVisible(true);
-                startExport({
-                  ...exportParams,
-                  url: exportParams.url,
-                  filename,
-                  expectedRows: actualRowCount,
-                  exportType: exportParams.exportType as 'csv' | 'xlsx',
-                });
-              }
-            }
-          : null,
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [
-    canDownloadCSV,
-    latestQueryFormData,
-    ownState,
-    chart,
-    streamingThreshold,
-    slice,
-    startExport,
-    handleExportError,
-  ]);
-
-  const exportCSVPivoted = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'post_processed',
-        resultFormat: 'csv',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
-
-  const exportJson = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'results',
-        resultFormat: 'json',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
-
-  const exportExcel = useCallback(async () => {
-    if (!canDownloadCSV) {
-      return null;
-    }
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'results',
-        resultFormat: 'xlsx',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
 
   const copyLink = useCallback(async () => {
     try {
@@ -652,7 +615,7 @@ export const useExploreAdditionalActionsMenu = (
     const menuItems = [];
 
     // Edit chart properties
-    if (slice) {
+    if (slice && canEditProperties) {
       menuItems.push({
         key: MENU_KEYS.EDIT_PROPERTIES,
         label: t('Edit chart properties'),
@@ -811,7 +774,7 @@ export const useExploreAdditionalActionsMenu = (
         disabled: imageExportDisabled,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
-            '.panel-body .chart-container',
+            CHART_EXPORT_SELECTOR,
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
@@ -825,6 +788,18 @@ export const useExploreAdditionalActionsMenu = (
           );
         },
       },
+      ...getExportScreenshotMenuItems({
+        chartSelector: CHART_EXPORT_SELECTOR,
+        sliceName: slice?.slice_name ?? t('New chart'),
+        chartId: slice?.slice_id,
+        theme,
+        setIsDropdownVisible,
+        dispatch,
+        submenuKey: 'export_all_png_submenu',
+        transparentKey: MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
+        solidKey: MENU_KEYS.EXPORT_ALL_PNG_SOLID,
+        pdfKey: MENU_KEYS.EXPORT_ALL_PDF,
+      }),
       {
         key: MENU_KEYS.EXPORT_TO_XLSX,
         label: dataExportLabel(t('Export to Excel')),
@@ -920,7 +895,7 @@ export const useExploreAdditionalActionsMenu = (
         disabled: imageExportDisabled,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
-            '.panel-body .chart-container',
+            CHART_EXPORT_SELECTOR,
             slice?.slice_name ?? t('New chart'),
             true,
             theme,
@@ -934,6 +909,18 @@ export const useExploreAdditionalActionsMenu = (
           );
         },
       },
+      ...getExportScreenshotMenuItems({
+        chartSelector: CHART_EXPORT_SELECTOR,
+        sliceName: slice?.slice_name ?? t('New chart'),
+        chartId: slice?.slice_id,
+        theme,
+        setIsDropdownVisible,
+        dispatch,
+        submenuKey: 'export_current_png_submenu',
+        transparentKey: MENU_KEYS.EXPORT_CURRENT_PNG_TRANSPARENT,
+        solidKey: MENU_KEYS.EXPORT_CURRENT_PNG_SOLID,
+        pdfKey: MENU_KEYS.EXPORT_CURRENT_PDF,
+      }),
       {
         key: MENU_KEYS.EXPORT_CURRENT_XLSX,
         label: dataExportLabel(t('Export to Excel')),
@@ -1054,6 +1041,21 @@ export const useExploreAdditionalActionsMenu = (
       menuItems.push(reportMenuItem);
     }
 
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      canModifySlice &&
+      slice?.slice_id
+    ) {
+      menuItems.push({
+        key: MENU_KEYS.VERSION_HISTORY,
+        label: t('View version history'),
+        onClick: () => {
+          dispatch(openVersionHistoryPanel('chart'));
+          setIsDropdownVisible(false);
+        },
+      });
+    }
+
     // View query
     menuItems.push({
       key: MENU_KEYS.VIEW_QUERY,
@@ -1096,6 +1098,8 @@ export const useExploreAdditionalActionsMenu = (
   }, [
     addDangerToast,
     canDownloadCSV,
+    canEditProperties,
+    canModifySlice,
     copyLink,
     dashboards,
     dashboardMenuItems,
@@ -1120,15 +1124,6 @@ export const useExploreAdditionalActionsMenu = (
     hasExportCurrentView,
     canExportImage,
   ]);
-
-  // Return streaming modal state and handlers for parent to render
-  const streamingExportState = {
-    isVisible: isStreamingModalVisible,
-    progress,
-    onCancel: handleCloseStreamingModal,
-    onRetry: retryExport,
-    onDownload: handleDownloadComplete,
-  };
 
   return [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState];
 };

@@ -19,7 +19,10 @@
 Unit tests for MCP dataset schema validation.
 """
 
+import pytest
+
 from superset.mcp_service.dataset.schemas import (
+    DatasetFilter,
     GetDatasetInfoRequest,
     ListDatasetsRequest,
 )
@@ -52,3 +55,15 @@ class TestRequestSchemaAliasChoices:
     def test_list_datasets_select_columns_columns_alias(self) -> None:
         req = ListDatasetsRequest.model_validate({"columns": ["id", "table_name"]})
         assert req.select_columns == ["id", "table_name"]
+
+    def test_list_datasets_search_and_filters_conflict_validation(self) -> None:
+        """search and filters are mutually exclusive on ListDatasetsRequest,
+        inherited from PaginatedListRequest.validate_search_and_filters."""
+        with pytest.raises(
+            ValueError,
+            match="Cannot use both 'search' and 'filters' parameters simultaneously",
+        ):
+            ListDatasetsRequest(
+                search="sample",
+                filters=[DatasetFilter(col="table_name", opr="sw", value="test")],
+            )

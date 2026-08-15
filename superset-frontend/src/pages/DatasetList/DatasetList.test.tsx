@@ -564,3 +564,37 @@ test('dataset name links to Explore with correct explore_url', async () => {
   expect(exploreLink).toBeInTheDocument();
   expect(exploreLink).toHaveAttribute('href', dataset.explore_url);
 });
+
+test('shows RLS badge when dataset has rls_filters', async () => {
+  // mockDatasets[5] is 'Restricted Sales' with one rls_filter
+  const dataset = mockDatasets[5];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // RlsBadge renders a lock icon with accessible name when filters are present
+  expect(
+    screen.getByRole('img', { name: /row-level security/i }),
+  ).toBeInTheDocument();
+});
+
+test('does not show RLS badge when dataset has no rls_filters', async () => {
+  // mockDatasets[0] has no rls_filters field
+  const dataset = mockDatasets[0];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // No RLS badge when rls_filters is absent
+  expect(
+    screen.queryByRole('img', { name: /row-level security/i }),
+  ).not.toBeInTheDocument();
+});

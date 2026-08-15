@@ -63,7 +63,7 @@ import {
   MarkAreaComponent,
   MarkLineComponent,
 } from 'echarts/components';
-import { LabelLayout } from 'echarts/features';
+import { LabelLayout, LegacyGridContainLabel } from 'echarts/features';
 import {
   EchartsHandler,
   EchartsProps,
@@ -72,6 +72,7 @@ import {
 } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+import { loadLocale } from './echartsLocale';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -119,17 +120,10 @@ use([
   TitleComponent,
   VisualMapComponent,
   LabelLayout,
+  // Superset chart options rely on `grid.containLabel`, which echarts 6
+  // ignores (clipping axis labels) unless this legacy feature is registered.
+  LegacyGridContainLabel,
 ]);
-
-const loadLocale = async (locale: string) => {
-  let lang;
-  try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
-  } catch {
-    // Locale not supported in ECharts
-  }
-  return lang?.default;
-};
 
 // Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
 // live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
@@ -302,7 +296,13 @@ function Echart(
             }
           : {};
 
+      // ECharts' built-in ARIA descriptions are off by default so behavior
+      // doesn't change for existing deployments; a theme or chart's options
+      // can opt in (or further customize aria handling) by overriding this.
+      const ariaDefault = { aria: { enabled: false } };
+
       const themedEchartOptions = mergeEchartsThemeOverrides(
+        ariaDefault,
         baseTheme,
         echartOptions,
         globalOverrides,

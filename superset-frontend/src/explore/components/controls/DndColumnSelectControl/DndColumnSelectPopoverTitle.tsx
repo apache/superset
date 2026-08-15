@@ -18,7 +18,7 @@
  */
 import { ChangeEvent, useCallback, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled, useTheme } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -89,7 +89,15 @@ export const DndColumnSelectPopoverTitle = ({
     />
   ) : (
     <Tooltip placement="top" title={t('Click to edit label')}>
-      <span
+      <button
+        type="button"
+        css={css`
+          appearance: none;
+          border: none;
+          background: none;
+          padding: 0;
+          font: inherit;
+        `}
         className="AdhocMetricEditPopoverTitle inline-editable"
         data-test="AdhocMetricEditTitle#trigger"
         onMouseOver={onMouseOver}
@@ -97,8 +105,6 @@ export const DndColumnSelectPopoverTitle = ({
         onFocus={onMouseOver}
         onClick={onClick}
         onBlur={onBlur}
-        role="button"
-        tabIndex={0}
       >
         {title || defaultLabel}
         &nbsp;
@@ -106,7 +112,7 @@ export const DndColumnSelectPopoverTitle = ({
           iconColor={isHovered ? theme.colorPrimary : theme.colorText}
           iconSize="m"
         />
-      </span>
+      </button>
     </Tooltip>
   );
 };

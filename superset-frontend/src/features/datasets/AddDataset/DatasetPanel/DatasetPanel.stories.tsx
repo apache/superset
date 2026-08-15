@@ -35,6 +35,5 @@ export const Basic: StoryFn<typeof DatasetPanel> = args => (
 Basic.args = {
   tableName: 'example_table',
   loading: false,
-  hasError: false,
   columnList: exampleColumns,
 };

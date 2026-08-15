@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -29,15 +29,15 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Generate Report
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
       - name: Setup Java
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: "temurin"
           java-version: "11"

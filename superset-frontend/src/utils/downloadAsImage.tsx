@@ -23,8 +23,11 @@ import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
+import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
+const PNG_SCALE = 2; // Higher quality for PNG
+export type BackgroundType = 'transparent' | 'solid';
 const TRANSPARENT_RGBA = 'transparent';
 const POLL_INTERVAL_MS = 100;
 
@@ -268,6 +271,13 @@ const createEnhancedClone = (
   return { clone, cleanup };
 };
 
+export type ImageFormat = 'jpeg' | 'png';
+
+export interface DownloadImageOptions {
+  format?: ImageFormat;
+  backgroundType?: BackgroundType;
+}
+
 // Polls until scrollHeight is stable for minStablePolls consecutive intervals or maxMs elapses.
 // ag-grid has no "layout settled" event, so polling is the recommended workaround.
 export const waitForStableScrollHeight = (
@@ -312,7 +322,10 @@ export default function downloadAsImageOptimized(
   description: string,
   isExactSelector = false,
   theme?: SupersetTheme,
+  options: DownloadImageOptions = {},
 ) {
+  const { format = 'jpeg', backgroundType = 'solid' } = options;
+
   return async (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
       ? document.querySelector(selector)
@@ -325,11 +338,23 @@ export default function downloadAsImageOptimized(
       return;
     }
 
+    // Force any virtualized (unmounted) charts to render before capturing, so
+    // off-screen rows are not exported as loading spinners. Must be restored on
+    // every exit path below.
+    const didForceLoad = await forceLoadAllCharts(elementToPrint);
+
     const filter = (node: Element) =>
       typeof node.className === 'string'
         ? !node.className.includes('mapboxgl-control-container') &&
           !node.className.includes('header-controls')
         : true;
+
+    const isPng = format === 'png';
+    const scale = isPng ? PNG_SCALE : 1;
+    const bgcolor =
+      isPng && backgroundType === 'transparent'
+        ? 'transparent'
+        : theme?.colorBgContainer;
 
     // Only apply ag-grid path for single-chart captures.
     // Skip entirely for dashboard-level exports (selector targets the .dashboard root).
@@ -355,6 +380,11 @@ export default function downloadAsImageOptimized(
         addWarningToast(
           t('The chart is still loading. Please wait a moment and try again.'),
         );
+        // This early return skips the capture, so restore virtualization here;
+        // otherwise it would stay forced-on for the rest of the session.
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
         return;
       }
 
@@ -420,17 +450,29 @@ export default function downloadAsImageOptimized(
 
         const imageHeight = agRootWrapper.scrollHeight;
 
-        const dataUrl = await domToImage.toJpeg(agRootWrapper, {
-          bgcolor: theme?.colorBgContainer,
+        const agImageOptions = {
+          bgcolor,
           filter,
           quality: IMAGE_DOWNLOAD_QUALITY,
-          height: imageHeight,
-          width: originalWidth,
+          height: imageHeight * scale,
+          width: originalWidth * scale,
           cacheBust: true,
-        });
+          ...(isPng && {
+            style: {
+              transform: `scale(${PNG_SCALE})`,
+              transformOrigin: 'top left',
+              width: `${originalWidth}px`,
+              height: `${imageHeight}px`,
+            },
+          }),
+        };
+
+        const dataUrl = isPng
+          ? await domToImage.toPng(agRootWrapper, agImageOptions)
+          : await domToImage.toJpeg(agRootWrapper, agImageOptions);
 
         const link = document.createElement('a');
-        link.download = `${generateFileStem(description)}.jpg`;
+        link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
         link.href = dataUrl;
         link.click();
       } catch (error) {
@@ -452,6 +494,9 @@ export default function downloadAsImageOptimized(
             });
           }
         }
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
       }
       return;
     }
@@ -466,20 +511,33 @@ export default function downloadAsImageOptimized(
       );
       cleanup = cleanupFn;
 
-      const dataUrl = await domToImage.toJpeg(clone, {
-        bgcolor: theme?.colorBgContainer,
+      const imageOptions = {
+        bgcolor,
         filter,
         quality: IMAGE_DOWNLOAD_QUALITY,
-        height: clone.scrollHeight,
-        width: clone.scrollWidth,
+        height: clone.scrollHeight * scale,
+        width: clone.scrollWidth * scale,
         cacheBust: true,
-      });
+        ...(isPng && {
+          style: {
+            transform: `scale(${PNG_SCALE})`,
+            transformOrigin: 'top left',
+            width: `${clone.scrollWidth}px`,
+            height: `${clone.scrollHeight}px`,
+          },
+        }),
+      };
+
+      const dataUrl = isPng
+        ? await domToImage.toPng(clone, imageOptions)
+        : await domToImage.toJpeg(clone, imageOptions);
 
       cleanup();
       cleanup = null;
 
+      const extension = isPng ? 'png' : 'jpg';
       const link = document.createElement('a');
-      link.download = `${generateFileStem(description)}.jpg`;
+      link.download = `${generateFileStem(description)}.${extension}`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
@@ -489,6 +547,9 @@ export default function downloadAsImageOptimized(
       );
     } finally {
       if (cleanup) cleanup();
+      if (didForceLoad) {
+        restoreVirtualization();
+      }
     }
   };
 }

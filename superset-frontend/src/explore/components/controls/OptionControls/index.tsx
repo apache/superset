@@ -83,9 +83,14 @@ export const CaretContainer = styled.div`
   margin-left: auto;
 `;
 
-export const CloseContainer = styled.div`
+export const CloseContainer = styled.button`
+  appearance: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   height: auto;
   width: ${({ theme }) => theme.sizeUnit * 6}px;
+  border: none;
   border-right: solid 1px ${({ theme }) => theme.colorBorder};
   cursor: pointer;
 `;
@@ -352,10 +357,9 @@ export const OptionControlLabel = ({
       `}
     >
       <CloseContainer
-        role="button"
+        type="button"
         data-test="remove-control-button"
         onClick={onRemove}
-        tabIndex={0}
       >
         <Icons.CloseOutlined
           iconSize="m"

@@ -60,7 +60,8 @@ def test_chart_filter_scopes_guest_to_token_dashboards(mocker: MockerFixture) ->
 
     compiled: str = str(
         captured["clause"].compile(
-            create_engine("sqlite://"), compile_kwargs={"literal_binds": True}
+            create_engine("sqlite://", future=True),
+            compile_kwargs={"literal_binds": True},
         )
     )
     assert "EXISTS" in compiled  # scoped via the m2m dashboards relationship

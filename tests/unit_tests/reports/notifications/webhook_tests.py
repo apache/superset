@@ -171,6 +171,37 @@ def test_get_files_includes_all_content_types(mock_header_data) -> None:
     assert mime_types.count("image/png") == 2
 
 
+def test_get_files_includes_xlsx(mock_header_data: HeaderDataType) -> None:
+    """_get_files attaches xlsx bytes as report.xlsx with the spreadsheet MIME type."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    xlsx_bytes: bytes = b"PK\x03\x04 mock xlsx bytes"
+
+    content = NotificationContent(
+        name="file test",
+        header_data=mock_header_data,
+        xlsx=xlsx_bytes,
+        description="xlsx files test",
+    )
+    webhook_notification = WebhookNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://webhook.com"}',
+        ),
+        content=content,
+    )
+    files = webhook_notification._get_files()
+
+    assert len(files) == 1
+    file_name, file_bytes, mime_type = files[0][1]
+    assert file_name == "report.xlsx"
+    assert file_bytes == xlsx_bytes
+    assert mime_type == (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
 def test_get_files_empty_when_no_content(mock_header_data) -> None:
     """
     Test that _get_files returns empty list when no files present
@@ -251,6 +282,7 @@ def test_send_treats_redirect_as_failure(monkeypatch, mock_header_data) -> None:
         config = {
             "ALERT_REPORTS_WEBHOOK_HTTPS_ONLY": True,
             "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": True,
+            "ALERT_REPORTS_WEBHOOK_TIMEOUT": 60,
         }
 
     class MockResponse:
@@ -271,6 +303,58 @@ def test_send_treats_redirect_as_failure(monkeypatch, mock_header_data) -> None:
 
     with pytest.raises(NotificationParamException, match="redirect"):
         webhook_notification.send()
+
+
+def test_send_forwards_configured_timeout(monkeypatch, mock_header_data) -> None:
+    """
+    send() forwards ALERT_REPORTS_WEBHOOK_TIMEOUT to requests.post so the
+    call can't hang forever if the webhook target is unreachable.
+    """
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    content = NotificationContent(
+        name="test alert", header_data=mock_header_data, description="Test description"
+    )
+    webhook_notification = WebhookNotification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://example.com/webhook"}',
+        ),
+        content=content,
+    )
+
+    class MockCurrentApp:
+        config = {
+            "ALERT_REPORTS_WEBHOOK_HTTPS_ONLY": True,
+            "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": True,
+            "ALERT_REPORTS_WEBHOOK_TIMEOUT": 45,
+        }
+
+    class MockResponse:
+        status_code = 200
+        text = ""
+
+    captured_kwargs: dict[str, object] = {}
+
+    def fake_post(*args, **kwargs):
+        captured_kwargs.update(kwargs)
+        return MockResponse()
+
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.current_app", MockCurrentApp
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        lambda flag: True,
+    )
+    monkeypatch.setattr(
+        "superset.reports.notifications.webhook.requests.post", fake_post
+    )
+
+    webhook_notification.send()
+
+    assert captured_kwargs["timeout"] == 45
 
 
 def _make_webhook(mock_header_data) -> WebhookNotification:
@@ -299,6 +383,7 @@ def _allow_internal_app() -> type:
         config = {
             "ALERT_REPORTS_WEBHOOK_HTTPS_ONLY": True,
             "ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS": True,
+            "ALERT_REPORTS_WEBHOOK_TIMEOUT": 60,
         }
 
     return MockCurrentApp

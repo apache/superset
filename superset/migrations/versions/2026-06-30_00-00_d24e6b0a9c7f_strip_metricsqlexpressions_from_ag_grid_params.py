@@ -33,7 +33,7 @@ Create Date: 2026-06-30 00:00:00.000000
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -95,7 +95,7 @@ def _strip_query_context(slc: Slice) -> bool:
 
 def upgrade() -> None:
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(Slice.viz_type == _VIZ_TYPE):
         _strip_params(slc)
