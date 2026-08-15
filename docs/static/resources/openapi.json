@@ -1443,9 +1443,14 @@
             "minimum": 0.0,
             "type": "number"
           },
-          "monthly_seasonality": {
-            "description": "Should monthly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+          "daily_seasonality": {
+            "description": "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
             "example": false
+          },
+          "index": {
+            "description": "Name of the column holding the x-axis data. Defaults to `__timestamp`.",
+            "example": "__timestamp",
+            "type": "string"
           },
           "periods": {
             "description": "Time periods (in units of `time_grain`) to predict into the future",
@@ -2672,31 +2677,20 @@
       },
       "ChartDataSortOptionsSchema": {
         "properties": {
-          "aggregates": {
-            "description": "The keys are the name of the aggregate column to be created, and the values specify the details of how to apply the aggregation. If an operator requires additional options, these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average, argmin, argmax, cumsum, cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, percentile, prod, product, std, sum, var. Any options required by the operator can be passed to the `options` object.\n\nIn the example, a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
-            "example": {
-              "first_quantile": {
-                "column": "my_col",
-                "operator": "percentile",
-                "options": {
-                  "q": 0.25
-                }
-              }
-            },
-            "type": "object"
+          "ascending": {
+            "description": "Sort ascending (the default) or descending. A list of booleans may be given to set the direction per entry in `by`.",
+            "example": true
           },
-          "columns": {
-            "description": "columns by by which to sort. The key specifies the column name, value specifies if sorting in ascending order.",
-            "example": {
-              "country": true,
-              "gender": false
-            },
-            "type": "object"
+          "by": {
+            "description": "Name, or list of names, of the columns to sort by. Ignored when `is_sort_index` is set.",
+            "example": "country"
+          },
+          "is_sort_index": {
+            "description": "Whether to sort by the index rather than by column values.",
+            "example": true,
+            "type": "boolean"
           }
         },
-        "required": [
-          "columns"
-        ],
         "type": "object"
       },
       "ChartDataTiming": {
