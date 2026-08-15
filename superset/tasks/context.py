@@ -20,9 +20,10 @@ import logging
 import threading
 import time
 import traceback
+from contextlib import nullcontext
 from typing import Any, Callable, cast, TYPE_CHECKING, TypeVar
 
-from flask import current_app
+from flask import current_app, has_app_context
 from superset_core.tasks.types import (
     TaskContext as CoreTaskContext,
     TaskProperties,
@@ -256,7 +257,7 @@ class TaskContext(CoreTaskContext):
 
             if self._has_pending_updates:
                 # Need app context for DB operations in timer thread
-                if self._app:
+                if self._app and not has_app_context():
                     with self._app.app_context():
                         self._write_to_db()
                 else:
@@ -475,7 +476,8 @@ class TaskContext(CoreTaskContext):
             )
 
         if self._app:
-            with self._app.app_context():
+            ctx = self._app.app_context() if not has_app_context() else nullcontext()
+            with ctx:
                 # Check if task already has an error (preserve original context)
                 task = self._task
                 original_error = task.properties_dict.get("error_message")
@@ -550,7 +552,8 @@ class TaskContext(CoreTaskContext):
                 )
                 return
 
-            with self._app.app_context():
+            ctx = self._app.app_context() if not has_app_context() else nullcontext()
+            with ctx:
                 from superset.commands.tasks.update import UpdateTaskCommand
 
                 task = self._task
@@ -637,7 +640,8 @@ class TaskContext(CoreTaskContext):
         # If aborting/aborted but handlers haven't run yet, run them now
         # (This catches the case where task ended before listener detected abort)
         if self._app:
-            with self._app.app_context():
+            ctx = self._app.app_context() if not has_app_context() else nullcontext()
+            with ctx:
                 task = self._task
                 if task.status in ABORT_STATES and not self._abort_detected:
                     self._trigger_abort_handlers()

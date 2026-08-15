@@ -468,6 +468,31 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'totals_aggregate',
+            config: {
+              type: 'SelectControl',
+              label: t('Summary aggregation'),
+              description: t(
+                'Aggregation used for the summary row, independent of each ' +
+                  "metric's own aggregation. Only applies to simple metrics " +
+                  '(a metric built from custom SQL keeps its own aggregation ' +
+                  'in the summary row).',
+              ),
+              default: 'SUM',
+              clearable: false,
+              choices: [
+                ['SUM', t('Sum')],
+                ['AVG', t('Average')],
+              ],
+              visibility: ({ controls }) =>
+                isAggMode({ controls }) &&
+                Boolean(controls?.show_totals?.value),
+              resetOnHide: false,
+            },
+          },
+        ],
       ],
     },
     {

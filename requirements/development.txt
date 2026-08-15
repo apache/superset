@@ -48,10 +48,8 @@ attrs==25.3.0
     #   cattrs
     #   cyclopts
     #   jsonschema
-    #   outcome
     #   referencing
     #   requests-cache
-    #   trio
 authlib==1.6.12
     # via fastmcp-slim
 babel==2.17.0
@@ -122,7 +120,6 @@ certifi==2026.5.20
     #   httpcore
     #   httpx
     #   requests
-    #   selenium
 cffi==2.0.0
     # via
     #   -c requirements/base-constraint.txt
@@ -309,7 +306,7 @@ flask-session==0.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -400,10 +397,8 @@ gunicorn==26.0.0
     #   apache-superset
 h11==0.16.0
     # via
-    #   -c requirements/base-constraint.txt
     #   httpcore
     #   uvicorn
-    #   wsproto
 hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
@@ -434,7 +429,6 @@ idna==3.15
     #   email-validator
     #   httpx
     #   requests
-    #   trio
     #   url-normalize
 importlib-metadata==8.7.0
     # via
@@ -619,11 +613,6 @@ ordered-set==4.1.0
     #   flask-limiter
 orjson==3.11.9
     # via trino
-outcome==1.3.0.post0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   trio
-    #   trio-websocket
 packaging==25.0
     # via
     #   -c requirements/base-constraint.txt
@@ -803,10 +792,6 @@ pyparsing==3.3.2
     #   matplotlib
 pyperclip==1.10.0
     # via fastmcp-slim
-pysocks==1.7.1
-    # via
-    #   -c requirements/base-constraint.txt
-    #   urllib3
 pytest==7.4.4
     # via
     #   apache-superset
@@ -934,10 +919,6 @@ s3transfer==0.16.0
     # via boto3
 secretstorage==3.5.0
     # via keyring
-selenium==4.46.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 semver==3.0.4
     # via apache-superset-extensions-cli
 setuptools==80.9.0
@@ -968,15 +949,8 @@ slack-sdk==3.43.0
     #   -c requirements/base-constraint.txt
     #   apache-superset
 sniffio==1.3.1
-    # via
-    #   -c requirements/base-constraint.txt
-    #   anyio
-    #   trio
-sortedcontainers==2.4.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   trio
-sqlalchemy==1.4.54
+    # via anyio
+sqlalchemy==2.0.51
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
@@ -1002,7 +976,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.15.0
+sqlglot==30.16.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1039,15 +1013,6 @@ tqdm==4.67.1
     #   prophet
 trino==0.338.0
     # via apache-superset
-trio==0.33.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   selenium
-    #   trio-websocket
-trio-websocket==0.12.2
-    # via
-    #   -c requirements/base-constraint.txt
-    #   selenium
 typing-extensions==4.16.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1067,8 +1032,8 @@ typing-extensions==4.16.0
     #   pydantic-core
     #   pyopenssl
     #   referencing
-    #   selenium
     #   shillelagh
+    #   sqlalchemy
     #   starlette
     #   typing-inspection
 typing-inspection==0.4.2
@@ -1100,7 +1065,6 @@ urllib3==2.7.0
     #   docker
     #   requests
     #   requests-cache
-    #   selenium
 uvicorn==0.37.0
     # via
     #   fastmcp-slim
@@ -1124,10 +1088,6 @@ wcwidth==0.2.13
     # via
     #   -c requirements/base-constraint.txt
     #   prompt-toolkit
-websocket-client==1.8.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   selenium
 websockets==15.0.1
     # via fastmcp-slim
 werkzeug==3.1.6
@@ -1142,10 +1102,6 @@ wrapt==1.17.2
     # via
     #   -c requirements/base-constraint.txt
     #   deprecated
-wsproto==1.2.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   trio-websocket
 wtforms==3.2.2
     # via
     #   -c requirements/base-constraint.txt
