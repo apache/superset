@@ -1513,12 +1513,22 @@ def test_purge_oauth2_tokens_scoped_by_database_id(session: Session) -> None:
     session.add(database1)
     session.flush()
 
-    # Insert several tokens on database1 so token PKs advance past 1 and drift
-    # away from any single database PK.
+    # Insert several tokens on database1, one per distinct user, so token PKs
+    # advance past 1 and drift away from any single database PK. Each token
+    # is for a different user to respect the unique (user_id, database_id)
+    # constraint -- PK drift is what this test needs, not repeat users.
     for i in range(5):
+        drift_user = User(
+            first_name="Drift",
+            last_name=str(i),
+            email=f"drift{i}@example.org",
+            username=f"drift{i}",
+        )
+        session.add(drift_user)
+        session.flush()
         session.add(
             DatabaseUserOAuth2Tokens(
-                user_id=user.id,
+                user_id=drift_user.id,
                 database_id=database1.id,
                 access_token=f"db1_access_{i}",  # noqa: S106
                 access_token_expiration=datetime(2023, 1, 1),
@@ -1571,6 +1581,59 @@ def test_purge_oauth2_tokens_scoped_by_database_id(session: Session) -> None:
         .count()
         == 0
     )
+
+
+def test_oauth2_tokens_unique_per_user_and_database(session: Session) -> None:
+    """
+    ``database_user_oauth2_tokens`` allows at most one row per
+    (user_id, database_id) pair. `OAuth2StoreTokenCommand` always
+    deletes any existing token before storing a new one, so a second row for
+    the same pair can only appear via a lost race between two concurrent
+    callbacks -- the DB-level constraint is what makes that impossible rather
+    than merely unlikely.
+    """
+    from flask_appbuilder.security.sqla.models import Role, User  # noqa: F401
+    from sqlalchemy.exc import IntegrityError
+
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe3@example.org",
+        username="adoe3",
+    )
+    session.add(user)
+    session.flush()
+
+    database = Database(database_name="my_unique_oauth2_db", sqlalchemy_uri="sqlite://")
+    session.add(database)
+    session.flush()
+
+    session.add(
+        DatabaseUserOAuth2Tokens(
+            user_id=user.id,
+            database_id=database.id,
+            access_token="first_access_token",  # noqa: S106
+            access_token_expiration=datetime(2023, 1, 1),
+            refresh_token="first_refresh_token",  # noqa: S106
+        )
+    )
+    session.flush()
+
+    session.add(
+        DatabaseUserOAuth2Tokens(
+            user_id=user.id,
+            database_id=database.id,
+            access_token="second_access_token",  # noqa: S106
+            access_token_expiration=datetime(2023, 1, 1),
+            refresh_token="second_refresh_token",  # noqa: S106
+        )
+    )
+    with pytest.raises(IntegrityError):
+        session.flush()
 
 
 def test_compile_sqla_query_no_optimization(query: Select) -> None:
