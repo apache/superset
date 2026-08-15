@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.1.6, <8",
+    "cachetools>=7.1.7, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.4.2",
     "click-option-group",
@@ -75,7 +75,7 @@ dependencies = [
     "humanize",
     "isodate",
     "jsonpath-ng>=1.8.0, <2",
-    "Mako>=1.2.2",
+    "Mako>=1.4.1",
     "markdown>=3.10.3",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
@@ -221,7 +221,7 @@ ocient = [
     # unpinned sqlalchemy>=1.4 declared, but SQLAlchemy 2.0 support is
     # unverified. Lower confidence than the other bumps in this PR.
     "sqlalchemy-ocient>=3.0.0, <4",
-    "pyocient>=1.0.15, <4",
+    "pyocient>=3.9.0, <4",
     "shapely",
     "geojson",
 ]
