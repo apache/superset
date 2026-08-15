@@ -17,15 +17,55 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import Any
 
 from flask_babel import gettext as _
 from pandas import DataFrame, MultiIndex
+from pandas.api.types import infer_dtype, is_bool_dtype, is_numeric_dtype
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingContributionOrientation, TIME_COMPARISON
 from superset.utils.pandas_postprocessing.utils import validate_column_args
+
+# Inferred value types of an object-dtype column that the contribution
+# arithmetic can consume. `decimal` covers columns holding `decimal.Decimal`
+# (how drivers such as psycopg2 return NUMERIC/DECIMAL metrics); `empty`
+# covers an all-null column, which contributes nothing but is harmless once
+# the nulls are filled with zeros.
+_ARITHMETIC_OBJECT_DTYPES = frozenset({"decimal", "empty"})
+
+
+def _select_arithmetic_columns(df: DataFrame) -> DataFrame:
+    """
+    Select the columns whose values the contribution arithmetic can divide.
+
+    Numeric dtypes qualify directly. `decimal.Decimal` values -- how drivers
+    such as psycopg2 hand back NUMERIC/DECIMAL metrics -- live in an
+    object-dtype column, which ``select_dtypes`` cannot address: handing it
+    ``Decimal`` resolves to plain ``object`` and so selects every string,
+    dict and list column as well, leaving the division below to raise
+    ``TypeError`` on any result set that carries a non-numeric column. The
+    inferred value type separates Decimal columns from those, so the
+    remaining object columns are classified that way instead.
+
+    :param df: DataFrame to select columns from.
+    :return: Subset of `df` holding only the columns safe to divide.
+    """
+
+    # Booleans are excluded because ``is_numeric_dtype`` accepts them while
+    # ``select_dtypes(include=["number"])`` does not, and dividing them was
+    # never part of the calculation. Columns are addressed by position rather
+    # than by label so that duplicate labels stay distinguishable.
+    def is_arithmetic(position: int, dtype: Any) -> bool:
+        if is_numeric_dtype(dtype) and not is_bool_dtype(dtype):
+            return True
+        return infer_dtype(df.iloc[:, position], skipna=True) in (
+            _ARITHMETIC_OBJECT_DTYPES
+        )
+
+    return df.iloc[
+        :, [is_arithmetic(position, dtype) for position, dtype in enumerate(df.dtypes)]
+    ]
 
 
 @validate_column_args("columns")
@@ -56,8 +96,10 @@ def contribution(
     :return: DataFrame with contributions.
     """
     contribution_df = df.copy()
-    numeric_df = contribution_df.select_dtypes(include=["number", Decimal])
-    numeric_df.fillna(0, inplace=True)
+    # Filled out of place: the selection is a slice of `contribution_df`, and
+    # an in-place fill on a slice warns under pandas 2 and is dropped outright
+    # under copy-on-write.
+    numeric_df = _select_arithmetic_columns(contribution_df).fillna(0)
     # verify column selections
     if columns:
         numeric_columns = numeric_df.columns.tolist()
