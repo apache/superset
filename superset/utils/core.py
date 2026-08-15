@@ -816,6 +816,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             # the SELECT of a scalar value without a table is
             # appropriately formatted for the backend
             connection.scalar(select(1))
+            connection.rollback()  # pylint: disable=consider-using-transaction
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
@@ -828,6 +829,7 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
                 # here also causes the whole connection pool to be invalidated
                 # so that all stale connections are discarded.
                 connection.scalar(select(1))
+                connection.rollback()  # pylint: disable=consider-using-transaction
             else:
                 raise
         finally:

@@ -25,6 +25,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
@@ -43,6 +44,7 @@ from superset.mcp_service.chart.tool.update_chart import (
     _build_preview_form_data,
     _build_update_payload,
 )
+from superset.utils import json
 
 # The __init__.py re-exports the update_chart *function*, so a plain
 # `from ... import update_chart` gives the function, not the module.
@@ -75,6 +77,10 @@ class TestUpdateChart:
         assert len(table_request.config.columns) == 2
         assert table_request.config.columns[0].name == "region"
         assert table_request.config.columns[1].aggregate == "SUM"
+
+        # Dataset column names may contain punctuation supported by Superset.
+        parenthesized = ColumnRef(name="New Draft Apps (This Week)")
+        assert parenthesized.name == "New Draft Apps (This Week)"
 
         # XY chart update with UUID
         xy_config = XYChartConfig(
@@ -113,6 +119,100 @@ class TestUpdateChart:
             identifier=123, config=config, chart_name="Updated Sales Report"
         )
         assert request2.chart_name == "Updated Sales Report"
+
+    def test_unrelated_config_update_preserves_existing_column_config(self) -> None:
+        chart = Mock(
+            datasource_id=7,
+            params='{"viz_type":"table","column_config":{"Revenue":{"columnWidth":160}}}',
+            slice_name="Revenue table",
+        )
+        request = UpdateChartRequest(
+            identifier=123,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="revenue", aggregate="SUM")],
+                row_limit=500,
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, request.config)
+
+        assert isinstance(payload, dict)
+        assert '"column_config": {"Revenue": {"columnWidth": 160}}' in payload["params"]
+
+    @pytest.mark.parametrize("params", ["null", "[]", '"text"', "1", "true"])
+    def test_config_update_treats_non_object_params_as_empty(self, params: str) -> None:
+        chart = Mock(datasource_id=7, params=params, slice_name="Revenue table", id=123)
+        request = UpdateChartRequest(
+            identifier=123,
+            config=TableChartConfig(
+                chart_type="table", columns=[ColumnRef(name="revenue")]
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, request.config)
+
+        assert isinstance(payload, dict)
+        assert "column_config" not in json.loads(payload["params"])
+
+    def test_explicit_column_update_merges_saved_ui_settings(self) -> None:
+        chart = Mock(
+            datasource_id=7,
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {
+                        "Revenue": {"columnWidth": 80, "visible": False},
+                        "Region": {"customColumnName": "Sales region"},
+                    },
+                }
+            ),
+            slice_name="Revenue table",
+        )
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue", "aggregate": "SUM"}],
+                "column_config": {"Revenue": {"columnWidth": 120}},
+            }
+        )
+        request = UpdateChartRequest(identifier=123, config=config)
+
+        payload = _build_update_payload(request, chart, config)
+
+        assert isinstance(payload, dict)
+        assert json.loads(payload["params"])["column_config"] == {
+            "Revenue": {"columnWidth": 120, "visible": False},
+            "Region": {"customColumnName": "Sales region"},
+        }
+
+    def test_explicit_null_clears_saved_column_setting(self) -> None:
+        chart = Mock(
+            datasource_id=7,
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {"Revenue": {"columnWidth": 80, "visible": False}},
+                }
+            ),
+            slice_name="Revenue table",
+        )
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue", "aggregate": "SUM"}],
+                "column_config": {"Revenue": {"columnWidth": None}},
+            }
+        )
+        request = UpdateChartRequest(identifier=123, config=config)
+
+        payload = _build_update_payload(request, chart, config)
+
+        assert isinstance(payload, dict)
+        assert json.loads(payload["params"])["column_config"]["Revenue"] == {
+            "columnWidth": None,
+            "visible": False,
+        }
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_formats(self):
@@ -638,6 +738,286 @@ class TestBuildUpdatePayload:
         # query_context must be cleared so get_chart_data uses updated params
         assert result["query_context"] is None
 
+    def test_add_columns_preserves_existing_columns_and_metrics(self):
+        """An additive update does not require reconstructing the table."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(
+                    name="go_live_date", aggregate="MIN", label="Earliest Go Live Date"
+                )
+            ],
+        )
+        chart = Mock()
+        chart.slice_name = "Existing"
+        chart.params = json.dumps(
+            {
+                "viz_type": "ag-grid-table",
+                "query_mode": "aggregate",
+                "groupby": ["employer"],
+                "metrics": ["count"],
+            }
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer"]
+        assert params["metrics"][0] == "count"
+        assert params["metrics"][1]["label"] == "Earliest Go Live Date"
+        assert params["metrics"][1]["aggregate"] == "MIN"
+
+    def test_add_columns_rebinds_requested_dataset(self):
+        """Additive saves validate and persist against the same dataset."""
+        request = UpdateChartRequest(
+            identifier=1,
+            dataset_id=22,
+            add_columns=[ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": [],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["datasource_id"] == 22
+        assert result["datasource_type"] == "table"
+        assert result["slice_name"] == "Existing"
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+
+    def test_add_columns_recognizes_implicit_raw_query_mode(self) -> None:
+        """A table with all_columns and no query_mode still has raw semantics."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="amount", aggregate="SUM")],
+        )
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "all_columns": ["employer", "state"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert (
+            result.error.message == "Cannot add metrics to a table in raw query mode."
+        )
+
+    @pytest.mark.parametrize(
+        "metric",
+        [
+            ColumnRef(name="go_live_date", aggregate="MIN"),
+            ColumnRef(name="saved_count", saved_metric=True),
+            ColumnRef(sql_expression="COUNT(*)", label="Count"),
+        ],
+    )
+    def test_add_metric_to_raw_table_returns_actionable_error(
+        self, metric: ColumnRef
+    ) -> None:
+        """Raw tables must not silently discard aggregate semantics."""
+        request = UpdateChartRequest(identifier=1, add_columns=[metric])
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "raw",
+                    "all_columns": ["employer"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert (
+            result.error.message == "Cannot add metrics to a table in raw query mode."
+        )
+        assert "query_mode='aggregate'" in result.error.details
+
+    def test_add_dimension_only_column_to_aggregate_table(self):
+        """A dimension-only append compiles to a raw patch on its own, so it
+        must be routed by is_metric rather than the patch's inferred mode."""
+        request = UpdateChartRequest(
+            identifier=1, add_columns=[ColumnRef(name="region")]
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"] == ["count"]
+        # The chart must not be flipped to raw by the append.
+        assert params["query_mode"] == "aggregate"
+
+    def test_add_mixed_dimension_and_metric_to_aggregate_table(self):
+        """Dimensions land in groupby and metrics in metrics, in one call."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(name="region"),
+                ColumnRef(name="go_live_date", aggregate="MIN", label="Earliest"),
+            ],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"][0] == "count"
+        assert params["metrics"][1]["label"] == "Earliest"
+
+    def test_add_columns_skips_entries_already_on_the_chart(self):
+        """Re-adding a saved column must not duplicate it in the table."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="employer"), ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["employer"],
+                    "metrics": ["count"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        # "employer" is already present, so only "region" is appended.
+        assert params["groupby"] == ["employer", "region"]
+        assert params["metrics"] == ["count"]
+
+    def test_add_columns_dedupes_adhoc_metric_dicts(self):
+        """Adhoc metrics are dicts -- unhashable, so identity is structural."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[
+                ColumnRef(
+                    name="go_live_date", aggregate="MIN", label="Earliest Go Live Date"
+                )
+            ],
+        )
+        chart = Mock(slice_name="Existing")
+        chart.params = json.dumps(
+            {
+                "viz_type": "table",
+                "query_mode": "aggregate",
+                "groupby": [],
+                "metrics": [],
+            }
+        )
+
+        first = _build_update_payload(request, chart)
+        assert isinstance(first, dict)
+        # Feed the result back in to emulate the same additive call twice.
+        chart.params = first["params"]
+        second = _build_update_payload(request, chart)
+
+        assert isinstance(second, dict)
+        metrics = json.loads(second["params"])["metrics"]
+        assert len(metrics) == 1
+        assert metrics[0]["label"] == "Earliest Go Live Date"
+
+    def test_add_columns_dedupes_raw_mode_all_columns(self):
+        """Raw tables append into all_columns and must not duplicate either."""
+        request = UpdateChartRequest(
+            identifier=1,
+            add_columns=[ColumnRef(name="employer"), ColumnRef(name="region")],
+        )
+        chart = Mock(
+            slice_name="Raw table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "raw",
+                    "all_columns": ["employer"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert json.loads(result["params"])["all_columns"] == ["employer", "region"]
+
+
+class TestUpdateChartRequestColumnPatchValidation:
+    """The config/add_columns validator on UpdateChartRequest."""
+
+    def test_config_and_add_columns_together_rejected(self):
+        """Full replacement and additive append are mutually exclusive."""
+        with pytest.raises(ValidationError, match="not both"):
+            UpdateChartRequest(
+                identifier=1,
+                config=TableChartConfig(columns=[ColumnRef(name="region")]),
+                add_columns=[ColumnRef(name="employer")],
+            )
+
+    def test_empty_add_columns_rejected(self):
+        """An empty append is a no-op the caller almost certainly didn't mean."""
+        with pytest.raises(ValidationError, match="at least one column"):
+            UpdateChartRequest(identifier=1, add_columns=[])
+
+    def test_add_columns_alone_accepted(self):
+        """The valid additive shape still passes validation."""
+        request = UpdateChartRequest(
+            identifier=1, add_columns=[ColumnRef(name="region")]
+        )
+
+        assert request.config is None
+        assert request.add_columns is not None
+        assert request.add_columns[0].name == "region"
+
 
 class TestUpdateChartNameOnly:
     """Integration-style tests for name-only update via MCP tool."""
@@ -885,6 +1265,69 @@ class TestBuildPreviewFormData:
         assert result["datasource"] == "7__table"
         assert result["slice_name"] == "Existing"
 
+    def test_partial_column_config_merges_saved_ui_settings(self) -> None:
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue", "aggregate": "SUM"}],
+                "column_config": {
+                    "Revenue": {"columnWidth": 120, "d3NumberFormat": "$,.2f"}
+                },
+            }
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {
+                        "Revenue": {"columnWidth": 80, "visible": False},
+                        "Region": {"customColumnName": "Sales region"},
+                    },
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert result["column_config"] == {
+            "Revenue": {
+                "columnWidth": 120,
+                "d3NumberFormat": "$,.2f",
+                "visible": False,
+            },
+            "Region": {"customColumnName": "Sales region"},
+        }
+
+    def test_switching_from_table_removes_column_config(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="region"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "column_config": {"Revenue": {"columnWidth": 80}},
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert "column_config" not in result
+
     def test_name_only_preview_keeps_existing_form_data(self):
         """Name-only preview preserves existing form_data and renames."""
         request = UpdateChartRequest(identifier=1, chart_name="Brand New Name")
@@ -935,6 +1378,37 @@ class TestBuildPreviewFormData:
         assert isinstance(result, dict)
         assert result["slice_id"] == 9
         assert result["slice_name"] == "Broken"
+
+    def test_explicit_empty_filters_clear_saved_filters(self):
+        """filters=[] must honor the remedy advertised by validation errors."""
+        config = TableChartConfig(
+            columns=[ColumnRef(name="region")],
+            filters=[],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=9,
+            datasource_id=4,
+            slice_name="Filtered",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "adhoc_filters": [
+                        {
+                            "expressionType": "SIMPLE",
+                            "subject": "dropped_column",
+                            "operator": "TEMPORAL_RANGE",
+                            "comparator": "No filter",
+                        }
+                    ],
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        assert "adhoc_filters" not in result
 
 
 class TestUpdateChartSaveWithConfig:

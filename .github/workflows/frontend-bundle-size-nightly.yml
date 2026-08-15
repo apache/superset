@@ -1,0 +1,135 @@
+name: Frontend bundle size (nightly baseline + analyzer)
+
+# Refreshes the bundle-size baseline that superset-frontend.yml's `bundle-size`
+# job compares PRs against, and publishes a browsable bundle-analyzer treemap
+# report of the same build. Deliberately NOT triggered on every push to
+# master: a day-old baseline/report is fine for catching relative
+# regressions on PRs and for browsing what's actually in the bundle, and
+# building the production bundle on every one of the many pushes master
+# gets per day would burn CI time for no benefit a nightly refresh doesn't
+# already cover.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+env:
+  TAG: apache/superset:bundle-size-nightly-${{ github.run_id }}
+
+permissions:
+  contents: read
+
+jobs:
+  refresh-baseline:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    env:
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_BUNDLE_ANALYZER_SITE_ID }}
+    steps:
+      - name: "Checkout master"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: master
+
+      - name: Build Docker Image
+        run: |
+          docker buildx build \
+            -t $TAG \
+            --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
+            --target superset-node-ci \
+            .
+
+      # Same cache the PR-time bundle-size job restores/writes -- webpack's
+      # persistent filesystem cache turns a warm production build into ~20s
+      # instead of several minutes. See superset-frontend.yml for the
+      # matching restore step and why it's keyed this way.
+      - name: Restore webpack build cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: superset-frontend/.temp_cache
+          key: >-
+            webpack-prod-cache-${{ hashFiles('superset-frontend/package-lock.json',
+            'superset-frontend/babel.config.js', 'superset-frontend/tsconfig.json',
+            'superset-frontend/webpack.config.js') }}
+
+      # Only ever pull the last recorded data point off the cache, keyed by
+      # run ID -- `restore-keys` prefix-matches the most recently created
+      # entry. Absent on the very first run ever; benchmark-action starts a
+      # fresh history in that case.
+      - name: Restore bundle size history
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: bundle-size-history.json
+          key: bundle-size-history-${{ github.run_id }}
+          restore-keys: |
+            bundle-size-history-
+
+      # BUNDLE_ANALYZER rides along in the same build as BUNDLE_SIZE_STATS --
+      # they're independent env-gated additions in webpack.config.js (one
+      # sets `config.stats`, the other pushes plugins), so one production
+      # build produces both the numeric stats.json and the analyzer's
+      # report.html. Only report.html is mounted out, not
+      # BUNDLE_ANALYZER's sibling `statistics.html` sunburst -- that file is
+      # documented in webpack.config.js as routinely exceeding 100MB for
+      # this app (it's .gitignore'd for exactly that reason), too large to
+      # publish as a static site page.
+      - name: Build production bundle with stats and analyzer report
+        run: |
+          mkdir -p ${{ github.workspace }}/superset-frontend/bundle-stats
+          mkdir -p ${{ github.workspace }}/superset-frontend/.temp_cache
+          mkdir -p ${{ github.workspace }}/superset/static/assets
+          docker run \
+          -v ${{ github.workspace }}/superset-frontend/bundle-stats:/app/superset-frontend/bundle-stats \
+          -v ${{ github.workspace }}/superset-frontend/.temp_cache:/app/superset-frontend/.temp_cache \
+          -v ${{ github.workspace }}/superset/static/assets:/app/superset/static/assets \
+          --rm $TAG \
+          bash -c \
+          "npm i && BUNDLE_SIZE_STATS=true BUNDLE_ANALYZER=true npm run build -- --json=bundle-stats/stats.json"
+
+      - name: Summarize bundle size
+        run: |
+          node superset-frontend/scripts/bundle-size-summary.js \
+            superset-frontend/bundle-stats/stats.json > bundle-size-summary.json
+          rm -rf superset-frontend/bundle-stats
+
+      # No PR to comment on here, so comment-on-alert is off -- the job
+      # summary (summary-always) is the only surface for this run.
+      - name: Update bundle size baseline
+        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+        with:
+          tool: customSmallerIsBetter
+          output-file-path: bundle-size-summary.json
+          external-data-json-path: bundle-size-history.json
+          fail-on-alert: false
+          summary-always: true
+
+      - name: Save bundle size history
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: bundle-size-history.json
+          key: bundle-size-history-${{ github.run_id }}
+
+      # Publishes the treemap to Netlify (the same host already used for
+      # superset-storybook.netlify.app and docs previews, reusing the
+      # existing NETLIFY_AUTH_TOKEN). Skipped until
+      # NETLIFY_BUNDLE_ANALYZER_SITE_ID exists -- create a new (free)
+      # Netlify site named superset-bundle-analyzer and add its site ID as
+      # that secret to turn this on; nothing else in this workflow depends
+      # on it.
+      - name: Publish bundle analyzer report to Netlify
+        if: ${{ env.NETLIFY_SITE_ID != '' }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          mkdir -p netlify-publish
+          cp superset/static/assets/report.html netlify-publish/index.html
+          # zizmor: ignore[adhoc-packages] - netlify-cli is a one-shot CI deploy
+          # tool, not an application dependency; a global/npx install has no
+          # lockfile context. Version pinned above the floor set by other
+          # ad-hoc installs in this repo (bump deliberately when upgrading).
+          npx --yes netlify-cli@27.0.1 deploy --prod --dir=netlify-publish

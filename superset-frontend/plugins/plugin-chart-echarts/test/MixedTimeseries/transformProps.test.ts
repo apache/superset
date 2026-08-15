@@ -1243,3 +1243,55 @@ test('regression #37921: multi-metric Query A with groupby does not duplicate fi
     expect(name).not.toMatch(/score_one,\s+score_two/);
   }
 });
+
+test('y-axis title position: Left sets nameLocation to middle', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      yAxisTitlePosition: 'Left',
+      yAxisTitleMargin: 20,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const yAxis = transformed.echartOptions.yAxis as Array<{
+    nameGap: number;
+    nameLocation: string;
+  }>;
+
+  expect(yAxis[0].nameGap).toEqual(20);
+  expect(yAxis[0].nameLocation).toEqual('middle');
+  expect(yAxis[1].nameGap).toEqual(20);
+  expect(yAxis[1].nameLocation).toEqual('middle');
+});
+
+test('y-axis title position: non-Left sets nameLocation to end', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      yAxisTitlePosition: 'Top',
+      yAxisTitleMargin: 30,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const yAxis = transformed.echartOptions.yAxis as Array<{
+    nameGap: number;
+    nameLocation: string;
+  }>;
+
+  expect(yAxis[0].nameGap).toEqual(30);
+  expect(yAxis[0].nameLocation).toEqual('end');
+  expect(yAxis[1].nameGap).toEqual(30);
+  expect(yAxis[1].nameLocation).toEqual('end');
+});
