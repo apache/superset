@@ -23,6 +23,7 @@ import pytest
 from pydantic import ValidationError
 
 from superset.mcp_service.chart.schemas import (
+    AxisConfig,
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
@@ -705,11 +706,20 @@ class TestUnknownFieldDetection:
             )
 
     def test_known_aliases_not_flagged_as_unknown(self) -> None:
-        """Test that known aliases pass validation without errors."""
+        """Test that known aliases pass validation without errors.
+
+        Uses ``x_column`` rather than ``x_axis`` to set the X column:
+        ``x_axis`` is ambiguous between that alias on ``x`` and the
+        unrelated ``x_axis: AxisConfig`` field of the same name, and
+        pydantic resolves the collision in favor of the real field name.
+        Now that nested models reject unknown fields (#42626), routing a
+        column dict through ``x_axis`` here would raise, not silently
+        no-op into ``AxisConfig`` the way it used to.
+        """
         config = XYChartConfig.model_validate(
             {
                 "chart_type": "xy",
-                "x_axis": {"name": "category"},
+                "x_column": {"name": "category"},
                 "metrics": [{"name": "sales", "aggregate": "SUM"}],
                 "groupby": [{"name": "region"}],
                 "stack": True,
@@ -719,6 +729,19 @@ class TestUnknownFieldDetection:
         assert config.stacked is True
         assert config.row_limit == 10000
         assert config.group_by is not None
+
+    def test_unknown_field_nested_one_level_down_is_rejected(self) -> None:
+        """
+        Regression for #42626: only the top-level chart config models
+        inherit UnknownFieldCheckMixin. Nested models like AxisConfig are
+        plain BaseModel, so a typo'd field one level down (e.g. inside
+        x_axis) is silently dropped by pydantic's default extra="ignore"
+        instead of raising the same "did you mean?" error a top-level typo
+        gets -- an MCP client (or the LLM driving it) gets no signal that
+        its setting was ignored.
+        """
+        with pytest.raises(ValidationError, match="Unknown field"):
+            AxisConfig.model_validate({"title": "State", "sort_by": "metric"})
 
 
 class TestColumnRefSavedMetric:

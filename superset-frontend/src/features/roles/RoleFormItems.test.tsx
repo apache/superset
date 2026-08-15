@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import {
   RoleNameField,
   PermissionsField,
   UsersField,
   GroupsField,
 } from './RoleFormItems';
+import { fetchPermissionOptions } from './utils';
 
 jest.mock('./utils', () => ({
   fetchPermissionOptions: jest.fn(),
@@ -51,6 +53,45 @@ test('PermissionsField renders loading state', () => {
   render(<PermissionsField addDangerToast={addDangerToast} loading />);
   expect(screen.getByText('Permissions')).toBeInTheDocument();
   expect(screen.getByTestId('permissions-select')).toBeInTheDocument();
+});
+
+test('PermissionsField shows a permission matched by its raw name even though the label uses spaces (regression for #42041)', async () => {
+  // fetchPermissionOptions matches the raw, underscore-containing name
+  // server-side; the returned label has already gone through
+  // formatPermissionLabel (underscores replaced with spaces for display).
+  // PermissionsField's normalizing filterOption must match the raw search
+  // term against that space-formatted label, or the option the server
+  // legitimately returned gets hidden by client-side re-filtering.
+  jest
+    .mocked(fetchPermissionOptions)
+    .mockImplementation(async (filterValue: string) =>
+      filterValue === 'stg_silver'
+        ? { data: [{ value: 1, label: 'stg silver' }], totalCount: 1 }
+        : // totalCount must exceed the empty initial page here, otherwise
+          // AsyncSelect marks allValuesLoaded and short-circuits every
+          // later fetch, including the search request this test depends on.
+          { data: [], totalCount: 1 },
+    );
+
+  render(<PermissionsField addDangerToast={addDangerToast} />);
+  const combobox = screen.getByRole('combobox');
+  await waitFor(() => userEvent.click(combobox));
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, 'stg_silver', { delay: 10 });
+
+  await waitFor(() =>
+    expect(fetchPermissionOptions).toHaveBeenCalledWith(
+      'stg_silver',
+      expect.anything(),
+      expect.anything(),
+      addDangerToast,
+    ),
+  );
+  expect(
+    await within(document.querySelector('.rc-virtual-list')!).findByText(
+      'stg silver',
+    ),
+  ).toBeInTheDocument();
 });
 
 test('UsersField renders label and select', () => {

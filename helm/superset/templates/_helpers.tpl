@@ -328,6 +328,7 @@ class CeleryConfig:
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
+        "superset.tasks.slack",
     )
     broker_connection_retry_on_startup = True
     worker_prefetch_multiplier = 10
@@ -685,6 +686,14 @@ TALISMAN_CONFIG = {
 {{- define "superset.initScript" -}}
 #!/bin/sh
 set -eu
+{{- if dig "istio" "terminateSidecarOnExit" false .Values.init }}
+# Notify the Istio pilot-agent sidecar to exit when this script completes
+# (whether successfully or via `set -e`), so that the Job can reach the
+# Completed state instead of hanging on a still-running envoy-proxy.
+# See https://github.com/apache/superset/issues/25798
+ISTIO_QUIT_ENDPOINT={{ dig "istio" "quitEndpoint" "http://localhost:15020/quitquitquit" .Values.init | replace "'" "'\\''" | squote }}
+trap 'rc=$?; curl -fsS -m 5 -X POST "$ISTIO_QUIT_ENDPOINT" >/dev/null 2>&1 || echo "WARNING: failed to notify Istio sidecar at $ISTIO_QUIT_ENDPOINT to quit; the Job may hang if sidecar injection is active" >&2; exit $rc' EXIT
+{{- end }}
 echo "Upgrading DB schema..."
 superset db upgrade
 echo "Initializing roles and permissions..."
@@ -760,4 +769,10 @@ app.kubernetes.io/component: websocket
 app.kubernetes.io/name: {{ include "superset.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: worker
+{{- end }}
+
+{{- define "supersetMcp.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "superset.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: mcp
 {{- end }}

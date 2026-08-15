@@ -22,6 +22,7 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import column, types
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
@@ -173,6 +174,27 @@ search_path -- another one
 = bar;
 SELECT * FROM some_table;
     """
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        spec.get_default_schema_for_query(database, query)
+    assert (
+        str(excinfo.value)
+        == "Users are not allowed to set a search path for security reasons."
+    )
+
+
+def test_get_default_schema_for_query_set_config(mocker: MockerFixture) -> None:
+    """
+    A ``set_config('search_path', ...)`` call rebinds unqualified-name
+    resolution on the shared cursor just like ``SET search_path``, so it
+    must be rejected too.
+    """
+    database = mocker.MagicMock()
+    query = mocker.MagicMock()
+    query.schema = "foo"
+    query.sql = (
+        "SELECT set_config('search_path', 'tenant_b', false); SELECT * FROM orders"
+    )
+
     with pytest.raises(SupersetSecurityException) as excinfo:
         spec.get_default_schema_for_query(database, query)
     assert (
@@ -370,6 +392,52 @@ class TestRedshiftDetection:
         assert "pool_events" not in params
 
 
+def _compile(expr: Any) -> str:
+    return str(expr.compile(None, dialect=postgresql.dialect()))
+
+
+def test_get_timestamp_expr_date_column_casts_back_to_date() -> None:
+    """
+    DB Eng Specs (postgres): a time grain on a pure DATE column casts the
+    ``DATE_TRUNC`` result back to DATE to avoid timezone-driven date shifts.
+
+    See https://github.com/apache/superset/issues/42254.
+    """
+    col = column("event_date", type_=types.Date())
+    expr = spec.get_timestamp_expr(col, None, "P1D")
+    assert _compile(expr) == "CAST(DATE_TRUNC('day', event_date) AS DATE)"
+
+
+def test_get_timestamp_expr_datetime_column_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): DATETIME/TIMESTAMP columns keep their timestamp
+    semantics and are not cast back to DATE.
+    """
+    col = column("event_ts", type_=types.DateTime())
+    expr = spec.get_timestamp_expr(col, None, "P1D")
+    assert _compile(expr) == "DATE_TRUNC('day', event_ts)"
+
+
+def test_get_timestamp_expr_date_column_without_grain_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): without a time grain there is no DATE_TRUNC, so the
+    column is left untouched.
+    """
+    col = column("event_date", type_=types.Date())
+    expr = spec.get_timestamp_expr(col, None, None)
+    assert _compile(expr) == "event_date"
+
+
+def test_get_timestamp_expr_untyped_column_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): columns without a known type (e.g. raw expressions)
+    are not cast to DATE.
+    """
+    col = column("some_expr")
+    expr = spec.get_timestamp_expr(col, None, "P1Y")
+    assert _compile(expr) == "DATE_TRUNC('year', some_expr)"
+
+
 def test_interval_type_mutator() -> None:
     """
     DB Eng Specs (postgres): Test INTERVAL type mutator
@@ -403,3 +471,33 @@ def test_interval_type_mutator() -> None:
     assert mutator(True) is None
     assert mutator([1, 2, 3]) is None
     assert mutator({"days": 1}) is None
+
+
+def test_get_schema_names_excludes_only_actual_system_schemas(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): Test ``get_schema_names``
+
+    User-defined schemas that merely start with ``pg`` (but are not
+    actual Postgres system schemas, which always start with the literal
+    ``pg_``) must not be filtered out. See issue #30678.
+    """
+    inspector = mocker.MagicMock()
+    inspector.engine.connect().__enter__().execute.return_value = [
+        ("public",),
+        ("pgsql",),
+        ("pgstats",),
+        ("pg_catalog",),
+        ("pg_toast",),
+        ("information_schema",),
+    ]
+
+    schemas = spec.get_schema_names(inspector)
+
+    assert schemas == {
+        "public",
+        "pgsql",
+        "pgstats",
+        "information_schema",
+    }

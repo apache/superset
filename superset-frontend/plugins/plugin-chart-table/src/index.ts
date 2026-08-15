@@ -28,7 +28,7 @@ import example2Dark from './images/Table2-dark.jpg';
 import example3 from './images/Table3.jpg';
 import example3Dark from './images/Table3-dark.jpg';
 import controlPanel from './controlPanel';
-import buildQuery from './buildQuery';
+import cachedBuildQueryInstance from './buildQuery';
 import { TableChartFormData, TableChartProps } from './types';
 
 export * from './types';
@@ -74,7 +74,7 @@ export default class TableChartPlugin extends ChartPlugin<
       metadata,
       transformProps,
       controlPanel,
-      buildQuery,
+      buildQuery: cachedBuildQueryInstance,
     });
   }
 }

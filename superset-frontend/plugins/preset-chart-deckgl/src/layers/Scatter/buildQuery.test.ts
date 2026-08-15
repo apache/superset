@@ -195,23 +195,6 @@ test('Scatter buildQuery should handle tooltip_contents', () => {
   expect(query.columns).toContain('description');
 });
 
-test('Scatter buildQuery should handle js_columns', () => {
-  const formData: DeckScatterFormData = {
-    ...baseFormData,
-    js_columns: ['custom_col1', 'custom_col2'],
-    point_radius_fixed: {
-      type: 'fix',
-      value: '1000',
-    },
-  };
-
-  const queryContext = buildQuery(formData);
-  const [query] = queryContext.queries;
-
-  expect(query.columns).toContain('custom_col1');
-  expect(query.columns).toContain('custom_col2');
-});
-
 test('Scatter buildQuery should handle adhoc SQL metric for point_radius_fixed', () => {
   const adhocMetric = {
     label: 'count(*) * 1.1',

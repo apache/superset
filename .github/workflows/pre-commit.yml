@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -23,7 +24,7 @@ concurrency:
 
 jobs:
   pre-commit:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     strategy:
       matrix:
@@ -33,7 +34,7 @@ jobs:
         python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
@@ -47,13 +48,22 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
 
       - name: Install helm-docs
         run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
 
+      # Spike: run the existing .pre-commit-config.yaml through prek (a Rust
+      # reimplementation of pre-commit) instead of pre-commit itself, to see
+      # whether it's viable to speed up this job. CI-only — contributors keep
+      # installing/running `pre-commit` locally exactly as documented; nothing
+      # here changes that.
+      - name: Install prek
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.4.11/prek-installer.sh | sh
+
       - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: "superset-frontend/.nvmrc"
           cache: "npm"
@@ -69,19 +79,18 @@ jobs:
           cd docs
           yarn install --immutable
 
-      - name: Cache pre-commit environments
+      - name: Cache prek environments
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
-            pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-
+            prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-
 
       - name: Determine changed files
         id: changed_files
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
           BEFORE_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
@@ -95,7 +104,15 @@ jobs:
           # Resolve the commit to diff against.
           base=""
           if [ "${EVENT_NAME}" = "pull_request" ]; then
-            base="${BASE_SHA}"
+            # HEAD is the PR merge commit, so its first parent is the current
+            # tip of the base branch. github.event.pull_request.base.sha is
+            # NOT that: GitHub freezes it at PR creation, so on a long-lived
+            # PR it points at the original branch point and the diff picks up
+            # all of the base branch's churn since then — thousands of paths,
+            # enough for the CHANGED_FILES env var below to exceed the
+            # kernel's per-variable size limit and kill the step with
+            # "Argument list too long" before bash even starts.
+            base="$(git rev-parse HEAD^1 2>/dev/null || true)"
           elif [ -n "${BEFORE_SHA:-}" ] && \
                [ "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]; then
             base="${BEFORE_SHA}"
@@ -114,6 +131,15 @@ jobs:
           # Files present in HEAD that changed since the base (drop deletions).
           files="$(git diff --name-only --diff-filter=ACMRT "${base}...HEAD")"
 
+          # Env vars have a hard per-variable size limit (E2BIG at step
+          # start). A PR that legitimately touches thousands of files is
+          # better served by --all-files anyway.
+          if [ "$(printf '%s' "${files}" | wc -c)" -gt 100000 ]; then
+            echo "::notice::Changed-file list too large to pass via env; falling back to --all-files."
+            echo "mode=all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if [ -z "${files}" ]; then
             echo "mode=none" >> "$GITHUB_OUTPUT"
           else
@@ -125,7 +151,7 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: pre-commit
+      - name: pre-commit (via prek)
         env:
           MODE: ${{ steps.changed_files.outputs.mode }}
           CHANGED_FILES: ${{ steps.changed_files.outputs.files }}
@@ -135,22 +161,22 @@ jobs:
 
           case "${MODE}" in
             all)
-              echo "ℹ️ Running pre-commit on all files."
-              pre-commit run --all-files
+              echo "ℹ️ Running prek on all files."
+              prek run --all-files
               ;;
             files)
-              echo "ℹ️ Running pre-commit on changed files:"
+              echo "ℹ️ Running prek on changed files:"
               echo "${CHANGED_FILES}"
               # shellcheck disable=SC2086
-              pre-commit run --files ${CHANGED_FILES}
+              prek run --files ${CHANGED_FILES}
               ;;
             none)
-              echo "ℹ️ No source files changed; nothing for pre-commit to check."
+              echo "ℹ️ No source files changed; nothing for prek to check."
               exit 0
               ;;
             *)
               echo "⚠️ Unrecognized changed-files mode '${MODE}'; checking all files."
-              pre-commit run --all-files
+              prek run --all-files
               ;;
           esac
           PRE_COMMIT_EXIT_CODE=$?
@@ -172,3 +198,12 @@ jobs:
             echo "📖 More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
             exit 1
           fi
+
+  actions-timeline:
+    needs: pre-commit
+    if: always()
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

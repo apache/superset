@@ -33,49 +33,42 @@ The Space component from Superset's UI library.
 <StoryWithControls
   component="Space"
   props={{
-  direction: "horizontal",
-  size: "small",
-  wrap: false
-}}
+    direction: 'horizontal',
+    size: 'small',
+    wrap: false,
+  }}
   controls={[
-  {
-    name: "direction",
-    label: "Direction",
-    type: "select",
-    options: [
-      "vertical",
-      "horizontal"
-    ]
-  },
-  {
-    name: "size",
-    label: "Size",
-    type: "select",
-    options: [
-      "small",
-      "middle",
-      "large"
-    ]
-  },
-  {
-    name: "wrap",
-    label: "Wrap",
-    type: "boolean"
-  },
-  {
-    name: "align",
-    label: "Align",
-    type: "select",
-    options: [
-      "start",
-      "end",
-      "center",
-      "baseline"
-    ]
-  }
-]}
-  sampleChildren={["Item 1","Item 2","Item 3","Item 4","Item 5"]}
-  sampleChildrenStyle={{padding:"8px 16px",background:"#e6f4ff",border:"1px solid #91caff",borderRadius:"4px"}}
+    {
+      name: 'direction',
+      label: 'Direction',
+      type: 'select',
+      options: ['vertical', 'horizontal'],
+    },
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'select',
+      options: ['small', 'middle', 'large'],
+    },
+    {
+      name: 'wrap',
+      label: 'Wrap',
+      type: 'boolean',
+    },
+    {
+      name: 'align',
+      label: 'Align',
+      type: 'select',
+      options: ['start', 'end', 'center', 'baseline'],
+    },
+  ]}
+  sampleChildren={['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5']}
+  sampleChildrenStyle={{
+    padding: '8px 16px',
+    background: '#e6f4ff',
+    border: '1px solid #91caff',
+    borderRadius: '4px',
+  }}
 />
 
 ## Try It
@@ -136,7 +129,9 @@ function SpaceSizes() {
           <h4>{size}</h4>
           <Space size={size}>
             {items.map(item => (
-              <div key={item} style={itemStyle}>{item}</div>
+              <div key={item} style={itemStyle}>
+                {item}
+              </div>
             ))}
           </Space>
         </div>
@@ -148,11 +143,11 @@ function SpaceSizes() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `direction` | `string` | `"horizontal"` | - |
-| `size` | `string` | `"small"` | - |
-| `wrap` | `boolean` | `false` | - |
+| Prop        | Type      | Default        | Description |
+| ----------- | --------- | -------------- | ----------- |
+| `direction` | `string`  | `"horizontal"` | -           |
+| `size`      | `string`  | `"small"`      | -           |
+| `wrap`      | `boolean` | `false`        | -           |
 
 ## Import
 

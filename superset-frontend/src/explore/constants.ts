@@ -157,6 +157,8 @@ export const TIME_FILTER_MAP = {
 
 export const POPOVER_INITIAL_HEIGHT = 240;
 export const POPOVER_INITIAL_WIDTH = 320;
+/** The control panel's tab container, which control popovers open alongside. */
+export const CONTROL_SECTIONS_ID = 'controlSections';
 export const UNSAVED_CHART_ID = 0;
 
 export const QUERY_MODE_REQUISITES = new Set([

@@ -24,13 +24,13 @@ A table with the permissions for these roles can be found at [/RESOURCES/STANDAR
 Admins have all possible rights, including granting or revoking rights from other
 users and altering other people’s slices and dashboards.
 
->#### Threat Model and Privilege Boundaries: The Admin Role
+> #### Threat Model and Privilege Boundaries: The Admin Role
 >
->Apache Superset is built with a granular permission model where users assigned the Admin role are considered fully trusted. Admins possess complete control over the application's configuration, UI rendering, and access controls.
+> Apache Superset is built with a granular permission model where users assigned the Admin role are considered fully trusted. Admins possess complete control over the application's configuration, UI rendering, and access controls.
 >
->Consequently, actions performed by an Admin that alter the application's behavior or presentation—such as injecting custom CSS, modifying Jinja templates, or altering security flags—are intended administrative capabilities by design.
+> Consequently, actions performed by an Admin that alter the application's behavior or presentation—such as injecting custom CSS, modifying Jinja templates, or altering security flags—are intended administrative capabilities by design.
 >
->In accordance with MITRE CNA Rule 4.1, a vulnerability must represent a violation of an explicit security policy. Because the Admin role is defined as a trusted operational boundary, actions executed with Admin privileges do not cross a security perimeter. Therefore, exploit vectors that strictly require Admin access are not classified as security vulnerabilities and are ineligible for CVE assignment.
+> In accordance with MITRE CNA Rule 4.1, a vulnerability must represent a violation of an explicit security policy. Because the Admin role is defined as a trusted operational boundary, actions executed with Admin privileges do not cross a security perimeter. Therefore, exploit vectors that strictly require Admin access are not classified as security vulnerabilities and are ineligible for CVE assignment.
 
 ### Alpha
 
@@ -54,10 +54,10 @@ to all databases by default, both **Alpha** and **Gamma** users need to be given
 
 Beyond the base `sql_lab` role, two additional SQL Lab permissions must be explicitly granted for users who need these capabilities:
 
-| Permission | Feature |
-|------------|---------|
-| `can_estimate_query_cost` on `SQLLab` | Estimate query cost before running |
-| `can_format_sql` on `SQLLab` | Format SQL using the database's dialect |
+| Permission                            | Feature                                 |
+| ------------------------------------- | --------------------------------------- |
+| `can_estimate_query_cost` on `SQLLab` | Estimate query cost before running      |
+| `can_format_sql` on `SQLLab`          | Format SQL using the database's dialect |
 
 Grant these in **Security → List Roles** by adding the permissions to the relevant role.
 
@@ -73,6 +73,7 @@ users who need to view dashboards. It provides minimal read-only access for:
 - Viewing annotations on charts
 
 The Public role explicitly excludes:
+
 - Any write permissions on dashboards, charts, or datasets
 - SQL Lab access
 - Share functionality
@@ -197,6 +198,51 @@ Available per-entity overrides are:
 When an override is set, it replaces `SUBJECTS_RELATED_TYPES` for that picker. When it is `None`,
 the picker inherits the global default.
 
+#### Looking Up Subjects via API
+
+Superset exposes a read-only REST API for resolving subjects:
+
+```
+GET /api/v1/security/subject/
+```
+
+The main use case is **id mapping** — given a user, role, or group id, callers (including
+extensions) can look up the corresponding subject entity, and vice versa. Access is gated by
+the `can_read` permission on the `Subject` resource, which is granted to **Admins only** by
+default, since subjects enumerate every user, role, and group on the instance. Callers without
+that permission receive a `403`. Only `GET` (list, get, info) is exposed — there is no create,
+update, or delete, because subjects are derived automatically from users, roles, and groups and
+kept in sync internally.
+
+**Resolve the subject for a given principal id** using [Rison](https://github.com/Nanonid/rison)
+query syntax:
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:user_id,opr:eq,value:5)))
+GET /api/v1/security/subject/?q=(filters:!((col:role_id,opr:eq,value:3)))
+GET /api/v1/security/subject/?q=(filters:!((col:group_id,opr:eq,value:2)))
+```
+
+**Filter by subject type or active status:**
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:type,opr:eq,value:1)))
+GET /api/v1/security/subject/?q=(filters:!((col:active,opr:eq,value:!t)))
+```
+
+The `type` column is an integer enum: `1` for User, `2` for Role, `3` for Group
+(`superset.subjects.types.SubjectType`).
+
+**Search by label:**
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:label,opr:subject_all_text,value:finance)))
+```
+
+Each subject in the response includes flat scalar ids (`user_id`, `role_id`, `group_id`) rather
+than a nested object, so callers can match directly on whichever id they already have — only the
+id field matching the subject's `type` is populated; the others are `null`.
+
 ### Dashboard Access Control
 
 Access to dashboards is managed via editors (subjects that have edit permissions to the dashboard).
@@ -236,6 +282,7 @@ viewers returns the resource to the dataset-based fallback. Explicit Viewers are
 going forward; the implicit fallback may be deprecated and removed in a later major version.
 
 **Important considerations:**
+
 - Viewer access uses normal dataset checks unless `VIEWER_PROMISCUOUS_MODE` is enabled
 - With `VIEWER_PROMISCUOUS_MODE`, dashboard viewer access can bypass dataset-level checks for
   charts and datasets in that dashboard
@@ -243,9 +290,55 @@ going forward; the implicit fallback may be deprecated and removed in a later ma
 - The dashboard must still be published to be visible
 
 This feature is particularly useful for:
+
 - Making specific dashboards public while keeping others private
 - Granting access to dashboards without exposing the underlying datasets for other uses
 - Creating dashboard-specific access patterns that don't align with dataset permissions
+
+#### Assigning the creator's groups automatically
+
+```python
+FEATURE_FLAGS = {
+    "ENABLE_VIEWERS": True,
+    "ASSIGN_CREATOR_GROUPS_AS_VIEWERS": True,
+}
+```
+
+This requires `ENABLE_VIEWERS` — it has no effect on its own, since it works by populating the
+`viewers` relationship that `ENABLE_VIEWERS` governs.
+
+With this enabled, a newly created dashboard or chart is shared read-only with every group its
+creator belongs to, unless the create payload names viewers explicitly. It applies to every path
+that creates an asset: the REST API, `/dashboard/new/`, save-as from Explore, dashboard copy,
+the import commands, and the MCP tools. Datasets are unaffected, as they have editors but no
+viewers.
+
+For dashboards, viewer access additionally requires the dashboard to be **published** — the same
+rule that governs every dashboard viewer. Until a new dashboard is published its creator's groups
+see nothing, and because it now has viewers the dataset-based fallback no longer applies to it
+either; group members gain access only once it is published. Charts have no such publish gate, so a
+new chart's viewer grant takes effect immediately. Note, though, that the viewer relationship
+governs access to the chart itself; rendering its **data** still runs the normal datasource
+permission check unless `VIEWER_PROMISCUOUS_MODE` is enabled — a group member without access to the
+underlying dataset can open the chart but won't load its data.
+
+Note that this **narrows** access rather than widening it. Because an asset with no viewers falls
+back to dataset-based access, giving new assets a viewer makes that fallback unreachable for them:
+a colleague who could previously open a new dashboard by virtue of dataset access can no longer do
+so unless they share one of the creator's groups. Existing assets are untouched — only assets
+created after the feature flag is enabled are affected.
+
+The same narrowing affects background execution as a fixed identity. Alerts, reports, and
+thumbnails that run as a `FixedExecutor` service account (via `ALERT_REPORTS_EXECUTE_AS` or
+`THUMBNAIL_EXECUTE_AS`) reach a chart or dashboard through the dataset fallback when that account
+is neither an editor nor a viewer. Once a new asset is scoped to the creator's groups that
+fallback is gone, so rendering fails `raise_for_access` unless the executor account is an admin,
+an editor, or shares one of those groups. If a fixed executor must render assets it does not own,
+grant it the needed access (make it an admin or add it to the relevant groups) — or leave the
+feature flag off.
+
+The setting assigns groups as *viewers*, not editors, so group members get read-only access and
+cannot modify or delete the asset.
 
 ### SQL Execution Security Considerations
 
@@ -260,10 +353,11 @@ However, it is crucial to understand the following:
 **Database Security is Paramount**: The ultimate responsibility for securing database access, controlling permissions, and preventing unauthorized function execution lies with the database administrators (DBAs) and security teams managing the underlying database instance.
 
 **Recommended Database Practices**: We strongly recommend implementing security best practices at the database level, including:
-* **Least Privilege**: Connecting Superset using dedicated database user accounts with the minimum permissions required for Superset's operation (typically read-only access to necessary schemas/tables).
-* **Database Roles & Permissions**: Utilizing database-native roles and permissions to restrict access to sensitive functions, system variables (like `@@hostname`), schemas, or tables.
-* **Network Security**: Employing network-level controls like database firewalls or proxies to restrict connections.
-* **Auditing**: Enabling database-level auditing to monitor executed queries and access patterns.
+
+- **Least Privilege**: Connecting Superset using dedicated database user accounts with the minimum permissions required for Superset's operation (typically read-only access to necessary schemas/tables).
+- **Database Roles & Permissions**: Utilizing database-native roles and permissions to restrict access to sensitive functions, system variables (like `@@hostname`), schemas, or tables.
+- **Network Security**: Employing network-level controls like database firewalls or proxies to restrict connections.
+- **Auditing**: Enabling database-level auditing to monitor executed queries and access patterns.
 
 By combining Superset's configurable safeguards with strong database-level security practices, you can achieve a more robust and layered security posture.
 
@@ -419,11 +513,11 @@ rules are:
 
 For example, if a dataset has three filters:
 
-| Filter | Clause | Group Key |
-|--------|--------|-----------|
-| F1 | `department = 'Finance'` | `department` |
-| F2 | `department = 'Marketing'` | `department` |
-| F3 | `region = 'Europe'` | `region` |
+| Filter | Clause                     | Group Key    |
+| ------ | -------------------------- | ------------ |
+| F1     | `department = 'Finance'`   | `department` |
+| F2     | `department = 'Marketing'` | `department` |
+| F3     | `region = 'Europe'`        | `region`     |
 
 The resulting WHERE clause would be:
 
@@ -507,7 +601,7 @@ GET /api/v1/rowlevelsecurity/<id>
 ```
 
 The response includes the filter's `name`, `filter_type` (Regular or Base), `clause`,
-`group_key`, assigned `tables` (with id, schema, and table\_name), and assigned `subjects`.
+`group_key`, assigned `tables` (with id, schema, and table_name), and assigned `subjects`.
 
 :::tip Auditing RLS for virtual datasets
 To find all RLS rules that could affect a particular virtual dataset, query the list
@@ -553,13 +647,13 @@ This reduces the risk for replay attacks and session hijacking.
 Superset uses [Flask-Session](https://flask-session.readthedocs.io/en/latest/) to manage server side sessions.
 To enable this extension you have to set:
 
-``` python
+```python
 SESSION_SERVER_SIDE = True
 ```
 
 Flask-Session offers multiple backend session interfaces for Flask, here's an example for Redis:
 
-``` python
+```python
 from redis import Redis
 
 SESSION_TYPE = "redis"
@@ -588,8 +682,8 @@ It's extremely important to correctly configure a Content Security Policy when d
 prevent many types of attacks. Superset provides two variables in `config.py` for deploying a CSP:
 
 - `TALISMAN_ENABLED` defaults to `True`; set this to `False` in order to disable CSP
-- `TALISMAN_CONFIG` holds the actual the policy definition (*see example below*) as well as any
-other arguments to be passed to Talisman.
+- `TALISMAN_CONFIG` holds the actual the policy definition (_see example below_) as well as any
+  other arguments to be passed to Talisman.
 
 When running in production mode, Superset will check at startup for the presence
 of a CSP. If one is not found, it will issue a warning with the security risks. For environments
@@ -605,12 +699,12 @@ this warning using the `CONTENT_SECURITY_POLICY_WARNING` key in `config.py`.
   ```
 
 - Only scripts marked with a [nonce](https://content-security-policy.com/nonce/) can be loaded and executed.
-Nonce is a random string automatically generated by Talisman on each page load.
-You can get current nonce value by calling jinja macro `csp_nonce()`.
+  Nonce is a random string automatically generated by Talisman on each page load.
+  You can get current nonce value by calling jinja macro `csp_nonce()`.
 
   ```html
   <script nonce="{{ csp_nonce() }}">
-  /* my script */
+    /* my script */
   </script>
   ```
 
@@ -628,7 +722,7 @@ You can get current nonce value by calling jinja macro `csp_nonce()`.
   ```
 
 - Cartodiagram charts request map data (image and json) from external resources that can be edited by users,
-and therefore either require a list of allowed domains to request from or a wildcard (`'*'`) for `img-src` and `connect-src`.
+  and therefore either require a list of allowed domains to request from or a wildcard (`'*'`) for `img-src` and `connect-src`.
 
 - Other CSP directives default to `'self'` to limit content to the same origin as the Superset server.
 
@@ -639,12 +733,12 @@ In order to adjust provided CSP configuration to your needs, follow the instruct
 
 Setting `TALISMAN_ENABLED = True` will invoke Talisman's protection with its default arguments,
 of which `content_security_policy` is only one. Those can be found in the
-[Talisman documentation](https://pypi.org/project/flask-talisman/) under *Options*.
+[Talisman documentation](https://pypi.org/project/flask-talisman/) under _Options_.
 These generally improve security, but administrators should be aware of their existence.
 
 In particular, the option of `force_https = True` (`False` by default) may break Superset's Alerts & Reports
 if workers are configured to access charts via a `WEBDRIVER_BASEURL` beginning
-with `http://`.  As long as a Superset deployment enforces https upstream, e.g.,
+with `http://`. As long as a Superset deployment enforces https upstream, e.g.,
 through a load balancer or application gateway, it should be acceptable to keep this
 option disabled. Otherwise, you may want to enable `force_https` like this:
 

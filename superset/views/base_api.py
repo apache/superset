@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable, cast, Optional
+from typing import Any, Callable, cast, Optional, overload
 
 from flask import request, Response
 from flask_appbuilder import Model, ModelRestApi
@@ -116,26 +116,67 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
     return functools.update_wrapper(wraps, f)
 
 
-def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
+@overload
+def statsd_metrics(
+    f: Callable[..., Any],
+    *,
+    best_effort: bool = False,
+) -> Callable[..., Any]: ...
+
+
+@overload
+def statsd_metrics(
+    f: None = None,
+    *,
+    best_effort: bool = False,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
+
+
+def statsd_metrics(
+    f: Callable[..., Any] | None = None,
+    *,
+    best_effort: bool = False,
+) -> Callable[..., Any]:
     """
-    Handle sending all statsd metrics from the REST API
+    Handle sending all StatsD metrics from the REST API.
+
+    When ``best_effort`` is true, a metrics backend failure is logged and ignored so
+    it cannot replace the endpoint response or exception.
     """
 
-    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
-        func_name = f.__name__
-        try:
-            duration, response = time_function(f, self, *args, **kwargs)
-        except Exception as ex:
-            if hasattr(ex, "status") and ex.status < 500:  # pylint: disable=no-member
-                self.incr_stats("warning", func_name)
-            else:
-                self.incr_stats("error", func_name)
-            raise
+    def decorate(func: Callable[..., Any]) -> Callable[..., Any]:
+        def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
+            func_name = func.__name__
 
-        self.send_stats_metrics(response, func_name, duration)
-        return response
+            def emit_metrics(callback: Callable[[], None]) -> None:
+                try:
+                    callback()
+                except Exception as ex:  # pylint: disable=broad-except
+                    if not best_effort:
+                        raise
+                    logger.warning(
+                        "REST API metrics emission failed: endpoint=%s error_type=%s",
+                        func.__qualname__,
+                        type(ex).__name__,
+                    )
 
-    return functools.update_wrapper(wraps, f)
+            try:
+                duration, response = time_function(func, self, *args, **kwargs)
+            except Exception as ex:
+                action = (
+                    "warning"
+                    if hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
+                    else "error"
+                )
+                emit_metrics(lambda: self.incr_stats(action, func_name))
+                raise
+
+            emit_metrics(lambda: self.send_stats_metrics(response, func_name, duration))
+            return response
+
+        return functools.update_wrapper(wraps, func)
+
+    return decorate(f) if f is not None else decorate
 
 
 def validate_feature_flags(
@@ -501,8 +542,15 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             values = [row["value"] for row in result]
             ids = [id_ for id_ in ids if id_ not in values]
             pk_col = datamodel.get_pk()
-            # Fetch requested values from ids
-            extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
+            # Fetch requested values from ids, applying the same scoping as the
+            # unforced query so ``include_ids`` cannot resolve rows the
+            # related-field filters deliberately hide.
+            query = db.session.query(datamodel.obj).filter(pk_col.in_(ids))
+            if base_filters := self.base_related_field_filters.get(column_name):
+                query = datamodel.apply_filters(
+                    query, datamodel.get_filters().add_filter_list(base_filters)
+                )
+            extra_rows = query.all()
             result += self._get_result_from_rows(datamodel, extra_rows, column_name)
 
     @event_logger.log_this_with_context(
