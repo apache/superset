@@ -19,6 +19,7 @@ from types import SimpleNamespace
 
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.sql.elements import False_
 
 from superset.extensions import security_manager
 from superset.utils.filters import (
@@ -89,8 +90,6 @@ def test_guest_embedded_dashboard_filter_no_dashboard_resources(
 ) -> None:
     """A guest with no dashboard resources is denied all charts (fail closed),
     not left to fall back to the role-based access path (which None would do)."""
-    from sqlalchemy.sql.elements import False_
-
     mocker.patch("superset.is_feature_enabled", return_value=True)
     guest = SimpleNamespace(resources=[{"type": "dataset", "id": 1}])
     mocker.patch.object(
@@ -170,3 +169,41 @@ def test_guest_embedded_dashboard_filter_mixed_uuid_and_int_ids(
     assert "embedded_dashboards" in compiled
     assert "dashboards.id IN" in compiled
     assert " OR " in compiled
+
+
+def test_guest_embedded_dashboard_filter_slug_only_denies(
+    mocker: MockerFixture,
+) -> None:
+    """A slug-only token yields deny-all: has_guest_access authorizes the data
+    path only by dashboard id/uuid, never slug, so the list filter must not widen
+    past it (else a slug dashboard would list but its data would be denied)."""
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch.object(
+        security_manager,
+        "get_current_guest_user_if_guest",
+        return_value=_guest_with_dashboards("sales-overview"),
+    )
+
+    clause = guest_embedded_dashboard_filter()
+    assert isinstance(clause, False_)
+
+
+def test_guest_embedded_dashboard_filter_ignores_slug_in_mixed_token(
+    mocker: MockerFixture,
+) -> None:
+    """A token mixing uuid, int, and slug ids matches only the uuid and int ids;
+    the slug is dropped (fail-closed on the data path, so never surfaced)."""
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    uuid = "51e44e1c-ffd1-425d-8993-919177955270"
+    mocker.patch.object(
+        security_manager,
+        "get_current_guest_user_if_guest",
+        return_value=_guest_with_dashboards(uuid, 7, "sales-overview"),
+    )
+
+    clause = guest_embedded_dashboard_filter()
+    assert clause is not None
+    compiled = str(clause.compile(create_engine("sqlite://", future=True)))
+    assert "embedded_dashboards" in compiled
+    assert "dashboards.id IN" in compiled
+    assert "dashboards.slug" not in compiled

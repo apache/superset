@@ -32,12 +32,15 @@ def left_join_df(
     join_keys: list[str],
     lsuffix: str = "",
     rsuffix: str = "",
-    how: Literal["left", "right", "inner", "outer", "cross"] = "left",
+    how: Literal["left", "right", "inner", "outer"] = "left",
 ) -> pd.DataFrame:
     # `how` defaults to "left" so callers that only want the left frame's rows are
     # unaffected. Passing how="outer" keeps right-only rows, which is used by the
     # time-comparison "full range" option so historical series are not truncated to
-    # the main series' time range.
+    # the main series' time range. "cross" is intentionally excluded: the join is
+    # implemented via `Index.join`, which doesn't support cross joins the way
+    # `pd.merge` does, so passing "cross" here would silently drop the join keys
+    # instead of producing a real cross join.
     df = left_df.set_index(join_keys).join(
         right_df.set_index(join_keys), how=how, lsuffix=lsuffix, rsuffix=rsuffix
     )
