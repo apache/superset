@@ -42,9 +42,11 @@ def test_column_with_invalid_operation():
     metric = SqlMetric(metric_name="my_column", expression="INVALID(my_column)")
     datasource = MagicMock(metrics=[metric])
     column = "my_column"
-    with patch("superset.utils.core.logger.warning") as mock_warning:
+    with patch("superset.utils.core.logger.debug") as mock_debug:
         assert (get_metric_type_from_column(column, datasource)) == ""
-        mock_warning.assert_called_once()
+        mock_debug.assert_called_once_with(
+            "Unexpected metric expression type: %s", "INVALID(my_column)"
+        )
 
 
 def test_empty_datasource():

@@ -53,6 +53,13 @@ get_dataset_info_module = importlib.import_module(
 )
 
 
+@pytest.mark.parametrize("value", ["true", "false", 0, 1])
+def test_list_datasets_certified_requires_json_boolean(value):
+    """Reject values that Pydantic's non-strict bool would coerce."""
+    with pytest.raises(ValueError, match="valid boolean"):
+        ListDatasetsRequest(certified=value)
+
+
 def _wrapped(value: str) -> str:
     return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 
@@ -183,7 +190,7 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def allow_data_model_metadata():
+def allow_data_model_metadata():  # noqa: PT004
     """Keep dataset tests in the normal metadata-allowed path by default."""
     with (
         patch.object(
@@ -312,6 +319,52 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         # Verify changed_on_humanized is in default columns
         assert "changed_on_humanized" in data["columns_requested"]
         assert "changed_on_humanized" in data["columns_loaded"]
+
+
+@patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("certified", "expected_names"),
+    [
+        (True, ["Certified"]),
+        (False, ["Uncertified"]),
+        (None, ["Certified", "Uncertified"]),
+    ],
+)
+async def test_list_datasets_certified_filter(
+    mock_list, mcp_server, certified, expected_names
+):
+    """Certification is opt-in and supports certified, uncertified, and all."""
+    certified_dataset = create_mock_dataset(1, "Certified")
+    certified_dataset.extra = '{"certification": {"certified_by": "Governance"}}'
+    uncertified_dataset = create_mock_dataset(2, "Uncertified")
+    datasets = [certified_dataset, uncertified_dataset]
+
+    def list_side_effect(**kwargs):
+        custom_filter = (kwargs.get("custom_filters") or {}).get("certified")
+        if custom_filter is None:
+            selected = datasets
+        else:
+            query = MagicMock()
+            custom_filter.apply(query, None)
+            predicate = str(query.filter.call_args.args[0])
+            if certified:
+                assert "lower(tables.extra) LIKE lower" in predicate
+            else:
+                assert "tables.extra NOT LIKE" in predicate
+                assert "tables.extra IS NULL" in predicate
+            selected = [datasets[0] if certified else datasets[1]]
+        return selected, len(selected)
+
+    mock_list.side_effect = list_side_effect
+    request = ListDatasetsRequest(certified=certified)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    assert [dataset["table_name"] for dataset in data["datasets"]] == expected_names
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -1705,22 +1758,22 @@ class TestDatasetSortableColumns:
 
     def test_dataset_sortable_columns_definition(self):
         """Test that dataset sortable columns are properly defined."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
 
-        assert SORTABLE_DATASET_COLUMNS == [
+        assert DATASET_SORTABLE_COLUMNS == [
             "id",
             "table_name",
             "schema",
             "changed_on",
+            "changed_on_delta_humanized",
             "created_on",
         ]
-        # Ensure no computed properties are included
-        assert "changed_on_delta_humanized" not in SORTABLE_DATASET_COLUMNS
-        assert "changed_by_name" not in SORTABLE_DATASET_COLUMNS
-        assert "database_name" not in SORTABLE_DATASET_COLUMNS
-        assert "uuid" not in SORTABLE_DATASET_COLUMNS
+        # Ensure unsupported computed properties are excluded
+        assert "changed_by_name" not in DATASET_SORTABLE_COLUMNS
+        assert "database_name" not in DATASET_SORTABLE_COLUMNS
+        assert "uuid" not in DATASET_SORTABLE_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
@@ -1752,17 +1805,58 @@ class TestDatasetSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            list_datasets,
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
+        from superset.mcp_service.dataset.tool.list_datasets import list_datasets
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
         assert "Sortable columns for" in list_datasets.__doc__
         assert "order_column" in list_datasets.__doc__
-        for col in SORTABLE_DATASET_COLUMNS:
+        for col in DATASET_SORTABLE_COLUMNS:
             assert col in list_datasets.__doc__
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_datasets_changed_on_delta_humanized_order_column(
+        self, mock_dataset_list, mcp_server
+    ):
+        """Regression test: order_column='changed_on_delta_humanized' is the
+        "Last modified" column name used by Superset's own REST API and list
+        views. Production chatbot calls pass it when asked to sort datasets
+        by "most recently modified" and must not be rejected. It resolves to
+        'changed_on' for the DAO, matching REST API sort behaviour (see
+        daos/datasource.py's sort_col_map and
+        models/helpers.py:changed_on_delta_humanized)."""
+        mock_dataset_list.return_value = ([], 0)
+
+        async with Client(mcp_server) as client:
+            request = ListDatasetsRequest(order_column="changed_on_delta_humanized")
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+
+            mock_dataset_list.assert_called_once()
+            call_args = mock_dataset_list.call_args[1]
+            assert call_args["order_column"] == "changed_on"
+
+            data = json.loads(result.content[0].text)
+            assert data["datasets"] == []
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_datasets_invalid_order_column_raises_tool_error(
+        self, mock_dataset_list, mcp_server
+    ):
+        """A genuinely unknown order_column must still be rejected."""
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+                await client.call_tool(
+                    "list_datasets", {"request": {"order_column": "random"}}
+                )
+            assert "Invalid order_column" in str(excinfo.value)
+        mock_dataset_list.assert_not_called()
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
