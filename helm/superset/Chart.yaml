@@ -26,7 +26,7 @@ keywords:
   - data science
 sources:
   - https://github.com/apache/superset
-version: 0.22.8 # See [README](https://github.com/apache/superset/blob/master/helm/superset/README.md#versioning) for version details.
+version: 0.22.9 # See [README](https://github.com/apache/superset/blob/master/helm/superset/README.md#versioning) for version details.
 dependencies:
   - name: postgresql
     version: 16.7.27
