@@ -66,7 +66,7 @@ def test_convert_dttm(
     "time_grain,expected",
     [
         (None, "{col}"),
-        ("PT1S", "toStartOfSecond(toDateTime({col}))"),
+        ("PT1S", "toStartOfSecond(toDateTime64({col}, 3))"),
         ("PT1M", "toStartOfMinute(toDateTime({col}))"),
     ],
 )
