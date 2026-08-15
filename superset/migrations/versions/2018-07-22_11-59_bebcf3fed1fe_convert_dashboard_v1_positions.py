@@ -579,7 +579,7 @@ def scan_dashboard_positions_data(positions):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):

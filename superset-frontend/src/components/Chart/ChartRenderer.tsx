@@ -169,7 +169,6 @@ interface ChartHooks {
   handleAsyncChartData?: (
     response: Response,
     json: JsonObject,
-    useLegacyApi?: boolean,
     signal?: AbortSignal,
   ) => Promise<QueryData[]> | QueryData[];
 }
@@ -500,10 +499,18 @@ function ChartRendererComponent({
     Object.keys(ownState.agGridFilterModel).length > 0;
 
   const currentFormDataExtended = currentFormData as JsonObject;
-  const bypassNoResult = !(
-    currentFormDataExtended?.server_pagination &&
-    (hasSearchText || hasAgGridFilters)
-  );
+  // Some charts fetch their own data and issue no top-level query (e.g. deck.gl
+  // Multiple Layers, which renders its sub-layer charts), so an empty response
+  // is expected and shouldn't trigger the no-results state. Honor the chart's
+  // own enableNoResults metadata (defaults to true).
+  const chartEnableNoResults =
+    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
+  const bypassNoResult =
+    chartEnableNoResults &&
+    !(
+      currentFormDataExtended?.server_pagination &&
+      (hasSearchText || hasAgGridFilters)
+    );
 
   return (
     <>

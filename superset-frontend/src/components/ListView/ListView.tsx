@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { handleKeyboardActivation } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import {
   useCallback,
   useEffect,
@@ -34,6 +33,7 @@ import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Button,
   Tooltip,
+  Drawer,
   Icons,
   EmptyState,
   Loading,
@@ -185,10 +185,15 @@ const ViewModeContainer = styled.div`
     display: inline-block;
 
     .toggle-button {
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
       display: inline-block;
       border-radius: ${theme.borderRadius}px;
       padding: ${theme.sizeUnit}px;
       padding-bottom: ${theme.sizeUnit * 0.5}px;
+      cursor: pointer;
 
       &:first-of-type {
         margin-right: ${theme.sizeUnit * 2}px;
@@ -203,6 +208,15 @@ const ViewModeContainer = styled.div`
       }
     }
   `}
+`;
+
+const inlineTextButtonCss = css`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
 `;
 
 const ClearAllButton = styled.button`
@@ -239,6 +253,30 @@ const EmptyWrapper = styled.div`
   `}
 `;
 
+const MobileFilterDrawerContent = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 4}px;
+    padding: ${theme.sizeUnit * 2}px;
+
+    /* Make filter inputs stack vertically and full-width */
+    > * {
+      width: 100%;
+    }
+
+    /* Override inline filter styling for vertical layout */
+    .filter-container {
+      width: 100%;
+    }
+
+    input[type="text"],
+    .ant-select {
+      width: 100% !important;
+    }
+  `}
+`;
+
 const ViewModeToggle = ({
   mode,
   setMode,
@@ -248,34 +286,30 @@ const ViewModeToggle = ({
 }) => (
   <ViewModeContainer>
     <Tooltip title={t('Grid view')}>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-pressed={mode === 'card'}
-        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           e.currentTarget.blur();
           setMode('card');
         }}
-        onKeyDown={handleKeyboardActivation(() => setMode('card'))}
         className={cx('toggle-button', { active: mode === 'card' })}
       >
         <Icons.AppstoreOutlined iconSize="xl" />
-      </div>
+      </button>
     </Tooltip>
     <Tooltip title={t('List view')}>
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-pressed={mode === 'table'}
-        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           e.currentTarget.blur();
           setMode('table');
         }}
-        onKeyDown={handleKeyboardActivation(() => setMode('table'))}
         className={cx('toggle-button', { active: mode === 'table' })}
       >
         <Icons.UnorderedListOutlined iconSize="xl" />
-      </div>
+      </button>
     </Tooltip>
   </ViewModeContainer>
 );
@@ -305,6 +339,7 @@ export interface ListViewProps<T extends object = any> {
   renderCard?: (row: T & { loading: boolean }) => ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
+  forceViewMode?: ViewModeType;
   highlightRowId?: number;
   showThumbnails?: boolean;
   emptyState?: EmptyStateProps;
@@ -320,6 +355,12 @@ export interface ListViewProps<T extends object = any> {
   expandable?: Record<string, unknown>;
   /** Content rendered between the filter bar and the table/card body. */
   headerContent?: ReactNode;
+  /** Whether mobile filters drawer is open (controlled externally) */
+  mobileFiltersOpen?: boolean;
+  /** Callback to set mobile filters drawer open state */
+  setMobileFiltersOpen?: (open: boolean) => void;
+  /** Title for the mobile filters drawer */
+  mobileFiltersDrawerTitle?: string;
 }
 
 export function ListView<T extends object = any>({
@@ -341,6 +382,7 @@ export function ListView<T extends object = any>({
   showThumbnails,
   cardSortSelectOptions,
   defaultViewMode = 'card',
+  forceViewMode,
   highlightRowId,
   emptyState,
   columnsForWrapText,
@@ -351,6 +393,9 @@ export function ListView<T extends object = any>({
   headerContent,
   addSuccessToast,
   addDangerToast,
+  mobileFiltersOpen = false,
+  setMobileFiltersOpen,
+  mobileFiltersDrawerTitle,
 }: ListViewProps<T>) {
   const {
     getTableProps,
@@ -377,6 +422,7 @@ export function ListView<T extends object = any>({
     initialFilters: filters,
     renderCard: Boolean(renderCard),
     defaultViewMode,
+    forceViewMode,
   });
   const allowBulkTagActions = bulkTagResourceName && enableBulkTag;
   const filterable = Boolean(filters.length);
@@ -453,11 +499,15 @@ export function ListView<T extends object = any>({
       )}
       <div data-test={className} className={`superset-list-view ${className} `}>
         <div className="header">
-          {cardViewEnabled && (
+          {cardViewEnabled && !forceViewMode && (
             <ViewModeToggle mode={viewMode} setMode={setViewMode} />
           )}
           <div className="controls" data-test="filters-select">
-            {filterable && (
+            {/* When a mobile drawer callback is provided, filters and sort
+                render inside the drawer instead of inline. Only one
+                FilterControls instance is ever mounted, so filtersRef and
+                filterControlsRef always point at the visible instance. */}
+            {filterable && !setMobileFiltersOpen && (
               <FilterControls
                 ref={filterControlsRef}
                 filters={filters}
@@ -465,14 +515,16 @@ export function ListView<T extends object = any>({
                 updateFilterValue={applyFilterValue}
               />
             )}
-            {viewMode === 'card' && cardSortSelectOptions && (
-              <CardSortSelect
-                initialSort={sortBy}
-                onChange={(value: SortColumn[]) => setSortBy(value)}
-                options={cardSortSelectOptions}
-              />
-            )}
-            {filterable && (
+            {viewMode === 'card' &&
+              cardSortSelectOptions &&
+              !setMobileFiltersOpen && (
+                <CardSortSelect
+                  initialSort={sortBy}
+                  onChange={(value: SortColumn[]) => setSortBy(value)}
+                  options={cardSortSelectOptions}
+                />
+              )}
+            {filterable && !setMobileFiltersOpen && (
               <Tooltip
                 title={!hasActiveFilters ? t('No filters applied') : undefined}
               >
@@ -505,19 +557,15 @@ export function ListView<T extends object = any>({
                   </div>
                   {Boolean(selectedFlatRows.length) && (
                     <>
-                      <span
+                      <button
+                        type="button"
                         data-test="bulk-select-deselect-all"
-                        style={{ cursor: 'pointer' }}
-                        role="button"
-                        tabIndex={0}
+                        css={inlineTextButtonCss}
                         className="deselect-all"
                         onClick={() => toggleAllRowsSelected(false)}
-                        onKeyDown={handleKeyboardActivation(() =>
-                          toggleAllRowsSelected(false),
-                        )}
                       >
                         {t('Deselect all')}
-                      </span>
+                      </button>
                       <div className="divider" />
                       {bulkActions
                         .filter(
@@ -543,19 +591,15 @@ export function ListView<T extends object = any>({
                           </Button>
                         ))}
                       {enableBulkTag && (
-                        <span
+                        <button
+                          type="button"
                           data-test="bulk-select-tag-btn"
-                          role="button"
-                          style={{ cursor: 'pointer' }}
-                          tabIndex={0}
+                          css={inlineTextButtonCss}
                           className="tag-btn"
                           onClick={() => setShowBulkTagModal(true)}
-                          onKeyDown={handleKeyboardActivation(() =>
-                            setShowBulkTagModal(true),
-                          )}
                         >
                           {t('Add Tag')}
-                        </span>
+                        </button>
                       )}
                     </>
                   )}
@@ -659,6 +703,46 @@ export function ListView<T extends object = any>({
           )}
         </div>
       </div>
+
+      {/* Mobile filter drawer */}
+      {filterable && setMobileFiltersOpen && (
+        <Drawer
+          title={mobileFiltersDrawerTitle || t('Search')}
+          placement="left"
+          onClose={() => setMobileFiltersOpen(false)}
+          open={mobileFiltersOpen}
+          width={300}
+        >
+          <MobileFilterDrawerContent>
+            <FilterControls
+              ref={filterControlsRef}
+              filters={filters}
+              internalFilters={internalFilters}
+              updateFilterValue={applyFilterValue}
+            />
+            {viewMode === 'card' && cardSortSelectOptions && (
+              <CardSortSelect
+                initialSort={sortBy}
+                onChange={(value: SortColumn[]) => setSortBy(value)}
+                options={cardSortSelectOptions}
+              />
+            )}
+            <Tooltip
+              title={!hasActiveFilters ? t('No filters applied') : undefined}
+            >
+              <span>
+                <ClearAllButton
+                  type="button"
+                  disabled={!hasActiveFilters}
+                  onClick={() => filterControlsRef.current?.clearFilters()}
+                >
+                  {t('Clear all')}
+                </ClearAllButton>
+              </span>
+            </Tooltip>
+          </MobileFilterDrawerContent>
+        </Drawer>
+      )}
     </ListViewStyles>
   );
 }

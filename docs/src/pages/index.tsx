@@ -42,10 +42,13 @@ const Databases = Object.entries(typedDatabaseData.databases)
     title: name,
     href: db.documentation?.homepage_url,
     imgName: db.documentation?.logo,
-    docPath: `/docs/databases/supported/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+    docPath: `/docs/databases/supported/${name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')}`,
   }))
   .sort((a, b) => a.title.localeCompare(b.title))
-  .filter((db) => {
+  .filter(db => {
     if (seenLogos.has(db.imgName!)) return false;
     seenLogos.add(db.imgName!);
     return true;
@@ -66,7 +69,7 @@ const typedDataSet = load(DataSet) as DataSetType;
 // Extract all organizations with logos for the carousel
 const companiesWithLogos = Object.values(typedDataSet.categories)
   .flat()
-  .filter((org) => org.logo?.trim());
+  .filter(org => org.logo?.trim());
 
 // Fisher-Yates shuffle for fair randomization
 function shuffleArray<T>(array: T[]): T[] {
@@ -350,7 +353,9 @@ const StyledDocSectionCard = styled(Link)<StyledDocSectionCardProps>`
   text-decoration: none;
   color: var(--ifm-font-base-color);
   background: transparent;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
@@ -595,7 +600,8 @@ export default function Home(): JSX.Element {
   const slider = useRef(null);
 
   const [slideIndex, setSlideIndex] = useState(0);
-  const [shuffledCompanies, setShuffledCompanies] = useState(companiesWithLogos);
+  const [shuffledCompanies, setShuffledCompanies] =
+    useState(companiesWithLogos);
 
   const onChange = (current, next) => {
     setSlideIndex(next);
@@ -893,7 +899,11 @@ export default function Home(): JSX.Element {
         </BlurredSection>
         <BlurredSection>
           <StyledIntegrations>
-            <SectionHeader level="h2" title="Supported Databases" link="/docs/databases" />
+            <SectionHeader
+              level="h2"
+              title="Supported Databases"
+              link="/docs/databases"
+            />
             <div className="database-grid">
               {Databases.map(({ title, imgName, docPath }) => (
                 <div className="item" key={title}>
@@ -957,7 +967,11 @@ export default function Home(): JSX.Element {
                             src={`/img/logos/${logo}`}
                             alt={name}
                             title={name}
-                            style={{ maxHeight: 48, maxWidth: '100%', objectFit: 'contain' }}
+                            style={{
+                              maxHeight: 48,
+                              maxWidth: '100%',
+                              objectFit: 'contain',
+                            }}
                           />
                         </Card>
                       </a>

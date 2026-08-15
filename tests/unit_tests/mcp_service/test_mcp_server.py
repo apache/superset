@@ -17,8 +17,10 @@
 
 """Tests for MCP server EventStore creation."""
 
-from collections.abc import Awaitable, Callable
-from typing import cast
+import contextlib
+import os
+from collections.abc import Awaitable, Callable, Iterator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -150,6 +152,24 @@ def test_suppress_third_party_warnings():
         and f[3].pattern == r"google\..*"
     ]
     assert len(google_filters) >= 1, "Expected google FutureWarning filter"
+
+    # Verify pkg_resources UserWarning filter is installed, scoped to
+    # sqlalchemy_redshift (sqlalchemy-redshift triggers this via a late
+    # import on Redshift-backed connections; see
+    # superset/db_engine_specs/redshift.py for the full rationale). Scoping
+    # by category+module keeps this from also swallowing the same
+    # deprecation message from unrelated dependencies.
+    pkg_resources_filters = [
+        f
+        for f in warnings.filters
+        if f[0] == "ignore"
+        and f[2] is UserWarning
+        and isinstance(f[1], re.Pattern)
+        and f[1].pattern == r"pkg_resources is deprecated as an API"
+        and isinstance(f[3], re.Pattern)
+        and f[3].pattern == r"sqlalchemy_redshift(?:\..*)?"
+    ]
+    assert len(pkg_resources_filters) >= 1, "Expected pkg_resources warning filter"
 
 
 def test_create_event_store_returns_none_when_redis_store_fails():
@@ -298,3 +318,90 @@ def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
     ):
         with pytest.raises(MCPAuthConfigError):
             _create_auth_provider(flask_app)
+
+
+@contextlib.contextmanager
+def _run_server_dependencies(
+    flask_config: dict[str, Any],
+) -> Iterator[MagicMock]:
+    """Patch every ``run_server()`` collaborator except stateless_http resolution.
+
+    Returns the ``mcp_instance`` mock so callers can assert on the kwargs its
+    ``run()`` was called with -- everything else (auth, middleware, event
+    store, health endpoint) is stubbed out since this is only exercising the
+    ``flask_app.config.get("MCP_STATELESS_HTTP", ...)`` wiring, not those
+    other startup steps.
+    """
+    from superset.mcp_service import server
+
+    flask_app = MagicMock()
+    flask_app.config = flask_config
+    mcp_instance = MagicMock()
+
+    with (
+        patch.object(server, "configure_logging"),
+        patch.object(server, "_suppress_third_party_warnings"),
+        patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=flask_app,
+        ),
+        patch.object(server, "_create_auth_provider", return_value=None),
+        patch.object(server, "build_middleware_list", return_value=[]),
+        patch.object(
+            server, "create_response_size_guard_middleware", return_value=None
+        ),
+        patch(
+            "superset.mcp_service.caching.create_response_caching_middleware",
+            return_value=None,
+        ),
+        patch.object(server, "init_fastmcp_server", return_value=mcp_instance),
+        patch.object(server, "_register_health_endpoint"),
+        patch.object(server, "create_event_store", return_value=None),
+        patch.object(server, "_build_starlette_middleware", return_value=[]),
+    ):
+        yield mcp_instance
+
+
+def test_run_server_defaults_stateless_http_to_true_when_unset() -> None:
+    """run_server() must fall back to MCP_STATELESS_HTTP's True default when the
+    operator's Flask config has no override.
+
+    This pins the production wiring added to fix mid-workflow disconnects: if
+    the ``flask_app.config.get("MCP_STATELESS_HTTP", MCP_STATELESS_HTTP)`` call
+    in ``run_server()`` were reverted to a hardcoded ``True``, or the default
+    were flipped, this test would still pass -- so it's the ``is True`` on the
+    *resolved* value, not just the module constant, that catches a broken
+    resolution.
+    """
+    from superset.mcp_service.server import run_server
+
+    port = 59901
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with _run_server_dependencies(flask_config={}) as mcp_instance:
+            run_server(host="127.0.0.1", port=port)
+
+        mcp_instance.run.assert_called_once()
+        assert mcp_instance.run.call_args.kwargs["stateless_http"] is True
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+def test_run_server_respects_mcp_stateless_http_false_override() -> None:
+    """An operator's MCP_STATELESS_HTTP=False (the value deployments actually run,
+    per the docstring in mcp_config.py) must reach ``mcp_instance.run()`` rather
+    than the module's True default."""
+    from superset.mcp_service.server import run_server
+
+    port = 59902
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with _run_server_dependencies(
+            flask_config={"MCP_STATELESS_HTTP": False}
+        ) as mcp_instance:
+            run_server(host="127.0.0.1", port=port)
+
+        mcp_instance.run.assert_called_once()
+        assert mcp_instance.run.call_args.kwargs["stateless_http"] is False
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)

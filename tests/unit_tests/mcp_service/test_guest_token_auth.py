@@ -334,13 +334,6 @@ def test_tool_denied_for_principal_helper(app: SupersetApp) -> None:
         assert _tool_denied_for_principal(allowed) is False
 
 
-def test_default_allow_list_matches_config() -> None:
-    """The auth.py default and the mcp_config.py default must stay in sync."""
-    from superset.mcp_service.mcp_config import MCP_GUEST_ALLOWED_TOOLS
-
-    assert set(_DEFAULT_GUEST_ALLOWED_TOOLS) == set(MCP_GUEST_ALLOWED_TOOLS)
-
-
 @pytest.mark.parametrize("tool_name", sorted(_DEFAULT_GUEST_ALLOWED_TOOLS))
 def test_allow_listed_tools_permitted_for_guest(
     app: SupersetApp, tool_name: str

@@ -157,7 +157,7 @@ Add this to your Claude Desktop config file:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-Since claude desktop doesnt like non https mcp servers you can use this proxy:
+Since claude desktop doesn't like non https mcp servers you can use this proxy:
 ```json
 {
   "mcpServers": {

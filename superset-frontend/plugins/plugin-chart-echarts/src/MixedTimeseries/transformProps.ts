@@ -457,13 +457,23 @@ export default function transformProps(
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
+    const labelMapValues = rawLabelMap?.[seriesName];
+
     let displayName: string;
 
     if (groupby.length > 0) {
-      // When we have groupby, format as "metric, dimension"
+      // When we have groupby, format as "metric, dimension". Each series
+      // belongs to the metric recorded in its label-map tuple
+      // ([metric, ...dimensions]) — always using the first metric would
+      // prepend it to every other metric's series (#37921). Tuples without
+      // a metric part fall back to the first metric as before.
+      const metricDisplayName =
+        labelMapValues && labelMapValues.length > 1
+          ? getMetricDisplayName(labelMapValues[0], verboseMap)
+          : MetricDisplayNameA;
       const metricPart: string = showQueryIdentifiers
-        ? `${MetricDisplayNameA} (Query A)`
-        : MetricDisplayNameA;
+        ? `${metricDisplayName} (Query A)`
+        : metricDisplayName;
       displayName = entryName.includes(metricPart)
         ? entryName
         : `${metricPart}, ${entryName}`;
@@ -471,8 +481,6 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
     }
-
-    const labelMapValues = rawLabelMap?.[seriesName];
     if (labelMapValues) {
       displayLabelMap[displayName] = labelMapValues;
     }
@@ -536,13 +544,23 @@ export default function transformProps(
     const seriesEntry = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
+    const labelMapValuesB = rawLabelMapB?.[seriesEntry];
+
     let displayName: string;
 
     if (groupbyB.length > 0) {
-      // When we have groupby, format as "metric, dimension"
+      // When we have groupby, format as "metric, dimension". Each series
+      // belongs to the metric recorded in its label-map tuple
+      // ([metric, ...dimensions]) — always using the first metric would
+      // prepend it to every other metric's series (#37921). Tuples without
+      // a metric part fall back to the first metric as before.
+      const metricDisplayName =
+        labelMapValuesB && labelMapValuesB.length > 1
+          ? getMetricDisplayName(labelMapValuesB[0], verboseMap)
+          : MetricDisplayNameB;
       const metricPart: string = showQueryIdentifiers
-        ? `${MetricDisplayNameB} (Query B)`
-        : MetricDisplayNameB;
+        ? `${metricDisplayName} (Query B)`
+        : metricDisplayName;
       displayName = entryName.includes(metricPart)
         ? entryName
         : `${metricPart}, ${entryName}`;
@@ -550,8 +568,6 @@ export default function transformProps(
       // When no groupby, format as just the entry name with optional query identifier
       displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
     }
-
-    const labelMapValuesB = rawLabelMapB?.[seriesEntry];
     if (labelMapValuesB) {
       displayLabelMapB[displayName] = labelMapValuesB;
     }
@@ -674,11 +690,11 @@ export default function transformProps(
       })()
     : xAxisFormatter;
 
+  const yAxisTitleMarginPx = convertInteger(yAxisTitleMargin);
+  const xAxisTitleMarginPx = convertInteger(xAxisTitleMargin);
   const addYAxisTitleOffset =
-    !!(yAxisTitle || yAxisTitleSecondary) &&
-    convertInteger(yAxisTitleMargin) !== 0;
-  const addXAxisTitleOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+    !!(yAxisTitle || yAxisTitleSecondary) && yAxisTitleMarginPx !== 0;
+  const addXAxisTitleOffset = !!xAxisTitle && xAxisTitleMarginPx !== 0;
   const baseChartPadding = getPadding(
     showLegend,
     legendOrientation,
@@ -687,8 +703,8 @@ export default function transformProps(
     legendMargin,
     addXAxisTitleOffset,
     yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
+    yAxisTitleMarginPx,
+    xAxisTitleMarginPx,
   );
   const legendData = series
     .filter(
@@ -732,8 +748,8 @@ export default function transformProps(
     effectiveLegendMargin,
     addXAxisTitleOffset,
     yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
+    yAxisTitleMarginPx,
+    xAxisTitleMarginPx,
   );
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -748,7 +764,7 @@ export default function transformProps(
     xAxis: {
       type: xAxisType,
       name: xAxisTitle,
-      nameGap: convertInteger(xAxisTitleMargin),
+      nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
       axisLabel: {
         hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
@@ -805,7 +821,7 @@ export default function transformProps(
         },
         scale: truncateYAxis,
         name: yAxisTitle,
-        nameGap: convertInteger(yAxisTitleMargin),
+        nameGap: yAxisTitleMarginPx,
         nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
       },
@@ -828,6 +844,8 @@ export default function transformProps(
         },
         scale: truncateYAxis,
         name: yAxisTitleSecondary,
+        nameGap: yAxisTitleMarginPx,
+        nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
       },
     ],

@@ -51,7 +51,7 @@ class Slice(Base):
 def upgrade():
     bind = op.get_bind()
     op.add_column("slices", sa.Column("perm", sa.String(length=2000), nullable=True))
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     # Use Slice class defined here instead of models.Slice
     for slc in session.query(Slice).all():

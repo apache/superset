@@ -440,6 +440,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         cache_dict: dict[str, Any] = dict(self.to_dict())
         cache_dict.update(extra)
 
+        if "extra_cache_keys" in cache_dict:
+            # Order carries no meaning here (an unordered set of opaque
+            # Jinja url_param()-derived values), but hash_from_dict only
+            # sorts dict keys, not list values, so an unsorted list makes
+            # the cache key depend on Python's per-process hash-randomized
+            # set iteration order (see SqlaTable.get_extra_cache_keys).
+            # Normalize once here so every producer of extra_cache_keys is
+            # safe by construction. Sort on (type name, str value) rather
+            # than a bare str() so values that stringify identically but
+            # differ in type (e.g. 1 and "1") still sort deterministically
+            # instead of falling back to input order.
+            cache_dict["extra_cache_keys"] = sorted(
+                cache_dict["extra_cache_keys"],
+                key=lambda value: (type(value).__name__, str(value)),
+            )
+
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously
         #  cached results will be invalidated.
