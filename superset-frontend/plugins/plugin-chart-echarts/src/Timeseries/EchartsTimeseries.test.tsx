@@ -21,7 +21,8 @@ import {
   waitFor,
   cleanup,
 } from '../../../../spec/helpers/testing-library';
-import { AxisType } from '@superset-ui/core';
+import { AxisType, TimeGranularity } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { ECElementEvent } from 'echarts/types/src/util/types';
 import type { ReactNode } from 'react';
@@ -654,4 +655,100 @@ test('context menu cross-filter uses the category value for a horizontal categor
       },
     ]);
   }
+});
+
+// A category axis can still sit on a temporal column when the axis is
+// forced categorical (xAxisForceCategorical); the drillBy x-axis filter must
+// then bucket by the configured time grain rather than doing an exact match.
+test('drillBy filters by time bucket when a categorical axis is forced onto a temporal column', async () => {
+  const onContextMenuMock = jest.fn();
+
+  const propsWithForcedCategoricalTemporalAxis: TimeseriesChartTransformedProps =
+    {
+      ...defaultProps,
+      onContextMenu: onContextMenuMock,
+      formData: {
+        ...defaultFormData,
+        xAxisForceCategorical: true,
+        timeGrainSqla: TimeGranularity.MONTH,
+      },
+      coltypeMapping: { order_date: GenericDataType.Temporal },
+      xAxis: {
+        label: 'order_date',
+        type: AxisType.Category,
+      },
+    };
+
+  render(<EchartsTimeseries {...propsWithForcedCategoricalTemporalAxis} />);
+
+  const contextMenuHandler = getLatestEchartProps().eventHandlers?.contextmenu;
+  expect(contextMenuHandler).toBeDefined();
+  await contextMenuHandler?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: ['2021-02-01T00:00:00', 100],
+    name: '2021-02-01T00:00:00',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  await waitFor(() => {
+    expect(onContextMenuMock).toHaveBeenCalled();
+  });
+
+  const { drillBy } = onContextMenuMock.mock.calls[0][2];
+  expect(drillBy.xAxisFilters).toEqual([
+    {
+      col: 'order_date',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-02-01T00:00:00 : 2021-03-01T00:00:00',
+      formattedVal: '2021-02-01T00:00:00',
+    },
+  ]);
+});
+
+// For horizontal orientation the [x, value] pair reported by ECharts is
+// swapped, so the drillBy x-axis filter must read the clicked time value
+// from the second element of the data tuple rather than the first.
+test('drillBy uses the swapped data index for a horizontal time-based axis', async () => {
+  const onContextMenuMock = jest.fn();
+
+  const propsWithHorizontalTimeAxis: TimeseriesChartTransformedProps = {
+    ...defaultProps,
+    onContextMenu: onContextMenuMock,
+    formData: {
+      ...defaultFormData,
+      orientation: OrientationType.Horizontal,
+    },
+    xAxis: {
+      label: 'order_date',
+      type: AxisType.Time,
+    },
+  };
+
+  render(<EchartsTimeseries {...propsWithHorizontalTimeAxis} />);
+
+  const contextMenuHandler = getLatestEchartProps().eventHandlers?.contextmenu;
+  expect(contextMenuHandler).toBeDefined();
+  await contextMenuHandler?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    // Horizontal: value first, x (time) value second
+    data: [100, '2021-02-01T00:00:00'],
+    name: '2021-02-01T00:00:00',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  await waitFor(() => {
+    expect(onContextMenuMock).toHaveBeenCalled();
+  });
+
+  const { drillBy } = onContextMenuMock.mock.calls[0][2];
+  expect(drillBy.xAxisFilters).toEqual([
+    {
+      col: 'order_date',
+      op: '==',
+      val: '2021-02-01T00:00:00',
+      formattedVal: '2021-02-01T00:00:00',
+    },
+  ]);
 });

@@ -45,8 +45,9 @@ Configuration:
 """
 
 import logging
-from contextlib import AbstractContextManager, nullcontext
-from typing import Any, Callable, cast, TYPE_CHECKING, TypeAlias, TypeVar
+from contextlib import AbstractContextManager, contextmanager
+from contextvars import ContextVar
+from typing import Any, Callable, cast, Generator, TYPE_CHECKING, TypeAlias, TypeVar
 
 from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import User
@@ -60,7 +61,10 @@ from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
 from superset.mcp_service.mcp_config import (
     default_user_resolver,
     get_mcp_api_key_enabled,
+    MCP_GUEST_ALLOWED_TOOLS,
+    validate_multi_issuer_user_resolver,
 )
+from superset.mcp_service.session_scope import _mcp_session_token
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
 )
@@ -75,6 +79,15 @@ if TYPE_CHECKING:
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+# The resolved user's id for the current tool call, set by
+# _setup_user_context(). g.user is only valid for the lifetime of the
+# per-call app context pushed by _get_app_context_manager() (see its
+# docstring) and is gone by the time LoggingMiddleware's on_call_tool/
+# on_message finally-blocks run after call_next() returns. This ContextVar
+# survives that context pop (mirrors _mcp_call_id_var in middleware.py) so
+# audit logging can attribute the call to the right user.
+_mcp_user_id_var: ContextVar[int | None] = ContextVar("mcp_user_id", default=None)
 
 # An MCP request resolves to a real DB ``User`` or, for embedded guests, a
 # ``GuestUser`` (an AnonymousUserMixin, not a ``User`` subclass). Both are valid
@@ -242,21 +255,9 @@ def _log_scope_denial(
 
 # Default-deny allow-list for embedded guests: a guest may call only these tools,
 # regardless of MCP_RBAC_ENABLED or how the guest role (PUBLIC_ROLE_LIKE) is
-# configured. Everything else is denied, including newly added tools until listed
-# here. Sync with mcp_config.py.
-_DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(
-    {
-        # Dashboard structure, scoped to the token's embedded dashboards.
-        "get_dashboard_info",
-        "get_dashboard_layout",
-        "list_dashboards",
-        # Chart read + data, scoped by ChartFilter; data-model fields redacted.
-        "list_charts",
-        "get_chart_info",
-        "get_chart_data",
-        "get_chart_preview",
-    }
-)
+# configured. Everything else is denied, including newly added tools until listed.
+# Single source of truth: MCP_GUEST_ALLOWED_TOOLS in mcp_config.py.
+_DEFAULT_GUEST_ALLOWED_TOOLS: frozenset[str] = frozenset(MCP_GUEST_ALLOWED_TOOLS)
 
 
 def _guest_allowed_tools() -> frozenset[str]:
@@ -526,6 +527,10 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     Raises:
         ValueError: If JWT resolves a username that doesn't exist in the DB
             (fail closed — do NOT fall through to weaker auth sources).
+        MCPAuthConfigError: If more than one JWT issuer is trusted
+            (``MCP_JWT_ISSUER`` is a list/tuple/set) and no issuer-aware
+            ``MCP_USER_RESOLVER`` is configured (fail closed — see
+            ``validate_multi_issuer_user_resolver``).
     """
     try:
         from fastmcp.server.dependencies import get_access_token
@@ -591,23 +596,11 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     # Single-issuer deployments (the common case) are safe — the issuer is
     # already pinned by the verifier, so the username space is unambiguous and
     # we keep the existing lookup key to avoid breaking them. For multi-issuer
-    # configs we warn: operators should provide an issuer-aware MCP_USER_RESOLVER
-    # that derives a compound (iss + sub) identity. This is the least-breaking
-    # correct option (warn, don't change the key out from under existing
-    # single-issuer deployments).
-    configured_issuer = app.config.get("MCP_JWT_ISSUER")
-    if isinstance(configured_issuer, (list, tuple, set)) and len(configured_issuer) > 1:
-        if not app.config.get("MCP_USER_RESOLVER"):
-            token_iss = claims.get("iss") if isinstance(claims, dict) else None
-            logger.warning(
-                "Multiple JWT issuers are trusted (MCP_JWT_ISSUER is a list) but "
-                "the default user resolver maps token claims to Superset users by "
-                "username/email without binding the issuer (iss=%s). Distinct "
-                "issuers minting the same username/email will collide. Configure an "
-                "issuer-aware MCP_USER_RESOLVER to derive a compound (iss+sub) "
-                "identity.",
-                _sanitize_for_log(token_iss),
-            )
+    # configs without an issuer-aware MCP_USER_RESOLVER, fail closed rather
+    # than resolving an identity that isn't actually scoped to the trusted
+    # issuer (mirrors the startup-time config checks in
+    # create_default_mcp_auth_factory / superset.initialization).
+    validate_multi_issuer_user_resolver(app)
 
     # Use configurable resolver or default
 
@@ -896,9 +889,9 @@ def _assert_user_active(user: MCPUser | None) -> None:
         )
 
 
-def _setup_user_context() -> MCPUser | None:
+def _resolve_user_with_retry() -> MCPUser | None:
     """
-    Set up user context for MCP tool execution.
+    Resolve the current user, retrying once on a stale DB connection.
 
     Includes retry logic for stale database connections (e.g., SSL dropped
     by proxy/load balancer after idle periods). On OperationalError, the
@@ -907,14 +900,6 @@ def _setup_user_context() -> MCPUser | None:
     Returns:
         User object with roles and groups loaded, or None if no Flask context
     """
-    # Clear stale g.user to prevent user impersonation across
-    # tool calls when no per-request middleware refreshes it.
-    # Only clear in app-context-only mode; preserve g.user when
-    # a request context is active (external middleware set it).
-
-    if not has_request_context():
-        g.pop("user", None)
-
     from sqlalchemy.exc import OperationalError
 
     user = None  # Ensure defined before loop in case of unexpected exit
@@ -931,7 +916,7 @@ def _setup_user_context() -> MCPUser | None:
             if hasattr(user, "groups"):
                 user_groups = user.groups  # noqa: F841
 
-            break
+            return user
         except RuntimeError as e:
             # No Flask application context (e.g., prompts before middleware runs)
             if "application context" in str(e):
@@ -965,8 +950,38 @@ def _setup_user_context() -> MCPUser | None:
                 g.pop("user", None)
             raise
 
+    return user
+
+
+def _setup_user_context() -> MCPUser | None:
+    """
+    Set up user context for MCP tool execution.
+
+    Returns:
+        User object with roles and groups loaded, or None if no Flask context
+    """
+    # Clear stale g.user to prevent user impersonation across
+    # tool calls when no per-request middleware refreshes it.
+    # Only clear in app-context-only mode; preserve g.user when
+    # a request context is active (external middleware set it).
+
+    if not has_request_context():
+        g.pop("user", None)
+    # Clear any user_id left over from a previous call in this context
+    # (e.g. sequential calls sharing one asyncio task) so a failed/
+    # unauthenticated lookup below doesn't inherit a stale value.
+    _mcp_user_id_var.set(None)
+
+    user = _resolve_user_with_retry()
+    if user is None:
+        return None
+
     _assert_user_active(user)
     g.user = user
+    # GuestUser (embedded auth) has no numeric id; leave the ContextVar
+    # cleared (already reset above) rather than raise.
+    if (user_id := getattr(user, "id", None)) is not None:
+        _mcp_user_id_var.set(user_id)
     return user
 
 
@@ -1028,7 +1043,8 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
 
     When a request context is present, external middleware (e.g.
     Preset's WorkspaceContextMiddleware) has already set ``g.user``
-    on a per-request app context — reuse it via ``nullcontext()``.
+    on a per-request app context — reuse it, but still tag the call
+    with a per-call session token (see ``_request_tool_call_context``).
 
     When only a bare app context exists (no request context), push a
     **new** app context so concurrent tool calls do not share one ``g``
@@ -1037,21 +1053,64 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
     When no context exists at all, push a fresh app context from the
     Flask singleton.
 
+    Every path tags the call with a per-call session token (see
+    session_scope.py) so each tool call gets its own SQLAlchemy
+    session — otherwise all in-flight async calls on one greenlet
+    share the greenlet-scoped session, and one call's teardown
+    detaches the others' ORM instances.
+
     This is the single source of truth for context selection — called
     from both ``mcp_auth_hook`` (tool execution) and
     ``RBACToolVisibilityMiddleware`` (tools/list filtering).
     """
     if has_request_context():
-        return nullcontext()
-    if has_app_context():
-        # Push a new context for the CURRENT app (not get_flask_app()
-        # which may return a different instance in test environments).
-        return current_app._get_current_object().app_context()
-    # Deferred: importing at module level would trigger create_app() before
-    # Superset is fully initialised (e.g. during unit-test collection).
-    from superset.mcp_service.flask_singleton import get_flask_app
+        return _request_tool_call_context()
+    return _mcp_tool_call_context()
 
-    return get_flask_app().app_context()
+
+@contextmanager
+def _request_tool_call_context() -> Generator[None, None, None]:
+    """Tag a request-backed tool call with a per-call session token.
+
+    The request context is reused as-is (middleware already populated
+    ``g.user``), so no new app context is pushed — but without the
+    token, concurrent tool calls on the request's greenlet would share
+    the greenlet-scoped SQLAlchemy session, the same race that
+    ``_mcp_tool_call_context()`` prevents on the no-request path.
+    """
+    token = _mcp_session_token.set(object())
+    try:
+        yield
+    finally:
+        # Deregister this call's session while the token still resolves
+        # the registry to it; the request's own greenlet-scoped session
+        # is left for the request lifecycle to tear down.
+        _remove_session_safe()
+        _mcp_session_token.reset(token)
+
+
+@contextmanager
+def _mcp_tool_call_context() -> Generator[None, None, None]:
+    """Push a fresh app context tagged with a per-call session token."""
+    token = _mcp_session_token.set(object())
+    try:
+        if has_app_context():
+            # Push a new context for the CURRENT app (not get_flask_app()
+            # which may return a different instance in test environments).
+            with current_app._get_current_object().app_context():
+                yield
+        else:
+            # Deferred: importing at module level would trigger create_app()
+            # before Superset is fully initialised (e.g. during unit-test
+            # collection).
+            from superset.mcp_service.flask_singleton import get_flask_app
+
+            with get_flask_app().app_context():
+                yield
+    finally:
+        # Reset only after the app context popped, so teardown's
+        # db.session.remove() still resolves to this call's session.
+        _mcp_session_token.reset(token)
 
 
 def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901

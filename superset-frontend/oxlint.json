@@ -276,6 +276,19 @@
           "test*WithInitialValues"
         ]
       }
+    ],
+
+    // === ESLint rules ===
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "lodash",
+            "message": "Please use tree-shakeable lodash-es instead"
+          }
+        ]
+      }
     ]
   },
   "overrides": [

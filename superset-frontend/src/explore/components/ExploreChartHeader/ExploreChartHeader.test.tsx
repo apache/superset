@@ -43,6 +43,10 @@ import path from 'path';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
 
+const EDIT_PROPERTIES_INITIAL_STATE = {
+  explore: { can_overwrite: true, can_add: true },
+};
+
 fetchMock.get(chartEndpoint, { json: 'foo' });
 
 window.featureFlags = {
@@ -170,7 +174,10 @@ describe('ExploreChartHeader', () => {
 
   test('Cancelling changes to the properties should reset previous properties', async () => {
     const props = createProps();
-    render(<ExploreHeader {...props} />, { useRedux: true });
+    render(<ExploreHeader {...props} />, {
+      useRedux: true,
+      initialState: EDIT_PROPERTIES_INITIAL_STATE,
+    });
     const newChartName = 'New chart name';
     const prevChartName = props.sliceName;
 
@@ -626,6 +633,7 @@ describe('Additional actions tests', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
+      initialState: EDIT_PROPERTIES_INITIAL_STATE,
     });
 
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
@@ -720,6 +728,7 @@ describe('Additional actions tests', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, {
       useRedux: true,
+      initialState: EDIT_PROPERTIES_INITIAL_STATE,
     });
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));

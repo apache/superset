@@ -27,7 +27,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "@babel/types": "^7.29.7",
+    "@babel/types": "^7.29.8",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^15.0.0",

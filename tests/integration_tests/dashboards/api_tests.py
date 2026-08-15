@@ -184,6 +184,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 crontab="* * * * *",
                 dashboard=dashboard,
             )
+            # SQLAlchemy 2.0 removes the legacy cascade_backrefs behavior, so
+            # assigning `dashboard=dashboard` on a transient ReportSchedule no
+            # longer implicitly adds it to the session via the
+            # Dashboard.report_schedules backref - it must be added explicitly.
+            db.session.add(report_schedule)
             db.session.commit()
 
             yield dashboard
@@ -337,19 +342,32 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = self.get_assert_metric(uri, "get_datasets")
         assert response.status_code == 200
         data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
         for dataset in data["result"]:
+            # Spelled out rather than read from the production constant, so
+            # that dropping a field from that constant fails this test.
             for excluded_key in [
                 "sql",
                 "select_star",
                 "fetch_values_predicate",
                 "template_params",
                 "params",
+                "perm",
+                "edit_url",
+                "database",
+                "columns",
+                "column_names",
+                "column_types",
+                "metrics",
+                "verbose_map",
+                "order_by_choices",
+                "main_dttm_col",
+                "granularity_sqla",
+                "time_grain_sqla",
             ]:
                 assert excluded_key not in dataset
-            for column in dataset.get("columns") or []:
-                assert "expression" not in column
-            for metric in dataset.get("metrics") or []:
-                assert "expression" not in metric
+            # The identifying fields the dashboard needs to render are kept.
+            assert {"id", "uid", "table_name", "type"} <= set(dataset)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -464,6 +482,26 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
         assert result["id"] == dashboard.slices[0].id
         assert result["slice_name"] == dashboard.slices[0].slice_name
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @patch("superset.dashboards.api.security_manager.can_access_chart")
+    def test_get_dashboard_charts_strips_form_data_without_chart_access(
+        self, can_access_chart_mock
+    ):
+        """A caller who cannot access a member chart does not receive its
+        form_data (datasource/query config), only its identifying fields."""
+        can_access_chart_mock.return_value = False
+        self.login(ADMIN_USERNAME)
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
+        for chart in data["result"]:
+            assert "form_data" not in chart
+            assert "id" in chart
+            assert "slice_name" in chart
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):
