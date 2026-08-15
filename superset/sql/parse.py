@@ -1451,6 +1451,18 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         return bool(self._parsed.args.get("with_"))
 
+    def remove_unbounded_top_level_order_by(self) -> bool:
+        """Drop ordering that becomes invalid when this query is embedded."""
+        if (
+            self._parsed.args.get("order")
+            and not self._parsed.args.get("limit")
+            and not self._parsed.args.get("offset")
+            and not self._parsed.args.get("for_")
+        ):
+            self._parsed.set("order", None)
+            return True
+        return False
+
     def as_cte(self, alias: str = "__cte") -> SQLStatement:
         """
         Rewrite the statement as a CTE.
