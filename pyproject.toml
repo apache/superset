@@ -135,7 +135,7 @@ athena = ["pyathena[pandas]>=3.35.4, <4"]
 # superset/db_engine_specs/aurora.py's known_incompatibilities metadata.
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
-    "pandas-gbq>=0.35.0",
+    "pandas-gbq>=0.35.1",
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
     "sqlalchemy-bigquery>=1.17.1",
