@@ -110,3 +110,16 @@ test('does not treat adhoc groupby labels as histogram bin edges', () => {
   expect(series[0].name).toBe('WEST');
   expect(series[0].data).toEqual([3, 7]);
 });
+
+test('renders an empty chart when the query returns no rows', () => {
+  /**
+   * The histogram post-processor returns an empty frame when every value in
+   * the target column is NULL, so `queriesData[0].data` arrives as `[]`.
+   * Reading the bin labels off `data[0]` must not throw.
+   */
+  const { xAxis, series } = readChart(createChartProps([]));
+
+  expect(xAxis.data).toEqual([]);
+  expect(series).toEqual([]);
+
+});
