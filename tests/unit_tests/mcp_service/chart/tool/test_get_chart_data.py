@@ -23,16 +23,19 @@ import importlib
 from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
 from superset.mcp_service.chart.schemas import (
     ChartData,
+    ChartError,
     DataColumn,
     GetChartDataRequest,
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _build_query_results,
     _coerce_row_limit,
     _GENERIC_TYPE_MAP,
     _MAX_RECOMMENDATIONS,
@@ -130,6 +133,37 @@ def _extract_metrics_and_groupby(
         _collect_groupby_extras(form_data, groupby_columns)
 
     return metrics, groupby_columns
+
+
+def test_query_context_form_data_supports_request_dependent_jinja_macros() -> None:
+    """Chart queries expose filters, URL parameters, and the datasource to Jinja."""
+    from flask import current_app
+
+    from superset.charts.data.form_data import set_query_context_form_data
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache, get_dataset_id_from_context
+
+    query = QueryObject(
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+        time_range="Last week",
+    )
+    query_context: Any = SimpleNamespace(
+        queries=[query],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+
+    with current_app.test_request_context():
+        set_query_context_form_data(query_context, 7, "table")
+        extra_cache = ExtraCache()
+
+        assert extra_cache.filter_values("region") == ["North"]
+        assert extra_cache.get_filters("region") == [
+            {"col": "region", "op": "IN", "val": ["North"]}
+        ]
+        assert extra_cache.url_param("tenant") == "acme"
+        assert extra_cache.get_time_filter().time_range == "Last week"
+        # metric() without an explicit dataset ID performs this lookup.
+        assert get_dataset_id_from_context("count") == 7
 
 
 class TestBigNumberChartFallback:
@@ -1047,7 +1081,6 @@ class TestChartDataCommandValidation:
 
         from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
         from superset.exceptions import SupersetSecurityException
-        from superset.mcp_service.chart.schemas import ChartError
 
         security_error = SupersetSecurityException(
             SupersetError(
@@ -1378,7 +1411,7 @@ class TestOAuthErrorRouting:
 
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
-                return object()
+                return SimpleNamespace(queries=[], form_data={})
 
         class RaisingChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -1678,12 +1711,147 @@ def test_bool_isinstance_check_before_int():
         (None, 500, 500),  # missing -> default
         ("", 500, 500),  # empty string -> default
         ("abc", 500, 500),  # non-numeric -> default
-        (0, 500, 0),  # explicit zero preserved
+        (0, 500, 500),  # non-positive zero -> default (no LIMIT 0)
+        (-1, 500, 500),  # negative -> default (no LIMIT -1 downstream)
+        ("-1", 500, 500),  # negative string -> default
     ],
 )
 def test_coerce_row_limit(value: Any, default: int, expected: int) -> None:
-    """_coerce_row_limit tolerates str/None row_limits from chart.params."""
+    """_coerce_row_limit tolerates str/None and rejects non-positive row_limits."""
     assert _coerce_row_limit(value, default) == expected
+
+
+def test_mixed_timeseries_preserves_both_query_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mixed Timeseries data includes both its primary and secondary queries."""
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "sqlite",
+    )
+
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "metrics": ["primary_metric"],
+        "metrics_b": ["secondary_metric"],
+        "groupby": [],
+        "groupby_b": [],
+    }
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+    assert len(queries) == 2
+
+    results = _build_query_results(
+        [
+            {"colnames": ["primary"], "data": [{"primary": 1}], "rowcount": 1},
+            {
+                "colnames": ["secondary"],
+                "data": [{"secondary": 2}],
+                "rowcount": 1,
+            },
+        ],
+        limit=None,
+    )
+
+    assert results is not None
+    assert [result.query_index for result in results] == [0, 1]
+    assert results[0].data == [{"primary": 1}]
+    assert results[1].data == [{"secondary": 2}]
+
+
+def test_single_query_chart_keeps_legacy_shape() -> None:
+    """Single-query charts do not gain a redundant query_results payload."""
+    assert (
+        _build_query_results([{"colnames": ["metric"], "data": [{"metric": 1}]}], None)
+        is None
+    )
+
+
+def test_multi_query_row_count_reflects_limit() -> None:
+    """Nested row counts describe returned rows rather than source rows."""
+    results = _build_query_results(
+        [
+            {"colnames": ["metric"], "data": [{"metric": 1}, {"metric": 2}]},
+            {"colnames": ["metric"], "data": [{"metric": 3}, {"metric": 4}]},
+        ],
+        limit=1,
+    )
+
+    assert results is not None
+    assert [result.row_count for result in results] == [1, 1]
+    assert [result.data for result in results] == [
+        [{"metric": 1}],
+        [{"metric": 3}],
+    ]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The tool response must not collapse a multi-query command result."""
+    from unittest.mock import AsyncMock
+
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart_data_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+
+    class MultiQueryChartDataCommand:
+        def __init__(self, query_context: object) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "colnames": ["primary"],
+                        "data": [],
+                        "rowcount": 0,
+                    },
+                    {
+                        "colnames": ["secondary"],
+                        "data": [{"secondary": 2}],
+                        "rowcount": 1,
+                    },
+                ]
+            }
+
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: object(),
+    )
+    monkeypatch.setattr(
+        get_data_command_module, "ChartDataCommand", MultiQueryChartDataCommand
+    )
+    request = GetChartDataRequest(form_data_key="mixed-chart")
+    response = await _query_from_form_data(
+        {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "row_limit": 10,
+        },
+        request,
+        AsyncMock(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.data == []
+    assert response.query_results is not None
+    assert [result.data for result in response.query_results] == [
+        [],
+        [{"secondary": 2}],
+    ]
 
 
 def _make_chart_data(**overrides: Any) -> ChartData:
@@ -1742,3 +1910,279 @@ class TestChartDataTotalRowsCoercion:
         chart_data = _make_chart_data(total_rows=5.9)
         assert chart_data.total_rows == 5
         assert isinstance(chart_data.total_rows, int)
+
+
+class TestGuestScoping:
+    """Tool-level guest coverage for get_chart_data (the highest-value guest
+    tool): the data query is pinned to the token's dashboard, the dataset
+    existence check runs without the RBAC access check, and requests that a
+    guest cannot be scoped for are denied cleanly."""
+
+    @pytest.mark.asyncio
+    async def test_guest_query_pinned_to_dashboard_with_existence_only_check(
+        self, mcp_server, mock_auth
+    ) -> None:
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=9,
+            slice_name="Sales",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            query_context='{"queries": []}',
+            params=None,
+        )
+        validate_calls: dict[str, Any] = {}
+
+        def fake_validate(datasource_id: Any, check_access: bool = True) -> Any:
+            validate_calls["check_access"] = check_access
+            return SimpleNamespace(is_valid=True, warnings=[], error=None)
+
+        class _Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [{"data": [{"a": 1}], "colnames": ["a"], "rowcount": 1}]
+                }
+
+        mock_authorize = MagicMock()
+        with (
+            patch.object(module, "find_chart_by_identifier", return_value=chart),
+            patch.object(module, "validate_chart_dataset", side_effect=fake_validate),
+            patch.object(module.guest_scope, "is_guest_read", return_value=True),
+            patch.object(module.guest_scope, "guest_dashboard_id", return_value=6),
+            patch.object(module.guest_scope, "authorize_query", mock_authorize),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                _Command,
+            ),
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                lambda self, data: object(),
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data", {"request": {"identifier": "9"}}
+                )
+
+        # F: the dataset existence check runs, but without the RBAC access check.
+        assert validate_calls["check_access"] is False
+        # Scoping: the data query is pinned to the token's dashboard, so
+        # raise_for_access authorizes against a dashboard the guest can see.
+        mock_authorize.assert_called_once()
+        assert mock_authorize.call_args.args[1] == 6
+
+    @pytest.mark.asyncio
+    async def test_guest_out_of_scope_chart_is_not_found(
+        self, mcp_server, mock_auth
+    ) -> None:
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        from superset.utils import json
+
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        # ChartFilter scopes an out-of-scope chart out, so the lookup returns None.
+        with (
+            patch.object(module, "find_chart_by_identifier", return_value=None),
+            patch.object(module.guest_scope, "is_guest_read", return_value=True),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "get_chart_data", {"request": {"identifier": "123"}}
+                )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "NotFound"
+
+    @pytest.mark.asyncio
+    async def test_guest_form_data_key_only_path_is_denied(
+        self, mcp_server, mock_auth
+    ) -> None:
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        from superset.utils import json
+
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        # A valid cached blob is available, so without the guest-denial branch
+        # the code would proceed to query rather than 404 on a cache miss. The
+        # NotFound here therefore pins the denial itself, not a cache miss.
+        with (
+            patch.object(module.guest_scope, "is_guest_read", return_value=True),
+            patch.object(
+                module,
+                "get_cached_form_data",
+                return_value='{"datasource_id": 1, "datasource_type": "table"}',
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+                )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "NotFound"
+        assert "No accessible chart found for this request." in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_guest_form_data_key_ignored_when_identifier_present(
+        self, mcp_server, mock_auth
+    ) -> None:
+        """A guest supplying identifier + form_data_key never reads the cache: the
+        cached payload could point the query at a foreign datasource, so a guest
+        always falls through to the saved chart config."""
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=9,
+            slice_name="Sales",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            query_context='{"queries": []}',
+            params=None,
+        )
+
+        class _Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [{"data": [{"a": 1}], "colnames": ["a"], "rowcount": 1}]
+                }
+
+        cached_spy = MagicMock(
+            return_value='{"datasource_id": 999, "datasource_type": "table"}'
+        )
+        with (
+            patch.object(module, "find_chart_by_identifier", return_value=chart),
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            ),
+            patch.object(module.guest_scope, "is_guest_read", return_value=True),
+            patch.object(module.guest_scope, "guest_dashboard_id", return_value=6),
+            patch.object(module.guest_scope, "authorize_query", MagicMock()),
+            patch.object(module, "get_cached_form_data", cached_spy),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                _Command,
+            ),
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                lambda self, data: object(),
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data",
+                    {"request": {"identifier": "9", "form_data_key": "foreign-key"}},
+                )
+
+        # The gate short-circuits before the cache is ever consulted for a guest.
+        cached_spy.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_query_from_form_data_zero_row_limit_falls_back_to_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A falsy int 0 hits the ``or ROW_LIMIT`` fallback and resolves to the
+    configured default before coercion runs, so the coercion leaves the cached
+    0 case unchanged."""
+    from flask import current_app
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    captured: dict[str, Any] = {}
+
+    def fake_build(form_data: Any, **kwargs: Any) -> Any:
+        captured["row_limit"] = kwargs.get("row_limit")
+        return object()
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [], "colnames": [], "rowcount": 0}]}
+
+    monkeypatch.setattr(module, "build_query_context_from_form_data", fake_build)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    monkeypatch.setattr(get_data_command_module, "ChartDataCommand", _Command)
+
+    await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table", "row_limit": 0},
+        GetChartDataRequest(form_data_key="k"),
+        _AsyncContext(),
+    )
+
+    assert captured["row_limit"] == current_app.config["ROW_LIMIT"]
+    assert captured["row_limit"] != 0
+
+
+@pytest.mark.asyncio
+async def test_query_from_form_data_string_row_limit_is_coerced(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A row_limit arriving as a str (as it can from chart.params) is coerced to
+    int before it reaches build_query_context_from_form_data (which compares it
+    against an int downstream). Deleting the _coerce_row_limit call fails this."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    captured: dict[str, Any] = {}
+
+    def fake_build(form_data: Any, **kwargs: Any) -> Any:
+        captured["row_limit"] = kwargs.get("row_limit")
+        return object()
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [], "colnames": [], "rowcount": 0}]}
+
+    monkeypatch.setattr(module, "build_query_context_from_form_data", fake_build)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    monkeypatch.setattr(get_data_command_module, "ChartDataCommand", _Command)
+
+    await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table", "row_limit": "250"},
+        GetChartDataRequest(form_data_key="k"),
+        _AsyncContext(),
+    )
+
+    assert captured["row_limit"] == 250
+    assert isinstance(captured["row_limit"], int)

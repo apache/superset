@@ -21,6 +21,7 @@ import pandas as pd
 import pytest
 from flask import current_app
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError, TemplateSyntaxError
 
 from superset import db, sql_lab
 from superset.commands.sql_lab import estimate, export, results
@@ -404,6 +405,29 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
                 == SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR
             )
             assert ex_info.value.status == 403
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    def test_validation_malformed_jinja(self) -> None:
+        # ``raise_for_access`` re-parses the query's unrendered Jinja via
+        # ``process_jinja_sql`` and can raise a raw ``TemplateError`` (e.g. an
+        # unclosed ``{% if %}``). ``TemplateSyntaxError`` is a subclass of
+        # ``TemplateError``. It must surface as a 400, not an opaque 500.
+        assert issubclass(TemplateSyntaxError, TemplateError)
+
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
+
+        with mock.patch(
+            "superset.models.sql_lab.Query.raise_for_access",
+            side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+        ):
+            with pytest.raises(SupersetErrorException) as ex_info:
+                command.run()
+            assert (
+                ex_info.value.error.error_type
+                == SupersetErrorType.GENERIC_COMMAND_ERROR
+            )
+            assert ex_info.value.status == 400
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)

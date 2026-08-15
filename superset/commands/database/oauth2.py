@@ -21,6 +21,7 @@ from functools import partial
 from typing import cast
 from uuid import UUID
 
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.daos.database import DatabaseUserOAuth2TokensDAO
@@ -96,6 +97,11 @@ class OAuth2StoreTokenCommand(BaseCommand):
             database_id=self._state["database_id"],
         ):
             DatabaseUserOAuth2TokensDAO.delete([existing])
+            # flush the delete before inserting the replacement -- the unit
+            # of work otherwise emits INSERTs before DELETEs within a single
+            # flush, which would trip the (user_id, database_id) unique
+            # index below on the old row.
+            db.session.flush()
 
         # store tokens
         expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])

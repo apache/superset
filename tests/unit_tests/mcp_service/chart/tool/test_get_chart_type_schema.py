@@ -44,10 +44,17 @@ class TestGetChartTypeSchema:
         assert "y" in props
         assert "kind" in props
 
-    def test_table_schema_has_columns(self) -> None:
+    def test_table_schema_has_columns_and_column_config(self) -> None:
         result = _call_schema("table")
         props = result["schema"]["properties"]
         assert "columns" in props
+        assert "column_config" in props
+        description = props["column_config"]["description"]
+        assert "columnWidth" in description
+        assert "d3NumberFormat" in description
+        assert "d3TimeFormat" in description
+        column_config_schema = result["schema"]["$defs"]["TableColumnConfig"]
+        assert column_config_schema["additionalProperties"] is False
 
     def test_pie_schema_has_dimension_metric(self) -> None:
         result = _call_schema("pie")

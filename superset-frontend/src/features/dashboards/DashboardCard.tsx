@@ -35,6 +35,7 @@ import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 
 const menuItemButtonCss = css`
   appearance: none;
@@ -76,6 +77,7 @@ function DashboardCard({
   onDelete,
 }: DashboardCardProps) {
   const userId = user?.userId;
+  const isMobile = useIsMobile();
 
   const history = useHistory();
   const canEdit = hasPerm('can_write');
@@ -206,10 +208,12 @@ function DashboardCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <KebabMenuButton
-              menuItems={menuItems}
-              dataTest="dashboard-card-menu"
-            />
+            {!isMobile && (
+              <KebabMenuButton
+                menuItems={menuItems}
+                dataTest="dashboard-card-menu"
+              />
+            )}
           </ListViewCard.Actions>
         }
       />
