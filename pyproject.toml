@@ -221,7 +221,7 @@ ocient = [
     # unpinned sqlalchemy>=1.4 declared, but SQLAlchemy 2.0 support is
     # unverified. Lower confidence than the other bumps in this PR.
     "sqlalchemy-ocient>=3.0.0, <4",
-    "pyocient>=1.0.15, <4",
+    "pyocient>=3.9.0, <4",
     "shapely",
     "geojson",
 ]
