@@ -15,11 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
+import traceback
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
+from requests.exceptions import HTTPError
 
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
@@ -33,6 +36,8 @@ from superset.utils.oauth2 import decode_oauth2_state, encode_oauth2_state
 @pytest.fixture
 def mock_database(mocker: MockerFixture) -> MagicMock:
     database = mocker.MagicMock(spec=Database)
+    database.id = 123
+    database.db_engine_spec.engine = "postgresql"
     database.get_oauth2_config.return_value = {
         "client_id": "test",
         "client_secret": "secret",
@@ -133,6 +138,43 @@ def test_run_success(
 
     assert result == "new_token"
     mock_create.assert_called_once()
+
+
+def test_run_logs_token_exchange_failure(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    mock_database: MagicMock,
+    mock_parameters: OAuth2ProviderResponseSchema,
+) -> None:
+    mock_parameters["code"] = "oauth-code-sentinel"
+    mock_database.get_oauth2_config.return_value["client_secret"] = (
+        "client-secret-sentinel"  # noqa: S105
+    )
+    mocker.patch.object(
+        DatabaseUserOAuth2TokensDAO,
+        "get_database",
+        return_value=mock_database,
+    )
+    mock_database.db_engine_spec.get_oauth2_token.side_effect = HTTPError(
+        "provider-payload-sentinel"
+    )
+
+    with (
+        caplog.at_level(logging.ERROR, logger="superset.commands.database.oauth2"),
+        pytest.raises(OAuth2Error) as exc_info,
+    ):
+        OAuth2StoreTokenCommand(mock_parameters).run()
+
+    assert (
+        "OAuth2 token exchange failed: database_id=123 engine=postgresql "
+        "error_type=HTTPError"
+    ) in caplog.messages
+    assert "oauth-code-sentinel" not in caplog.text
+    assert "client-secret-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in "".join(
+        traceback.format_exception(exc_info.value)
+    )
 
 
 def test_run_existing_token(

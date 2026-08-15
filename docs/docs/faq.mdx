@@ -277,6 +277,22 @@ second etc). Example:
 }
 ```
 
+## How do I expand all chart descriptions on a dashboard by default?
+
+Charts can have a markdown description, set in the chart's **Edit chart properties** dialog, that's
+hidden by default and toggled on a per-chart basis from the chart's context menu on a dashboard. If
+you'd rather have every chart's description expanded by default when the dashboard loads, add the
+`expand_all_slices` key to the dashboard JSON Metadata field:
+
+```json
+{
+  "expand_all_slices": true
+}
+```
+
+Charts that have already been manually expanded or collapsed on the dashboard keep that per-chart
+override (tracked in the `expanded_slices` key) regardless of the `expand_all_slices` setting.
+
 ## Does Superset work with [insert database engine here]?
 
 The [Connecting to Databases section](/user-docs/databases/) provides the best

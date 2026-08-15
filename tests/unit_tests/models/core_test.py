@@ -26,6 +26,7 @@ from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy import (
     Column,
+    create_engine,
     Integer,
     MetaData,
     select,
@@ -37,6 +38,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
@@ -573,15 +575,24 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(database_name="my_db", sqlalchemy_uri="trino://")
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"source": "Apache Superset"},
         future=True,
+    )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
     )
 
 
@@ -609,17 +620,29 @@ def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
         "superset.models.core.security_manager.find_user",
         return_value=None,
     )
-    create_engine = mocker.patch("superset.models.core.create_engine")
-
-    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
-    database.id = 1  # Cache is keyed on id; skipped for unsaved instances.
-    database._get_sqla_engine()
-    database._get_sqla_engine()
-
-    assert create_engine.call_count == 1, (
-        "Database._get_sqla_engine should reuse the engine for the same URL "
-        f"(create_engine called {create_engine.call_count} times)"
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
     )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
+
+    try:
+        database = Database(database_name="my_db", sqlalchemy_uri="trino://")
+        database.id = 1  # Cache is keyed on id; skipped for unsaved instances.
+        database._get_sqla_engine()
+        database._get_sqla_engine()
+
+        assert create_engine_mock.call_count == 1, (
+            "Database._get_sqla_engine should reuse the engine for the same URL "
+            f"(create_engine called {create_engine_mock.call_count} times)"
+        )
+        listen.assert_any_call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        )
+    finally:
+        _ENGINE_CACHE.clear()
 
 
 def test_get_sqla_engine_does_not_cache_unsaved_instances(
@@ -637,12 +660,33 @@ def test_get_sqla_engine_does_not_cache_unsaved_instances(
         "superset.models.core.security_manager.find_user",
         return_value=None,
     )
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     Database(database_name="db_a", sqlalchemy_uri="trino://")._get_sqla_engine()
     Database(database_name="db_b", sqlalchemy_uri="trino://")._get_sqla_engine()
 
-    assert create_engine.call_count == 2
+    assert create_engine_mock.call_count == 2
+    handle_error_calls = [
+        call
+        for call in listen.call_args_list
+        if len(call.args) > 1 and call.args[1] == "handle_error"
+    ]
+    assert handle_error_calls == [
+        mocker.call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        ),
+        mocker.call(
+            create_engine_mock.return_value,
+            "handle_error",
+            mark_database_engine_error,
+        ),
+    ]
     assert _ENGINE_CACHE == {}
 
 
@@ -690,7 +734,11 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(
         database_name="my_db",
@@ -699,10 +747,15 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     )
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice", "source": "Apache Superset"},
         future=True,
+    )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
     )
 
 
@@ -746,7 +799,11 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
     mocker.patch("superset.models.core.get_username", return_value="alice")
 
-    create_engine = mocker.patch("superset.models.core.create_engine")
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://", future=True),
+    )
+    listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
     database = Database(
         database_name="my_db",
@@ -755,10 +812,15 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
     database._get_sqla_engine(nullpool=False)
 
-    create_engine.assert_called_with(
+    create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
         future=True,
+    )
+    listen.assert_any_call(
+        create_engine_mock.return_value,
+        "handle_error",
+        mark_database_engine_error,
     )
 
 
