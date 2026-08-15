@@ -1295,3 +1295,56 @@ test('y-axis title position: non-Left sets nameLocation to end', () => {
   expect(yAxis[1].nameGap).toEqual(30);
   expect(yAxis[1].nameLocation).toEqual('end');
 });
+describe('EchartsMixedTimeseries tooltip truncation', () => {
+  const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+
+  const buildTooltip = (tooltipTruncation?: string) => {
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        ...(tooltipTruncation ? { tooltipTruncation } : {}),
+      },
+    });
+    const { echartOptions } = transformProps(
+      chartProps as EchartsMixedTimeseriesProps,
+    );
+    const { formatter } = echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    };
+    // richTooltip is false in this fixture, so the trigger is 'item' and the
+    // formatter receives a single param object rather than an array.
+    return formatter({
+      seriesId: longSeriesName,
+      seriesName: longSeriesName,
+      value: [599616000000, 1],
+      marker,
+    });
+  };
+
+  it('keeps full text with the CSS cap by default', () => {
+    const html = buildTooltip();
+    expect(html).toContain('max-width: 300px');
+    expect(html).toContain(longSeriesName);
+  });
+
+  it('removes the cap and keeps full text when off', () => {
+    const html = buildTooltip('off');
+    expect(html).not.toContain('max-width');
+    expect(html).toContain(longSeriesName);
+  });
+
+  it('drops the shared prefix when truncating from the start', () => {
+    const html = buildTooltip('start');
+    expect(html).not.toContain('prod-us-east');
+    expect(html).toContain('latency-p99');
+    expect(html).toContain('background-color:#1f77b4');
+  });
+
+  it('keeps both ends when truncating the middle', () => {
+    const html = buildTooltip('middle');
+    expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
+    expect(html).not.toContain(longSeriesName);
+  });
+});
