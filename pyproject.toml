@@ -138,7 +138,7 @@ bigquery = [
     "pandas-gbq>=0.35.0",
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
-    "sqlalchemy-bigquery>=1.17.1",
+    "sqlalchemy-bigquery>=1.17.2",
     "google-cloud-bigquery>=3.42.3",
 ]
 clickhouse = ["clickhouse-connect>=1.6.0, <2.0"]
