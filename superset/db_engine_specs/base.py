@@ -2646,6 +2646,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
+    def array_explode(cls, col: ColumnElement) -> ColumnElement:
+        """
+        Build an expression that expands array column ``col`` into one row per
+        element (e.g. ClickHouse ``arrayJoin``). Used to source **element-level**
+        value suggestions (``SELECT DISTINCT array_explode(col)``) for the
+        ``Contains any`` / ``Contains all`` filter operators, so the picker offers
+        individual elements rather than whole arrays. Engines that set
+        ``supports_multivalue_columns = True`` must override this.
+
+        :param col: SQLAlchemy column element for the array column
+        :return: a SQLAlchemy expression yielding one element per row
+        """
+        raise NotImplementedError(
+            f"{cls.engine} does not support multi-value (array) columns"
+        )
+
+    @classmethod
     def get_array_element_type(  # pylint: disable=unused-argument
         cls, native_type: str | None
     ) -> GenericDataType | None:

@@ -202,6 +202,12 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
         # ClickHouse: array(v1, v2) is equivalent to the literal [v1, v2].
         return func.array(*values)
 
+    @classmethod
+    def array_explode(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: arrayJoin(arr) yields one row per element, so
+        # SELECT DISTINCT arrayJoin(arr) returns the distinct elements.
+        return func.arrayJoin(col)
+
     # Matches the element type inside a top-level ``Array(...)`` column, e.g.
     # ``Array(Int32)`` -> ``Int32``, ``Array(Nullable(String))`` -> ``String``.
     _ARRAY_ELEMENT_RE = re.compile(r"^Array\((?P<inner>.+)\)$", re.IGNORECASE)

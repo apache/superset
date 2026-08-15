@@ -3699,6 +3699,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_name: str,
         limit: int = 10000,
         denormalize_column: bool = False,
+        array_elements: bool = False,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -3713,13 +3714,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
+        db_engine_spec = self.database.db_engine_spec
+        value_expr = target_col.get_sqla_col(template_processor=tp)
+        # For element-level operators (Contains any / Contains all) on a
+        # multi-value (array) column, suggest the distinct **elements** rather
+        # than distinct whole arrays by expanding the array first (e.g. ClickHouse
+        # arrayJoin). Only when the engine supports arrays and the column is
+        # actually an array column; otherwise fall back to whole-value suggestions.
+        if array_elements and db_engine_spec.supports_multivalue_columns:
+            col_spec = db_engine_spec.get_column_spec(native_type=target_col.type)
+            if col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE:
+                value_expr = db_engine_spec.array_explode(value_expr)
+
         qry = (
             sa.select(
                 # The alias (label) here is important because some dialects will
                 # automatically add a random alias to the projection because of the
                 # call to DISTINCT; others will uppercase the column names. This
                 # gives us a deterministic column name in the dataframe.
-                target_col.get_sqla_col(template_processor=tp).label("column_values")
+                value_expr.label("column_values")
             )
             .select_from(tbl)
             .distinct()

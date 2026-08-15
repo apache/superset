@@ -727,6 +727,18 @@ def test_multivalue_get_array_element_type(
     assert spec.get_array_element_type(native_type) == expected
 
 
+def test_multivalue_array_explode_sql() -> None:
+    """array_explode compiles to ``arrayJoin(col)`` (element expansion)."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    expr = spec.array_explode(column("scores"))
+    assert _compile(expr) == "arrayJoin(scores)"
+
+
 def test_multivalue_contains_any_numeric_coercion_sql() -> None:
     """Numeric-array element values must render as numbers, not quoted strings."""
     from sqlalchemy import column

@@ -475,10 +475,19 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         if (loadingComparatorSuggestions) {
           controller.abort();
         }
+        // Element-level array operators (Contains any / Contains all) search
+        // inside the array, so suggest individual elements; whole-array
+        // operators (=, In, …) keep the default distinct-array suggestions.
+        const { operatorId } = props.adhocFilter;
+        const arrayElements =
+          operatorId === Operators.ContainsAny ||
+          operatorId === Operators.ContainsAll;
         setLoadingComparatorSuggestions(true);
         SupersetClient.get({
           signal,
-          endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/`,
+          endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/${
+            arrayElements ? '?array_elements=true' : ''
+          }`,
         })
           .then(({ json }) => {
             setSuggestions(
@@ -506,6 +515,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   }, [
     props.adhocFilter.subject,
     props.adhocFilter.clause,
+    props.adhocFilter.operatorId,
     props.datasource,
     datePicker,
   ]);
