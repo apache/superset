@@ -17,6 +17,8 @@
  * under the License.
  */
 const zlib = require('zlib');
+const { Writable } = require('stream');
+const { pipeline } = require('stream/promises');
 const { ZSTDDecompress } = require('simple-zstd');
 
 const yargs = require('yargs');
@@ -117,11 +119,19 @@ function copyHeaders(originalResponse, response) {
  * Manipulate HTML server response to replace asset files with
  * local webpack-dev-server build.
  */
-function processHTML(proxyResponse, response) {
-  let body = Buffer.from([]);
-  let originalResponse = proxyResponse;
+async function processHTML(proxyResponse, response) {
+  const responseEncoding = proxyResponse.headers['content-encoding'];
   let uncompress;
-  const responseEncoding = originalResponse.headers['content-encoding'];
+  // `simple-zstd`'s decompress stream is backed by a real `zstd -d` child
+  // process, but the stream it hands back doesn't forward `.destroy()` to
+  // that child -- so when `pipeline` below destroys it on an upstream
+  // error, the child is left running with its stdin still open instead of
+  // exiting. Track the underlying process (via the `started` event
+  // `simple-zstd` emits once it's actually spawned) so it can be killed
+  // explicitly; `killZstdChild` covers the race where destruction happens
+  // before that event fires.
+  let zstdChild;
+  let killZstdChild = false;
 
   // decode GZIP response
   if (responseEncoding === 'gzip') {
@@ -132,24 +142,47 @@ function processHTML(proxyResponse, response) {
     uncompress = zlib.createInflate();
   } else if (responseEncoding === 'zstd') {
     uncompress = ZSTDDecompress();
-  }
-  if (uncompress) {
-    originalResponse.pipe(uncompress);
-    originalResponse = uncompress;
+    uncompress.once('started', childProcess => {
+      if (killZstdChild) {
+        childProcess.kill();
+      } else {
+        zstdChild = childProcess;
+      }
+    });
   }
 
-  originalResponse
-    .on('data', data => {
-      body = Buffer.concat([body, data]);
-    })
-    .on('error', error => {
-      // eslint-disable-next-line no-console
-      console.error(error);
-      response.end(`Error fetching proxied request: ${error.message}`);
-    })
-    .on('end', () => {
-      response.end(toDevHTML(body.toString()));
-    });
+  const chunks = [];
+  const collector = new Writable({
+    write(chunk, encoding, callback) {
+      chunks.push(chunk);
+      callback();
+    },
+  });
+
+  try {
+    // `pipeline` (unlike `.pipe()`) destroys every stream in the chain --
+    // and rejects -- as soon as any one of them errors or closes
+    // prematurely. A proxied backend connection dying mid-response (e.g.
+    // the Flask dev server's reloader restarting on a file save) is
+    // exactly that case: plain `.pipe()` never forwards the upstream
+    // error/close to `uncompress`, so `uncompress` (and, for `zstd`, the
+    // child process backing it) sits waiting for input that will never
+    // arrive, `end`/`error` never fire, and the client-facing response
+    // hangs forever instead of failing fast.
+    await pipeline(
+      ...(uncompress
+        ? [proxyResponse, uncompress, collector]
+        : [proxyResponse, collector]),
+    );
+  } finally {
+    if (zstdChild) {
+      zstdChild.kill();
+    } else {
+      killZstdChild = true;
+    }
+  }
+
+  response.end(toDevHTML(Buffer.concat(chunks).toString()));
 }
 
 module.exports = newManifest => {
@@ -175,10 +208,20 @@ module.exports = newManifest => {
       try {
         copyHeaders(proxyResponse, response);
         if (isHTML(response)) {
-          // For HTML responses, flush headers before processing starts
-          // processHTML sets up async handlers that will call response.end()
+          // For HTML responses, flush headers before processing starts.
+          // processHTML awaits pipeline() and calls response.end() once it
+          // resolves; the .catch() below handles a stream failure that
+          // surfaces after those headers are already sent.
           response.flushHeaders();
-          processHTML(proxyResponse, response);
+          processHTML(proxyResponse, response).catch(e => {
+            // eslint-disable-next-line no-console
+            console.error(`Error requesting ${request.path} from proxy:`, e);
+            if (!response.writableEnded) {
+              response.end(
+                `Error requesting ${request.path} from proxy: ${e.message}`,
+              );
+            }
+          });
         } else {
           const isCSV = (proxyResponse.headers['content-type'] || '').includes(
             'text/csv',
@@ -200,7 +243,20 @@ module.exports = newManifest => {
             });
           } else {
             response.flushHeaders();
-            proxyResponse.pipe(response);
+            // Same pipe()-doesn't-propagate-errors gotcha fixed in
+            // processHTML above: a plain .pipe() here leaves `response`
+            // hanging forever if the backend connection drops mid-body
+            // (e.g. the Flask dev server's reloader restarting on a file
+            // save) while streaming non-HTML, non-CSV payloads such as
+            // chart/dashboard JSON. `pipeline()` ends/destroys `response`
+            // as soon as `proxyResponse` errors or closes prematurely.
+            pipeline(proxyResponse, response).catch(e => {
+              // eslint-disable-next-line no-console
+              console.error(`Error requesting ${request.path} from proxy:`, e);
+              if (!response.writableEnded) {
+                response.end();
+              }
+            });
           }
         }
       } catch (e) {

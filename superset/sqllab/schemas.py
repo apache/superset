@@ -16,7 +16,7 @@
 # under the License.
 from marshmallow import fields, Schema, validate
 
-from superset.databases.schemas import ImportV1DatabaseSchema
+from superset.databases.schemas import EngineInformationSchema
 
 # Restricts the optional CTAS target name to a bare SQL identifier. Shared by the
 # SQL Lab execute payload schemas so both request paths validate it identically.
@@ -155,13 +155,45 @@ class TabStateSchema(Schema):
     user_id = fields.Integer()
 
 
+class SQLLabBootstrapDatabaseSchema(Schema):
+    """
+    Shape of a single database entry in the SQL Lab bootstrap response.
+
+    This mirrors ``superset.sqllab.utils.DATABASE_KEYS`` (plus
+    ``allows_virtual_table_explore``), which is what actually populates the
+    payload. It's intentionally distinct from ``ImportV1DatabaseSchema``,
+    which documents the unrelated database import/export contract.
+    """
+
+    id = fields.Integer(metadata={"description": "The database id"})
+    database_name = fields.String(metadata={"description": "The database name"})
+    backend = fields.String(metadata={"description": "The database backend"})
+    allow_file_upload = fields.Boolean()
+    allow_ctas = fields.Boolean()
+    allow_cvas = fields.Boolean()
+    allow_dml = fields.Boolean()
+    allow_run_async = fields.Boolean()
+    allow_multi_catalog = fields.Boolean()
+    allows_cost_estimate = fields.Boolean(allow_none=True)
+    allows_subquery = fields.Boolean()
+    allows_virtual_table_explore = fields.Boolean()
+    disable_data_preview = fields.Boolean()
+    disable_drill_to_detail = fields.Boolean()
+    expose_in_sqllab = fields.Boolean()
+    force_ctas_schema = fields.String(allow_none=True)
+    engine_information = fields.Nested(
+        EngineInformationSchema,
+        metadata={"description": "Dialect capabilities, including identifier_quote"},
+    )
+
+
 class SQLLabBootstrapSchema(Schema):
     active_tab = fields.Nested(TabStateSchema)
     databases = fields.Dict(
         keys=fields.String(
             metadata={"description": "Database id"},
         ),
-        values=fields.Nested(ImportV1DatabaseSchema),
+        values=fields.Nested(SQLLabBootstrapDatabaseSchema),
     )
     queries = fields.Dict(
         keys=fields.String(
