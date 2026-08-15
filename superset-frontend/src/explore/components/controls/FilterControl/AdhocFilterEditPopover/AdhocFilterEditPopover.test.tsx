@@ -166,7 +166,7 @@ describe('AdhocFilterEditPopover', () => {
     // Find and update the value input
     const valueInput = screen.getByTestId('adhoc-filter-simple-value');
     await userEvent.clear(valueInput);
-    await userEvent.type(valueInput, '100');
+    userEvent.type(valueInput, '100');
 
     const saveButton = screen.getByRole('button', { name: /save/i });
     expect(saveButton).toBeEnabled();

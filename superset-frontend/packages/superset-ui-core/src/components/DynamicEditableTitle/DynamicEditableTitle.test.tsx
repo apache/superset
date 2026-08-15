@@ -48,9 +48,9 @@ describe('Chart editable title', () => {
     render(<DynamicEditableTitle {...props} />);
     const textboxElement = screen.getByRole('textbox');
     await userEvent.click(textboxElement);
-    await userEvent.type(textboxElement, ' edited');
+    userEvent.type(textboxElement, ' edited');
     expect(screen.getByText('Chart title edited')).toBeVisible();
-    await userEvent.type(textboxElement, '{enter}');
+    userEvent.type(textboxElement, '{enter}');
     expect(props.onSave).toHaveBeenCalled();
   });
 
@@ -62,7 +62,7 @@ describe('Chart editable title', () => {
     expect(inputElement).toBeDisabled();
     expect(titleElement).toBeVisible();
     await userEvent.click(titleElement);
-    await userEvent.type(titleElement, ' edited{enter}');
+    userEvent.type(titleElement, ' edited{enter}');
     expect(props.onSave).not.toHaveBeenCalled();
   });
 });

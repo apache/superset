@@ -76,7 +76,7 @@ describe('FormModal Component', () => {
     renderComponent();
 
     const nameInput = screen.getByPlaceholderText('Enter your name');
-    await userEvent.type(nameInput, 'Jane Doe');
+    userEvent.type(nameInput, 'Jane Doe');
 
     await waitFor(() => {
       expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
@@ -87,7 +87,7 @@ describe('FormModal Component', () => {
     renderComponent();
 
     const emailInput = screen.getByPlaceholderText('Enter your email');
-    await userEvent.type(emailInput, 'test@example.com');
+    userEvent.type(emailInput, 'test@example.com');
 
     await waitFor(() => {
       expect(screen.getByTestId('form-modal-save-button')).toBeDisabled();
@@ -97,11 +97,8 @@ describe('FormModal Component', () => {
   test('should call formSubmitHandler with correct values when submitted', async () => {
     renderComponent();
 
-    await userEvent.type(
-      screen.getByPlaceholderText('Enter your name'),
-      'Jane Doe',
-    );
-    await userEvent.type(
+    userEvent.type(screen.getByPlaceholderText('Enter your name'), 'Jane Doe');
+    userEvent.type(
       screen.getByPlaceholderText('Enter your email'),
       'test@example.com',
     );

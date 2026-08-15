@@ -293,7 +293,7 @@ test('typing in name filter updates input value and triggers API with decoded se
   ).length;
 
   // Type in search box and press Enter to trigger search
-  await userEvent.type(searchInput, 'sales{enter}');
+  userEvent.type(searchInput, 'sales{enter}');
 
   // Verify input value updated
   await waitFor(() => {

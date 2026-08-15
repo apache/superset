@@ -215,7 +215,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   const confirmInput = within(modal).getByTestId('delete-modal-input');
   expect(confirmInput).toBeInTheDocument();
   await userEvent.clear(confirmInput);
-  await userEvent.type(confirmInput, 'DELETE');
+  userEvent.type(confirmInput, 'DELETE');
 
   // Capture datasets call count before confirming
   const datasetsCallCountBeforeDelete = fetchMock.callHistory.calls(

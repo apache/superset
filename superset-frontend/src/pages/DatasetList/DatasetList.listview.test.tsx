@@ -457,7 +457,7 @@ test('delete action successfully deletes dataset and refreshes list', async () =
 
   // Type DELETE to enable confirm button
   const confirmInput = within(modal).getByTestId('delete-modal-input');
-  await userEvent.type(confirmInput, 'DELETE');
+  userEvent.type(confirmInput, 'DELETE');
 
   // Track API calls before confirm
   const callsBefore = fetchMock.callHistory.calls(
@@ -555,7 +555,7 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
   // Enter new name
   const input = within(modal).getByRole('textbox');
   await userEvent.clear(input);
-  await userEvent.type(input, 'Copy of Analytics');
+  userEvent.type(input, 'Copy of Analytics');
 
   // Track API calls before submit
   const callsBefore = fetchMock.callHistory.calls(
@@ -1265,7 +1265,7 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
   // Enter new dataset name
   const input = within(modal).getByRole('textbox');
   await userEvent.clear(input);
-  await userEvent.type(input, 'Copy of Analytics Query');
+  userEvent.type(input, 'Copy of Analytics Query');
 
   // Submit duplicate
   const submitButton = within(modal).getByRole('button', {
@@ -1316,7 +1316,7 @@ test('duplicate action shows error toast on 500 internal server error', async ()
   // Enter new dataset name
   const input = within(modal).getByRole('textbox');
   await userEvent.clear(input);
-  await userEvent.type(input, 'Copy of Analytics Query');
+  userEvent.type(input, 'Copy of Analytics Query');
 
   // Submit
   const submitButton = within(modal).getByRole('button', {
@@ -1643,7 +1643,7 @@ test('type filter persists after duplicating a dataset', async () => {
   const modal = await screen.findByRole('dialog');
   const modalInput = within(modal).getByRole('textbox');
   await userEvent.clear(modalInput);
-  await userEvent.type(modalInput, 'Copy of Dataset');
+  userEvent.type(modalInput, 'Copy of Dataset');
 
   const confirmButton = within(modal).getByRole('button', {
     name: /duplicate/i,
@@ -1858,7 +1858,7 @@ test('bulk delete error shows toast without refreshing list', async () => {
   const modal = await screen.findByRole('dialog');
   const confirmInput = within(modal).getByTestId('delete-modal-input');
   await userEvent.clear(confirmInput);
-  await userEvent.type(confirmInput, 'DELETE');
+  userEvent.type(confirmInput, 'DELETE');
 
   const confirmButton = within(modal)
     .getAllByRole('button', { name: /^delete$/i })

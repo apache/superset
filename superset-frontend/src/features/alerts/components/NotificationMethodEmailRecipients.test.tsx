@@ -74,7 +74,7 @@ test('typed email stays visible in the recipients field and becomes an option', 
   await screen.findByRole('option', {
     name: /Admin User <admin@example\.com>/,
   });
-  await userEvent.type(input, 'joe@example.com');
+  userEvent.type(input, 'joe@example.com');
 
   expect(input).toHaveValue('joe@example.com');
   await waitFor(() =>

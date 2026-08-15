@@ -192,7 +192,7 @@ describe('ExploreChartHeader', () => {
     const nameInput = await screen.findByRole('textbox', { name: 'Name' });
 
     await userEvent.clear(nameInput);
-    await userEvent.type(nameInput, newChartName);
+    userEvent.type(nameInput, newChartName);
 
     expect(screen.getByDisplayValue(newChartName)).toBeInTheDocument();
 

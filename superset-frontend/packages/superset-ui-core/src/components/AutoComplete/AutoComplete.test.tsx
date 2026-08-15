@@ -54,7 +54,7 @@ describe('AutoComplete Component', () => {
   test('shows options when user types', async () => {
     render(<AutoCompleteTest />);
     const input = screen.getByPlaceholderText('Type to search...');
-    await userEvent.type(input, 'test');
+    userEvent.type(input, 'test');
 
     await waitFor(() => {
       expect(screen.getByText('test result 0')).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('AutoComplete Component', () => {
   test('selecting an option updates input value', async () => {
     render(<AutoCompleteTest />);
     const input = screen.getByPlaceholderText('Type to search...');
-    await userEvent.type(input, 'test');
+    userEvent.type(input, 'test');
 
     await waitFor(() => {
       expect(screen.getByText('test result 0')).toBeInTheDocument();

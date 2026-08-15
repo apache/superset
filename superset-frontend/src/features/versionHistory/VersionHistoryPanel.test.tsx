@@ -350,10 +350,7 @@ test('typing in the search box forwards the term to the container', async () => 
   const props = defaultProps([group()]);
   render(<VersionHistoryPanel {...props} />);
 
-  await userEvent.type(
-    screen.getByRole('textbox', { name: 'Search actions' }),
-    'z',
-  );
+  userEvent.type(screen.getByRole('textbox', { name: 'Search actions' }), 'z');
   expect(props.onSearchChange).toHaveBeenCalledWith('z');
 });
 

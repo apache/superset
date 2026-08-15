@@ -328,7 +328,7 @@ describe('SelectFilterPlugin', () => {
     const filterSelect = screen.getAllByRole('combobox')[0];
     userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
-    await userEvent.type(screen.getByRole('combobox'), 'a');
+    userEvent.type(screen.getByRole('combobox'), 'a');
     userEvent.tab();
     expect(setDataMask).toHaveBeenCalledTimes(2);
   });
@@ -374,7 +374,7 @@ describe('SelectFilterPlugin', () => {
     const filterSelect = screen.getAllByRole('combobox')[0];
     userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
-    await userEvent.type(screen.getByRole('combobox'), '1');
+    userEvent.type(screen.getByRole('combobox'), '1');
     expect(
       await screen.findByRole('option', { name: String(bigValue) }),
     ).toBeInTheDocument();

@@ -85,7 +85,7 @@ test('updates input value on change', async () => {
   setup();
   const input = screen.getByTestId('filters-search') as HTMLInputElement;
 
-  await userEvent.type(input, 'test query');
+  userEvent.type(input, 'test query');
 
   expect(input.value).toBe('test query');
 });
@@ -94,7 +94,7 @@ test('calls onSubmit with trimmed value on blur', async () => {
   setup();
   const input = screen.getByTestId('filters-search');
 
-  await userEvent.type(input, '  search term  ');
+  userEvent.type(input, '  search term  ');
   await userEvent.tab(); // Trigger blur
 
   await waitFor(() => {
@@ -106,7 +106,7 @@ test('calls onSubmit with trimmed value on Enter key', async () => {
   setup();
   const input = screen.getByTestId('filters-search');
 
-  await userEvent.type(input, '  another search  ');
+  userEvent.type(input, '  another search  ');
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
   await waitFor(() => {
@@ -140,7 +140,7 @@ test('calls onSubmit with empty string when only whitespace is entered and clear
   setup();
   const input = screen.getByTestId('filters-search');
 
-  await userEvent.type(input, '   ');
+  userEvent.type(input, '   ');
 
   // When cleared (which happens when the value becomes empty), onSubmit is called with ''
   await userEvent.clear(input);
@@ -195,9 +195,9 @@ test('multiple rapid changes only submit the final value', async () => {
   setup();
   const input = screen.getByTestId('filters-search');
 
-  await userEvent.type(input, 'first');
-  await userEvent.type(input, ' second');
-  await userEvent.type(input, ' third');
+  userEvent.type(input, 'first');
+  userEvent.type(input, ' second');
+  userEvent.type(input, ' third');
   await userEvent.tab();
 
   await waitFor(() => {
@@ -217,7 +217,7 @@ test('handles programmatic value changes through clearFilter', async () => {
 
   // Type something new
   await userEvent.clear(input);
-  await userEvent.type(input, 'new value');
+  userEvent.type(input, 'new value');
   expect(input.value).toBe('new value');
 
   // Clear using ref

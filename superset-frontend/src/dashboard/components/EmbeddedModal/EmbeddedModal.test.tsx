@@ -164,7 +164,7 @@ test('enables Save Changes button when allowed domains are modified', async () =
   expect(allowedDomainsInput).toBeInTheDocument();
 
   await userEvent.clear(allowedDomainsInput);
-  await userEvent.type(allowedDomainsInput, 'test.com');
+  userEvent.type(allowedDomainsInput, 'test.com');
   expect(saveChangesBtn).toBeEnabled();
 });
 

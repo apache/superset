@@ -97,7 +97,7 @@ test('filters static options by search term', async () => {
       onSelect={jest.fn()}
     />,
   );
-  await userEvent.type(screen.getByPlaceholderText('Search'), 'ali');
+  userEvent.type(screen.getByPlaceholderText('Search'), 'ali');
   expect(screen.getByText('Alice')).toBeInTheDocument();
   expect(screen.queryByText('Bob')).not.toBeInTheDocument();
 });
@@ -308,7 +308,7 @@ test('selects option via keyboard Enter key', async () => {
     />,
   );
   const aliceOption = screen.getByText('Alice').closest('[role="option"]')!;
-  await userEvent.type(aliceOption, '{Enter}');
+  userEvent.type(aliceOption, '{Enter}');
   expect(onSelect).toHaveBeenCalledWith({ label: 'Alice', value: 1 }, false);
 });
 

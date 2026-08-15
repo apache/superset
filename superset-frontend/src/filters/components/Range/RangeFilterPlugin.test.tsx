@@ -431,7 +431,7 @@ describe('RangeFilterPlugin', () => {
       const fromInput = inputs[0];
 
       await userEvent.clear(fromInput);
-      await userEvent.type(fromInput, '2.5');
+      userEvent.type(fromInput, '2.5');
       await userEvent.tab();
 
       expect(setDataMask).toHaveBeenCalledWith(

@@ -110,7 +110,7 @@ test('can type in name field', async () => {
   );
 
   const nameInput = screen.getByTestId('dashboard-title-input');
-  await userEvent.type(nameInput, 'My Dashboard');
+  userEvent.type(nameInput, 'My Dashboard');
 
   expect(nameInput).toHaveValue('My Dashboard');
 });

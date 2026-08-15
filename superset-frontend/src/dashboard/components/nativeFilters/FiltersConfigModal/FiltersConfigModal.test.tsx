@@ -690,7 +690,7 @@ test.skip('updates sidebar title when filter name changes', async () => {
   expect(tabsBeforeChange[0]).not.toHaveTextContent('New Filter Name');
 
   await userEvent.clear(filterNameInput);
-  await userEvent.type(filterNameInput, 'New Filter Name');
+  userEvent.type(filterNameInput, 'New Filter Name');
 
   await waitFor(() => {
     const tabsAfterChange = within(filterContainer).getAllByRole('tab');
@@ -729,7 +729,7 @@ test('modifies the name of a filter', async () => {
   });
 
   await userEvent.clear(filterNameInput);
-  await userEvent.type(filterNameInput, 'New Filter Name');
+  userEvent.type(filterNameInput, 'New Filter Name');
 
   // Flush the 500ms debounce on the filter name input.
   // Using advanceTimersByTime instead of runAllTimers to avoid infinite
@@ -854,7 +854,7 @@ test('enables save button and includes updated title when editing an existing di
   // Editing the title field should mark the divider modified and enable save
   const titleInput = screen.getByRole('textbox', { name: /^title$/i });
   await userEvent.clear(titleInput);
-  await userEvent.type(titleInput, 'Second Edit');
+  userEvent.type(titleInput, 'Second Edit');
 
   jest.advanceTimersByTime(500);
   jest.useRealTimers();
@@ -918,7 +918,7 @@ test('enables save button and includes updated title when editing an existing ch
   // Editing the title field should mark the divider modified and enable save
   const titleInput = screen.getByRole('textbox', { name: /^title$/i });
   await userEvent.clear(titleInput);
-  await userEvent.type(titleInput, 'Second Edit');
+  userEvent.type(titleInput, 'Second Edit');
 
   jest.advanceTimersByTime(500);
   jest.useRealTimers();

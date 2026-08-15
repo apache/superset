@@ -412,7 +412,7 @@ const comboboxSelect = async (
   newElementQuery: Function,
 ) => {
   expect(element).toBeInTheDocument();
-  await userEvent.type(element, `${value}{enter}`);
+  userEvent.type(element, `${value}{enter}`);
   await waitFor(() => {
     expect(newElementQuery()).toBeInTheDocument();
   });
@@ -3005,7 +3005,7 @@ test('modal reopen resets local state', async () => {
 
   // Type a name to dirty the form
   const nameInput = screen.getByPlaceholderText(/enter report name/i);
-  await userEvent.type(nameInput, 'Temporary Report');
+  userEvent.type(nameInput, 'Temporary Report');
   expect(nameInput).toHaveValue('Temporary Report');
 
   // Click Cancel

@@ -149,7 +149,7 @@ test('filters schemas when searching', async () => {
   const searchInput = screen.getByPlaceholderText(
     'Enter a part of the object name',
   );
-  await userEvent.type(searchInput, 'pub');
+  userEvent.type(searchInput, 'pub');
 
   // After searching, only matching schema should be visible
   await waitFor(() => {
@@ -215,7 +215,7 @@ test('shows empty state when no schemas match search', async () => {
   const searchInput = screen.getByPlaceholderText(
     'Enter a part of the object name',
   );
-  await userEvent.type(searchInput, 'nonexistent');
+  userEvent.type(searchInput, 'nonexistent');
 
   await waitFor(() => {
     expect(screen.queryByText('public')).not.toBeInTheDocument();
@@ -293,7 +293,7 @@ test('shows columns immediately on first toggle when searchTerm is active', asyn
   const searchInput = screen.getByPlaceholderText(
     'Enter a part of the object name',
   );
-  await userEvent.type(searchInput, 'pub');
+  userEvent.type(searchInput, 'pub');
 
   // Tables remain visible under the search-matched schema
   expect(screen.getByText('users')).toBeInTheDocument();
@@ -334,7 +334,7 @@ test('closes a schema while searchTerm is active and keeps it closed', async () 
   const searchInput = screen.getByPlaceholderText(
     'Enter a part of the object name',
   );
-  await userEvent.type(searchInput, 'users');
+  userEvent.type(searchInput, 'users');
   expect(screen.getByText('public')).toBeInTheDocument();
 
   // Load columns to trigger a treeData change that could accidentally reopen the schema

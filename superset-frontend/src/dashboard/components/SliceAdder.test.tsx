@@ -111,7 +111,7 @@ describe('SliceAdder', () => {
   test('handles search input changes', async () => {
     renderSliceAdder();
     const searchInput = screen.getByPlaceholderText('Filter your charts');
-    await userEvent.type(searchInput, 'test search');
+    userEvent.type(searchInput, 'test search');
     expect(defaultProps.fetchSlices).toHaveBeenCalledWith(
       1,
       'test search',

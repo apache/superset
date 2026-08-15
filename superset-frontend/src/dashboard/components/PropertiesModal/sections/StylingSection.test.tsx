@@ -134,7 +134,7 @@ test('calls onColorSchemeChange when color scheme changes', async () => {
   );
 
   const colorSchemeInput = screen.getByLabelText('Select color scheme');
-  await userEvent.type(colorSchemeInput, 'newScheme');
+  userEvent.type(colorSchemeInput, 'newScheme');
 
   expect(onColorSchemeChange).toHaveBeenCalled();
 });
