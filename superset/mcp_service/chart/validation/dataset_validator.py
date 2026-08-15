@@ -39,6 +39,37 @@ _C = TypeVar("_C", bound=ChartConfig)
 logger = logging.getLogger(__name__)
 
 
+def is_dataset_column_temporal(
+    column: Any, column_name: str, db_engine_spec: Any
+) -> bool:
+    """Return whether a dataset column is safe for temporal operations."""
+    from superset.utils.core import GenericDataType
+
+    is_dttm = bool(getattr(column, "is_dttm", False))
+    column_type = column.type
+    if not column_type:
+        return is_dttm
+
+    column_spec = db_engine_spec.get_column_spec(column_type)
+    generic_type = column_spec.generic_type if column_spec else None
+    if generic_type == GenericDataType.TEMPORAL:
+        return True
+    if not is_dttm:
+        return False
+    if generic_type != GenericDataType.NUMERIC or getattr(
+        column, "python_date_format", None
+    ):
+        return True
+
+    logger.debug(
+        "Column '%s' is marked is_dttm=True but has numeric type '%s' with "
+        "no python_date_format; treating it as non-temporal",
+        column_name,
+        column_type,
+    )
+    return False
+
+
 def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     """Construct a :class:`DatasetContext` from an already-fetched ORM dataset.
 
@@ -48,13 +79,19 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     if dataset is None:
         return None
 
+    database = getattr(dataset, "database", None)
+    db_engine_spec = getattr(database, "db_engine_spec", None)
     columns: List[Dict[str, Any]] = []
     for col in getattr(dataset, "columns", []) or []:
         columns.append(
             {
                 "name": col.column_name,
                 "type": str(col.type) if col.type else "UNKNOWN",
-                "is_temporal": getattr(col, "is_temporal", False),
+                "is_temporal": (
+                    is_dataset_column_temporal(col, col.column_name, db_engine_spec)
+                    if db_engine_spec
+                    else getattr(col, "is_temporal", False)
+                ),
                 "is_numeric": getattr(col, "is_numeric", False),
             }
         )
@@ -69,7 +106,6 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
             }
         )
 
-    database = getattr(dataset, "database", None)
     database_name = getattr(database, "database_name", None) or ""
     return DatasetContext(
         id=dataset.id,
@@ -123,6 +159,12 @@ class DatasetValidator:
 
             return False, ChartErrorBuilder.dataset_not_found_error(dataset_id)
 
+        temporal_error = DatasetValidator._validate_temporal_column(
+            config, dataset_context
+        )
+        if temporal_error:
+            return False, temporal_error
+
         # Collect all column references
         column_refs = DatasetValidator._extract_column_references(config)
 
@@ -152,6 +194,51 @@ class DatasetValidator:
             return False, aggregation_errors[0]
 
         return True, None
+
+    @staticmethod
+    def _validate_temporal_column(
+        config: ChartConfig, dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Require an explicitly selected dashboard time column to be temporal."""
+        temporal_column = getattr(config, "temporal_column", None)
+        if not temporal_column:
+            return None
+
+        matching_column = next(
+            (
+                column
+                for column in dataset_context.available_columns
+                if column["name"].lower() == temporal_column.lower()
+            ),
+            None,
+        )
+        if matching_column is None:
+            return ChartGenerationError(
+                error_type="missing_temporal_column",
+                message=f"Temporal column '{temporal_column}' does not exist",
+                details="The temporal_column must reference a physical dataset column.",
+                suggestions=[
+                    "Choose a temporal column from the dataset",
+                    "Remove temporal_column to use the dataset's default time column",
+                ],
+                error_code="MISSING_TEMPORAL_COLUMN",
+            )
+        if matching_column.get("is_temporal", False):
+            return None
+
+        return ChartGenerationError(
+            error_type="invalid_temporal_column",
+            message=f"Column '{temporal_column}' is not temporal",
+            details=(
+                "The temporal_column must reference a dataset column marked as "
+                "temporal so dashboard time-range filters can bind to the chart."
+            ),
+            suggestions=[
+                "Choose a temporal column from the dataset",
+                "Remove temporal_column to use the dataset's default time column",
+            ],
+            error_code="NON_TEMPORAL_COLUMN",
+        )
 
     @staticmethod
     def _validate_columns_exist(  # noqa: C901
@@ -290,7 +377,16 @@ class DatasetValidator:
             logger.warning("No plugin registered for chart_type=%r", chart_type)
             return []
 
-        return plugin.extract_column_refs(config)
+        refs = plugin.extract_column_refs(config)
+        temporal_column = getattr(config, "temporal_column", None)
+        if temporal_column and not any(
+            not ref.saved_metric
+            and ref.name
+            and ref.name.lower() == temporal_column.lower()
+            for ref in refs
+        ):
+            refs.append(ColumnRef(name=temporal_column))
+        return refs
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:
@@ -424,7 +520,16 @@ class DatasetValidator:
             )
             return config
 
-        return plugin.normalize_column_refs(config, dataset_context)
+        normalized_config = plugin.normalize_column_refs(config, dataset_context)
+        if temporal_column := getattr(normalized_config, "temporal_column", None):
+            canonical_temporal_column = DatasetValidator.get_canonical_column_name(
+                temporal_column, dataset_context
+            )
+            if canonical_temporal_column != temporal_column:
+                normalized_config = normalized_config.model_copy(
+                    update={"temporal_column": canonical_temporal_column}
+                )
+        return normalized_config
 
     @staticmethod
     def _get_column_suggestions(

@@ -641,12 +641,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         """
         Return the default schema for a given query.
 
-        This method simply uses the parent method after checking that there are no
-        malicious path setting in the query.
+        This method simply uses the parent method after checking that the query
+        cannot rebind the schema used to resolve unqualified table names.
         """
         script = process_jinja_sql(query.sql, database, template_params).script
-        settings = script.get_settings()
-        if "search_path" in settings:
+        if script.changes_default_schema():
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
