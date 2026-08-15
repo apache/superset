@@ -74,8 +74,8 @@ test('renders an empty chart when the query returns no rows', () => {
    * the target column is NULL (`df.dropna(...)` leaves nothing), so
    * `queriesData[0].data` arrives as `[]`. Reading the bin labels off
    * `data[0]` then throws "Cannot convert undefined or null to object" and
-   * the chart crashes instead of rendering as empty. Radar already guards
-   * the same lookup with `data[0] || {}`.
+   * the chart crashes instead of rendering as empty. Guard the lookup with
+   * `data[0] ?? {}`.
    */
   const props = createChartProps([]);
   const transformed = transformProps(props as HistogramChartProps);
