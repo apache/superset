@@ -20,7 +20,7 @@ from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-from flask import g, request, Response, send_file
+from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -55,7 +55,7 @@ from superset.queries.saved_queries.schemas import (
     validate_label,
 )
 from superset.utils import json
-from superset.utils.core import sanitize_cookie_token
+from superset.utils.core import send_export_zip
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -307,15 +307,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/import/", methods=("POST",))
     @protect()
