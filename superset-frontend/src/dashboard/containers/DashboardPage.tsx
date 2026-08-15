@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
+import { createContext, FC, useEffect, useMemo, useRef } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
@@ -83,7 +84,7 @@ type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 export const DashboardPageIdContext = createContext('');
 
-const DashboardBuilder = lazy(
+const DashboardBuilder = lazyWithRetry(
   () =>
     import(
       /* webpackChunkName: "DashboardContainer" */
