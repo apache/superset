@@ -382,6 +382,49 @@ test('will convert from array to individual comparators if the operator changes 
   );
 });
 
+test('resets the comparator when switching between array value families', () => {
+  // Equal to (whole-array literal) -> Contains all (individual elements):
+  // the value spaces are incompatible, so the stale value must be cleared.
+  const wholeArrayFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'scores',
+    operatorId: Operators.Equals,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
+    comparator: '[5,6,7]',
+    clause: Clauses.Where,
+  });
+  const props = setup({ adhocFilter: wholeArrayFilter });
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.ContainsAll);
+  const lastCall =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(lastCall.operatorId).toEqual(Operators.ContainsAll);
+  expect(lastCall.comparator).toBeUndefined();
+});
+
+test('keeps the value when switching within the element family', () => {
+  // Contains any <-> Contains all both take individual elements, so the
+  // selected elements should carry over.
+  const elementFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'scores',
+    operatorId: Operators.ContainsAny,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.ContainsAny].operation,
+    comparator: ['5', '6'],
+    clause: Clauses.Where,
+  });
+  const props = setup({ adhocFilter: elementFilter });
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.ContainsAll);
+  const lastCall =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(lastCall.comparator).toEqual(['5', '6']);
+});
+
 test('passes the new adhocFilter to onChange after onComparatorChange', () => {
   const props = setup();
   const { onComparatorChange } = useSimpleTabFilterProps(

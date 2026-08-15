@@ -235,10 +235,38 @@ export const useSimpleTabFilterProps = (props: Props) => {
   };
   const onOperatorChange = (operatorId: Operators) => {
     const currentComparator = props.adhocFilter.comparator;
+    // The value space differs between operator families: element-level array
+    // ops (Contains any/all) take individual elements, whole-array/scalar ops
+    // (=, In, …) take whole arrays or scalars, Length ops take a count, and the
+    // unary ops take nothing. A value from one family is meaningless in another,
+    // so reset the value when the family changes (e.g. Equal to -> Contains all).
+    const comparatorKind = (op?: Operators): string => {
+      if (!op) return 'none';
+      if (op === Operators.ContainsAny || op === Operators.ContainsAll) {
+        return 'element';
+      }
+      if (
+        op === Operators.LengthEquals ||
+        op === Operators.LengthGreaterThan ||
+        op === Operators.LengthLessThan ||
+        op === Operators.LengthGreaterThanOrEqual ||
+        op === Operators.LengthLessThanOrEqual
+      ) {
+        return 'length';
+      }
+      if (DISABLE_INPUT_OPERATORS.includes(op)) return 'none';
+      return 'value';
+    };
+    const valueFamilyChanged =
+      comparatorKind(props.adhocFilter.operatorId as Operators | undefined) !==
+      comparatorKind(operatorId);
+
     let newComparator;
-    // convert between list of comparators and individual comparators
-    // (e.g. `in ('North America', 'Africa')` to `== 'North America'`)
-    if (MULTI_OPERATORS.has(operatorId)) {
+    if (valueFamilyChanged) {
+      newComparator = undefined;
+    } else if (MULTI_OPERATORS.has(operatorId)) {
+      // convert between list of comparators and individual comparators
+      // (e.g. `in ('North America', 'Africa')` to `== 'North America'`)
       newComparator = Array.isArray(currentComparator)
         ? currentComparator
         : [currentComparator].filter(element => element != null);
