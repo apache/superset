@@ -214,8 +214,7 @@ frontend falls back to a built-in default of `5000` milliseconds.
 SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS = 0
 ```
 
-**Why does ‘flask fab’ or superset freeze/hang/not responding when started (my home directory is
-NFS mounted)?**
+## Why does `flask fab` or Superset freeze, hang, or not respond when started (my home directory is NFS mounted)?
 
 By default, Superset creates and uses an SQLite database at `~/.superset/superset.db`. SQLite is
 known to [not work well if used on NFS](https://www.sqlite.org/lockingv3.html) due to broken file
