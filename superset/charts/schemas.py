@@ -576,7 +576,10 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
             allow_none=False,
             metadata={"description": "Columns by which to group by"},
         ),
-        metadata={"minLength": 1},
+        # `minLength` as metadata neither validates a list nor is the right
+        # OpenAPI keyword for one -- arrays use `minItems`. A validator both
+        # enforces the bound and emits the correct constraint.
+        validate=Length(min=1),
         required=True,
     )
     aggregates = ChartDataAggregateConfigField()
@@ -919,8 +922,12 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
         fields.String(allow_none=False),
         metadata={
             "description": "Columns to group by on the table index (=rows)",
-            "minLength": 1,
         },
+        # `pivot()` rejects an empty index ("Pivot operation requires at least
+        # one index"), so the schema has to say so. The previous `minLength`
+        # metadata did neither: it is not a validator, and arrays use
+        # `minItems` in OpenAPI.
+        validate=Length(min=1),
         required=True,
     )
     columns = fields.List(

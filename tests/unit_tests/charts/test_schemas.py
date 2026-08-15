@@ -670,3 +670,32 @@ def test_required_post_processing_options_are_documented(app_context: None) -> N
     # `rolling()` requires `columns`, though the schema has always declared it
     # optional; the field simply has to exist.
     assert "columns" in ChartDataRollingOptionsSchema().fields
+
+
+def test_pivot_and_aggregate_reject_an_empty_column_list(app_context: None) -> None:
+    """An empty `index`/`groupby` must be rejected at the schema boundary.
+
+    `metadata={"minLength": 1}` is inert: metadata is not a validator, and
+    `minLength` is the OpenAPI keyword for strings, not arrays (`minItems`).
+    So the schema accepted `index=[]` while `pivot()` raises "Pivot operation
+    requires at least one index".
+    """
+    from marshmallow import ValidationError
+
+    from superset.charts.schemas import (
+        ChartDataAggregateOptionsSchema,
+        ChartDataPivotOptionsSchema,
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        ChartDataPivotOptionsSchema().load({"index": [], "aggregates": {}})
+    assert "index" in exc_info.value.messages
+
+    with pytest.raises(ValidationError) as exc_info:
+        ChartDataAggregateOptionsSchema().load({"groupby": [], "aggregates": {}})
+    assert "groupby" in exc_info.value.messages
+
+    # a non-empty list still loads
+    assert ChartDataPivotOptionsSchema().load(
+        {"index": ["__timestamp"], "aggregates": {}}
+    )["index"] == ["__timestamp"]
