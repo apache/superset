@@ -22,7 +22,7 @@ description: Distribution of life expectancy across countries.
 params:
   adhoc_filters:
   - clause: WHERE
-    comparator: '2014-01-01 : 2014-01-02'
+    comparator: '2011-01-01 : 2011-01-02'
     expressionType: SIMPLE
     operator: TEMPORAL_RANGE
     subject: year
