@@ -350,6 +350,9 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 # (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
 # those values undecryptable unless they are re-encrypted first. See the
 # authenticated-encryption SIP/migration before switching an existing install.
+# Leaving this at "aes" logs a startup warning
+# (SupersetAppInitializer.check_encryption_engine) pointing at the
+# `superset re-encrypt-secrets --engine aes-gcm` migration path.
 SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 
 # Extends the default SQLGlot dialects with additional dialects
@@ -485,8 +488,7 @@ FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 AUTH_TYPE = AUTH_DB
 
-# Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+# AUTH_ROLE_ADMIN = "Admin"
 
 # Uncomment to setup Public role name, no authentication needed
 # AUTH_ROLE_PUBLIC = 'Public'
@@ -709,6 +711,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Matrixify feature for matrix-style chart layouts
     # @lifecycle: development
     "MATRIXIFY": False,
+    # Serve a consumption-only mobile experience (dashboards, dashboard list,
+    # and home page) on small screens; other views show a "not supported on
+    # mobile" screen. Authoring features are hidden on mobile when enabled.
+    # @lifecycle: development
+    "MOBILE_CONSUMPTION_MODE": False,
     # Try to optimize SQL queries — for now only predicate pushdown is supported
     # @lifecycle: development
     "OPTIMIZE_SQL": False,
@@ -793,10 +800,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When impersonating a user, use the email prefix instead of username
     # @lifecycle: testing
     "IMPERSONATE_WITH_EMAIL_PREFIX": False,
-    # Replace Selenium with Playwright for reports and thumbnails.
-    # Supports deck.gl visualizations. Requires playwright pip package.
-    # @lifecycle: testing
-    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Apply RLS rules to SQL Lab queries. Requires query parsing/manipulation.
     # May break queries or allow RLS bypass. Use with care!
     # @lifecycle: testing
@@ -1309,24 +1312,12 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
-# Maximum time (in seconds) selenium waits for an initial page navigation
-# (driver.get) to complete. Without it the navigation blocks indefinitely when
-# the target page never finishes loading (e.g. an unreachable WEBDRIVER_BASEURL),
-# which leaves the report schedule stuck in the WORKING state. Set to None to
-# disable (not recommended).
-SCREENSHOT_PAGE_LOAD_WAIT = int(timedelta(minutes=2).total_seconds())
-# Selenium destroy retries
-SCREENSHOT_SELENIUM_RETRIES = 5
-# Give selenium an headstart, in seconds
+# Give the browser an initial headstart, in seconds
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
 # Replace unexpected errors in screenshots with real error messages
 SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
-# Max time to wait for error message modal to show up, in seconds
-SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
-# Max time to wait for error message modal to close, in seconds
-SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 # Event that Playwright waits for when loading a new page
 # Possible values: "load", "commit", "domcontentloaded", "networkidle"
 # Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
@@ -1550,6 +1541,22 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # stay tabular (one worksheet of data) while every other viz type is embedded as
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
+
+# Optional hook to build a query context for a chart that has no saved
+# ``query_context``, called before the built-in form-data rebuild. Receives the
+# chart's form data (its ``params`` with ``viz_type`` and the
+# ``datasource="{id}__{type}"`` string injected — i.e. ``Slice.form_data``) and
+# returns a query-context payload dict (the shape ``ChartDataQueryContextSchema``
+# loads) or ``None``. A deployment can point this at a service that runs the
+# chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
+# for viz types the built-in rebuild can't handle. Must return ``None`` — not a
+# partial/stub context — whenever it cannot build the chart faithfully, so the
+# export falls through to the built-in rebuild. The export deep-copies whatever
+# it returns before applying dashboard filters, so a builder is free to memoize
+# or share its payloads. Defaults to ``None`` (built-in behavior only).
+EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
+    Callable[[dict[str, Any]], dict[str, Any] | None] | None
+) = None
 
 # ---------------------------------------------------
 # Time grain configurations
@@ -2532,6 +2539,12 @@ REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 
+# Socket timeout (in seconds) for the HTTP request that dispatches webhook
+# alerts/reports. Without a timeout the request blocks indefinitely if the
+# webhook target is unreachable, which leaves the report schedule stuck in
+# the WORKING state. Set to None to disable (not recommended).
+ALERT_REPORTS_WEBHOOK_TIMEOUT = 60
+
 # When True, webhook alert/report dispatch is permitted to call private/internal
 # IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
 # the webhook target is on an internal network (a chatops bridge, an internal
@@ -2574,23 +2587,20 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+# Cooldown (in seconds) after an on-demand Slack channel-cache refresh.
+SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
+
 # Timeout (in seconds) for outbound Slack API calls. The Slack SDK defaults to 30s;
 # exposing it here lets operators grant more time for large file uploads (multi-MB
 # CSVs, PDFs, screenshot sets) to congested or rate-limited Slack endpoints without
 # patching code, consistent with the SMTP/CSV/screenshot timeouts.
 SLACK_API_TIMEOUT = 30
 
-# The webdriver to use for generating reports when using Selenium (not Playwright).
-# This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
-# Playwright always uses Chromium regardless of this value.
-# Use one of the following:
-# firefox
-#   Requires: geckodriver and firefox installations
-#   Limitations: can be buggy at times
-# chrome:
-#   Requires: headless chrome
-#   Limitations: unable to generate screenshots of elements
-WEBDRIVER_TYPE = "firefox"
+# Application retry budget (in seconds) shared by all Slack channels, files, and
+# upload phases in one report execution. Increase this for slow or large-file
+# reports. The effective configured value is floored at one second longer than
+# SLACK_API_TIMEOUT, then clamped to the report's remaining working timeout.
+SLACK_SEND_RETRY_MAX_TIME = 150
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {
@@ -2599,20 +2609,12 @@ WEBDRIVER_WINDOW = {
     "pixel_density": 1,
 }
 
-# An optional override to the default auth hook used to provide auth to the offline
-# webdriver (when using Selenium) or browser context (when using Playwright - see
-# PLAYWRIGHT_REPORTS_AND_THUMBNAILS feature flag)
+# An optional override to the default auth hook used to provide auth to the
+# browser context when using Playwright
 WEBDRIVER_AUTH_FUNC = None
 
-# Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION = {
-    "options": {"capabilities": {}, "preferences": {}, "binary_location": ""},
-    "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
-}
-
-# Additional args to be passed as arguments to the config object
-# Note: If using Chrome, you'll want to add the "--marionette" arg.
-WEBDRIVER_OPTION_ARGS = ["--headless"]
+# Additional args to be passed to the Playwright browser launch.
+WEBDRIVER_OPTION_ARGS: list[str] = []
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"

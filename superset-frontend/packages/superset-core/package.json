@@ -106,7 +106,7 @@
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^15.0.0",
     "@testing-library/user-event": "*",
-    "@types/lodash": "^4.17.24",
+    "@types/lodash": "^4.17.25",
     "@types/react": "*",
     "@types/react-loadable": "*",
     "@types/tinycolor2": "*",

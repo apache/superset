@@ -28,6 +28,14 @@ import { convertUTCTimestampToLocal } from './utils';
 // Define a minimal constructor interface for use in this file.
 interface CalHeatMapInstance {
   init(config: Record<string, unknown>): void;
+  destroy(): null;
+}
+
+const calendarInstances = new WeakMap<HTMLElement, CalHeatMapInstance[]>();
+
+export function destroyCalendarInstances(element: HTMLElement) {
+  calendarInstances.get(element)?.forEach(calendar => calendar.destroy());
+  calendarInstances.delete(element);
 }
 const CalHeatMap = CalHeatMapImport as unknown as new () => CalHeatMapInstance;
 
@@ -82,6 +90,10 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     colorRangeStart,
   } = props;
 
+  destroyCalendarInstances(element);
+  const instances: CalHeatMapInstance[] = [];
+  calendarInstances.set(element, instances);
+
   const container = d3Select(element)
     .classed('superset-legacy-chart-calendar', true)
     .style('height', height);
@@ -120,12 +132,13 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     const colorScheme = getSequentialSchemeRegistry().get(linearColorScheme);
     const colorScale = colorScheme
       ? colorScheme.createLinearScale(extents)
-      : (_v: number) => '#ccc'; // fallback if scheme not found
+      : () => '#ccc'; // fallback if scheme not found
 
     const legend = d3Range(steps).map(i => extents[0] + step * i);
     const legendColors = legend.map(x => colorScale(x));
 
     const cal = new CalHeatMap();
+    instances.push(cal);
     cal.init({
       start: convertUTCTimestampToLocal(data.start),
       data: timestamps,

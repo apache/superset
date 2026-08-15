@@ -163,3 +163,31 @@ def test_column_type_recognition() -> None:
     col_spec = DuckDBEngineSpec.get_column_spec("TINYINT")
     # TINYINT matches the pattern "^int" so it should be recognized
     assert col_spec is None, "TINYINT doesn't match any patterns"
+
+
+def test_fetch_data_preserves_cursor_description(mocker: MockerFixture) -> None:
+    """
+    DuckDBEngineSpec previously overrode fetch_data to capture and restore
+    cursor.description around fetchall(), working around a duckdb-engine bug
+    that no longer reproduces at current pinned versions (duckdb-engine
+    0.17.0, duckdb 1.5.5). Confirm the inherited base fetch_data still works
+    correctly against a real cursor now that the override is gone.
+    """
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    engine = create_engine("duckdb:///:memory:")
+    raw_conn = engine.raw_connection()
+    try:
+        cursor = raw_conn.cursor()
+        database = mocker.MagicMock()
+        DuckDBEngineSpec.execute(cursor, "SELECT 1 AS col1, 2 AS col2", database)
+
+        data = DuckDBEngineSpec.fetch_data(cursor)
+
+        assert data == [(1, 2)]
+        assert cursor.description is not None
+        assert [col[0] for col in cursor.description] == ["col1", "col2"]
+    finally:
+        raw_conn.close()
