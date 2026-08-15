@@ -492,10 +492,21 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           .then(({ json }) => {
             setSuggestions(
               json.result.map(
-                (suggestion: null | number | boolean | string) => ({
-                  value: suggestion,
-                  label: optionLabel(suggestion),
-                }),
+                (suggestion: null | number | boolean | string | unknown[]) => {
+                  // Whole-array suggestions (Equal to / In on a multi-value
+                  // column) arrive as arrays, e.g. [5, 6, 7]. A raw array is not
+                  // a valid single-select value (antd collapses it, showing only
+                  // the first element), so render it as its literal string, which
+                  // is also exactly what the backend's parse_array_literal expects.
+                  if (Array.isArray(suggestion)) {
+                    const literal = JSON.stringify(suggestion);
+                    return { value: literal, label: literal };
+                  }
+                  return {
+                    value: suggestion,
+                    label: optionLabel(suggestion),
+                  };
+                },
               ),
             );
             setLoadingComparatorSuggestions(false);
