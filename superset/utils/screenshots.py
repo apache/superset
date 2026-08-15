@@ -25,7 +25,7 @@ from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
-from superset import feature_flag_manager, thumbnail_cache
+from superset import thumbnail_cache
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
     LockAlreadyHeldException,
@@ -40,21 +40,10 @@ from superset.utils.webdriver import (
     DashboardStandaloneMode,
     WebDriverPlaywright,
     WebDriverProxy,
-    WebDriverSelenium,
     WindowSize,
 )
 
 logger = logging.getLogger(__name__)
-
-# Import Playwright availability and install message
-try:
-    from superset.utils.webdriver import (
-        PLAYWRIGHT_AVAILABLE,
-        PLAYWRIGHT_INSTALL_MESSAGE,
-    )
-except ImportError:
-    PLAYWRIGHT_AVAILABLE = False
-    PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
 
 
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
@@ -199,10 +188,6 @@ class ScreenshotCachePayload:
 
 
 class BaseScreenshot:
-    @property
-    def driver_type(self) -> str:
-        return app.config["WEBDRIVER_TYPE"]
-
     url: str
     digest: str | None
     screenshot: bytes | None
@@ -220,27 +205,10 @@ class BaseScreenshot:
     def driver(
         self,
         window_size: WindowSize | None = None,
-        user: User | None = None,
-        log_context: str | None = None,
     ) -> WebDriverProxy:
         window_size = window_size or self.window_size
-        if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            # Try to use Playwright if available (supports WebGL/DeckGL, unlike Cypress)
-            if PLAYWRIGHT_AVAILABLE:
-                return WebDriverPlaywright(self.driver_type, window_size)
-
-            # Playwright not available, falling back to Selenium
-            context_suffix = f" [{log_context}]" if log_context else ""
-            logger.info(
-                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
-                "installed. Falling back to Selenium (WebGL/Canvas charts may "
-                "not render correctly). %s%s",
-                PLAYWRIGHT_INSTALL_MESSAGE,
-                context_suffix,
-            )
-
-        # Use Selenium as default/fallback
-        return WebDriverSelenium(self.driver_type, window_size, user)
+        # Empty string for driver_type — unused by WebDriverPlaywright internals
+        return WebDriverPlaywright("", window_size)
 
     def get_screenshot(
         self,
@@ -249,18 +217,14 @@ class BaseScreenshot:
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
-        driver = self.driver(window_size, user, log_context=log_context)
-        try:
-            self.screenshot = driver.get_screenshot(
-                self.url,
-                self.element,
-                user,
-                log_context=log_context,
-                report_execution_context=report_execution_context,
-            )
-        finally:
-            if isinstance(driver, WebDriverSelenium):
-                driver.destroy()
+        driver = self.driver(window_size)
+        self.screenshot = driver.get_screenshot(
+            self.url,
+            self.element,
+            user,
+            log_context=log_context,
+            report_execution_context=report_execution_context,
+        )
         return self.screenshot
 
     def get_cache_key(

@@ -36,6 +36,7 @@ from fastmcp.tools.tool import ToolResult
 from mcp import types as mt
 from sqlalchemy.exc import OperationalError
 
+from superset.mcp_service.auth import _mcp_user_id_var
 from superset.mcp_service.middleware import LoggingMiddleware
 
 
@@ -415,6 +416,108 @@ class TestLoggingMiddlewareOnMessage:
         assert payload["mcp_tool"] == "get_chart_data"
         assert payload["success"] is False
         assert payload["error_type"] == "PermissionError"
+
+
+class TestLoggingMiddlewareUserIdContextVar:
+    """Tests for _mcp_user_id_var overriding the pre-call user_id snapshot.
+
+    _extract_context_info() runs *before* call_next(), i.e. before the
+    tool's auth decorator (superset/mcp_service/auth.py) has resolved a
+    user, so get_user_id() there is always pre-auth (typically None).
+    _setup_user_context() sets _mcp_user_id_var while running inside
+    call_next(), right before the per-call app context (which g.user
+    depends on) is popped. These tests simulate that by setting the
+    ContextVar from within call_next(), mirroring the real auth decorator.
+    """
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=None)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_uses_contextvar_set_during_call_next(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """Logged user_id reflects auth resolved during call_next(), not
+        the pre-call snapshot."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+
+        async def fake_call_next(_ctx):
+            _mcp_user_id_var.set(42)
+            return "tool_result"
+
+        token = _mcp_user_id_var.set(None)
+        try:
+            result = await middleware.on_call_tool(ctx, fake_call_next)
+        finally:
+            _mcp_user_id_var.reset(token)
+
+        assert result == "tool_result"
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["user_id"] == 42
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=7)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_falls_back_when_contextvar_unset(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """When the call never runs _setup_user_context() (ContextVar
+        stays at its default), the pre-call get_user_id() value is used
+        as-is -- no regression for paths that don't set the ContextVar."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="health_check")
+        call_next = AsyncMock(return_value="ok")
+
+        token = _mcp_user_id_var.set(None)
+        try:
+            await middleware.on_call_tool(ctx, call_next)
+        finally:
+            _mcp_user_id_var.reset(token)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["user_id"] == 7
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=None)
+    @pytest.mark.asyncio
+    async def test_on_message_uses_contextvar_set_during_call_next(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(method="resources/read", name="instance/metadata")
+
+        async def fake_call_next(_ctx):
+            _mcp_user_id_var.set(99)
+            return "resource_data"
+
+        token = _mcp_user_id_var.set(None)
+        try:
+            result = await middleware.on_message(ctx, fake_call_next)
+        finally:
+            _mcp_user_id_var.reset(token)
+
+        assert result == "resource_data"
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["user_id"] == 99
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=13)
+    @pytest.mark.asyncio
+    async def test_on_message_falls_back_when_contextvar_unset(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(method="resources/read", name="instance/metadata")
+        call_next = AsyncMock(return_value="resource_data")
+
+        token = _mcp_user_id_var.set(None)
+        try:
+            await middleware.on_message(ctx, call_next)
+        finally:
+            _mcp_user_id_var.reset(token)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["user_id"] == 13
 
 
 class TestResolveToolName:

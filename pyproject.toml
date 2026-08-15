@@ -60,15 +60,11 @@ dependencies = [
     "flask-login>=0.6.0, < 1.0",
     "flask-migrate>=4.1.0, <5.0",
     "flask-session>=0.4.0, <1.0",
-    # Pinned explicitly below 3.0: 3.0.5 resolves without conflict and
-    # supports both SQLAlchemy 1.4 and 2.0, but real CI runs surfaced a
-    # structural incompatibility with Superset's current session/app-context
-    # handling across Celery task boundaries (see PR #42542) -- widespread
-    # "NoneType has no attribute X" failures and MySQL lock-wait timeouts,
-    # not just a connection-pool quirk. Needs dedicated investigation, not a
-    # driver-compat-prep bump; revisit alongside the actual SQLAlchemy 2.0
-    # core bump (discussion #40273, step 6).
-    "flask-sqlalchemy>=2.5.1, <4.0",
+    # Bumped to 3.1.1 alongside the SQLAlchemy 2.0 core bump (discussion
+    # #40273, step 6), which resolves the session/app-context handling
+    # across Celery task boundaries that previously blocked this (see
+    # PR #42542).
+    "flask-sqlalchemy>=3.1.1, <4.0",
     "flask-wtf>=1.3.0, <2.0",
     "geopy",
     "greenlet<=3.5.4, >=3.5.4",
@@ -110,15 +106,15 @@ dependencies = [
     "PyJWT>=2.4.0, <3.0",
     "redis>=5.0.0, <9.0",
     "rison>=2.0.1, <3.0",
-    "selenium>=4.46.0, <5.0",
+
     "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=4.1.1",
     "slack_sdk>=3.43.0, <4",
-    "sqlalchemy>=1.4.43, <2", # 1.4.43 adds the python-oracledb (oracle+oracledb) dialect
+    "sqlalchemy>=2.0.0, <2.1",
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
-    "sqlglot>=30.14.0, <31",
+    "sqlglot>=30.16.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -164,11 +160,10 @@ databricks = [
 datafusion = ["flightsql-dbapi>=0.2.2, <0.3"]
 db2 = ["ibm-db-sa<=0.4.4, >=0.4.4"]
 denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
-# sqlalchemy-dremio 3.0.5+ hard-pins sqlalchemy~=2.0.41, dropping 1.4; 3.0.4
-# is the last dual-compat release. Capped below 3.0.5 for now; widen back to
-# <4 in lockstep with Superset's own SQLAlchemy 2.0 core bump (discussion
-# #40273), not before.
-dremio = ["sqlalchemy-dremio>=1.2.1, <3.0.5"]
+# sqlalchemy-dremio 3.0.5+ hard-pins sqlalchemy~=2.0.41, dropping 1.4.
+# Widened now that Superset's own SQLAlchemy 2.0 core bump has landed
+# (discussion #40273).
+dremio = ["sqlalchemy-dremio>=3.0.5, <4"]
 # <2 was an artificial ceiling; upstream has no SQLAlchemy version cap and
 # 1.1.10 already supports SQLAlchemy 2.0 (added `import_dbapi` in 1.1.7).
 drill = ["sqlalchemy-drill>=1.1.10, <3"]
@@ -181,10 +176,9 @@ dynamodb = ["pydynamodb>=0.8.2"]
 solr = ["sqlalchemy-solr>=0.2.4.3"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
 # sqlalchemy-exasol cuts hard from SQLAlchemy 1.4-only (<6.0.0) to 2.0-only
-# (>=6.0.0) with no dual-compat release. Capped below 6.0.0 for now; bump to
-# >=6.0.0,<8.0 in lockstep with Superset's own SQLAlchemy 2.0 core bump
-# (discussion #40273), not before.
-exasol = ["sqlalchemy-exasol>=2.4.0, <6.0.0"]
+# (>=6.0.0) with no dual-compat release. Bumped now that Superset's own
+# SQLAlchemy 2.0 core bump has landed (discussion #40273).
+exasol = ["sqlalchemy-exasol>=6.0.0, <8.0"]
 excel = ["xlrd>=2.0.2, <2.1"]
 # Async dashboard "Export Data/Images to Excel": uploads the workbook to S3 and
 # emails a pre-signed link. boto3 is imported lazily by superset.utils.s3, so
@@ -199,9 +193,9 @@ fastmcp = [
 ]
 # sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
 # Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
-# release. Capped below 2.0.0 for now; bump to >=2.2.0 in lockstep with
-# Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
-firebird = ["sqlalchemy-firebird>=0.8.0, <2.0.0"]
+# release. Bumped now that Superset's own SQLAlchemy 2.0 core bump has
+# landed (discussion #40273).
+firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
 gevent = ["gevent>=26.7.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
@@ -240,15 +234,14 @@ presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.338.0"]
 prophet = ["prophet>=1.3.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
-# (>=1.0.0) with no dual-compat release; the existing <0.9 ceiling already
-# keeps this on the 1.4-only line. Bump to >=1.0.0 in lockstep with
-# Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
-redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
+# (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
+# SQLAlchemy 2.0 core bump has landed (discussion #40273).
+redshift = ["sqlalchemy-redshift>=1.0.0"]
 # No release of sqlalchemy-risingwave has ever supported both SQLAlchemy 1.4
-# and 2.0 (version numbers don't track SQLAlchemy compat monotonically); pin
-# to the newest 1.4-only release for now. Bump to >=2.0.0 in lockstep with
-# Superset's own SQLAlchemy 2.0 core bump (discussion #40273), not before.
-risingwave = ["sqlalchemy-risingwave>=1.4.1, <3.0.0"]
+# and 2.0 (version numbers don't track SQLAlchemy compat monotonically).
+# Bumped to the 2.0-only line now that Superset's own SQLAlchemy 2.0 core
+# bump has landed (discussion #40273).
+risingwave = ["sqlalchemy-risingwave>=2.0.0"]
 shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.11.0, <2"]
@@ -309,7 +302,7 @@ combine_as_imports = true
 include_trailing_comma = true
 line_length = 88
 known_first_party = "superset, apache-superset-core, apache-superset-extensions-cli"
-known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
 multi_line_output = 3
 order_by_type = false
 
