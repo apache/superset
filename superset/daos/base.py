@@ -670,10 +670,21 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 f"found {len(pk_cols)} columns."
             )
         related_pk = pk_cols[0]
-        if operator_enum == ColumnOperatorEnum.eq:
-            return query.filter(column.any(related_pk == value))
-        if operator_enum == ColumnOperatorEnum.ne:
-            # "no related row has id == value"
+        if operator_enum in (ColumnOperatorEnum.eq, ColumnOperatorEnum.ne):
+            # `value` must be scalar for both eq and ne: a list/tuple would
+            # silently compile to `related_pk == [...]` (or `!= [...]`),
+            # which behaves unpredictably across backends instead of
+            # failing fast. Use `in`/`nin` to match multiple related ids.
+            if isinstance(value, (list, tuple)):
+                counterpart = "in" if operator_enum == ColumnOperatorEnum.eq else "nin"
+                raise ValueError(
+                    f"Operator '{operator_enum.value}' on relationship "
+                    f"column '{col_name}' requires a scalar value, got "
+                    f"{type(value).__name__}. Use '{counterpart}' to match "
+                    f"multiple related ids."
+                )
+            if operator_enum == ColumnOperatorEnum.eq:
+                return query.filter(column.any(related_pk == value))
             return query.filter(~column.any(related_pk == value))
         if operator_enum == ColumnOperatorEnum.in_:
             values = value if isinstance(value, (list, tuple)) else [value]
