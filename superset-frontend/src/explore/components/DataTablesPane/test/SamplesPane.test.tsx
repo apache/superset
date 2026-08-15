@@ -66,6 +66,21 @@ describe('SamplesPane', () => {
     {},
   );
 
+  // A 200 whose result carries rows but omits `rowcount`.
+  fetchMock.post(
+    'end:/datasource/samples?force=false&datasource_type=table&datasource_id=38&per_page=100&page=1',
+    {
+      result: {
+        data: [
+          { __timestamp: 1230768000000, genre: 'Action' },
+          { __timestamp: 1230768000010, genre: 'Horror' },
+        ],
+        colnames: ['__timestamp', 'genre'],
+        coltypes: [2, 1],
+      },
+    },
+  );
+
   const setForceQuery = jest.fn();
 
   afterAll(() => {
@@ -132,5 +147,17 @@ describe('SamplesPane', () => {
     ).toBeVisible();
     // The pane should not leak an internal TypeError through the error alert.
     expect(queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('counts the returned rows when the response omits rowcount', async () => {
+    const props = createSamplesPaneProps({ datasourceId: 38 });
+    const { findByText, queryByText } = render(<SamplesPane {...props} />, {
+      useRedux: true,
+    });
+
+    expect(await findByText('Action')).toBeVisible();
+    // Falling back to 0 here would label a populated table as "0 rows".
+    expect(queryByText('0 rows')).not.toBeInTheDocument();
+    expect(queryByText('2 rows')).toBeVisible();
   });
 });
