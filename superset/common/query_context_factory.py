@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast, TYPE_CHECKING
 
 from flask import current_app
 
@@ -30,6 +30,9 @@ from superset.explorables.base import Explorable
 from superset.models.slice import Slice
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import BaseDatasource
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -81,6 +84,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                 self._query_object_factory.create(
                     result_type,
                     datasource=datasource,
+                    datasource_model_instance=cast(
+                        "BaseDatasource", datasource_model_instance
+                    ),
                     server_pagination=server_pagination,
                     **query_obj,
                 ),

@@ -129,6 +129,8 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 database_id = self._properties["database"]
                 if database := DatabaseDAO.find_by_id(database_id):
                     self._properties["database"] = database
+                    if sql := self._properties.get("sql"):
+                        self.validate_alert_query(database, sql, exceptions)
                 else:
                     exceptions.append(DatabaseNotFoundValidationError())
             except KeyError:

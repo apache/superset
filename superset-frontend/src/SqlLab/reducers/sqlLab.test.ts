@@ -695,6 +695,49 @@ describe('sqlLabReducer', () => {
       );
       expect(newState.queries['sync-query'].state).toBe(QueryState.Fetching);
     });
+    test('should move an async query from running to success when polling reports it finished', () => {
+      const asyncQuery = {
+        ...query,
+        id: 'async-query',
+        state: QueryState.Running,
+        runAsync: true,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { 'async-query': asyncQuery },
+        },
+        actions.refreshQueries({
+          'async-query': {
+            ...asyncQuery,
+            state: QueryState.Success,
+          },
+        }),
+      );
+      expect(newState.queries['async-query'].state).toBe(QueryState.Success);
+    });
+    test('should downgrade a premature poller success to fetching for a running sync query', () => {
+      const syncQuery = {
+        ...query,
+        id: 'sync-running',
+        state: QueryState.Running,
+        runAsync: false,
+        results: null,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { 'sync-running': syncQuery },
+        },
+        actions.refreshQueries({
+          'sync-running': {
+            ...syncQuery,
+            state: QueryState.Success,
+          },
+        }),
+      );
+      expect(newState.queries['sync-running'].state).toBe(QueryState.Fetching);
+    });
   });
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('CLEAR_INACTIVE_QUERIES', () => {

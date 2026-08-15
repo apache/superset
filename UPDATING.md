@@ -24,6 +24,81 @@ assists people when migrating to a new version.
 
 ## Next
 
+### OAuth2 database callback metrics include their outcome
+
+The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with
+`DatabaseRestApi.oauth2.success`, `DatabaseRestApi.oauth2.warning`, and
+`DatabaseRestApi.oauth2.error`. Update monitoring rules and dashboards that consume
+the old counter to use the outcome-specific replacements.
+
+- [42935](https://github.com/apache/superset/pull/42935): The MCP service now refuses to start (`MCPAuthConfigError`) when `MCP_JWT_ISSUER` trusts more than one issuer and no `MCP_USER_RESOLVER` is configured, instead of only logging a warning. This was already a documented misconfiguration (the default resolver isn't issuer-scoped, so distinct trusted issuers minting the same username/email would resolve to the same Superset user); deployments trusting multiple issuers must configure an `MCP_USER_RESOLVER` that derives its identity from the token's `iss` claim before upgrading. Single-issuer deployments are unaffected.
+- [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
+- [42300](https://github.com/apache/superset/pull/42300): Timeseries charts (line/area/bar) with a Y-axis bound in effect — either an explicit `yAxisBounds` or one derived from `truncateYAxis` — now clamp out-of-range data points to that bound instead of letting ECharts drop the point (and the line segments around it) entirely. Any existing chart with a configured Y-axis bound and data outside it will look different after upgrading: a gap becomes a point pinned to the boundary. The clamp also rewrites the value ECharts reads for that point's tooltip and data label, so the displayed value is the bound rather than the true observation.
+- [42087](https://github.com/apache/superset/pull/42087): Stored calculated-column and metric expressions are validated when a query is built, under the same sub-query policy already applied to adhoc expressions. Previously only the dataset update path checked them on save, so expressions written by v1 import, by dataset duplication, or before that check existed were never validated. Since `ALLOW_ADHOC_SUBQUERY` defaults to `False` (see [19242](https://github.com/apache/superset/pull/19242)), a dataset whose stored expression contains a sub-query works before upgrading and afterwards fails at chart render with `Custom SQL fields cannot contain sub-queries.` There is no migration step, and the error does not name the offending dataset column, so audit stored expressions before upgrading: either rewrite them without the sub-query, or set `ALLOW_ADHOC_SUBQUERY = True` to keep the previous behaviour for both stored and adhoc expressions.
+
+### Selenium support removed — Playwright is now required for screenshots
+
+Selenium support has been removed. **Playwright is now required** for all
+report and thumbnail screenshot generation. Install it with:
+
+```bash
+pip install playwright && playwright install chromium
+```
+
+**Breaking config changes:**
+
+- `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag removed (Playwright is the only backend now)
+- `WEBDRIVER_TYPE` config key removed (Playwright always uses Chromium)
+- `WEBDRIVER_CONFIGURATION` config key removed (Selenium-only)
+- `SCREENSHOT_PAGE_LOAD_WAIT` config key removed (Selenium-only)
+- `SCREENSHOT_SELENIUM_RETRIES` config key removed (Selenium-only)
+- `SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE` config key removed (Selenium-only)
+- `SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE` config key removed (Selenium-only)
+- `MachineAuthProvider.authenticate_webdriver()` removed; use `authenticate_browser_context()` instead
+
+**What operators should do before upgrading:**
+
+1. Install Playwright: `pip install playwright && playwright install chromium`
+2. Remove any references to the removed config keys from custom `superset_config.py`
+3. If you subclassed `MachineAuthProvider`, remove any `authenticate_webdriver` override and migrate auth logic to `authenticate_browser_context`
+
+### CSV/XLSX report exports of Table charts keep raw numeric values
+
+Table and Pivot Table charts sent as text in a report email now apply the
+chart's number and currency formatting so the values match what a user sees in
+Explore. As part of this, the CSV and XLSX result formats return early before
+formatting: previously the Table post-processor applied `d3NumberFormat` to
+every result format, so CSV/XLSX exports contained pre-formatted strings.
+CSV/XLSX exports now preserve numeric values and column types, which is better
+for downstream analysis but is a visible change for anyone who relied on the
+formatted text in those files. The rendered email body (the only place the
+formatting is intended for) is unaffected.
+
+### SQLAlchemy bumped to 2.0, flask-sqlalchemy to 3.1.1
+
+Superset's core ORM dependencies move from SQLAlchemy 1.4 to 2.0 and
+flask-sqlalchemy `<3.0` to 3.1.1, completing the migration tracked in
+[discussion #40273](https://github.com/apache/superset/discussions/40273).
+
+**Custom `db_engine_specs`, plugins, or extensions that import SQLAlchemy
+internals directly** should review the
+[SQLAlchemy 1.4-to-2.0 migration guide](https://docs.sqlalchemy.org/en/20/changelog/migration_20.html)
+for API changes that affect them — most 1.4 code already runs unmodified
+under 2.0's compatibility mode, but patterns like `Engine.execute()`,
+string-keyed `Row` access, and `MetaData(bind=)` are removed outright.
+
+**Several optional DB-connector extras remain capped below their
+SQLAlchemy-2.0-only releases**, either because that bump is a separate
+follow-up ([#42891](https://github.com/apache/superset/pull/42891): dremio,
+exasol, firebird, redshift, risingwave) or because the upstream dialect
+package has no SQLAlchemy 2.0 support yet at all (aurora-data-api, d1,
+kusto, solr; ocient's 2.0 compatibility is unverified). Installing one of
+these extras continues to pull a SQLAlchemy-1.4-line version of that
+dialect; each package's constraint in `pyproject.toml` documents why.
+
+No application-level configuration changes are required for deployments
+that don't touch SQLAlchemy directly.
+
 ### Soft delete is on by default, and purging is live
 
 `SOFT_DELETE` now ships **on** (`DEFAULT_FEATURE_FLAGS`), so deleting a
@@ -107,6 +182,58 @@ Behavior changes to be aware of:
   if charts never mount. Thumbnails and non-report screenshots keep their
   previous behavior.
 
+### Embedded (guest token) API responses no longer echo database errors
+
+API responses served to a guest-token principal now carry a generic
+`An error occurred while fetching the data.` in place of the underlying error
+(`You don't have permission to access this resource.` on a 401/403), and drop
+the `stacktrace` and error `extra` payloads. Engine errors routinely quote
+catalog, schema, table and column names of the warehouse, which embedded
+viewers should not see. Errors Superset authors itself — access denials, OAuth2
+redirects, timeouts, payload validation — keep their message and type, though
+their `extra` is still reduced to the fields the client needs. Responses to
+every non-guest principal are unchanged, and the full error is still logged
+server-side.
+
+### `UnsavedChangesModal` no longer accepts a `zIndex` prop
+
+`@superset-ui/core`'s `UnsavedChangesModal` dropped its `zIndex` prop (and the
+hardcoded default it fed) in favor of letting Ant Design's own stacking
+handle placement. Callers passing `zIndex` to override the modal's layering
+will now get a TypeScript error and must remove the prop; keeping a manual
+override was exactly the footgun this change removes (see #42510). No
+callers in the Superset frontend codebase itself passed this prop.
+
+### Row-level security now filters table reads a same-named CTE used to hide
+
+`extract_tables_from_statement()` decided whether a reference was a CTE by matching its
+bare name against the enclosing scope's CTE names; it now resolves the name through
+`Scope.cte_sources`. Three kinds of real table read whose bare name collided with a CTE's
+were mistaken for the CTE and dropped from a statement's tables, so they were neither
+RLS-filtered nor access-checked: a schema- or catalog-qualified reference, a non-recursive
+CTE's own name inside its body, and a forward reference to a later `WITH` item.
+
+```sql
+WITH orders AS (SELECT 1 AS d) SELECT * FROM (SELECT * FROM public.orders) AS z
+WITH orders AS (SELECT * FROM orders) SELECT * FROM orders
+WITH q1 AS (SELECT key FROM q2), q2 AS (SELECT 1 AS key) SELECT * FROM q1
+```
+
+Each read is now reported, so it is filtered when `RLS_IN_SQLLAB` is enabled, matched
+against `DISALLOWED_SQL_TABLES`, and requires dataset access under
+`raise_for_access(force_dataset_match=True)`. A query that previously ran, reading those
+rows unfiltered, may now be filtered or rejected. There is no opt-out — the previous
+behavior was a row-level-security bypass.
+
+### Table aliases keep their quoting through the row-level security rewrite
+
+Both RLS transformers took the table alias as a string with its quoting stripped and
+emitted it verbatim; they now carry the parsed identifier. Emitted SQL is unchanged for an
+unquoted identifier; a quoted one keeps its quoting, and a column-alias list
+(`FROM t AS x (c1, c2)`) survives the rewrite instead of being dropped. This repairs
+row-level security for any aliased table on Snowflake, and for at least one statement shape
+on MSSQL where the rewrite previously raised `AttributeError`.
+
 ### Principal listing APIs now honour related-field filters
 
 Two authorization-related listing behaviors changed for API clients. Neither
@@ -155,11 +282,23 @@ A new dashboard action exports every chart's data to a single multi-sheet
 requires a running Celery worker and a configured SMTP transport, since the task
 emails the requesting user a pre-signed download link. New config keys:
 `EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
-`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`, and
-`EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
 The feature depends on `boto3`, which is **not** installed by default; install it
 with `pip install apache-superset[excel-export]`.
+
+Charts store their `query_context` only once they have been (re-)saved in
+Explore, so older charts may have none. For a fixed, conservative set of viz
+types (`table`, `big_number_total`, `big_number`, `pie`) the export rebuilds a
+query context from the chart's saved form data so those charts still export.
+The rebuild is a single-query mapping and does **not** reproduce plugin
+post-processing (pivot, rolling, forecast) or multi-query charts, so any chart of
+another type without a saved query context is skipped and listed in the email for
+the user to re-save. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
+to a callable that receives the chart's form data and returns a query-context
+payload (or `None` to fall back to the built-in rebuild) — for example one backed
+by a service that runs the chart's real frontend `buildQuery`.
 
 A second mode, **Export Images to Excel**, embeds non-table charts as rendered
 images (which viz types stay tabular is controlled by
@@ -763,6 +902,8 @@ With the flag enabled: `DELETE /api/v1/chart/<id>` no longer hard-deletes the ch
 **Importer behavior:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart is treated as an implicit restore-with-update — **and this happens even when `overwrite` is not set**. This is a deliberate asymmetry with active rows: an active chart imported without `overwrite=true` is returned unchanged, but a soft-deleted UUID match is restored _and_ has the upload's contents applied regardless of the `overwrite` argument, on the reasoning that re-importing a deleted chart's exact UUID is an explicit request to bring it back. The restore preserves the original PK and all out-of-archive references (`dashboard_slices` junctions, `report.chart_id`, tag rows). The operation is permission-gated: non-editors get `ImportFailedError`, and callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
 - [39914](https://github.com/apache/superset/pull/39914) `ALERT_REPORT_SLACK_V2` now defaults to `True` and the legacy Slack v1 integration (`Slack` recipient type, `files.upload` API) is deprecated for removal in the next major. Slack blocked new apps from `files.upload` in May 2024 and fully retired the method for all apps on November 12, 2025; because the v1 path sends files through `files.upload`, v1 file-bearing sends now fail at the API level — only text-only `chat_postMessage` still works via the legacy path. Grant your Slack bot the `channels:read` and `groups:read` scopes so existing `Slack` recipients can be auto-upgraded to `SlackV2` on next send. Operators who explicitly override the flag to `False`, or whose Slack bot is missing those scopes, will see deprecation warnings while text-only sends continue through the legacy path.
+
+- [42089](https://github.com/apache/superset/pull/42089) automatically upgrades resolvable Slack v1 recipients, preserves text-only v1 delivery with execution warnings when migration cannot finish, and rejects retired v1 file uploads with actionable scope guidance. Slack delivery uses at-most-once terminal writes and a schedule-wide retry budget configured by `SLACK_SEND_RETRY_MAX_TIME`, clamped to the report's remaining working timeout. Deployments using `SupersetMetastoreCache` for the Slack channel cache must schedule the `slack.cache_channels` Celery task to repopulate misses outside report transactions; see [Alerts and Reports](https://superset.apache.org/admin-docs/configuration/alerts-reports#slack-delivery-timeouts-and-retries).
 
 ### Soft delete and restore for dashboards
 
