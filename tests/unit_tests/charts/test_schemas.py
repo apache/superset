@@ -612,3 +612,61 @@ def test_post_processing_operation_schema_rejects_string_helpers(
     schema = ChartDataPostProcessingOperationSchema()
     with pytest.raises(ValidationError):
         schema.load({"operation": operation, "options": {}})
+
+
+def test_schema_attributes_are_fields_not_tuples(app_context: None) -> None:
+    """A trailing comma must not silently disable a field declaration.
+
+    `groupby = (fields.List(...),)` is a one-element tuple, not a `Field`.
+    Marshmallow only collects `Field` instances, so such an attribute is
+    dropped from the schema entirely: it never reaches the OpenAPI spec and
+    its `required=True` is never applied. Three declarations in this module
+    had picked up that stray comma -- `ChartDataAggregateOptionsSchema.groupby`,
+    `ChartDataRollingOptionsSchema.columns` and
+    `ChartDataPivotOptionsSchema.index` -- each of them the parameter its
+    post-processing operation cannot run without.
+    """
+    import inspect
+
+    from marshmallow import fields as marshmallow_fields, Schema
+
+    from superset.charts import schemas as chart_schemas
+
+    disabled: dict[str, list[str]] = {}
+    for name, schema_cls in vars(chart_schemas).items():
+        if not (inspect.isclass(schema_cls) and issubclass(schema_cls, Schema)):
+            continue
+        for attribute, value in vars(schema_cls).items():
+            if isinstance(value, tuple) and any(
+                isinstance(item, marshmallow_fields.Field) for item in value
+            ):
+                disabled.setdefault(name, []).append(attribute)
+
+    assert not disabled, (
+        "schema attributes wrapped in a tuple, so marshmallow ignores them "
+        f"and they never reach the OpenAPI spec: {disabled}"
+    )
+
+
+def test_required_post_processing_options_are_documented(app_context: None) -> None:
+    """The parameters these operations cannot run without must be published.
+
+    `aggregate()`, `rolling()` and `pivot()` each take a parameter with no
+    default; a client cannot call them successfully without it, so it has to
+    appear in the spec.
+    """
+    from superset.charts.schemas import (
+        ChartDataAggregateOptionsSchema,
+        ChartDataPivotOptionsSchema,
+        ChartDataRollingOptionsSchema,
+    )
+
+    assert "groupby" in ChartDataAggregateOptionsSchema().fields
+    assert ChartDataAggregateOptionsSchema().fields["groupby"].required
+
+    assert "index" in ChartDataPivotOptionsSchema().fields
+    assert ChartDataPivotOptionsSchema().fields["index"].required
+
+    # `rolling()` requires `columns`, though the schema has always declared it
+    # optional; the field simply has to exist.
+    assert "columns" in ChartDataRollingOptionsSchema().fields

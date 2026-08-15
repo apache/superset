@@ -571,15 +571,13 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
     Aggregate operation config.
     """
 
-    groupby = (
-        fields.List(
-            fields.String(
-                allow_none=False,
-                metadata={"description": "Columns by which to group by"},
-            ),
-            metadata={"minLength": 1},
-            required=True,
+    groupby = fields.List(
+        fields.String(
+            allow_none=False,
+            metadata={"description": "Columns by which to group by"},
         ),
+        metadata={"minLength": 1},
+        required=True,
     )
     aggregates = ChartDataAggregateConfigField()
 
@@ -589,17 +587,15 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     Rolling operation config.
     """
 
-    columns = (
-        fields.Dict(
-            metadata={
-                "description": "columns on which to perform rolling, mapping source "
-                "column to target column. For instance, `{'y': 'y'}` will replace the "
-                "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "  # noqa: E501
-                "a column `y2` based on rolling values calculated from `y`, leaving the "  # noqa: E501
-                "original column `y` unchanged.",
-                "example": {"weekly_rolling_sales": "sales"},
-            },
-        ),
+    columns = fields.Dict(
+        metadata={
+            "description": "columns on which to perform rolling, mapping source "
+            "column to target column. For instance, `{'y': 'y'}` will replace the "
+            "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "
+            "a column `y2` based on rolling values calculated from `y`, leaving the "
+            "original column `y` unchanged.",
+            "example": {"weekly_rolling_sales": "sales"},
+        },
     )
     rolling_type = fields.String(
         metadata={
@@ -919,15 +915,13 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     Pivot operation config.
     """
 
-    index = (
-        fields.List(
-            fields.String(allow_none=False),
-            metadata={
-                "description": "Columns to group by on the table index (=rows)",
-                "minLength": 1,
-            },
-            required=True,
-        ),
+    index = fields.List(
+        fields.String(allow_none=False),
+        metadata={
+            "description": "Columns to group by on the table index (=rows)",
+            "minLength": 1,
+        },
+        required=True,
     )
     columns = fields.List(
         fields.String(allow_none=False),
