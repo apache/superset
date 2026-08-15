@@ -2437,3 +2437,92 @@ test('honors the snake_case flag the compare-chart migration stores in params', 
     [BASE_TIMESTAMP + 300000000, 2],
   ]);
 });
+describe('EchartsTimeseries tooltip truncation', () => {
+  const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+
+  const buildTooltip = (
+    tooltipTruncation?: string,
+    xValue: string | number = 599616000000,
+  ) => {
+    const chartProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['foo'],
+        viz_type: 'my_viz',
+        ...(tooltipTruncation ? { tooltipTruncation } : {}),
+      } as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { [longSeriesName]: 1, __timestamp: 599616000000 },
+            { [longSeriesName]: 3, __timestamp: 599916000000 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const { formatter } = echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    };
+    return formatter([
+      {
+        seriesId: longSeriesName,
+        seriesName: longSeriesName,
+        value: [xValue, 1],
+        marker,
+      },
+    ]);
+  };
+
+  it('applies the CSS cap and keeps full text by default', () => {
+    const html = buildTooltip();
+    expect(html).toContain('max-width: 300px');
+    expect(html).toContain(longSeriesName);
+  });
+
+  it('removes the cap and keeps full text when off', () => {
+    const html = buildTooltip('off');
+    expect(html).not.toContain('max-width');
+    expect(html).toContain(longSeriesName);
+  });
+
+  it('drops the shared prefix when truncating from the start', () => {
+    const html = buildTooltip('start');
+    expect(html).not.toContain('prod-us-east');
+    expect(html).toContain('latency-p99');
+    expect(html).toContain('white-space: nowrap');
+  });
+
+  it('keeps both ends when truncating the middle', () => {
+    const html = buildTooltip('middle');
+    expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
+    expect(html).not.toContain(longSeriesName);
+  });
+
+  it('preserves the echarts marker in every mode', () => {
+    (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
+      expect(buildTooltip(mode)).toContain('background-color:#1f77b4');
+    });
+  });
+
+  it('truncates a long non-temporal x-axis title', () => {
+    const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
+    const html = buildTooltip('start', longCategory);
+    expect(html).not.toContain(longCategory);
+    expect(html).toContain('cohort-2026');
+  });
+
+  it('leaves a long title alone in the default mode', () => {
+    const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
+    expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
+  });
+});
