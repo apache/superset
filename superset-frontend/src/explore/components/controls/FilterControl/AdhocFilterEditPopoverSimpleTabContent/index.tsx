@@ -519,23 +519,26 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         })
           .then(({ json }) => {
             setSuggestions(
-              json.result.map(
-                (suggestion: null | number | boolean | string | unknown[]) => {
-                  // Whole-array suggestions (Equal to / In on a multi-value
-                  // column) arrive as arrays, e.g. [5, 6, 7]. A raw array is not
-                  // a valid single-select value (antd collapses it, showing only
-                  // the first element), so render it as its literal string, which
-                  // is also exactly what the backend's parse_array_literal expects.
-                  if (Array.isArray(suggestion)) {
-                    const literal = JSON.stringify(suggestion);
-                    return { value: literal, label: literal };
-                  }
-                  return {
-                    value: suggestion,
-                    label: optionLabel(suggestion),
-                  };
-                },
-              ),
+              json.result.map((suggestion: unknown) => {
+                // Complex column values arrive as JS arrays or objects: whole
+                // arrays for MULTI_VALUE columns (e.g. [5, 6, 7]) and Map/Tuple
+                // objects for nested-container columns (e.g. {"a": ["x","y"]}).
+                // A raw array/object is neither a valid single-select value
+                // (antd collapses an array to its first element) nor renderable
+                // as a React child (an object throws). Render it as its literal
+                // string, which is also exactly what the backend's
+                // parse_array_literal expects for the whole-array operators.
+                if (suggestion !== null && typeof suggestion === 'object') {
+                  const literal = JSON.stringify(suggestion);
+                  return { value: literal, label: literal };
+                }
+                return {
+                  value: suggestion as null | number | boolean | string,
+                  label: optionLabel(
+                    suggestion as null | number | boolean | string,
+                  ),
+                };
+              }),
             );
             setLoadingComparatorSuggestions(false);
           })
