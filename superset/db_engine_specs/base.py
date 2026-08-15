@@ -2646,6 +2646,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
+    def get_array_element_type(  # pylint: disable=unused-argument
+        cls, native_type: str | None
+    ) -> GenericDataType | None:
+        """
+        Return the generic type of an array column's **element** type, derived
+        from its native type string (e.g. ClickHouse ``Array(Int32)`` ->
+        ``NUMERIC``), or ``None`` when the engine has no array support or the
+        element type cannot be resolved.
+
+        Callers use this to coerce filter values to the element type before
+        building array expressions, so, for example, a ``Contains any`` filter on
+        a numeric array compares against numbers rather than quoted strings.
+
+        :param native_type: native column type string of the array column
+        :return: the element's :class:`GenericDataType`, or ``None``
+        """
+        return None
+
+    @classmethod
     def get_column_spec(  # pylint: disable=unused-argument
         cls,
         native_type: str | None,

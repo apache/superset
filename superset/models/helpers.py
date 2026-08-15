@@ -441,6 +441,29 @@ def parse_array_literal(value: Any) -> list[Any]:
     return [value]
 
 
+def coerce_array_values(
+    values: list[Any], element_type: Optional[utils.GenericDataType]
+) -> list[Any]:
+    """
+    Coerce array-element ``values`` to the array column's element type so the
+    emitted literal matches the column. Array columns map to a SQLAlchemy
+    ``String`` type, so values arrive as strings and would otherwise build
+    string literals (e.g. ``array('5')``) that fail against a numeric array on
+    the server. Numeric elements are cast to numbers and boolean elements to
+    booleans; every other element type (string, temporal, enum, unknown) is left
+    untouched.
+
+    :param values: element values entered for an array filter
+    :param element_type: the array's element :class:`GenericDataType`, or None
+    :return: the coerced values
+    """
+    if element_type == utils.GenericDataType.NUMERIC:
+        return [utils.cast_to_num(v) if isinstance(v, str) else v for v in values]
+    if element_type == utils.GenericDataType.BOOLEAN:
+        return [utils.cast_to_boolean(v) if isinstance(v, str) else v for v in values]
+    return values
+
+
 def is_uuid_native_type(native_type: Optional[str]) -> bool:
     """
     Return True if a native column type represents a UUID.
@@ -4460,6 +4483,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 is_multivalue_col = bool(
                     col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE
                 )
+                # Element type of an array column (e.g. Array(Int32) -> NUMERIC),
+                # used to coerce filter values before building array expressions.
+                array_element_type = (
+                    db_engine_spec.get_array_element_type(col_type)
+                    if is_multivalue_col
+                    else None
+                )
                 is_list_target = op in (
                     utils.FilterOperator.IN,
                     utils.FilterOperator.NOT_IN,
@@ -4534,7 +4564,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.EQUALS,
                         utils.FilterOperator.NOT_EQUALS,
                     }:
-                        literal = db_engine_spec.array_literal(parse_array_literal(val))
+                        literal = db_engine_spec.array_literal(
+                            coerce_array_values(
+                                parse_array_literal(val), array_element_type
+                            )
+                        )
                         cond = (
                             sqla_col != literal
                             if op == utils.FilterOperator.NOT_EQUALS
@@ -4547,7 +4581,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         cond = sqla_col.in_(
                             [
                                 db_engine_spec.array_literal(
-                                    parse_array_literal(candidate)
+                                    coerce_array_values(
+                                        parse_array_literal(candidate),
+                                        array_element_type,
+                                    )
                                 )
                                 for candidate in candidates
                             ]
@@ -4724,8 +4761,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                     op=op,
                                 )
                             )
-                        array_values: list[Any] = (
-                            list(eq) if isinstance(eq, (list, tuple)) else [eq]
+                        array_values: list[Any] = coerce_array_values(
+                            list(eq) if isinstance(eq, (list, tuple)) else [eq],
+                            array_element_type,
                         )
                         if op == utils.FilterOperator.CONTAINS_ANY:
                             target_clause_list.append(

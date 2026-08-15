@@ -35,6 +35,7 @@ def _make_dataset(mocker: MockerFixture) -> SqlaTable:
     database = Database(id=1, database_name="test_db", sqlalchemy_uri="sqlite://")
     columns = [
         TableColumn(column_name="skills", type="Array(String)"),
+        TableColumn(column_name="scores", type="Array(Int32)"),
         TableColumn(column_name="city", type="VARCHAR(100)"),
     ]
     dataset = SqlaTable(
@@ -100,6 +101,45 @@ def test_contains_any_generates_hasany(mocker: MockerFixture, app: Flask) -> Non
             ],
         )
     assert "hasany(skills, array('driver', 'cook'))" in sql
+
+
+def test_contains_any_numeric_array_coerces_values(
+    mocker: MockerFixture, app: Flask
+) -> None:
+    """Values for a numeric array must render as numbers, not quoted strings."""
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(
+            dataset,
+            [
+                {
+                    "col": "scores",
+                    "op": FilterOperator.CONTAINS_ANY.value,
+                    "val": ["5", "6"],
+                }
+            ],
+        )
+    assert "hasany(scores, array(5, 6))" in sql
+    assert "'5'" not in sql
+
+
+def test_equals_numeric_array_coerces_values(mocker: MockerFixture, app: Flask) -> None:
+    """Whole-array equality on a numeric array coerces the parsed literal."""
+    dataset = _make_dataset(mocker)
+    _clickhouse(mocker, dataset)
+    with app.test_request_context():
+        sql = _sql(
+            dataset,
+            [
+                {
+                    "col": "scores",
+                    "op": FilterOperator.EQUALS.value,
+                    "val": "[5, 6]",
+                }
+            ],
+        )
+    assert "scores = array(5, 6)" in sql
 
 
 def test_contains_all_generates_hasall(mocker: MockerFixture, app: Flask) -> None:

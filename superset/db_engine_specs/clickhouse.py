@@ -129,14 +129,20 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     column_type_mappings = (
         (
+            # Anchor to the start so only top-level arrays match. This must be
+            # ordered before the ``Enum`` entry below: ``Array(Enum8(...))`` is a
+            # real array and should classify as MULTI_VALUE, not STRING. The
+            # anchor also prevents over-matching nested arrays such as
+            # ``Map(String, Array(String))`` or ``Tuple(Array(String))``, which
+            # are not themselves array columns and must keep their own type.
+            re.compile(r"^Array\(", re.IGNORECASE),
+            types.String(),
+            GenericDataType.MULTI_VALUE,
+        ),
+        (
             re.compile(r".*Enum.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
-        ),
-        (
-            re.compile(r".*Array.*", re.IGNORECASE),
-            types.String(),
-            GenericDataType.MULTI_VALUE,
         ),
         (
             re.compile(r".*UUID.*", re.IGNORECASE),
@@ -195,6 +201,29 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     def array_literal(cls, values: list[Any]) -> ColumnElement:
         # ClickHouse: array(v1, v2) is equivalent to the literal [v1, v2].
         return func.array(*values)
+
+    # Matches the element type inside a top-level ``Array(...)`` column, e.g.
+    # ``Array(Int32)`` -> ``Int32``, ``Array(Nullable(String))`` -> ``String``.
+    _ARRAY_ELEMENT_RE = re.compile(r"^Array\((?P<inner>.+)\)$", re.IGNORECASE)
+    # Element-type wrappers that don't change the underlying generic type.
+    _ELEMENT_WRAPPER_RE = re.compile(
+        r"^(?:Nullable|LowCardinality)\((?P<inner>.+)\)$", re.IGNORECASE
+    )
+
+    @classmethod
+    def get_array_element_type(cls, native_type: str | None) -> GenericDataType | None:
+        if not native_type:
+            return None
+        match = cls._ARRAY_ELEMENT_RE.match(native_type.strip())
+        if not match:
+            return None
+        inner = match.group("inner").strip()
+        # Peel wrappers (Nullable/LowCardinality) that don't alter the generic
+        # type so the inner scalar type drives classification.
+        while wrapper := cls._ELEMENT_WRAPPER_RE.match(inner):
+            inner = wrapper.group("inner").strip()
+        spec = cls.get_column_spec(inner)
+        return spec.generic_type if spec else None
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

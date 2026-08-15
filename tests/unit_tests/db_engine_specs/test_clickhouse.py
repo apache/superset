@@ -139,6 +139,20 @@ def test_connect_convert_dttm(
             GenericDataType.MULTI_VALUE,
             False,
         ),
+        # Array(Enum(...)) is a real array and must classify as MULTI_VALUE, not
+        # get short-circuited by the Enum rule (the anchored ^Array\( pattern is
+        # ordered before the Enum entry).
+        (
+            "Array(Enum8('a' = 1, 'b' = 2))",
+            String,
+            None,
+            GenericDataType.MULTI_VALUE,
+            False,
+        ),
+        # Arrays nested inside Map/Tuple are not top-level array columns; the
+        # anchored pattern must not over-match them into MULTI_VALUE.
+        ("Map(String, Array(String))", String, None, GenericDataType.STRING, False),
+        ("Tuple(Array(String))", String, None, GenericDataType.STRING, False),
         ("Enum('hello', 'world')", String, None, GenericDataType.STRING, False),
         ("Enum('UInt32', 'Bool')", String, None, GenericDataType.STRING, False),
         (
@@ -684,3 +698,44 @@ def test_multivalue_length_sql() -> None:
 
     expr = spec.array_length(column("skills"))
     assert _compile(expr) == "length(skills)"
+
+
+@pytest.mark.parametrize(
+    "native_type,expected",
+    [
+        ("Array(String)", GenericDataType.STRING),
+        ("Array(Int32)", GenericDataType.NUMERIC),
+        ("Array(UInt64)", GenericDataType.NUMERIC),
+        ("Array(Decimal(10, 2))", GenericDataType.NUMERIC),
+        ("Array(DateTime)", GenericDataType.TEMPORAL),
+        ("Array(Enum8('a' = 1))", GenericDataType.STRING),
+        # Wrappers around the element type don't change the generic type.
+        ("Array(Nullable(Int64))", GenericDataType.NUMERIC),
+        ("Array(LowCardinality(String))", GenericDataType.STRING),
+        # Non-array / nested-array types have no array element type.
+        ("String", None),
+        ("Map(String, Array(String))", None),
+    ],
+)
+def test_multivalue_get_array_element_type(
+    native_type: str, expected: GenericDataType | None
+) -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    assert spec.get_array_element_type(native_type) == expected
+
+
+def test_multivalue_contains_any_numeric_coercion_sql() -> None:
+    """Numeric-array element values must render as numbers, not quoted strings."""
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+
+    # Simulate values already coerced to numbers (as helpers.py does via the
+    # element type) and confirm the emitted array literal is numeric.
+    expr = spec.array_contains_any(column("scores"), [5, 6])
+    assert _compile(expr) == "hasAny(scores, array(5, 6))"
