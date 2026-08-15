@@ -964,7 +964,7 @@ sqlalchemy==2.0.51
     #   sqlalchemy-bigquery
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
-sqlalchemy-bigquery==1.17.1
+sqlalchemy-bigquery==1.17.2
     # via apache-superset
 sqlalchemy-continuum==1.7.0
     # via
