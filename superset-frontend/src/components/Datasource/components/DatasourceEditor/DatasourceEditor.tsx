@@ -867,7 +867,7 @@ function DatasourceEditor({
       return {
         ...metric,
         certification_details: certificationDetails || details,
-        warning_markdown: warningMarkdown || '',
+        warning_markdown: warningMarkdown || metric.warning_markdown || '',
         certified_by: certifiedBy || certifiedByMetric,
       };
     }),
