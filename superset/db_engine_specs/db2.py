@@ -95,21 +95,14 @@ class Db2EngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "CAST({col} as TIMESTAMP) - MICROSECOND({col}) MICROSECONDS",
-        TimeGrain.MINUTE: "CAST({col} as TIMESTAMP)"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS",
-        TimeGrain.HOUR: "CAST({col} as TIMESTAMP)"
-        " - MINUTE({col}) MINUTES"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS ",
-        TimeGrain.DAY: "DATE({col})",
-        TimeGrain.WEEK: "{col} - (DAYOFWEEK({col})) DAYS",
-        TimeGrain.MONTH: "{col} - (DAY({col})-1) DAYS",
-        TimeGrain.QUARTER: "{col} - (DAY({col})-1) DAYS"
-        " - (MONTH({col})-1) MONTHS"
-        " + ((QUARTER({col})-1) * 3) MONTHS",
-        TimeGrain.YEAR: "{col} - (DAY({col})-1) DAYS - (MONTH({col})-1) MONTHS",
+        TimeGrain.SECOND: "DATE_TRUNC('SECOND', {col})",
+        TimeGrain.MINUTE: "DATE_TRUNC('MINUTE', {col})",
+        TimeGrain.HOUR: "DATE_TRUNC('HOUR', {col})",
+        TimeGrain.DAY: "DATE_TRUNC('DAY', {col})",
+        TimeGrain.WEEK: "DATE_TRUNC('WEEK', {col})",
+        TimeGrain.MONTH: "DATE_TRUNC('MONTH', {col})",
+        TimeGrain.QUARTER: "DATE_TRUNC('QUARTER', {col})",
+        TimeGrain.YEAR: "DATE_TRUNC('YEAR', {col})",
     }
 
     @classmethod
