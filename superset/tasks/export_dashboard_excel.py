@@ -16,8 +16,10 @@
 # under the License.
 """
 Celery task that exports every chart on a dashboard to a single multi-sheet
-``.xlsx`` file, uploads it to S3, and emails the requesting user a pre-signed
-download link.
+``.xlsx`` file, uploads it to S3, and records a download link (see
+``superset.dashboards.excel_export.download_link``) that emails to the
+requesting user when they have an address on file, and/or is resolved by
+polling ``GET .../export_xlsx/status/<job_id>/`` when they don't.
 
 In ``"data"`` mode the task re-runs each chart's saved query context under the
 requesting user, applies the live dashboard filter state, and streams the results
@@ -33,6 +35,7 @@ import copy
 import logging
 import os
 import tempfile
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -53,6 +56,10 @@ from superset.common.form_data_query_context import (
     is_raw_query_mode,
 )
 from superset.dashboards.excel_export import email
+from superset.dashboards.excel_export.download_link import (
+    create_download_link,
+    mark_export_failed,
+)
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
 from superset.extensions import celery_app
@@ -400,19 +407,38 @@ def _build_workbook(
     return errored
 
 
-def _send_failure_email(
-    user: Any, dashboard_title: str, requested_at: datetime
+_GENERIC_FAILURE_MESSAGE = (
+    "An error occurred while generating the file. Please try again, or "
+    "contact your administrator if the problem persists."
+)
+
+
+def _handle_export_failure(
+    user: Any, dashboard_title: str, requested_at: datetime, job_id: str, ttl: int
 ) -> None:
-    if not (user and getattr(user, "email", None)):
-        return
+    """Notify the requester their export failed: email them if they have an
+    address on file, and record a pollable failure status either way (a
+    session with no email, e.g. an embedded/guest dashboard, has no other way
+    to learn the export failed than polling ``export_xlsx/status/<job_id>/``).
+    """
+    if user and getattr(user, "email", None):
+        try:
+            email.send_export_email(
+                user.email,
+                email.build_subject(dashboard_title, success=False),
+                email.build_failure_email(dashboard_title, requested_at),
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Failed to send export failure email")
     try:
-        email.send_export_email(
-            user.email,
-            email.build_subject(dashboard_title, success=False),
-            email.build_failure_email(dashboard_title, requested_at),
+        expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
+        mark_export_failed(
+            uuid.UUID(job_id),
+            _GENERIC_FAILURE_MESSAGE,
+            expires_at.replace(tzinfo=None),
         )
     except Exception:  # pylint: disable=broad-except
-        logger.exception("Failed to send export failure email")
+        logger.exception("Failed to record export failure status for %s", job_id)
 
 
 @celery_app.task(
@@ -431,7 +457,7 @@ def export_dashboard_excel(
     mode: str = EXPORT_MODE_DATA,
 ) -> None:
     """
-    Export a dashboard's charts to an ``.xlsx`` and email a download link.
+    Export a dashboard's charts to an ``.xlsx`` and record a download link.
 
     :param dashboard_id: The dashboard to export
     :param user_id: The requesting user (the task runs with their permissions)
@@ -447,6 +473,7 @@ def export_dashboard_excel(
     user = security_manager.get_user_by_id(user_id)
     dashboard_title = ""
     tmp_path: str | None = None
+    ttl = current_app.config["EXCEL_EXPORT_LINK_TTL_SECONDS"]
 
     try:
         with override_user(user, force=False):
@@ -471,11 +498,14 @@ def export_dashboard_excel(
                 f"{current_app.config['EXCEL_EXPORT_S3_KEY_PREFIX']}"
                 f"{dashboard_id}/{job_id}.xlsx"
             )
-            ttl = current_app.config["EXCEL_EXPORT_LINK_TTL_SECONDS"]
 
             s3.upload_file_to_s3(tmp_path, bucket, key)
-            download_url = s3.generate_presigned_url(bucket, key, ttl)
             expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
+            # KeyValueEntry.expires_on comparisons use naive datetime.now(), so
+            # the stored expiry must be naive UTC too, not tz-aware.
+            download_url = create_download_link(
+                uuid.UUID(job_id), bucket, key, expires_at.replace(tzinfo=None)
+            )
 
             if user and getattr(user, "email", None):
                 try:
@@ -497,11 +527,11 @@ def export_dashboard_excel(
                     logger.exception("Failed to send export success email")
     except SoftTimeLimitExceeded:
         logger.warning("Dashboard excel export %s timed out", job_id)
-        _send_failure_email(user, dashboard_title, requested_at)
+        _handle_export_failure(user, dashboard_title, requested_at, job_id, ttl)
         raise
     except Exception:
         logger.exception("Dashboard excel export %s failed", job_id)
-        _send_failure_email(user, dashboard_title, requested_at)
+        _handle_export_failure(user, dashboard_title, requested_at, job_id, ttl)
         raise
     finally:
         try:

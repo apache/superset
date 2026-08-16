@@ -91,6 +91,14 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.excel_export.download_link import (
+    build_download_url,
+    get_export_status,
+    PRESIGNED_URL_TTL_SECONDS,
+    resolve_download_link,
+    STATUS_ERROR,
+    STATUS_READY,
+)
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
@@ -155,7 +163,7 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
-from superset.utils import json
+from superset.utils import json, s3
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -324,6 +332,8 @@ class DashboardRestApi(
         "put_colors",
         "export_as_example",
         "export_xlsx",
+        "export_xlsx_status",
+        "download_xlsx",
         "list_versions",
         "get_version",
         "activity",
@@ -348,6 +358,9 @@ class DashboardRestApi(
         # menu item on it) instead of the ``can_export_xlsx`` FAB would otherwise
         # derive from the method name.
         "export_xlsx": "export",
+        # Polling status of an export you already requested is the same
+        # capability as requesting it, not a distinct permission.
+        "export_xlsx_status": "export",
         "purge": "write",
     }
 
@@ -1723,8 +1736,11 @@ class DashboardRestApi(
           summary: Export dashboard chart data to Excel
           description: >-
             Enqueues an async task that writes each chart's data to its own
-            worksheet, uploads the .xlsx to S3, and emails the requesting user a
-            pre-signed download link. Returns immediately with a job id.
+            worksheet, uploads the .xlsx to S3, and records a download link.
+            The requesting user is emailed the link when they have an address
+            on file; either way the returned job id can be polled at
+            export_xlsx/status/<job_id>/ for status and, once ready, the
+            download link.
           parameters:
           - in: path
             schema:
@@ -1787,12 +1803,9 @@ class DashboardRestApi(
         except SupersetSecurityException:
             return self.response_403()
 
-        # Email delivery is the only result channel, so an account with an email
-        # address is required; embedded guest users are excluded in this version.
-        if isinstance(g.user, GuestUser) or not getattr(g.user, "email", None):
-            return self.response_400(
-                message="Excel export requires an account with an email address."
-            )
+        # A requester with no email on file (e.g. an embedded/guest session)
+        # still gets a usable export: they poll export_xlsx_status/<job_id>/
+        # for the download link instead of relying on an email notification.
         if not dashboard.slices:
             return self.response_400(message="Dashboard has no charts to export.")
 
@@ -1833,6 +1846,93 @@ class DashboardRestApi(
             ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
             raise
         return self.response(202, job_id=job_id)
+
+    @expose("/export_xlsx/status/<uuid:job_id>/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def export_xlsx_status(self, job_id: uuid.UUID) -> WerkzeugResponse:
+        """Poll the status of an in-flight or completed Excel export.
+        ---
+        get:
+          summary: Poll the status of a dashboard Excel export job
+          description: >-
+            For a session with no email address to be notified at (e.g. an
+            embedded/guest session), the frontend polls this endpoint with the
+            job_id from the export_xlsx response instead of waiting for an
+            email. Behind the same @protect() as the export request itself,
+            unlike the login-free download_xlsx redirect (which also has to
+            work when clicked from a plain email link, possibly with no
+            active session at all).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: job_id
+            description: The job_id from the export_xlsx response
+          responses:
+            200:
+              description: >-
+                Job status: {"status": "pending"} while still running,
+                {"status": "ready", "download_url": "..."} once the file is
+                available, or {"status": "error", "message": "..."} if the
+                export failed.
+            401:
+              $ref: '#/components/responses/401'
+        """
+        payload = get_export_status(job_id)
+        if payload is None:
+            return self.response(200, status="pending")
+        if payload.get("status") == STATUS_READY:
+            return self.response(
+                200, status=STATUS_READY, download_url=build_download_url(job_id)
+            )
+        if payload.get("status") == STATUS_ERROR:
+            return self.response(
+                200, status=STATUS_ERROR, message=payload.get("message")
+            )
+        return self.response(200, status="pending")
+
+    @expose("/export_xlsx/download/<uuid:job_id>/", methods=("GET",))
+    @safe
+    @statsd_metrics
+    def download_xlsx(self, job_id: uuid.UUID) -> WerkzeugResponse:
+        """Redirect to a freshly pre-signed S3 URL for a completed Excel export.
+        ---
+        get:
+          summary: Download a completed dashboard Excel export
+          description: >-
+            Intentionally requires no login, matching a raw pre-signed S3
+            URL's own access model: the unguessable job_id, emailed only to
+            the original requester (or handed to their own session via
+            export_xlsx_status), is the credential. The dashboard access
+            check already ran once, when the export was requested -- see
+            security_manager.raise_for_access in export_xlsx. A fresh
+            pre-signed URL is generated at click time (instead of the one
+            baked into the export at completion time) so the link's promised
+            lifetime is independent of how long the signing credentials
+            themselves remain valid.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: job_id
+            description: The job_id from the export_xlsx response
+          responses:
+            302:
+              description: Redirect to a pre-signed S3 download URL
+            410:
+              description: The link is unknown, expired, or the export failed
+        """
+        resolved = resolve_download_link(job_id)
+        if resolved is None:
+            return self.response(410, message="This download link has expired.")
+        bucket, key = resolved
+        return redirect(
+            s3.generate_presigned_url(bucket, key, PRESIGNED_URL_TTL_SECONDS)
+        )
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])

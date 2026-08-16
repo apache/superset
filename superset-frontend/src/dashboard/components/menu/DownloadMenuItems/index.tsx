@@ -16,32 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from 'react';
-import { useSelector } from 'react-redux';
-import { logging } from '@apache-superset/core/utils';
-import { t } from '@apache-superset/core/translation';
+import { SyntheticEvent } from "react";
+import { useSelector } from "react-redux";
+import { logging } from "@apache-superset/core/utils";
+import { t } from "@apache-superset/core/translation";
 import {
   FeatureFlag,
   getClientErrorObject,
   isFeatureEnabled,
   SupersetClient,
-} from '@superset-ui/core';
-import { MenuItem } from '@superset-ui/core/components/Menu';
-import { parse as parseContentDisposition } from 'content-disposition';
-import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
-import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
-import { MenuKeys, RootState } from 'src/dashboard/types';
-import downloadAsPdf from 'src/utils/downloadAsPdf';
-import downloadAsImage from 'src/utils/downloadAsImage';
-import handleResourceExport from 'src/utils/export';
+} from "@superset-ui/core";
+import { MenuItem } from "@superset-ui/core/components/Menu";
+import { parse as parseContentDisposition } from "content-disposition";
+import { useDownloadScreenshot } from "src/dashboard/hooks/useDownloadScreenshot";
+import { NATIVE_FILTER_PREFIX } from "src/dashboard/components/nativeFilters/FiltersConfigModal/utils";
+import { MenuKeys, RootState } from "src/dashboard/types";
+import downloadAsPdf from "src/utils/downloadAsPdf";
+import downloadAsImage from "src/utils/downloadAsImage";
+import handleResourceExport from "src/utils/export";
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
-} from 'src/logger/LogUtils';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
+} from "src/logger/LogUtils";
+import { useToasts } from "src/components/MessageToasts/withToasts";
 
-import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
-import { DownloadScreenshotFormat } from './types';
+import { MenuItemTooltip } from "src/components/Chart/DisabledMenuItemTooltip";
+import { DownloadScreenshotFormat } from "./types";
+
+// A guest/embedded session has no email address to be notified at, so rather
+// than wait on that notification the frontend polls for completion instead;
+// the same polling also drives the auto-download for a regular session,
+// which arrives before its export email in practice.
+const EXPORT_STATUS_POLL_INTERVAL_MS = 3000;
+const EXPORT_STATUS_POLL_TIMEOUT_MS = 5 * 60 * 1000;
+
+interface ExportStatusResponse {
+  status?: "pending" | "ready" | "error";
+  download_url?: string;
+  message?: string;
+}
 
 export interface UseDownloadMenuItemsProps {
   pdfMenuItemTitle: string;
@@ -72,7 +85,7 @@ export const useDownloadMenuItems = (
 
   const { addDangerToast, addSuccessToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
-  const SCREENSHOT_NODE_SELECTOR = '.dashboard';
+  const SCREENSHOT_NODE_SELECTOR = ".dashboard";
 
   const buildActiveDataMask = (): Record<string, { extraFormData: object }> =>
     Object.entries(dataMask || {}).reduce<
@@ -95,7 +108,7 @@ export const useDownloadMenuItems = (
       downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
     } catch (error) {
       logging.error(error);
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      addDangerToast(t("Sorry, something went wrong. Try again later."));
     }
     logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF);
   };
@@ -105,18 +118,18 @@ export const useDownloadMenuItems = (
       downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
     } catch (error) {
       logging.error(error);
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      addDangerToast(t("Sorry, something went wrong. Try again later."));
     }
     logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
   };
 
   const onExportZip = async () => {
     try {
-      await handleResourceExport('dashboard', [dashboardId], () => {});
-      addSuccessToast(t('Dashboard exported successfully'));
+      await handleResourceExport("dashboard", [dashboardId], () => {});
+      addSuccessToast(t("Dashboard exported successfully"));
     } catch (error) {
       logging.error(error);
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      addDangerToast(t("Sorry, something went wrong. Try again later."));
     }
   };
 
@@ -125,13 +138,13 @@ export const useDownloadMenuItems = (
       const response = await SupersetClient.get({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_as_example/`,
         headers: {
-          Accept: 'application/zip',
+          Accept: "application/zip",
         },
-        parseMethod: 'raw',
+        parseMethod: "raw",
       });
 
       // Parse filename from Content-Disposition header
-      const disposition = response.headers.get('Content-Disposition');
+      const disposition = response.headers.get("Content-Disposition");
       let fileName = `dashboard_${dashboardId}_example.zip`;
 
       if (disposition) {
@@ -141,7 +154,7 @@ export const useDownloadMenuItems = (
             fileName = parsed.parameters.filename;
           }
         } catch (error) {
-          logging.warn('Failed to parse Content-Disposition header:', error);
+          logging.warn("Failed to parse Content-Disposition header:", error);
         }
       }
 
@@ -149,10 +162,10 @@ export const useDownloadMenuItems = (
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       try {
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
         a.download = fileName;
-        a.style.display = 'none';
+        a.style.display = "none";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -160,14 +173,63 @@ export const useDownloadMenuItems = (
         window.URL.revokeObjectURL(url);
       }
 
-      addSuccessToast(t('Dashboard exported as example successfully'));
+      addSuccessToast(t("Dashboard exported as example successfully"));
     } catch (error) {
       logging.error(error);
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      addDangerToast(t("Sorry, something went wrong. Try again later."));
     }
   };
 
-  const onExportXlsx = async (mode: 'data' | 'images') => {
+  const pollExportStatus = (jobId: string, startedAt: number) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/export_xlsx/status/${jobId}/`,
+    })
+      .then(({ json }) => {
+        const {
+          status,
+          download_url: downloadUrl,
+          message,
+        } = json as ExportStatusResponse;
+        if (status === "ready") {
+          if (downloadUrl) {
+            window.location.href = downloadUrl;
+          }
+          addSuccessToast(t("Your export is ready and downloading."));
+          return;
+        }
+        if (status === "error") {
+          addDangerToast(
+            message || t("Sorry, something went wrong. Try again later."),
+          );
+          return;
+        }
+        if (Date.now() - startedAt > EXPORT_STATUS_POLL_TIMEOUT_MS) {
+          addDangerToast(
+            t("Your export is taking longer than expected. Try again later."),
+          );
+          return;
+        }
+        setTimeout(
+          () => pollExportStatus(jobId, startedAt),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
+        );
+      })
+      .catch((error) => {
+        // A transient polling failure shouldn't give up the wait -- the export
+        // itself may still succeed -- so keep polling until the timeout.
+        logging.error(error);
+        if (Date.now() - startedAt > EXPORT_STATUS_POLL_TIMEOUT_MS) {
+          addDangerToast(t("Sorry, something went wrong. Try again later."));
+          return;
+        }
+        setTimeout(
+          () => pollExportStatus(jobId, startedAt),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
+        );
+      });
+  };
+
+  const onExportXlsx = async (mode: "data" | "images") => {
     try {
       const { json } = await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
@@ -175,15 +237,20 @@ export const useDownloadMenuItems = (
       });
       // The throttle response (an export is already running) returns 202 with a
       // message but no job_id; only a freshly enqueued job carries a job_id.
-      if ((json as { job_id?: string })?.job_id) {
+      const jobId = (json as { job_id?: string })?.job_id;
+      if (jobId) {
         addSuccessToast(
           t(
             "Your export is being prepared. You'll receive an email when it's ready.",
           ),
         );
+        setTimeout(
+          () => pollExportStatus(jobId, Date.now()),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
+        );
       } else {
         addSuccessToast(
-          t('An export for this dashboard is already in progress.'),
+          t("An export for this dashboard is already in progress."),
         );
       }
     } catch (error) {
@@ -193,9 +260,9 @@ export const useDownloadMenuItems = (
         status?: number;
       };
       if (status === 501) {
-        addDangerToast(t('Excel export is not configured on this server.'));
+        addDangerToast(t("Excel export is not configured on this server."));
       } else {
-        addDangerToast(t('Sorry, something went wrong. Try again later.'));
+        addDangerToast(t("Sorry, something went wrong. Try again later."));
       }
     }
   };
@@ -231,13 +298,13 @@ export const useDownloadMenuItems = (
       ]
     : [
         {
-          key: 'download-pdf',
+          key: "download-pdf",
           label: imageExportLabel(pdfMenuItemTitle),
           disabled: imageDisabled,
           onClick: (e: any) => onDownloadPdf(e.domEvent),
         },
         {
-          key: 'download-image',
+          key: "download-image",
           label: imageExportLabel(imageMenuItemTitle),
           disabled: imageDisabled,
           onClick: (e: any) => onDownloadImage(e.domEvent),
@@ -248,9 +315,9 @@ export const useDownloadMenuItems = (
     ...(userCanExport
       ? [
           {
-            key: 'export-xlsx',
-            label: t('Export Data to Excel'),
-            onClick: () => onExportXlsx('data'),
+            key: "export-xlsx",
+            label: t("Export Data to Excel"),
+            onClick: () => onExportXlsx("data"),
           },
           // Image export renders charts through the headless webdriver, so only
           // offer it where that infrastructure is available (same signal as the
@@ -259,24 +326,24 @@ export const useDownloadMenuItems = (
           ...(isWebDriverScreenshotEnabled
             ? [
                 {
-                  key: 'export-xlsx-images',
-                  label: t('Export Images to Excel'),
-                  onClick: () => onExportXlsx('images'),
+                  key: "export-xlsx-images",
+                  label: t("Export Images to Excel"),
+                  onClick: () => onExportXlsx("images"),
                 },
               ]
             : []),
         ]
       : []),
     {
-      key: 'export-yaml',
-      label: t('Export YAML'),
+      key: "export-yaml",
+      label: t("Export YAML"),
       onClick: onExportZip,
     },
     ...(userCanExport
       ? [
           {
-            key: 'export-as-example',
-            label: t('Export as Example'),
+            key: "export-as-example",
+            label: t("Export as Example"),
             onClick: onExportAsExample,
           },
         ]
@@ -285,13 +352,13 @@ export const useDownloadMenuItems = (
 
   const children: MenuItem[] = [
     ...screenshotMenuItems,
-    { type: 'divider', key: 'export-divider' },
+    { type: "divider", key: "export-divider" },
     ...exportMenuItems,
   ];
 
   return {
     key: MenuKeys.Download,
-    type: 'submenu',
+    type: "submenu",
     label: title,
     disabled,
     children,

@@ -31,6 +31,14 @@ from superset.utils import json
 
 MODULE = "superset.tasks.export_dashboard_excel"
 
+# export_dashboard_excel always receives a real uuid4 job_id in production (the
+# API generates it); use valid UUIDs here too since the task parses job_id via
+# uuid.UUID() to key the download-link/status store.
+JOB_ID = "00000000-0000-0000-0000-000000000001"
+JOB_ID_TIMEOUT = "00000000-0000-0000-0000-000000000002"
+JOB_ID_IMG_TIMEOUT = "00000000-0000-0000-0000-000000000003"
+JOB_ID_FAIL = "00000000-0000-0000-0000-000000000004"
+
 
 # A minimal valid 1x1 transparent PNG for image-mode tests.
 _PNG_1x1 = (
@@ -84,6 +92,8 @@ def mocks() -> Iterator[dict[str, Any]]:
                 "s3",
                 "email",
                 "ReleaseDistributedLock",
+                "create_download_link",
+                "mark_export_failed",
             )
         }
         user = mock.MagicMock()
@@ -100,7 +110,7 @@ def mocks() -> Iterator[dict[str, Any]]:
         )
 
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
-        patched["s3"].generate_presigned_url.return_value = "https://signed/file.xlsx"
+        patched["create_download_link"].return_value = "https://signed/file.xlsx"
 
         patched["user"] = user
         patched["dashboard"] = dashboard
@@ -108,7 +118,7 @@ def mocks() -> Iterator[dict[str, Any]]:
 
 
 def _run(
-    job_id: str = "job-1",
+    job_id: str = JOB_ID,
     mode: str = "data",
 ) -> None:
     from superset.tasks.export_dashboard_excel import export_dashboard_excel
@@ -162,7 +172,7 @@ def test_happy_path_uploads_and_emails(mocks: dict[str, Any]) -> None:
     assert list(uploaded["sheets"].keys()) == ["10 - First", "20 - Second"]
     mocks["email"].send_export_email.assert_called_once()
     mocks["email"].build_success_email.assert_called_once()
-    assert _no_temp_files_left("job-1")
+    assert _no_temp_files_left(JOB_ID)
 
 
 def test_chart_without_query_context_is_skipped(mocks: dict[str, Any]) -> None:
@@ -658,12 +668,12 @@ def test_chart_timeout_aborts_export_and_sends_failure_email(
     ]
 
     with pytest.raises(SoftTimeLimitExceeded):
-        _run("job-timeout")
+        _run(JOB_ID_TIMEOUT)
 
     mocks["s3"].upload_file_to_s3.assert_not_called()
     mocks["email"].build_success_email.assert_not_called()
     mocks["email"].build_failure_email.assert_called_once()
-    assert _no_temp_files_left("job-timeout")
+    assert _no_temp_files_left(JOB_ID_TIMEOUT)
 
 
 def test_image_render_timeout_aborts_export(mocks: dict[str, Any]) -> None:
@@ -675,11 +685,11 @@ def test_image_render_timeout_aborts_export(mocks: dict[str, Any]) -> None:
     mocks["render_chart_image"].side_effect = SoftTimeLimitExceeded()
 
     with pytest.raises(SoftTimeLimitExceeded):
-        _run("job-img-timeout", mode="images")
+        _run(JOB_ID_IMG_TIMEOUT, mode="images")
 
     mocks["email"].build_success_email.assert_not_called()
     mocks["email"].build_failure_email.assert_called_once()
-    assert _no_temp_files_left("job-img-timeout")
+    assert _no_temp_files_left(JOB_ID_IMG_TIMEOUT)
 
 
 def test_all_charts_skipped_writes_summary(mocks: dict[str, Any]) -> None:
@@ -709,21 +719,21 @@ def test_upload_failure_sends_failure_email_and_cleans_up(
     mocks["s3"].upload_file_to_s3.side_effect = RuntimeError("s3 down")
 
     with pytest.raises(RuntimeError):
-        _run("job-fail")
+        _run(JOB_ID_FAIL)
 
     mocks["email"].build_failure_email.assert_called_once()
     mocks["email"].send_export_email.assert_called_once()
-    assert _no_temp_files_left("job-fail")
+    assert _no_temp_files_left(JOB_ID_FAIL)
 
 
 def test_soft_time_limit_sends_failure_email(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].side_effect = SoftTimeLimitExceeded()
 
     with pytest.raises(SoftTimeLimitExceeded):
-        _run("job-timeout")
+        _run(JOB_ID_TIMEOUT)
 
     mocks["email"].build_failure_email.assert_called_once()
-    assert _no_temp_files_left("job-timeout")
+    assert _no_temp_files_left(JOB_ID_TIMEOUT)
 
 
 # --- image mode ---
@@ -832,7 +842,7 @@ def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
     mocks["s3"].upload_file_to_s3.side_effect = RuntimeError("s3 down")
 
     with pytest.raises(RuntimeError):
-        _run("job-fail")
+        _run(JOB_ID_FAIL)
 
     # The lock is freed in ``finally`` even when the export fails.
     mocks["ReleaseDistributedLock"].assert_called_once_with(

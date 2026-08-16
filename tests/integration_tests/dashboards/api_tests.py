@@ -17,6 +17,8 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
+import uuid
+from datetime import datetime, timedelta
 from io import BytesIO
 from time import sleep
 from unittest.mock import ANY, patch
@@ -3522,6 +3524,145 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             finally:
                 db.session.delete(dashboard)
                 db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_admitted_without_email(self, mock_task, mock_acquire):
+        """Dashboard API: a session with no email address (what an
+        embedded/guest session looks like from this check's perspective) is
+        admitted (202), not rejected -- the requesting user no longer needs an
+        email on file, since the frontend can poll
+        export_xlsx_status/<job_id>/ for the download link instead of relying
+        on a notification email."""
+        admin_user = security_manager.find_user(username=ADMIN_USERNAME)
+        slice_ = db.session.query(Slice).first()
+        # Clone Admin (so the login password is valid), then blank the email
+        # to match what an embedded/guest session looks like to this check.
+        with self.temporary_user(admin_user, login=True) as user:
+            user.email = ""
+            db.session.commit()
+            dashboard = self.insert_dashboard(
+                "xlsx-no-email", None, [user.id], slices=[slice_], published=True
+            )
+            try:
+                rv = self.client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                )
+                assert rv.status_code == 202
+                mock_task.apply_async.assert_called_once()
+            finally:
+                db.session.delete(dashboard)
+                db.session.commit()
+
+    def test_download_xlsx_redirects_without_login(self):
+        """Dashboard API: download_xlsx requires no login, matching a raw
+        pre-signed S3 URL's own access model -- the dashboard access check
+        already ran once, when the export was requested."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+        )
+        db.session.commit()
+        with patch("superset.dashboards.api.s3.generate_presigned_url") as mock_sign:
+            mock_sign.return_value = "https://bucket.s3.amazonaws.com/signed"
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        assert rv.status_code == 302
+        assert rv.headers["Location"] == "https://bucket.s3.amazonaws.com/signed"
+        mock_sign.assert_called_once_with(
+            "exports", "dashboard-exports/1/job.xlsx", ANY
+        )
+
+    def test_download_xlsx_410_for_unknown_key(self):
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{uuid.uuid4()}/")
+        assert rv.status_code == 410
+
+    def test_download_xlsx_410_for_expired_key(self):
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() - timedelta(hours=1),
+        )
+        db.session.commit()
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        assert rv.status_code == 410
+
+    def test_download_xlsx_410_for_errored_job(self):
+        from superset.dashboards.excel_export.download_link import (
+            mark_export_failed,
+        )
+
+        job_id = uuid.uuid4()
+        mark_export_failed(job_id, "boom", datetime.now() + timedelta(hours=1))
+        db.session.commit()
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{job_id}/")
+        assert rv.status_code == 410
+
+    def test_export_xlsx_status_pending_for_unknown_job(self):
+        """Dashboard API: polling an unknown/still-running job_id reports
+        pending, not 404 -- the frontend can't distinguish "not started yet"
+        from "still running" from the API's perspective."""
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{uuid.uuid4()}/")
+        assert rv.status_code == 200
+        assert rv.json == {"status": "pending"}
+
+    @patch("superset.dashboards.api.s3.generate_presigned_url")
+    def test_export_xlsx_status_ready_includes_download_url(self, mock_presign):
+        """Dashboard API: once ready, status includes a download_url built
+        from the same job_id, not a separately-tracked identifier."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        mock_presign.return_value = "https://bucket.s3.amazonaws.com/signed"
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+
+        assert rv.status_code == 200
+        assert rv.json["status"] == "ready"
+        assert str(job_id) in rv.json["download_url"]
+
+    def test_export_xlsx_status_error_includes_message(self):
+        """Dashboard API: a failed job's status is distinguishable from
+        pending, with a message a polling guest session can show."""
+        from superset.dashboards.excel_export.download_link import (
+            mark_export_failed,
+        )
+
+        job_id = uuid.uuid4()
+        mark_export_failed(job_id, "boom", datetime.now() + timedelta(hours=1))
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+
+        assert rv.status_code == 200
+        assert rv.json == {"status": "error", "message": "boom"}
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
