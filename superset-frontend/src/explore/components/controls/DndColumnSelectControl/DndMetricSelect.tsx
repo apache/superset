@@ -222,13 +222,15 @@ const DndMetricSelect = (props: any) => {
       if (
         disallowAdhocMetrics &&
         (item.type !== DndItemType.Metric ||
-          !savedMetricSet.has(item.value.metric_name))
+          !savedMetricSet.has((item.value as Metric).metric_name))
       ) {
         return false;
       }
 
       const isMetricAlreadyInValues =
-        item.type === 'metric' ? value.includes(item.value.metric_name) : false;
+        item.type === DndItemType.Metric
+          ? value.includes((item.value as Metric).metric_name)
+          : false;
       return !isMetricAlreadyInValues;
     },
     [value, extra, savedMetricSet],

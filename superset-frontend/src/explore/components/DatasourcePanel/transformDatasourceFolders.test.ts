@@ -265,7 +265,7 @@ test('inserts a Filters folder after Metrics when the dataset has filters', () =
   expect(result[1].id).toBe(DEFAULT_FILTERS_FOLDER_UUID);
   expect(result[1].name).toBe('Filters');
   expect(result[1].items).toHaveLength(1);
-  expect(result[1].items[0].type).toBe(FoldersEditorItemType.Filter);
+  expect(result[1].items[0].type).toBe('filter');
   expect(result[2].id).toBe(DEFAULT_COLUMNS_FOLDER_UUID);
 });
 

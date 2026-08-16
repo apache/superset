@@ -86,7 +86,7 @@ export type ColumnItem = DatasourcePanelColumn & {
 };
 
 export type FilterItem = SavedFilter & {
-  type: FoldersEditorItemType.Filter;
+  type: 'filter';
 };
 
 export type FolderItem = MetricItem | ColumnItem | FilterItem;

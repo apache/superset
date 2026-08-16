@@ -228,7 +228,7 @@ const DatasourcePanelItem = ({
           key={
             (item.item.type === FoldersEditorItemType.Column
               ? item.item.column_name
-              : item.item.type === FoldersEditorItemType.Filter
+              : item.item.type === 'filter'
                 ? item.item.filter_name
                 : item.item.metric_name) + String(width)
           }
@@ -239,7 +239,7 @@ const DatasourcePanelItem = ({
             type={
               item.item.type === FoldersEditorItemType.Column
                 ? DndItemType.Column
-                : item.item.type === FoldersEditorItemType.Filter
+                : item.item.type === 'filter'
                   ? DndItemType.Filter
                   : DndItemType.Metric
             }

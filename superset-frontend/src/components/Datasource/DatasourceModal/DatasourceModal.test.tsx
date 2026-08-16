@@ -27,6 +27,7 @@ import {
 import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core';
 import mockDatasource from 'spec/fixtures/mockDatasource';
+import type { FilterObject } from 'src/features/datasets/types';
 import React from 'react';
 import DatasourceModalComponent, { buildExtraJsonObject } from '.';
 
@@ -157,7 +158,7 @@ describe('DatasourceModal', () => {
             expression: "gender = 'girl'",
           },
         ],
-      },
+      } as typeof mockedProps.datasource & { filters: FilterObject[] },
     });
 
     fireEvent.click(screen.getByTestId('datasource-modal-save'));

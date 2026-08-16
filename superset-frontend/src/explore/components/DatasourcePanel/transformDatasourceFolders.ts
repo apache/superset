@@ -191,7 +191,7 @@ const insertFiltersFolder = (
   }
   const filterItems: FilterItem[] = filtersToDisplay.map(sqlFilter => ({
     ...sqlFilter,
-    type: FoldersEditorItemType.Filter,
+    type: 'filter' as const,
   }));
   const filtersFolder: Folder = {
     id: DEFAULT_FILTERS_FOLDER_UUID,
