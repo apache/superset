@@ -52,4 +52,6 @@ test('should render a saved dataset filter', async () => {
     await screen.findByTestId('DatasourcePanelDragOption'),
   ).toBeInTheDocument();
   expect(screen.getByText('Only boys')).toBeInTheDocument();
+  expect(screen.queryByLabelText('metric type icon')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('function type icon')).toBeInTheDocument();
 });

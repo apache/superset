@@ -26,6 +26,7 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import {
   StyledColumnOption,
   StyledMetricOption,
+  StyledSavedFilterOption,
 } from 'src/explore/components/optionRenderers';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ExplorePageState } from 'src/explore/types';
@@ -146,18 +147,13 @@ export default function DatasourcePanelDragOption(
     >
       {type === DndItemType.Column ? (
         <StyledColumnOption column={value as ColumnMeta} {...optionProps} />
-      ) : (
-        <StyledMetricOption
-          metric={
-            type === DndItemType.Filter
-              ? ({
-                  ...(value as SavedFilter),
-                  metric_name: (value as SavedFilter).filter_name,
-                } as Metric)
-              : (value as Metric)
-          }
-          {...optionProps}
+      ) : type === DndItemType.Filter ? (
+        <StyledSavedFilterOption
+          sqlFilter={value as SavedFilter}
+          showType={optionProps.showType}
         />
+      ) : (
+        <StyledMetricOption metric={value as Metric} {...optionProps} />
       )}
       <Icons.Drag
         iconSize="xl"

@@ -222,6 +222,16 @@ test('should render dataset filters when the datasource has them', async () => {
   expect(
     screen.getByPlaceholderText('Search Metrics, Columns & Filters'),
   ).toBeInTheDocument();
+  const filterRow = screen.getByText('Only boys').closest(
+    '[data-test="DatasourcePanelDragOption"]',
+  );
+  expect(filterRow).toBeTruthy();
+  expect(
+    within(filterRow as HTMLElement).queryByLabelText('metric type icon'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(filterRow as HTMLElement).getByLabelText('function type icon'),
+  ).toBeInTheDocument();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
