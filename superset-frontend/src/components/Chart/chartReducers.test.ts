@@ -97,4 +97,14 @@ describe('chart reducers', () => {
     expect(() => chartReducer(charts, action)).not.toThrow();
     expect(chartReducer(charts, action)).toEqual(charts);
   });
+
+  test('still adds a chart that is not yet in state', () => {
+    const newChartKey = 2;
+    const newState = chartReducer(
+      charts,
+      actions.addChart({ ...chart, id: newChartKey }, newChartKey),
+    );
+    expect(newState[newChartKey].id).toEqual(newChartKey);
+    expect(newState[chartKey]).toEqual(testChart);
+  });
 });

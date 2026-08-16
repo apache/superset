@@ -223,9 +223,9 @@ export default function chartReducer(
   }
 
   if (action.type in actionHandlers) {
-    // handlers read the previous chart state, which is gone if the chart was
-    // removed while one of its actions was still in flight
-    if (!charts[action.key]) {
+    // ADD_CHART creates the entry, so it runs without prior state; every other
+    // handler reads state that is absent once the chart has been removed
+    if (action.type !== actions.ADD_CHART && !charts[action.key]) {
       return charts;
     }
     return {
