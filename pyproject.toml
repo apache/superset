@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.1.6, <8",
+    "cachetools>=7.1.7, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.4.2",
     "click-option-group",
@@ -75,7 +75,7 @@ dependencies = [
     "humanize",
     "isodate",
     "jsonpath-ng>=1.8.0, <2",
-    "Mako>=1.2.2",
+    "Mako>=1.4.1",
     "markdown>=3.10.3",
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
@@ -135,10 +135,10 @@ athena = ["pyathena[pandas]>=3.35.4, <4"]
 # superset/db_engine_specs/aurora.py's known_incompatibilities metadata.
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
-    "pandas-gbq>=0.35.0",
+    "pandas-gbq>=0.35.1",
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
-    "sqlalchemy-bigquery>=1.17.1",
+    "sqlalchemy-bigquery>=1.17.2",
     "google-cloud-bigquery>=3.42.3",
 ]
 clickhouse = ["clickhouse-connect>=1.6.0, <2.0"]
@@ -185,7 +185,7 @@ excel = ["xlrd>=2.0.2, <2.1"]
 # installing this extra is only required to actually run exports.
 excel-export = ["boto3"]
 fastmcp = [
-    "fastmcp>=3.4.5,<4.0",
+    "fastmcp>=3.4.6,<4.0",
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
@@ -221,7 +221,7 @@ ocient = [
     # unpinned sqlalchemy>=1.4 declared, but SQLAlchemy 2.0 support is
     # unverified. Lower confidence than the other bumps in this PR.
     "sqlalchemy-ocient>=3.0.0, <4",
-    "pyocient>=1.0.15, <4",
+    "pyocient>=3.9.0, <4",
     "shapely",
     "geojson",
 ]

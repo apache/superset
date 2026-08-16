@@ -21,10 +21,11 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app, g
+from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
+from superset.charts.data.form_data import set_form_data
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.exceptions import (
     SupersetErrorException,
@@ -45,10 +46,6 @@ logger = logging.getLogger(__name__)
 query_timeout = current_app.config[
     "SQLLAB_ASYNC_TIME_LIMIT_SEC"
 ]  # TODO: new config key
-
-
-def set_form_data(form_data: dict[str, Any]) -> None:
-    g.form_data = form_data
 
 
 def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:

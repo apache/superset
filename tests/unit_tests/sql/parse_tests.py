@@ -2825,6 +2825,22 @@ def test_as_cte_called_twice() -> None:
 
 
 @pytest.mark.parametrize(
+    ("sql", "removed"),
+    [
+        ("SELECT value FROM source ORDER BY value", True),
+        ("SELECT TOP 1 value FROM source ORDER BY value", False),
+        ("SELECT value FROM source ORDER BY value OFFSET 0 ROWS", False),
+        ("SELECT value FROM source ORDER BY value FOR JSON AUTO", False),
+    ],
+)
+def test_remove_unbounded_top_level_order_by(sql: str, removed: bool) -> None:
+    statement = SQLStatement(sql, "mssql")
+
+    assert statement.remove_unbounded_top_level_order_by() is removed
+    assert ("ORDER BY" not in statement.format()) is removed
+
+
+@pytest.mark.parametrize(
     "sql, rules, expected",
     [
         (
