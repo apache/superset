@@ -462,6 +462,11 @@ class Superset(BaseSupersetView):
                     g.user.id if g.user else None
                 ),
             )
+            # SQLAlchemy 2.0 removes the legacy cascade_backrefs behavior, so
+            # appending `slc` (persistent) to this new, transient dash.slices
+            # below no longer implicitly adds `dash` to the session via the
+            # Slice.dashboards backref - it must be added explicitly.
+            db.session.add(dash)
 
         if dash and slc not in dash.slices:
             dash.slices.append(slc)

@@ -201,18 +201,23 @@ cypress-run-all() {
   # navigation flow under E2E. We diverge from the entrypoint on:
   #   --timeout 120: heavy dashboard import/export specs exceed the 60s
   #     default
-  #   --max-requests / --max-requests-jitter: recycle the worker under
-  #     test load to avoid leaks accumulating across the run
   #   superset.app:create_app(): explicit factory so we don't depend on
   #     FLASK_APP being exported
+  #
+  # No --max-requests, matching the entrypoint's default of 0 (recycling
+  # off). With a single worker a recycle takes the whole backend offline for
+  # the graceful-timeout drain — browser keep-alive connections hold it open
+  # for the full 30s — plus ~5s of app boot. A run issues ~3800 requests in
+  # ~8 minutes, so recycling every 500 produced seven ~35s outages per run
+  # and flaked whichever specs happened to navigate into one. Lowering
+  # --graceful-timeout is not enough: a dashboard load plus chart render
+  # needs 6-10s, which still lands inside the window.
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
     --workers 1 \
     --worker-class gthread \
     --threads 20 \
     --timeout 120 \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
     --access-logfile - \
     --error-logfile - \
     "superset.app:create_app()" \
@@ -294,16 +299,14 @@ playwright-run() {
   export PLAYWRIGHT_BASE_URL
 
   # See cypress-run-all() above for the args rationale (1 worker × 20
-  # gthread threads matching docker/entrypoints/run-server.sh, plus a
-  # 120s timeout and request-recycling for heavy E2E load).
+  # gthread threads matching docker/entrypoints/run-server.sh, a 120s
+  # timeout for heavy E2E load, and why worker recycling is off).
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
     --workers 1 \
     --worker-class gthread \
     --threads 20 \
     --timeout 120 \
-    --max-requests 500 \
-    --max-requests-jitter 50 \
     --access-logfile - \
     --error-logfile - \
     "superset.app:create_app()" \

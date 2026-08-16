@@ -154,7 +154,19 @@ async_query_manager: AsyncQueryManager = LocalProxy(
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
-db = get_sqla_class()()
+
+# Flask-SQLAlchemy 3.x scopes db.session by the identity of the current Flask
+# app-context object (id(app_ctx)) rather than by thread/greenlet identity like
+# 2.x did. Superset's codebase (and its test fixtures) widely assumes a single
+# shared session per thread across nested `app.app_context()` blocks, often
+# relying on that implicit sharing instead of an explicit commit. Restoring the
+# 2.x scopefunc here keeps that assumption valid under FSA 3.x.
+try:
+    from greenlet import getcurrent as _session_scopefunc
+except ImportError:
+    from threading import get_ident as _session_scopefunc
+
+db = get_sqla_class()(session_options={"scopefunc": _session_scopefunc})
 
 # make_versioned() MUST be called immediately after db is constructed and before
 # any versioned model class is defined.  Continuum patches the SQLAlchemy

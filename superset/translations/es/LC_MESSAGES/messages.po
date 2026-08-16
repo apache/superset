@@ -1081,19 +1081,15 @@ msgstr "A-Z"
 msgid "AND"
 msgstr "Y"
 
-#, fuzzy
 msgid "API Key Created"
-msgstr "se ha creado"
+msgstr "Clave API creada"
 
-#, fuzzy
 msgid "API Keys"
-msgstr "Clave privada"
+msgstr "Claves API"
 
-#, fuzzy
 msgid "API key created successfully"
-msgstr "El informe se ha creado"
+msgstr "Clave API creada correctamente"
 
-#, fuzzy
 msgid "API key name is required"
 msgstr "El nombre de la clave API es obligatorio"
 
@@ -1173,9 +1169,9 @@ msgstr "Formato adaptativo"
 msgid "Add"
 msgstr "Añadir"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Add %s view(s)"
-msgstr "%s opción(es)"
+msgstr "Añadir %s vista(s)"
 
 msgid "Add BCC Recipients"
 msgstr "Añadir destinatarios CCO"
@@ -1214,9 +1210,8 @@ msgstr "Añadir rol"
 msgid "Add Rule"
 msgstr "Añadir regla"
 
-#, fuzzy
 msgid "Add Semantic View"
-msgstr "Añadir un elemento"
+msgstr "Añadir vista semántica"
 
 msgid "Add Tag"
 msgstr "Añadir etiqueta"
@@ -1793,9 +1788,8 @@ msgstr "Se ha producido un error al acceder al valor."
 msgid "An error occurred while accessing the value."
 msgstr "Se ha producido un error al acceder al valor."
 
-#, fuzzy
 msgid "An error occurred while adding semantic views"
-msgstr "Se ha producido un error al cargar el SQL"
+msgstr "Se ha producido un error al añadir las vistas semánticas"
 
 msgid ""
 "An error occurred while collapsing the table schema. Please contact your "
@@ -1818,9 +1812,8 @@ msgstr "Se ha producido un error al crear la fuente de datos"
 msgid "An error occurred while creating the extension."
 msgstr "Se ha producido un error al crear el valor."
 
-#, fuzzy
 msgid "An error occurred while creating the semantic layer"
-msgstr "Se ha producido un error al crear el valor."
+msgstr "Se ha producido un error al crear la capa semántica"
 
 msgid "An error occurred while creating the value."
 msgstr "Se ha producido un error al crear el valor."
@@ -1870,9 +1863,8 @@ msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
 msgid "An error occurred while fetching available themes"
 msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
 
-#, fuzzy
 msgid "An error occurred while fetching available views"
-msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
+msgstr "Se ha producido un error al recuperar las vistas disponibles"
 
 #, python-format
 msgid "An error occurred while fetching chart editor values: %s"
@@ -1956,9 +1948,8 @@ msgstr ""
 msgid "An error occurred while fetching schema values: %s"
 msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 
-#, fuzzy
 msgid "An error occurred while fetching semantic layer types"
-msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
+msgstr "Se ha producido un error al recuperar los tipos de capa semántica"
 
 msgid "An error occurred while fetching semantic layers"
 msgstr "Se ha producido un error al recuperar las capas semánticas"
@@ -1970,21 +1961,18 @@ msgstr "Se ha producido un error al recuperar el estado de la pestaña"
 msgid "An error occurred while fetching table metadata for %s"
 msgstr "Se ha producido un error al recuperar los metadatos de la tabla de %s"
 
-#, fuzzy
 msgid "An error occurred while fetching the configuration schema"
-msgstr "Se ha producido un error al recuperar los nombres de las funciones."
+msgstr "Se ha producido un error al recuperar el esquema de configuración"
 
-#, fuzzy
 msgid "An error occurred while fetching the runtime schema"
-msgstr "Se ha producido un error al recuperar los nombres de las funciones."
+msgstr "Se ha producido un error al recuperar el esquema de ejecución"
 
-#, fuzzy
 msgid "An error occurred while fetching the semantic layer"
-msgstr "Se ha producido un error al recuperar el estado de la pestaña"
+msgstr "Se ha producido un error al recuperar la capa semántica"
 
-#, fuzzy
 msgid "An error occurred while fetching the semantic view structure"
-msgstr "Se ha producido un error al recuperar el estado de la pestaña"
+msgstr ""
+"Se ha producido un error al recuperar la estructura de la vista semántica"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching theme datasource values: %s"
@@ -2057,9 +2045,8 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Se ha producido un error al renderizar la visualización: %s"
 
-#, fuzzy
 msgid "An error occurred while saving the semantic view"
-msgstr "Se ha producido un error al cargar el SQL"
+msgstr "Se ha producido un error al guardar la vista semántica"
 
 msgid "An error occurred while starring this chart"
 msgstr "Se ha producido un error al destacar este gráfico"
@@ -2084,9 +2071,8 @@ msgstr ""
 msgid "An error occurred while updating the extension."
 msgstr "Se ha producido un error al actualizar el valor."
 
-#, fuzzy
 msgid "An error occurred while updating the semantic layer"
-msgstr "Se ha producido un error al actualizar el valor."
+msgstr "Se ha producido un error al actualizar la capa semántica"
 
 msgid "An error occurred while updating the value."
 msgstr "Se ha producido un error al actualizar el valor."
@@ -2454,11 +2440,11 @@ msgstr ""
 "¿Está seguro de que desea eliminar el tema predeterminado del sistema? La"
 " aplicación volverá al predeterminado del archivo de configuración."
 
-#, fuzzy
 msgid ""
 "Are you sure you want to revoke this API key? This action cannot be "
 "undone."
-msgstr "¿Seguro que quieres eliminar las anotaciones seleccionadas?"
+msgstr ""
+"¿Seguro que quieres revocar esta clave API? Esta acción no se puede deshacer."
 
 msgid "Are you sure you want to save and apply changes?"
 msgstr "¿Seguro que quieres guardar y aplicar los cambios?"
@@ -3322,13 +3308,11 @@ msgstr "No se permite cambiar esta fuente de datos"
 msgid "Changing this report is forbidden"
 msgstr "No se permite cambiar este informe"
 
-#, fuzzy
 msgid "Changing this semantic layer is forbidden"
-msgstr "No se permite cambiar este gráfico"
+msgstr "No se permite cambiar esta capa semántica"
 
-#, fuzzy
 msgid "Changing this semantic view is forbidden"
-msgstr "No se permite cambiar este conjunto de datos"
+msgstr "No se permite cambiar esta vista semántica"
 
 #, fuzzy
 msgid "Changing this task is forbidden"
@@ -3791,9 +3775,8 @@ msgstr "Haz clic para ordenar de forma ascendente"
 msgid "Click to sort descending"
 msgstr "Haz clic para ordenar de forma descendente"
 
-#, fuzzy
 msgid "Client ID"
-msgstr "Anchura de la línea"
+msgstr "ID de cliente"
 
 msgid "Client Secret"
 msgstr "Secreto de cliente"
@@ -4456,9 +4439,8 @@ msgstr "Mapa del país"
 msgid "Create"
 msgstr "Crear"
 
-#, fuzzy
 msgid "Create API Key"
-msgstr "Creado por"
+msgstr "Crear clave API"
 
 #, fuzzy
 msgid "Create Tag"
@@ -4804,9 +4786,8 @@ msgstr "No se ha encontrado el panel de control %(dashboard_id)s"
 msgid "Dashboard Filter"
 msgstr "Titulo del panel de control"
 
-#, fuzzy
 msgid "Dashboard Id"
-msgstr "panel de control"
+msgstr "ID del panel de control"
 
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
@@ -5436,9 +5417,8 @@ msgstr ""
 "Define si el paso debe aparecer al principio, en el medio o al final "
 "entre dos puntos de datos"
 
-#, fuzzy
 msgid "Definition"
-msgstr "desviación"
+msgstr "Definición"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -5478,13 +5458,11 @@ msgstr "¿Eliminar el informe?"
 msgid "Delete Role?"
 msgstr "¿Eliminar el rol?"
 
-#, fuzzy
 msgid "Delete Semantic Layer?"
-msgstr "¿Eliminar la capa?"
+msgstr "¿Eliminar la capa semántica?"
 
-#, fuzzy
 msgid "Delete Semantic View?"
-msgstr "¿Eliminar la plantilla?"
+msgstr "¿Eliminar la vista semántica?"
 
 msgid "Delete Template?"
 msgstr "¿Eliminar la plantilla?"
@@ -5978,9 +5956,8 @@ msgstr "Dominio"
 msgid "Don't refresh"
 msgstr "Datos actualizados"
 
-#, fuzzy
 msgid "Done"
-msgstr "Ninguno"
+msgstr "Listo"
 
 msgid "Donut"
 msgstr "Dónut"
@@ -6211,9 +6188,8 @@ msgstr "Duración en ms (10500 => 0:00:10.5)"
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duración en ms (66 000 => 1 m 6 s)"
 
-#, fuzzy
 msgid "Duration in seconds"
-msgstr "Introduce la duración en segundos"
+msgstr "Duración en segundos"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ru]
 #, fuzzy
@@ -6954,9 +6930,8 @@ msgstr ""
 msgid "Experimental"
 msgstr "Experimental"
 
-#, fuzzy
 msgid "Expired"
-msgstr "Explorar"
+msgstr "Caducado"
 
 msgid "Explore"
 msgstr "Explorar"
@@ -7079,9 +7054,8 @@ msgstr "Exponer base de datos en SQL Lab"
 msgid "Expose in SQL Lab"
 msgstr "Exponer en SQL Lab"
 
-#, fuzzy
 msgid "Expression"
-msgstr "Expresión SQL"
+msgstr "Expresión"
 
 #, fuzzy
 msgid "Expression cannot be empty"
@@ -7171,17 +7145,15 @@ msgstr "No se han podido recuperar los resultados"
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Error al aplicar el tema: JSON no válido"
 
-#, fuzzy
 msgid "Failed to copy API key to clipboard"
-msgstr "Copiar consulta de partición al portapapeles"
+msgstr "No se ha podido copiar la clave API al portapapeles"
 
 #, fuzzy
 msgid "Failed to copy stack trace to clipboard"
 msgstr "Copiar al portapapeles"
 
-#, fuzzy
 msgid "Failed to create API key"
-msgstr "No se ha podido generar el informe"
+msgstr "No se ha podido crear la clave API"
 
 msgid "Failed to create report"
 msgstr "No se ha podido generar el informe"
@@ -7207,9 +7179,8 @@ msgid ""
 "administrator."
 msgstr ""
 
-#, fuzzy
 msgid "Failed to fetch API keys"
-msgstr "No se han podido etiquetar los elementos"
+msgstr "No se han podido recuperar las claves API"
 
 msgid "Failed to generate chart edit URL"
 msgstr "No se ha podido generar la URL de edición del gráfico"
@@ -7257,9 +7228,8 @@ msgstr ""
 msgid "Failed to retrieve advanced type"
 msgstr "No se ha podido recuperar el tipo avanzado"
 
-#, fuzzy
 msgid "Failed to revoke API key"
-msgstr "No se ha podido detener la consulta."
+msgstr "No se ha podido revocar la clave API"
 
 #, fuzzy
 msgid "Failed to save chart customization"
@@ -7866,9 +7836,8 @@ msgstr "Nombre y URL de la hoja de cálculo de Google"
 msgid "Grace period"
 msgstr "Periodo de gracia"
 
-#, fuzzy
 msgid "Grain"
-msgstr "Granularidad temporal"
+msgstr "Granularidad"
 
 msgid "Graph Chart"
 msgstr "Gráfico"
@@ -8230,9 +8199,8 @@ msgstr ""
 msgid "In this view you can preview the first 25 rows. "
 msgstr "En esta vista puede obtener una vista previa de las primeras 25 filas. "
 
-#, fuzzy
 msgid "Inactive"
-msgstr "Activo"
+msgstr "Inactivo"
 
 msgid "Include Series"
 msgstr "Incluir series"
@@ -8654,9 +8622,8 @@ msgstr "Continuar editando"
 msgid "Key"
 msgstr "Clave"
 
-#, fuzzy
 msgid "Key Prefix"
-msgstr "Prefijo"
+msgstr "Prefijo de la clave"
 
 msgid "Keyboard shortcuts"
 msgstr "Accesos rápidos de teclado"
@@ -8777,9 +8744,8 @@ msgstr "Última actualización %s"
 msgid "Last Updated %s by %s"
 msgstr "Última actualización %s por %s"
 
-#, fuzzy
 msgid "Last Used"
-msgstr "Listar usuarios"
+msgstr "Último uso"
 
 #, python-format
 msgid "Last available value seen on %s"
@@ -9292,9 +9258,8 @@ msgstr ""
 msgid "Mapbox"
 msgstr "Mapbox"
 
-#, fuzzy
 msgid "Mapbox (API key required)"
-msgstr "El correo electrónico es obligatorio"
+msgstr "Mapbox (requiere clave API)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -9861,9 +9826,8 @@ msgstr "Nombre de la columna que contiene el ID del nodo primario"
 msgid "Name of the id column"
 msgstr "Nombre de la columna de ID"
 
-#, fuzzy
 msgid "Name of the semantic layer"
-msgstr "Nombre de la columna de ID"
+msgstr "Nombre de la capa semántica"
 
 msgid "Name of the source nodes"
 msgstr "Nombre de los nodos de origen"
@@ -9914,9 +9878,9 @@ msgstr "Error de red."
 msgid "New"
 msgstr "Ahora"
 
-#, -ERR:PROP-NOT-FOUND-, fuzzy
+#, -ERR:PROP-NOT-FOUND-
 msgid "New Semantic Layer"
-msgstr "No hay capas de anotación"
+msgstr "Nueva capa semántica"
 
 msgid "New chart"
 msgstr "Nuevo gráfico"
@@ -11994,13 +11958,11 @@ msgstr "Lat. y long. inversas"
 msgid "Reverse lat/long "
 msgstr "Lat./long. inversa "
 
-#, fuzzy
 msgid "Revoke"
-msgstr "Eliminar"
+msgstr "Revocar"
 
-#, fuzzy
 msgid "Revoke API Key"
-msgstr "Clave de grupo"
+msgstr "Revocar clave API"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -12008,9 +11970,8 @@ msgstr "Clave de grupo"
 msgid "Revoke this API key"
 msgstr "Revocar esta clave API"
 
-#, fuzzy
 msgid "Revoked"
-msgstr "Trazado"
+msgstr "Revocado"
 
 msgid "Rich Tooltip"
 msgstr "Información sobre herramientas mejorada"
@@ -12728,13 +12689,11 @@ msgstr "Selecciona un esquema"
 msgid "Select a schema if the database supports this"
 msgstr "Selecciona un esquema si la base de datos lo admite"
 
-#, fuzzy
 msgid "Select a semantic layer"
-msgstr "Selecciona un esquema"
+msgstr "Selecciona una capa semántica"
 
-#, fuzzy
 msgid "Select a semantic layer type"
-msgstr "Seleccionar tipo de visualización"
+msgstr "Selecciona un tipo de capa semántica"
 
 msgid "Select a sheet name from the uploaded file"
 msgstr "Seleccione un nombre de hoja del archivo subido"
@@ -12972,9 +12931,8 @@ msgstr "Selecciona un esquema"
 msgid "Select scheme"
 msgstr "Seleccionar esquema"
 
-#, fuzzy
 msgid "Select semantic views"
-msgstr "Seleccionar esquema"
+msgstr "Selecciona las vistas semánticas"
 
 msgid ""
 "Select shape for computing values. \"FIXED\" sets all zoom levels to the "
@@ -13129,13 +13087,11 @@ msgstr "La selección de una base de datos es obligatoria"
 msgid "Selection method"
 msgstr "Selecciona el método de entrega"
 
-#, fuzzy
 msgid "Semantic"
-msgstr "Correo electrónico"
+msgstr "Semántico"
 
-#, fuzzy
 msgid "Semantic Layer"
-msgstr "Capa de anotación"
+msgstr "Capa semántica"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13149,61 +13105,47 @@ msgstr "Vista semántica"
 msgid "Semantic Views"
 msgstr "Vistas semánticas"
 
-#, fuzzy
 msgid "Semantic layer"
-msgstr "Capa de anotación"
+msgstr "Capa semántica"
 
-#, fuzzy
 msgid "Semantic layer could not be created."
-msgstr "No se ha podido crear la capa de anotación."
+msgstr "No se ha podido crear la capa semántica."
 
-#, fuzzy
 msgid "Semantic layer could not be deleted."
-msgstr "No se han podido eliminar las capas de anotación."
+msgstr "No se ha podido eliminar la capa semántica."
 
-#, fuzzy
 msgid "Semantic layer could not be updated."
-msgstr "No se ha podido actualizar la capa de anotación."
+msgstr "No se ha podido actualizar la capa semántica."
 
-#, fuzzy
 msgid "Semantic layer created"
-msgstr "Se ha creado la plantilla de anotación"
+msgstr "Capa semántica creada"
 
-#, fuzzy
 msgid "Semantic layer does not exist"
-msgstr "El gráfico no existe"
+msgstr "La capa semántica no existe"
 
-#, fuzzy
 msgid "Semantic layer parameters are invalid."
-msgstr "Los parámetros de la capa de anotación no son válidos."
+msgstr "Los parámetros de la capa semántica no son válidos."
 
-#, fuzzy
 msgid "Semantic layer type"
-msgstr "Tipo de la capa de anotación"
+msgstr "Tipo de capa semántica"
 
-#, fuzzy
 msgid "Semantic layer updated"
-msgstr "Se ha actualizado la plantilla de anotación"
+msgstr "Capa semántica actualizada"
 
-#, fuzzy
 msgid "Semantic view could not be created."
-msgstr "No se ha podido crear el conjunto de datos."
+msgstr "No se ha podido crear la vista semántica."
 
-#, fuzzy
 msgid "Semantic view could not be deleted."
-msgstr "No se han podido eliminar las plantillas CSS."
+msgstr "No se ha podido eliminar la vista semántica."
 
-#, fuzzy
 msgid "Semantic view could not be updated."
-msgstr "No se ha podido actualizar el conjunto de datos."
+msgstr "No se ha podido actualizar la vista semántica."
 
-#, fuzzy
 msgid "Semantic view does not exist"
-msgstr "El conjunto de datos no existe"
+msgstr "La vista semántica no existe"
 
-#, fuzzy
 msgid "Semantic view parameters are invalid."
-msgstr "Los parámetros del conjunto de datos no son válidos."
+msgstr "Los parámetros de la vista semántica no son válidos."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13772,9 +13714,8 @@ msgstr "Omitir espacios después del delimitador"
 msgid "Skipped %d system themes that cannot be deleted"
 msgstr "Se omitieron %d temas del sistema que no se pueden eliminar"
 
-#, fuzzy
 msgid "Slice Id"
-msgstr "Anchura de la línea"
+msgstr "ID del gráfico"
 
 #, fuzzy
 msgid "Slider"
@@ -14017,9 +13958,8 @@ msgstr "Fuente SQL"
 msgid "Source category"
 msgstr "Categoría de fuente"
 
-#, fuzzy
 msgid "Source location"
-msgstr "Categoría de fuente"
+msgstr "Ubicación de origen"
 
 msgid "Sparkline"
 msgstr "Minigráfica"
@@ -18866,9 +18806,8 @@ msgstr "No tienes acceso a este conjunto de datos."
 msgid "You don't have access to this embedded dashboard config."
 msgstr "No tienes acceso a la configuración de este panel de control incrustado."
 
-#, fuzzy
 msgid "You don't have access to this semantic view."
-msgstr "No tienes acceso a este conjunto de datos."
+msgstr "No tienes acceso a esta vista semántica."
 
 #, fuzzy
 msgid "You don't have permission to copy to clipboard"

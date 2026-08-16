@@ -328,6 +328,7 @@ class CeleryConfig:
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
+        "superset.tasks.slack",
     )
     broker_connection_retry_on_startup = True
     worker_prefetch_multiplier = 10
