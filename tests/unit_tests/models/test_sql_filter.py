@@ -40,6 +40,7 @@ def test_sql_filter_relationship_mirrors_sql_metric() -> None:
     assert SqlMetric.table.property.back_populates == "metrics"
     assert SqlaTable.filter_class is SqlFilter
     assert SqlaTable.metric_class is SqlMetric
+    assert "filters" in SqlaTable.export_children
 
 
 def test_sql_filter_unique_constraint_mirrors_sql_metric() -> None:

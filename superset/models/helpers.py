@@ -1471,6 +1471,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return []
 
     @property
+    def filters(self) -> list[Any]:
+        return []
+
+    @property
     def uid(self) -> str:
         raise NotImplementedError()
 
