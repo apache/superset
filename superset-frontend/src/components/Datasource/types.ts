@@ -112,4 +112,5 @@ export enum FoldersEditorItemType {
   Folder = 'folder',
   Column = 'column',
   Metric = 'metric',
+  Filter = 'filter',
 }

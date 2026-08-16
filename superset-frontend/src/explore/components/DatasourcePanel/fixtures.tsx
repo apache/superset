@@ -101,3 +101,22 @@ export const metrics = [
   ...metricsFiltered.certified,
   ...metricsFiltered.uncertified,
 ];
+
+export const savedFilters = [
+  {
+    uuid: 'filter-1',
+    filter_name: 'only_boys',
+    verbose_name: 'Only boys',
+    expression: "gender = 'boy'",
+    description: null,
+    is_certified: false,
+  },
+  {
+    uuid: 'filter-2',
+    filter_name: 'only_girls',
+    verbose_name: 'Only girls',
+    expression: "gender = 'girl'",
+    description: null,
+    is_certified: true,
+  },
+];

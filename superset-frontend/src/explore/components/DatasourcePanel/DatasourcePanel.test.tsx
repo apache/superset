@@ -32,6 +32,7 @@ import DatasourcePanel, {
 import {
   columns,
   metrics,
+  savedFilters,
 } from 'src/explore/components/DatasourcePanel/fixtures';
 import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
@@ -196,6 +197,30 @@ test('should render the columns', async () => {
   columns.forEach(col =>
     expect(screen.getByText(col.column_name)).toBeInTheDocument(),
   );
+});
+
+test('should render dataset filters when the datasource has them', async () => {
+  const datasourceWithFilters = { ...datasource, filters: savedFilters };
+  render(
+    <ExploreContainer>
+      <DatasourcePanel
+        {...props}
+        datasource={datasourceWithFilters}
+        controls={{
+          datasource: {
+            ...props.controls.datasource,
+            datasource: datasourceWithFilters,
+          },
+        }}
+      />
+      <DndMetricSelect {...metricProps} />
+    </ExploreContainer>,
+    { useRedux: true, useDnd: true },
+  );
+  expect(screen.getByText('Filters')).toBeInTheDocument();
+  expect(
+    screen.getByPlaceholderText('Search Metrics, Columns & Filters'),
+  ).toBeInTheDocument();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

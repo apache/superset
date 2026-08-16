@@ -53,7 +53,7 @@ import {
   StyledColumnOption,
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
-import { DatasourcePanelDndItem } from '../DatasourcePanel/types';
+import { DatasourcePanelDndItem, SavedFilter } from '../DatasourcePanel/types';
 
 /**
  * Type for the active drag item data
@@ -372,7 +372,15 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
               />
             ) : (
               <StyledMetricOption
-                metric={activeData.value as MetricOptionProps['metric']}
+                metric={
+                  activeData.type === DndItemType.Filter
+                    ? ({
+                        ...(activeData.value as SavedFilter),
+                        metric_name: (activeData.value as SavedFilter)
+                          .filter_name,
+                      } as MetricOptionProps['metric'])
+                    : (activeData.value as MetricOptionProps['metric'])
+                }
                 showType
               />
             )}

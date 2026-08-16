@@ -37,4 +37,6 @@ export enum DndItemType {
 
   // an adhoc filter option
   FilterOption = 'filterOption',
+  // a saved dataset filter
+  Filter = 'savedFilter',
 }

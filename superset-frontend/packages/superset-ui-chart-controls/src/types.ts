@@ -98,6 +98,15 @@ export interface Dataset {
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
   extra?: object | string;
+  filters?: {
+    uuid?: string;
+    filter_name: string;
+    verbose_name?: string | null;
+    expression?: string | null;
+    description?: string | null;
+    is_certified?: boolean | number | null;
+    warning_text?: string | null;
+  }[];
 }
 
 export interface ControlPanelState {

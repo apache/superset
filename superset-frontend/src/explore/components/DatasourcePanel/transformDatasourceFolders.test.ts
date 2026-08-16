@@ -24,6 +24,7 @@ import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import {
   DEFAULT_METRICS_FOLDER_UUID,
   DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_FILTERS_FOLDER_UUID,
 } from 'src/components/Datasource/FoldersEditor/constants';
 
 const mockMetrics: Metric[] = [
@@ -238,4 +239,47 @@ test('handles non-existent metric and column UUIDs in folder config', () => {
   expect(result[0].id).toBe('folder1');
   expect(result[0].items).toHaveLength(1);
   expect(result[0].items[0].uuid).toBe('metric1-uuid');
+});
+
+test('inserts a Filters folder after Metrics when the dataset has filters', () => {
+  const mockFilters = [
+    {
+      uuid: 'filter1-uuid',
+      filter_name: 'only_boys',
+      expression: "gender = 'boy'",
+    },
+  ];
+
+  const result = transformDatasourceWithFolders(
+    mockMetrics,
+    mockColumns,
+    undefined,
+    mockMetrics,
+    mockColumns,
+    mockFilters,
+    mockFilters.length,
+  );
+
+  expect(result).toHaveLength(3);
+  expect(result[0].id).toBe(DEFAULT_METRICS_FOLDER_UUID);
+  expect(result[1].id).toBe(DEFAULT_FILTERS_FOLDER_UUID);
+  expect(result[1].name).toBe('Filters');
+  expect(result[1].items).toHaveLength(1);
+  expect(result[1].items[0].type).toBe(FoldersEditorItemType.Filter);
+  expect(result[2].id).toBe(DEFAULT_COLUMNS_FOLDER_UUID);
+});
+
+test('does not add a Filters folder when the dataset has no filters', () => {
+  const result = transformDatasourceWithFolders(
+    mockMetrics,
+    mockColumns,
+    undefined,
+    mockMetrics,
+    mockColumns,
+    [],
+    0,
+  );
+
+  expect(result).toHaveLength(2);
+  expect(result.map(folder => folder.name)).toEqual(['Metrics', 'Columns']);
 });

@@ -28,6 +28,8 @@ export const DEFAULT_METRICS_FOLDER_UUID =
   '255b537d-58c8-443d-9fc1-4e4dc75047e2';
 export const DEFAULT_COLUMNS_FOLDER_UUID =
   '83a7ae8f-2e8a-4f2b-a8cb-ebaebef95b9b';
+export const DEFAULT_FILTERS_FOLDER_UUID =
+  'c4d8e2a1-6b7f-4c3e-9d0a-1f2b3c4d5e6f';
 
 // Number of default folders (Metrics, Columns)
 export const DEFAULT_FOLDERS_COUNT = 2;

@@ -30,7 +30,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ExplorePageState } from 'src/explore/types';
 
-import { DatasourcePanelDndItem } from '../types';
+import { DatasourcePanelDndItem, SavedFilter } from '../types';
 
 const DatasourceItemContainer = styled.div<{ isDragging?: boolean }>`
   ${({ theme, isDragging }) => css`
@@ -106,6 +106,10 @@ export default function DatasourcePanelDragOption(
       const col = value as ColumnMeta;
       return `datasource-${type}-${col.column_name || col.verbose_name}`;
     }
+    if (type === DndItemType.Filter) {
+      const sqlFilter = value as SavedFilter;
+      return `datasource-${type}-${sqlFilter.filter_name}`;
+    }
     const metric = value as MetricOption;
     return `datasource-${type}-${metric.metric_name || metric.label}`;
   }, [type, value]);
@@ -143,7 +147,17 @@ export default function DatasourcePanelDragOption(
       {type === DndItemType.Column ? (
         <StyledColumnOption column={value as ColumnMeta} {...optionProps} />
       ) : (
-        <StyledMetricOption metric={value as MetricOption} {...optionProps} />
+        <StyledMetricOption
+          metric={
+            type === DndItemType.Filter
+              ? ({
+                  ...(value as SavedFilter),
+                  metric_name: (value as SavedFilter).filter_name,
+                } as Metric)
+              : (value as Metric)
+          }
+          {...optionProps}
+        />
       )}
       <Icons.Drag
         iconSize="xl"

@@ -34,3 +34,22 @@ test('should render', async () => {
   ).toBeInTheDocument();
   expect(screen.getByText('test')).toBeInTheDocument();
 });
+
+test('should render a saved dataset filter', async () => {
+  render(
+    <DatasourcePanelDragOption
+      value={{
+        filter_name: 'only_boys',
+        verbose_name: 'Only boys',
+        uuid: '1',
+      }}
+      type={DndItemType.Filter}
+    />,
+    { useDndKit: true, useRedux: true, initialState: { explore: {} } },
+  );
+
+  expect(
+    await screen.findByTestId('DatasourcePanelDragOption'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Only boys')).toBeInTheDocument();
+});
