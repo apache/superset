@@ -98,7 +98,7 @@ class DatasetFilterRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DatasetFilterDeleteFailedError as ex:
             logger.error(
-                "Error deleting dataset column %s: %s",
+                "Error deleting dataset filter %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,

@@ -349,6 +349,7 @@ class BaseDatasource(
 
     columns: list[TableColumn] = []
     metrics: list[SqlMetric] = []
+    filters: list[SqlFilter] = []
 
     @property
     def type(self) -> str:
