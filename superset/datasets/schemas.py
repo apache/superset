@@ -351,7 +351,11 @@ class ImportV1FilterSchema(Schema):
         Fix for extra initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
-            data["extra"] = json.loads(data["extra"])
+            try:
+                extra = data["extra"]
+                data["extra"] = json.loads(extra) if extra.strip() else None
+            except ValueError:
+                data["extra"] = None
 
         return data
 

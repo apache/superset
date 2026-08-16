@@ -435,11 +435,13 @@ def import_dataset(  # noqa: C901
     # uploading it again, so children present in the live DB but absent
     # from the upload should be removed, not silently merged. This matches
     # what an explicit overwrite would do.
-    sync = (
-        ["columns", "metrics", "filters"]
-        if (overwrite or is_soft_deleted_match)
-        else []
-    )
+    # Filters are new in SIP-165. Older bundles omit the key, so only
+    # synchronize them when the payload actually includes them.
+    sync: list[str] = []
+    if overwrite or is_soft_deleted_match:
+        sync = ["columns", "metrics"]
+        if "filters" in config:
+            sync.append("filters")
 
     # should we also load data into the dataset?
     data_uri = config.get("data")

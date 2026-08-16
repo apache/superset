@@ -87,6 +87,17 @@ def test_import_v1_filter_schema_parses_extra_string() -> None:
     assert loaded["extra"] == {"certified_by": "me"}
 
 
+def test_import_v1_filter_schema_tolerates_malformed_extra() -> None:
+    loaded = ImportV1FilterSchema().load(
+        {
+            "filter_name": "active",
+            "expression": "status = 1",
+            "extra": "{not-json",
+        }
+    )
+    assert loaded["extra"] is None
+
+
 def test_import_v1_dataset_schema_accepts_filters() -> None:
     loaded = ImportV1DatasetSchema().load(
         {
@@ -335,6 +346,21 @@ def test_dao_validate_filters_exist_and_uniqueness(session: Session) -> None:
     assert DatasetDAO.validate_filters_exist(dataset.id, [existing.id, 999999]) is False
     assert DatasetDAO.validate_filters_uniqueness(dataset.id, ["missing"]) is True
     assert DatasetDAO.validate_filters_uniqueness(dataset.id, ["active"]) is False
+
+
+def test_find_dataset_filter_requires_matching_dataset(
+    session: Session, mocker: MockerFixture
+) -> None:
+    dataset, existing = _dataset_with_filter(session)
+    other = SqlaTable(table_name="other_table", database=dataset.database)
+    db.session.add(other)
+    db.session.flush()
+
+    mocker.patch.object(DatasetDAO, "find_by_id", return_value=dataset)
+    assert DatasetDAO.find_dataset_filter(dataset.id, existing.id) is existing
+
+    mocker.patch.object(DatasetDAO, "find_by_id", return_value=other)
+    assert DatasetDAO.find_dataset_filter(other.id, existing.id) is None
 
 
 def test_sqla_table_data_includes_filters(session: Session) -> None:

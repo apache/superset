@@ -806,14 +806,12 @@ class BaseDatasource(
         )
         self.metrics = metrics
 
-        # Syncing filters
-        self.filters = (
-            self.get_fk_many_from_list(
+        # Syncing filters. Older save payloads omit this key, so leave
+        # existing filters in place when it is absent.
+        if "filters" in obj:
+            self.filters = self.get_fk_many_from_list(
                 obj["filters"], self.filters, SqlFilter, "filter_name"
             )
-            if "filters" in obj
-            else []
-        )
 
         # Syncing columns
         self.columns = (

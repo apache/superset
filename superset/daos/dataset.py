@@ -706,7 +706,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
             return None
-        return db.session.get(SqlFilter, filter_id)
+        return (
+            db.session.query(SqlFilter)
+            .filter(SqlFilter.table_id == dataset_id, SqlFilter.id == filter_id)
+            .one_or_none()
+        )
 
     @staticmethod
     def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:
