@@ -211,6 +211,18 @@ class AnnotationType(StrEnum):
     TIME_SERIES = "TIME_SERIES"
 
 
+# Annotation source types whose ``value`` field references another Chart
+# (resolved to a local Slice.id on import / serialised back to UUID on export).
+# Add new chart-referencing source types here; all consumers pick them up
+# automatically via this single definition.
+ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE: frozenset[str] = frozenset(
+    {
+        "table",
+        "line",
+    }
+)
+
+
 class GenericDataType(IntEnum):
     """
     Generic database column type that fits both frontend and backend.
