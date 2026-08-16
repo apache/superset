@@ -56,7 +56,7 @@ type MetricObject = {
 };
 
 export type FilterObject = {
-  id?: number;
+  id?: number | string;
   uuid?: string;
   expression?: string;
   description?: string;
@@ -66,6 +66,8 @@ export type FilterObject = {
   certified_by?: string;
   certification_details?: string;
   warning_markdown?: string;
+  extra?: string;
+  is_certified?: boolean;
 };
 
 export type DatasetObject = {

@@ -73,7 +73,10 @@ const StyledDatasourceModal = styled(Modal)`
 `;
 
 export function buildExtraJsonObject(
-  item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
+  item:
+    | DatasetObject['metrics'][0]
+    | DatasetObject['columns'][0]
+    | NonNullable<DatasetObject['filters']>[0],
 ) {
   const certification =
     item?.certified_by || item?.certification_details
@@ -177,6 +180,25 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       ),
       editors: mapSubjectValuesToIds(datasource.editors || []),
     };
+    if (Array.isArray(datasource.filters)) {
+      payload.filters = datasource.filters.map(
+        (sqlFilter: NonNullable<DatasetObject['filters']>[0]) => {
+          const filterBody: Record<string, unknown> = {
+            expression: sqlFilter.expression,
+            description: sqlFilter.description,
+            filter_name: sqlFilter.filter_name,
+            verbose_name: sqlFilter.verbose_name,
+            warning_text: sqlFilter.warning_text,
+            uuid: sqlFilter.uuid,
+            extra: buildExtraJsonObject(sqlFilter),
+          };
+          if (!Number.isNaN(Number(sqlFilter.id))) {
+            filterBody.id = sqlFilter.id;
+          }
+          return filterBody;
+        },
+      );
+    }
     // Add folders if DATASET_FOLDERS feature is enabled
     if (isFeatureEnabled(FeatureFlag.DatasetFolders) && datasource.folders) {
       payload.folders = datasource.folders;
@@ -244,6 +266,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         ...metric,
         is_certified: metric?.certified_by || metric?.certification_details,
       })),
+      filters: data?.filters?.map(
+        (sqlFilter: NonNullable<DatasetObject['filters']>[0]) => ({
+          ...sqlFilter,
+          is_certified: Boolean(
+            sqlFilter?.certified_by || sqlFilter?.certification_details,
+          ),
+        }),
+      ),
     });
     setErrors(err);
   };
