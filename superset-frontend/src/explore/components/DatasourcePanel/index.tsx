@@ -42,6 +42,8 @@ import { DropzoneContext } from '../ExploreContainer';
 import { DatasourceItems } from './DatasourceItems';
 import { transformDatasourceWithFolders } from './transformDatasourceFolders';
 
+const EMPTY_FILTERS: SavedFilter[] = [];
+
 interface DatasourceControl extends Omit<ControlConfig, 'hidden'> {
   datasource?: IDatasource;
 }
@@ -142,7 +144,7 @@ export default function DataSourcePanel({
   const {
     columns: _columns,
     metrics,
-    filters: _filters = [],
+    filters: _filters = EMPTY_FILTERS,
     folders: _folders,
   } = datasource;
 
@@ -243,7 +245,10 @@ export default function DataSourcePanel({
 
   const filteredFilters = useMemo(() => {
     if (!searchKeyword) {
-      return [...(allowedFilters ?? [])].sort((a, b) =>
+      if (!allowedFilters.length) {
+        return allowedFilters;
+      }
+      return [...allowedFilters].sort((a, b) =>
         (a?.filter_name ?? '').localeCompare(b?.filter_name ?? ''),
       );
     }

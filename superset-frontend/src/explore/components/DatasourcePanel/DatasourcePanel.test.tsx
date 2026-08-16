@@ -42,6 +42,7 @@ import {
   DndMetricSelect,
 } from '../controls/DndColumnSelectControl';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
+import * as transformFolders from 'src/explore/components/DatasourcePanel/transformDatasourceFolders';
 
 jest.mock(
   'react-virtualized-auto-sizer',
@@ -518,4 +519,31 @@ test('Default Metrics and Columns folders dont render when all metrics and colum
 
   expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
   expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(1);
+});
+
+test('does not rebuild folders when formData changes and filters are omitted', async () => {
+  const spy = jest.spyOn(transformFolders, 'transformDatasourceWithFolders');
+  const queryDatasource = { ...datasource };
+  const { rerender } = render(
+    <DatasourcePanel
+      {...props}
+      datasource={queryDatasource}
+      formData={{ viz_type: 'table', datasource: '1__table' }}
+    />,
+    { useRedux: true, useDnd: true },
+  );
+
+  expect(await screen.findByText('Metrics')).toBeInTheDocument();
+  const callsAfterMount = spy.mock.calls.length;
+
+  rerender(
+    <DatasourcePanel
+      {...props}
+      datasource={queryDatasource}
+      formData={{ viz_type: 'table', datasource: '1__table', row_limit: 10 }}
+    />,
+  );
+
+  expect(spy.mock.calls.length).toBe(callsAfterMount);
+  spy.mockRestore();
 });
