@@ -21,6 +21,7 @@ from flask_appbuilder.security.sqla.models import User
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.superset_typing import Metric
 from superset.utils.core import override_user
 
 
@@ -84,6 +85,72 @@ def test_cache_key_changes_for_new_query_object_different_params():
     cache_key1 = query_object1.cache_key()
     query_object2 = QueryObject(row_limit=2)
     assert query_object2.cache_key() != cache_key1
+
+
+def test_cache_key_stable_regardless_of_extra_cache_keys_order():
+    """
+    Regression for #34543: the cache key must not depend on the order of
+    ``extra_cache_keys``.
+
+    ``SqlaTable.get_extra_cache_keys`` (superset/connectors/sqla/models.py)
+    returns ``list(set(extra_cache_keys))``. Python's string hashing is
+    randomized per-process (``PYTHONHASHSEED``), so the same set of values
+    can iterate in a different order in the Celery worker process (which
+    writes the query results to cache) than in the web process (which
+    re-derives the cache key to read them back). Because ``hash_from_dict``
+    only sorts dict keys and not list values, two ``extra_cache_keys`` lists
+    with identical Jinja ``url_param()`` values but different order hash to
+    different cache keys, causing async chart-data lookups to 422 with
+    "Error loading data from cache" whenever more than one url_param is
+    referenced (a single-element list has only one possible order, which is
+    why the bug is only visible with multiple parameters).
+    """
+    query_object1 = QueryObject(row_limit=1)
+    query_object2 = QueryObject(row_limit=1)
+    same_values_different_order = ["CAR_IDS=1,2,3", "CHASSIS_IDS=100,200"]
+    cache_key1 = query_object1.cache_key(extra_cache_keys=same_values_different_order)
+    cache_key2 = query_object2.cache_key(
+        extra_cache_keys=list(reversed(same_values_different_order))
+    )
+    assert cache_key1 == cache_key2
+
+
+def test_cache_key_stable_for_mixed_type_extra_cache_keys():
+    """
+    ``extra_cache_keys`` values are typed as ``Hashable``, so a mix of
+    strings and non-strings that stringify identically (e.g. ``1`` and
+    ``"1"``) can appear together. Sorting on a bare ``str()`` value treats
+    those as equal keys, so Python's stable sort would fall back to
+    whatever order they arrived in from ``list(set(...))`` -- which is not
+    deterministic across processes. The sort key must also account for
+    type so ordering doesn't silently regress to that non-determinism.
+    """
+    query_object1 = QueryObject(row_limit=1)
+    query_object2 = QueryObject(row_limit=1)
+    mixed_values = ["CAR_IDS=1,2,3", 1, "1", None]
+    cache_key1 = query_object1.cache_key(extra_cache_keys=mixed_values)
+    cache_key2 = query_object2.cache_key(extra_cache_keys=list(reversed(mixed_values)))
+    assert cache_key1 == cache_key2
+
+
+def test_cache_key_sensitive_to_orderby_order():
+    """
+    Negative control for the ``extra_cache_keys`` fix above: unlike that
+    field, ``orderby`` is order-significant (it determines sort direction
+    of the executed SQL), so the cache key must still change when the
+    order of its entries changes. This guards against a fix that
+    canonicalizes list values generically instead of targeting
+    ``extra_cache_keys`` specifically.
+    """
+    metric_a: Metric = "count"
+    metric_b: Metric = "sum__value"
+    query_object1 = QueryObject(
+        row_limit=1, orderby=[(metric_a, True), (metric_b, False)]
+    )
+    query_object2 = QueryObject(
+        row_limit=1, orderby=[(metric_b, False), (metric_a, True)]
+    )
+    assert query_object1.cache_key() != query_object2.cache_key()
 
 
 def test_cache_key_changes_for_new_query_object_same_params():

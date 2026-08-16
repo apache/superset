@@ -34,11 +34,11 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.dashboards.filters import DashboardAccessFilter, is_uuid
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter
+from superset.models.dashboard import Dashboard, id_or_slug_filter, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
@@ -531,6 +531,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
         dash.params = original_dash.params
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
         db.session.add(dash)
+        # Flush so the returned dashboard always has a real, persisted
+        # identity (dash.id populated) regardless of what the caller does
+        # next. Without this, whether `dash` ends up with a usable id was an
+        # accident of whatever query the caller happened to run afterward
+        # (autoflush would catch it) - the duplicate_slices=True path leaked
+        # this: it flushes internally per-cloned-slice already, and simple
+        # test/caller code that queries the DB again incidentally
+        # autoflushes too, masking that the plain-copy path never did.
+        db.session.flush()
         return dash
 
     @classmethod
