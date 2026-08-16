@@ -29,7 +29,7 @@ const { result } = concurrently(
     },
     {
       name: 'TEST',
-      command: `while ! nc -z 127.0.01 ${storybookPort}; do sleep 1; done && npm run test-storybook -- --maxWorkers=2`,
+      command: `while ! curl -s -f http://127.0.01:${storybookPort} > /dev/null ; do sleep 1; done && npm run test-storybook -- --maxWorkers=2`,
     },
   ],
   {
