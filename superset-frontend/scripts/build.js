@@ -60,23 +60,29 @@ function getPackages(packagePattern, tsOnly = false) {
   // Find packages in both @superset-ui and @apache-superset scopes
   const supersetUiPackages = [
     ...new Set(
-      globSync([
-        `./node_modules/@superset-ui/${pattern}/src/**/*.${
-          tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
-        }`,
-      ])
-        .map(x => x.split('/')[3])
+      globSync(
+        [
+          `./node_modules/@superset-ui/${pattern}/src/**/*.${
+            tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
+          }`,
+        ],
+        { followSymlinks: true },
+      )
+        .map(x => x.split('/')[2])
         .filter(x => !META_PACKAGES.has(x)),
     ),
   ];
 
   const apachePackages = [
     ...new Set(
-      globSync([
-        `./node_modules/@apache-superset/${pattern}/src/**/*.${
-          tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
-        }`,
-      ]).map(x => x.split('/')[3]),
+      globSync(
+        [
+          `./node_modules/@apache-superset/${pattern}/src/**/*.${
+            tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
+          }`,
+        ],
+        { followSymlinks: true },
+      ).map(x => x.split('/')[2]),
     ),
   ];
 
