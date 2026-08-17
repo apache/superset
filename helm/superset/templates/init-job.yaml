@@ -75,7 +75,7 @@ spec:
       containers:
       - name: {{ template "superset.name" . }}-init-db
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-        {{- $adminSecret := and .Values.init.createAdmin .Values.init.adminUser.existingSecret (not (eq .Values.init.adminUser.existingSecret "")) }}
+        {{- $adminSecret := and .Values.init.createAdmin .Values.init.adminUser.secretKeys.secretName (not (eq .Values.init.adminUser.secretKeys.secretName "")) }}
         {{- if or .Values.extraEnv .Values.extraEnvRaw $adminSecret }}
         env:
           {{- range $key, $value := .Values.extraEnv }}
@@ -89,27 +89,27 @@ spec:
           - name: SUPERSET_ADMIN_USERNAME
             valueFrom:
               secretKeyRef:
-                name: {{ .Values.init.adminUser.existingSecret | quote }}
+                name: {{ .Values.init.adminUser.secretKeys.secretName | quote }}
                 key: {{ .Values.init.adminUser.secretKeys.username | quote }}
           - name: SUPERSET_ADMIN_FIRSTNAME
             valueFrom:
               secretKeyRef:
-                name: {{ .Values.init.adminUser.existingSecret | quote }}
+                name: {{ .Values.init.adminUser.secretKeys.secretName | quote }}
                 key: {{ .Values.init.adminUser.secretKeys.firstname | quote }}
           - name: SUPERSET_ADMIN_LASTNAME
             valueFrom:
               secretKeyRef:
-                name: {{ .Values.init.adminUser.existingSecret | quote }}
+                name: {{ .Values.init.adminUser.secretKeys.secretName | quote }}
                 key: {{ .Values.init.adminUser.secretKeys.lastname | quote }}
           - name: SUPERSET_ADMIN_EMAIL
             valueFrom:
               secretKeyRef:
-                name: {{ .Values.init.adminUser.existingSecret | quote }}
+                name: {{ .Values.init.adminUser.secretKeys.secretName | quote }}
                 key: {{ .Values.init.adminUser.secretKeys.email | quote }}
           - name: SUPERSET_ADMIN_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: {{ .Values.init.adminUser.existingSecret | quote }}
+                name: {{ .Values.init.adminUser.secretKeys.secretName | quote }}
                 key: {{ .Values.init.adminUser.secretKeys.password | quote }}
           {{- end }}
         {{- end }}

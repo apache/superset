@@ -146,15 +146,11 @@ Alternatively, perform a fresh install. This is a one-time migration; subsequent
 | ingress.tls | list | `[]` |  |
 | init.additionalPodSpec | object | `{}` | Custom pod spec to be added to init job |
 | init.adminUser.email | string | `"admin@superset.com"` |  |
-| init.adminUser.existingSecret | string | `""` | Name of an existing Kubernetes Secret that holds the admin user credentials |
 | init.adminUser.firstname | string | `"Superset"` |  |
 | init.adminUser.lastname | string | `"Admin"` |  |
 | init.adminUser.password | string | `"admin"` |  |
-| init.adminUser.secretKeys.email | string | `"email"` | Key in the existing secret for the admin email |
-| init.adminUser.secretKeys.firstname | string | `"firstname"` | Key in the existing secret for the admin firstname |
-| init.adminUser.secretKeys.lastname | string | `"lastname"` | Key in the existing secret for the admin lastname |
-| init.adminUser.secretKeys.password | string | `"password"` | Key in the existing secret for the admin password |
-| init.adminUser.secretKeys.username | string | `"user"` | Key in the existing secret for the admin username |
+| init.adminUser.secretKeys | object | `{"email":"email","firstname":"firstname","lastname":"lastname","password":"password","secretName":"","username":"user"}` | Keys inside the existing secret that hold admin user fields. |
+| init.adminUser.secretKeys.secretName | string | `""` | Name of an existing Kubernetes Secret that holds the admin user credentials. If set, username, firstname, lastname, email, and password are read from this secret instead of from the values above. |
 | init.adminUser.username | string | `"admin"` |  |
 | init.affinity | object | `{}` |  |
 | init.command | list | a `superset_init.sh` command | Command |

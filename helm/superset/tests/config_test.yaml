@@ -71,13 +71,14 @@ tests:
     asserts:
       - matchRegex: {path: 'stringData["superset_init.sh"]', pattern: "grep -qF 'username:"}
       - notMatchRegex: {path: 'stringData["superset_init.sh"]', pattern: 'create-admin[\s\S]*\|\| true'}
-  - it: allows empty password when adminUser.existingSecret is set
+  - it: allows empty password when adminUser.secretKeys.secretName is set
     set:
       init:
         createAdmin: true
         adminUser:
           password: ""
-          existingSecret: admin-secret
+          secretKeys:
+            secretName: admin-secret
     asserts:
       - hasDocuments:
           count: 1
@@ -94,7 +95,8 @@ tests:
         createAdmin: true
         adminUser:
           password: ""
-          existingSecret: ""
+          secretKeys:
+            secretName: ""
     asserts:
       - hasDocuments:
           count: 1

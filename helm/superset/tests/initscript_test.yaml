@@ -64,7 +64,7 @@ tests:
       - notMatchRegex:
           path: 'stringData["superset_init.sh"]'
           pattern: 'create-admin.*[|][|] true'
-  - it: uses literal values from values when existingSecret is not set
+  - it: uses literal values from values when secretKeys.secretName is not set
     set:
       init:
         createAdmin: true
@@ -81,13 +81,13 @@ tests:
       - matchRegex:
           path: 'stringData["superset_init.sh"]'
           pattern: "ADMIN_PASSWORD='adminpass'"
-  - it: uses environment variables when existingSecret is set
+  - it: uses environment variables when secretKeys.secretName is set
     set:
       init:
         createAdmin: true
         adminUser:
-          existingSecret: admin-creds
           secretKeys:
+            secretName: admin-creds
             username: user
             firstname: firstname
             lastname: lastname

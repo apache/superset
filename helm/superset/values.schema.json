@@ -162,13 +162,13 @@
             "password": {
               "type": "string"
             },
-            "existingSecret": {
-              "type": "string"
-            },
             "secretKeys": {
               "type": "object",
               "additionalProperties": true,
               "properties": {
+                "secretName": {
+                  "type": "string"
+                },
                 "username": {
                   "type": "string"
                 },

@@ -209,9 +209,9 @@ Helper to safely read .Values.supersetNode.connections.<key> without erroring wh
 {{- define "superset.config" }}
 {{- /* SECURITY: Validate admin password is set if admin creation is enabled */}}
 {{- $adminPasswordSet := and .Values.init.adminUser.password (not (eq .Values.init.adminUser.password "")) }}
-{{- $adminSecretSet := and .Values.init.adminUser.existingSecret (not (eq .Values.init.adminUser.existingSecret "")) }}
+{{- $adminSecretSet := and .Values.init.adminUser.secretKeys.secretName (not (eq .Values.init.adminUser.secretKeys.secretName "")) }}
 {{- if and .Values.init.enabled .Values.init.createAdmin (not (or $adminPasswordSet $adminSecretSet)) }}
-{{- fail "SECURITY ERROR: init.createAdmin is true but neither init.adminUser.password nor init.adminUser.existingSecret is set. You must set a secure password using --set init.adminUser.password='your-password' or provide an existing Kubernetes secret via init.adminUser.existingSecret." }}
+{{- fail "SECURITY ERROR: init.createAdmin is true but neither init.adminUser.password nor init.adminUser.secretKeys.secretName is set. You must set a secure password using --set init.adminUser.password='your-password' or provide an existing Kubernetes secret via init.adminUser.secretKeys.secretName." }}
 {{- end }}
 
 import os
@@ -686,7 +686,7 @@ TALISMAN_CONFIG = {
 {{- end -}}
 
 {{- define "superset.initScript" -}}
-{{- $adminSecretSet := and .Values.init.adminUser.existingSecret (not (eq .Values.init.adminUser.existingSecret "")) }}
+{{- $adminSecretSet := and .Values.init.adminUser.secretKeys.secretName (not (eq .Values.init.adminUser.secretKeys.secretName "")) }}
 #!/bin/sh
 set -eu
 {{- if dig "istio" "terminateSidecarOnExit" false .Values.init }}
