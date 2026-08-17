@@ -183,6 +183,19 @@ def test_check_tool_permission_disabled_via_config(app_context, app) -> None:
         app.config["MCP_RBAC_ENABLED"] = True
 
 
+def test_disabled_rbac_still_enforces_token_scopes(app_context, app) -> None:
+    """Disabling user RBAC does not disable credential restrictions."""
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+    app.config["MCP_RBAC_ENABLED"] = False
+    try:
+        with _patch_token_scopes(["superset:dashboard:read"]):
+            assert check_tool_permission(func) is False
+        with _patch_token_scopes(["superset:chart:write"]):
+            assert check_tool_permission(func) is True
+    finally:
+        app.config["MCP_RBAC_ENABLED"] = True
+
+
 # -- Permission constants --
 
 
@@ -300,6 +313,19 @@ def test_visibility_public_tool_no_class_permission(app_context) -> None:
     tool = MagicMock()
     tool.fn = func
     assert is_tool_visible_to_current_user(tool) is True
+
+
+def test_visibility_hides_permissionless_tool_from_resource_scoped_token(
+    app_context,
+) -> None:
+    """Permission-less tools require a flat scope in tools/list too."""
+    g.user = MagicMock(username="viewer")
+    tool = _make_mock_tool(fn=_make_tool_func())
+
+    with _patch_token_scopes(["superset:dashboard:read"]):
+        assert is_tool_visible_to_current_user(tool) is False
+    with _patch_token_scopes(["superset:read"]):
+        assert is_tool_visible_to_current_user(tool) is True
 
 
 def test_visibility_allowed_tool(app_context) -> None:
@@ -442,6 +468,23 @@ def test_scope_falls_back_to_rbac_when_no_jwt_context(app_context) -> None:
         result = check_tool_permission(func)
 
     assert result is True
+
+
+def test_scope_context_error_fails_closed(app_context) -> None:
+    """An unexpected token lookup failure cannot erase token restrictions."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="read")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        patch(
+            "fastmcp.server.dependencies.get_access_token",
+            side_effect=TypeError("invalid token context"),
+        ),
+    ):
+        assert check_tool_permission(func) is False
 
 
 def test_scope_read_denied_when_token_lacks_read_scope(app_context) -> None:

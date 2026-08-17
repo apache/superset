@@ -235,10 +235,10 @@ async def get_schema(
 
         from superset import security_manager
 
-        if current_app.config.get("MCP_RBAC_ENABLED", True) and not (
-            security_manager.can_access("can_read", class_permission)
-            and _token_scope_allows("read", class_permission)
-        ):
+        rbac_allows = not current_app.config.get(
+            "MCP_RBAC_ENABLED", True
+        ) or security_manager.can_access("can_read", class_permission)
+        if not (rbac_allows and _token_scope_allows("read", class_permission)):
             user_str = getattr(getattr(g, "user", None), "username", None)
             logger.warning(
                 "get_schema RBAC denied: user=%s type=%s view=%s",
