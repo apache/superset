@@ -153,25 +153,27 @@ export declare const onDidResizePanel: Event<{ width: number }>;
 
 /**
  * A client-side (frontend) tool the chat agent can call — see the "Client
- * MCP Tools" SIP. Unlike a backend/MCP-server tool, its handler runs in the
+ * Tools" SIP. Unlike a backend/MCP-server tool, its handler runs in the
  * browser and can read/mutate whatever is currently on screen (e.g. the
  * Dashboard v2 canvas), so it works entirely off local state with no network
  * round trip of its own.
  *
  * Contributed either by the host itself (built-in "core" tools) or by an
- * extension via `mcpTools.url` in its extension.json — see that file's
- * `getMyTools(chat)`-shaped default export.
+ * extension, via {@link registerClientTool} called directly from its own
+ * module — same as {@link registerChat}/`commands.registerCommand`.
  */
-export interface McpTool {
+export interface ClientTool {
   /**
-   * Unique name WITHOUT a source prefix, e.g. `dashboard__get_root` — the
-   * host adds the `core.`/`<extension-id>.` prefix automatically when the
-   * tool is registered, following the SIP's `[prefix].[surface]__[name]`
-   * convention, so never write "core.", "extensions.", or any other prefix
-   * here yourself. Must start with one of the SIP's eight product surfaces
-   * (dashboard, chart, sqlLab, dataset, alert, report, cssTemplate,
-   * savedQuery) followed by `__` — a name that doesn't is rejected (logged,
-   * not registered) rather than silently accepted.
+   * Name WITHOUT your extension's own prefix, e.g. `dashboard__do_thing` —
+   * when {@link registerClientTool}/{@link registerClientTools} is called
+   * from your extension's own module (the normal case: `import { chat }
+   * from '@apache-superset/core'` inside your extension), the host
+   * automatically qualifies it with your extension id, so it's registered
+   * (and addressed in a tool call) as `<your-extension-id>.dashboard__do_thing`.
+   * This only applies to calls made through that per-extension binding —
+   * host-internal code (this codebase's own "core" tools) isn't
+   * extension-scoped, so it manages its own prefix explicitly instead (see
+   * {@link registerClientTool}'s own docs).
    */
   name: string;
   /** Describes what the tool does, so the LLM agent knows when to call it. */
@@ -181,6 +183,46 @@ export interface McpTool {
   /** Invoked with the model's tool-call arguments; return value is reported back as the tool result. */
   handler: (input: unknown) => Promise<unknown> | unknown;
 }
+
+/**
+ * Registers a single client-side tool the chat agent can call — mirrors
+ * `commands.registerCommand`: a direct, imperative call an extension makes
+ * from its own module (typically its `./index` entry), not a declarative
+ * `extension.json` pointer the host resolves for you. Called from your
+ * extension's own module, your extension id is automatically prepended to
+ * `tool.name` (see {@link ClientTool.name}'s own docs) — write just
+ * `dashboard__do_thing`, not `my-extension.dashboard__do_thing`. Registering
+ * a second tool under the same (already-qualified) name overwrites the
+ * first (logged), and disposing the returned Disposable unregisters it.
+ *
+ * @example
+ * ```typescript
+ * import { chat } from '@apache-superset/core';
+ *
+ * chat.registerClientTool({
+ *   name: 'dashboard__do_thing',
+ *   description: '...',
+ *   inputSchema: { type: 'object', properties: {} },
+ *   handler: () => ({ success: true }),
+ * });
+ * ```
+ */
+export declare function registerClientTool(tool: ClientTool): Disposable;
+
+/**
+ * Registers a list of client-side tools in one call — equivalent to calling
+ * {@link registerClientTool} once per entry (including its automatic
+ * extension-id prefixing), but without writing that loop yourself. Disposing
+ * the returned Disposable unregisters every tool in the list.
+ *
+ * @example
+ * ```typescript
+ * import { chat } from '@apache-superset/core';
+ *
+ * chat.registerClientTools(getMyTools(chat));
+ * ```
+ */
+export declare function registerClientTools(tools: ClientTool[]): Disposable;
 
 /**
  * A target AI-service wire format `getTools()` can convert to — see
@@ -205,17 +247,17 @@ export interface McpTool {
  * Replace a placeholder's `ChatProvider.ts` case with a real transform once
  * that framework's actual expected shape is known.
  */
-export declare const McpToolsFormat: {
+export declare const ClientToolsFormat: {
   readonly Claude: 'claude';
   readonly AgUi: 'ag-ui';
   readonly CopilotKit: 'copilot-kit';
   readonly Codex: 'codex';
 };
-export type McpToolsFormat =
-  (typeof McpToolsFormat)[keyof typeof McpToolsFormat];
+export type ClientToolsFormat =
+  (typeof ClientToolsFormat)[keyof typeof ClientToolsFormat];
 
 /**
- * `McpTool` reduced to what Anthropic's Messages API `tools` parameter
+ * `ClientTool` reduced to what Anthropic's Messages API `tools` parameter
  * expects — `name`/`description` unchanged, `inputSchema` renamed to
  * `input_schema`, and `handler` dropped (a wire format sent to an external
  * API has no business carrying a callable). Look the tool back up via a
@@ -231,47 +273,51 @@ export interface ClaudeToolSpec {
 
 /**
  * Returns every client-side tool currently available — the host's own
- * built-in ("core") tools plus every loaded extension's `mcpTools.url`
- * contribution. Call this once tools are needed (e.g. when starting a chat
- * turn) rather than caching the result, since it can grow as extensions
- * finish loading.
+ * built-in ("core") tools plus every loaded extension's
+ * {@link registerClientTool} calls. Call this once tools are needed (e.g.
+ * when starting a chat turn) rather than caching the result, since it can
+ * grow as extensions finish loading.
  *
- * Called with no argument, returns `McpTool[]` as registered — each entry
+ * Called with no argument, returns `ClientTool[]` as registered — each entry
  * keeps its `handler`, so this is what a tool-call dispatcher should look
- * tools up from by name. Called with {@link McpToolsFormat}'s `Claude`,
+ * tools up from by name. Called with {@link ClientToolsFormat}'s `Claude`,
  * returns the same tools converted to {@link ClaudeToolSpec} instead — this
  * is what should actually be sent to an LLM API, since it can't serialize a
- * `handler` function. Called with any other `McpToolsFormat` member, throws:
- * those are placeholders for frameworks nothing here talks to yet (see that
- * type's own docs), not real, verified conversions.
+ * `handler` function. Called with any other `ClientToolsFormat` member,
+ * throws: those are placeholders for frameworks nothing here talks to yet
+ * (see that type's own docs), not real, verified conversions.
  *
  * @example
  * ```typescript
  * import { chat } from '@apache-superset/core';
  *
  * const tools = chat.getTools(); // for dispatching a tool call by name
- * const toolSpecs = chat.getTools(chat.McpToolsFormat.Claude); // for the API request
+ * const toolSpecs = chat.getTools(chat.ClientToolsFormat.Claude); // for the API request
  * ```
  */
-export declare function getTools(): McpTool[];
+export declare function getTools(): ClientTool[];
 export declare function getTools(
-  format: typeof McpToolsFormat.Claude,
+  format: typeof ClientToolsFormat.Claude,
 ): ClaudeToolSpec[];
-export declare function getTools(format: McpToolsFormat): never;
+export declare function getTools(format: ClientToolsFormat): never;
 
 /**
- * The exact signature extension.json's `mcpTools.url` file's default export
- * must match — `typeof import('.')` here means "the `chat` namespace
- * itself", the same object an extension gets from
+ * Authoring convenience for building a list of tools to hand to
+ * {@link registerClientTools} in one call — `typeof import('.')` here means
+ * "the `chat` namespace itself", the same object an extension gets from
  * `import { chat } from '@apache-superset/core'`, so implementing against
  * this type is enough to get the parameter right without hand-writing
- * `(chat: typeof chatApi) => McpTool[]` again in every extension.
+ * `(chat: typeof chatApi) => ClientTool[]` again in every extension. Not
+ * required — {@link registerClientTools} takes a plain array and doesn't
+ * care how the caller assembled it — but grouping a surface's tools behind
+ * one factory function (as this codebase's own "core" tools do) keeps a
+ * growing list organized.
  *
  * @example
  * ```typescript
  * import type { chat } from '@apache-superset/core';
  *
- * const getMyTools: chat.McpToolsFactory = (chat) => [
+ * const getMyTools: chat.ClientToolsFactory = (chat) => [
  *   {
  *     name: 'dashboard__my_tool',
  *     description: '...',
@@ -280,7 +326,7 @@ export declare function getTools(format: McpToolsFormat): never;
  *   },
  * ];
  *
- * export default getMyTools;
+ * chat.registerClientTools(getMyTools(chat));
  * ```
  */
-export type McpToolsFactory = (chat: typeof import('.')) => McpTool[];
+export type ClientToolsFactory = (chat: typeof import('.')) => ClientTool[];

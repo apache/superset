@@ -40,18 +40,6 @@ module.exports = (env, argv) => {
         filename: "remoteEntry.[contenthash].js",
         exposes: {
           "./index": "./src/index.tsx",
-          // extension.json's optional mcpTools.url is resolved relative to
-          // frontend/src/ and exposed here so the host's extension loader
-          // can import it as "./mcpTools" without any other wiring.
-          ...(extensionConfig.mcpTools?.url
-            ? {
-                "./mcpTools": path.resolve(
-                  __dirname,
-                  "src",
-                  extensionConfig.mcpTools.url,
-                ),
-              }
-            : {}),
         },
         shared: {
           react: {

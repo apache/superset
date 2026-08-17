@@ -18,11 +18,11 @@
  */
 import type { chat as chatApi } from '@apache-superset/core';
 
-type McpTool = chatApi.McpTool;
+type ClientTool = chatApi.ClientTool;
 
-// Not yet implemented — see the client MCP tools SIP's "SQL Lab" candidate
-// core actions table (get_current_editor_id, update_editor_sql,
-// run_current_query, save_current_query_as_saved_query).
-const sqlLabTools: McpTool[] = [];
+// Not yet implemented — this is one of the eight product surfaces the
+// client MCP tools SIP's naming convention reserves a prefix for
+// (core.cssTemplate__*), scaffolded ahead of any concrete candidate actions.
+const cssTemplateTools: ClientTool[] = [];
 
-export default sqlLabTools;
+export default cssTemplateTools;

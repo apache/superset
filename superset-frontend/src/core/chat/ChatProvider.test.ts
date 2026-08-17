@@ -17,7 +17,8 @@
  * under the License.
  */
 import { createElement } from 'react';
-import ChatProvider, { McpToolsFormat } from './ChatProvider';
+import { logging } from '@apache-superset/core/utils';
+import ChatProvider, { ClientToolsFormat } from './ChatProvider';
 
 const trigger = () => createElement('button', null, 'Bubble');
 const panel = () => createElement('div', null, 'Panel');
@@ -262,99 +263,84 @@ const noopTool = {
   handler: () => ({ success: true }),
 };
 
-test('registerTools prefixes a "core" source with "core."', () => {
+test('registerClientTool registers a tool under its own full name', () => {
   const provider = ChatProvider.getInstance();
-  provider.registerTools('core', [
-    { ...noopTool, name: 'dashboard__get_root' },
-  ]);
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
 
   expect(provider.getTools().map(tool => tool.name)).toEqual([
     'core.dashboard__get_root',
   ]);
 });
 
-test('registerTools prefixes an extension source with its extension id', () => {
+test('registerClientTools registers every tool in the list', () => {
   const provider = ChatProvider.getInstance();
-  provider.registerTools('acme.widgets', [
-    { ...noopTool, name: 'dashboard__do_thing' },
+  provider.registerClientTools([
+    { ...noopTool, name: 'core.dashboard__get_root' },
+    { ...noopTool, name: 'core.chart__do_thing' },
   ]);
+
+  expect(
+    provider
+      .getTools()
+      .map(tool => tool.name)
+      .sort(),
+  ).toEqual(['core.chart__do_thing', 'core.dashboard__get_root']);
+});
+
+test('disposing a registerClientTools() call removes every tool it registered', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.dashboard__unrelated',
+  });
+  const disposable = provider.registerClientTools([
+    { ...noopTool, name: 'core.dashboard__get_root' },
+    { ...noopTool, name: 'core.chart__do_thing' },
+  ]);
+
+  disposable.dispose();
 
   expect(provider.getTools().map(tool => tool.name)).toEqual([
-    'acme.widgets.dashboard__do_thing',
+    'acme.widgets.dashboard__unrelated',
   ]);
 });
 
-test('registerTools rejects a name with no valid surface prefix', () => {
+test('registerClientTool warns and overwrites on a duplicate name', () => {
   const provider = ChatProvider.getInstance();
-  const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
 
-  provider.registerTools('core', [{ ...noopTool, name: 'get_root' }]);
-
-  expect(provider.getTools()).toEqual([]);
-  expect(error).toHaveBeenCalledTimes(1);
-  expect(error.mock.calls[0][0]).toContain('get_root');
-  error.mockRestore();
-});
-
-test.each([
-  ['core.dashboard__get_root', 'core'],
-  ['extensions.dashboard__get_root', 'core'],
-  ['acme.dashboard__get_root', 'acme'],
-])(
-  'registerTools rejects an already-prefixed name (%s) instead of double-prefixing it',
-  (name, sourceId) => {
-    const provider = ChatProvider.getInstance();
-    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-    provider.registerTools(sourceId, [{ ...noopTool, name }]);
-
-    expect(provider.getTools()).toEqual([]);
-    expect(error).toHaveBeenCalledTimes(1);
-    error.mockRestore();
-  },
-);
-
-test('registerTools never collides across sources — each keeps its own prefix', () => {
-  const provider = ChatProvider.getInstance();
-
-  provider.registerTools('acme.one', [
-    { ...noopTool, name: 'dashboard__get_root' },
-  ]);
-  provider.registerTools('acme.two', [
-    { ...noopTool, name: 'dashboard__get_root' },
-  ]);
-
-  expect(provider.getTools().map(tool => tool.name)).toEqual([
-    'acme.one.dashboard__get_root',
-    'acme.two.dashboard__get_root',
-  ]);
-});
-
-test('registerTools warns on a duplicate name within the same source, keeping only the first', () => {
-  const provider = ChatProvider.getInstance();
-  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-  provider.registerTools('acme.widgets', [
-    { ...noopTool, name: 'dashboard__get_root', description: 'first' },
-    { ...noopTool, name: 'dashboard__get_root', description: 'second' },
-  ]);
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.dashboard__get_root',
+    description: 'first',
+  });
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.dashboard__get_root',
+    description: 'second',
+  });
 
   expect(warn).toHaveBeenCalledTimes(1);
   const tools = provider.getTools();
   expect(tools).toHaveLength(1);
-  expect(tools[0].description).toBe('first');
+  expect(tools[0].description).toBe('second');
   warn.mockRestore();
 });
 
-test('getTools aggregates every registered source', () => {
+test('getTools aggregates every registered tool', () => {
   const provider = ChatProvider.getInstance();
 
-  provider.registerTools('core', [
-    { ...noopTool, name: 'dashboard__get_root' },
-  ]);
-  provider.registerTools('acme.widgets', [
-    { ...noopTool, name: 'chart__do_thing' },
-  ]);
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.chart__do_thing',
+  });
 
   expect(
     provider
@@ -364,26 +350,12 @@ test('getTools aggregates every registered source', () => {
   ).toEqual(['acme.widgets.chart__do_thing', 'core.dashboard__get_root']);
 });
 
-test("registerTools replaces a source's previously registered tools", () => {
+test('disposing a registerClientTool() call removes that tool', () => {
   const provider = ChatProvider.getInstance();
-
-  provider.registerTools('core', [
-    { ...noopTool, name: 'dashboard__get_root' },
-  ]);
-  provider.registerTools('core', [
-    { ...noopTool, name: 'dashboard__get_node' },
-  ]);
-
-  expect(provider.getTools().map(tool => tool.name)).toEqual([
-    'core.dashboard__get_node',
-  ]);
-});
-
-test("disposing a registerTools() call removes that source's tools", () => {
-  const provider = ChatProvider.getInstance();
-  const disposable = provider.registerTools('acme.widgets', [
-    { ...noopTool, name: 'dashboard__get_root' },
-  ]);
+  const disposable = provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.dashboard__get_root',
+  });
 
   disposable.dispose();
 
@@ -392,9 +364,10 @@ test("disposing a registerTools() call removes that source's tools", () => {
 
 test('reset clears registered tools', () => {
   const provider = ChatProvider.getInstance();
-  provider.registerTools('core', [
-    { ...noopTool, name: 'dashboard__get_root' },
-  ]);
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
 
   provider.reset();
 
@@ -403,16 +376,14 @@ test('reset clears registered tools', () => {
 
 test('getTools(Claude) converts inputSchema to input_schema and drops handler', () => {
   const provider = ChatProvider.getInstance();
-  provider.registerTools('acme.widgets', [
-    {
-      ...noopTool,
-      name: 'dashboard__get_root',
-      description: 'gets the root',
-      inputSchema: { type: 'object', properties: { x: { type: 'string' } } },
-    },
-  ]);
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.dashboard__get_root',
+    description: 'gets the root',
+    inputSchema: { type: 'object', properties: { x: { type: 'string' } } },
+  });
 
-  const [tool] = provider.getTools(McpToolsFormat.Claude);
+  const [tool] = provider.getTools(ClientToolsFormat.Claude);
 
   expect(tool).toEqual({
     name: 'acme.widgets.dashboard__get_root',
@@ -425,35 +396,52 @@ test('getTools(Claude) converts inputSchema to input_schema and drops handler', 
 
 test('getTools() and getTools(Claude) reflect the same underlying registry', () => {
   const provider = ChatProvider.getInstance();
-  provider.registerTools('core', [
-    { ...noopTool, name: 'dashboard__get_root' },
-  ]);
-  provider.registerTools('acme.widgets', [
-    { ...noopTool, name: 'chart__do_thing' },
-  ]);
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.chart__do_thing',
+  });
 
   const nativeNames = provider.getTools().map(tool => tool.name);
   const claudeNames = provider
-    .getTools(McpToolsFormat.Claude)
+    .getTools(ClientToolsFormat.Claude)
     .map(tool => tool.name);
 
   expect(claudeNames.sort()).toEqual(nativeNames.sort());
 });
 
 test.each([
-  ['AgUi', McpToolsFormat.AgUi],
-  ['CopilotKit', McpToolsFormat.CopilotKit],
-  ['Codex', McpToolsFormat.Codex],
+  ['AgUi', ClientToolsFormat.AgUi],
+  ['CopilotKit', ClientToolsFormat.CopilotKit],
+  ['Codex', ClientToolsFormat.Codex],
 ])(
   'getTools(%s) throws — placeholder with no verified target shape yet',
   (name, format) => {
     const provider = ChatProvider.getInstance();
-    provider.registerTools('core', [
-      { ...noopTool, name: 'dashboard__get_root' },
-    ]);
+    provider.registerClientTool({
+      ...noopTool,
+      name: 'core.dashboard__get_root',
+    });
 
     expect(() => provider.getTools(format)).toThrow(
-      `chat.McpToolsFormat.${name}`,
+      `chat.ClientToolsFormat.${name}`,
     );
   },
 );
+
+test('getTools() throws a named error for an unknown format instead of an opaque TypeError', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
+
+  expect(() =>
+    provider.getTools(
+      'not-a-real-format' as unknown as typeof ClientToolsFormat.Claude,
+    ),
+  ).toThrow('unknown format "not-a-real-format"');
+});

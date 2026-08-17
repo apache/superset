@@ -18,11 +18,11 @@
  */
 import type { chat as chatApi } from '@apache-superset/core';
 
-type McpTool = chatApi.McpTool;
+type ClientTool = chatApi.ClientTool;
 
 // Not yet implemented — this is one of the eight product surfaces the
 // client MCP tools SIP's naming convention reserves a prefix for
 // (core.alert__*), scaffolded ahead of any concrete candidate actions.
-const alertTools: McpTool[] = [];
+const alertTools: ClientTool[] = [];
 
 export default alertTools;
