@@ -21,11 +21,17 @@ Covers the "intersection, never broader" rule: a user must not be able to
 mint an API key scoped beyond what their own RBAC already permits.
 """
 
+import re
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from superset.extensions import appbuilder
+from superset.security.api_key_scopes import (
+    RESOURCE_SCOPE_ACTIONS,
+    RESOURCE_SCOPE_CLASS,
+)
 from superset.security.manager import SupersetSecurityManager
 
 
@@ -44,6 +50,33 @@ def _make_user(*role_names: str) -> MagicMock:
 @pytest.fixture
 def sm(app_context: None) -> SupersetSecurityManager:
     return SupersetSecurityManager(appbuilder)
+
+
+def test_frontend_scope_catalog_matches_backend_contract() -> None:
+    """Keep the UI picker aligned with the canonical enforcement vocabulary."""
+    frontend_catalog = (
+        Path(__file__).parents[3]
+        / "superset-frontend/src/features/apiKeys/apiKeyScopes.ts"
+    ).read_text()
+    resources_source = re.search(
+        r"const API_KEY_SCOPE_RESOURCES = \[(.*?)\] as const;",
+        frontend_catalog,
+        re.DOTALL,
+    )
+    actions_source = re.search(
+        r"const API_KEY_SCOPE_ACTIONS = \[(.*?)\] as const;",
+        frontend_catalog,
+        re.DOTALL,
+    )
+
+    assert resources_source is not None
+    assert actions_source is not None
+    assert set(re.findall(r"'([^']+)'", resources_source.group(1))) == set(
+        RESOURCE_SCOPE_CLASS
+    )
+    assert set(re.findall(r"'([^']+)'", actions_source.group(1))) == set(
+        RESOURCE_SCOPE_ACTIONS
+    )
 
 
 def test_no_scopes_is_a_noop(sm: SupersetSecurityManager) -> None:
