@@ -32,6 +32,7 @@ import {
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -2442,7 +2443,7 @@ describe('EchartsTimeseries tooltip truncation', () => {
   const marker = '<span style="background-color:#1f77b4;"></span>';
 
   const buildTooltip = (
-    tooltipTruncation?: string,
+    tooltipTruncation?: TooltipTruncationMode,
     xValue: string | number = 599616000000,
   ) => {
     const chartProps = new ChartProps({
@@ -2483,45 +2484,47 @@ describe('EchartsTimeseries tooltip truncation', () => {
     ]);
   };
 
-  it('applies the CSS cap and keeps full text by default', () => {
+  test('applies the CSS cap and keeps full text by default', () => {
     const html = buildTooltip();
-    expect(html).toContain('max-width: 300px');
     expect(html).toContain(longSeriesName);
+    // sanitizeHtml normalizes spacing inside style attributes, so compare with
+    // whitespace stripped rather than hard-coding one version's formatting.
+    expect(html.replace(/\s/g, '')).toContain('max-width:300px');
   });
 
-  it('removes the cap and keeps full text when off', () => {
+  test('removes the cap and keeps full text when off', () => {
     const html = buildTooltip('off');
     expect(html).not.toContain('max-width');
     expect(html).toContain(longSeriesName);
   });
 
-  it('drops the shared prefix when truncating from the start', () => {
+  test('drops the shared prefix when truncating from the start', () => {
     const html = buildTooltip('start');
     expect(html).not.toContain('prod-us-east');
     expect(html).toContain('latency-p99');
-    expect(html).toContain('white-space: nowrap');
+    expect(html.replace(/\s/g, '')).toContain('white-space:nowrap');
   });
 
-  it('keeps both ends when truncating the middle', () => {
+  test('keeps both ends when truncating the middle', () => {
     const html = buildTooltip('middle');
     expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
     expect(html).not.toContain(longSeriesName);
   });
 
-  it('preserves the echarts marker in every mode', () => {
+  test('preserves the echarts marker in every mode', () => {
     (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
       expect(buildTooltip(mode)).toContain('background-color:#1f77b4');
     });
   });
 
-  it('truncates a long non-temporal x-axis title', () => {
+  test('truncates a long non-temporal x-axis title', () => {
     const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
     const html = buildTooltip('start', longCategory);
     expect(html).not.toContain(longCategory);
     expect(html).toContain('cohort-2026');
   });
 
-  it('leaves a long title alone in the default mode', () => {
+  test('leaves a long title alone in the default mode', () => {
     const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
     expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
   });

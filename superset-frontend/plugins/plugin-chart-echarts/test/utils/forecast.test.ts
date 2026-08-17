@@ -431,36 +431,36 @@ describe('formatForecastTooltipSeries truncation', () => {
       ...(truncation ? { truncation } : {}),
     })[0];
 
-  it('leaves the name intact by default and for off/end', () => {
+  test('leaves the name intact by default and for off/end', () => {
     expect(format()).toContain(longName);
     expect(format('off')).toContain(longName);
     expect(format('end')).toContain(longName);
   });
 
-  it('slices the start of the name without harming the marker', () => {
+  test('slices the start of the name without harming the marker', () => {
     const cell = format('start');
     expect(cell).toContain(marker);
     expect(cell).toContain('…-us-east-1-service-checkout-latency-p99');
     expect(cell).not.toContain('prod-us-east');
   });
 
-  it('slices the middle of the name without harming the marker', () => {
+  test('slices the middle of the name without harming the marker', () => {
     const cell = format('middle');
     expect(cell).toContain(marker);
     expect(cell).toContain('prod-us-east-1-servi…heckout-latency-p99');
   });
 
-  it('measures the budget against the name, not the marker markup', () => {
+  test('measures the budget against the name, not the marker markup', () => {
     // The marker alone is far longer than the budget. If truncation were
     // applied to the concatenated cell, a short name would be mangled.
     expect(marker.length).toBeGreaterThan(TRUNCATION_MAX_CHARS);
-    const cell = formatForecastTooltipSeries({
+    const [cell] = formatForecastTooltipSeries({
       seriesName: 'cpu',
       observation: 1,
       marker,
       formatter: intFormatter,
       truncation: 'start',
-    })[0];
+    });
     expect(cell).toBe(`${marker}cpu`);
   });
 });
