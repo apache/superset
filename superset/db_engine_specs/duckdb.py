@@ -125,11 +125,7 @@ class DuckDBParametersMixin:
         ):
             return MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
 
-        # SQLAlchemy 2.0 made URL a strict NamedTuple - the raw URL(...)
-        # constructor now requires username/password/host/port to be passed
-        # explicitly (they used to default to None). URL.create() keeps
-        # those optional, matching the pre-2.0 URL(...) behavior used here.
-        return str(URL.create(drivername=cls.engine, database=database, query=query))
+        return str(URL(drivername=cls.engine, database=database, query=query))
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
@@ -414,14 +410,8 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
                 f"Need MotherDuck token to connect to database '{database}'."
             )
 
-        # SQLAlchemy 2.0 made URL a strict NamedTuple - the raw URL(...)
-        # constructor now requires username/password/host/port to be passed
-        # explicitly (they used to default to None). URL.create() keeps
-        # those optional, matching the pre-2.0 URL(...) behavior used here.
         return str(
-            URL.create(
-                drivername=DuckDBEngineSpec.engine, database=database, query=query
-            )
+            URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
         )
 
     @classmethod

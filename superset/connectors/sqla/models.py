@@ -2528,16 +2528,6 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         Enum(
             *[filter_type.value for filter_type in utils.RowLevelSecurityFilterType],
             name="filter_type_enum",
-            # No migration has ever created a native "filter_type_enum" type in
-            # Postgres - the 2020-09-15 migration that added this column only
-            # ever created a plain VARCHAR. That mismatch was harmless under
-            # SQLAlchemy 1.4, but SQLAlchemy 2.0's postgresql "insertmanyvalues"
-            # feature casts every bound parameter to its column type's DDL name
-            # (`p2::filter_type_enum`) even for a single-row INSERT, which fails
-            # outright since the type doesn't exist. native_enum=False keeps
-            # this a plain VARCHAR (with a CHECK constraint) so the type
-            # actually matches what's really in the database.
-            native_enum=False,
         ),
     )
     group_key = Column(String(255), nullable=True)

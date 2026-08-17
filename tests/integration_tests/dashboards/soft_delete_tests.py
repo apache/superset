@@ -353,10 +353,9 @@ class TestDashboardRestore(SupersetTestCase):
         functional key parts the partial index needs in 8.0.13 (8.0.0–8.0.12
         reject it).
         """
-        bind = db.session.get_bind()
-        dialect = bind.dialect.name
-        is_mariadb = getattr(bind.dialect, "is_mariadb", False)
-        server_version = bind.dialect.server_version_info or ()
+        dialect = db.session.bind.dialect.name
+        is_mariadb = getattr(db.session.bind.dialect, "is_mariadb", False)
+        server_version = db.session.bind.dialect.server_version_info or ()
         partial_index_supported = dialect == "postgresql" or (
             dialect == "mysql" and not is_mariadb and server_version >= (8, 0, 13)
         )

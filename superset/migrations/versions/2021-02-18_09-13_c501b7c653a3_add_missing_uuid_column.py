@@ -87,11 +87,10 @@ def upgrade():
 
     # add UUID to Dashboard.position_json; this function is idempotent
     # so we can call it for all objects
-    slices_model = models["slices"]
     slice_uuid_map = {
         slc.id: slc.uuid
-        for slc in session.query(slices_model)
-        .options(load_only(slices_model.id, slices_model.uuid))
+        for slc in session.query(models["slices"])
+        .options(load_only("id", "uuid"))
         .all()
     }
     update_dashboards(session, slice_uuid_map)

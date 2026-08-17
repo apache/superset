@@ -2918,19 +2918,17 @@ class BasicParametersMixin:
         else:
             query.update(cls.encryption_disable_parameters)
 
-        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
-        # (it rendered in full under 1.4); render_as_string(hide_password=
-        # False) is required here since this URI is stored/used to actually
-        # connect, not just displayed.
-        return URL.create(
-            f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
-            username=parameters.get("username"),
-            password=parameters.get("password"),
-            host=parameters["host"],
-            port=parameters["port"],
-            database=parameters["database"],
-            query=query,
-        ).render_as_string(hide_password=False)
+        return str(
+            URL.create(
+                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
+                username=parameters.get("username"),
+                password=parameters.get("password"),
+                host=parameters["host"],
+                port=parameters["port"],
+                database=parameters["database"],
+                query=query,
+            )
+        )
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument

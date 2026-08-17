@@ -610,9 +610,7 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
             columns,
         )
         query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-        # SQLAlchemy 2.0 changed how select() with no columns renders - a
-        # single trailing space before the newline instead of two under 1.4.
-        assert "SELECT \nWHERE ds = '01-01-19' AND hour = 1" == query_result
+        assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
     def test_query_cost_formatter(self):
         raw_cost = [

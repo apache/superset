@@ -184,11 +184,6 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 crontab="* * * * *",
                 dashboard=dashboard,
             )
-            # SQLAlchemy 2.0 removes the legacy cascade_backrefs behavior, so
-            # assigning `dashboard=dashboard` on a transient ReportSchedule no
-            # longer implicitly adds it to the session via the
-            # Dashboard.report_schedules backref - it must be added explicitly.
-            db.session.add(report_schedule)
             db.session.commit()
 
             yield dashboard

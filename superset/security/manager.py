@@ -3091,7 +3091,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             logger.warning(
                 "Dataset has no database will retry with database_id to set permission"
             )
-            database = self.session.get(Database, target.database_id)
+            database = self.session.query(Database).get(target.database_id)
             dataset_perm = self.get_dataset_perm(
                 target.id, target.table_name, database.database_name
             )
