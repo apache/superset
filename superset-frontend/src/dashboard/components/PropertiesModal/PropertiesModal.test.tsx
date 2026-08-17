@@ -528,6 +528,57 @@ describe('PropertiesModal', () => {
     });
   });
 
+  test('preserves certification fields on save without opening Certification section', async () => {
+    // Accordion Collapse only mounts the active panel, so certifiedBy /
+    // certificationDetails FormItems are unregistered until Certification is
+    // opened. onFinish must use getFieldsValue(true) to read store values for
+    // unregistered fields; otherwise save clears certified_by to null.
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // Only General information fields are mounted; Certification inputs are not.
+    expect(screen.getAllByRole('textbox')).toHaveLength(3);
+    expect(screen.queryByText('Certified by')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitCall = props.onSubmit.mock.calls[0][0];
+    expect(submitCall.certifiedBy).toBe('John Doe');
+    expect(submitCall.certificationDetails).toBe('Sample certification');
+
+    expect(put).toHaveBeenCalled();
+    const putRequest = put.mock.calls[0][0];
+    expect(typeof putRequest.body).toBe('string');
+    const putBody = JSON.parse(putRequest.body as string);
+    expect(putBody.certified_by).toBe('John Doe');
+    expect(putBody.certification_details).toBe('Sample certification');
+  });
+
   test('submitting with onlyApply:true', async () => {
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();

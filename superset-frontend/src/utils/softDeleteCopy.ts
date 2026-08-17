@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { escape } from 'lodash';
+import { escape } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';

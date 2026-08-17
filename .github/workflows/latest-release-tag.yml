@@ -3,6 +3,9 @@ on:
   release:
     types: [published] # This makes it run only when a new released is published
 
+permissions:
+  contents: read
+
 jobs:
   latest-release:
     name: Add/update tag to new release
