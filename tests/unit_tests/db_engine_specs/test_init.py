@@ -18,6 +18,7 @@
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.engine.default import DefaultDialect
 
 from superset.db_engine_specs import get_available_engine_specs
 
@@ -105,6 +106,35 @@ def test_get_available_engine_specs_skips_malformed_dialect_entry_point(
     # The malformed entry point is skipped with a warning that identifies it.
     assert any("bogus" in str(call) for call in warning.call_args_list)
     assert any("named_bogus" in str(call) for call in warning.call_args_list)
+
+
+def test_get_available_engine_specs_keeps_valid_third_party_dialect(
+    mocker: MockerFixture,
+) -> None:
+    """A valid SQLAlchemy 2.0-style dialect is included without calling dbapi()."""
+    import sqlalchemy.dialects
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    class ValidDialect(DefaultDialect):
+        name = "sqlite"
+        driver = "valid_driver"
+
+    mocker.patch.object(sqlalchemy.dialects, "__all__", [])
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([SqliteEngineSpec]),
+    )
+    entry_point = mocker.MagicMock()
+    entry_point.load.return_value = ValidDialect
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        return_value=[entry_point],
+    )
+
+    available = get_available_engine_specs()
+
+    assert available[SqliteEngineSpec] == {"valid_driver"}
 
 
 @pytest.mark.parametrize(

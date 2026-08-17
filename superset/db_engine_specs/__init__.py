@@ -35,7 +35,7 @@ from collections import defaultdict
 from importlib import import_module
 from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Any, cast, Optional
+from typing import Any, Optional
 
 import sqlalchemy.dialects
 from flask import current_app as app
@@ -184,14 +184,6 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
                     ep.value,
                     dialect,
                 )
-                continue
-            dialect = cast(type[DefaultDialect], dialect)
-            try:
-                dialect.dbapi()
-            except ModuleNotFoundError:
-                continue
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.warning("Unable to load dialect %s: %s", dialect, ex)
                 continue
             if isinstance(backend, bytes):
                 backend = backend.decode()
