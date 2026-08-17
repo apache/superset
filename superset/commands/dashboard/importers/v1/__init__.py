@@ -176,7 +176,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         annotation_layer_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("annotation_layers/"):
-                layer = import_annotation_layer(config, overwrite=False)
+                layer = import_annotation_layer(config, overwrite=overwrite_assets)
                 annotation_layer_ids[str(layer.uuid)] = layer.id
 
         # Resolve the creator's default viewers once for the whole bundle

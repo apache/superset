@@ -66,14 +66,12 @@ def filter_chart_annotations(
             if layer_id is not None:
                 annotation["value"] = layer_id
                 resolved_annotations.append(annotation)
-        elif (
-            source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
-            and isinstance(value, int)
+        elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE and isinstance(
+            value, int
         ):
             resolved_annotations.append(annotation)
-        elif (
-            source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
-            and isinstance(value, str)
+        elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE and isinstance(
+            value, str
         ):
             ref_chart_id = _resolve_uuid_to_id(value, chart_ids, Slice)
             if ref_chart_id is not None:
@@ -340,8 +338,7 @@ def topological_sort_charts(
             if ann.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
             and isinstance(ann.get("value"), str)
         }
-        query_context_raw = chart_config.get("query_context")
-        if query_context_raw:
+        if query_context_raw := chart_config.get("query_context"):
             try:
                 query_context = json.loads(query_context_raw)
             except (json.JSONDecodeError, TypeError):
@@ -398,7 +395,10 @@ def _resolve_uuid_to_id(
     """Resolve a UUID to a local integer ID using a map or DB fallback."""
     if id_map and uuid_value in id_map:
         return id_map[uuid_value]
-    obj = db.session.query(model).filter_by(uuid=uuid_value).first()
+    try:
+        obj = db.session.query(model).filter_by(uuid=uuid_value).first()
+    except Exception:  # noqa: BLE001 — malformed UUID raises at bind time
+        return None
     return obj.id if obj else None
 
 
@@ -410,6 +410,9 @@ def _resolve_annotation_list(
     """Resolve UUID values to integer IDs in-place for an annotation list."""
     resolved_annotations: list[dict[str, Any]] = []
     for annotation in annotations:
+        if annotation.get("annotationType") == AnnotationType.FORMULA:
+            resolved_annotations.append(annotation)
+            continue
         source_type = annotation.get("sourceType")
         value = annotation.get("value")
         if isinstance(value, int):

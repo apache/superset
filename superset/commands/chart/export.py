@@ -23,6 +23,7 @@ from typing import Callable
 import yaml
 
 from superset.commands.annotation_layer.export import ExportAnnotationLayersCommand
+from superset.commands.annotation_layer.exceptions import AnnotationLayerNotFoundError
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.chart import ChartDAO
 from superset.commands.dataset.export import ExportDatasetsCommand
@@ -124,12 +125,14 @@ class ExportChartsCommand(ExportModelsCommand):
                 ann_layer = (
                     db.session.query(AnnotationLayer).filter_by(id=value).first()
                 )
-                if ann_layer:
-                    layer["value"] = str(ann_layer.uuid)
+                if not ann_layer:
+                    raise AnnotationLayerNotFoundError()
+                layer["value"] = str(ann_layer.uuid)
             elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE:
                 ref_charts = ChartDAO.find_by_ids([value])
-                if ref_charts:
-                    layer["value"] = str(ref_charts[0].uuid)
+                if not ref_charts:
+                    raise ChartNotFoundError()
+                layer["value"] = str(ref_charts[0].uuid)
 
     _include_tags: bool = True  # Default to True
 
@@ -193,12 +196,18 @@ class ExportChartsCommand(ExportModelsCommand):
                 in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
                 and isinstance(layer.get("value"), int)
             ]
-            # Call _export directly (not .run()) to share _seen across the
-            # recursion and prevent infinite loops on circular references.
-            for ref_chart in ChartDAO.find_by_ids(chart_annotation_ids):
-                yield from ExportChartsCommand._export(
-                    ref_chart, export_related=True, _seen=_seen
-                )
+            if chart_annotation_ids:
+                ref_charts = ChartDAO.find_by_ids(chart_annotation_ids)
+                found_ids = {c.id for c in ref_charts}
+                missing_ids = set(chart_annotation_ids) - found_ids
+                if missing_ids:
+                    raise ChartNotFoundError()
+                # Call _export directly (not .run()) to share _seen across the
+                # recursion and prevent infinite loops on circular references.
+                for ref_chart in ref_charts:
+                    yield from ExportChartsCommand._export(
+                        ref_chart, export_related=True, _seen=_seen
+                    )
 
             # Native annotation layers (sourceType == "NATIVE", value = layer ID)
             native_layer_ids = [

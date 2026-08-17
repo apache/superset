@@ -29,7 +29,6 @@ from superset.commands.annotation_layer.exceptions import AnnotationLayerNotFoun
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
-    ChartImportError,
     ChartNotFoundError,
     WarmUpCacheChartNotFoundError,
 )
@@ -1097,6 +1096,36 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_missing_chart_annotation_reference_raises(self, mock_g):
+        """Raise when table/line annotation references a missing chart during export."""
+        mock_g.user = security_manager.find_user("admin")
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        missing_chart_id = 987654321
+        try:
+            chart.params = json.dumps(
+                {
+                    **original_params,
+                    "annotation_layers": [
+                        {
+                            "name": "Missing Table Ref",
+                            "annotationType": "EVENT",
+                            "sourceType": "table",
+                            "value": missing_chart_id,
+                        }
+                    ],
+                }
+            )
+            db.session.commit()
+
+            with pytest.raises(ChartNotFoundError):
+                dict(ExportChartsCommand([chart.id]).run())
+        finally:
+            chart.params = json.dumps(original_params)
+            db.session.commit()
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_export_chart_annotation_references_consistent_in_params_and_query_context(
         self, mock_g
     ):
@@ -1484,6 +1513,7 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
                 imported_native_layer.id,
                 imported_table_chart.id,
                 imported_line_chart.id,
+                "cos(x)",
             ]
             assert [
                 layer["value"]
@@ -1492,6 +1522,7 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
                 imported_native_layer.id,
                 imported_table_chart.id,
                 imported_line_chart.id,
+                "cos(x)",
             ]
         finally:
             _cleanup_imported_chart_bundle(
@@ -1551,11 +1582,11 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
     def test_import_chart_invalid_annotation_layer_uuid_drops_only_invalid_reference(
         self, mock_add_permissions, sm_g, utils_g
     ):
-        """Raise a chart import error when a native layer value is not a valid UUID."""
+        """Drop invalid native UUID refs and keep formula annotations."""
         sm_g.user = utils_g.user = security_manager.find_user("admin")
         main_chart_uuid = str(uuid4())
         main_chart = _chart_import_config(main_chart_uuid, "Invalid Native UUID")
-        main_chart["params"]["annotation_layers"] = [
+        annotations = [
             {
                 "name": "Invalid Native",
                 "annotationType": "EVENT",
@@ -1571,6 +1602,16 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
                 "show": False,
             },
         ]
+        main_chart["params"]["annotation_layers"] = [
+            *deepcopy(annotations),
+        ]
+        main_chart["query_context"] = json.dumps(
+            {
+                "datasource": {"id": 12, "type": "table"},
+                "queries": [{"annotation_layers": deepcopy(annotations)}],
+                "form_data": {"annotation_layers": deepcopy(annotations)},
+            }
+        )
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -1579,8 +1620,19 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
         }
 
         try:
-            with pytest.raises(ChartImportError):
-                ImportChartsCommand(contents, overwrite=True).run()
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            chart = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
+            params_layers = json.loads(chart.params)["annotation_layers"]
+            assert len(params_layers) == 1
+            assert params_layers[0]["annotationType"] == "FORMULA"
+            assert params_layers[0]["value"] == "sin(x)"
+
+            query_context = json.loads(chart.query_context)
+            query_layers = query_context["queries"][0]["annotation_layers"]
+            form_layers = query_context["form_data"]["annotation_layers"]
+            assert [layer["value"] for layer in query_layers] == ["sin(x)"]
+            assert [layer["value"] for layer in form_layers] == ["sin(x)"]
         finally:
             _cleanup_imported_chart_bundle([main_chart_uuid], [])
 

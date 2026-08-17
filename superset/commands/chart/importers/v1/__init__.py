@@ -43,6 +43,7 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
 from superset.subjects.utils import get_default_viewers_for_current_user
+from superset.utils.core import ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
 
 
 class ImportChartsCommand(ImportModelsCommand):
@@ -101,10 +102,11 @@ class ImportChartsCommand(ImportModelsCommand):
             if file_name.startswith("charts/"):
                 dataset_uuids.add(config["dataset_uuid"])
                 for annotation in config.get("params", {}).get("annotation_layers", []):
-                    if annotation.get("sourceType") in (
-                        "table",
-                        "line",
-                    ) and isinstance(annotation.get("value"), str):
+                    if annotation.get(
+                        "sourceType"
+                    ) in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE and isinstance(
+                        annotation.get("value"), str
+                    ):
                         referenced_chart_uuids.add(annotation["value"])
 
         # discover databases associated with datasets
