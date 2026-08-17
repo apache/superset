@@ -343,7 +343,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               )}
               {slice.description && !isExpanded && (
                 <Popover
-                  trigger="hover"
+                  trigger={['hover', 'click']}
                   content={<SliceInfo slice={slice} />}
                   placement="leftBottom"
                 >
