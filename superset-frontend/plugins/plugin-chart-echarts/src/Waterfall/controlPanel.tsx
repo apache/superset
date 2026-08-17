@@ -273,12 +273,10 @@ const config: ControlPanelConfig = {
     },
   ],
   controlOverrides: {
-    y_axis_format: {
-      visibility: ({ controls }) => controls?.show_y_axis?.value !== false,
-    },
-    currency_format: {
-      visibility: ({ controls }) => controls?.show_y_axis?.value !== false,
-    },
+    // Note: y_axis_format and currency_format are intentionally NOT gated on
+    // show_y_axis. They drive `defaultFormatter`, which formats the bar labels
+    // and tooltips as well as the axis, so they must stay configurable even
+    // when the Y axis itself is hidden.
     groupby: {
       label: t('Breakdowns'),
       description:
