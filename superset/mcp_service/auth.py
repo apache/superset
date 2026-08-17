@@ -153,8 +153,13 @@ def _get_token_scopes() -> set[str] | None:
 
     try:
         access_token = get_access_token()
-    except Exception:  # noqa: BLE001 - no JWT context for this request
-        return None
+    except Exception:  # noqa: BLE001 - fail closed on token-context errors
+        logger.exception("Unable to resolve MCP access-token scopes")
+        # ``None`` means that no scoped credential was presented and enables
+        # legacy RBAC-only behavior. An empty set instead makes every scope
+        # check fail, so an unexpected context error cannot erase restrictions
+        # carried by a credential.
+        return set()
 
     if access_token is None:
         return None
@@ -390,8 +395,13 @@ def check_tool_permission(  # noqa: C901
                 )
             return False
 
+        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
+        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
+
+        # Token capabilities and user RBAC are independent restrictions.
+        # Disabling RBAC must not discard scopes explicitly carried by a key.
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
+            return _token_scope_allows(method_permission_name, class_permission_name)
 
         if not hasattr(g, "user") or not g.user:
             if log_denial:
@@ -404,8 +414,6 @@ def check_tool_permission(  # noqa: C901
                 )
             return False
 
-        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
-        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
         if not class_permission_name:
             # No RBAC configured for this tool; allow by default. This is a
             # supported configuration (a protected tool may intentionally
@@ -509,7 +517,7 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
             return False
 
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
+            return check_tool_permission(tool_func, log_denial=False)
 
         from superset.mcp_service.privacy import (
             tool_requires_data_model_metadata_access,
@@ -521,10 +529,6 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
             and not user_can_view_data_model_metadata()
         ):
             return False
-
-        class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
-        if not class_permission_name:
-            return True
 
         return check_tool_permission(tool_func, log_denial=False)
 
