@@ -433,6 +433,26 @@ def test_truncate_payload_caps_a_payload_with_no_list_to_shrink() -> None:
     assert "truncated" in text
 
 
+def test_truncate_payload_keeps_rows_after_a_long_sql_string() -> None:
+    """Shrinking an earlier string must not cut later result fields from JSON."""
+    from superset.ai.tools.base import truncate_payload
+
+    payload = {
+        "kind": "sql_result",
+        "executed_sql": "SELECT " + "x" * 4_000,
+        "columns": ["answer"],
+        "rows": [{"answer": 42}],
+        "row_count": 1,
+    }
+    text, truncated = truncate_payload(payload, 2_000)
+
+    assert truncated is True
+    assert len(text.encode("utf-8")) <= 2_000
+    decoded = json.loads(text)
+    assert decoded["rows"] == [{"answer": 42}]
+    assert decoded["_truncated"] is True
+
+
 def test_registry_dispatch_bounds_the_result() -> None:
     """The cap is enforced by the registry, not left to each tool."""
     from superset.ai.llm.base import ToolCall

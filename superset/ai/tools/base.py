@@ -194,46 +194,64 @@ def truncate_payload(payload: Any, max_bytes: int) -> tuple[str, bool]:
     """
     Serialise ``payload`` and bound it to ``max_bytes``.
 
-    Returns the JSON text and whether anything was dropped. Truncation is
-    applied to the largest list in a mapping payload — result rows in practice —
-    because halving a row count is comprehensible to the model whereas cutting a
-    JSON string mid-token is not. When there is no list to shrink, the text is
-    cut and the marker says so.
+    Returns valid JSON text and whether anything was dropped. Mapping fields are
+    shortened largest-first so useful smaller fields survive without cutting JSON
+    mid-token.
     """
     text = json.dumps(payload, default=str)
     if len(text.encode("utf-8")) <= max_bytes:
         return text, False
 
     if isinstance(payload, dict):
-        list_keys = [
-            key for key, value in payload.items() if isinstance(value, list) and value
+        candidate = dict(payload)
+        list_counts = [
+            f"{len(value)} {key}"
+            for key, value in payload.items()
+            if isinstance(value, list) and value
         ]
-        if list_keys:
-            # Shrink the longest list first; it is the one carrying the bulk.
-            key = max(list_keys, key=lambda item: len(payload[item]))
-            rows = payload[key]
-            kept = len(rows)
-            # Halve until it fits, always leaving one element so the model can
-            # still see the shape of what it asked for.
-            while kept > 1:
-                kept //= 2
-                candidate = dict(payload)
-                candidate[key] = rows[:kept]
-                candidate[TRUNCATION_KEY] = True
-                candidate[TRUNCATION_NOTE_KEY] = (
-                    f"Returned {kept} of {len(rows)} {key} — the full result "
-                    f"exceeded the {max_bytes} byte response budget. Narrow the "
-                    f"request (fewer columns, a tighter filter, a smaller limit) "
-                    f"to see the rest."
-                )
-                text = json.dumps(candidate, default=str)
-                if len(text.encode("utf-8")) <= max_bytes:
-                    return text, True
+        candidate[TRUNCATION_KEY] = True
+        candidate[TRUNCATION_NOTE_KEY] = (
+            f"Payload exceeded the {max_bytes} byte response budget"
+            + (f" ({', '.join(list_counts)})" if list_counts else "")
+            + ". Large fields were shortened; narrow the request to see the rest."
+        )
 
-    # Nothing structural to shrink: cut the text and say so plainly.
-    note = f'…[truncated to {max_bytes} bytes]"}}'
-    keep = max(0, max_bytes - len(note.encode("utf-8")))
-    return text.encode("utf-8")[:keep].decode("utf-8", "ignore") + note, True
+        while True:
+            text = json.dumps(candidate, default=str)
+            if len(text.encode("utf-8")) <= max_bytes:
+                return text, True
+            values = {
+                key: value
+                for key, value in candidate.items()
+                if key not in {TRUNCATION_KEY, TRUNCATION_NOTE_KEY}
+            }
+            if not values:
+                break
+            key = max(
+                values,
+                key=lambda item: len(
+                    json.dumps(values[item], default=str).encode("utf-8")
+                ),
+            )
+            value = values[key]
+            if isinstance(value, str) and len(value) > 1:
+                candidate[key] = value[: len(value) // 2] + "…"
+            elif isinstance(value, list) and value:
+                candidate[key] = value[: len(value) // 2]
+            elif isinstance(value, dict) and value:
+                candidate[key] = {}
+            else:
+                candidate.pop(key)
+
+    marker = json.dumps(
+        {
+            TRUNCATION_KEY: True,
+            TRUNCATION_NOTE_KEY: (
+                f"Payload exceeded the {max_bytes} byte response budget."
+            ),
+        }
+    )
+    return marker if len(marker.encode("utf-8")) <= max_bytes else "{}", True
 
 
 def strip_prompt_framing(value: Any) -> Any:
@@ -276,7 +294,7 @@ def bound_display(
 
     The summary is persisted on the message and sent to the browser, so it needs
     its own ceiling rather than riding on the model-facing budget. Reuses the
-    row-dropping strategy so a sample stays a valid sample.
+    same structured truncation so the summary remains valid JSON.
     """
     if display is None:
         return None
