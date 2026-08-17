@@ -378,19 +378,14 @@ class SemanticView(AuditMixinNullable, Model):
         dimensions = self._unique_dimensions
         metrics = list(self.implementation.get_metrics())
         verbose_map = {
-            **{
-                metric.name: metric.verbose_name or metric.name
-                for metric in metrics
-            },
+            **{metric.name: metric.verbose_name or metric.name for metric in metrics},
             **{
                 dimension.name: dimension.verbose_name or dimension.name
                 for dimension in dimensions
             },
         }
         column_formats = {
-            metric.name: metric.d3format
-            for metric in metrics
-            if metric.d3format
+            metric.name: metric.d3format for metric in metrics if metric.d3format
         }
 
         return {
