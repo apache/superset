@@ -181,6 +181,7 @@ const buildAxes = (extraFormData: Record<string, unknown>) => {
   return {
     xAxis: transformedProps.echartOptions.xAxis as any,
     yAxis: transformedProps.echartOptions.yAxis as any,
+    grid: transformedProps.echartOptions.grid as any,
   };
 };
 
@@ -200,4 +201,21 @@ test('hides the whole X axis when showXAxis is false', () => {
 test('hides the whole Y axis when showYAxis is false', () => {
   const { yAxis } = buildAxes({ showYAxis: false });
   expect(yAxis.show).toBe(false);
+});
+
+test('reclaims the bottom grid margin when the X axis is hidden', () => {
+  const { grid: shown } = buildAxes({ showXAxis: true });
+  const { grid: hidden } = buildAxes({ showXAxis: false });
+  // The bottom margin reserves room for the X-axis labels and name; with the
+  // axis hidden that space should be reclaimed for a clean, axis-free layout.
+  expect(hidden.bottom).toBeLessThan(shown.bottom);
+  // Hiding the X axis must not shrink the Y-axis (left) margin.
+  expect(hidden.left).toBe(shown.left);
+});
+
+test('reclaims the left grid margin when the Y axis is hidden', () => {
+  const { grid: shown } = buildAxes({ showYAxis: true });
+  const { grid: hidden } = buildAxes({ showYAxis: false });
+  expect(hidden.left).toBeLessThan(shown.left);
+  expect(hidden.bottom).toBe(shown.bottom);
 });

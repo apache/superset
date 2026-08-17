@@ -435,8 +435,10 @@ export default function transformProps(
     grid: {
       ...defaultGrid,
       top: theme.sizeUnit * 7,
-      bottom: theme.sizeUnit * 7,
-      left: theme.sizeUnit * 5,
+      // Reclaim the axis-oriented padding when an axis is hidden so an
+      // axis-free chart gets a clean, tight layout instead of empty margins.
+      bottom: theme.sizeUnit * (showXAxis ? 7 : 3),
+      left: theme.sizeUnit * (showYAxis ? 5 : 2),
       right: theme.sizeUnit * 7,
     },
     legend: {
