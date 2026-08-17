@@ -17,7 +17,7 @@
 """add_uuid_to_annotation_layer_and_annotation
 
 Revision ID: 884a2115ebd3
-Revises: 2d6ad72e4af6
+Revises: 1072de5ed955
 Create Date: 2026-08-11 18:38:15.412396
 
 """
@@ -31,11 +31,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import UUIDType
 
 from superset import db
-from superset.migrations.shared.utils import assign_uuids
 
 # revision identifiers, used by Alembic.
 revision = "884a2115ebd3"
-down_revision = "2d6ad72e4af6"
+down_revision = "1072de5ed955"
 
 Base = declarative_base()
 
@@ -53,6 +52,13 @@ class Annotation(ImportMixin, Base):
     __tablename__ = "annotation"
 
 
+def _assign_missing_uuids(model: type[ImportMixin], session: sa.orm.Session) -> None:
+    """Backfill missing UUIDs with concrete values in a dialect-agnostic way."""
+    for obj in session.query(model).filter(model.uuid.is_(None)):
+        obj.uuid = uuid4()
+    session.commit()
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
@@ -67,7 +73,7 @@ def upgrade() -> None:
     except OperationalError:
         pass
 
-    assign_uuids(AnnotationLayer, session)
+    _assign_missing_uuids(AnnotationLayer, session)
 
     try:
         with op.batch_alter_table("annotation_layer") as batch_op:
@@ -85,7 +91,7 @@ def upgrade() -> None:
     except OperationalError:
         pass
 
-    assign_uuids(Annotation, session)
+    _assign_missing_uuids(Annotation, session)
 
     try:
         with op.batch_alter_table("annotation") as batch_op:
