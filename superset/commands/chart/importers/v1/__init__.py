@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from marshmallow import Schema
@@ -35,6 +36,8 @@ from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
+
+logger = logging.getLogger(__name__)
 
 
 class ImportChartsCommand(ImportModelsCommand):
@@ -89,6 +92,12 @@ class ImportChartsCommand(ImportModelsCommand):
                 datasets[str(dataset.uuid)] = dataset
 
         # import charts with the correct parent ref
+        # Per-chart query_context synthesis outcome, for operator visibility of a
+        # bulk import (FR-007): how many charts were made queryable, left as-is,
+        # or classified non-derivable. Logged as a one-line summary below.
+        n_queryable = 0
+        n_preserved = 0
+        n_non_derivable = 0
         for file_name, config in configs.items():
             if file_name.startswith("charts/") and config["dataset_uuid"] in datasets:
                 # Ignore obsolete filter-box charts.
@@ -103,7 +112,16 @@ class ImportChartsCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
                 config = update_chart_config_dataset(config, dataset_dict)
+                # Capture the pre-import context state before `import_chart`
+                # mutates `config` (it synthesizes into config["query_context"]).
+                had_query_context = bool(config.get("query_context"))
                 chart = import_chart(config, overwrite=overwrite)
+                if had_query_context:
+                    n_preserved += 1
+                elif chart.query_context:
+                    n_queryable += 1
+                else:
+                    n_non_derivable += 1
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -112,3 +130,12 @@ class ImportChartsCommand(ImportModelsCommand):
                         import_tag(
                             target_tag_names, contents, chart.id, "chart", db.session
                         )
+
+        if n_queryable or n_preserved or n_non_derivable:
+            logger.info(
+                "Chart import query_context synthesis: "
+                "%d queryable, %d preserved, %d non-derivable",
+                n_queryable,
+                n_preserved,
+                n_non_derivable,
+            )

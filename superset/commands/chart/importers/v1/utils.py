@@ -16,16 +16,20 @@
 # under the License.
 
 import copy
+import logging
 from inspect import isclass
 from typing import Any
 
 from superset import db, security_manager
+from superset.commands.chart.query_context_builder import build_query_context_config
 from superset.commands.exceptions import ImportFailedError
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import AnnotationType, get_user
+
+logger = logging.getLogger(__name__)
 
 
 def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
@@ -69,6 +73,40 @@ def import_chart(
         )
 
     filter_chart_annotations(config)
+
+    # Synthesize a query_context for imported charts that arrive without one, so
+    # the first `GET /api/v1/chart/{pk}/data/` returns data instead of HTTP 400
+    # "Chart has no query context saved" (issue #33615, ADR-013). Guarded on an
+    # ABSENT context so an existing/remapped one is never overwritten (FR-006).
+    # Datasource is taken from the importer-resolved id/type only (ADR-014). A
+    # per-chart derivation error must never abort the bundle (RISK-T03 / FR-004).
+    if not config.get("query_context"):
+        try:
+            query_context_config = build_query_context_config(
+                config["params"],
+                config["viz_type"],
+                config.get("datasource_id"),
+                config.get("datasource_type", "table"),
+            )
+            if query_context_config is not None:
+                config["query_context"] = json.dumps(query_context_config)
+                logger.info(
+                    "Synthesized query_context for imported chart %s (queryable)",
+                    config.get("uuid"),
+                )
+            else:
+                logger.info(
+                    "Imported chart %s classified non-derivable; "
+                    "query_context left empty",
+                    config.get("uuid"),
+                )
+        except Exception:  # pylint: disable=broad-except
+            # Non-derivable on error: leave query_context unset and keep going.
+            logger.warning(
+                "query_context synthesis failed for imported chart %s; "
+                "importing without a query_context",
+                config.get("uuid"),
+            )
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])

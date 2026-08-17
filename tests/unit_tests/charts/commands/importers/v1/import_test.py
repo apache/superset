@@ -34,6 +34,7 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.extensions import feature_flag_manager
 from superset.models.slice import Slice
 from superset.tags.models import TaggedObject
+from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
 
@@ -285,6 +286,78 @@ def test_import_existing_chart_with_permission(
     # Assert that the can write to chart was checked
     mock_can_access.assert_called_once_with("can_write", "Chart")
     mock_can_access_chart.assert_called_once_with(slice)
+
+
+def test_import_chart_synthesizes_query_context(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    #33615 / F1-T2: importing a derivable chart that arrives WITHOUT a
+    query_context persists a synthesized one naming the resolved datasource.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    # Make the chart derivable and strip its persisted context.
+    config["viz_type"] = "table"
+    config["params"]["viz_type"] = "table"
+    config["params"]["metrics"] = ["count"]
+    config["params"]["groupby"] = ["gender"]
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    # --- RED anchor: a synthesized context is persisted (FR-001) ---
+    assert chart.query_context is not None
+    query_context = json.loads(chart.query_context)
+    # --- RED anchor: datasource taken from resolved id, not params (RISK-T02) ---
+    assert query_context["datasource"] == {"id": 1, "type": "table"}
+    assert query_context["queries"][0]["metrics"] == ["count"]
+
+
+def test_import_chart_preserves_existing_query_context(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    FR-006 / INV-3: an imported chart that already carries a query_context is
+    left untouched — synthesis is non-destructive (absent-guard).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    original_query_context = config["query_context"]
+
+    chart = import_chart(config)
+
+    # --- RED anchor: existing context is preserved verbatim (idempotent) ---
+    assert chart.query_context is not None
+    assert json.loads(chart.query_context) == json.loads(original_query_context)
+
+
+def test_import_non_derivable_chart_leaves_query_context_null(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    FR-003: a non-derivable chart (datasource-less viz) imports with a NULL
+    query_context — no fabricated context, and no crash.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "markup"
+    config["params"]["viz_type"] = "markup"
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    # --- RED anchor: honest-fail leaves NULL, import still succeeds (FR-003) ---
+    assert chart.query_context is None
 
 
 def test_import_tag_logic_for_charts(session_with_schema: Session):
