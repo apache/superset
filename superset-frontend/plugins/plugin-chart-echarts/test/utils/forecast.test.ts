@@ -59,7 +59,7 @@ describe('extractForecastSeriesContext', () => {
       type: ForecastSeriesEnum.Anomaly,
     });
     expect(extractForecastSeriesContext('metric__yhat__anomaly')).toEqual({
-      name: 'metric__yhat',
+      name: 'metric',
       type: ForecastSeriesEnum.Anomaly,
     });
   });
@@ -309,6 +309,47 @@ test('extractForecastValuesFromTooltipParams should extract anomaly values', () 
   });
 });
 
+test('extractForecastValuesFromTooltipParams should merge anomaly-on-forecast-trend into the base series row', () => {
+  expect(
+    extractForecastValuesFromTooltipParams([
+      {
+        marker: '<img>',
+        seriesId: 'abc',
+        value: [new Date(0), 114],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat',
+        value: [new Date(0), 111.68],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat_lower',
+        value: [new Date(0), 106.49],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat_upper',
+        value: [new Date(0), 10.88],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat__anomaly',
+        value: [new Date(0), 111.68],
+      },
+    ]),
+  ).toEqual({
+    abc: {
+      marker: '<img>',
+      observation: 114,
+      forecastTrend: 111.68,
+      forecastLower: 106.49,
+      forecastUpper: 10.88,
+      anomaly: 111.68,
+    },
+  });
+});
+
 const formatter = getNumberFormatter(NumberFormats.INTEGER);
 
 test('formatForecastTooltipSeries should apply format to value', () => {
@@ -533,4 +574,17 @@ describe('collapseForecastKeys', () => {
       collapseForecastKeys(['b__yhat_lower', 'a__yhat', 'b__yhat']),
     ).toEqual(['b', 'a']);
   });
+test('formatForecastTooltipSeries should append anomaly marker when anomaly is on the forecast trend', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      observation: 114,
+      forecastTrend: 111.68,
+      forecastLower: 106.49,
+      forecastUpper: 10.88,
+      anomaly: 111.68,
+      formatter,
+    }),
+  ).toEqual(['<img>abc', '114, ŷ = 112 (106, 117) ⚠ anomaly']);
 });

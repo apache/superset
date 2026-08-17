@@ -149,7 +149,8 @@ interface _PostProcessingAnomalyDetection {
   };
 }
 export type PostProcessingAnomalyDetection =
-  _PostProcessingAnomalyDetection | DefaultPostProcessing;
+  | _PostProcessingAnomalyDetection
+  | DefaultPostProcessing;
 
 interface _PostProcessingDiff {
   operation: 'diff';
