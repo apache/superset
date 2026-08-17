@@ -76,6 +76,8 @@ var CalHeatMap = function () {
 
     timeFormatter: d => d,
 
+    dateFormatter: null,
+
     domain: 'hour',
 
     subDomain: 'min',
@@ -1990,10 +1992,14 @@ CalHeatMap.prototype = {
 
     if (typeof format === 'function') {
       return format(d);
-    } else {
-      var f = d3.time.format(format);
-      return f(d);
     }
+
+    if (typeof this.options.dateFormatter === 'function') {
+      return this.options.dateFormatter(d, format);
+    }
+
+    var f = d3.time.format(format);
+    return f(d);
   },
 
   getSubDomainTitle: function (d) {
