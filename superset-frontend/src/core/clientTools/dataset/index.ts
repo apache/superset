@@ -18,11 +18,11 @@
  */
 import type { chat as chatApi } from '@apache-superset/core';
 
-type McpTool = chatApi.McpTool;
+type ClientTool = chatApi.ClientTool;
 
 // Not yet implemented — no dataset actions are in the client MCP tools
 // SIP's candidate core actions list yet; this surface is scaffolded ahead
 // of that for symmetry with the other product surfaces.
-const datasetTools: McpTool[] = [];
+const datasetTools: ClientTool[] = [];
 
 export default datasetTools;

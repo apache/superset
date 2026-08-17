@@ -98,26 +98,6 @@ class ExtensionConfigBackend(BaseModel):
     )
 
 
-class ExtensionConfigMcpTools(BaseModel):
-    """``mcpTools`` section in extension.json.
-
-    Sibling of ``commands`` rather than a property on each command: a single
-    file, referenced by ``url`` (resolved relative to ``frontend/src/``),
-    whose default export is a ``(chat) => McpTool[]`` factory. The build
-    exposes that file over Module Federation as ``./mcpTools`` so the host's
-    extension loader can import and invoke it without the extension needing
-    to register anything itself.
-    """
-
-    url: str = Field(
-        ...,
-        description=(
-            "Path to the module exporting the mcpTools factory, resolved "
-            "relative to frontend/src/ (e.g. './mcpTools.ts')"
-        ),
-    )
-
-
 class ExtensionConfig(BaseExtension):
     """
     Schema for extension.json (source configuration).
@@ -128,10 +108,6 @@ class ExtensionConfig(BaseExtension):
     backend: ExtensionConfigBackend | None = Field(
         default=None,
         description="Backend configuration",
-    )
-    mcpTools: ExtensionConfigMcpTools | None = Field(  # noqa: N815
-        default=None,
-        description="Client-side MCP tools factory contributed by this extension",
     )
 
 
@@ -150,13 +126,6 @@ class ManifestFrontend(BaseModel):
     moduleFederationName: str = Field(  # noqa: N815
         ...,
         description="Webpack Module Federation container name (maps to window[name])",
-    )
-    mcpTools: bool | None = Field(  # noqa: N815
-        default=None,
-        description=(
-            "Whether this extension exposes a './mcpTools' Module Federation "
-            "module (set when extension.json declares mcpTools.url)"
-        ),
     )
 
 

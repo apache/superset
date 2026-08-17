@@ -261,8 +261,6 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
                 "moduleFederationName": frontend.moduleFederationName,
             }
         )
-        if frontend.mcpTools:
-            extension_data["mcpTools"] = True
     return extension_data
 
 

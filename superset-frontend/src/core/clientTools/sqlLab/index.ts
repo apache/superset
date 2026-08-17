@@ -17,14 +17,12 @@
  * under the License.
  */
 import type { chat as chatApi } from '@apache-superset/core';
-import getActiveDashboardId from './getActiveDashboardId';
 
-type McpTool = chatApi.McpTool;
+type ClientTool = chatApi.ClientTool;
 
-// See the client MCP tools SIP's "Dashboard" candidate core actions table
-// for what else belongs here (change_layout, update_style,
-// get_dashboard_metadata, get/update_dashboard_filters) — only
-// get_active_id is implemented so far.
-const dashboardTools: McpTool[] = [getActiveDashboardId];
+// Not yet implemented — see the client MCP tools SIP's "SQL Lab" candidate
+// core actions table (get_current_editor_id, update_editor_sql,
+// run_current_query, save_current_query_as_saved_query).
+const sqlLabTools: ClientTool[] = [];
 
-export default dashboardTools;
+export default sqlLabTools;

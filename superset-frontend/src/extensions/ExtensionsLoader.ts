@@ -20,20 +20,10 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core, chat as chatApi } from '@apache-superset/core';
 import { makeUrl } from 'src/utils/navigationUtils';
-import { registerChatTools } from 'src/core/chat';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
 
 type Extension = core.Extension;
-
-/**
- * Shape of the module exposed as `./mcpTools` — extension.json's
- * `mcpTools.url` file, whose default export must match `chat.McpToolsFactory`
- * (see that type's own docs for why it takes `chat`).
- */
-interface McpToolsModule {
-  default: chatApi.McpToolsFactory;
-}
 
 /**
  * An extension as returned by the extensions API, with loader-internal
@@ -46,8 +36,6 @@ export interface LoadedExtension extends Extension {
   remoteEntry?: string;
   /** Webpack Module Federation container name (maps to window[name]). */
   moduleFederationName?: string;
-  /** Whether the extension exposes a `./mcpTools` module (from extension.json's `mcpTools.url`). */
-  mcpTools?: boolean;
 }
 
 /**
@@ -223,8 +211,33 @@ class ExtensionsLoader {
     // receives the same pre-bound instance. Parallel loading is safe because each
     // container gets its own scope with its own resolved module instance.
     const context = createExtensionContext(extension);
+    // registerClientTool(s) is the one other API needing a per-extension
+    // rebind, same reason as getContext above: chat.registerClientTool's own
+    // implementation has no way to know which extension is calling it, since
+    // it's the same shared function for every container. Wrapping it here —
+    // where this extension's id is already in scope — auto-prefixes its
+    // tool names with that id, so an extension's own module never has to
+    // (see ClientTool.name's own docs on why this only applies to calls
+    // made through this scoped instance, not to a host-code call like
+    // ExtensionsStartup's own "core." tools).
+    const scopedChat = window.superset.chat && {
+      ...window.superset.chat,
+      registerClientTool: (tool: chatApi.ClientTool) =>
+        window.superset.chat.registerClientTool({
+          ...tool,
+          name: `${extension.id}.${tool.name}`,
+        }),
+      registerClientTools: (tools: chatApi.ClientTool[]) =>
+        window.superset.chat.registerClientTools(
+          tools.map(tool => ({
+            ...tool,
+            name: `${extension.id}.${tool.name}`,
+          })),
+        ),
+    };
     const scopedCore = {
       ...window.superset,
+      ...(scopedChat && { chat: scopedChat }),
       extensions: {
         ...window.superset.extensions,
         getContext: () => context,
@@ -254,22 +267,6 @@ class ExtensionsLoader {
       },
     };
     await container.init(customScope);
-
-    // Registered before running "./index"'s factory deliberately: that
-    // factory can synchronously mount UI (e.g. chat.registerChat() mounting
-    // an already-open ChatPanel via useSyncExternalStore, if the panel was
-    // left open in a previous session — localStorage-persisted state makes
-    // this the common case, not an edge case) whose first render calls
-    // chat.getTools(). "./mcpTools" depends on nothing "./index" sets up, so
-    // there's no ordering cost to doing this first — only doing it after
-    // risks a real, easily-hit race where that render reads this
-    // extension's own tools before they exist.
-    if (extension.mcpTools) {
-      const mcpToolsFactory = await container.get('./mcpTools');
-      const mcpToolsModule = mcpToolsFactory() as unknown as McpToolsModule;
-      const tools = mcpToolsModule.default(scopedCore.chat);
-      registerChatTools(extension.id, tools);
-    }
 
     const factory = await container.get('./index');
     factory();

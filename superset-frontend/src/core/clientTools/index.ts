@@ -18,18 +18,20 @@
  */
 
 /**
- * @fileoverview Built-in ("core") client MCP tools — see the client MCP
- * tools SIP. One folder per product surface (dashboard, chart, sqlLab,
- * dataset, alert, report, cssTemplate, savedQuery) mirrors the SIP's naming
- * convention (`core.<surface>__<name>`), so each surface's actions stay easy
- * to find and grow independently of the others. Most are still empty stubs —
- * only `dashboard` (`core.dashboard__get_active_id`) is implemented
- * so far.
+ * @fileoverview Built-in ("core") client tools — see the client tools SIP.
+ * One folder per product surface (dashboard, chart, sqlLab, dataset, alert,
+ * report, cssTemplate, savedQuery) mirrors the SIP's naming convention
+ * (`core.<surface>__<name>`), so each surface's actions stay easy to find
+ * and grow independently of the others. Most are still empty stubs — only
+ * `dashboard` is implemented so far (get_active_id, change_layout,
+ * update_style, get_metadata, get_filters, update_filters).
  *
- * Registered once at app startup under the "core" source id — see
- * ExtensionsStartup.tsx — matching `chat.McpToolsFactory`, the same contract
- * an extension's own `mcpTools.url` module exports, so both sources are
- * aggregated identically by `chat.getTools()`.
+ * Registered once at app startup — see ExtensionsStartup.tsx, which prefixes
+ * every tool here with "core." before calling `chat.registerClientTool()` on
+ * it (that prefix is ExtensionsStartup's own choice, not something this
+ * factory or `registerClientTool` itself adds). Matches
+ * `chat.ClientToolsFactory`, the same authoring-convenience shape an
+ * extension can (optionally) use for its own tools.
  */
 import type { chat as chatApi } from '@apache-superset/core';
 import dashboardTools from './dashboard';
@@ -42,7 +44,7 @@ import cssTemplateTools from './cssTemplate';
 import savedQueryTools from './savedQuery';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const getCoreMcpTools: chatApi.McpToolsFactory = chat => [
+const getCoreClientTools: chatApi.ClientToolsFactory = chat => [
   ...dashboardTools,
   ...chartTools,
   ...sqlLabTools,
@@ -53,4 +55,4 @@ const getCoreMcpTools: chatApi.McpToolsFactory = chat => [
   ...savedQueryTools,
 ];
 
-export default getCoreMcpTools;
+export default getCoreClientTools;

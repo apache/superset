@@ -17,12 +17,12 @@
  * under the License.
  */
 import type { chat as chatApi } from '@apache-superset/core';
+import getActiveDashboardId from './getActiveDashboardId';
 
-type McpTool = chatApi.McpTool;
+type ClientTool = chatApi.ClientTool;
 
-// Not yet implemented — this is one of the eight product surfaces the
-// client MCP tools SIP's naming convention reserves a prefix for
-// (core.report__*), scaffolded ahead of any concrete candidate actions.
-const reportTools: McpTool[] = [];
+// See the client tools SIP's "Dashboard" candidate core actions table for
+// the full list this implements.
+const dashboardTools: ClientTool[] = [getActiveDashboardId];
 
-export default reportTools;
+export default dashboardTools;

@@ -23,20 +23,21 @@ import type { chat as chatApi } from '@apache-superset/core';
 // extension going through Module Federation's shared-scope injection.
 import { dashboard } from 'src/core/dashboard';
 
-type McpTool = chatApi.McpTool;
+type ClientTool = chatApi.ClientTool;
 
 /**
- * Registers as `core.dashboard__get_active_id` — the `core.` prefix is
- * added automatically by ChatProvider.registerTools() based on the source
- * id, not written here (see its name-validation docs for why).
+ * Named without the `core.` prefix — ExtensionsStartup.tsx adds that itself
+ * before calling `chat.registerClientTool()`, so this file's own name is
+ * just `dashboard__get_active_id`; it ends up registered as
+ * `core.dashboard__get_active_id`.
  */
-const getActiveDashboardId: McpTool = {
+const getActiveDashboardId: ClientTool = {
   name: 'dashboard__get_active_id',
   description: 'Get the ID of the currently active dashboard',
   inputSchema: { type: 'object', properties: {} },
   handler: () => {
     const dashboardId = dashboard.getDashboardId();
-    if (!dashboardId) {
+    if (dashboardId == null) {
       return { success: false, message: 'No dashboard is currently active' };
     }
     return { success: true, dashboardId };
