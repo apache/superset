@@ -72,6 +72,8 @@ import {
   TimeFilterPlugin,
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
+  DateTimeFilterPlugin,
+  CustomControlsFilterPlugin,
 } from 'src/filters/components';
 import {
   ChartCustomizationTimeGrainPlugin,
@@ -173,6 +175,12 @@ export default class MainPreset extends Preset {
         }),
         new TimeGrainFilterPlugin().configure({
           key: FilterPlugins.TimeGrain,
+        }),
+        new DateTimeFilterPlugin().configure({
+          key: FilterPlugins.DateTime,
+        }),
+        new CustomControlsFilterPlugin().configure({
+          key: FilterPlugins.CustomControls,
         }),
         new ChartCustomizationTimeGrainPlugin().configure({
           key: ChartCustomizationPlugins.TimeGrain,

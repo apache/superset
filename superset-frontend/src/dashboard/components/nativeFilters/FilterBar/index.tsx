@@ -68,6 +68,7 @@ import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
 import {
   useAllAppliedDataMask,
+  useAllFilters,
   useFilters,
   useFilterUpdates,
   useInitialization,
@@ -187,16 +188,26 @@ const FilterBar: FC<FiltersBarProps> = ({
   const chartCustomizationValues = useChartCustomizationConfiguration();
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
+
   const tabId = useTabId();
   const filters = useFilters();
+  const allFilters = useAllFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = useMemo(
     () => Object.values(filters) as (Filter | Divider)[],
     [filters],
   );
+  const allFilterValues = useMemo(
+    () => Object.values(allFilters) as (Filter | Divider)[],
+    [allFilters],
+  );
   const nativeFilterValues = useMemo(
     () => filterValues.filter(isNativeFilter),
     [filterValues],
+  );
+  const allNativeFilterValues = useMemo(
+    () => allFilterValues.filter(isNativeFilter),
+    [allFilterValues],
   );
   const dashboardId = useSelector<any, number>(
     ({ dashboardInfo }) => dashboardInfo?.id,
@@ -214,6 +225,11 @@ const FilterBar: FC<FiltersBarProps> = ({
   const inScopeFilterIds = useMemo(
     () => new Set(filtersInScope.map(f => f.id)),
     [filtersInScope],
+  );
+  const [allFiltersInScope] = useSelectFiltersInScope(allNativeFilterValues);
+  const allInScopeFilterIds = useMemo(
+    () => new Set(allFiltersInScope.map(f => f.id)),
+    [allFiltersInScope],
   );
 
   const hasOutOfScopeRequiredFilters = useMemo(
@@ -512,11 +528,11 @@ const FilterBar: FC<FiltersBarProps> = ({
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
 
-    nativeFilterValues.forEach(filter => {
+    allNativeFilterValues.forEach(filter => {
       const { id, filterType } = filter;
 
       // Only clear in-scope filters
-      if (!inScopeFilterIds.has(id)) return;
+      if (!allInScopeFilterIds.has(id)) return;
 
       // Cleared values stage as explicit null ([null, null] for ranges), never
       // undefined: the select plugin's init effect treats undefined as
@@ -568,14 +584,14 @@ const FilterBar: FC<FiltersBarProps> = ({
 
     setClearAllTriggers(newClearAllTriggers);
   }, [
-    dataMaskSelected,
-    dataMaskApplied,
-    nativeFilterValues,
-    inScopeFilterIds,
-    setDataMaskSelected,
+    allInScopeFilterIds,
+    allNativeFilterValues,
     chartCustomizationValues,
     clearAllTriggers,
+    dataMaskApplied,
+    dataMaskSelected,
     dispatch,
+    setDataMaskSelected,
   ]);
 
   const handleClearAllComplete = useCallback((filterId: string) => {

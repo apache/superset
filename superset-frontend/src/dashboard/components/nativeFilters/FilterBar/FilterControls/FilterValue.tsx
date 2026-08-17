@@ -32,6 +32,7 @@ import {
   Behavior,
   DataMask,
   DatasourceType,
+  Filter,
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
@@ -424,8 +425,9 @@ const FilterValue: FC<FilterValueProps> = ({
     () => ({
       filterBarOrientation: orientation,
       isOverflowingFilterBar: overflow,
+      inCanvas: Boolean((filter as Filter & { inCanvas?: boolean })?.inCanvas),
     }),
-    [orientation, overflow],
+    [orientation, overflow, filter],
   );
 
   if (error) {

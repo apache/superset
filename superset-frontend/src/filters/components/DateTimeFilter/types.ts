@@ -16,23 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-  FILTER_TYPE,
-} from './componentTypes';
+import { Behavior, FilterState, QueryFormData } from '@superset-ui/core';
+import { RefObject } from 'react';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
+import { FilterBarOrientation } from '../../../dashboard/types';
 
-const USER_CONTENT_COMPONENT_TYPE: string[] = [
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  DYNAMIC_TYPE,
-  FILTER_TYPE,
-];
-export default function isDashboardEmpty(layout: any): boolean {
-  // has at least one chart or markdown component
-  return !Object.values(layout).some(
-    ({ type }: { type?: string }) =>
-      type && USER_CONTENT_COMPONENT_TYPE.includes(type),
-  );
+interface PluginFilterDateTimeCustomizeProps {
+  columnName?: string;
+  enableEmptyFilter?: boolean;
 }
+
+export type PluginFilterDateTimeQueryFormData = QueryFormData &
+  PluginFilterStylesProps &
+  PluginFilterDateTimeCustomizeProps;
+
+export type PluginFilterDateTimeProps = PluginFilterStylesProps & {
+  formData: PluginFilterDateTimeQueryFormData;
+  filterState: FilterState;
+  behaviors: Behavior[];
+  inputRef: RefObject<HTMLDivElement>;
+  filterBarOrientation?: FilterBarOrientation;
+  isOverflowingFilterBar?: boolean;
+} & PluginFilterHooks;

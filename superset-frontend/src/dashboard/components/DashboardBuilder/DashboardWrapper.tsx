@@ -85,8 +85,9 @@ const StyledDiv = styled.div`
       background: transparent;
     }
 
-    /* push Chart actions to upper right */
+    /* push Chart and Filter actions to upper right */
     .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
+    .dragdroppable-column .dashboard-component-filter-holder .hover-menu--top,
     .dragdroppable .dashboard-component-header .hover-menu--top {
       right: ${theme.sizeUnit * 3}px;
       top: ${theme.sizeUnit * 5}px;

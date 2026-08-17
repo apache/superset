@@ -178,6 +178,11 @@ const StyledResizable = styled(Resizable)`
 
   & .resizable-container-handle--bottom {
     bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 12px !important;
+    cursor: row-resize !important;
+    z-index: 30 !important;
   }
 
   /* Mobile consumption mode stacks all grid components full-width.

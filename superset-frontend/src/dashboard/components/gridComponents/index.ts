@@ -26,6 +26,7 @@ import {
   TAB_TYPE,
   TABS_TYPE,
   DYNAMIC_TYPE,
+  FILTER_TYPE,
 } from '../../util/componentTypes';
 
 import ChartHolder from './ChartHolder';
@@ -37,6 +38,7 @@ import Row from './Row';
 import Tab from './Tab';
 import Tabs from './Tabs';
 import DynamicComponent from './DynamicComponent';
+import FilterHolder from './FilterHolder';
 
 export const componentLookup = {
   [CHART_TYPE]: ChartHolder,
@@ -48,4 +50,5 @@ export const componentLookup = {
   [TAB_TYPE]: Tab,
   [TABS_TYPE]: Tabs,
   [DYNAMIC_TYPE]: DynamicComponent,
+  [FILTER_TYPE]: FilterHolder,
 };

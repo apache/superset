@@ -93,6 +93,35 @@ export const GlobalStyles = () => {
           }
         }
 
+        /* Solid Opaque Ant Design Popups / Dropdowns */
+        .ant-select-dropdown,
+        .ant-picker-dropdown,
+        .ant-dropdown-menu {
+          background-color: ${theme.colorBgElevated} !important;
+          background: ${theme.colorBgElevated} !important;
+          box-shadow: ${theme.boxShadowSecondary || '0 6px 16px 0 rgba(0, 0, 0, 0.08)'} !important;
+          border: 1px solid ${theme.colorBorderSecondary || 'rgba(0, 0, 0, 0.06)'} !important;
+          backdrop-filter: none !important;
+          opacity: 1 !important;
+        }
+
+        .ant-select-dropdown .ant-select-item {
+          color: ${theme.colorText} !important;
+          background: transparent;
+        }
+
+        .ant-select-dropdown
+          .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+          background-color: ${theme.controlItemBgHover || (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)')} !important;
+        }
+
+        .ant-select-dropdown
+          .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+          background-color: ${theme.controlItemBgActive || (isDark ? 'rgba(59, 130, 246, 0.25)' : 'rgba(24, 144, 255, 0.12)')} !important;
+          color: ${theme.colorPrimary} !important;
+          font-weight: 600 !important;
+        }
+
         /* Overriding bootstrap styles */
         #app {
           flex: 1 1 auto;
