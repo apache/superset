@@ -29,6 +29,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import db, event_logger
+from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.ascii_charts import (
     generate_ascii_chart,
     generate_ascii_table,
@@ -276,8 +277,6 @@ class PreviewFormatStrategy:
     def _authorize_guest_query(self, query_context: Any) -> None:
         """For a guest, attach the dashboard context so raise_for_access
         authorizes the preview query."""
-        from superset.mcp_service import guest_scope
-
         if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
             guest_scope.authorize_query(query_context, dashboard_id, self.chart)
 
@@ -1293,13 +1292,11 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
-        # Skip the dataset pre-check for transient charts (no ID) and for guests
-        # (authorized via the dashboard context, not dataset RBAC).
-        from superset.mcp_service import guest_scope
-
-        if getattr(chart, "id", None) is not None and not guest_scope.is_guest_read():
+        # Transient charts have a falsy id of 0, so skip the pre-check for them.
+        # Guests keep the existence check but skip RBAC (dashboard-authorized).
+        if getattr(chart, "id", None):
             validation_result = validate_chart_dataset(
-                chart.datasource_id, check_access=True
+                chart.datasource_id, check_access=not guest_scope.is_guest_read()
             )
             if not validation_result.is_valid:
                 await ctx.warning(

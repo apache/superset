@@ -153,7 +153,7 @@ from superset.utils.date_parser import (
     TimeDeltaAmbiguousError,
 )
 from superset.utils.dates import datetime_to_epoch
-from superset.utils.rls import apply_rls
+from superset.utils.rls import apply_rls, get_predicates_for_table
 
 
 class ValidationResultDict(TypedDict):
@@ -179,6 +179,24 @@ OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
 # Right suffix used for joining offset results
 R_SUFFIX = "__right_suffix"
+
+
+def _normalize_mssql_virtual_dataset_sql(
+    sql: str, parsed_script: SQLScript, engine: str
+) -> str:
+    """Remove SQL Server ordering that is invalid inside a derived table."""
+    if engine != "mssql" or not parsed_script.statements:
+        return sql
+
+    statement = parsed_script.statements[0]
+    if not isinstance(statement, SQLStatement):
+        return sql
+
+    return (
+        parsed_script.format()
+        if statement.remove_unbounded_top_level_order_by()
+        else sql
+    )
 
 
 def _as_wall_clock(series: pd.Series) -> pd.Series:
@@ -327,6 +345,62 @@ def validate_stored_expression_at_query_time(
 
     logger.warning("Skipping query-time validation of unparseable stored expression")
     return expression
+
+
+def validate_rendered_expression(
+    expression: str,
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+) -> str:
+    """
+    Apply the stored-expression validation policy to a rendered expression.
+
+    Query-time counterpart to ``validate_stored_expression``: it runs on the
+    already-rendered expression that is embedded via ``literal_column`` and
+    applies the same policy, failing closed on unparseable results.
+
+    :param expression: the rendered expression
+    :returns: the expression to embed, possibly rewritten with RLS predicates
+    :raises QueryObjectValidationError: on multi-statement, set-operation,
+        disallowed sub-query, or sanitization failures -- matching the
+        ``QueryObjectValidationError`` contract callers already expect from
+        ``validate_stored_expression_at_query_time``, rather than letting a
+        raw ``SupersetSecurityException`` escape uncaught.
+    """
+    engine = database.backend
+    wrapped = f"SELECT {expression}"
+
+    try:
+        parsed = SQLStatement(wrapped, engine)
+    except SupersetParseError as ex:
+        raise QueryObjectValidationError(
+            _("Custom SQL fields cannot be parsed as a single SQL statement.")
+        ) from ex
+
+    if parsed.is_set_operation():
+        raise QueryObjectValidationError(
+            _("Custom SQL fields cannot contain set operations.")
+        )
+
+    try:
+        wrapped = validate_adhoc_subquery(
+            wrapped, database, catalog, schema or "", engine
+        )
+    except SupersetSecurityException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
+    try:
+        wrapped = sanitize_clause(wrapped, engine)
+    except QueryClauseValidationException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
+
+    prefix, expression = re.split(
+        r"SELECT\s+",
+        wrapped,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )
+    return expression.strip()
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -3083,9 +3157,44 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if rls_applied:
                     from_sql = parsed_script.format()
 
-            except Exception as ex:
-                # Log the error but don't fail - RLS application is best-effort
-                logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
+            except Exception as ex:  # pylint: disable=broad-except
+                # RLS injection failures fail closed: only continue when it is
+                # positively confirmed that no RLS predicates apply to the
+                # referenced tables; any other outcome aborts the query.
+                try:
+                    rls_required = any(
+                        get_predicates_for_table(
+                            table.qualify(
+                                catalog=self.catalog,
+                                schema=self.schema or default_schema or "",
+                            ),
+                            self.database,
+                            self.database.get_default_catalog(),
+                            exclude_dataset_id=self_id,
+                        )
+                        for statement in parsed_script.statements
+                        for table in statement.tables
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    rls_required = True
+                if rls_required:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Row-level security could not be applied to the "
+                            "virtual dataset query, so it cannot be run "
+                            "securely: %(msg)s",
+                            msg=str(ex),
+                        )
+                    ) from ex
+                logger.warning(
+                    "RLS application to virtual dataset SQL failed, but no "
+                    "predicates apply to its tables; continuing: %s",
+                    ex,
+                )
+
+        from_sql = _normalize_mssql_virtual_dataset_sql(
+            from_sql, parsed_script, self.db_engine_spec.engine
+        )
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
@@ -3782,6 +3891,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression := tbl_column.expression:
             if template_processor:
                 expression = template_processor.process_template(expression)
+                if expression != tbl_column.expression:
+                    # Re-check the rendered expression before embedding it.
+                    expression = validate_rendered_expression(
+                        expression, self.database, self.catalog, self.schema
+                    )
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
