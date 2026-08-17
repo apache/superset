@@ -67,15 +67,9 @@ function isDividerType(
 function isFormInput(
   formInputs: NativeFilterFormOrSaved,
 ): formInputs is NativeFiltersFormItem {
-  // Values reaching this transform come either from the modal form
-  // (`NativeFiltersFormItem`) or from the already-saved filter config map
-  // (`Filter`). A saved filter always carries a serialized `targets` array,
-  // while a form item never does. Keying the discriminator off `dataset`
-  // misclassified filter types with no dataset control (e.g. `filter_time`)
-  // as saved filters, so their raw form state was persisted verbatim —
-  // dropping serialized keys such as `targets`, `defaultDataMask`, and
-  // `cascadeParentIds`, and leaking form-only keys such as
-  // `defaultValueQueriesData` and `requiredFirst`.
+  // A saved filter always carries a serialized `targets` array; a form item
+  // never does. Keying this off `dataset` misclassified filter types with no
+  // dataset control (e.g. `filter_time`) as already saved.
   return !('targets' in formInputs);
 }
 

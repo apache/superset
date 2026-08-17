@@ -33,9 +33,9 @@ export interface TargetFormInputs {
  * Build the ``NativeFilterTarget`` carried by a native filter or chart
  * customization from its form inputs.
  *
- * Consolidates what used to live in three places — ``filterTransformer``,
- * ``customizationTransformer``, and ``createHandleSave`` — so changes to the
- * target shape only need to happen here.
+ * Consolidates what used to live in ``filterTransformer`` and
+ * ``customizationTransformer`` so changes to the target shape only need to
+ * happen here.
  */
 export function buildNativeFilterTarget(
   formInputs: TargetFormInputs,

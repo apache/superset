@@ -116,3 +116,33 @@ test('passes an already-saved Filter through untouched (aside from trimming)', (
   expect(result.tabsInScope).toEqual(['TAB-1']);
   expect(result.description).toBe('needs trim');
 });
+
+test('rebuilds a saved filter whose targets were already stripped', () => {
+  // Dashboards affected by this bug hold ``filter_time`` entries with no
+  // ``targets``. They no longer match the saved-filter branch, so they take the
+  // form-item path and are repaired on the next save. ``cascadeParentIds`` is
+  // read from the form's ``dependencies``, which such an entry does not carry —
+  // the same write that stripped ``targets`` stripped ``cascadeParentIds`` too.
+  const strippedFilter = {
+    id: 'NATIVE_FILTER-jkl',
+    name: 'Time Range',
+    filterType: 'filter_time',
+    type: NativeFilterType.NativeFilter,
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    controlValues: { timeShift: false },
+    description: '',
+    requiredFirst: { 'NATIVE_FILTER-jkl': true },
+    defaultValueQueriesData: null,
+  } as unknown as NativeFiltersFormItem;
+
+  const result = transformFilterForSave(
+    'NATIVE_FILTER-jkl',
+    strippedFilter,
+  ) as Filter;
+
+  expect(result.targets).toEqual([{}]);
+  expect(result.defaultDataMask).toBeDefined();
+  expect(result.requiredFirst).toBe(true);
+  expect(result.cascadeParentIds).toEqual([]);
+  expect(result).not.toHaveProperty('defaultValueQueriesData');
+});
