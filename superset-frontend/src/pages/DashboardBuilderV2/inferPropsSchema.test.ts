@@ -18,7 +18,7 @@
  */
 import inferPropsSchema, { untypedKeys } from './inferPropsSchema';
 
-test('each property is typed by the value the block is holding', () => {
+test('each property is typed by the value the widget is holding', () => {
   const schema = inferPropsSchema({
     title: 'Revenue',
     limit: 10,
@@ -92,7 +92,7 @@ test('a property holding nothing is left out rather than given a type it has not
   expect(untypedKeys({ kept: 'yes', cleared: null })).toEqual(['cleared']);
 });
 
-test('a block with no properties has an empty schema rather than no schema', () => {
+test('a widget with no properties has an empty schema rather than no schema', () => {
   // JsonForms is handed this either way; an absent `properties` throws where
   // an empty one renders nothing.
   expect(inferPropsSchema(undefined)).toEqual({

@@ -131,9 +131,9 @@ const TitleInput = styled(Input)`
  * client tools, and gone on the next navigation. The root canvas is the only
  * node a dashboard-level fact can belong to, so that is where it lives.
  *
- * A title is also a `markdown` block an author can place at the top of the
+ * A title is also a `markdown` widget an author can place at the top of the
  * canvas, and that stays true — this is a different thing with a different
- * job. That one is content, laid out and arranged like any other block; this
+ * job. That one is content, laid out and arranged like any other widget; this
  * one is what the dashboard is called.
  *
  * The draft commits on blur rather than on every keystroke: a name being

@@ -41,9 +41,13 @@ async function describeFetchError(e: unknown): Promise<string> {
       const detail =
         body?.message ??
         (Array.isArray(body?.errors)
-          ? body.errors.map((err: { message?: string }) => err.message).join('; ')
+          ? body.errors
+              .map((err: { message?: string }) => err.message)
+              .join('; ')
           : undefined);
-      return detail ? `${e.status} ${e.statusText}: ${detail}` : `${e.status} ${e.statusText}`;
+      return detail
+        ? `${e.status} ${e.statusText}: ${detail}`
+        : `${e.status} ${e.statusText}`;
     } catch {
       return `${e.status} ${e.statusText}`;
     }
@@ -56,9 +60,22 @@ export async function fetchQueryData(
 ): Promise<QueryDataResult> {
   const formData = {
     datasource: `${binding.datasetId}__table`,
-    metrics: binding.metrics,
-    groupby: binding.dimensions ?? [],
-    adhoc_filters: binding.filters ?? [],
+    // Drop empty/blank inputs the schema-driven control panel can seed (an
+    // empty array item — a blank dimension string, or an empty `{}` filter
+    // object) before they reach `buildQueryContext`, which throws on a
+    // malformed adhoc filter (e.g. `{}`) rather than ignoring it.
+    metrics: (binding.metrics ?? []).filter(
+      metric => metric != null && metric !== '',
+    ),
+    groupby: (binding.dimensions ?? []).filter(
+      dimension => typeof dimension === 'string' && dimension !== '',
+    ),
+    adhoc_filters: (binding.filters ?? []).filter(
+      filter =>
+        filter != null &&
+        typeof filter === 'object' &&
+        Object.keys(filter).length > 0,
+    ),
     row_limit: binding.rowLimit ?? 1000,
     result_format: 'json',
     result_type: 'full',

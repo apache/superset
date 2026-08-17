@@ -26,7 +26,7 @@
  * extension) or any other extension calls to place, move, resize, and
  * remove nodes. This is an early sketch of the design doc's platform-API
  * section, not yet backed by persistence, real chart execution, or the
- * `ChartPlugin`/building-block catalog — every method here is synchronous
+ * `ChartPlugin`/widget catalog — every method here is synchronous
  * and in-memory.
  *
  * Deliberately granular, matching `sqlLab`'s own style (`getCurrentTab()`,
@@ -34,16 +34,16 @@
  * from {@link getRoot}, walk down via each node's `children` and
  * {@link getNode}, and re-query after {@link onDidLayoutChange} fires.
  *
- * `dashboard` owns node placement and layout only. Block-instance content
+ * `dashboard` owns node placement and layout only. Widget-instance content
  * (props/style/dataBinding) is intentionally out of scope here — it belongs
- * to a future `buildingBlocks` namespace mirroring this one.
+ * to a future `widgets` namespace mirroring this one.
  *
  * @example
  * ```typescript
  * import { dashboard } from '@apache-superset/core';
  *
  * const root = dashboard.getRoot();
- * const id = dashboard.addBuildingBlock(root.id, 0, {
+ * const id = dashboard.addWidget(root.id, 0, {
  *   type: 'text',
  *   props: { content: 'Hello dashboard' },
  * });
@@ -92,13 +92,13 @@ export interface LayoutProps {
 
 /**
  * A single node in the dashboard tree. `canvas` and `text` are native
- * layout primitives; any other `type` is a building-block registry key (a
- * chart, metric tile, or extension-contributed block).
+ * layout primitives; any other `type` is a widget registry key (a
+ * chart, metric tile, or extension-contributed widget).
  *
  * `props`/`style` are inlined directly on the node for now. Once a
- * `buildingBlocks` content namespace exists, block-type nodes will instead
+ * `widgets` content namespace exists, widget-type nodes will instead
  * carry a `ref` into it — matching the design doc's split between dashboard
- * layout and building-block content.
+ * layout and widget content.
  */
 export interface DashboardNode {
   id: string;
@@ -112,14 +112,14 @@ export interface DashboardNode {
    * repositioning a node on the canvas never changes this array.
    */
   children?: string[];
-  /** Leaf/building-block nodes only — functional/content config. */
+  /** Leaf/widget nodes only — functional/content config. */
   props?: Record<string, unknown>;
-  /** Leaf/building-block nodes only — visual customization. */
+  /** Leaf/widget nodes only — visual customization. */
   style?: Record<string, unknown>;
 }
 
-/** Everything needed to create a new node, passed to {@link addBuildingBlock}. */
-export interface BuildingBlockSpec {
+/** Everything needed to create a new node, passed to {@link addWidget}. */
+export interface WidgetSpec {
   type: string;
   layout?: LayoutProps;
   props?: Record<string, unknown>;
@@ -150,30 +150,30 @@ export declare function getNode(id: string): DashboardNode | undefined;
  * @example
  * ```typescript
  * const root = dashboard.getRoot();
- * dashboard.addBuildingBlock(root.id, 0, {
+ * dashboard.addWidget(root.id, 0, {
  *   type: 'canvas',
  *   layout: { colSpan: 12, columns: 4, gap: 16 },
  * });
  * ```
  */
-export declare function addBuildingBlock(
+export declare function addWidget(
   parentId: string,
   index: number,
-  spec: BuildingBlockSpec,
+  spec: WidgetSpec,
 ): string;
 
 /**
  * Removes a node and its entire subtree (if it's a `canvas`), detaching it
  * from its parent. No-op if `id` doesn't exist. Throws if `id` is the root.
  */
-export declare function removeBuildingBlock(id: string): void;
+export declare function removeWidget(id: string): void;
 
 /**
  * Moves an existing node to a new `canvas` parent at `newIndex`, detaching
  * it from wherever it currently sits. Throws if `newParentId` is `id` itself
  * or one of its own descendants.
  */
-export declare function moveBuildingBlock(
+export declare function moveWidget(
   id: string,
   newParentId: string,
   newIndex: number,
@@ -189,7 +189,7 @@ export declare function updateLayout(
 
 /**
  * Shallow-merges `props` into a node's existing props — the content-side
- * counterpart to {@link updateLayout}. Use this to edit an existing block
+ * counterpart to {@link updateLayout}. Use this to edit an existing widget
  * in place (e.g. a chart's `dataBinding`/`echartsOptions`, or a markdown
  * node's `content`) rather than removing and re-adding the node just to
  * change what it renders, which loses its position, layout, and identity.
@@ -207,7 +207,7 @@ export declare function updateProps(
 export declare const onDidLayoutChange: Event<void>;
 
 /**
- * What an `echarts`-type building block queries. Deliberately generic (no
+ * What an `echarts`-type widget queries. Deliberately generic (no
  * `viz_type`): {@link fetchQueryData} always hits the same code path
  * Superset falls back to when a form_data's `viz_type` has no registered
  * ChartPlugin, so it works for any chart shape without per-viz-type
@@ -233,7 +233,7 @@ export interface QueryDataResult {
  * Runs an ad hoc query against a dataset and returns plain tabular rows.
  * Rejects with a descriptive error (e.g. an unknown column/metric name) if
  * the query is invalid — callers that create `echarts` nodes should await
- * this *before* calling {@link addBuildingBlock}, so a bad `dataBinding`
+ * this *before* calling {@link addWidget}, so a bad `dataBinding`
  * surfaces as an immediate, correctable tool error instead of a node that
  * silently fails to render later.
  */

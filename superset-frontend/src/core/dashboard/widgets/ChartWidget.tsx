@@ -181,14 +181,14 @@ function EchartsCanvas({
 }
 
 /**
- * The built-in `echarts` building block — registered like any other block
- * (see `registerBuiltInBuildingBlocks`). Fetches its `dataBinding`
+ * The built-in `echarts` widget — registered like any other widget
+ * (see `registerBuiltInWidgets`). Fetches its `dataBinding`
  * (generic, viz_type-less — see `chartData.ts`), resolves any `$bind`
  * markers in its `echartsOptions` against the results, and draws the
  * result. No `SuperChart`/`ChartPlugin`/`buildQuery`/`transformProps`
  * involved — the AI authors close to a real ECharts `option` directly.
  */
-export default function ChartBlock({ nodeId }: { nodeId: string }) {
+export default function ChartWidget({ nodeId }: { nodeId: string }) {
   useDashboardRevision();
   const theme = useTheme();
   const [containerRef, size] = useElementSize();
@@ -201,7 +201,7 @@ export default function ChartBlock({ nodeId }: { nodeId: string }) {
 
   useEffect(() => {
     if (!dataBinding) {
-      setError('This chart block has no dataBinding.');
+      setError('This chart widget has no dataBinding.');
       setRows(null);
       return undefined;
     }
@@ -229,10 +229,10 @@ export default function ChartBlock({ nodeId }: { nodeId: string }) {
       (node?.props?.echartsOptions as Record<string, unknown>) ?? {},
       { rows, theme },
     );
-    // The chart's name is drawn by the block's header, which reads it from
-    // this same option (see `blockLabel`). Leaving it here too would print it
+    // The chart's name is drawn by the widget's header, which reads it from
+    // this same option (see `widgetLabel`). Leaving it here too would print it
     // twice, at two sizes, in two places — and the header's copy is the one
-    // that sits where every other block's name sits.
+    // that sits where every other widget's name sits.
     const withoutTitle = { ...resolved };
     delete withoutTitle.title;
     return withoutTitle;
@@ -244,14 +244,14 @@ export default function ChartBlock({ nodeId }: { nodeId: string }) {
     <div
       ref={containerRef}
       style={{
-        // Fills the box `BuildingBlockView`'s placement wrapper gives this
-        // block — that wrapper is always a definite pixel box (its column
+        // Fills the box `WidgetView`'s placement wrapper gives this
+        // widget — that wrapper is always a definite pixel box (its column
         // share of the container's width, its `rowSpan × rowUnit` height),
         // so this is never zero or ambiguous.
         width: '100%',
         height: '100%',
-        // Surface, border and corners belong to the card `BuildingBlockView`
-        // draws around this block and the name above it, so that the name is
+        // Surface, border and corners belong to the card `WidgetView`
+        // draws around this widget and the name above it, so that the name is
         // inside the frame rather than over it.
         overflow: 'hidden',
       }}

@@ -33,22 +33,22 @@
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { provider, useDashboardRevision } from './store';
 import { fetchQueryData } from './chartData';
-import { registerBuiltInBuildingBlocks } from './registerBuiltInBuildingBlocks';
+import { registerBuiltInWidgets } from './registerBuiltInWidgets';
 
-// Built-in block types (canvas/markdown/echarts) are registered the same
-// way an extension registers its own — see registerBuiltInBuildingBlocks.
+// Built-in widget types (canvas/markdown/echarts) are registered the same
+// way an extension registers its own — see registerBuiltInWidgets.
 // Doing this here guarantees it happens before anything imports `dashboard`
 // to render a node, regardless of which page or bridge triggers the import.
-registerBuiltInBuildingBlocks();
+registerBuiltInWidgets();
 
 export { useDashboardRevision };
 
 export const dashboard: typeof dashboardApi = {
   getRoot: provider.getRoot,
   getNode: provider.getNode,
-  addBuildingBlock: provider.addBuildingBlock.bind(provider),
-  removeBuildingBlock: provider.removeBuildingBlock.bind(provider),
-  moveBuildingBlock: provider.moveBuildingBlock.bind(provider),
+  addWidget: provider.addWidget.bind(provider),
+  removeWidget: provider.removeWidget.bind(provider),
+  moveWidget: provider.moveWidget.bind(provider),
   updateLayout: provider.updateLayout.bind(provider),
   updateProps: provider.updateProps.bind(provider),
   onDidLayoutChange: provider.onDidLayoutChange,

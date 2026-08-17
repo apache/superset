@@ -83,7 +83,7 @@ export function resolveCellGeometry(
  * Converts a pointer position — already relative to the grid container's
  * own top-left corner, in pixels — into the fractional column/row it falls
  * on. Fractional, not floored: `resolveDropPlacement` (`gridPacking.ts`)
- * needs the fraction to tell which half of a target block the pointer is
+ * needs the fraction to tell which half of a target widget the pointer is
  * actually nearer to, not just which cell it's over.
  */
 export function cellAtPoint(

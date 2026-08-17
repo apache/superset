@@ -34,22 +34,20 @@ const mount = () => {
   return onAdd;
 };
 
-test('the panel offers building blocks, properties and an outline', () => {
+test('the panel offers widgets, properties and an outline', () => {
   mount();
 
-  expect(
-    screen.getByRole('tab', { name: 'Building blocks' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Widgets' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Properties' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Outline' })).toBeInTheDocument();
 });
 
-test('building blocks is what you start on, and it lists what is registered', () => {
+test('widgets is what you start on, and it lists what is registered', () => {
   mount();
 
-  // The list is `views.getViews('dashboard.buildingBlocks')` — the same
-  // registry BuildingBlockView resolves a renderer through. Nothing here
-  // names a block, so registering one makes it placeable with no edit.
+  // The list is `views.getViews('dashboard.widgets')` — the same
+  // registry WidgetView resolves a renderer through. Nothing here
+  // names a widget, so registering one makes it placeable with no edit.
   expect(screen.getByTestId('palette')).toBeVisible();
   expect(screen.getByTestId('palette-markdown')).toBeVisible();
   expect(screen.getByTestId('palette-echarts')).toBeVisible();
@@ -58,9 +56,9 @@ test('building blocks is what you start on, and it lists what is registered', ()
 test('the root grid is not offered in the palette, since nesting one is not an authored feature', () => {
   mount();
 
-  // The root's own type is resolved directly by `BuildingBlockView`, never
-  // through the `dashboard.buildingBlocks` registry this palette lists from
-  // (see `registerBuiltInBuildingBlocks`) — so there is nothing registered
+  // The root's own type is resolved directly by `WidgetView`, never
+  // through the `dashboard.widgets` registry this palette lists from
+  // (see `registerBuiltInWidgets`) — so there is nothing registered
   // under either name to ever show up here in the first place.
   expect(screen.queryByTestId('palette-canvas')).not.toBeInTheDocument();
   expect(screen.queryByTestId('palette-grid')).not.toBeInTheDocument();
@@ -69,7 +67,7 @@ test('the root grid is not offered in the palette, since nesting one is not an a
   expect(screen.getByTestId('palette-shelf-structure')).toBeInTheDocument();
 });
 
-test('clicking a block asks the page to place it', async () => {
+test('clicking a widget asks the page to place it', async () => {
   const onAdd = mount();
 
   await userEvent.click(screen.getByTestId('palette-markdown'));
@@ -86,7 +84,7 @@ test('searching narrows the palette to what was asked for', async () => {
   expect(screen.queryByTestId('palette-echarts')).not.toBeInTheDocument();
 });
 
-test('with nothing selected, properties says so rather than showing a stale block', async () => {
+test('with nothing selected, properties says so rather than showing a stale widget', async () => {
   mount();
 
   await userEvent.click(screen.getByRole('tab', { name: 'Properties' }));
@@ -96,7 +94,7 @@ test('with nothing selected, properties says so rather than showing a stale bloc
 
 test('selecting something brings its properties forward', () => {
   mount();
-  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+  const id = provider.addWidget(provider.getRoot().id, 0, {
     type: 'markdown',
   });
 
@@ -109,7 +107,7 @@ test('selecting something brings its properties forward', () => {
 
 test('the outline lists the dashboard and selects what you click', async () => {
   mount();
-  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+  const id = provider.addWidget(provider.getRoot().id, 0, {
     type: 'markdown',
     props: { content: 'Quarterly review' },
   });
@@ -128,7 +126,7 @@ test('the outline lists the dashboard and selects what you click', async () => {
 
 test('choosing a row in the outline leaves you in the outline', async () => {
   mount();
-  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+  const id = provider.addWidget(provider.getRoot().id, 0, {
     type: 'markdown',
   });
   await userEvent.click(screen.getByRole('tab', { name: 'Outline' }));
@@ -161,7 +159,7 @@ test('the list of tabs says what it is a list of', () => {
 const widthOf = () =>
   Number.parseInt(screen.getByTestId('editor-panel').style.width, 10);
 
-test('the panel opens wide enough to edit a block in', () => {
+test('the panel opens wide enough to edit a widget in', () => {
   mount();
 
   expect(widthOf()).toBe(350);
@@ -215,7 +213,7 @@ test('a palette row can actually be dragged, as its grip promises', () => {
   );
 
   expect(setData).toHaveBeenCalledWith(
-    'application/x-dashboard-building-block',
+    'application/x-dashboard-widget',
     'markdown',
   );
 });
@@ -228,14 +226,12 @@ test('the panel can be got out of the way, and brought back', async () => {
   // they were in it.
   await userEvent.click(screen.getByTestId('panel-collapse'));
 
-  expect(screen.queryByRole('tab', { name: 'Building blocks' })).toBeNull();
+  expect(screen.queryByRole('tab', { name: 'Widgets' })).toBeNull();
   expect(screen.getByTestId('panel-expand')).toBeInTheDocument();
 
   await userEvent.click(screen.getByTestId('panel-expand'));
 
-  expect(
-    screen.getByRole('tab', { name: 'Building blocks' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Widgets' })).toBeInTheDocument();
 });
 
 test('a closed panel keeps the width it was opened at', async () => {

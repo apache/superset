@@ -27,12 +27,12 @@ import Inspector from './Inspector';
 import Outline from './Outline';
 import Palette from './Palette';
 
-type PanelTab = 'blocks' | 'properties' | 'outline';
+type PanelTab = 'widgets' | 'properties' | 'outline';
 
 /**
  * How wide the panel opens, and how far it may be dragged.
  *
- * The default is set by the Properties tab, which holds a block's whole set
+ * The default is set by the Properties tab, which holds a widget's whole set
  * of fields and is the widest thing here; the palette and the outline are
  * narrow whatever they are given. The ceiling leaves a usable canvas on a
  * small screen.
@@ -127,7 +127,7 @@ const Grip = styled.div<{ $active: boolean }>`
 /**
  * The authoring panel: one rail, three ways of working on a dashboard.
  *
- * Placing a block, editing one and finding one are the same activity at
+ * Placing a widget, editing one and finding one are the same activity at
  * different moments, and an author is only ever doing one of them. Giving
  * each its own permanent rail would spend the canvas on a choice made moment
  * to moment, so they share a rail and the canvas keeps the room.
@@ -138,7 +138,7 @@ export default function EditorPanel({
   onAdd: (type: string) => void;
 }): ReactElement {
   useDashboardRevision();
-  const [tab, setTab] = useState<PanelTab>('blocks');
+  const [tab, setTab] = useState<PanelTab>('widgets');
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   /** Whether the rail is out of the way. The width it had is kept either way. */
   const [closed, setClosed] = useState(false);
@@ -151,7 +151,7 @@ export default function EditorPanel({
   /**
    * Selecting something shows it, and that is a response to the selection
    * changing rather than to it existing: an author who goes back to the
-   * palette with a block still selected stays there, because nothing changed.
+   * palette with a widget still selected stays there, because nothing changed.
    *
    * A selection made in the Outline is the exception. Reading a structure
    * means going through it, and a tab that ejected on the first row would
@@ -163,7 +163,7 @@ export default function EditorPanel({
   const [shown, setShown] = useState(selection);
   if (selection !== shown) {
     setShown(selection);
-    if (selection !== undefined && tab === 'blocks') {
+    if (selection !== undefined && tab === 'widgets') {
       setTab('properties');
     }
   }
@@ -273,7 +273,7 @@ export default function EditorPanel({
         size="small"
         style={{ flex: 1, minHeight: 0 }}
         // Without this, the tab body's own overflow stays `visible` (the
-        // component's default) and a tall form or block list bleeds past the
+        // component's default) and a tall form or widget list bleeds past the
         // rail's bottom edge instead of scrolling — the rail's `overflow:
         // hidden` then clips it silently rather than offering a scrollbar.
         allowOverflow={false}
@@ -298,8 +298,8 @@ export default function EditorPanel({
         }}
         items={[
           {
-            key: 'blocks',
-            label: t('Building blocks'),
+            key: 'widgets',
+            label: t('Widgets'),
             children: <Palette onAdd={onAdd} />,
           },
           {

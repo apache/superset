@@ -39,16 +39,16 @@ import {
 } from './placement';
 import { useGridStack } from './useGridStack';
 import type { GestureEnd, GestureEndItem } from './useGridStack';
-import BuildingBlockView from './BuildingBlockView';
+import WidgetView from './WidgetView';
 
 type LayoutProps = dashboardApi.LayoutProps;
 
 /**
  * The `draggableCancel`-equivalent guard: regions a press must never start a
  * drag from. `[data-container-id]` is a nested container (dragging one chart
- * out of a `tabs` block must not drag the whole `tabs` block); `[data-block-
- * remove]` is a block's own remove control; `[data-block-resize]` is a flowed
- * block's own resize grip (`flowContent.tsx`); `[data-block-header-control]`
+ * out of a `tabs` widget must not drag the whole `tabs` widget); `[data-widget-
+ * remove]` is a widget's own remove control; `[data-widget-resize]` is a flowed
+ * widget's own resize grip (`flowContent.tsx`); `[data-widget-header-control]`
  * is a type's own extra header control (e.g. `collapsible`'s toggle).
  *
  * `nodeId` is threaded through and excluded from the `data-container-id`
@@ -66,7 +66,7 @@ type LayoutProps = dashboardApi.LayoutProps;
  * still matches and still cancels, exactly as intended.
  */
 function cancelSelectorFor(nodeId: string): string {
-  return `[data-container-id]:not([data-container-id="${CSS.escape(nodeId)}"]),[data-block-remove],[data-block-resize],[data-block-header-control]`;
+  return `[data-container-id]:not([data-container-id="${CSS.escape(nodeId)}"]),[data-widget-remove],[data-widget-resize],[data-widget-header-control]`;
 }
 
 /**
@@ -92,7 +92,7 @@ function cancelSelectorFor(nodeId: string): string {
  * keeps the drop target's own floor intact when content is shorter.
  *
  * `.grid-stack-item-content`'s own default CSS gives it `overflow-y: auto`
- * — undone here, since `BuildingBlockView`'s own card already decides how
+ * — undone here, since `WidgetView`'s own card already decides how
  * its content overflows (clipped, per its own `overflow: hidden`), and a
  * second, independent scroll container around it would fight that rather
  * than help it.
@@ -154,7 +154,7 @@ const DropGhost = styled.div`
 
 /**
  * Finds the deepest dashboard container actually under a screen point,
- * ignoring `excludeEl`'s own subtree — the block being dragged might itself
+ * ignoring `excludeEl`'s own subtree — the widget being dragged might itself
  * be, or contain, a container, and a drop "onto itself" isn't a valid
  * reparent target. Every container's outer element carries
  * `data-container-id` (this component's own does; others set it on whatever
@@ -191,9 +191,9 @@ function rectsEqual(a: PackedRect, b: PackedRect): boolean {
 /**
  * One child, registered with GridStack via the two-level DOM structure its
  * own CSS requires (`.grid-stack-item` > `.grid-stack-item-content`) —
- * `BuildingBlockView` itself needs no special handling for this, since it
+ * `WidgetView` itself needs no special handling for this, since it
  * only ever has to fill 100% of whatever box it's given, the same as it
- * already does for a flowed block (`flowContent.tsx`'s `FlowItem`).
+ * already does for a flowed widget (`flowContent.tsx`'s `FlowItem`).
  *
  * `useLayoutEffect`, not `useEffect`: cleanup has to run, and
  * `unregisterItem` has to call `removeWidget`, before React detaches the
@@ -230,29 +230,26 @@ function GridStackItem({
   return (
     <div ref={elRef} className="grid-stack-item">
       <div className="grid-stack-item-content">
-        <BuildingBlockView
-          nodeId={nodeId}
-          style={{ width: '100%', height: '100%' }}
-        />
+        <WidgetView nodeId={nodeId} style={{ width: '100%', height: '100%' }} />
       </div>
     </div>
   );
 }
 
 /**
- * The dashboard's own grid — not a Building Block (see the composition/
- * layout design doc), which is why it lives here rather than in `blocks/`
+ * The dashboard's own grid — not a Widget (see the composition/
+ * layout design doc), which is why it lives here rather than in `widgets/`
  * alongside the things that get placed on it. There is exactly one of these
- * per dashboard, rendered for the root and only the root: `BuildingBlockView`
+ * per dashboard, rendered for the root and only the root: `WidgetView`
  * resolves the root's renderer to this component directly, rather than
- * through the `dashboard.buildingBlocks` registry every real building block
+ * through the `dashboard.widgets` registry every real widget
  * goes through — nothing places a `RootGrid`, and nothing ever will, the same
  * way nothing places the dashboard itself.
  *
  * Backed by GridStack (see `useGridStack`, the only place that package is
  * imported). All position/size math — including collision handling — is
- * GridStack's: resizing a block never shrinks a sibling, only displaces it
- * to the next open slot, which leaves every block's own authored (hand- or
+ * GridStack's: resizing a widget never shrinks a sibling, only displaces it
+ * to the next open slot, which leaves every widget's own authored (hand- or
  * AI-set) span untouched — except a left/right *drop*, the one deliberate
  * exception, which does shrink a sibling (see `resolveDropPlacement`).
  * This component's job is translating between the stored
@@ -267,7 +264,7 @@ function GridStackItem({
  * see `dataTransfer`, so this draws its own drop preview (`DropGhost`)
  * instead of handing the gesture to GridStack at all.
  *
- * Dragging a block into a *different* container (reparenting, as opposed to
+ * Dragging a widget into a *different* container (reparenting, as opposed to
  * repositioning within this one) is handled by hit-testing which
  * `data-container-id` is under the pointer when the drag ends — deliberately
  * not something GridStack (scoped to one grid instance) handles on its own.
@@ -289,10 +286,10 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
   // here (see this component's own doc comment on the identical check the
   // previous, react-grid-layout-backed version of this made).
   const [ghostRect, setGhostRect] = useState<PackedRect | null>(null);
-  // The existing block's own *shrunk* half, while the cursor is hovering the
+  // The existing widget's own *shrunk* half, while the cursor is hovering the
   // left/right split band of it — `resolveDropPlacement`'s `shrink`. Not a
   // second placeholder box: it feeds `previewPacked` (below, where
-  // `useGridStack` is called), which makes the *real* block visibly resize
+  // `useGridStack` is called), which makes the *real* widget visibly resize
   // to this rect for as long as the hover lasts — the same way a live drag
   // or resize elsewhere on this grid is never represented by a stand-in box
   // either. Kept as its own piece of state (rather than folded into
@@ -348,12 +345,12 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
 
   // What `useGridStack` actually renders — `packed` with the split target's
   // own entry substituted for its shrunk-to half while `shrinkPreview` is
-  // set. This is the real block visibly resizing to preview the split, not
+  // set. This is the real widget visibly resizing to preview the split, not
   // a second placeholder box drawn over it: `useGridStack`'s own sync
   // effect diffs this against GridStack's current node and calls `update`
   // on it exactly the way a committed resize would, then diffs right back
   // to `packed` the moment `shrinkPreview` clears (hover moves on, or the
-  // drag ends), snapping the real block back to its actual current size.
+  // drag ends), snapping the real widget back to its actual current size.
   // `resolveGridDropPlacement`/hit-testing below still reads the real,
   // unmodified `packed` — resolving a placement against an already-shrunk
   // neighbor would misread where its true edges are.
@@ -382,7 +379,7 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
    * The two differ only in *how* they get the point and *which* occupancy
    * map to ask against — a reposition excludes the item being dragged from
    * it (it is the thing about to get a new position, not a fixed point to
-   * test anyone else against); a fresh palette block was never in `packed`
+   * test anyone else against); a fresh palette widget was never in `packed`
    * to begin with, so the plain, unmodified map is already correct for it.
    */
   const resolvePlacementAtPoint = (
@@ -425,7 +422,7 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
     );
 
   /**
-   * Where a palette drag actually lands, or where an existing block's own
+   * Where a palette drag actually lands, or where an existing widget's own
    * drag/resize settles — the single sink both gestures write through,
    * mirroring `handleGridDrop`/`handleExternalDrop`'s own "one path, so
    * preview and outcome can't quietly diverge" reasoning.
@@ -436,7 +433,7 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
    *
    * 1. A reparent — the dragged element's own bounding-rect centre is
    *    hit-tested for a `data-container-id` other than this one. Landing on
-   *    itself or one of its own descendants throws (`moveBuildingBlock`'s
+   *    itself or one of its own descendants throws (`moveWidget`'s
    *    own guard); that's caught and falls through to the checks below,
    *    same as any other drag.
    * 2. A split — the cursor's own final position (`gesture.clientX/clientY`,
@@ -447,7 +444,7 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
    *    it is the thing about to get a new position, not a fixed point to
    *    test anyone else against). Landing on a sibling's left/right split
    *    band shrinks that sibling and resizes the dragged item into the other
-   *    half, in one commit — dragging an existing block onto another's half
+   *    half, in one commit — dragging an existing widget onto another's half
    *    is meant to read as the identical gesture a palette drop landing
    *    there already is, not a lesser version of it that only ever pushes
    *    things down instead.
@@ -465,12 +462,12 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
       );
       if (targetContainerId && targetContainerId !== nodeId) {
         try {
-          // moveBuildingBlock itself clears col/row and clamps colSpan to
+          // moveWidget itself clears col/row and clamps colSpan to
           // the destination's own column count — old coordinates were only
           // ever meaningful in *this* container's grid.
           const destIndex =
             provider.getNode(targetContainerId)?.children?.length ?? 0;
-          provider.moveBuildingBlock(gesture.id, targetContainerId, destIndex);
+          provider.moveWidget(gesture.id, targetContainerId, destIndex);
           return;
         } catch {
           // Dropped onto itself or one of its own descendants — not a valid
@@ -533,16 +530,16 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
    * area — the counterpart to `handleGridDrop`, below, which resolves the
    * actual drop from the exact same `resolveGridDropPlacement` call so what
    * an author sees while hovering is provably what they get on release.
-   * Drives both `ghostRect` (the new block's own preview) and
-   * `shrinkPreview` (the existing block's shrunk half, only set while
+   * Drives both `ghostRect` (the new widget's own preview) and
+   * `shrinkPreview` (the existing widget's shrunk half, only set while
    * hovering a left/right split band — see `resolveDropPlacement`'s own
    * doc comment for the other two bands, which never set it).
    *
    * Hovering over a *nested* container (a `tabs`/`collapsible`/`carousel`
-   * block sitting on this grid, or anything a third party contributes)
+   * widget sitting on this grid, or anything a third party contributes)
    * clears both previews instead: that container has its own drop target
    * (`FlowContent`/`EmptyArea`, tagged `data-container-id`, the same way
-   * this component's own `GridSurface` is) and is where the block actually
+   * this component's own `GridSurface` is) and is where the widget actually
    * belongs, not beside or on top of the container's own card on *this*
    * grid. Without this, both would react to the same hover, and only one of
    * them ever runs its own cleanup on drop.
@@ -607,9 +604,9 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
    * end").
    *
    * A `shrink` result commits in two calls, shrink *first* — see
-   * `DashboardProvider.addBuildingBlock`'s own call to
+   * `DashboardProvider.addWidget`'s own call to
    * `resolveParentCollisions`: with the neighbor already shrunk, the new
-   * block never overlaps anything when that collision pass runs, so nothing
+   * widget never overlaps anything when that collision pass runs, so nothing
    * is disturbed. Inserting first would overlap the still-wide neighbor and
    * get pushed straight down by that same collision rule instead, which
    * would permanently destroy the split before it ever rendered. All four

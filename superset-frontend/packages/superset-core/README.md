@@ -22,7 +22,7 @@ under the License.
 [![npm version](https://badge.fury.io/js/%40apache-superset%2Fcore.svg)](https://badge.fury.io/js/%40apache-superset%2Fcore)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-The official core package for building Apache Superset extensions and integrations. This package provides essential building blocks including shared UI components, utility functions, APIs, and type definitions for both the host application and extensions.
+The official core package for building Apache Superset extensions and integrations. This package provides essential widgets including shared UI components, utility functions, APIs, and type definitions for both the host application and extensions.
 
 ## 📦 Installation
 

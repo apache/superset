@@ -169,7 +169,7 @@ test('buildOccupancy is empty for an empty grid', () => {
 test('availableDropSpan caps width at maxColSpan on a wholly empty grid, so a drop there is not forced full-width', () => {
   // Regression: before `maxColSpan` existed, an empty grid had nothing
   // anywhere to bound a free run, so "open space" always meant "the whole
-  // row" — the ghost (and the block it produced) ignored the cursor's own
+  // row" — the ghost (and the widget it produced) ignored the cursor's own
   // column entirely. Growth is still left-first, so a cursor this far from
   // the left edge exhausts the cap before reaching it.
   expect(availableDropSpan({}, 24, 10, 3, 6, 12)).toEqual({
@@ -239,7 +239,7 @@ test('availableDropSpan over an occupied cell returns the full row, uncapped by 
   };
 
   // maxColSpan(4) is deliberately narrower than the grid: this band means
-  // "insert a full-width row here", not "drop a block here", so it stays
+  // "insert a full-width row here", not "drop a widget here", so it stays
   // uncapped regardless.
   expect(availableDropSpan(packed, 24, 5, 1, 6, 4)).toEqual({
     x: 0,
@@ -259,7 +259,7 @@ test('resolveDropPlacement over open space delegates to availableDropSpan', () =
   });
 });
 
-test('resolveDropPlacement in the top band of a block inserts a full-width row above it', () => {
+test('resolveDropPlacement in the top band of a widget inserts a full-width row above it', () => {
   const packed: Record<string, PackedRect> = {
     target: { x: 4, y: 2, w: 12, h: 8 },
   };
@@ -270,7 +270,7 @@ test('resolveDropPlacement in the top band of a block inserts a full-width row a
   });
 });
 
-test('resolveDropPlacement in the bottom band of a block inserts a full-width row below it', () => {
+test('resolveDropPlacement in the bottom band of a widget inserts a full-width row below it', () => {
   const packed: Record<string, PackedRect> = {
     target: { x: 4, y: 2, w: 12, h: 8 },
   };
@@ -281,12 +281,12 @@ test('resolveDropPlacement in the bottom band of a block inserts a full-width ro
   });
 });
 
-test('resolveDropPlacement in the middle band, left of center, splits the block and shrinks it to the right half', () => {
+test('resolveDropPlacement in the middle band, left of center, splits the widget and shrinks it to the right half', () => {
   const packed: Record<string, PackedRect> = {
     target: { x: 0, y: 0, w: 24, h: 4 },
   };
 
-  // fracY = 0.5, in the middle band; exactCol 6 is left of the block's own
+  // fracY = 0.5, in the middle band; exactCol 6 is left of the widget's own
   // midpoint (12).
   expect(resolveDropPlacement(packed, 24, 6, 2, 6, 12)).toEqual({
     rect: { x: 0, y: 0, w: 12, h: 4 },
@@ -294,7 +294,7 @@ test('resolveDropPlacement in the middle band, left of center, splits the block 
   });
 });
 
-test('resolveDropPlacement in the middle band, right of center, splits the block and shrinks it to the left half', () => {
+test('resolveDropPlacement in the middle band, right of center, splits the widget and shrinks it to the left half', () => {
   const packed: Record<string, PackedRect> = {
     target: { x: 0, y: 0, w: 24, h: 4 },
   };
@@ -311,14 +311,14 @@ test('resolveDropPlacement gives the odd leftover column to whichever half keeps
   };
 
   // w=5 -> newW = floor(5/2) = 2, keepW = 3. exactCol 1 is left of the
-  // midpoint (2.5), so the new block takes the narrower half.
+  // midpoint (2.5), so the new widget takes the narrower half.
   expect(resolveDropPlacement(packed, 24, 1, 1, 6, 12)).toEqual({
     rect: { x: 0, y: 0, w: 2, h: 2 },
     shrink: { id: 'target', rect: { x: 2, y: 0, w: 3, h: 2 } },
   });
 });
 
-test('resolveDropPlacement refuses to split a block narrower than the minimum, falling back to the nearer edge', () => {
+test('resolveDropPlacement refuses to split a widget narrower than the minimum, falling back to the nearer edge', () => {
   const packed: Record<string, PackedRect> = {
     target: { x: 0, y: 0, w: 3, h: 2 },
   };

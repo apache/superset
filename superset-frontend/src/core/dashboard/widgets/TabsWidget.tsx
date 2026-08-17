@@ -26,12 +26,12 @@ import { provider, useDashboardRevision } from '../store';
 import { FlowContent } from './flowContent';
 
 /**
- * A pane's own child type — not registered as a building block in its own
- * right (see `registerBuiltInBuildingBlocks`), since nothing ever resolves
- * one through `resolveBuildingBlockView`: this component renders a pane's
+ * A pane's own child type — not registered as a widget in its own
+ * right (see `registerBuiltInWidgets`), since nothing ever resolves
+ * one through `resolveWidgetView`: this component renders a pane's
  * `children` directly rather than rendering the pane node itself through
- * `BuildingBlockView`. It only needs to be a *container* type (so
- * `addBuildingBlock` gives it a `children` array) — see
+ * `WidgetView`. It only needs to be a *container* type (so
+ * `addWidget` gives it a `children` array) — see
  * `registerContainerType` in `DashboardProvider`.
  */
 export const TAB_TYPE = 'tab';
@@ -39,7 +39,7 @@ export const TAB_TYPE = 'tab';
 /**
  * The negative margin is what keeps the tab bar full-width.
  *
- * `BuildingBlockView` now insets every block's content by the card's own
+ * `WidgetView` now insets every widget's content by the card's own
  * padding (see its own comment) — right for a chart or a table, which is a
  * single thing filling the card, but wrong for a strip of tabs, which reads
  * as cut short the moment it does not reach the card's edges the way a
@@ -112,7 +112,7 @@ const TabButton = styled.button<{ $active: boolean }>`
  * screen reader. The remove control is `ActionButton`, itself a `<button>`,
  * and a button inside a button is invalid HTML that nothing downstream can
  * reliably navigate into. Wrapped here as two controls sharing a row
- * instead, the same shape `BuildingBlockView`'s own header takes for a name
+ * instead, the same shape `WidgetView`'s own header takes for a name
  * and its own remove control.
  */
 const TabItem = styled.span`
@@ -125,9 +125,9 @@ const TabItem = styled.span`
 const untitledLabel = (index: number): string => t('Tab %s', index + 1);
 
 /**
- * The built-in `tabs` building block — a container whose own children (each
+ * The built-in `tabs` widget — a container whose own children (each
  * a `tab` pane, itself a container) are switchable rather than all shown at
- * once. Registered like any other block (see `registerBuiltInBuildingBlocks`),
+ * once. Registered like any other widget (see `registerBuiltInWidgets`),
  * it holds children of its own like the root's own grid does — but unlike
  * the root, it has no grid: which pane is showing is this component's own
  * concern, not a `layout` fact the document carries. Per the
@@ -142,7 +142,7 @@ const untitledLabel = (index: number): string => t('Tab %s', index + 1);
  * whenever the previously active one no longer exists — most commonly right
  * after that pane is removed, or on a first render with no pane yet.
  */
-export default function TabsBlock({
+export default function TabsWidget({
   nodeId,
 }: {
   nodeId: string;
@@ -159,20 +159,20 @@ export default function TabsBlock({
   }
 
   const addTab = (): void => {
-    const id = provider.addBuildingBlock(nodeId, panes.length, {
+    const id = provider.addWidget(nodeId, panes.length, {
       type: TAB_TYPE,
       props: { label: untitledLabel(panes.length) },
     });
     setActiveTabId(id);
   };
 
-  // A tabs block with nothing in it yet has nothing to switch between —
+  // A tabs widget with nothing in it yet has nothing to switch between —
   // the first thing anyone would do with one is press + once anyway, so
   // this does it for them. An effect rather than done inline during render:
   // render must not mutate the document itself, only read it. Laid out
   // rather than a plain effect so the fill-in happens before the browser
   // ever paints the empty state, which would otherwise flash for one frame
-  // on every block placed from the palette.
+  // on every widget placed from the palette.
   useLayoutEffect(() => {
     if (node && panes.length === 0) {
       addTab();
@@ -204,7 +204,7 @@ export default function TabsBlock({
                 {label}
               </TabButton>
               {/* Offered once there is a second tab to fall back to —
-                  removing the only one just left a blank tabs block the
+                  removing the only one just left a blank tabs widget the
                   effect above would immediately refill, which reads as the
                   control having silently done nothing. */}
               {panes.length > 1 && (
@@ -214,7 +214,7 @@ export default function TabsBlock({
                   placement="bottom"
                   dataTest={`tab-remove-${paneId}`}
                   icon={<Icons.CloseOutlined iconSize="s" />}
-                  onClick={() => provider.removeBuildingBlock(paneId)}
+                  onClick={() => provider.removeWidget(paneId)}
                 />
               )}
             </TabItem>
@@ -230,7 +230,7 @@ export default function TabsBlock({
         />
       </TabBar>
       {/* `activeTabId` is only briefly undefined, on the very first render
-          before the layout effect above fills the tabs block in — skipping
+          before the layout effect above fills the tabs widget in — skipping
           `FlowContent` for that one tick is what keeps this from ever
           needing a pane id it does not have yet. */}
       {activeTabId && (

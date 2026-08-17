@@ -18,13 +18,13 @@
  */
 
 /**
- * @fileoverview Placing a new block, in the one place both ways of asking
+ * @fileoverview Placing a new widget, in the one place both ways of asking
  * for it can reach.
  *
- * A block arrives on a dashboard two ways — clicked in the palette, or
+ * A widget arrives on a dashboard two ways — clicked in the palette, or
  * dragged from it onto a container — and they must produce the same node. Two
- * copies of "what a freshly placed block looks like" is how a block dropped
- * into a section ends up subtly different from the same block clicked into
+ * copies of "what a freshly placed widget looks like" is how a widget dropped
+ * into a section ends up subtly different from the same widget clicked into
  * it, and the difference is invisible until someone hits it.
  */
 
@@ -37,26 +37,26 @@ import { provider } from './store';
  *
  * A private type rather than `text/plain` so a drop of anything else — a
  * file, a selection of text, a drag from another application — is not read
- * as a request to place a block.
+ * as a request to place a widget.
  */
-export const PALETTE_MIME = 'application/x-dashboard-building-block';
+export const PALETTE_MIME = 'application/x-dashboard-widget';
 
 /**
  * A type's own starting `rowSpan` on the root grid, in row tracks (a row is
  * `rowUnitPx` tall, 32px by default — see `layoutStyle.ts`). Left unset
- * (`gridPacking.ts`'s own fallback of 1 row) a freshly placed block sits
- * shorter than `BuildingBlockView`'s header-plus-padding chrome alone, before
+ * (`gridPacking.ts`'s own fallback of 1 row) a freshly placed widget sits
+ * shorter than `WidgetView`'s header-plus-padding chrome alone, before
  * any content of its own — every leaf type would open already clipped or
  * scrolling. Tuned per type instead of one shared number because what fills
  * that box varies enough that one height leaves half of them cramped and the
  * other half wasting space: a metric tile is a few lines centered in a card,
  * a table wants room for a header row and several data rows, a fresh `tabs`
  * pays for a tab bar and a flow area's own padding before its empty state
- * even starts. An author who wants a block smaller still has the resize
+ * even starts. An author who wants a widget smaller still has the resize
  * handle for that — this is only the size nobody has touched it at yet.
  *
  * Root-grid-only: a `rowSpan` off this table is meaningless (and, worse,
- * silently wrong) for a block placed into anything else — a `tabs` pane, a
+ * silently wrong) for a widget placed into anything else — a `tabs` pane, a
  * `collapsible`, a `carousel` slide — since those read `rowSpan` in their
  * own unit, a flow area's own pixel (see `FlowContent`'s own comment), not
  * a grid row track. `placeBlock`/`placeBlockAt` only reach into this table
@@ -74,13 +74,13 @@ const DEFAULT_ROW_SPAN: Record<string, number> = {
 
 /**
  * Row span for a type this module has no specific tuning for — an
- * extension-contributed block, most likely — and also `RootGrid`'s own
- * starting height for a block whose *position* came from a palette drag
+ * extension-contributed widget, most likely — and also `RootGrid`'s own
+ * starting height for a widget whose *position* came from a palette drag
  * rather than this module's per-type table (see `placeBlockAt`): a drag
- * already answers where a block lands, live, as the gesture happens, and
+ * already answers where a widget lands, live, as the gesture happens, and
  * asking it to also settle on a bespoke height per type at the same time is
  * more than one gesture should have to carry. Generous rather than tight:
- * better an unfamiliar block opens a little taller than it needed to than
+ * better an unfamiliar widget opens a little taller than it needed to than
  * clipped or scrolling before anyone has seen what it renders.
  */
 export const FALLBACK_ROW_SPAN = 6;
@@ -92,15 +92,15 @@ export const FALLBACK_ROW_SPAN = 6;
  * grid, where nothing anywhere is occupied and the free run in any row
  * spans every column there is — so a drop there would always be full-width,
  * regardless of where the cursor actually sits, which reads as the ghost
- * (and the block it produces) ignoring the drag entirely rather than
- * following it. A real gap between two existing blocks narrower than this
+ * (and the widget it produces) ignoring the drag entirely rather than
+ * following it. A real gap between two existing widgets narrower than this
  * is untouched by it — `availableDropSpan` still returns exactly that gap's
  * own width, never wider.
  */
 export const FALLBACK_COL_SPAN = Math.floor(DEFAULT_COLUMNS / 2);
 
 /**
- * Places a new block of `type` at the end of `parentId`'s children and
+ * Places a new widget of `type` at the end of `parentId`'s children and
  * selects it, returning its id.
  *
  * A container arrives with the grid every other container defaults to, so a
@@ -112,7 +112,7 @@ export const FALLBACK_COL_SPAN = Math.floor(DEFAULT_COLUMNS / 2);
  * `rowSpan` is only ever set here when `parentId` is the root's own grid —
  * everywhere else (a `tabs` pane, a `collapsible`, a `carousel` slide) it's
  * left unset entirely, on purpose, so `FlowItem` (see `flowContent.tsx`)
- * reads that as "no height chosen yet" and flexes the block to fill
+ * reads that as "no height chosen yet" and flexes the widget to fill
  * whatever room the container actually has, rather than a grid-row number
  * misread as a pixel count.
  */
@@ -122,7 +122,7 @@ export function placeBlock(parentId: string, type: string): string {
   const rowSpan = onRootGrid
     ? (DEFAULT_ROW_SPAN[type] ?? FALLBACK_ROW_SPAN)
     : undefined;
-  const id = provider.addBuildingBlock(parentId, index, {
+  const id = provider.addWidget(parentId, index, {
     type,
     layout: isContainerType(type)
       ? { columns: DEFAULT_COLUMNS, gap: 16, colSpan: DEFAULT_COLUMNS, rowSpan }
@@ -133,10 +133,10 @@ export function placeBlock(parentId: string, type: string): string {
 }
 
 /**
- * Places a new block of `type` at an explicit grid cell and an explicit
+ * Places a new widget of `type` at an explicit grid cell and an explicit
  * spot in `parentId`'s own reading order, rather than appending it
  * full-width at the end the way `placeBlock` does — `RootGrid`'s own
- * counterpart for a palette block dropped onto the root's grid, where
+ * counterpart for a palette widget dropped onto the root's grid, where
  * *where* (and how wide, next to whatever it landed beside) was the entire
  * point of the gesture.
  *
@@ -150,9 +150,9 @@ export function placeBlock(parentId: string, type: string): string {
  * to get right: `DashboardProvider`'s own collision resolution (see
  * `resolveExplicitCollisions`) settles a tie between two explicitly placed
  * siblings by pushing down whichever comes *later* in `children` — so a
- * block dropped, say, between two existing rows has to land earlier in that
+ * widget dropped, say, between two existing rows has to land earlier in that
  * order than the row it is displacing, or collision resolution reads it
- * backwards and pushes the new block itself down past everything instead of
+ * backwards and pushes the new widget itself down past everything instead of
  * making room for it where it was actually dropped. `RootGrid` is what
  * already knows every sibling's own current position (it just packed them,
  * to draw this render's preview in the first place), so it is the one that
@@ -165,7 +165,7 @@ export function placeBlockAt(
   index: number,
   position: { col: number; row: number; colSpan: number; rowSpan: number },
 ): string {
-  const id = provider.addBuildingBlock(parentId, index, {
+  const id = provider.addWidget(parentId, index, {
     type,
     layout: isContainerType(type)
       ? { columns: DEFAULT_COLUMNS, gap: 16, ...position }

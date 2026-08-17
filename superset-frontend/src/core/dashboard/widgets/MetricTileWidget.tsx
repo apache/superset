@@ -83,20 +83,20 @@ function DeltaIndicator({ delta, theme }: { delta: DeltaSpec; theme: Theme }) {
 }
 
 /**
- * The built-in `metric-tile` building block ("big number") — registered
- * like any other block (see `registerBuiltInBuildingBlocks`). Fetches its
- * `dataBinding` the same generic way `ChartBlock`/`AgGridTableBlock` do, and
+ * The built-in `metric-tile` widget ("big number") — registered
+ * like any other widget (see `registerBuiltInWidgets`). Fetches its
+ * `dataBinding` the same generic way `ChartWidget`/`AgGridTableWidget` do, and
  * renders the first result row's value directly as text — no ECharts
- * gauge/`graphic` text workaround (what an AI reached for before this block
+ * gauge/`graphic` text workaround (what an AI reached for before this widget
  * existed), and no `$bind` splicing, since there's nothing here to splice
- * into: the whole point of this block is a single live number.
+ * into: the whole point of this widget is a single live number.
  *
  * `dataBinding` is expected to resolve one column (one metric, no
  * `dimensions`) — the value shown is always the *first* row's value for
  * that column; a tile shows one number, so grouping isn't meaningful here
  * the way it is for a chart or table.
  */
-export default function MetricTileBlock({ nodeId }: { nodeId: string }) {
+export default function MetricTileWidget({ nodeId }: { nodeId: string }) {
   useDashboardRevision();
   const theme = useTheme();
   const [value, setValue] = useState<unknown>(undefined);
@@ -149,12 +149,12 @@ export default function MetricTileBlock({ nodeId }: { nodeId: string }) {
       vertical
       justify="center"
       style={{
-        // Fills the box `BuildingBlockView`'s placement wrapper gives this
-        // block — always a definite pixel box, same as `ChartBlock`.
+        // Fills the box `WidgetView`'s placement wrapper gives this
+        // widget — always a definite pixel box, same as `ChartWidget`.
         width: '100%',
         height: '100%',
         // Surface, border, corners and inset all belong to the card
-        // `BuildingBlockView` draws around this block and the name above
+        // `WidgetView` draws around this widget and the name above
         // it, so that the name is inside the frame rather than over it.
         overflow: 'hidden',
       }}

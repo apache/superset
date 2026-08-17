@@ -18,7 +18,7 @@
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
 import DashboardProvider from '../DashboardProvider';
-import ChartBlock from './ChartBlock';
+import ChartWidget from './ChartWidget';
 
 const mockSetOption = jest.fn();
 
@@ -67,7 +67,7 @@ beforeEach(() => {
 });
 
 test('a chart does not draw the name its header already carries', async () => {
-  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+  const id = provider.addWidget(provider.getRoot().id, 0, {
     type: 'echarts',
     props: {
       dataBinding: { datasource: 1, columns: ['x'], metrics: [] },
@@ -77,11 +77,11 @@ test('a chart does not draw the name its header already carries', async () => {
       },
     },
   });
-  render(<ChartBlock nodeId={id} />);
+  render(<ChartWidget nodeId={id} />);
 
   await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
 
-  // `blockLabel` reads the title out of this same option to name the block,
+  // `widgetLabel` reads the title out of this same option to name the widget,
   // so leaving it here would print the chart's name twice, at two sizes, in
   // two places. The rest of the option has to survive untouched.
   const [option] = mockSetOption.mock.calls[0];

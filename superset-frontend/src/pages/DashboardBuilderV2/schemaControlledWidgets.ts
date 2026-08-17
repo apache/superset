@@ -18,20 +18,20 @@
  */
 
 /**
- * @fileoverview Leaf module wrapping the `DashboardProvider` singleton.
+ * Which widget types own a backend-served, schema-driven control panel.
  *
- * Widget components (built-in or extension-contributed) read from
- * `provider` and subscribe via `useDashboardRevision` directly — importing
- * from here rather than from `./index` avoids a cycle, since `./index` is
- * what registers the built-in widgets (which import the provider) in the
- * first place.
+ * Intentionally a tiny, dependency-free module: the Inspector imports it
+ * eagerly to decide whether to render `SchemaControlPanel` (lazily loaded)
+ * instead of the generic value-inferred `PropsForm`. Keeping the JSONForms /
+ * `semanticLayers` graph out of this module is what lets the Inspector stay in
+ * the eager bundle without dragging that graph into it (the core->features
+ * import cycle that otherwise surfaces app-wide as `t is not a function`).
+ *
+ * A widget listed here must have a matching backend control set registered in
+ * `superset/widgets/widgets.py`.
  */
-
-import { useSyncExternalStore } from 'react';
-import DashboardProvider from './DashboardProvider';
-
-export const provider = DashboardProvider.getInstance();
-
-/** Ticks on every dashboard.* mutation so a subscribed component re-reads the tree. */
-export const useDashboardRevision = () =>
-  useSyncExternalStore(provider.subscribe, provider.getRevision);
+export const SCHEMA_CONTROLLED_WIDGET_TYPES: ReadonlySet<string> = new Set([
+  'balloons',
+  'metric-tile',
+  'ag-grid-table',
+]);

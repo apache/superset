@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
@@ -27,14 +27,23 @@ import {
   Form,
   Input,
   InputNumber,
+  Loading,
   Tabs,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import copyTextToClipboard from 'src/utils/copy';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
-import { blockLabel } from 'src/core/dashboard/blockLabel';
+import { widgetLabel } from 'src/core/dashboard/widgetLabel';
 import DashboardProperties from './DashboardProperties';
 import PropsForm from './PropsForm';
+import { SCHEMA_CONTROLLED_WIDGET_TYPES } from './schemaControlledWidgets';
+
+// Lazy so the JSONForms / semanticLayers graph the schema-driven control panel
+// pulls in stays out of the eagerly-loaded Inspector bundle (the same
+// core->features cycle that otherwise surfaces app-wide as `t is not a
+// function`). Loaded only when a schema-controlled widget is selected; the
+// membership check above uses the dependency-free `schemaControlledWidgets`.
+const SchemaControlPanel = lazy(() => import('./SchemaControlPanel'));
 
 type LayoutProps = dashboardApi.LayoutProps;
 
@@ -83,7 +92,7 @@ const GroupTitle = styled.h4`
   `}
 `;
 
-/** Where the panel ends, and the one control that ends the block with it. */
+/** Where the panel ends, and the one control that ends the widget with it. */
 const Footer = styled.div`
   ${({ theme }) => css`
     margin-top: ${theme.sizeUnit * 4}px;
@@ -162,7 +171,7 @@ const NumberField = ({
 };
 
 /**
- * Block types whose renderer reads a plain-text `content` prop.
+ * Widget types whose renderer reads a plain-text `content` prop.
  *
  * A convenience over the general props editor below, not a special case in
  * the render path: prose is miserable to write inside a JSON string, with
@@ -171,7 +180,7 @@ const NumberField = ({
  */
 const PLAIN_TEXT_CONTENT = new Set(['markdown']);
 
-/** The `content` a block renders, edited where it is displayed. */
+/** The `content` a widget renders, edited where it is displayed. */
 const ContentField = ({
   nodeId,
   content,
@@ -213,13 +222,13 @@ const format = (props: Record<string, unknown> | undefined): string =>
 const COPIED_FOR_MS = 1500;
 
 /**
- * Everything a block renders from, offered whole and as text.
+ * Everything a widget renders from, offered whole and as text.
  *
- * This is the general answer to "how do I give this block its content", and
+ * This is the general answer to "how do I give this widget its content", and
  * it is general on purpose: a chart's `dataBinding` and `echartsOptions`, a
- * table's `columnDefs`, and whatever an extension's block reads next year
- * are all just keys here. A form per block type would need this panel to
- * learn every type — the exact knowledge `BuildingBlockView` is built not to
+ * table's `columnDefs`, and whatever an extension's widget reads next year
+ * are all just keys here. A form per widget type would need this panel to
+ * learn every type — the exact knowledge `WidgetView` is built not to
  * have, and what `PropsForm` generates a form without needing.
  *
  * This half is where the *shape* is decided, which is why it survives having
@@ -227,11 +236,11 @@ const COPIED_FOR_MS = 1500;
  * be added by writing it.
  *
  * The draft is held until it parses and the author asks for it, so malformed
- * JSON never reaches a block. What is applied is the whole record: keys the
+ * JSON never reaches a widget. What is applied is the whole record: keys the
  * author deleted are sent as `undefined`, which is as close to a removal as
- * a merge can express — the block reads `undefined` either way, and the key
+ * a merge can express — the widget reads `undefined` either way, and the key
  * does not survive the next serialization back into this editor. Without
- * that, deleting a line here would silently do nothing and the block would
+ * that, deleting a line here would silently do nothing and the widget would
  * go on rendering from the value it appeared to lose.
  */
 const PropsJsonEditor = ({
@@ -335,7 +344,7 @@ const PropsJsonEditor = ({
         </Button>
         {/* Set apart from the two beside it, because it is not one of them:
             those commit what is in the box and this only takes a copy of it.
-            The draft rather than what the block holds, so what is copied is
+            The draft rather than what the widget holds, so what is copied is
             what is on screen — including an edit not applied yet.
             Confirmed in place: a panel this narrow has nowhere to put a
             message, and a copy that says nothing leaves you pressing it
@@ -378,7 +387,7 @@ const PropsJsonEditor = ({
  * The form comes first and is what the panel opens on: it is the half that
  * asks a question rather than handing over a record to edit, and most of what
  * an author does here is change a value that already exists. The one case it
- * cannot serve — a block placed a moment ago, with no properties and so no
+ * cannot serve — a widget placed a moment ago, with no properties and so no
  * fields — says so and names the tab that can, rather than leaving a blank
  * pane that reads as broken.
  *
@@ -387,16 +396,23 @@ const PropsJsonEditor = ({
  * `Form.Item name={...}`, and an antd `Form` above them binds those items to
  * its store — which means antd supplies the `value` and the `onChange`,
  * overriding the ones JsonForms passed. The field still accepts typing; the
- * edit just goes into a form store nothing reads instead of into the block.
+ * edit just goes into a form store nothing reads instead of into the widget.
  * `SemanticLayerModal` renders JsonForms under a plain `<form>` element for
  * the same reason.
  */
 const PropsEditor = ({
   nodeId,
+  widgetType,
   props,
+  formOmitKeys,
 }: {
   nodeId: string;
+  widgetType: string;
   props: Record<string, unknown> | undefined;
+  // Keys the generic form must not offer because a dedicated control above it
+  // already edits them (e.g. `content`, owned by the Text editor). Omitted from
+  // the Form tab only — the JSON tab still shows the whole record.
+  formOmitKeys?: readonly string[];
 }): ReactElement => {
   const theme = useTheme();
   // Set down from the tab bar, the same step the panel and the palette take
@@ -405,6 +421,30 @@ const PropsEditor = ({
   // it — and on the JSON side that label is the one word saying what the box
   // beneath it holds.
   const inset = { paddingTop: theme.sizeUnit * 3 };
+
+  // A schema-controlled widget draws its Form tab from a backend-served JSON
+  // Schema (rendered bare — see the note above on why JsonForms must not sit
+  // under an antd `Form`); every other widget falls back to the generic
+  // value-inferred `PropsForm`. Both write to the same `node.props`, and the
+  // JSON tab is identical for all widgets.
+  //
+  // The generic form drops `formOmitKeys` so it doesn't re-offer a value a
+  // dedicated control already edits (a single-line input mirroring the Text
+  // area above it). `updateProps` merges, so a key absent from the form's data
+  // is left untouched rather than removed.
+  const formProps =
+    formOmitKeys && formOmitKeys.length > 0 && props
+      ? Object.fromEntries(
+          Object.entries(props).filter(([key]) => !formOmitKeys.includes(key)),
+        )
+      : props;
+  const formTab = SCHEMA_CONTROLLED_WIDGET_TYPES.has(widgetType) ? (
+    <Suspense fallback={<Loading position="inline-centered" size="s" />}>
+      <SchemaControlPanel nodeId={nodeId} />
+    </Suspense>
+  ) : (
+    <PropsForm nodeId={nodeId} props={formProps} />
+  );
 
   return (
     <Tabs
@@ -415,11 +455,7 @@ const PropsEditor = ({
         {
           key: 'form',
           label: t('Form'),
-          children: (
-            <div style={inset}>
-              <PropsForm nodeId={nodeId} props={props} />
-            </div>
-          ),
+          children: <div style={inset}>{formTab}</div>,
         },
         {
           key: 'json',
@@ -471,20 +507,20 @@ export default function Inspector(): ReactElement {
           image="empty.svg"
           title={t('Nothing selected')}
           description={t(
-            'Pick a block on the canvas, or a row in the Outline, to edit it here.',
+            'Pick a widget on the canvas, or a row in the Outline, to edit it here.',
           )}
         />
       </div>
     );
   }
 
-  // The root is the dashboard rather than a block on it, so what it is asked
+  // The root is the dashboard rather than a widget on it, so what it is asked
   // for is different in kind: what it is called, who it belongs to, how it
   // looks — not where it sits or what it renders.
   const isRoot = node.id === provider.getRoot().id;
   const content = node.props?.content;
-  // Offered for a block whose renderer reads prose, whether or not it has
-  // any yet — a markdown block placed a moment ago has no props at all, and
+  // Offered for a widget whose renderer reads prose, whether or not it has
+  // any yet — a markdown widget placed a moment ago has no props at all, and
   // waiting for a `content` key to exist before showing the field is what
   // left it with no way to be given one.
   const takesText =
@@ -496,13 +532,13 @@ export default function Inspector(): ReactElement {
         <DashboardProperties />
       ) : (
         // The same shape the dashboard's own panel opens with: what this is,
-        // then the smaller print about it. The name is `blockLabel`'s — the
-        // one the canvas header and the Outline row already use — so a block
+        // then the smaller print about it. The name is `widgetLabel`'s — the
+        // one the canvas header and the Outline row already use — so a widget
         // is called one thing in all three places, and the type and id sit
-        // under it as what they are, a fact about the block rather than its
+        // under it as what they are, a fact about the widget rather than its
         // name.
         <div data-test="inspector-identity">
-          <IdentityName>{blockLabel(node.type, node.props)}</IdentityName>
+          <IdentityName>{widgetLabel(node.type, node.props)}</IdentityName>
           <IdentityMeta>
             {node.type} · {node.id}
           </IdentityMeta>
@@ -522,7 +558,15 @@ export default function Inspector(): ReactElement {
               />
             </Form>
           )}
-          <PropsEditor nodeId={node.id} props={node.props} />
+          <PropsEditor
+            nodeId={node.id}
+            widgetType={node.type}
+            props={node.props}
+            // The Text editor above already owns `content` for a text widget, so
+            // the generic form drops it rather than showing a single-line input
+            // mirroring that textarea.
+            formOmitKeys={takesText ? ['content'] : undefined}
+          />
         </Section>
       )}
 
@@ -546,11 +590,11 @@ export default function Inspector(): ReactElement {
         </Form>
       )}
 
-      {/* `removeBuildingBlock` refuses the root, so offering it here would be
+      {/* `removeWidget` refuses the root, so offering it here would be
           a button that only ever raises.
 
           Ruled off from the fields above it rather than following them at a
-          gap: everything else in this column changes the block, and this is
+          gap: everything else in this column changes the widget, and this is
           the one control that ends it. The rule is the same one that divides
           the sections, so the panel reads as ending here rather than as
           having one more field. */}
@@ -566,9 +610,9 @@ export default function Inspector(): ReactElement {
             buttonStyle="danger"
             icon={<Icons.DeleteOutlined iconSize="s" />}
             data-test="inspector-delete"
-            onClick={() => provider.removeBuildingBlock(node.id)}
+            onClick={() => provider.removeWidget(node.id)}
           >
-            {t('Delete block')}
+            {t('Delete widget')}
           </Button>
         </Footer>
       )}

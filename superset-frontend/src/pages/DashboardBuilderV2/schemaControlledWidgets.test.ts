@@ -16,22 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SCHEMA_CONTROLLED_WIDGET_TYPES } from './schemaControlledWidgets';
 
-/**
- * @fileoverview Leaf module wrapping the `DashboardProvider` singleton.
- *
- * Widget components (built-in or extension-contributed) read from
- * `provider` and subscribe via `useDashboardRevision` directly — importing
- * from here rather than from `./index` avoids a cycle, since `./index` is
- * what registers the built-in widgets (which import the provider) in the
- * first place.
- */
-
-import { useSyncExternalStore } from 'react';
-import DashboardProvider from './DashboardProvider';
-
-export const provider = DashboardProvider.getInstance();
-
-/** Ticks on every dashboard.* mutation so a subscribed component re-reads the tree. */
-export const useDashboardRevision = () =>
-  useSyncExternalStore(provider.subscribe, provider.getRevision);
+// Guards the eager-import contract: this module must stay dependency-free so
+// the Inspector can import it without dragging in the JSONForms graph.
+test('lists the data-backed widgets that have a backend control schema', () => {
+  expect(SCHEMA_CONTROLLED_WIDGET_TYPES.has('balloons')).toBe(true);
+  expect(SCHEMA_CONTROLLED_WIDGET_TYPES.has('metric-tile')).toBe(true);
+  expect(SCHEMA_CONTROLLED_WIDGET_TYPES.has('ag-grid-table')).toBe(true);
+  // Prose / layout widgets keep the generic props form.
+  expect(SCHEMA_CONTROLLED_WIDGET_TYPES.has('markdown')).toBe(false);
+});

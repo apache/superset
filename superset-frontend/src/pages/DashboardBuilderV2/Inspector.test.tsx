@@ -44,7 +44,7 @@ const openJson = async () => {
 };
 
 const select = (type: string, props?: Record<string, unknown>) => {
-  const id = provider.addBuildingBlock(provider.getRoot().id, 0, {
+  const id = provider.addWidget(provider.getRoot().id, 0, {
     type,
     ...(props ? { props } : {}),
   });
@@ -53,9 +53,9 @@ const select = (type: string, props?: Record<string, unknown>) => {
   return id;
 };
 
-test('a markdown block placed a moment ago can still be given content', async () => {
-  // The block arrives with no props at all. Waiting for a `content` key to
-  // exist before offering the field is what left a fresh block with no way
+test('a markdown widget placed a moment ago can still be given content', async () => {
+  // The widget arrives with no props at all. Waiting for a `content` key to
+  // exist before offering the field is what left a fresh widget with no way
   // to be given one.
   const id = select('markdown');
 
@@ -68,13 +68,13 @@ test('a markdown block placed a moment ago can still be given content', async ()
   expect(provider.getNode(id)?.props?.content).toBe('Quarterly review');
 });
 
-test('content a block already has is what the field shows', () => {
+test('content a widget already has is what the field shows', () => {
   select('markdown', { content: 'Welcome' });
 
   expect(screen.getByTestId('inspector-content')).toHaveValue('Welcome');
 });
 
-test('a block with no prose field is still authorable through its properties', async () => {
+test('a widget with no prose field is still authorable through its properties', async () => {
   select('echarts');
 
   // A chart's dataBinding and echartsOptions have never had a hand-editing
@@ -83,7 +83,7 @@ test('a block with no prose field is still authorable through its properties', a
   expect(await openJson()).toBeInTheDocument();
 });
 
-test('applying properties writes them to the block', async () => {
+test('applying properties writes them to the widget', async () => {
   const id = select('echarts');
   await openJson();
 
@@ -98,7 +98,7 @@ test('applying properties writes them to the block', async () => {
   });
 });
 
-test('a key deleted from the properties stops reaching the block', async () => {
+test('a key deleted from the properties stops reaching the widget', async () => {
   const id = select('echarts', { keep: 1, drop: 2 });
   await openJson();
 
@@ -108,9 +108,9 @@ test('a key deleted from the properties stops reaching the block', async () => {
   await userEvent.click(screen.getByTestId('inspector-props-apply'));
 
   // `updateProps` merges, so omitting a key would silently do nothing and
-  // the block would go on rendering from the value it appeared to lose.
+  // the widget would go on rendering from the value it appeared to lose.
   // Sending `undefined` is as close to a removal as a merge can express: the
-  // block reads nothing there, and the key does not survive serialization
+  // widget reads nothing there, and the key does not survive serialization
   // back into the editor.
   expect(provider.getNode(id)?.props?.drop).toBeUndefined();
   expect(provider.getNode(id)?.props?.keep).toBe(1);
@@ -163,19 +163,19 @@ test('properties can be edited as a form or as JSON, whichever suits', async () 
   expect(await openJson()).toBeInTheDocument();
 });
 
-test('the form is built from the properties the block is actually holding', async () => {
+test('the form is built from the properties the widget is actually holding', async () => {
   select('echarts', { title: 'Revenue', limit: 10 });
 
   const form = await openForm();
 
-  // No block type is named anywhere in this panel, so a contributed block
+  // No widget type is named anywhere in this panel, so a contributed widget
   // gets a form on the same terms a built-in one does.
   expect(form).toHaveTextContent('Title');
   expect(form).toHaveTextContent('Limit');
   expect(screen.getByDisplayValue('Revenue')).toBeInTheDocument();
 });
 
-test('a value typed into the form reaches the block', async () => {
+test('a value typed into the form reaches the widget', async () => {
   const id = select('echarts', { title: 'Revenue' });
   await openForm();
 
@@ -212,7 +212,7 @@ test('the properties on screen can be taken away as JSON', async () => {
   select('echarts', { title: 'Revenue' });
   await openJson();
 
-  // What is copied is what is on screen, not what the block holds — an edit
+  // What is copied is what is on screen, not what the widget holds — an edit
   // typed but not applied yet is the state most worth being able to take
   // somewhere else.
   fireEvent.change(screen.getByTestId('inspector-props'), {
@@ -229,7 +229,7 @@ test("the dashboard-wide properties are the dashboard's alone", async () => {
   select('echarts', { title: 'Revenue' });
 
   // What a dashboard is called, who may see it and how often it refreshes are
-  // properties of the dashboard, not of anything placed on it — a block asked
+  // properties of the dashboard, not of anything placed on it — a widget asked
   // for a URL slug would be asking for something it has no such thing as.
   expect(screen.queryByTestId('dashboard-properties')).not.toBeInTheDocument();
   [
@@ -242,11 +242,11 @@ test("the dashboard-wide properties are the dashboard's alone", async () => {
   ].forEach(section =>
     expect(screen.queryByText(section)).not.toBeInTheDocument(),
   );
-  // And what a block does have stays where it is.
+  // And what a widget does have stays where it is.
   expect(await openForm()).toBeInTheDocument();
 });
 
-test('a block with no properties yet says where they are added', async () => {
+test('a widget with no properties yet says where they are added', async () => {
   select('echarts');
 
   // A form generated from values cannot offer a field for a key nothing has
@@ -256,7 +256,22 @@ test('a block with no properties yet says where they are added', async () => {
   expect(form).toHaveTextContent('JSON');
 });
 
-test('reverting restores what the block still has', async () => {
+test('the Text editor owns content, so the form does not repeat it', async () => {
+  select('markdown', { content: 'Welcome' });
+
+  // The dedicated Text editor shows the prose.
+  expect(screen.getByTestId('inspector-content')).toHaveValue('Welcome');
+  // The generic form must not offer `content` again as a single-line input
+  // mirroring that textarea — with content its only prop, it has nothing left.
+  const form = await openForm();
+  expect(form).toHaveTextContent('no properties yet');
+  // The JSON tab still shows the whole record, content included.
+  expect(await openJson()).toHaveValue(
+    JSON.stringify({ content: 'Welcome' }, null, 2),
+  );
+});
+
+test('reverting restores what the widget still has', async () => {
   select('echarts', { kept: true });
   await openJson();
 
@@ -274,7 +289,7 @@ test('the panel is set down from the tabs above it', () => {
   select('markdown');
 
   // Flush against the tab bar, the first line reads as a caption belonging
-  // to the tabs rather than to the block it names.
+  // to the tabs rather than to the widget it names.
   expect(screen.getByTestId('inspector')).toHaveStyle('padding-top: 12px');
 });
 
@@ -318,10 +333,10 @@ test('selecting the dashboard offers the properties the dashboard has', () => {
   ].forEach(section => expect(screen.getByText(section)).toBeInTheDocument());
 });
 
-test('the dashboard is not a block, so it is not placed and cannot be deleted', () => {
+test('the dashboard is not a widget, so it is not placed and cannot be deleted', () => {
   selectRoot();
 
-  // `removeBuildingBlock` refuses the root outright, so a Delete there is a
+  // `removeWidget` refuses the root outright, so a Delete there is a
   // control that only ever raises; and the root is placed by nothing, so it
   // has no column or row of its own to start at.
   expect(screen.queryByTestId('inspector-delete')).not.toBeInTheDocument();
@@ -333,21 +348,21 @@ test('the dashboard is not a block, so it is not placed and cannot be deleted', 
 
 test('the panel counts what is on the dashboard', () => {
   const rootId = provider.getRoot().id;
-  const section = provider.addBuildingBlock(rootId, 0, { type: 'tabs' });
-  provider.addBuildingBlock(section, 0, { type: 'markdown' });
-  provider.addBuildingBlock(rootId, 1, { type: 'markdown' });
+  const section = provider.addWidget(rootId, 0, { type: 'tabs' });
+  provider.addWidget(section, 0, { type: 'markdown' });
+  provider.addWidget(rootId, 1, { type: 'markdown' });
   selectRoot();
 
-  // Every block, at any depth — a section and what is inside it are both
+  // Every widget, at any depth — a section and what is inside it are both
   // things on the dashboard.
   expect(screen.getByTestId('dashboard-properties-counts')).toHaveTextContent(
-    '3 blocks, 0 filters',
+    '3 widgets, 0 filters',
   );
 });
 
 test('a child is asked where it starts', () => {
   const rootId = provider.getRoot().id;
-  const childId = provider.addBuildingBlock(rootId, 0, { type: 'markdown' });
+  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
   provider.setSelection(childId);
   render(<Inspector />);
 
