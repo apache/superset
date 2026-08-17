@@ -30,6 +30,7 @@ import {
   Select,
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import copyTextToClipboard from 'src/utils/copy';
 import {
   API_KEY_SCOPE_OPTIONS,
   getApiKeyScopesHelpText,
@@ -94,7 +95,7 @@ export function ApiKeyCreateModal({
       return;
     }
     try {
-      await navigator.clipboard.writeText(createdKey);
+      await copyTextToClipboard(() => Promise.resolve(createdKey));
       setCopied(true);
       if (copyTimerRef.current) {
         clearTimeout(copyTimerRef.current);
