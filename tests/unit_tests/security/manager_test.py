@@ -3974,6 +3974,90 @@ def test_sql_filters_simple_filters_not_blocked(
     assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
 
 
+def test_sql_filters_structured_filter_adhoc_col_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Structured filter with an adhoc SQL column in ``col`` is blocked.
+
+    ``ChartDataFilterSchema.col`` is ``fields.Raw``, so an attacker can pass
+    an adhoc column dict that reaches ``adhoc_column_to_sqla`` and executes
+    arbitrary SQL in the WHERE clause.
+    """
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    adhoc_col: Any = {
+        "expressionType": "SQL",
+        "sqlExpression": "1; DROP TABLE users--",
+        "label": "x",
+    }
+    query = QueryObject(
+        filters=[{"col": adhoc_col, "op": "!=", "val": "z"}],
+    )
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_structured_filter_string_col_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Structured filter with a plain string column is allowed."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject(
+        filters=[{"col": "status", "op": "==", "val": "active"}],
+    )
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_empty_filter_sentinel_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """The ``(1 = 0)`` sentinel from a required-but-empty native filter is allowed."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject(extras={"where": "(1 = 0)"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_is_extra_adhoc_filter_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """SQL adhoc filters tagged isExtra (from dashboard filter merging) are allowed."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject()
+    query_context.queries = [query]
+
+    dashboard_filter = {
+        "expressionType": "SQL",
+        "sqlExpression": "1 = 0",
+        "clause": "WHERE",
+        "isExtra": True,
+    }
+    form_data: dict[str, Any] = {"slice_id": 1, "adhoc_filters": [dashboard_filter]}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
 def test_raise_for_access_guest_user_sql_filter_injection_blocked(
     mocker: MockerFixture,
     app_context: None,

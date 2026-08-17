@@ -1137,6 +1137,56 @@ def _collect_allowed_sql_extras(
     return allowed_where, allowed_having
 
 
+# The frontend emits ``{expressionType: "SQL", sqlExpression: "1 = 0"}`` when
+# a native Select filter has "Filter value is required" enabled and no value
+# has been selected yet (superset-frontend/src/filters/utils.ts).  After
+# ``_sanitize_clause`` wraps it in parentheses the resulting ``extras.where``
+# value is ``(1 = 0)``.  This is safe — it returns zero rows — and must be
+# allowed so that embedded charts are not rejected before the user picks a
+# filter value.
+_EMPTY_FILTER_SENTINEL = "(1 = 0)"
+
+
+def _filter_has_adhoc_sql_col(flt: Any) -> bool:
+    """
+    Whether a structured ``{col, op, val}`` filter carries an adhoc column
+    with a ``sqlExpression``, which would reach ``adhoc_column_to_sqla``
+    and execute arbitrary SQL in the WHERE clause.
+    """
+    if not isinstance(flt, dict):
+        return False
+    col = flt.get("col")
+    return (
+        isinstance(col, dict)
+        and isinstance(col.get("sqlExpression"), str)
+        and bool(col.get("sqlExpression"))
+    )
+
+
+def _query_extras_sql_modified(
+    query: Any,
+    allowed_where: set[str],
+    allowed_having: set[str],
+) -> bool:
+    """
+    Whether a single query's ``extras.where``/``extras.having`` or structured
+    filters inject SQL not present on the stored chart.
+    """
+    extras = query.extras or {}
+    req_where = extras.get("where", "")
+    if req_where and req_where != _EMPTY_FILTER_SENTINEL:
+        if req_where not in allowed_where:
+            return True
+    req_having = extras.get("having", "")
+    if req_having and req_having != _EMPTY_FILTER_SENTINEL:
+        if req_having not in allowed_having:
+            return True
+    for flt in query.filter or []:
+        if _filter_has_adhoc_sql_col(flt):
+            return True
+    return False
+
+
 def _sql_filters_modified(
     query_context: "QueryContext",
     form_data: dict[str, Any],
@@ -1144,24 +1194,28 @@ def _sql_filters_modified(
     stored_query_context: Optional[dict[str, Any]],
 ) -> bool:
     """
-    Whether the request injects custom SQL predicates (``extras.where``,
-    ``extras.having``, or SQL-type adhoc filters) that are not present on the
-    stored chart.
+    Whether the request injects custom SQL predicates that are not present on
+    the stored chart.  Covers three vectors:
 
-    Structured ``{col, op, val}`` filters are intentionally not constrained
-    here: they cannot carry arbitrary SQL and are legitimately added by
-    dashboard native filters, cross-filters, and drill interactions.
+    1. ``extras.where`` / ``extras.having`` — raw SQL strings.
+    2. Adhoc filters with ``expressionType == "SQL"`` in ``form_data``.
+    3. Structured ``{col, op, val}`` filters whose ``col`` is an adhoc column
+       carrying a ``sqlExpression`` (reaches ``adhoc_column_to_sqla``).
+
+    Dashboard native filters can inject the ``(1 = 0)`` empty-filter sentinel
+    and adhoc filters tagged ``isExtra`` via ``merge_extra_form_data``; both
+    are allowed so embedded charts with required-but-empty filters are not
+    rejected.
     """
     allowed_where, allowed_having = _collect_allowed_sql_extras(
         stored_chart, stored_query_context
     )
 
-    for query in query_context.queries:
-        extras = query.extras or {}
-        if extras.get("where") and extras["where"] not in allowed_where:
-            return True
-        if extras.get("having") and extras["having"] not in allowed_having:
-            return True
+    if any(
+        _query_extras_sql_modified(query, allowed_where, allowed_having)
+        for query in query_context.queries
+    ):
+        return True
 
     stored_sql_filters: set[str] = {
         freeze_value(flt)
@@ -1170,7 +1224,7 @@ def _sql_filters_modified(
     }
 
     for flt in form_data.get("adhoc_filters") or []:
-        if flt.get("expressionType") == "SQL":
+        if flt.get("expressionType") == "SQL" and not flt.get("isExtra"):
             if freeze_value(flt) not in stored_sql_filters:
                 return True
 
