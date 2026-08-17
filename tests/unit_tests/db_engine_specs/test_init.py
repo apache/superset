@@ -22,6 +22,18 @@ from pytest_mock import MockerFixture
 from superset.db_engine_specs import get_available_engine_specs
 
 
+def test_malformed_dialect_entry_point_does_not_break_bootstrap(
+    app, mocker: MockerFixture
+) -> None:
+    """A broken third-party entry point must only disable that connector."""
+    malformed = mocker.Mock(name="exa")
+    malformed.load.return_value = mocker.Mock(spec=[])
+    mocker.patch("superset.db_engine_specs.entry_points", return_value=[malformed])
+    mocker.patch("superset.db_engine_specs.load_engine_specs", return_value=iter([]))
+
+    assert get_available_engine_specs() == {}
+
+
 def test_get_available_engine_specs(mocker: MockerFixture) -> None:
     """
     get_available_engine_specs should return all engine specs

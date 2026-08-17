@@ -162,9 +162,9 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
     for ep in entry_points(group="sqlalchemy.dialects"):
         try:
             dialect = ep.load()
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.debug("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
-        else:
+            # Third-party entry points may load an object that does not satisfy
+            # the SQLAlchemy dialect contract. Keep contract validation inside
+            # the plugin boundary so one malformed package cannot break startup.
             backend = dialect.name
             if isinstance(backend, bytes):
                 backend = backend.decode()
@@ -173,6 +173,9 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
             driver = getattr(dialect, "driver", dialect.name)
             if isinstance(driver, bytes):
                 driver = driver.decode()
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
+        else:
             drivers[backend].add(driver)
 
     dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
