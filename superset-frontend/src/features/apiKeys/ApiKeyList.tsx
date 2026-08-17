@@ -163,13 +163,13 @@ export function ApiKeyList() {
       render: (_: unknown, record: ApiKey) => getStatusBadge(record),
     },
     {
-      title: t('Scopes'),
+      title: t('MCP scopes'),
       dataIndex: 'scopes',
       key: 'scopes',
       render: (scopes: string | null) =>
         scopes ? (
           <Tooltip title={scopes}>
-            <Tag>{t('%s scoped', scopes.split(',').length)}</Tag>
+            <Tag>{t('%s MCP scopes', scopes.split(',').length)}</Tag>
           </Tooltip>
         ) : (
           <Tag>{t('RBAC only')}</Tag>
