@@ -51,5 +51,5 @@ export const serializeApiKeyScopes = (scopes?: string[]) =>
 
 export const getApiKeyScopesHelpText = () =>
   t(
-    'Limit this key to selected resources and actions. Leave empty for legacy RBAC-only behavior. Scopes never grant permissions the user does not already have.',
+    'Limit which MCP resources and actions this key can access. These scopes do not restrict REST API requests and never grant permissions the user does not already have. Leave empty for legacy RBAC-only behavior.',
   );

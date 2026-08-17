@@ -183,7 +183,7 @@ export function ApiKeyCreateModal({
       </FormItem>
       <FormItem
         name="scopes"
-        label={t('Scopes')}
+        label={t('MCP scopes')}
         help={getApiKeyScopesHelpText()}
       >
         <Select
@@ -192,9 +192,11 @@ export function ApiKeyCreateModal({
           allowClear
           showSearch
           options={API_KEY_SCOPE_OPTIONS}
-          placeholder={t('Select resource scopes (optional)')}
+          placeholder={t('Select MCP resource scopes (optional)')}
           data-test="api-key-scopes-select"
-          getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
+          getPopupContainer={(trigger: HTMLElement) =>
+            trigger.closest<HTMLElement>('.ant-modal-container')
+          }
         />
       </FormItem>
     </FormModal>

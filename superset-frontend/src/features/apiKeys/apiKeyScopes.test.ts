@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { API_KEY_SCOPE_OPTIONS, serializeApiKeyScopes } from './apiKeyScopes';
+import {
+  API_KEY_SCOPE_OPTIONS,
+  getApiKeyScopesHelpText,
+  serializeApiKeyScopes,
+} from './apiKeyScopes';
 
 test('offers read and write scopes for every supported resource', () => {
   expect(API_KEY_SCOPE_OPTIONS).toHaveLength(32);
@@ -36,4 +40,11 @@ test('serializes selected scopes for the FAB API', () => {
   ).toBe('superset:dashboard:read,superset:chart:write');
   expect(serializeApiKeyScopes([])).toBeUndefined();
   expect(serializeApiKeyScopes()).toBeUndefined();
+});
+
+test('explains that scopes apply to MCP rather than REST APIs', () => {
+  expect(getApiKeyScopesHelpText()).toContain('MCP resources');
+  expect(getApiKeyScopesHelpText()).toContain(
+    'do not restrict REST API requests',
+  );
 });
