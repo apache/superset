@@ -53,10 +53,6 @@ from superset.mcp_service.chart.schemas import (
     GetChartDataRequest,
     PerformanceMetadata,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -250,43 +246,8 @@ def _filter_candidates(
 
 
 def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
-    """Serialize chart data without changing domain values."""
-    payload = chart_data.model_dump(mode="python")
-
-    for field_name in ("chart_name", "summary", "csv_data"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    payload["insights"] = sanitize_for_llm_context(
-        payload.get("insights", []),
-        field_path=("insights",),
-    )
-    payload["data"] = sanitize_for_llm_context(
-        payload.get("data", []),
-        field_path=("data",),
-        excluded_field_names=frozenset(),
-    )
-    for query_index, query_result in enumerate(payload.get("query_results") or []):
-        query_result["data"] = sanitize_for_llm_context(
-            query_result.get("data", []),
-            field_path=("query_results", str(query_index), "data"),
-            excluded_field_names=frozenset(),
-        )
-    payload["columns"] = [
-        {
-            **column,
-            "sample_values": sanitize_for_llm_context(
-                column.get("sample_values", []),
-                field_path=("columns", str(index), "sample_values"),
-                excluded_field_names=frozenset(),
-            ),
-        }
-        for index, column in enumerate(payload.get("columns", []))
-    ]
-
-    return ChartData.model_validate(payload)
+    """Return validated chart data without copying or changing it."""
+    return chart_data
 
 
 def _build_query_results(
@@ -454,10 +415,10 @@ async def get_chart_data(  # noqa: C901
             logger.warning(
                 "get_chart_data: chart not found: identifier=%s", request.identifier
             )
-            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+            display_id = str(request.identifier)[:200]
             return ChartError(
                 error=(
-                    f"No chart found with identifier: {safe_id}."
+                    f"No chart found with identifier: {display_id}."
                     " Use list_charts to get valid chart IDs."
                 ),
                 error_type="NotFound",

@@ -105,10 +105,6 @@ from superset.mcp_service.system.schemas import (
     SubjectInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.response_utils import (
     humanize_timestamp,
     OmittedFieldsBuilder,
@@ -129,12 +125,6 @@ class DashboardError(BaseModel):
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
 
     model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Preserve error text exactly in the MCP result."""
-        return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod
     def create(cls, error: str, error_type: str) -> "DashboardError":
@@ -557,14 +547,6 @@ class AddChartToDashboardResponse(BaseModel):
         ),
     )
 
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Preserve errors, including user-supplied tab labels, exactly."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=("error",))
-
 
 class RemoveChartFromDashboardRequest(BaseModel):
     """Request schema for removing a chart from an existing dashboard."""
@@ -603,14 +585,6 @@ class RemoveChartFromDashboardResponse(BaseModel):
             "user — do NOT attempt a workaround without confirming first."
         ),
     )
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Preserve errors, including dashboard-controlled text, exactly."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=("error",))
 
 
 class GenerateDashboardRequest(BaseModel):
@@ -1037,24 +1011,13 @@ class ManageDashboardOwnersRequest(BaseModel):
 
 
 class DashboardMutationErrorFields(BaseModel):
-    """Shared ``error``/``permission_denied`` fields for dashboard governance
-    mutation responses (owners/roles/certification), including the
-    compatibility validator that preserves ``error`` exactly.
-    """
+    """Shared error and permission fields for governance mutations."""
 
     error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=("True when the user lacks edit rights on the target dashboard."),
     )
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Preserve error text exactly in the MCP result."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=("error",))
 
 
 class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
@@ -1085,23 +1048,6 @@ class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
             "themselves."
         ),
     )
-
-    @field_validator("owners", mode="after")
-    @classmethod
-    def sanitize_owners_for_llm_context(
-        cls, value: list[SubjectInfo]
-    ) -> list[SubjectInfo]:
-        """Preserve every user-controlled owner label in the MCP result."""
-        sanitized: list[SubjectInfo] = []
-        for subject in value:
-            if subject.label is None:
-                sanitized.append(subject)
-                continue
-            clean_label: str = sanitize_for_llm_context(
-                subject.label, field_path=("owners", "label")
-            )
-            sanitized.append(subject.model_copy(update={"label": clean_label}))
-        return sanitized
 
 
 class ManageDashboardRolesRequest(BaseModel):
@@ -1204,23 +1150,6 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
         default_factory=list, description="Non-fatal advisory messages."
     )
 
-    @field_validator("roles", mode="after")
-    @classmethod
-    def sanitize_roles_for_llm_context(
-        cls, value: list[SubjectInfo]
-    ) -> list[SubjectInfo]:
-        """Preserve every user-controlled role label in the MCP result."""
-        sanitized: list[SubjectInfo] = []
-        for subject in value:
-            if subject.label is None:
-                sanitized.append(subject)
-                continue
-            clean_label: str = sanitize_for_llm_context(
-                subject.label, field_path=("roles", "label")
-            )
-            sanitized.append(subject.model_copy(update={"label": clean_label}))
-        return sanitized
-
 
 class ManageDashboardCertificationRequest(BaseModel):
     """Request schema for setting or clearing dashboard certification.
@@ -1320,16 +1249,6 @@ class ManageDashboardCertificationResponse(DashboardMutationErrorFields):
     warnings: list[str] = Field(
         default_factory=list, description="Non-fatal advisory messages."
     )
-
-    @field_validator("certified_by", "certification_details")
-    @classmethod
-    def sanitize_output_for_llm_context(
-        cls, value: str | None, info: Any
-    ) -> str | None:
-        """Preserve dashboard-controlled certification text exactly."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=(info.field_name,))
 
 
 class GenerateDashboardResponse(BaseModel):
@@ -1467,14 +1386,6 @@ class DuplicateDashboardResponse(BaseModel):
             "sanitization."
         ),
     )
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Preserve errors, including dashboard-controlled text, exactly."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=("error",))
 
 
 class ChartPosition(BaseModel):
@@ -1805,78 +1716,8 @@ def redact_filter_state_data_model_metadata(
 def _sanitize_dashboard_info_for_llm_context(
     dashboard_info: DashboardInfo,
 ) -> DashboardInfo:
-    """Serialize dashboard fields without changing domain values."""
-    payload = dashboard_info.model_dump(mode="python")
-
-    for field_name in (
-        "dashboard_title",
-        "description",
-        "css",
-        "certified_by",
-        "certification_details",
-    ):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    payload["native_filters"] = [
-        {
-            **native_filter,
-            "name": sanitize_for_llm_context(
-                native_filter.get("name"),
-                field_path=("native_filters", str(index), "name"),
-            ),
-            "targets": sanitize_for_llm_context(
-                native_filter.get("targets", []),
-                field_path=("native_filters", str(index), "targets"),
-                excluded_field_names=frozenset(),
-            ),
-        }
-        for index, native_filter in enumerate(payload.get("native_filters", []))
-    ]
-
-    payload["charts"] = [
-        {
-            **chart,
-            "slice_name": sanitize_for_llm_context(
-                chart.get("slice_name"),
-                field_path=("charts", str(index), "slice_name"),
-            ),
-            "description": sanitize_for_llm_context(
-                chart.get("description"),
-                field_path=("charts", str(index), "description"),
-            ),
-            "datasource_name": escape_llm_context_delimiters(
-                chart.get("datasource_name"),
-            ),
-        }
-        for index, chart in enumerate(payload.get("charts", []))
-    ]
-
-    if payload.get("filter_state") is not None:
-        payload["filter_state"] = sanitize_for_llm_context(
-            payload["filter_state"],
-            field_path=("filter_state",),
-            excluded_field_names=frozenset(),
-        )
-
-    payload["tags"] = [
-        {
-            **tag,
-            "name": sanitize_for_llm_context(
-                tag.get("name"),
-                field_path=("tags", str(index), "name"),
-            ),
-            "description": sanitize_for_llm_context(
-                tag.get("description"),
-                field_path=("tags", str(index), "description"),
-            ),
-        }
-        for index, tag in enumerate(payload.get("tags", []))
-    ]
-
-    return DashboardInfo.model_validate(payload)
+    """Return validated dashboard data without copying or changing it."""
+    return dashboard_info
 
 
 def _safe_user_label(value: Any) -> str | None:
@@ -2041,40 +1882,8 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
 def _sanitize_dashboard_layout_for_llm_context(
     layout: DashboardLayout,
 ) -> DashboardLayout:
-    """Serialize layout text fields without changing domain values."""
-    payload = layout.model_dump(mode="python")
-    payload["dashboard_title"] = sanitize_for_llm_context(
-        payload.get("dashboard_title"),
-        field_path=("dashboard_title",),
-    )
-    payload["tabs"] = [
-        {
-            **tab,
-            "name": sanitize_for_llm_context(
-                tab.get("name"),
-                field_path=("tabs", str(index), "name"),
-            ),
-        }
-        for index, tab in enumerate(payload.get("tabs", []))
-    ]
-    payload["charts"] = [
-        {
-            **chart,
-            "slice_name": sanitize_for_llm_context(
-                chart.get("slice_name"),
-                field_path=("charts", str(index), "slice_name"),
-            ),
-            "tab_path": [
-                sanitize_for_llm_context(
-                    name,
-                    field_path=("charts", str(index), "tab_path", str(part_index)),
-                )
-                for part_index, name in enumerate(chart.get("tab_path", []) or [])
-            ],
-        }
-        for index, chart in enumerate(payload.get("charts", []))
-    ]
-    return DashboardLayout.model_validate(payload)
+    """Return validated layout data without copying or changing it."""
+    return layout
 
 
 def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
@@ -2347,14 +2156,6 @@ class ManageNativeFiltersResponse(BaseModel):
         ),
     )
 
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
-        """Preserve errors, including filter and dashboard text, exactly."""
-        if value is None:
-            return value
-        return sanitize_for_llm_context(value, field_path=("error",))
-
 
 # ---------------------------------------------------------------------------
 # get_dashboard_datasets schemas
@@ -2472,42 +2273,27 @@ def _serialize_dashboard_dataset(
 
     columns = [
         DashboardDatasetColumn(
-            column_name=escape_llm_context_delimiters(
-                getattr(column, "column_name", None) or ""
-            ),
-            verbose_name=sanitize_for_llm_context(
-                getattr(column, "verbose_name", None),
-                field_path=("columns", str(index), "verbose_name"),
-            ),
+            column_name=getattr(column, "column_name", None) or "",
+            verbose_name=getattr(column, "verbose_name", None),
             type=getattr(column, "type", None),
             is_dttm=getattr(column, "is_dttm", None),
         )
-        for index, column in enumerate(all_columns[:MAX_DASHBOARD_DATASET_COLUMNS])
+        for column in all_columns[:MAX_DASHBOARD_DATASET_COLUMNS]
     ]
     metrics = [
         DashboardDatasetMetric(
-            metric_name=escape_llm_context_delimiters(
-                getattr(metric, "metric_name", None) or ""
-            ),
-            verbose_name=sanitize_for_llm_context(
-                getattr(metric, "verbose_name", None),
-                field_path=("metrics", str(index), "verbose_name"),
-            ),
-            expression=sanitize_for_llm_context(
-                getattr(metric, "expression", None),
-                field_path=("metrics", str(index), "expression"),
-            ),
+            metric_name=getattr(metric, "metric_name", None) or "",
+            verbose_name=getattr(metric, "verbose_name", None),
+            expression=getattr(metric, "expression", None),
         )
-        for index, metric in enumerate(all_metrics[:MAX_DASHBOARD_DATASET_METRICS])
+        for metric in all_metrics[:MAX_DASHBOARD_DATASET_METRICS]
     ]
 
     database = getattr(datasource, "database", None)
     database_info = (
         DashboardDatasetDatabaseInfo(
             id=getattr(database, "id", None),
-            name=escape_llm_context_delimiters(
-                getattr(database, "database_name", None)
-            ),
+            name=getattr(database, "database_name", None),
             backend=getattr(database, "backend", None),
         )
         if database is not None
@@ -2518,10 +2304,8 @@ def _serialize_dashboard_dataset(
     return DashboardDatasetSummary(
         id=getattr(datasource, "id", None),
         uuid=str(dataset_uuid) if dataset_uuid else None,
-        table_name=escape_llm_context_delimiters(
-            getattr(datasource, "table_name", None)
-        ),
-        schema_name=escape_llm_context_delimiters(getattr(datasource, "schema", None)),
+        table_name=getattr(datasource, "table_name", None),
+        schema_name=getattr(datasource, "schema", None),
         database=database_info,
         chart_count=chart_count,
         columns=columns,
@@ -2576,10 +2360,7 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
 
     return DashboardDatasets(
         id=dashboard.id,
-        dashboard_title=sanitize_for_llm_context(
-            dashboard.dashboard_title or "Untitled",
-            field_path=("dashboard_title",),
-        ),
+        dashboard_title=dashboard.dashboard_title or "Untitled",
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         dataset_count=len(datasets),
         inaccessible_dataset_count=inaccessible_count,

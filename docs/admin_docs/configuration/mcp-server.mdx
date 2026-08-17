@@ -576,7 +576,7 @@ MCP_CACHE_CONFIG = {
 | Key                  | Default   | Description                                                 |
 | -------------------- | --------- | ----------------------------------------------------------- |
 | `enabled`            | `False`   | Enable response caching                                     |
-| `CACHE_KEY_PREFIX`   | `None`    | Optional prefix for cache keys (useful for shared Redis)    |
+| `CACHE_KEY_PREFIX`   | `None`    | Base prefix for shared Redis; Superset appends an internal response-contract namespace |
 | `list_tools_ttl`     | `300`     | Cache TTL in seconds for `tools/list`                       |
 | `list_resources_ttl` | `300`     | Cache TTL for `resources/list`                              |
 | `list_prompts_ttl`   | `300`     | Cache TTL for `prompts/list`                                |
@@ -733,9 +733,18 @@ as a trust signal.
 
 For compatibility, clients that supported the former
 `<UNTRUSTED-CONTENT>` convention should stop recognizing or stripping those strings.
-The response schemas and content types have not changed. During a mixed-version
-upgrade, clients may receive either legacy decorated values or clean values, but
-they should avoid writing legacy decorations back to Superset.
+The response schemas and content types have not changed. Because marker-looking text
+can be legitimate application data, a client cannot reliably distinguish a legacy
+decorated response from a clean one. Pause automated read-modify-write workflows, or
+route them only to upgraded instances, until every serving instance is upgraded.
+
+Redis-backed MCP response caches include an internal response-contract namespace, so
+an upgraded instance does not reuse responses cached by an older release. Older
+instances can still return legacy values while they remain in service. After the
+upgrade, review previously written values for wrapper text and both
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` and
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]`; do not remove these strings automatically,
+because they may be intentional content.
 
 ### Error Sanitization
 
@@ -771,7 +780,11 @@ For a 3-pod Kubernetes deployment with the defaults above, expect up to 3 × (5 
 Enable response caching for read-heavy workloads (dashboards/datasets that don't change frequently). With the in-memory backend (default when `MCP_STORE_CONFIG` is disabled), caching is per-process. Use Redis-backed caching for consistent cache hits across multiple pods:
 
 ```python
-MCP_CACHE_CONFIG = {"enabled": True, "call_tool_ttl": 3600}
+MCP_CACHE_CONFIG = {
+    "enabled": True,
+    "CACHE_KEY_PREFIX": "mcp_cache_",
+    "call_tool_ttl": 3600,
+}
 MCP_STORE_CONFIG = {"enabled": True, "CACHE_REDIS_URL": "redis://redis:6379/0"}
 ```
 

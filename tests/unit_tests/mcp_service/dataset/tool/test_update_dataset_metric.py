@@ -23,9 +23,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastmcp import Client, FastMCP
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
 
+from superset.connectors.sqla.models import SqlaTable, SqlMetric
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import UpdateDatasetMetricRequest
+from superset.models.core import Database
 from superset.utils import json
 
 
@@ -345,6 +348,84 @@ async def test_metric_read_modify_write_keeps_literal_markers_out_of_markup(
     )
     data = json.loads(result.content[0].text)
     assert data["metric"]["description"] == modified_value
+
+
+@pytest.mark.asyncio
+async def test_metric_read_modify_write_persists_clean_value_through_real_command(
+    mcp_server: FastMCP,
+    session: Session,
+) -> None:
+    """The transport, request model, command, and DAO persist the read value."""
+    from superset.daos.dataset import DatasetDAO
+
+    Database.metadata.create_all(session.bind)
+    stored_description = (
+        "Revenue <UNTRUSTED-CONTENT>literal</UNTRUSTED-CONTENT>\n"
+        "[ESCAPED-UNTRUSTED-CONTENT-CLOSE] café"
+    )
+    database = Database(
+        database_name="mcp_metric_result_contract",
+        sqlalchemy_uri="sqlite://",
+    )
+    metric = SqlMetric(
+        metric_name="revenue",
+        expression="SUM(revenue)",
+        description=stored_description,
+    )
+    dataset = SqlaTable(
+        database=database,
+        table_name="mcp_metric_result_contract",
+        metrics=[metric],
+    )
+    session.add(dataset)
+    session.commit()
+    dataset_id = dataset.id
+    metric_id = metric.id
+    session.expire_all()
+
+    with (
+        patch.object(DatasetDAO, "base_filter", None),
+        patch(
+            "superset.security.SupersetSecurityManager.is_admin",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.dataset.tool.get_dataset_info."
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            read_result = await client.call_tool(
+                "get_dataset_info",
+                {"request": {"identifier": dataset_id}},
+            )
+            read_data = json.loads(read_result.content[0].text)
+            read_description = read_data["metrics"][0]["description"]
+            assert read_description.encode() == stored_description.encode()
+
+            result = await client.call_tool(
+                "update_dataset_metric",
+                {
+                    "request": {
+                        "dataset_id": dataset_id,
+                        "metric": metric_id,
+                        "description": read_description,
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error"] is None
+    assert data["metric"]["description"].encode() == stored_description.encode()
+    session.expire_all()
+    reloaded_metric = session.get(SqlMetric, metric_id)
+    assert reloaded_metric is not None
+    assert reloaded_metric.description.encode() == stored_description.encode()
 
 
 @pytest.mark.asyncio

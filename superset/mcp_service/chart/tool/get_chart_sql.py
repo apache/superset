@@ -45,22 +45,13 @@ from superset.mcp_service.chart.schemas import (
     ChartSql,
     GetChartSqlRequest,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
 
 def _sanitize_chart_sql_for_llm_context(chart_sql: ChartSql) -> ChartSql:
-    """Serialize chart SQL without changing domain values."""
-    payload = chart_sql.model_dump(mode="python")
-
-    for field_name in ("chart_name", "datasource_name", "sql", "error"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    return ChartSql.model_validate(payload)
+    """Return validated chart SQL without copying or changing it."""
+    return chart_sql
 
 
 def _get_cached_form_data(form_data_key: str) -> str | None:

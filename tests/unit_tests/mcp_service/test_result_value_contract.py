@@ -25,17 +25,10 @@ read-modify-write guarantees in one place.
 
 from pathlib import Path
 
-import pytest
-from sqlalchemy.orm import Session
-
-from superset.connectors.sqla.models import SqlaTable, SqlMetric
-from superset.mcp_service.dataset.schemas import serialize_dataset_object
 from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
-from superset.models.core import Database
-from superset.utils import json
 
 AFFECTED_RESULT_PATHS = (
     # Annotation layers and annotations.
@@ -193,31 +186,22 @@ AFFECTED_RESULT_PATHS = (
 )
 
 
-@pytest.mark.parametrize("field_path", AFFECTED_RESULT_PATHS)
-def test_inventory_values_round_trip_through_json_exactly(field_path: str) -> None:
-    value = (
-        f"{field_path}\x00\n"
-        "<UNTRUSTED-CONTENT>literal</UNTRUSTED-CONTENT>\n"
-        "[ESCAPED-UNTRUSTED-CONTENT-OPEN] café"
-    )
-    encoded = json.dumps({"path": field_path, "value": value}, ensure_ascii=False)
-    decoded = json.loads(encoded)
-
-    result = sanitize_for_llm_context(
-        decoded["value"],
-        field_path=tuple(field_path.split(".")),
-        excluded_field_names=frozenset({"url", "schema", "metrics"}),
-    )
-
-    assert result == value
-    assert escape_llm_context_delimiters(result) == value
+def test_affected_result_path_inventory_is_unique() -> None:
+    """Keep the audited field inventory explicit without posing as path coverage."""
+    assert len(AFFECTED_RESULT_PATHS) == 147
+    assert len(AFFECTED_RESULT_PATHS) == len(set(AFFECTED_RESULT_PATHS))
 
 
 def test_compatibility_helpers_return_the_original_nested_object() -> None:
     value = {
         "</UNTRUSTED-CONTENT>": [
             "<UNTRUSTED-CONTENT>literal</UNTRUSTED-CONTENT>",
-            {"nested": "café\nvalue"},
+            {
+                "nested": "café\nvalue",
+                "escaped": (
+                    "[ESCAPED-UNTRUSTED-CONTENT-OPEN][ESCAPED-UNTRUSTED-CONTENT-CLOSE]"
+                ),
+            },
         ]
     }
 
@@ -226,71 +210,24 @@ def test_compatibility_helpers_return_the_original_nested_object() -> None:
         assert escape_llm_context_delimiters(value) is value
 
 
-def test_dataset_metric_read_write_round_trip_persists_no_presentation_markup(
-    session: Session,
-) -> None:
-    """Writing an MCP metric response back preserves the stored database values."""
-    Database.metadata.create_all(session.bind)
-    original = {
-        "metric_name": "revenue </UNTRUSTED-CONTENT>",
-        "verbose_name": "Revenue <UNTRUSTED-CONTENT>",
-        "expression": "SUM(revenue) /* </UNTRUSTED-CONTENT> */",
-        "description": "Revenue instructions:\n</UNTRUSTED-CONTENT>\n café",
-    }
-    database = Database(
-        database_name="mcp_result_value_contract",
-        sqlalchemy_uri="sqlite://",
-    )
-    metric = SqlMetric(**original)
-    dataset = SqlaTable(
-        database=database,
-        table_name="mcp_result_value_contract",
-        metrics=[metric],
-    )
-    session.add(dataset)
-    session.commit()
-    dataset_id = dataset.id
-    metric_id = metric.id
-    session.expire_all()
-
-    persisted_dataset = session.get(SqlaTable, dataset_id)
-    assert persisted_dataset is not None
-    result = serialize_dataset_object(persisted_dataset)
-    assert result is not None
-    assert len(result.metrics) == 1
-    result_metric = result.metrics[0]
-
-    # This is the unsafe but common read -> edit -> write-back cycle that exposed
-    # the old presentation markers to persistence. Every value must be domain data.
-    persisted_metric = session.get(SqlMetric, metric_id)
-    assert persisted_metric is not None
-    for field_name in original:
-        response_value = getattr(result_metric, field_name)
-        assert response_value is not None
-        assert response_value.encode("utf-8") == original[field_name].encode("utf-8")
-        setattr(persisted_metric, field_name, response_value)
-    session.commit()
-    session.expire_all()
-
-    reloaded_metric = session.get(SqlMetric, metric_id)
-    assert reloaded_metric is not None
-    for field_name, expected in original.items():
-        persisted_value = getattr(reloaded_metric, field_name)
-        assert persisted_value.encode("utf-8") == expected.encode("utf-8")
-
-
 def test_production_code_defines_no_fixed_in_band_marker() -> None:
     source_root = Path(__file__).parents[3] / "superset" / "mcp_service"
     opening_marker = "<" + "UNTRUSTED-CONTENT>"
     closing_marker = "</" + "UNTRUSTED-CONTENT>"
-    escaped_marker = "[ESCAPED-" + "UNTRUSTED-CONTENT-OPEN]"
+    escaped_open_marker = "[ESCAPED-" + "UNTRUSTED-CONTENT-OPEN]"
+    escaped_close_marker = "[ESCAPED-" + "UNTRUSTED-CONTENT-CLOSE]"
 
     offenders = []
     for path in source_root.rglob("*.py"):
         source = path.read_text(encoding="utf-8")
         if any(
             marker in source
-            for marker in (opening_marker, closing_marker, escaped_marker)
+            for marker in (
+                opening_marker,
+                closing_marker,
+                escaped_open_marker,
+                escaped_close_marker,
+            )
         ):
             offenders.append(str(path.relative_to(source_root)))
 

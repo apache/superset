@@ -38,7 +38,6 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedResponse,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
-from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 
 
 class ThemeFilter(ColumnOperator):
@@ -170,17 +169,8 @@ class CreateThemeResponse(BaseModel):
 
 
 def _sanitize_theme_info_for_llm_context(theme_info: ThemeInfo) -> ThemeInfo:
-    """Serialize user-controlled theme fields without changing their values."""
-    payload = theme_info.model_dump(mode="python")
-    payload["theme_name"] = sanitize_for_llm_context(
-        payload.get("theme_name"),
-        field_path=("theme_name",),
-    )
-    payload["json_data"] = sanitize_for_llm_context(
-        payload.get("json_data"),
-        field_path=("json_data",),
-    )
-    return ThemeInfo(**payload)
+    """Return validated theme data without copying or changing it."""
+    return theme_info
 
 
 def serialize_theme_object(theme: Any) -> ThemeInfo | None:

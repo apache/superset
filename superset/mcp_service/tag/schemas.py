@@ -38,7 +38,6 @@ from superset.mcp_service.common.pagination_schemas import (
 )
 from superset.mcp_service.system.schemas import TagInfo as BaseTagInfo
 from superset.mcp_service.utils.response_utils import humanize_timestamp
-from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 
 
 class TagFilter(ColumnOperator):
@@ -128,14 +127,8 @@ class GetTagInfoRequest(BaseModel):
 
 
 def _sanitize_tag_info_for_llm_context(tag_info: TagInfo) -> TagInfo:
-    """Serialize tag fields without changing domain values."""
-    payload = tag_info.model_dump(mode="python")
-    for field_name in ("name", "description"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-    return TagInfo(**payload)
+    """Return validated tag data without copying or changing it."""
+    return tag_info
 
 
 def serialize_tag_object(tag: Any) -> TagInfo | None:

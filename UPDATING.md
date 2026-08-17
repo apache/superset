@@ -35,10 +35,19 @@ values instead of recognizing or removing marker strings.
 
 Clients that handled the former delimiter convention should stop stripping marker
 text: the same text can be legitimate stored content. Response models and content
-types are unchanged, and no metadata-database migration is required. Values that a
-client already wrote back with presentation wrappers cannot be distinguished safely
-from intentional content, so operators should review and correct those values rather
-than applying an automatic marker-removal migration.
+types are unchanged, and no metadata-database migration is required. Automated
+read-modify-write workflows should be paused or pinned away from older instances
+until every serving instance is upgraded; a mixed-version response has no reliable
+signal that tells a client whether its text is decorated. Redis-backed MCP response
+caches use a new internal namespace after the upgrade, so upgraded instances do not
+reuse older cached results.
+
+Values that a client already wrote back with presentation wrappers cannot be
+distinguished safely from intentional content. Operators should review possible
+`<UNTRUSTED-CONTENT>` / `</UNTRUSTED-CONTENT>` wrappers and
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` /
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]` substitutions rather than applying an automatic
+marker-removal migration.
 
 ### OAuth2 database callback metrics include their outcome
 

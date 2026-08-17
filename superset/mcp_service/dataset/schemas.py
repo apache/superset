@@ -58,10 +58,6 @@ from superset.mcp_service.system.schemas import (
     SubjectInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.utils import json
 
@@ -276,12 +272,6 @@ class DatasetError(BaseModel):
     error_type: str = Field(..., description="Type of error")
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Preserve error text exactly in the MCP result."""
-        return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
@@ -891,87 +881,8 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
 
 
 def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
-    """Serialize dataset fields without changing domain values."""
-    payload = dataset_info.model_dump(mode="python")
-
-    for field_name in ("description", "certified_by", "certification_details", "sql"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    for field_name in ("table_name", "schema_name", "database_name", "schema_perm"):
-        payload[field_name] = escape_llm_context_delimiters(payload.get(field_name))
-
-    payload["extra"] = sanitize_for_llm_context(
-        payload.get("extra"),
-        field_path=("extra",),
-        excluded_field_names=frozenset(),
-    )
-
-    for field_name in ("params", "template_params"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-            excluded_field_names=frozenset(),
-        )
-
-    payload["columns"] = [
-        {
-            **column,
-            "column_name": escape_llm_context_delimiters(
-                column.get("column_name"),
-            ),
-            "description": sanitize_for_llm_context(
-                column.get("description"),
-                field_path=("columns", str(index), "description"),
-            ),
-            "verbose_name": sanitize_for_llm_context(
-                column.get("verbose_name"),
-                field_path=("columns", str(index), "verbose_name"),
-            ),
-        }
-        for index, column in enumerate(payload.get("columns", []))
-    ]
-
-    payload["metrics"] = [
-        {
-            **metric,
-            "metric_name": escape_llm_context_delimiters(
-                metric.get("metric_name"),
-            ),
-            "expression": sanitize_for_llm_context(
-                metric.get("expression"),
-                field_path=("metrics", str(index), "expression"),
-            ),
-            "description": sanitize_for_llm_context(
-                metric.get("description"),
-                field_path=("metrics", str(index), "description"),
-            ),
-            "verbose_name": sanitize_for_llm_context(
-                metric.get("verbose_name"),
-                field_path=("metrics", str(index), "verbose_name"),
-            ),
-        }
-        for index, metric in enumerate(payload.get("metrics", []))
-    ]
-
-    payload["tags"] = [
-        {
-            **tag,
-            "name": sanitize_for_llm_context(
-                tag.get("name"),
-                field_path=("tags", str(index), "name"),
-            ),
-            "description": sanitize_for_llm_context(
-                tag.get("description"),
-                field_path=("tags", str(index), "description"),
-            ),
-        }
-        for index, tag in enumerate(payload.get("tags", []))
-    ]
-
-    return DatasetInfo.model_validate(payload)
+    """Return validated dataset data without copying or changing it."""
+    return dataset_info
 
 
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:

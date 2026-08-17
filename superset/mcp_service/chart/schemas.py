@@ -65,10 +65,6 @@ from superset.mcp_service.system.schemas import (
     SubjectInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
@@ -218,11 +214,7 @@ class ChartInfo(BaseModel):
 
 
 class ChartError(MCPBaseError):
-    @field_validator("message")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Preserve error text exactly in the MCP result."""
-        return sanitize_for_llm_context(value, field_path=("error",))
+    pass
 
 
 class ChartCapabilities(BaseModel):
@@ -485,91 +477,13 @@ CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
 
 
 def wrap_sql_adhoc_metrics(form_data: Any) -> None:
-    """Compatibility helper that preserves SQL adhoc metric strings.
-
-    ``metric``/``metrics`` are in ``CHART_FORM_DATA_EXCLUDED_FIELD_NAMES`` so
-    callers retain the historical traversal and import path while the result
-    sanitizer is a strict identity operation. SQL and label values must remain
-    exact when echoed back or passed into a later write.
-    """
-    if not isinstance(form_data, dict):
-        return
-    metrics = form_data.get("metrics")
-    if isinstance(metrics, list):
-        for index, metric in enumerate(metrics):
-            if isinstance(metric, dict) and metric.get("expressionType") == "SQL":
-                for key in ("sqlExpression", "label"):
-                    if isinstance(metric.get(key), str):
-                        metric[key] = sanitize_for_llm_context(
-                            metric[key],
-                            field_path=("form_data", "metrics", str(index), key),
-                        )
-    metric_singular = form_data.get("metric")
-    if (
-        isinstance(metric_singular, dict)
-        and metric_singular.get("expressionType") == "SQL"
-    ):
-        for key in ("sqlExpression", "label"):
-            if isinstance(metric_singular.get(key), str):
-                metric_singular[key] = sanitize_for_llm_context(
-                    metric_singular[key],
-                    field_path=("form_data", "metric", key),
-                )
+    """Retain the former import path without changing chart form data."""
+    return None
 
 
-def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:  # noqa: C901
-    """Serialize chart read-path fields without changing domain values."""
-    payload = chart_info.model_dump(mode="python")
-
-    for field_name in (
-        "slice_name",
-        "description",
-        "certified_by",
-        "certification_details",
-    ):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    payload["datasource_name"] = escape_llm_context_delimiters(
-        payload.get("datasource_name")
-    )
-
-    if payload.get("filters") is not None:
-        payload["filters"] = sanitize_for_llm_context(
-            payload["filters"],
-            field_path=("filters",),
-            excluded_field_names=frozenset(),
-        )
-
-    if payload.get("form_data") is not None:
-        payload["form_data"] = sanitize_for_llm_context(
-            payload["form_data"],
-            field_path=("form_data",),
-            excluded_field_names=(
-                CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-                | frozenset({"cache_key", "database", "database_name", "schema"})
-            ),
-        )
-        wrap_sql_adhoc_metrics(payload["form_data"])
-
-    payload["tags"] = [
-        {
-            **tag,
-            "name": sanitize_for_llm_context(
-                tag.get("name"),
-                field_path=("tags", str(index), "name"),
-            ),
-            "description": sanitize_for_llm_context(
-                tag.get("description"),
-                field_path=("tags", str(index), "description"),
-            ),
-        }
-        for index, tag in enumerate(payload.get("tags", []))
-    ]
-
-    return ChartInfo.model_validate(payload)
+def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
+    """Retain the former import path without reserializing chart data."""
+    return chart_info
 
 
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:

@@ -40,10 +40,6 @@ from superset.mcp_service.dashboard.schemas import (
     NativeFilterSummary,
     NativeFilterUpdateSpec,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -261,16 +257,10 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
     name = conf.get("name")
     targets = [t for t in (conf.get("targets") or []) if t]
     return NativeFilterSummary(
-        id=escape_llm_context_delimiters(conf.get("id")),
-        name=sanitize_for_llm_context(name, field_path=("name",))
-        if name is not None
-        else None,
-        filter_type=escape_llm_context_delimiters(conf.get("filterType")),
-        targets=sanitize_for_llm_context(
-            targets,
-            field_path=("targets",),
-            excluded_field_names=frozenset(),
-        ),
+        id=conf.get("id"),
+        name=name,
+        filter_type=conf.get("filterType"),
+        targets=targets,
     )
 
 

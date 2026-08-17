@@ -36,10 +36,6 @@ from superset.mcp_service.chart.schemas import (
     RestoreChartRequest,
     RestoreChartResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -115,13 +111,13 @@ async def restore_chart(
             error_type="LookupFailed",
         )
     if not chart:
-        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
-        msg = f"No chart found with identifier: {safe_id}."
+        display_id = str(request.identifier)[:200]
+        msg = f"No chart found with identifier: {display_id}."
         return RestoreChartResponse(success=False, error=msg, error_type="NotFound")
 
     chart_id = chart.id
     # Chart names are user-controlled and must remain exact in response text.
-    chart_name = sanitize_for_llm_context(chart.slice_name, field_path=("slice_name",))
+    chart_name = chart.slice_name
 
     if chart.deleted_at is None:
         return RestoreChartResponse(

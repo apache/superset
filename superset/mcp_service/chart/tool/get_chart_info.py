@@ -36,7 +36,6 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     ChartError,
     ChartFiltersInfo,
     ChartInfo,
@@ -50,7 +49,6 @@ from superset.mcp_service.privacy import (
     redact_chart_data_model_fields,
     user_can_view_data_model_metadata,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
@@ -89,12 +87,6 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
             is_unsaved_state=True,
         )
     )
-
-
-FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES = (
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-    | frozenset({"cache_key", "database", "database_name", "schema"})
-)
 
 
 async def _validate_chart_dataset_access(
@@ -203,23 +195,6 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
             "form_data_key provided but no cached data found. "
             "The cache may have expired. Using saved chart configuration."
         )
-
-    payload = result.model_dump(mode="python")
-    if payload.get("filters") is not None:
-        payload["filters"] = sanitize_for_llm_context(
-            payload["filters"],
-            field_path=("filters",),
-            excluded_field_names=frozenset(),
-        )
-    if payload.get("form_data") is not None:
-        payload["form_data"] = sanitize_for_llm_context(
-            payload["form_data"],
-            field_path=("form_data",),
-            excluded_field_names=FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES,
-        )
-    sanitized = ChartInfo.model_validate(payload)
-    result.filters = sanitized.filters
-    result.form_data = sanitized.form_data
 
 
 @tool(
