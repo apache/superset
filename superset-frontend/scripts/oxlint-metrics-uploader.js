@@ -35,6 +35,43 @@ if (SERVICE_ACCOUNT_KEY.client_email) {
 
 const DATETIME = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
 
+/**
+ * Turn an oxlint diagnostic code into the canonical rule id used by the metrics
+ * series.
+ *
+ * oxlint reports `<plugin>(<rule>)`, where the plugin is the linter the rule came
+ * from: `eslint(no-console)`, `react-hooks(exhaustive-deps)`, `react(jsx-key)`,
+ * `jest(no-conditional-expect)`, `oxc(erasing-op)`, and the legacy
+ * `eslint-plugin-unicorn(no-new-array)` spelling.
+ *
+ * `eslint` is the implicit namespace, so its rules keep their bare name and stay
+ * comparable with the rows recorded before the oxlint migration. Every other
+ * plugin becomes `<plugin>/<rule>`, which is the id those rules are known by in
+ * config and in the pre-migration history.
+ *
+ * @param {string | undefined} code the diagnostic's `code` field
+ * @returns {string} the rule id to record
+ */
+function parseRuleId(code) {
+  if (!code) {
+    return 'unknown';
+  }
+
+  const match = code.match(/^([\w-]+)\(([^)]+)\)$/);
+  if (!match) {
+    return code;
+  }
+
+  const [, namespace, rule] = match;
+  if (namespace === 'eslint') {
+    return rule;
+  }
+
+  // `eslint-plugin-unicorn(...)` is the same rule as `unicorn/...`
+  const plugin = namespace.replace(/^eslint-plugin-/, '');
+  return `${plugin}/${rule}`;
+}
+
 async function writeToGoogleSheet(data, range, headers, append = false) {
   if (!sheets) {
     console.log('No Google Sheets credentials, skipping upload');
@@ -101,17 +138,7 @@ async function runOxlintAndProcess() {
     // OXC JSON format has diagnostics array
     if (results.diagnostics && Array.isArray(results.diagnostics)) {
       results.diagnostics.forEach(diagnostic => {
-        // Extract rule ID from code like "eslint(no-unused-vars)" or "eslint-plugin-unicorn(no-new-array)"
-        const codeMatch = diagnostic.code?.match(
-          /^(?:eslint(?:-plugin-(\w+))?\()([^)]+)\)$/,
-        );
-        let ruleId = diagnostic.code || 'unknown';
-
-        if (codeMatch) {
-          const plugin = codeMatch[1];
-          const rule = codeMatch[2];
-          ruleId = plugin ? `${plugin}/${rule}` : rule;
-        }
+        const ruleId = parseRuleId(diagnostic.code);
 
         const file = diagnostic.filename || 'unknown';
         const line = diagnostic.labels?.[0]?.span?.line || 0;
@@ -251,5 +278,10 @@ async function runOxlintAndProcess() {
   }
 }
 
-// Run the process
-runOxlintAndProcess().catch(console.error);
+// Run the process, unless this file was imported (e.g. by a test) rather than
+// executed, in which case nothing should be linted or uploaded on import.
+if (require.main === module) {
+  runOxlintAndProcess().catch(console.error);
+}
+
+module.exports = { parseRuleId };
