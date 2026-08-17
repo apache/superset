@@ -103,6 +103,48 @@ jobs:
           path: test-results/
           retention-days: 7
 
+  sqlalchemy14-compatibility:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        with:
+          python-version: current
+      - name: Install SQLAlchemy 1.4 compatibility pair
+        # The development lock already supplies all transitive dependencies;
+        # replace only the correlated pair so the rest stays identical to SA2.
+        run: uv pip install --system --no-deps --reinstall -r requirements/sqlalchemy14.txt
+      - name: Validate legacy dependencies
+        run: uv pip check
+      - name: SQLAlchemy 1.4 compatibility tests
+        env:
+          SUPERSET_TESTENV: true
+          SUPERSET_SECRET_KEY: not-a-secret
+        run: |
+          pytest -q --cache-clear \
+            tests/unit_tests/initialization_test.py \
+            tests/unit_tests/extensions/test_sqlalchemy.py \
+            tests/unit_tests/commands/dataset/test_duplicate.py \
+            tests/unit_tests/commands/importers/v1/examples_test.py \
+            tests/unit_tests/databases/filters_test.py \
+            tests/unit_tests/db_engine_specs/test_duckdb.py \
+            tests/unit_tests/db_engine_specs/test_snowflake.py \
+            tests/unit_tests/db_engine_specs/test_trino.py \
+            tests/unit_tests/migrations \
+            tests/unit_tests/charts/commands/importers/v1/import_test.py \
+            tests/unit_tests/mcp_service/test_session_scope.py \
+            tests/unit_tests/mcp_service/test_auth_user_resolution.py \
+            tests/unit_tests/sql_lab_test.py \
+            tests/unit_tests/utils/test_core.py::test_pessimistic_connection_health_check_closes_transaction
+
   # Uploads the raw pull_request event payload so the "Python Unit Test
   # Results" workflow (running via workflow_run, in base-branch context) can
   # look up which PR/commit to annotate without checking out untrusted code.
@@ -124,7 +166,7 @@ jobs:
   # protection can require: it passes when unit-tests succeeded or was skipped,
   # and fails only on a real failure.
   unit-tests-required:
-    needs: [changes, unit-tests]
+    needs: [changes, unit-tests, sqlalchemy14-compatibility]
     if: always()
     runs-on: ubuntu-26.04
     timeout-minutes: 5
@@ -139,9 +181,15 @@ jobs:
       - name: Check unit-tests result
         env:
           RESULT: ${{ needs.unit-tests.result }}
+          LEGACY_RESULT: ${{ needs.sqlalchemy14-compatibility.result }}
         run: |
           if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
             echo "unit-tests did not pass (result: $RESULT)"
             exit 1
           fi
+          if [ "$LEGACY_RESULT" != "success" ] && [ "$LEGACY_RESULT" != "skipped" ]; then
+            echo "sqlalchemy14-compatibility did not pass (result: $LEGACY_RESULT)"
+            exit 1
+          fi
           echo "unit-tests result: $RESULT"
+          echo "sqlalchemy14-compatibility result: $LEGACY_RESULT"

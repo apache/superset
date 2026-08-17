@@ -25,6 +25,7 @@ import pytest
 from flask import current_app
 from pandas.api.types import is_datetime64_dtype
 from pytest_mock import MockerFixture
+from sqlalchemy import create_engine
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
@@ -49,6 +50,7 @@ from superset.utils.core import (
     normalize_dttm_col,
     parse_boolean_string,
     parse_js_uri_path_item,
+    pessimistic_connection_handling,
     QueryObjectFilterClause,
     QuerySource,
     remove_extra_adhoc_filters,
@@ -2088,3 +2090,11 @@ def test_extract_dataframe_dtypes_with_duplicate_columns() -> None:
     df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
     result = extract_dataframe_dtypes(df)
     assert len(result) == 3
+
+
+def test_pessimistic_connection_health_check_closes_transaction() -> None:
+    engine = create_engine("sqlite://")
+    pessimistic_connection_handling(engine)
+
+    with engine.connect() as connection:
+        assert not connection.in_transaction()
