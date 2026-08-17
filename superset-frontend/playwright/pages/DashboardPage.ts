@@ -554,6 +554,17 @@ export class DashboardPage {
    * cursor is data-dependent: the test drills by whatever the menu actually
    * offers and asserts that same value round-trips into the modal, which keeps
    * the assertion independent of exact pixel/slice geometry.
+   *
+   * Reads rendered (HTML-stripped) menu text rather than the item's
+   * `aria-label`, which carries the raw, unstripped formatted value
+   * (`useDrillDetailMenuItems`). The two only diverge for formatted values
+   * that contain HTML markup; callers pass the returned value both to
+   * `contextMenuDrillToDetailBy` (accessible-name lookup) and to a
+   * displayed-text assertion on the modal's filter chip, so a value straddling
+   * both uses only works when it's markup-free. Every value currently offered
+   * by this dashboard's charts is a plain string, so this hasn't been
+   * reachable in practice; revisit if a test starts exercising HTML-formatted
+   * dimension values.
    */
   async drillByOfferedValues(): Promise<string[]> {
     const popup = await this.openDrillBySubmenu();

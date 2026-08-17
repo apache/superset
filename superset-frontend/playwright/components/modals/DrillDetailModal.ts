@@ -42,6 +42,10 @@ export class DrillDetailModal extends Modal {
 
   constructor(page: Page) {
     super(page);
+    // Matched by accessible name rather than a data-test: the antd Modal's own
+    // data-test (`${name}-modal`) is derived from this same i18n'd `name`
+    // prop, so it isn't a locale-independent alternative. No data-test exists
+    // on the dialog root itself.
     this.specificLocator = page.getByRole('dialog', {
       name: /^Drill to detail:/,
     });
@@ -102,7 +106,14 @@ export class DrillDetailModal extends Modal {
     await this.pageItems.nth(pageNumber - 1).click();
   }
 
-  /** Re-fetches the current samples query, resetting pagination to page 1. */
+  /**
+   * Re-fetches the current samples query, resetting pagination to page 1.
+   *
+   * Matched by accessible name: the Reload icon carries an i18n'd
+   * `aria-label` (`t('Reload')`) and no data-test, so this breaks in
+   * non-English locales the same way `DrillDetailModal.tsx`'s dialog `name`
+   * does above; the predecessor Cypress test used the same English string.
+   */
   async reload(): Promise<void> {
     await this.element.getByRole('button', { name: 'Reload' }).click();
   }
