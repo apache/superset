@@ -448,7 +448,12 @@ export function transformSeries(
     emphasis,
     showSymbol,
     symbol,
-    symbolSize: symbolSizeFn ?? markerSize,
+    symbolSize: isAnomaly
+      ? symbolSizeFn
+        ? (value: (number | string | null)[]) =>
+            Math.max(symbolSizeFn(value), 10)
+        : Math.max(markerSize ?? 6, 10)
+      : (symbolSizeFn ?? markerSize),
     label: {
       show: !!showValue,
       position: isHorizontal ? 'right' : 'top',

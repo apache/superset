@@ -40,13 +40,11 @@ export const extractForecastSeriesContext = (
 ): ForecastSeriesContext => {
   const name = String(seriesName ?? '');
 
-  // Check for anomaly suffix first; preserve the stripped name as-is so that
-  // nested series (e.g. metric__yhat__anomaly vs metric__anomaly) stay distinct
-  // in tooltip aggregation and don't overwrite each other.
   if (name.endsWith(ForecastSeriesEnum.Anomaly)) {
-    const stripped = name.slice(0, -ForecastSeriesEnum.Anomaly.length);
     return {
-      name: stripped,
+      name: extractForecastSeriesContext(
+        name.slice(0, -ForecastSeriesEnum.Anomaly.length),
+      ).name,
       type: ForecastSeriesEnum.Anomaly,
     };
   }

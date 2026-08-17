@@ -30,7 +30,6 @@ import { TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
   LegendOrientation,
   EchartsTimeseriesChartProps,
-  ForecastSeriesEnum,
 } from '../../src/types';
 import {
   transformSeries,
