@@ -485,13 +485,16 @@ export default function transformProps(
   // before calling extractShowValueIndexes so each group's topmost series is
   // tracked independently (fixing the bug where only the last series across
   // all groups was flagged to show the total label).
+  // When metrics.length > 1 the label-map tuple is [metric, dim0, dim1, ...],
+  // so the stackDimension sits at offset 1 + groupby.indexOf(stackDimension).
+  // When there is a single metric the tuple is [dim0, dim1, ...] with no
+  // metric prefix, so the offset is just groupby.indexOf(stackDimension).
   const idxSelectedDimension =
     stack === StackControlsValue.Stack &&
     stackDimension &&
     chartProps.rawFormData?.groupby
-      ? formData.metrics.length > 1
-        ? 1
-        : 0 + chartProps.rawFormData.groupby.indexOf(stackDimension)
+      ? (formData.metrics.length > 1 ? 1 : 0) +
+        chartProps.rawFormData.groupby.indexOf(stackDimension)
       : -1;
 
   const seriesStackIds: string[] = rawSeries.map(entry => {
