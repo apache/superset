@@ -349,7 +349,7 @@
     "swc-loader": "^0.2.7",
     "ts-jest": "^29.4.12",
     "tscw-config": "^1.1.2",
-    "tsx": "^4.23.10",
+    "tsx": "^4.23.12",
     "typescript": "5.4.5",
     "unzipper": "^0.12.5",
     "wait-on": "^9.1.0",
