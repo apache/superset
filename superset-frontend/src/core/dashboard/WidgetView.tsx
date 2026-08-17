@@ -229,6 +229,11 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
           provider.setSelection(nodeId);
         }}
         onKeyDown={event => {
+          // Only act on Enter/Space that originated on this wrapper itself —
+          // not on a bubbled keypress from an interactive descendant (a tab, a
+          // header ActionButton). Hijacking those with preventDefault would
+          // select the widget instead of switching the tab / firing the button.
+          if (event.target !== event.currentTarget) return;
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             event.stopPropagation();

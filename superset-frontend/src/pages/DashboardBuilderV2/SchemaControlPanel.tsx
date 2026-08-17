@@ -171,8 +171,16 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   useEffect(() => {
     if (!widgetType) return undefined;
     let cancelled = false;
+    // Clear any stale error from a previous (failed) fetch so a later success
+    // doesn't keep rendering an obsolete failure message.
+    setError(null);
     fetchControlSchema(widgetType, props, series)
-      .then(result => !cancelled && setSchema(sanitizeSchema(result)))
+      .then(result => {
+        if (!cancelled) {
+          setSchema(sanitizeSchema(result));
+          setError(null);
+        }
+      })
       .catch(async e => {
         const message = await describeError(e);
         if (!cancelled) setError(message);

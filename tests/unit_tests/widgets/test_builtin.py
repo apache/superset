@@ -75,3 +75,21 @@ def test_series_populated_per_value_with_palette_colors() -> None:
         series["properties"]["girl"]["properties"]["color"]["default"]
         == Balloons.PALETTE[1]
     )
+
+
+def test_series_deduped_and_capped() -> None:
+    binding = {
+        "dataBinding": {
+            "datasetId": 1,
+            "metrics": ["count"],
+            "dimensions": ["gender"],
+        }
+    }
+    # Duplicates collapse (order preserved), so no repeated per-series work.
+    series = _series_properties(binding, ["boy", "girl", "boy", "girl"])
+    assert list(series["properties"]) == ["boy", "girl"]
+
+    # An oversized list is capped, bounding schema construction / response size.
+    many = [f"s{i}" for i in range(Balloons.MAX_SERIES + 50)]
+    series = _series_properties(binding, many)
+    assert len(series["properties"]) == Balloons.MAX_SERIES

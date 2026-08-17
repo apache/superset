@@ -372,6 +372,12 @@ class DashboardProvider {
             node.layout?.colSpan != null
               ? Math.min(node.layout.colSpan, destColumns)
               : undefined,
+          // `rowSpan` is unit-dependent on the container type — row tracks in
+          // the root grid, pixels in a flow container (see `flowContent`). A
+          // value meaningful in the old parent would be misread in the new one
+          // (e.g. `8` tracks becoming 8px), so drop it and let the destination
+          // apply its own default.
+          rowSpan: undefined,
         },
       };
     }

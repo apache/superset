@@ -74,7 +74,8 @@ export async function fetchQueryData(
       filter =>
         filter != null &&
         typeof filter === 'object' &&
-        Object.keys(filter).length > 0,
+        !Array.isArray(filter) &&
+        ('clause' in filter || 'expressionType' in filter),
     ),
     row_limit: binding.rowLimit ?? 1000,
     result_format: 'json',

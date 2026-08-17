@@ -84,6 +84,11 @@ class Balloons(WidgetControls):
     # control.
     PALETTE = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c"]
 
+    # Upper bound on distinct series inlined into the schema, so a caller can't
+    # force unbounded schema construction / serialization by submitting a huge
+    # (or duplicate-heavy) series list.
+    MAX_SERIES = 100
+
     @classmethod
     def enrich_schema(
         cls,
@@ -105,10 +110,13 @@ class Balloons(WidgetControls):
             dimensions = getattr(data_binding, "dimensions", None)
         if not dimensions or not series:
             return
+        # Dedupe (preserving order) and cap before doing per-series work, so an
+        # oversized/duplicate list can't blow up CPU, memory, or response size.
+        unique_series = list(dict.fromkeys(series))[: cls.MAX_SERIES]
         # Replace the open-ended map with one inlined, pre-colored style per series.
         series_prop.pop("additionalProperties", None)
         properties: dict[str, Any] = {}
-        for index, value in enumerate(series):
+        for index, value in enumerate(unique_series):
             style = deepcopy(style_def)
             style["properties"]["color"]["default"] = cls.PALETTE[
                 index % len(cls.PALETTE)

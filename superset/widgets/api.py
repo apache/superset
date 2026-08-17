@@ -179,10 +179,19 @@ class WidgetControlsRestApi(BaseSupersetApi):
         if widget is None:
             return self.response_404()
         # GET carries no body (and no CSRF); tolerate a missing/non-JSON body so
-        # the base schema is returned for a plain read.
+        # the base schema is returned for a plain read. A body that IS present
+        # must be a JSON object.
         body = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            return self.response_400(message="Request body must be a JSON object.")
         control_values = body.get("control_values")
         series = body.get("series")
+        paths = body.get("paths")
+        if paths is not None and (
+            not isinstance(paths, list)
+            or not all(isinstance(path, str) for path in paths)
+        ):
+            return self.response_400(message="'paths' must be an array of strings.")
 
         warning: str | None = None
         try:
@@ -203,7 +212,7 @@ class WidgetControlsRestApi(BaseSupersetApi):
 
         # `paths` narrows the response to just those drill-in subtrees; without
         # it the whole (enriched) schema is returned.
-        if paths := body.get("paths"):
+        if paths:
             try:
                 result: dict[str, Any] = get_subtrees(schema, paths)
             except SchemaPathError as ex:
