@@ -17,9 +17,13 @@
 
 from typing import Any
 
+from marshmallow import fields
+
 from superset import db
 from superset.models.annotations import AnnotationLayer
 from superset.utils import json
+
+DATETIME_FIELD = fields.DateTime(allow_none=True)
 
 
 def import_annotation_layer(
@@ -40,6 +44,10 @@ def import_annotation_layer(
 
     # Convert json_metadata dicts back to JSON strings for the database column
     for annotation in config.get("annotation", []):
+        # Convert exported ISO strings into Python datetimes for ORM DateTime columns.
+        for key in ("start_dttm", "end_dttm"):
+            if isinstance(annotation.get(key), str):
+                annotation[key] = DATETIME_FIELD.deserialize(annotation[key])
         if isinstance(annotation.get("json_metadata"), dict):
             annotation["json_metadata"] = json.dumps(annotation["json_metadata"])
 
