@@ -396,7 +396,11 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
-- chart_type="pivot_table": Interactive pivot table for cross-tabulation
+- chart_type="pivot_table": OSS Pivot Table for cross-tabulation
+- chart_type="interactive_pivot": Preset AG Grid Interactive Pivot Table.
+  This type is distinct from pivot_table/pivot_table_v2 and is available only
+  when get_chart_type_schema("interactive_pivot") returns a schema instead of
+  a disabled_chart_type error.
 - chart_type="mixed_timeseries": Dual-series chart combining two chart types
 - chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
   Requires handlebars_template with Handlebars HTML template string.
@@ -417,9 +421,9 @@ Time grain for temporal x-axis (time_grain parameter):
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
-This field is populated only for the 10 chart types supported by generate_chart
+This field is populated for the chart types supported by generate_chart
 (xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall).
+histogram, box_plot, waterfall, and host-gated interactive_pivot when enabled).
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.
 
@@ -427,7 +431,7 @@ Query Examples:
 - List all tables:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "in",
-    "value": ["table", "pivot_table_v2"]}}]}})
+    "value": ["table", "pivot_table_v2", "ag-grid-pivot-table"]}}]}})
 - List time series charts:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "sw", "value": "echarts_timeseries"}}]}})

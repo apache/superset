@@ -19,12 +19,19 @@
 
 import pytest
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _CHART_EXAMPLES,
     _CHART_TYPE_ADAPTERS,
     _get_chart_type_schema_impl as _call_schema,
     VALID_CHART_TYPES,
 )
+
+
+@pytest.fixture(autouse=True)
+def enable_interactive_pivot(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Expose host-gated chart types while testing every registered adapter."""
+    monkeypatch.setattr(feature_flag_manager, "is_feature_enabled", lambda _: True)
 
 
 class TestGetChartTypeSchema:

@@ -39,7 +39,7 @@ class ChartTypePlugin(Protocol):
     """
     Protocol that every chart-type plugin must satisfy.
 
-    Implementing all nine methods in a single class guarantees that adding a
+    Implementing all ten methods in a single class guarantees that adding a
     new chart type requires only one new file — the plugin — rather than edits
     across multiple separate files.
     """
@@ -55,6 +55,10 @@ class ChartTypePlugin(Protocol):
     #: Used by the registry to resolve display names for existing charts without
     #: needing a separate JSON mapping file.
     native_viz_types: ClassVar[Mapping[str, str]]
+
+    def is_available(self) -> bool:
+        """Return whether the host deployment provides this visualization."""
+        ...
 
     def pre_validate(
         self,
@@ -188,7 +192,8 @@ class BaseChartPlugin:
     Base class providing sensible defaults for all ChartTypePlugin methods.
 
     Concrete plugins extend this and override only what they need.  Default
-    implementations: ``pre_validate`` → None (valid), ``extract_column_refs`` → [],
+    implementations: ``is_available`` → True, ``pre_validate`` → None (valid),
+    ``extract_column_refs`` → [],
     ``post_map_validate`` → None, ``normalize_column_refs`` → config unchanged,
     ``get_runtime_warnings`` → ([], []), ``generate_name`` → "Chart",
     ``resolve_viz_type`` → "unknown", ``schema_error_hint`` → None.
@@ -199,6 +204,10 @@ class BaseChartPlugin:
     display_name: str = ""
     # Subclasses must override this with their own class attribute.
     native_viz_types: ClassVar[Mapping[str, str]] = {}
+
+    def is_available(self) -> bool:
+        """Return whether the host deployment provides this visualization."""
+        return True
 
     def pre_validate(
         self,
