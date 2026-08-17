@@ -29,7 +29,7 @@ const { result } = concurrently(
     },
     {
       name: 'TEST',
-      command: `while ! curl -s -f http://127.0.0.1:${storybookPort} > /dev/null ; do sleep 1; done && npm run test-storybook -- --maxWorkers=2`,
+      command: `apt install -y netcat-openbsd && while ! nc -z 127.0.0.1 ${storybookPort}; do sleep 1; done && npm run test-storybook -- --maxWorkers=2`,
     },
   ],
   {
