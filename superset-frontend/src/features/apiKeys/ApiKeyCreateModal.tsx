@@ -196,7 +196,7 @@ export function ApiKeyCreateModal({
           placeholder={t('Select MCP resource scopes (optional)')}
           data-test="api-key-scopes-select"
           getPopupContainer={(trigger: HTMLElement) =>
-            trigger.closest<HTMLElement>('.ant-modal-container')
+            trigger.closest<HTMLElement>('.ant-modal-container') ?? trigger
           }
         />
       </FormItem>
