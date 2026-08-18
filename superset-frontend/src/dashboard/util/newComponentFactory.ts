@@ -29,6 +29,7 @@ import {
   TABS_TYPE,
   TAB_TYPE,
   DYNAMIC_TYPE,
+  FILTER_TYPE,
 } from './componentTypes';
 
 import {
@@ -66,6 +67,11 @@ const typeToDefaultMetaData: Record<string, LayoutItemMeta | null> = {
   },
   [DYNAMIC_TYPE]: {
     width: GRID_COLUMN_COUNT,
+    background: BACKGROUND_TRANSPARENT,
+  },
+  [FILTER_TYPE]: {
+    width: GRID_DEFAULT_CHART_WIDTH,
+    height: 18,
     background: BACKGROUND_TRANSPARENT,
   },
 };

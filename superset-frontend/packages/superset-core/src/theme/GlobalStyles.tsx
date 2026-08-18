@@ -93,6 +93,37 @@ export const GlobalStyles = () => {
           }
         }
 
+        /* Solid Opaque Ant Design Popups / Dropdowns */
+        .ant-select-dropdown,
+        .ant-picker-dropdown,
+        .ant-dropdown-menu {
+          background-color: ${theme.colorBgElevated} !important;
+          background: ${theme.colorBgElevated} !important;
+          box-shadow: ${theme.boxShadowSecondary} !important;
+          border: 1px solid ${theme.colorBorderSecondary} !important;
+          backdrop-filter: none !important;
+          opacity: 1 !important;
+        }
+
+        .ant-select-dropdown .ant-select-item {
+          color: ${theme.colorText} !important;
+          background: transparent;
+        }
+
+        .ant-select-dropdown
+          .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+          background-color: ${theme.controlItemBgHover} !important;
+        }
+
+        .ant-select-dropdown
+          .ant-select-item-option-selected:not(
+            .ant-select-item-option-disabled
+          ) {
+          background-color: ${theme.controlItemBgActive} !important;
+          color: ${theme.colorPrimary} !important;
+          font-weight: 600 !important;
+        }
+
         /* Overriding bootstrap styles */
         #app {
           flex: 1 1 auto;

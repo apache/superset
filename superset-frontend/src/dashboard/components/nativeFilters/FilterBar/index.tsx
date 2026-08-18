@@ -187,6 +187,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   const chartCustomizationValues = useChartCustomizationConfiguration();
   const dispatch = useDispatch();
   const [updateKey, setUpdateKey] = useState(0);
+
   const tabId = useTabId();
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
@@ -568,14 +569,14 @@ const FilterBar: FC<FiltersBarProps> = ({
 
     setClearAllTriggers(newClearAllTriggers);
   }, [
-    dataMaskSelected,
-    dataMaskApplied,
-    nativeFilterValues,
     inScopeFilterIds,
-    setDataMaskSelected,
+    nativeFilterValues,
     chartCustomizationValues,
     clearAllTriggers,
+    dataMaskApplied,
+    dataMaskSelected,
     dispatch,
+    setDataMaskSelected,
   ]);
 
   const handleClearAllComplete = useCallback((filterId: string) => {

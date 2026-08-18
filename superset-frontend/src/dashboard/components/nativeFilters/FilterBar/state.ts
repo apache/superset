@@ -26,7 +26,8 @@ import {
   Filters,
 } from '@superset-ui/core';
 import { useEffect, useMemo, useState } from 'react';
-import { ChartsState, RootState } from 'src/dashboard/types';
+import { ChartsState, DashboardLayout, RootState } from 'src/dashboard/types';
+import { FILTER_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   NATIVE_FILTER_PREFIX,
   CHART_CUSTOMIZATION_PREFIX,
@@ -36,23 +37,66 @@ import {
 import { useFilterConfiguration } from '../state';
 
 export const useFilters = () => {
-  const preselectedNativeFilters = useSelector<any, Filters>(
+  const preselectedNativeFilters = useSelector<RootState, Filters | undefined>(
+    state => state.dashboardState?.preselectNativeFilters,
+  );
+  const dashboardLayout = useSelector<RootState, DashboardLayout>(
+    state => state.dashboardLayout?.present || {},
+  );
+  const filterConfiguration = useFilterConfiguration();
+
+  // Exclude native filters that are already placed on the dashboard canvas
+  const canvasFilterIds = useMemo(() => {
+    const ids = new Set<string>();
+    Object.values(dashboardLayout).forEach(item => {
+      if (item?.type === FILTER_TYPE && item?.meta?.filterId) {
+        ids.add(String(item.meta.filterId));
+      }
+    });
+    return ids;
+  }, [dashboardLayout]);
+
+  return useMemo(
+    () =>
+      filterConfiguration
+        .filter(
+          (filter): filter is Filter =>
+            filter.type !== 'DIVIDER' && !canvasFilterIds.has(filter.id),
+        )
+        .reduce(
+          (acc, filter: Filter) => ({
+            ...acc,
+            [filter.id]: {
+              ...filter,
+              preselect: preselectedNativeFilters?.[filter.id],
+            },
+          }),
+          {} as Filters,
+        ),
+    [filterConfiguration, preselectedNativeFilters, canvasFilterIds],
+  );
+};
+
+export const useAllFilters = () => {
+  const preselectedNativeFilters = useSelector<RootState, Filters | undefined>(
     state => state.dashboardState?.preselectNativeFilters,
   );
   const filterConfiguration = useFilterConfiguration();
 
   return useMemo(
     () =>
-      filterConfiguration.reduce(
-        (acc, filter: Filter) => ({
-          ...acc,
-          [filter.id]: {
-            ...filter,
-            preselect: preselectedNativeFilters?.[filter.id],
-          },
-        }),
-        {} as Filters,
-      ),
+      filterConfiguration
+        .filter((filter): filter is Filter => filter.type !== 'DIVIDER')
+        .reduce(
+          (acc, filter: Filter) => ({
+            ...acc,
+            [filter.id]: {
+              ...filter,
+              preselect: preselectedNativeFilters?.[filter.id],
+            },
+          }),
+          {} as Filters,
+        ),
     [filterConfiguration, preselectedNativeFilters],
   );
 };
