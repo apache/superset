@@ -44,6 +44,19 @@ PORT_TIMEOUT = 5
 PING_TIMEOUT = 5
 
 
+def is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """
+    Return True if a single IP address is public and globally routable.
+
+    IPv4-mapped IPv6 addresses (e.g. ``::ffff:127.0.0.1``) are unwrapped so
+    they are checked against the IPv4 unsafe networks rather than bypassing
+    them.
+    """
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return ip.is_global and not any(ip in net for net in _SSRF_UNSAFE_NETWORKS)
+
+
 def is_safe_host(host: str) -> bool:
     """
     Return True if ``host`` resolves exclusively to public, globally-routable
@@ -52,6 +65,10 @@ def is_safe_host(host: str) -> bool:
     Returns False if any resolved address falls within a private, loopback,
     link-local, or otherwise non-routable range.  An unresolvable host also
     returns False.
+
+    Name resolution here is independent of the resolution performed when a
+    connection is later opened, so callers that go on to fetch from ``host``
+    should also validate the connected peer address (see ``is_safe_ip``).
     """
     try:
         results = socket.getaddrinfo(host, None)
@@ -64,11 +81,7 @@ def is_safe_host(host: str) -> bool:
             ip = ipaddress.ip_address(sockaddr[0])
         except ValueError:
             return False
-        # Unwrap IPv4-mapped IPv6 addresses (e.g. ::ffff:127.0.0.1) so they
-        # are checked against the IPv4 unsafe networks rather than bypassing.
-        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
-            ip = ip.ipv4_mapped
-        if not ip.is_global or any(ip in net for net in _SSRF_UNSAFE_NETWORKS):
+        if not is_safe_ip(ip):
             return False
     return True
 

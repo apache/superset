@@ -23,6 +23,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import DeckGLPolygon, { getPoints } from './Polygon';
+import type { LegendProps } from '../../components/Legend';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import * as utils from '../../utils';
 
@@ -53,15 +54,26 @@ jest.mock('../../utils/mapbox', () => ({
   hasMapboxApiKey: () => true,
 }));
 
-jest.mock('../../components/Legend', () => ({ categories, position }: any) => (
-  <div
-    data-testid="legend"
-    data-categories={JSON.stringify(categories)}
-    data-position={position}
-  >
-    Legend Mock
-  </div>
-));
+// Stand in for the real Legend, exposing the props it received so the layer's
+// wiring can be asserted. The hide-on-"none" behavior belongs to the real
+// Legend (covered in Legend.test.tsx), so the mock does not reimplement it.
+// Emits data-test (the configured testIdAttribute) so screen queries resolve.
+jest.mock(
+  '../../components/Legend',
+  () =>
+    ({
+      categories,
+      position,
+    }: Pick<LegendProps, 'categories' | 'position'>) => (
+      <div
+        data-test="legend"
+        data-categories={JSON.stringify(categories)}
+        data-position={String(position)}
+      >
+        Legend Mock
+      </div>
+    ),
+);
 
 const mockProps = {
   formData: {
@@ -369,20 +381,26 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
     expect(mockGetBuckets).not.toHaveBeenCalled();
   });
 
-  test('handles null legend_position correctly', () => {
-    const propsWithNullLegendPosition = {
-      ...mockProps,
-      formData: {
-        ...mockProps.formData,
-        legend_position: null,
-      },
-    };
+  // The layer forwards formData.legend_position to the Legend's position prop
+  // unchanged; hiding for the "none" sentinel is the Legend's responsibility
+  // (covered in Legend.test.tsx). Asserting the wiring here avoids
+  // re-implementing the hide gate in the mock.
+  test.each(['none', 'tr'])(
+    'forwards legend_position "%s" to the Legend',
+    legendPosition => {
+      const props = {
+        ...mockProps,
+        formData: { ...mockProps.formData, legend_position: legendPosition },
+      };
 
-    renderWithTheme(<DeckGLPolygon {...propsWithNullLegendPosition} />);
+      renderWithTheme(<DeckGLPolygon {...props} />);
 
-    // Legend should not be rendered when position is null
-    expect(screen.queryByTestId('legend')).not.toBeInTheDocument();
-  });
+      expect(screen.getByTestId('legend')).toHaveAttribute(
+        'data-position',
+        legendPosition,
+      );
+    },
+  );
 });
 
 describe('DeckGLPolygon Legend Integration', () => {
@@ -398,16 +416,16 @@ describe('DeckGLPolygon Legend Integration', () => {
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
   test('renders legend with non-empty categories when metric and linear_palette are defined', () => {
-    const { container } = renderWithTheme(<DeckGLPolygon {...mockProps} />);
+    renderWithTheme(<DeckGLPolygon {...mockProps} />);
 
     // Verify the component renders and calls the correct bucket function
     expect(mockGetBuckets).toHaveBeenCalled();
     expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
 
     // Verify the legend mock was rendered with non-empty categories
-    const legendElement = container.querySelector('[data-testid="legend"]');
-    expect(legendElement).toBeTruthy();
-    const categoriesAttr = legendElement?.getAttribute('data-categories');
+    const legendElement = screen.getByTestId('legend');
+    expect(legendElement).toBeInTheDocument();
+    const categoriesAttr = legendElement.getAttribute('data-categories');
     const categoriesData = JSON.parse(categoriesAttr || '{}');
     expect(Object.keys(categoriesData)).toHaveLength(2);
   });

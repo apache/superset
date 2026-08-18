@@ -249,7 +249,8 @@ export const exploreCollisionDetection: CollisionDetection = args => {
     const activeContainerId = getSortableContainerId(args.active.data.current);
     const sortableContainers = args.droppableContainers.filter(container => {
       const data = container.data.current as
-        Partial<ActiveDragData> | undefined;
+        | Partial<ActiveDragData>
+        | undefined;
       if (!isReorderDrag(data)) {
         return false;
       }

@@ -30,7 +30,7 @@ from flask_appbuilder.api.schemas import get_item_schema
 from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
-from jinja2.exceptions import TemplateSyntaxError
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import MultipleResultsFound
 
@@ -59,6 +59,7 @@ from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
@@ -66,6 +67,7 @@ from superset.daos.dataset import DatasetDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import (
     DatasetCertifiedFilter,
+    DatasetDeletedRecencyFilter,
     DatasetDeletedStateFilter,
     DatasetEditableFilter,
     DatasetIsNullOrEmptyFilter,
@@ -97,6 +99,7 @@ from superset.versioning.api_helpers import (
     current_entity_version_info,
     get_version_endpoint,
     list_versions_endpoint,
+    restore_version_endpoint,
 )
 from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
@@ -117,6 +120,13 @@ from superset.views.filters import (
 
 logger = logging.getLogger(__name__)
 
+_DATASET_PURGE_BINDING = SoftDeleteBinding(
+    dao=DatasetDAO,
+    not_found=DatasetNotFoundError,
+    forbidden=DatasetForbiddenError,
+    delete_failed=DatasetDeleteFailedError,
+)
+
 
 class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
@@ -135,6 +145,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "restore": "write",
+        "restore_version": "write",
+        "purge": "write",
     }
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -143,6 +155,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         RouteMethod.DISTINCT,
         "bulk_delete",
         "restore",
+        "purge",
         "refresh",
         "related_objects",
         "duplicate",
@@ -152,6 +165,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "list_versions",
         "get_version",
         "activity",
+        "restore_version",
     }
     list_columns = [
         "id",
@@ -187,6 +201,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "changed_by.first_name",
         "changed_on_delta_humanized",
         "database.database_name",
+        # Exposed so the Recently-Deleted view can sort archived datasets by
+        # deletion time (sc-111760).
+        "deleted_at",
     ]
     show_select_columns = [
         "id",
@@ -330,6 +347,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "editors": ["type", "active", "secondary_label", "img"],
     }
     search_filters = {
+        "deleted_at": [DatasetDeletedRecencyFilter],
         "sql": [DatasetIsNullOrEmptyFilter],
         "id": [
             DatasetCertifiedFilter,
@@ -348,6 +366,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "table_name",
         "created_by",
         "changed_by",
+        # Exposed so the Recently-Deleted view can filter archived datasets by a
+        # deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
+        "deleted_at",
         "uuid",
     ]
     allowed_rel_fields = {"database", "created_by", "changed_by", "editors"}
@@ -1202,6 +1223,65 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<uuid>/purge", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge",
+        log_to_statsd=False,
+    )
+    def purge(self, uuid: str) -> Response:
+        """Permanently delete a soft-deleted (archived) dataset.
+        ---
+        post:
+          summary: Permanently delete a soft-deleted dataset
+          description: >-
+            Irreversibly remove an archived dataset and its dependents. Limited
+            to owners and admins (same audience as restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dataset permanently deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            PurgeArchivedCommand(uuid, _DATASET_PURGE_BINDING).run()
+            return self.response(200, message="OK")
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except DatasetDeleteFailedError as ex:
+            logger.error(
+                "Error purging model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
     @expose("/import/", methods=("POST",))
     @protect()
     @statsd_metrics
@@ -1465,7 +1545,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             Warms up the cache for the table.
             Note for slices a force refresh occurs.
             In terms of the `extra_filters` these can be obtained from records in the JSON
-            encoded `logs.json` column associated with the `explore_json` action.
+            encoded `logs.json` column associated with the `explore` action.
           requestBody:
             description: >-
               Identifies the database and table to warm up cache for, and any
@@ -1755,7 +1835,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
             try:
                 data[new_key] = func(data[key])
-            except (TemplateSyntaxError, SupersetSyntaxErrorException) as ex:
+            except (TemplateError, SupersetSyntaxErrorException) as ex:
                 template_exception = SupersetTemplateException(
                     f"Unable to render expression from dataset {item_type}.",
                 )
@@ -1952,3 +2032,72 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         from superset.versioning.activity import activity_endpoint
 
         return activity_endpoint(self, SqlaTable, uuid_str, request.args)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a dataset to a previous version.
+        ---
+        post:
+          summary: Revert a dataset to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Dataset was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        # Local import: the command module transitively imports the
+        # versioning bootstrap graph; see changes/listener.py.
+        from superset.commands.dataset.restore_version import (
+            RestoreDatasetVersionCommand,
+        )
+
+        return restore_version_endpoint(
+            self,
+            SqlaTable,
+            RestoreDatasetVersionCommand,
+            uuid_str,
+            version_uuid_str,
+        )

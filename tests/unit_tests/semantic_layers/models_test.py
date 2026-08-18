@@ -272,6 +272,7 @@ def mock_dimensions() -> list[Dimension]:
             definition="orders.order_date",
             description="Date of the order",
             grain=Grains.DAY,
+            verbose_name="Order date",
         ),
         Dimension(
             id="products.category",
@@ -280,6 +281,7 @@ def mock_dimensions() -> list[Dimension]:
             definition="products.category",
             description="Product category",
             grain=None,
+            verbose_name="Category",
         ),
     ]
 
@@ -294,6 +296,8 @@ def mock_metrics() -> list[Metric]:
             type=pa.float64(),
             definition="SUM(orders.amount)",
             description="Total revenue",
+            verbose_name="Total revenue",
+            d3format="$,.2f",
         ),
         Metric(
             id="orders.count",
@@ -301,6 +305,8 @@ def mock_metrics() -> list[Metric]:
             type=pa.int64(),
             definition="COUNT(*)",
             description="Number of orders",
+            verbose_name="Order count",
+            d3format=",.0f",
         ),
     ]
 
@@ -481,7 +487,9 @@ def test_semantic_view_metrics(
         assert len(metrics) == 2
         assert metrics[0].metric_name == "revenue"
         assert metrics[0].expression == "SUM(orders.amount)"
+        assert metrics[0].verbose_name == "Total revenue"
         assert metrics[0].description == "Total revenue"
+        assert metrics[0].d3format == "$,.2f"
         assert metrics[1].metric_name == "order_count"
 
 
@@ -502,10 +510,12 @@ def test_semantic_view_columns(
         assert columns[0].column_name == "order_date"
         assert columns[0].type == "date32[day]"
         assert columns[0].is_dttm is True
+        assert columns[0].verbose_name == "Order date"
         assert columns[0].description == "Date of the order"
         assert columns[1].column_name == "category"
         assert columns[1].type == "string"
         assert columns[1].is_dttm is False
+        assert columns[1].verbose_name == "Category"
 
 
 def test_semantic_view_column_names(
@@ -632,15 +642,32 @@ def test_semantic_view_data(
         assert data["columns"][0]["type"] == "date32[day]"
         assert data["columns"][0]["is_dttm"] is True
         assert data["columns"][0]["type_generic"] == GenericDataType.TEMPORAL
+        assert data["columns"][0]["verbose_name"] == "Order date"
         assert data["columns"][1]["column_name"] == "category"
         assert data["columns"][1]["type"] == "string"
         assert data["columns"][1]["type_generic"] == GenericDataType.STRING
+        assert data["columns"][1]["verbose_name"] == "Category"
 
         # Check metrics
         assert len(data["metrics"]) == 2
         assert data["metrics"][0]["metric_name"] == "revenue"
         assert data["metrics"][0]["expression"] == "SUM(orders.amount)"
+        assert data["metrics"][0]["verbose_name"] == "Total revenue"
+        assert data["metrics"][0]["d3format"] == "$,.2f"
         assert data["metrics"][1]["metric_name"] == "order_count"
+        assert data["metrics"][1]["verbose_name"] == "Order count"
+        assert data["metrics"][1]["d3format"] == ",.0f"
+
+        assert data["verbose_map"] == {
+            "revenue": "Total revenue",
+            "order_count": "Order count",
+            "order_date": "Order date",
+            "category": "Category",
+        }
+        assert data["column_formats"] == {
+            "revenue": "$,.2f",
+            "order_count": ",.0f",
+        }
 
         # Check column_types and column_names
         assert data["column_types"] == [
@@ -653,6 +680,15 @@ def test_semantic_view_data(
         assert data["table_name"] == "Orders View"
         assert data["datasource_name"] == "Orders View"
         assert data["offset"] == 0
+        # Semantic views don't model raw rows, so neither samples nor
+        # drill-to-detail are available.
+        assert data["supports_samples"] is False
+        assert data["supports_drill_to_detail"] is False
+
+
+def test_semantic_view_supports_samples_is_false() -> None:
+    """The class-level flag opts SemanticView out of the Samples affordance."""
+    assert SemanticView.supports_samples is False
 
 
 @pytest.fixture
@@ -765,6 +801,11 @@ def test_semantic_view_data_populates_time_grain_sqla(
     # ``time_grain_sqla`` in ExplorableData is ``(duration, name)`` tuples.
     grain_durations = sorted(entry[0] for entry in data["time_grain_sqla"])
     assert grain_durations == sorted(["PT1H", "P1D", "P1M"])
+
+
+def test_semantic_view_supports_drill_to_detail_is_false() -> None:
+    """The class-level flag opts SemanticView out of Drill to detail."""
+    assert SemanticView.supports_drill_to_detail is False
 
 
 def test_semantic_view_get_query_result(

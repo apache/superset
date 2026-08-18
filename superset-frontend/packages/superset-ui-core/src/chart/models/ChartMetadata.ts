@@ -40,7 +40,6 @@ export interface ChartMetadataConfig {
   supportedAnnotationTypes?: string[];
   thumbnail: string;
   thumbnailDark?: string;
-  useLegacyApi?: boolean;
   behaviors?: Behavior[];
   exampleGallery?: ExampleImage[];
   tags?: string[];
@@ -83,8 +82,6 @@ export default class ChartMetadata {
 
   thumbnailDark?: string;
 
-  useLegacyApi: boolean;
-
   behaviors: Behavior[];
 
   datasourceCount: number;
@@ -122,7 +119,6 @@ export default class ChartMetadata {
       supportedAnnotationTypes = [],
       thumbnail,
       thumbnailDark,
-      useLegacyApi = false,
       behaviors = [],
       datasourceCount = 1,
       enableNoResults = true,
@@ -155,7 +151,6 @@ export default class ChartMetadata {
     this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
     this.thumbnailDark = thumbnailDark;
-    this.useLegacyApi = useLegacyApi;
     this.behaviors = behaviors;
     this.datasourceCount = datasourceCount;
     this.enableNoResults = enableNoResults;
