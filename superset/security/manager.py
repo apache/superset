@@ -754,15 +754,24 @@ def _native_filter_query_modified(
     query: Any, allowed_columns: set[str], allowed_metrics: set[str]
 ) -> bool:
     """Whether a single query in a native-filter request reads beyond its targets."""
-    # Columns and group-by may only reference target column(s); adhoc (free-form
-    # SQL) columns cannot be validated, so reject them.
-    for key in ("columns", "groupby"):
+    # Columns, group-by, and series columns may only reference target column(s);
+    # adhoc (free-form SQL) columns cannot be validated, so reject them.
+    for key in ("columns", "groupby", "series_columns"):
         for col in getattr(query, key, None) or []:
             if not isinstance(col, str) or col not in allowed_columns:
                 return True
     for metric in getattr(query, "metrics", None) or []:
         if not _native_filter_term_allowed(metric, allowed_columns, allowed_metrics):
             return True
+    # A series-limit metric ranks the top-N groups in the inner query, so it is
+    # a value-returning term and is validated like a metric. ``QueryObject``
+    # renames the deprecated ``timeseries_limit_metric`` payload key onto this
+    # attribute, so both spellings are covered.
+    series_limit_metric = getattr(query, "series_limit_metric", None)
+    if series_limit_metric and not _native_filter_term_allowed(
+        series_limit_metric, allowed_columns, allowed_metrics
+    ):
+        return True
     # order-by entries are ``(expression, asc)`` pairs.
     for order in getattr(query, "orderby", None) or []:
         expr = order[0] if isinstance(order, (list, tuple)) and order else order
@@ -784,8 +793,9 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     A native filter may only read the column(s) it targets on the dashboard it
     belongs to. The request is treated as modified (and therefore rejected for
     guest users) when it cannot be tied to a native filter on the requesting
-    dashboard, or when any value-returning term (column, group-by, metric, or
-    order-by) references something other than a target column, a simple
+    dashboard, or when any value-returning term (column, group-by, series
+    column, metric, series-limit metric, or order-by) references something
+    other than a target column, a simple
     aggregate over a target column, or the filter's configured sort metric.
     Free-form SQL terms and saved metrics other than the configured sort metric
     are rejected. Row-restricting clauses (``filter``/``extras``) are not
@@ -4297,6 +4307,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                                 child_slice_id=slice_id,
                                                 parent_slice=parent_slc,
                                             )
+                                            # Bind the request to the child
+                                            # chart's own datasource, mirroring
+                                            # the direct-chart leg above.
+                                            and (
+                                                child_slc := self.session.query(Slice)
+                                                .filter(Slice.id == slice_id)
+                                                .one_or_none()
+                                            )
+                                            and child_slc.datasource == datasource
                                         )
                                     )
                                 )

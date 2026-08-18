@@ -224,6 +224,69 @@ def test_raise_for_access_guest_user_ok_subset(
     sm.raise_for_access(query_context=query_context)
 
 
+def test_raise_for_access_guest_user_deck_multi_child_requires_child_datasource(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The deck.gl multi-layer child leg must bind the requested datasource to
+    the child chart: a valid parent/child pair does not authorize querying
+    an arbitrary dataset.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch.object(sm, "get_current_guest_user_if_guest", return_value=None)
+    mocker.patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda feature: feature == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.security.manager.query_context_modified",
+        return_value=False,
+    )
+
+    child_datasource = mocker.MagicMock()
+    other_datasource = mocker.MagicMock()
+
+    parent_slc = mocker.MagicMock()
+    parent_slc.params = json.dumps({"viz_type": "deck_multi", "deck_slices": [42]})
+    child_slc = mocker.MagicMock()
+    child_slc.datasource = child_datasource
+
+    dashboard = mocker.MagicMock()
+    dashboard.slices = [parent_slc]
+
+    query_mock = mocker.patch.object(sm.session, "query")
+    query_mock.return_value.filter.return_value.one_or_none.side_effect = [
+        dashboard,
+        parent_slc,
+        child_slc,
+        dashboard,
+        parent_slc,
+        child_slc,
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.form_data = {
+        "dashboardId": 10,
+        "slice_id": 42,
+        "parent_slice_id": 41,
+    }
+
+    # Requesting the child's own datasource is allowed.
+    query_context.datasource = child_datasource
+    sm.raise_for_access(query_context=query_context)
+
+    # The same chart context with any other datasource is rejected.
+    query_context.datasource = other_datasource
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
 def test_raise_for_access_guest_user_tampered_id(
     mocker: MockerFixture,
     app_context: None,
@@ -1539,6 +1602,32 @@ def test_query_context_modified_native_filter_arbitrary_saved_metric_blocked(
     """A saved metric other than the filter's configured sort metric is modified."""
     query = SimpleNamespace(columns=["region"], metrics=["salary_total"], groupby=[])
     qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_series_limit_terms_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A series-limit metric or series column beyond the target is modified."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=[],
+        groupby=[],
+        series_columns=["region"],
+        series_limit=5,
+        series_limit_metric={
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "salary"},
+            "aggregate": "MAX",
+        },
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], series_columns=["ssn"]
+    )
+    qc = _native_filter_ctx(mocker, [query])
     assert query_context_modified(qc)
 
 
