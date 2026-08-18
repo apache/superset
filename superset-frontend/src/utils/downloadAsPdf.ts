@@ -18,9 +18,14 @@
  */
 import { SyntheticEvent } from 'react';
 import domToPdf from 'dom-to-pdf';
-import { kebabCase } from 'lodash';
-import { logging, t } from '@superset-ui/core';
+import { kebabCase } from 'lodash-es';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
+
+const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
 
 /**
  * generate a consistent file stem from a description and date
@@ -45,7 +50,7 @@ export default function downloadAsPdf(
   description: string,
   isExactSelector = false,
 ) {
-  return (event: SyntheticEvent) => {
+  return async (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
       ? document.querySelector(selector)
       : event.currentTarget.closest(selector);
@@ -56,8 +61,13 @@ export default function downloadAsPdf(
       );
     }
 
+    // Force any virtualized (unmounted) charts to render before capturing, so
+    // off-screen rows are not exported as loading spinners.
+    const didForceLoad = await forceLoadAllCharts(elementToPrint);
+
     const options = {
       margin: 10,
+      compression: pdfCompressionLevel,
       filename: `${generateFileStem(description)}.pdf`,
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2 },
@@ -69,6 +79,11 @@ export default function downloadAsPdf(
       })
       .catch((e: Error) => {
         logging.error('PDF generation failed', e);
+      })
+      .finally(() => {
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
       });
   };
 }

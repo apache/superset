@@ -14,11 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import current_app, Flask
+import flask_appbuilder
 from werkzeug.local import LocalProxy
 
-from superset.app import create_app  # noqa: F401
-from superset.extensions import (
+# SQLAlchemy 2.0 enables "Annotated Declarative" mapping, which inspects class
+# attribute type annotations and requires mapped attributes to use ``Mapped[...]``.
+# Superset's models (and Flask-AppBuilder mixins) still carry legacy 1.x style
+# annotations that are not wrapped in ``Mapped[...]``. Setting ``__allow_unmapped__``
+# on the shared declarative base preserves the legacy behavior so those annotations
+# are ignored by the ORM. This must run before any model class is defined (i.e.
+# before importing ``superset.app``), since the annotation check happens at class
+# creation time. Models can be migrated incrementally to the typed ``Mapped[...]``
+# form.
+flask_appbuilder.Model.__allow_unmapped__ = True
+
+# pandas >= 2.2 advertises a minimum SQLAlchemy of 2.0 and silently ignores
+# older installations, breaking DataFrame.to_sql / read_sql with SQLAlchemy
+# 1.4 engines. Its SQL layer still works with 1.4, so restore support until
+# Superset itself requires SQLAlchemy >= 2. Must run before any pandas SQL IO.
+from superset.utils.pandas_sqlalchemy_compat import (  # noqa: E402
+    restore_pandas_sqlalchemy_support,
+)
+
+restore_pandas_sqlalchemy_support()
+
+from superset.app import create_app  # noqa: E402, F401
+from superset.extensions import (  # noqa: E402
     appbuilder,  # noqa: F401
     cache_manager,
     db,  # noqa: F401
@@ -29,15 +50,13 @@ from superset.extensions import (
     security_manager,  # noqa: F401
     talisman,  # noqa: F401
 )
-from superset.security import SupersetSecurityManager  # noqa: F401
+from superset.security import SupersetSecurityManager  # noqa: E402, F401
 
-# All of the fields located here should be considered legacy. The correct way
-# to declare "global" dependencies is to define it in extensions.py,
+# All of the fields located here should be considered legacy. The correct way to
+# declare "global" dependencies is to define it in extensions.py,
 # then initialize it in app.create_app(). These fields will be removed
 # in subsequent PRs as things are migrated towards the factory pattern
-app: Flask = current_app
 cache = cache_manager.cache
-conf = LocalProxy(lambda: current_app.config)
 get_feature_flags = feature_flag_manager.get_feature_flags
 get_manifest_files = manifest_processor.get_manifest_files
 is_feature_enabled = feature_flag_manager.is_feature_enabled

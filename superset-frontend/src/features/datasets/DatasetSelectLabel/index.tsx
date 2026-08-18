@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from 'src/components/Tooltip';
-import { styled, t } from '@superset-ui/core';
+import { Tooltip } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { parentLabelLower } from 'src/features/semanticLayers/label';
 
 type Database = {
   database_name: string;
@@ -27,19 +29,20 @@ export type Dataset = {
   id: number;
   table_name: string;
   datasource_type?: string;
+  kind?: string;
   schema: string;
-  database: Database;
+  database?: Database;
 };
 
 const TooltipContent = styled.div`
   ${({ theme }) => `
     .tooltip-header {
-      font-size: ${theme.typography.sizes.m}px;
-      font-weight: ${theme.typography.weights.bold};
+      font-size: ${theme.fontSize}px;
+      font-weight: ${theme.fontWeightStrong};
     }
 
     .tooltip-description {
-      margin-top: ${theme.gridUnit * 2}px;
+      margin-top: ${theme.sizeUnit * 2}px;
       display: -webkit-box;
       -webkit-line-clamp: 20;
       -webkit-box-orient: vertical;
@@ -51,8 +54,8 @@ const TooltipContent = styled.div`
 
 const StyledLabelContainer = styled.div`
   ${({ theme }) => `
-    left: ${theme.gridUnit * 3}px;
-    right: ${theme.gridUnit * 3}px;
+    left: ${theme.sizeUnit * 3}px;
+    right: ${theme.sizeUnit * 3}px;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
@@ -61,8 +64,8 @@ const StyledLabelContainer = styled.div`
 
 const StyledLabel = styled.span`
   ${({ theme }) => `
-    left: ${theme.gridUnit * 3}px;
-    right: ${theme.gridUnit * 3}px;
+    left: ${theme.sizeUnit * 3}px;
+    right: ${theme.sizeUnit * 3}px;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
@@ -77,15 +80,11 @@ const StyledDetailWrapper = styled.div`
 `;
 
 const StyledLabelDetail = styled.span`
-  ${({
-    theme: {
-      typography: { sizes, weights },
-    },
-  }) => `
+  ${({ theme: { fontSizeSM, colorTextSecondary } }) => `
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: ${sizes.s}px;
-    font-weight: ${weights.light};
+    font-size: ${fontSizeSM}px;
+    color: ${colorTextSecondary};
     line-height: 1.6;
   `}
 `;
@@ -106,14 +105,14 @@ export const DatasetSelectLabel = (item: Dataset) => (
         </div>
         <div className="tooltip-description">
           <div>
-            {t('Database')}: {item.database.database_name}
+            {parentLabelLower(item.kind)}:{' '}
+            {item.database?.database_name ?? t('Not defined')}
           </div>
-          <div>
-            {t('Schema')}:{' '}
-            {item.schema && isValidValue(item.schema)
-              ? item.schema
-              : t('Not defined')}
-          </div>
+          {item.schema && isValidValue(item.schema) && (
+            <div>
+              {t('Schema')}: {item.schema}
+            </div>
+          )}
         </div>
       </TooltipContent>
     }
@@ -122,10 +121,12 @@ export const DatasetSelectLabel = (item: Dataset) => (
       <StyledLabel>
         {item.table_name && isValidValue(item.table_name)
           ? item.table_name
-          : item.database.database_name}
+          : (item.database?.database_name ?? t('Not defined'))}
       </StyledLabel>
       <StyledDetailWrapper>
-        <StyledLabelDetail>{item.database.database_name}</StyledLabelDetail>
+        <StyledLabelDetail>
+          {item.database?.database_name ?? t('Not defined')}
+        </StyledLabelDetail>
         {item.schema && isValidValue(item.schema) && (
           <StyledLabelDetail>&nbsp;- {item.schema}</StyledLabelDetail>
         )}

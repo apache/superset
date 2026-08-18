@@ -16,24 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo } from 'react';
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { ResizeCallback, ResizeStartCallback, Resizable } from 're-resizable';
 import cx from 'classnames';
-import { css, styled } from '@superset-ui/core';
+import { addAlpha } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 
 import {
   RightResizeHandle,
   BottomResizeHandle,
   BottomRightResizeHandle,
 } from './ResizableHandle';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import resizableConfig from '../../util/resizableConfig';
-import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
+import {
+  GRID_BASE_UNIT,
+  GRID_GUTTER_SIZE,
+  BOTTOM_RESIZE_DIRECTION,
+} from '../../util/constants';
 
 const proxyToInfinity = Number.MAX_VALUE;
 
 export interface ResizableContainerProps {
   id: string;
-  children?: object;
+  children?: ReactNode;
   adjustableWidth?: boolean;
   adjustableHeight?: boolean;
   gutterWidth?: number;
@@ -62,7 +76,25 @@ const HANDLE_CLASSES = {
   right: 'resizable-container-handle--right',
   bottom: 'resizable-container-handle--bottom',
 };
-// @ts-ignore
+
+const CursorLabel = styled.div`
+  ${({ theme }) => css`
+    position: fixed;
+    background-color: ${addAlpha(theme.colorPrimary, 0.9)};
+    color: ${theme.colorBgBase};
+    font-size: ${theme.fontSizeXS}px;
+    font-weight: ${theme.fontWeightStrong};
+    line-height: 1;
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 1.5}px;
+    border-radius: ${theme.borderRadius}px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 9999;
+    transform: translate(12px, 12px);
+  `}
+`;
+
+// @ts-expect-error
 const StyledResizable = styled(Resizable)`
   ${({ theme }) => css`
     &.resizable-container {
@@ -88,11 +120,11 @@ const StyledResizable = styled(Resizable)`
         left: 0;
         width: 100%;
         height: 100%;
-        box-shadow: inset 0 0 0 2px ${theme.colors.primary.base};
+        box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
       }
 
       & > span .resize-handle {
-        border-color: ${theme.colors.primary.base};
+        border-color: ${theme.colorPrimary};
       }
     }
 
@@ -102,34 +134,34 @@ const StyledResizable = styled(Resizable)`
 
       &--bottom-right {
         position: absolute;
-        border-right: 1px solid ${theme.colors.text.label};
-        border-bottom: 1px solid ${theme.colors.text.label};
-        right: ${theme.gridUnit * 4}px;
-        bottom: ${theme.gridUnit * 4}px;
-        width: ${theme.gridUnit * 2}px;
-        height: ${theme.gridUnit * 2}px;
+        border-right: 1px solid ${theme.colorSplit};
+        border-bottom: 1px solid ${theme.colorSplit};
+        right: ${theme.sizeUnit * 4}px;
+        bottom: ${theme.sizeUnit * 4}px;
+        width: ${theme.sizeUnit * 2}px;
+        height: ${theme.sizeUnit * 2}px;
       }
 
       &--right {
-        width: ${theme.gridUnit / 2}px;
-        height: ${theme.gridUnit * 5}px;
-        right: ${theme.gridUnit}px;
+        width: ${theme.sizeUnit / 2}px;
+        height: ${theme.sizeUnit * 5}px;
+        right: ${theme.sizeUnit}px;
         top: 50%;
         transform: translate(0, -50%);
         position: absolute;
-        border-left: 1px solid ${theme.colors.text.label};
-        border-right: 1px solid ${theme.colors.text.label};
+        border-left: 1px solid ${theme.colorSplit};
+        border-right: 1px solid ${theme.colorSplit};
       }
 
       &--bottom {
-        height: ${theme.gridUnit / 2}px;
-        width: ${theme.gridUnit * 5}px;
-        bottom: ${theme.gridUnit}px;
+        height: ${theme.sizeUnit / 2}px;
+        width: ${theme.sizeUnit * 5}px;
+        bottom: ${theme.sizeUnit}px;
         left: 50%;
         transform: translate(-50%);
         position: absolute;
-        border-top: 1px solid ${theme.colors.text.label};
-        border-bottom: 1px solid ${theme.colors.text.label};
+        border-top: 1px solid ${theme.colorSplit};
+        border-bottom: 1px solid ${theme.colorSplit};
       }
     }
   `}
@@ -147,6 +179,21 @@ const StyledResizable = styled(Resizable)`
   & .resizable-container-handle--bottom {
     bottom: 0 !important;
   }
+
+  /* Mobile consumption mode stacks all grid components full-width.
+     !important is required to beat re-resizable's inline width, which is
+     sized for the desktop grid (Markdown, Column, and other non-chart
+     components don't get the JS-level mobile width that ChartHolder
+     computes). */
+  ${({ theme }) =>
+    isMobileConsumptionEnabled() &&
+    css`
+      @media (max-width: ${theme.screenSMMax}px) {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+      }
+    `}
 `;
 
 export default function ResizableContainer({
@@ -173,12 +220,40 @@ export default function ResizableContainer({
   maxHeightMultiple = proxyToInfinity,
 }: ResizableContainerProps) {
   const [isResizing, setIsResizing] = useState<boolean>(false);
+  const cursorLabelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isResizing && cursorLabelRef.current) {
+      cursorLabelRef.current.style.display = 'none';
+    }
+  }, [isResizing]);
 
   const handleResize = useCallback<ResizeCallback>(
     (event, direction, elementRef, delta) => {
       if (onResize) onResize(event, direction, elementRef, delta);
+      if (direction.toLowerCase().includes(BOTTOM_RESIZE_DIRECTION)) {
+        const clientX =
+          'touches' in event
+            ? (event.touches[0]?.clientX ?? 0)
+            : (event as MouseEvent).clientX;
+        const clientY =
+          'touches' in event
+            ? (event.touches[0]?.clientY ?? 0)
+            : (event as MouseEvent).clientY;
+        const snappedDelta = Math.round(delta.height / heightStep) * heightStep;
+        const currentHeightPx = Math.max(
+          minHeightMultiple * heightStep,
+          heightMultiple * heightStep + snappedDelta,
+        );
+        if (cursorLabelRef.current) {
+          cursorLabelRef.current.style.display = 'block';
+          cursorLabelRef.current.style.left = `${clientX}px`;
+          cursorLabelRef.current.style.top = `${clientY}px`;
+          cursorLabelRef.current.textContent = `${currentHeightPx}px`;
+        }
+      }
     },
-    [onResize],
+    [onResize, heightMultiple, heightStep, minHeightMultiple],
   );
 
   const handleResizeStart = useCallback<ResizeStartCallback>(
@@ -205,7 +280,7 @@ export default function ResizableContainer({
             width: adjustableWidth ? nextWidthMultiple : 0,
             height: adjustableHeight ? nextHeightMultiple : 0,
           },
-          // @ts-ignore
+          // @ts-expect-error
           id,
         );
       }
@@ -275,47 +350,55 @@ export default function ResizableContainer({
   }, [editMode, adjustableWidth, adjustableHeight]);
 
   return (
-    <StyledResizable
-      enable={enableConfig}
-      grid={SNAP_TO_GRID}
-      gridGap={undefined}
-      minWidth={
-        adjustableWidth
-          ? minWidthMultiple * (widthStep + gutterWidth) - gutterWidth
-          : undefined
-      }
-      minHeight={adjustableHeight ? minHeightMultiple * heightStep : undefined}
-      maxWidth={
-        adjustableWidth && size.width
-          ? Math.max(
-              size.width,
-              Math.min(
-                proxyToInfinity,
-                maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
-              ),
-            )
-          : undefined
-      }
-      maxHeight={
-        adjustableHeight && size.height
-          ? Math.max(
-              size.height,
-              Math.min(proxyToInfinity, maxHeightMultiple * heightStep),
-            )
-          : undefined
-      }
-      size={size}
-      onResizeStart={handleResizeStart}
-      onResize={handleResize}
-      onResizeStop={handleResizeStop}
-      handleComponent={handleComponent}
-      className={cx(
-        'resizable-container',
-        isResizing && 'resizable-container--resizing',
+    <>
+      <StyledResizable
+        enable={enableConfig}
+        grid={SNAP_TO_GRID}
+        gridGap={undefined}
+        minWidth={
+          adjustableWidth
+            ? minWidthMultiple * (widthStep + gutterWidth) - gutterWidth
+            : undefined
+        }
+        minHeight={
+          adjustableHeight ? minHeightMultiple * heightStep : undefined
+        }
+        maxWidth={
+          adjustableWidth && size.width
+            ? Math.max(
+                size.width,
+                Math.min(
+                  proxyToInfinity,
+                  maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
+                ),
+              )
+            : undefined
+        }
+        maxHeight={
+          adjustableHeight && size.height
+            ? Math.max(
+                size.height,
+                Math.min(proxyToInfinity, maxHeightMultiple * heightStep),
+              )
+            : undefined
+        }
+        size={size}
+        onResizeStart={handleResizeStart}
+        onResize={handleResize}
+        onResizeStop={handleResizeStop}
+        handleComponent={handleComponent}
+        className={cx(
+          'resizable-container',
+          isResizing && 'resizable-container--resizing',
+        )}
+        handleClasses={HANDLE_CLASSES}
+      >
+        {children}
+      </StyledResizable>
+      {createPortal(
+        <CursorLabel ref={cursorLabelRef} style={{ display: 'none' }} />,
+        document.body,
       )}
-      handleClasses={HANDLE_CLASSES}
-    >
-      {children}
-    </StyledResizable>
+    </>
   );
 }

@@ -31,6 +31,13 @@ export default function databaseReducer(
   action: any,
 ): QueryAdhocState {
   switch (action.type) {
+    case 'SET_QUERY':
+      return {
+        ...state,
+        sql: action.payload ?? '',
+        queryResult: null,
+        error: null,
+      };
     case 'SET_QUERY_IS_LOADING':
       return {
         ...state,

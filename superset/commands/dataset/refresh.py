@@ -18,6 +18,7 @@ import logging
 from functools import partial
 from typing import Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 
 from superset import security_manager
@@ -29,7 +30,11 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.datasets.datetime_format_detector import DatetimeFormatDetector
+from superset.exceptions import (
+    SupersetSecurityException,
+    SupersetVirtualTableParseException,
+)
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -44,7 +49,38 @@ class RefreshDatasetCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model
-        self._model.fetch_metadata()
+        try:
+            self._model.fetch_metadata()
+        except SupersetVirtualTableParseException as ex:
+            # The virtual dataset's SQL could not be parsed or templated at
+            # save time — typically Jinja blocks (e.g. ``{% if from_dttm %}``)
+            # that have no runtime context here. The row has already been
+            # persisted by ``UpdateDatasetCommand`` before this refresh runs,
+            # so surfacing an "Invalid SQL" toast is misleading. Genuine
+            # driver, connection, and permission errors still raise the
+            # broader ``SupersetGenericDBErrorException`` and continue to
+            # bubble up. See #38012.
+            logger.warning(
+                "Dataset column refresh skipped for %s: %s",
+                self._model.table_name,
+                ex.message,
+            )
+
+        # Detect datetime formats if feature is enabled
+        if current_app.config.get("DATASET_AUTO_DETECT_DATETIME_FORMATS", True):
+            try:
+                detector = DatetimeFormatDetector()
+                detector.detect_all_formats(self._model)
+                logger.info(
+                    "Detected datetime formats for dataset %s", self._model.table_name
+                )
+            except Exception as ex:
+                logger.exception(
+                    "Failed to detect datetime formats for dataset %s: %s",
+                    self._model.table_name,
+                    str(ex),
+                )
+
         return self._model
 
     def validate(self) -> None:
@@ -52,8 +88,8 @@ class RefreshDatasetCommand(BaseCommand):
         self._model = DatasetDAO.find_by_id(self._model_id)
         if not self._model:
             raise DatasetNotFoundError()
-        # Check ownership
+        # Check editorship
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex

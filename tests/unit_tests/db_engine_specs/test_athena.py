@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -87,3 +88,105 @@ def test_get_text_clause_with_colon() -> None:
     )
     text_clause = AthenaEngineSpec.get_text_clause(query)
     assert text_clause.text == query
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Athena uses equality operators for boolean filters instead of IS.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    # Create a mock SQLAlchemy column
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_TRUE filter - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    result_true = AthenaEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    # The result should be a equality comparison, not an IS comparison
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    # Test IS_FALSE filter
+    result_false = AthenaEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+
+def test_adjust_engine_params() -> None:
+    """
+    Test `adjust_engine_params`.
+
+    The method can be used to adjust the schema dynamically.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    url = make_url("awsathena+rest://athena.us-east-1.amazonaws.com:443/default")
+
+    uri = AthenaEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "awsathena+rest://athena.us-east-1.amazonaws.com:443/default"
+
+    uri = AthenaEngineSpec.adjust_engine_params(
+        url,
+        {},
+        schema="new_schema",
+    )[0]
+    assert str(uri) == "awsathena+rest://athena.us-east-1.amazonaws.com:443/new_schema"
+
+    uri = AthenaEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+    )[0]
+    assert (
+        str(uri)
+        == "awsathena+rest://athena.us-east-1.amazonaws.com:443/default?catalog_name=new_catalog"
+    )
+
+    uri = AthenaEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="new_catalog",
+        schema="new_schema",
+    )[0]
+    assert (
+        str(uri)
+        == "awsathena+rest://athena.us-east-1.amazonaws.com:443/new_schema?catalog_name=new_catalog"
+    )
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    assert (
+        AthenaEngineSpec.get_schema_from_engine_params(
+            make_url(
+                "awsathena+rest://athena.us-east-1.amazonaws.com:443/default?s3_staging_dir=s3%3A%2F%2Fathena-staging"
+            ),
+            {},
+        )
+        == "default"
+    )
+
+    assert (
+        AthenaEngineSpec.get_schema_from_engine_params(
+            make_url(
+                "awsathena+rest://athena.us-east-1.amazonaws.com:443?s3_staging_dir=s3%3A%2F%2Fathena-staging"
+            ),
+            {},
+        )
+        is None
+    )

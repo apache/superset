@@ -116,7 +116,7 @@ def _make_decorator(  # noqa: C901
             def _log_enter_to_function(*args, **kwargs) -> None:
                 if _is_log_info():
                     decorated_logger.info(
-                        f"{prefix_enter_msg}'{full_func_name}'{suffix_enter_msg}"
+                        "%s'%s'%s", prefix_enter_msg, full_func_name, suffix_enter_msg
                     )
                 elif _is_debug_enable():
                     _log_debug(*args, **kwargs)
@@ -142,19 +142,27 @@ def _make_decorator(  # noqa: C901
                 _CLS_PARAM in used_parameters and used_parameters.pop(_CLS_PARAM)
                 if used_parameters:
                     decorated_logger.debug(
-                        f"{prefix_enter_msg}'{full_func_name}'{with_arguments_msg_part}"
-                        f"{used_parameters}{suffix_enter_msg}"
+                        "%s'%s'%s%s%s",
+                        prefix_enter_msg,
+                        full_func_name,
+                        with_arguments_msg_part,
+                        used_parameters,
+                        suffix_enter_msg,
                     )
                 else:
                     decorated_logger.debug(
-                        f"{prefix_enter_msg}'{full_func_name}'{suffix_enter_msg}"
+                        "%s'%s'%s", prefix_enter_msg, full_func_name, suffix_enter_msg
                     )
 
             def _log_exit_of_function(return_value: Any) -> None:
                 if _is_debug_enable() and has_return_value:
                     decorated_logger.debug(
-                        f"{prefix_out_msg}'{full_func_name}'{return_value_msg_part}"
-                        f"'{return_value}'{suffix_out_msg}"
+                        "%s'%s'%s'%s'%s",
+                        prefix_out_msg,
+                        full_func_name,
+                        return_value_msg_part,
+                        return_value,
+                        suffix_out_msg,
                     )
 
             return _wrapper_func

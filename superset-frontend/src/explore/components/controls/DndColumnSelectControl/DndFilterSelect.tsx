@@ -17,20 +17,21 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
-  logging,
   Metric,
   QueryFormData,
   QueryFormMetric,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
   isColumnMeta,
   isTemporalColumn,
 } from '@superset-ui/chart-controls';
-import Modal from 'src/components/Modal';
+import { Modal } from '@superset-ui/core/components';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -66,8 +67,9 @@ const DND_ACCEPTED_TYPES = [
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
 
-export interface DndFilterSelectProps
-  extends ControlComponentProps<OptionValueType[]> {
+export interface DndFilterSelectProps extends ControlComponentProps<
+  OptionValueType[]
+> {
   columns: ColumnMeta[];
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
@@ -90,7 +92,10 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     let extra = {};
     if (datasource?.extra) {
       try {
-        extra = JSON.parse(datasource.extra);
+        extra =
+          typeof datasource.extra === 'string'
+            ? JSON.parse(datasource.extra)
+            : datasource.extra;
       } catch {} // eslint-disable-line no-empty
     }
     return extra;
@@ -249,14 +254,14 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const onShiftOptions = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      const newValues = [...values];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      // @dnd-kit fires the reorder once at drag-end with the final indices, so
+      // this must be a full arrayMove, not an adjacent swap. Commit through
+      // onChange so the new order persists to form_data.
+      const newValues = arrayMove(values, dragIndex, hoverIndex);
       setValues(newValues);
+      onChange(newValues);
     },
-    [values],
+    [onChange, values],
   );
 
   const getMetricExpression = useCallback(
@@ -353,6 +358,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     () =>
       values.map((adhocFilter: AdhocFilter, index: number) => (
         <DndAdhocFilterOption
+          key={adhocFilter.filterOptionName ?? index}
           index={index}
           adhocFilter={adhocFilter}
           options={options}
@@ -449,6 +455,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={t('Drop columns/metrics here or click')}
         onClickGhostButton={handleClickGhostButton}
+        sortableType={DndItemType.FilterOption}
+        itemCount={values.length}
         {...props}
       />
       <AdhocFilterPopoverTrigger

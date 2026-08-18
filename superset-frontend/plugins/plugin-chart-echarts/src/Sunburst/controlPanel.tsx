@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -26,6 +26,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
+  DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -93,6 +94,20 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'show_null_values',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Null Values'),
+              default: true,
+              renderTrigger: true,
+              description: t(
+                'Whether to display entries with null values in the hierarchy',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'label_type',
             config: {
               type: 'SelectControl',
@@ -132,7 +147,7 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
             },
           },
@@ -163,7 +178,7 @@ const config: ControlPanelConfig = {
       visibility: ({ controls }: ControlPanelsContainerProps) =>
         Boolean(
           !controls?.secondary_metric?.value ||
-            controls?.secondary_metric?.value === controls?.metric.value,
+          controls?.secondary_metric?.value === controls?.metric.value,
         ),
     },
     linear_color_scheme: {
@@ -173,7 +188,7 @@ const config: ControlPanelConfig = {
       visibility: ({ controls }: ControlPanelsContainerProps) =>
         Boolean(
           controls?.secondary_metric?.value &&
-            controls?.secondary_metric?.value !== controls?.metric.value,
+          controls?.secondary_metric?.value !== controls?.metric.value,
         ),
     },
     columns: {

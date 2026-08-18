@@ -43,10 +43,10 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
     """
     Create an in-memory SQLite db.session.to test models.
     """
-    engine = create_engine("sqlite://")
+    engine = create_engine("sqlite://", future=True)
 
     def get_session():
-        Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
+        Session_ = sessionmaker(bind=engine, future=True)  # pylint: disable=invalid-name  # noqa: N806
         in_memory_session = Session_()
 
         # flask calls db.session.remove()
@@ -54,7 +54,7 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
 
         # patch session
         get_session = mocker.patch(
-            "superset.security.SupersetSecurityManager.get_session",
+            "superset.security.SupersetSecurityManager.session",
         )
         get_session.return_value = in_memory_session
         # FAB calls get_session.get_bind() to get a handler to the engine

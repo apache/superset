@@ -18,7 +18,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { arrayMove } from '@dnd-kit/sortable';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import ContourPopoverTrigger from './ContourPopoverTrigger';
 import ContourOption from './ContourOption';
@@ -47,8 +49,8 @@ const DEFAULT_CONTOURS: ContourType[] = [
 
 const NewContourFormatPlaceholder = styled('div')`
   position: relative;
-  width: calc(100% - ${({ theme }) => theme.gridUnit}px);
-  bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  width: calc(100% - ${({ theme }) => theme.sizeUnit}px);
+  bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   left: 0;
 `;
 
@@ -86,13 +88,12 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
     setContours(newContours);
   };
 
-  const onShiftContour = (hoverIndex: number, dragIndex: number) => {
-    const newContours = [...contours];
-    [newContours[hoverIndex], newContours[dragIndex]] = [
-      newContours[dragIndex],
-      newContours[hoverIndex],
-    ];
-    setContours(newContours);
+  const onShiftContour = (dragIndex: number, hoverIndex: number) => {
+    // @dnd-kit reports the final indices at drag-end, so reorder with a full
+    // arrayMove rather than an adjacent swap to support non-adjacent drags.
+    // Args are (from, to) to match arrayMove and the other Dnd controls;
+    // passing them reversed moved the wrong contour on non-adjacent drags.
+    setContours(arrayMove(contours, dragIndex, hoverIndex));
   };
 
   const editContour = (contour: ContourType, index: number) => {
@@ -126,6 +127,8 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
         accept={[]}
         ghostButtonText={ghostButtonText}
         onClickGhostButton={handleClickGhostButton}
+        sortableType="ContourOption"
+        itemCount={contours.length}
         {...props}
       />
       <ContourPopoverTrigger

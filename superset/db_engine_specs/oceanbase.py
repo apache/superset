@@ -23,6 +23,7 @@ from flask_babel import gettext as __
 from sqlalchemy import Numeric, TEXT, types
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
 from superset.utils.core import GenericDataType
@@ -82,6 +83,18 @@ class OceanBaseEngineSpec(MySQLEngineSpec):
     )
     encryption_parameters = {"ssl": "0"}
     supports_dynamic_schema = True
+
+    metadata = {
+        "description": "OceanBase is a distributed relational database.",
+        "logo": "oceanbase.svg",
+        "homepage_url": "https://www.oceanbase.com/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["oceanbase_py"],
+        "connection_string": "oceanbase://{username}:{password}@{host}:{port}/{database}",
+    }
 
     column_type_mappings = (  # type: ignore
         (

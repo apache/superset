@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  QueryFormData,
-  supersetTheme,
-  VizType,
-} from '@superset-ui/core';
+import { ChartProps, QueryFormData, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { HandlebarsQueryFormData } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 
@@ -45,7 +41,7 @@ describe('Handlebars transformProps', () => {
     theme: supersetTheme,
   });
 
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,

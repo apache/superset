@@ -16,30 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { useRef, FC } from 'react';
-import {
-  DragSourceMonitor,
-  DropTargetMonitor,
-  useDrag,
-  useDrop,
-  XYCoord,
-} from 'react-dnd';
-import { Icons, IconType } from 'src/components/Icons';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import type { CSSProperties, FC, ReactNode } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Icons } from '@superset-ui/core/components/Icons';
+import type { IconType } from '@superset-ui/core/components/Icons/types';
+import { isDivider } from './utils';
 
 interface TitleContainerProps {
   readonly isDragging: boolean;
 }
 
-const FILTER_TYPE = 'FILTER';
+export const FILTER_TYPE = 'FILTER';
+export const CUSTOMIZATION_TYPE = 'CUSTOMIZATION';
 
 const Container = styled.div<TitleContainerProps>`
-  ${({ isDragging, theme }) => `
+  ${({ isDragging }) => `
     opacity: ${isDragging ? 0.3 : 1};
     cursor: ${isDragging ? 'grabbing' : 'pointer'};
     width: 100%;
     display: flex;
-    padding:  ${theme.gridUnit}px;
   `}
 `;
 
@@ -47,98 +45,63 @@ const DragIcon = styled(Icons.Drag, {
   shouldForwardProp: propName => propName !== 'isDragging',
 })<IconType & { isDragging: boolean }>`
   ${({ isDragging, theme }) => `
-    font-size: ${theme.typography.sizes.m}px;
+    font-size: ${theme.fontSize}px;
     cursor: ${isDragging ? 'grabbing' : 'grab'};
-    padding-left: ${theme.gridUnit}px;
+    padding-left: ${theme.sizeUnit}px;
   `}
 `;
 
 interface FilterTabTitleProps {
+  id: string;
   index: number;
   filterIds: string[];
-  onRearrange: (dragItemIndex: number, targetIndex: number) => void;
-}
-
-interface DragItem {
-  index: number;
-  filterIds: string[];
-  type: string;
+  dragType?: string;
+  children: ReactNode;
 }
 
 export const DraggableFilter: FC<FilterTabTitleProps> = ({
+  id,
   index,
-  onRearrange,
   filterIds,
+  dragType = FILTER_TYPE,
   children,
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [{ isDragging }, drag] = useDrag({
-    item: { filterIds, type: FILTER_TYPE, index },
-    collect: (monitor: DragSourceMonitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-  const [, drop] = useDrop({
-    accept: FILTER_TYPE,
-    hover: (item: DragItem, monitor: DropTargetMonitor) => {
-      if (!ref.current) {
-        return;
-      }
+  const itemId = filterIds[0];
+  const isDividerItem = isDivider(itemId);
 
-      const dragIndex = item.index;
-      const hoverIndex = index;
-
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
-
-      // Get vertical middle
-      const hoverMiddleY =
-        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset();
-
-      // Get pixels to the top
-      const hoverClientY = (clientOffset as XYCoord).y - hoverBoundingRect.top;
-
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-
-      // Dragging downwards
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
-
-      // Dragging upwards
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
-
-      onRearrange(dragIndex, hoverIndex);
-      // Note: we're mutating the monitor item here.
-      // Generally it's better to avoid mutations,
-      // but it's good here for the sake of performance
-      // to avoid expensive index searches.
-      // eslint-disable-next-line no-param-reassign
-      item.index = hoverIndex;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id,
+    data: {
+      filterIds,
+      index,
+      isDivider: isDividerItem,
+      dragType,
     },
   });
-  drag(drop(ref));
+
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition || undefined,
+  };
+
   return (
-    <Container ref={ref} isDragging={isDragging}>
-      <DragIcon
-        isDragging={isDragging}
-        alt="Move icon"
-        className="dragIcon"
-        viewBox="4 4 16 16"
-      />
-      <div css={{ flex: 1 }}>{children}</div>
-    </Container>
+    <div ref={setNodeRef} style={style}>
+      <Container isDragging={isDragging} {...attributes} {...listeners}>
+        <DragIcon
+          isDragging={isDragging}
+          alt={t('Move icon')}
+          viewBox="4 4 16 16"
+        />
+        <div css={{ flex: 1 }}>{children}</div>
+      </Container>
+    </div>
   );
 };
 

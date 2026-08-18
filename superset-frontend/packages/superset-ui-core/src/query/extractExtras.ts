@@ -31,6 +31,7 @@ type ExtraFilterQueryField = {
   granularity_sqla?: string;
   time_grain_sqla?: TimeGranularity;
   granularity?: string;
+  time_compare?: string;
 };
 
 type ExtractedExtra = ExtraFilterQueryField & {
@@ -57,6 +58,7 @@ export default function extractExtras(formData: QueryFormData): ExtractedExtra {
     __time_col: 'granularity_sqla',
     __time_grain: 'time_grain_sqla',
     __granularity: 'granularity',
+    __time_compare: 'time_compare',
   };
 
   (formData.extra_filters || []).forEach(filter => {

@@ -17,7 +17,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryColumn, t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { QueryColumn, validateNonEmpty } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ExtraControlProps,
   SharedControlConfig,
@@ -52,6 +54,19 @@ type Control = {
  * feature flags are set and when they're checked.
  */
 
+function filterOptions(
+  options: (ColumnMeta | QueryColumn)[],
+  allowedDataTypes?: GenericDataType[],
+) {
+  if (!allowedDataTypes) {
+    return options;
+  }
+  return options.filter(
+    o =>
+      o.type_generic !== undefined && allowedDataTypes.includes(o.type_generic),
+  );
+}
+
 export const dndGroupByControl: SharedControlConfig<
   'DndColumnSelect' | 'SelectControl',
   ColumnMeta
@@ -81,14 +96,20 @@ export const dndGroupByControl: SharedControlConfig<
     const newState: ExtraControlProps = {};
     const { datasource } = state;
     if (datasource?.columns[0]?.hasOwnProperty('groupby')) {
-      const options = (datasource as Dataset).columns.filter(c => c.groupby);
+      const options = filterOptions(
+        (datasource as Dataset).columns.filter(c => c.groupby),
+        controlState?.allowedDataTypes,
+      );
       if (controlState?.includeTime) {
         options.unshift(DATASET_TIME_COLUMN_OPTION);
       }
       newState.options = options;
       newState.savedMetrics = (datasource as Dataset).metrics || [];
     } else {
-      const options = (datasource?.columns as QueryColumn[]) || [];
+      const options = filterOptions(
+        (datasource?.columns as QueryColumn[]) || [],
+        controlState?.allowedDataTypes,
+      );
       if (controlState?.includeTime) {
         options.unshift(QUERY_TIME_COLUMN_OPTION);
       }
@@ -131,7 +152,9 @@ export const dndAdhocFilterControl: SharedControlConfig<
   type: 'DndFilterSelect',
   label: t('Filters'),
   default: [],
-  description: '',
+  description: t(
+    'Add columns to filter by. When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
+  ),
   mapStateToProps: ({ datasource, form_data }) => ({
     columns: isDataset(datasource)
       ? datasource.columns.filter(c => c.filterable)
@@ -175,6 +198,19 @@ export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
       'You can use an aggregation function on a column ' +
       'or write custom SQL to create a metric.',
   ),
+};
+
+export const dndTooltipColumnsControl: typeof dndColumnsControl = {
+  ...dndColumnsControl,
+  label: t('Tooltip (columns)'),
+  description: t('Columns to show in the tooltip.'),
+};
+
+export const dndTooltipMetricsControl: typeof dndAdhocMetricsControl = {
+  ...dndAdhocMetricsControl,
+  label: t('Tooltip (metrics)'),
+  description: t('Metrics to show in the tooltip.'),
+  validators: [],
 };
 
 export const dndAdhocMetricControl2: typeof dndAdhocMetricControl = {

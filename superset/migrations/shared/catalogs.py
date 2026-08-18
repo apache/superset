@@ -24,8 +24,7 @@ from typing import Any, Type, Union
 import sqlalchemy as sa
 from alembic import op
 from flask import current_app
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import declarative_base, lazyload, Session
 
 from superset import db, security_manager
 from superset.db_engine_specs.base import GenericDBException
@@ -37,7 +36,7 @@ from superset.migrations.shared.security_converge import (
 )
 from superset.models.core import Database
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 Base: Type[Any] = declarative_base()
 
@@ -154,8 +153,12 @@ def print_processed_batch(
     elapsed_formatted = f"{int(elapsed_seconds // 3600):02}:{int((elapsed_seconds % 3600) // 60):02}:{int(elapsed_seconds % 60):02}"  # noqa: E501
     rows_processed = min(offset + batch_size, total_rows)
     logger.info(
-        f"{elapsed_formatted} - {rows_processed:,} of {total_rows:,} {model.__tablename__} rows processed "  # noqa: E501
-        f"({(rows_processed / total_rows) * 100:.2f}%)"
+        "%s - %s of %s %s rows processed (%s%%)",
+        elapsed_formatted,
+        f"{rows_processed:,}",
+        f"{total_rows:,}",
+        model.__tablename__,
+        f"{(rows_processed / total_rows) * 100:.2f}",
     )
 
 
@@ -180,7 +183,7 @@ def update_catalog_column(
     """
     start_time = datetime.now()
 
-    logger.info(f"Updating {database.database_name} models to catalog {catalog}")
+    logger.info("Updating %s models to catalog %s", database.database_name, catalog)
 
     for model, column in MODELS:
         # Get the total number of rows that match the condition
@@ -192,7 +195,9 @@ def update_catalog_column(
         )
 
         logger.info(
-            f"Total rows to be processed for {model.__tablename__}: {total_rows:,}"
+            "Total rows to be processed for %s: %s",
+            model.__tablename__,
+            f"{total_rows:,}",
         )
 
         batch_size = get_batch_size(session)
@@ -302,7 +307,7 @@ def delete_models_non_default_catalog(
     """
     start_time = datetime.now()
 
-    logger.info(f"Deleting models not in the default catalog: {catalog}")
+    logger.info("Deleting models not in the default catalog: %s", catalog)
 
     for model, column in MODELS:
         # Get the total number of rows that match the condition
@@ -314,7 +319,9 @@ def delete_models_non_default_catalog(
         )
 
         logger.info(
-            f"Total rows to be processed for {model.__tablename__}: {total_rows:,}"
+            "Total rows to be processed for %s: %s",
+            model.__tablename__,
+            f"{total_rows:,}",
         )
 
         batch_size = get_batch_size(session)
@@ -369,9 +376,17 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
 
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
-    for database in session.query(Database).all():
+    # The Database model has an eager-loaded (``lazy="joined"``) ``ssh_tunnel``
+    # backref. Eager-loading it here would SELECT every column on ``ssh_tunnels``,
+    # including columns added by later migrations that do not yet exist at the
+    # revision this helper runs in (e.g. on a fresh DB upgraded in one pass). The
+    # catalog upgrade only needs scalar ``Database`` columns, so disable the eager
+    # join to keep the query schema-safe across migration revisions.
+    for database in (
+        session.query(Database).options(lazyload(Database.ssh_tunnel)).all()
+    ):
         db_engine_spec = database.db_engine_spec
         if (
             engines and db_engine_spec.engine not in engines
@@ -566,9 +581,13 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
     WARNING: models (datasets and charts) not in the default catalog are deleted!
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
-    for database in session.query(Database).all():
+    # See upgrade_catalog_perms: avoid eager-loading the ``ssh_tunnel`` backref so the
+    # query stays schema-safe across migration revisions.
+    for database in (
+        session.query(Database).options(lazyload(Database.ssh_tunnel)).all()
+    ):
         db_engine_spec = database.db_engine_spec
         if (
             engines and db_engine_spec.engine not in engines

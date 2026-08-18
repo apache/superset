@@ -14,16 +14,43 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import app, talisman
+from flask import Blueprint, current_app as app, jsonify
+
+from superset import talisman
 from superset.stats_logger import BaseStatsLogger
 from superset.superset_typing import FlaskResponse
 
+health_blueprint = Blueprint("health", __name__)
 
+
+@health_blueprint.route("/health")
+@health_blueprint.route("/healthcheck")
+@health_blueprint.route("/ping")
 @talisman(force_https=False)
-@app.route("/health")
-@app.route("/healthcheck")
-@app.route("/ping")
 def health() -> FlaskResponse:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("health")
     return "OK"
+
+
+@health_blueprint.route("/version")
+@talisman(force_https=False)
+def version() -> FlaskResponse:
+    """
+    Return version information. Precise build details (the git SHA and build
+    number) are only exposed to admins unless the deployment opts in via
+    EXPOSE_BUILD_DETAILS_TO_USERS; the release version string is always
+    included.
+    """
+    from superset import security_manager
+    from superset.utils.version import (
+        get_version_metadata,
+        visible_version_metadata,
+    )
+
+    expose_build_details = (
+        app.config["EXPOSE_BUILD_DETAILS_TO_USERS"] or security_manager.is_admin()
+    )
+    return jsonify(
+        visible_version_metadata(get_version_metadata(), expose_build_details)
+    )

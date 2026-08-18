@@ -16,7 +16,9 @@
 # under the License.
 import logging
 from functools import partial
+from typing import Any
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.tag.exceptions import (
     TagDeleteFailedError,
@@ -25,8 +27,9 @@ from superset.commands.tag.exceptions import (
     TagInvalidError,
     TagNotFoundError,
 )
-from superset.commands.tag.utils import to_object_type
+from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.daos.tag import TagDAO
+from superset.exceptions import SupersetSecurityException
 from superset.tags.models import ObjectType
 from superset.utils.decorators import on_error, transaction
 from superset.views.base import DeleteMixin
@@ -71,6 +74,9 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
                     )
                 )
             else:
+                # Validate user has access to the target object
+                self._validate_object_access(object_type, self._object_id, exceptions)
+
                 tagged_object = TagDAO.find_tagged_object(
                     object_type=object_type, object_id=self._object_id, tag_id=tag.id
                 )
@@ -84,6 +90,38 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
                     )
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
+
+    def _validate_object_access(
+        self, object_type: ObjectType, object_id: int, exceptions: list[Any]
+    ) -> None:
+        """Validate that the current user has access to the target object."""
+        # Skip base filter so we can distinguish "not found" from "no access"
+        target_object = to_object_model(object_type, object_id, skip_base_filter=True)
+        if not target_object:
+            # Allow operation on stale references; no object to authorize against
+            return
+
+        try:
+            if object_type == ObjectType.dashboard:
+                security_manager.raise_for_access(dashboard=target_object)
+            elif object_type == ObjectType.chart:
+                security_manager.raise_for_access(chart=target_object)
+            elif object_type == ObjectType.query:
+                security_manager.raise_for_access(query=target_object)
+            elif object_type == ObjectType.dataset:
+                security_manager.raise_for_access(datasource=target_object)
+            else:
+                exceptions.append(
+                    TaggedObjectDeleteFailedError(
+                        f"Access validation not supported for {object_type}"
+                    )
+                )
+        except SupersetSecurityException:
+            exceptions.append(
+                TaggedObjectDeleteFailedError(
+                    f"Access denied for {object_type} {object_id}"
+                )
+            )
 
 
 class DeleteTagsCommand(DeleteMixin, BaseCommand):

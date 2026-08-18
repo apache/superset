@@ -24,8 +24,9 @@ import {
   isAppliedCrossFilterType,
   isAppliedNativeFilterType,
   isNativeFilter,
+  ChartCustomization,
 } from '@superset-ui/core';
-import { Slice } from 'src/types/Chart';
+import type { Slice } from 'src/dashboard/types';
 
 function isGlobalScope(scope: number[], slices: Record<string, Slice>) {
   return scope.length === Object.keys(slices).length;
@@ -83,10 +84,13 @@ function getRelatedChartsForCrossFilter(
 
 export function getRelatedCharts(
   filterKey: string,
-  filter: AppliedNativeFilterType | AppliedCrossFilterType | Filter,
+  filter: AppliedNativeFilterType | AppliedCrossFilterType | Filter | undefined,
   slices: Record<string, Slice>,
 ) {
   let related: number[] = [];
+  if (!filter) {
+    return related;
+  }
   const isCrossFilter =
     Object.keys(slices).includes(filterKey) && isAppliedCrossFilterType(filter);
 
@@ -110,4 +114,48 @@ export function getRelatedCharts(
   }
 
   return related;
+}
+
+export function getRelatedChartsForChartCustomization(
+  customizationItem: ChartCustomization,
+  slices: Record<string, Slice>,
+): number[] {
+  const { chartsInScope, targets } = customizationItem;
+
+  if (Array.isArray(chartsInScope)) {
+    return chartsInScope;
+  }
+
+  const dataset = targets?.[0]?.datasetId;
+
+  if (!dataset) {
+    return [];
+  }
+
+  const targetDatasetId = String(dataset);
+  // ``datasourceType`` disambiguates between independent ID spaces (e.g.
+  // table ``1`` vs semantic view ``1``). When absent on either side we fall
+  // back to ID-only matching so legacy customizations keep working.
+  const targetDatasourceType = targets?.[0]?.datasourceType;
+
+  return Object.values(slices)
+    .filter(slice => {
+      const sliceDataset = slice.form_data?.datasource;
+      if (!sliceDataset) return false;
+
+      const sliceDatasetParts = String(sliceDataset).split('__');
+      const sliceDatasetId = sliceDatasetParts[0];
+      const sliceDatasourceType = sliceDatasetParts[1];
+
+      if (sliceDatasetId !== targetDatasetId) return false;
+      if (
+        targetDatasourceType &&
+        sliceDatasourceType &&
+        targetDatasourceType !== sliceDatasourceType
+      ) {
+        return false;
+      }
+      return true;
+    })
+    .map(slice => slice.slice_id);
 }

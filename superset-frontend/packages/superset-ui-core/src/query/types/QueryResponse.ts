@@ -16,19 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { GenericDataType } from '@apache-superset/core/common';
 import { TimeseriesDataRecord } from '../../chart';
 import { AnnotationData } from './AnnotationLayer';
-
-/**
- * Generic data types, see enum of the same name in superset/utils/core.py.
- */
-export enum GenericDataType {
-  Numeric = 0,
-  String = 1,
-  Temporal = 2,
-  Boolean = 3,
-}
 
 /**
  * Primitive types for data field values.
@@ -37,6 +27,19 @@ export type DataRecordValue = number | string | boolean | Date | null | bigint;
 
 export interface DataRecord {
   [key: string]: DataRecordValue;
+}
+
+export interface ChartDataQueryTiming {
+  query_planning_ms: number | null;
+  cache_resolution_ms: number | null;
+  data_acquisition_ms: number | null;
+  payload_assembly_ms: number | null;
+  total_ms: number;
+}
+
+export interface ChartDataTiming {
+  version: 1;
+  query: ChartDataQueryTiming;
 }
 
 /**
@@ -51,6 +54,11 @@ export interface ChartDataResponseResult {
   cache_key: string | null;
   cache_timeout: number | null;
   cached_dttm: string | null;
+  /**
+   * UTC timestamp when the query was executed (ISO 8601 format).
+   * For cached queries, this is when the original query ran.
+   */
+  queried_dttm: string | null;
   /**
    * Array of data records as dictionary
    */
@@ -82,10 +90,20 @@ export interface ChartDataResponseResult {
   // TODO(hainenber): define proper type for below attributes
   rejected_filters?: any[];
   applied_filters?: any[];
+  warning?: string | null;
+  /**
+   * Detected ISO 4217 currency code when AUTO mode is used.
+   * Returns the currency code if all filtered data contains a single currency,
+   * or null if multiple currencies are present.
+   */
+  detected_currency?: string | null;
+  /**
+   * Versioned query lifecycle timing in milliseconds.
+   */
+  timing?: ChartDataTiming;
 }
 
-export interface TimeseriesChartDataResponseResult
-  extends ChartDataResponseResult {
+export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {
   data: TimeseriesDataRecord[];
   label_map: Record<string, string[]>;
 }

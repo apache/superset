@@ -23,12 +23,13 @@ import {
   useState,
   MouseEvent as ReactMouseEvent,
 } from 'react';
-
-import { throttle } from 'lodash';
+import { t } from '@apache-superset/core/translation';
+import { throttle } from 'lodash-es';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
+import { Icons } from '@superset-ui/core/components';
 
 const RESIZE_THROTTLE_MS = 50;
 
@@ -132,14 +133,17 @@ export default function useResizeButton(
   }, [onMouseUp]);
 
   return [
-    // TODO: Remove fa-icon
-    // eslint-disable-next-line icons/no-fa-icons-usage
-    <i
+    <Icons.ArrowsAltOutlined
+      // Drag-to-resize handle activated via mousedown, not click; there's
+      // no keyboard equivalent, so role="button" (which implies a
+      // click/Enter/Space-activatable control) isn't quite right, but no
+      // native tag fits a drag handle either.
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="button"
-      aria-label="Resize"
+      aria-label={t('Resize')}
       tabIndex={0}
       onMouseDown={onDragDown}
-      className="fa fa-expand edit-popover-resize text-muted"
+      className="edit-popover-resize"
     />,
     width,
     height,

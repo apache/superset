@@ -28,7 +28,7 @@ down_revision = "cecc6bf46990"
 
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -63,7 +63,7 @@ def upgrade_slice(slc: Slice):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     slices_updated = 0
     for slc in (
         session.query(Slice)

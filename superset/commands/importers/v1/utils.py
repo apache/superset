@@ -29,7 +29,10 @@ from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
+from superset.models.dashboard import dashboard_slices
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.tags.models import Tag, TaggedObject
+from superset.utils import json
 from superset.utils.core import check_is_safe_zip
 from superset.utils.decorators import transaction
 
@@ -56,7 +59,7 @@ def load_yaml(file_name: str, content: str) -> dict[str, Any]:
     """Try to load a YAML file"""
     try:
         return yaml.safe_load(content)
-    except yaml.parser.ParserError as ex:
+    except yaml.YAMLError as ex:
         logger.exception("Invalid YAML in %s", file_name)
         raise ValidationError({file_name: "Not a valid YAML file"}) from ex
 
@@ -110,6 +113,7 @@ def load_configs(
     ssh_tunnel_passwords: dict[str, str],
     ssh_tunnel_private_keys: dict[str, str],
     ssh_tunnel_priv_key_passwords: dict[str, str],
+    encrypted_extra_secrets: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     configs: dict[str, Any] = {}
 
@@ -148,9 +152,13 @@ def load_configs(
             try:
                 config = load_yaml(file_name, content)
 
-                # populate passwords from the request or from existing DBs
+                # populate passwords from the request, from YAML config,
+                # or from existing DBs
                 if file_name in passwords:
                     config["password"] = passwords[file_name]
+                elif prefix == "databases" and config.get("password"):
+                    # password already in YAML config, keep it
+                    pass
                 elif prefix == "databases" and config["uuid"] in db_passwords:
                     config["password"] = db_passwords[config["uuid"]]
 
@@ -190,9 +198,53 @@ def load_configs(
                         db_ssh_tunnel_priv_key_passws[config["uuid"]]
                     )
 
+                # populate encrypted_extra secrets from the request
+                # The secrets dict maps JSONPath -> value
+                # e.g., {"$.oauth2_client_info.secret": "actual_value"}
+                if file_name in encrypted_extra_secrets and config.get(
+                    "masked_encrypted_extra"
+                ):
+                    # Normalize escape sequences (needed for PEM keys/certs)
+                    normalized_secrets = {
+                        path: value.replace("\\n", "\n")
+                        if isinstance(value, str)
+                        else value
+                        for path, value in encrypted_extra_secrets[file_name].items()
+                    }
+                    temp_dict = json.loads(config["masked_encrypted_extra"])
+                    temp_dict = json.set_masked_fields(temp_dict, normalized_secrets)
+                    config["masked_encrypted_extra"] = json.dumps(temp_dict)
+
+                # Normalize example data URLs before schema validation
+                if prefix == "datasets" and "data" in config:
+                    from superset.examples.helpers import normalize_example_data_url
+
+                    config["data"] = normalize_example_data_url(config["data"])
+
                 schema.load(config)
                 configs[file_name] = config
             except ValidationError as exc:
+                logger.error(
+                    "Schema validation failed for %s (prefix: %s): %s",
+                    file_name,
+                    prefix,
+                    exc.messages,
+                )
+                # Log field names only; full values can be huge (e.g. inline
+                # example data) and drown out the validation error above. Guard
+                # the diagnostic so it can never raise and mask the validation
+                # error: config may be a non-mapping or have unsortable keys.
+                if isinstance(config, dict):
+                    field_names = ", ".join(sorted(map(str, config)))
+                    logger.debug(
+                        "Config fields present in %s: %s", file_name, field_names
+                    )
+                else:
+                    logger.debug(
+                        "Config in %s is not a mapping (type: %s)",
+                        file_name,
+                        type(config).__name__,
+                    )
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
 
@@ -266,27 +318,39 @@ def import_tag(
 
     for tag_name in target_tag_names:
         try:
-            tag = existing_tags.get(tag_name)
+            # Isolate each tag operation in a SAVEPOINT so a failure (e.g. a
+            # concurrent unique-constraint violation) rolls back only the failed
+            # tag and leaves the session usable for the remaining tags, instead
+            # of poisoning the session with a pending-rollback state.
+            with db_session.begin_nested():
+                tag = existing_tags.get(tag_name)
 
-            # If tag does not exist, create it
-            if tag is None:
-                description = tag_descriptions.get(tag_name, None)
-                tag = Tag(name=tag_name, description=description, type="custom")
-                db_session.add(tag)
-                existing_tags[tag_name] = tag  # Update the existing_tags dictionary
+                # If tag does not exist, create it
+                if tag is None:
+                    description = tag_descriptions.get(tag_name, None)
+                    tag = Tag(name=tag_name, description=description, type="custom")
+                    db_session.add(tag)
+                    existing_tags[tag_name] = tag  # Update the existing_tags dictionary
 
-            # Ensure the association with the object
-            tagged_object = (
-                db_session.query(TaggedObject)
-                .filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id)
-                .first()
-            )
-            if not tagged_object:
-                new_tagged_object = TaggedObject(
-                    tag_id=tag.id, object_id=object_id, object_type=object_type
+                # Ensure the association with the object
+                tagged_object = (
+                    db_session.query(TaggedObject)
+                    .filter_by(
+                        object_id=object_id, object_type=object_type, tag_id=tag.id
+                    )
+                    .first()
                 )
-                db_session.add(new_tagged_object)
+                if not tagged_object:
+                    new_tagged_object = TaggedObject(
+                        tag_id=tag.id, object_id=object_id, object_type=object_type
+                    )
+                    db_session.add(new_tagged_object)
 
+            # Only record the tag as imported once the SAVEPOINT has been
+            # released (and its pending inserts flushed) without error; the
+            # nested block's own flush can still fail on a concurrent
+            # unique-constraint violation, in which case this line must not
+            # run.
             new_tag_ids.append(tag.id)
 
         except SQLAlchemyError as err:
@@ -297,7 +361,9 @@ def import_tag(
                 object_id,
                 err,
             )
-            continue  # No need for manual rollback, handled by transaction decorator
+            # The SAVEPOINT was rolled back by begin_nested(); the session is
+            # still usable for the remaining tags.
+            continue
 
     # Remove old tags not in the new config
     for tag in existing_assocs:
@@ -305,6 +371,80 @@ def import_tag(
             db_session.delete(tag)
 
     return new_tag_ids
+
+
+def safe_insert_dashboard_chart_relationships(
+    dashboard_chart_ids: list[tuple[int, int]],
+) -> None:
+    """
+    Safely insert dashboard-chart relationships, handling duplicates.
+
+    This function checks for existing relationships and only inserts new ones
+    to avoid duplicate key constraint errors.
+    """
+    from sqlalchemy.sql import select
+
+    if not dashboard_chart_ids:
+        return
+
+    # Get existing relationships only for dashboards being updated
+    dashboard_ids = {dashboard_id for dashboard_id, _ in dashboard_chart_ids}
+    existing_relationships = db.session.execute(
+        select(dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id).where(
+            dashboard_slices.c.dashboard_id.in_(dashboard_ids)
+        )
+    ).fetchall()
+    existing_relationships_set = {(row[0], row[1]) for row in existing_relationships}
+
+    # Filter out relationships that already exist
+    new_relationships = [
+        (dashboard_id, chart_id)
+        for dashboard_id, chart_id in dashboard_chart_ids
+        if (dashboard_id, chart_id) not in existing_relationships_set
+    ]
+
+    # Insert new relationships in bulk, deduplicating to avoid unique constraint issues
+
+    if unique_new_relationships := set(new_relationships):
+        _prime_versioning_unit_of_work()
+        db.session.execute(
+            dashboard_slices.insert(),
+            [
+                {"dashboard_id": dashboard_id, "slice_id": chart_id}
+                for dashboard_id, chart_id in unique_new_relationships
+            ],
+        )
+
+
+def _prime_versioning_unit_of_work() -> None:
+    """Ensure Continuum has a unit-of-work for the current connection.
+
+    ``dashboard_slices`` is a Continuum-tracked (versioned) association
+    table, so a raw Core INSERT/DELETE on it fires Continuum's engine-level
+    ``before_execute`` listener, which looks up a unit-of-work for the
+    connection and raises ``KeyError`` when none is registered (the same
+    failure class the dashboard test factory hit). The normal import flow
+    registers one via prior ORM flushes, so this is belt-and-suspenders for
+    a bulk relationship insert that might run before any flush on the
+    connection. No-op (the listener is detached) when version capture is
+    disabled, which is the shipped default; never allowed to break an import.
+    """
+    try:
+        # pylint: disable=import-outside-toplevel
+        from sqlalchemy_continuum import versioning_manager
+
+        # Mirror the exact condition Continuum's track_association_operations
+        # listener uses to decide whether it acts (versioning OR
+        # native_versioning), so the prime can't skip while the listener runs.
+        options = versioning_manager.options
+        if options.get("versioning") or options.get("native_versioning"):
+            versioning_manager.unit_of_work(db.session)
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "versioning: could not prime Continuum unit-of-work before a "
+            "bulk dashboard_slices insert; proceeding without it.",
+            exc_info=True,
+        )
 
 
 def get_resource_mappings_batched(
@@ -321,3 +461,59 @@ def get_resource_mappings_batched(
         mapping.update({str(x.uuid): value_func(x) for x in batch})
         offset += batch_size
     return mapping
+
+
+def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
+    """Look up an existing row by UUID for an import, including soft-deleted matches.
+
+    Bypasses the soft-delete visibility filter so a soft-deleted row with
+    the matching UUID is returned, not hidden. Side-effect-free: returns
+    the row as-is whether it's live or soft-deleted (or ``None`` if no
+    row exists). The caller is responsible for deciding what to do with
+    a soft-deleted match.
+
+    **Canonical pattern — restore in place.** The dashboard importer
+    (``superset/commands/dashboard/importers/v1/utils.py``) establishes
+    the reference handling: after validating permissions/editorship, clear
+    ``deleted_at`` on the existing row (``existing.restore()``) and apply
+    the config as an update, preserving the PK and all relationship rows
+    (junction tables, editor/viewer subjects, tags) that a hard delete would
+    cascade away. Entity importers adopting soft delete should follow the
+    same pattern so re-import semantics stay uniform across entities.
+    :func:`clear_soft_deleted_for_import` (hard-delete-and-replace) is the
+    escape hatch for entities where restore-in-place is unworkable —
+    prefer restore-in-place unless there's a specific reason not to.
+
+    Splitting the lookup from any destructive cleanup keeps the
+    destructive action explicit at the call site, so a future change
+    that adds a permission check on the overwrite path doesn't
+    silently leave a "duck around it via soft-delete" backdoor.
+    """
+    return (
+        db.session.query(model_cls)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
+        .filter_by(uuid=uuid)
+        .first()
+    )
+
+
+def clear_soft_deleted_for_import(existing: Any) -> None:
+    """Hard-delete a soft-deleted row to free its UUID for re-import.
+
+    Uses ``db.session.delete()`` rather than a raw Core ``DELETE`` so
+    the ORM ``after_delete`` event listeners fire. Cleanup that depends
+    on those listeners would otherwise be skipped — notably tag rows in
+    ``tagged_object`` (cleaned up by ``ObjectUpdater.after_delete`` in
+    ``superset/tags/core.py``; the table's ``object_id`` is a plain
+    integer, not a foreign key, so the database cannot cascade them)
+    and dataset permission-view rows (cleaned up by
+    ``SqlaTable.after_delete`` in ``superset/connectors/sqla/models.py``).
+
+    Caller contract: ``existing`` must be a soft-deleted row returned
+    from :func:`find_existing_for_import`. Callers should run their
+    overwrite / permission validation *before* invoking this so the
+    destructive action only happens once the import path is committed
+    to proceeding.
+    """
+    db.session.delete(existing)
+    db.session.flush()

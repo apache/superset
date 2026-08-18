@@ -26,6 +26,7 @@ interface LookupTable {
 
 export interface ExampleImage {
   url: string;
+  urlDark?: string;
   caption?: string;
 }
 
@@ -38,7 +39,7 @@ export interface ChartMetadataConfig {
   enableNoResults?: boolean;
   supportedAnnotationTypes?: string[];
   thumbnail: string;
-  useLegacyApi?: boolean;
+  thumbnailDark?: string;
   behaviors?: Behavior[];
   exampleGallery?: ExampleImage[];
   tags?: string[];
@@ -71,7 +72,7 @@ export default class ChartMetadata {
 
   thumbnail: string;
 
-  useLegacyApi: boolean;
+  thumbnailDark?: string;
 
   behaviors: Behavior[];
 
@@ -107,7 +108,7 @@ export default class ChartMetadata {
       description = '',
       supportedAnnotationTypes = [],
       thumbnail,
-      useLegacyApi = false,
+      thumbnailDark,
       behaviors = [],
       datasourceCount = 1,
       enableNoResults = true,
@@ -138,7 +139,7 @@ export default class ChartMetadata {
     );
     this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
-    this.useLegacyApi = useLegacyApi;
+    this.thumbnailDark = thumbnailDark;
     this.behaviors = behaviors;
     this.datasourceCount = datasourceCount;
     this.enableNoResults = enableNoResults;

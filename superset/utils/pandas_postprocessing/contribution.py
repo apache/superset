@@ -24,7 +24,7 @@ from flask_babel import gettext as _
 from pandas import DataFrame, MultiIndex
 
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.core import PostProcessingContributionOrientation
+from superset.utils.core import PostProcessingContributionOrientation, TIME_COMPARISON
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
 
@@ -37,6 +37,7 @@ def contribution(
     columns: list[str] | None = None,
     time_shifts: list[str] | None = None,
     rename_columns: list[str] | None = None,
+    contribution_totals: dict[str, float] | None = None,
 ) -> DataFrame:
     """
     Calculate cell contribution to row/column total for numeric columns.
@@ -82,10 +83,19 @@ def contribution(
     numeric_df_view = numeric_df[actual_columns]
 
     if orientation == PostProcessingContributionOrientation.COLUMN:
-        numeric_df_view = numeric_df_view / numeric_df_view.values.sum(
-            axis=0, keepdims=True
-        )
-        contribution_df[rename_columns] = numeric_df_view
+        if contribution_totals:
+            for i, col in enumerate(numeric_df_view.columns):
+                total = contribution_totals.get(col)
+                rename_col = rename_columns[i]
+                if total is None or total == 0:
+                    contribution_df[rename_col] = 0
+                else:
+                    contribution_df[rename_col] = numeric_df_view[col] / total
+        else:
+            numeric_df_view = numeric_df_view / numeric_df_view.values.sum(
+                axis=0, keepdims=True
+            )
+            contribution_df[rename_columns] = numeric_df_view
         return contribution_df
 
     result = get_column_groups(numeric_df_view, time_shifts, rename_columns)
@@ -120,7 +130,7 @@ def get_column_groups(
         time_shift = None
         if time_shifts and isinstance(col_0, str):
             for ts in time_shifts:
-                if col_0.endswith(ts):
+                if col_0.endswith(TIME_COMPARISON + ts):
                     time_shift = ts
                     break
         if time_shift is not None:

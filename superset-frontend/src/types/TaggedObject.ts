@@ -18,8 +18,8 @@
  */
 
 import { ConfigType } from 'dayjs';
-import Tag from 'src/types/TagType';
-import Owner from './Owner';
+import { TagType } from 'src/components';
+import Subject from './Subject';
 
 export interface TaggedObject {
   id: number;
@@ -29,8 +29,8 @@ export interface TaggedObject {
   changed_on: ConfigType;
   created_by: number | undefined;
   creator: string;
-  owners: Owner[];
-  tags: Tag[];
+  editors: Subject[];
+  tags: TagType[];
 }
 
 export interface TaggedObjects {

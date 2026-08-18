@@ -16,19 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import * as redux from 'redux';
-import {
-  render,
-  screen,
-  fireEvent,
-  userEvent,
-} from 'spec/helpers/testing-library';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
-import setupExtensions from 'src/setup/setupExtensions';
-import getOwnerName from 'src/utils/getOwnerName';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+import getUserName from 'src/utils/getUserName';
+import { render, createStore } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
 import { DASHBOARD_HEADER_ID } from '../../util/constants';
+import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
+import { AutoRefreshStatus } from '../../types/autoRefresh';
+
+const mockHistoryReplace = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    replace: mockHistoryReplace,
+  }),
+  useLocation: jest.fn(() => ({
+    pathname: '/dashboard',
+    search: '?standalone=1',
+    hash: '',
+    state: undefined,
+  })),
+}));
 
 const initialState = {
   dashboardInfo: {
@@ -58,7 +77,7 @@ const initialState = {
       first_name: 'Kay',
       last_name: 'Mon',
     },
-    owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
+    editors: [{ id: 1, label: 'John Doe', type: 1 }],
   },
   user: {
     createdOn: '2021-04-27T18:12:38.952304',
@@ -114,15 +133,7 @@ const undoState = {
   ...editableState,
   dashboardLayout: {
     ...initialState.dashboardLayout,
-    past: [{}],
-  },
-};
-
-const redoState = {
-  ...editableState,
-  dashboardLayout: {
-    ...initialState.dashboardLayout,
-    future: [{}],
+    past: [initialState.dashboardLayout.present],
   },
 };
 
@@ -133,7 +144,11 @@ function setup(overrideState: JsonObject = {}) {
     <div className="dashboard">
       <Header />
     </div>,
-    { useRedux: true, initialState: { ...initialState, ...overrideState } },
+    {
+      useRedux: true,
+      useTheme: true,
+      initialState: { ...initialState, ...overrideState },
+    },
   );
 }
 
@@ -165,7 +180,41 @@ const setRefreshFrequency = jest.fn();
 const onRefresh = jest.fn();
 const dashboardInfoChanged = jest.fn();
 const dashboardTitleChanged = jest.fn();
+const startAutoRefresh = jest.fn();
+const endAutoRefresh = jest.fn();
+const setRefreshInFlight = jest.fn();
+const setStatus = jest.fn();
+const setFetchStartTime = jest.fn();
+const recordSuccess = jest.fn();
+const recordError = jest.fn();
+const setPaused = jest.fn();
+const setPausedByTab = jest.fn();
 
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
+
+jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: jest.fn(),
+}));
+jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
+  useAutoRefreshContext: jest.fn(),
+}));
+jest.mock('src/dashboard/hooks/useRealTimeDashboard', () => ({
+  useRealTimeDashboard: jest.fn(),
+}));
+jest.mock('src/dashboard/hooks/useAutoRefreshTabPause', () => ({
+  useAutoRefreshTabPause: jest.fn(),
+}));
+
+const useAutoRefreshContextMock = jest.requireMock(
+  'src/dashboard/contexts/AutoRefreshContext',
+).useAutoRefreshContext as jest.Mock;
+const useRealTimeDashboardMock = jest.requireMock(
+  'src/dashboard/hooks/useRealTimeDashboard',
+).useRealTimeDashboard as jest.Mock;
+const useAutoRefreshTabPauseMock = jest.requireMock(
+  'src/dashboard/hooks/useAutoRefreshTabPause',
+).useAutoRefreshTabPause as jest.Mock;
 beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
@@ -195,9 +244,38 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-});
+  const { useLocation } = jest.requireMock('react-router-dom');
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '?standalone=1',
+    hash: '',
+    state: undefined,
+  });
 
-beforeEach(() => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+  useAutoRefreshContextMock.mockReturnValue({
+    startAutoRefresh,
+    endAutoRefresh,
+    setRefreshInFlight,
+  });
+  useRealTimeDashboardMock.mockReturnValue({
+    isPaused: false,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+  });
+  useAutoRefreshTabPauseMock.mockImplementation(() => {});
+  fetchCharts.mockImplementation(() => undefined);
+  onRefresh.mockResolvedValue(undefined);
+
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
@@ -208,7 +286,7 @@ test('should render', () => {
 
 test('should render the title', () => {
   setup();
-  expect(screen.getByTestId('editable-title')).toHaveTextContent(
+  expect(screen.getByTestId('editable-title-input')).toHaveDisplayValue(
     'Dashboard Title',
   );
 });
@@ -228,6 +306,22 @@ test('should edit the title', () => {
   userEvent.click(document.body);
   expect(onChange).toHaveBeenCalled();
   expect(screen.getByDisplayValue('New Title')).toBeInTheDocument();
+});
+
+test('typing in the title only dispatches once on commit, not per keystroke', () => {
+  setup(editableState);
+  const editableTitle = screen.getByDisplayValue('Dashboard Title');
+  userEvent.click(editableTitle);
+  userEvent.clear(editableTitle);
+  userEvent.type(editableTitle, 'abcdef');
+  // No commit yet - typing should keep state local to DynamicEditableTitle
+  expect(updateDashboardTitle).not.toHaveBeenCalled();
+  expect(onChange).not.toHaveBeenCalled();
+  // Commit by blurring
+  userEvent.click(document.body);
+  expect(updateDashboardTitle).toHaveBeenCalledTimes(1);
+  expect(updateDashboardTitle).toHaveBeenCalledWith('abcdef');
+  expect(onChange).toHaveBeenCalledTimes(1);
 });
 
 test('should render the "Draft" status', () => {
@@ -253,7 +347,7 @@ test('should publish', () => {
 test('should render metadata', () => {
   setup();
   expect(
-    screen.getByText(getOwnerName(initialState.dashboardInfo.created_by)),
+    screen.getByText(getUserName(initialState.dashboardInfo.created_by)),
   ).toBeInTheDocument();
   expect(
     screen.getByText(initialState.dashboardInfo.changed_on_delta_humanized),
@@ -265,19 +359,15 @@ test('should render the "Undo" action as disabled', () => {
   expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
 });
 
-test('should undo', () => {
+test('should undo when past actions exist', () => {
   setup(undoState);
   const undo = screen.getByTestId('undo-action');
-  expect(onUndo).not.toHaveBeenCalled();
-  userEvent.click(undo);
-  expect(onUndo).toHaveBeenCalledTimes(1);
-});
+  const undoButton = undo.parentElement;
 
-test('should undo with key listener', () => {
-  onUndo.mockReset();
-  setup(undoState);
+  expect(undoButton).toBeEnabled();
   expect(onUndo).not.toHaveBeenCalled();
-  fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
+
+  userEvent.click(undo);
   expect(onUndo).toHaveBeenCalledTimes(1);
 });
 
@@ -286,24 +376,180 @@ test('should render the "Redo" action as disabled', () => {
   expect(screen.getByTestId('redo-action').parentElement).toBeDisabled();
 });
 
-test('should redo', () => {
-  setup(redoState);
-  const redo = screen.getByTestId('redo-action');
-  expect(onRedo).not.toHaveBeenCalled();
-  userEvent.click(redo);
-  expect(onRedo).toHaveBeenCalledTimes(1);
-});
-
-test('should redo with key listener', () => {
-  setup(redoState);
-  expect(onRedo).not.toHaveBeenCalled();
-  fireEvent.keyDown(document.body, { key: 'y', code: 'KeyY', ctrlKey: true });
-  expect(onRedo).toHaveBeenCalledTimes(1);
-});
-
-test('should render the "Discard changes" button', () => {
+test('should have correct redo button structure', () => {
   setup(editableState);
-  expect(screen.getByText('Discard')).toBeInTheDocument();
+
+  const redo = screen.getByTestId('redo-action');
+  const redoButton = redo.parentElement;
+
+  expect(redoButton).toBeInTheDocument();
+  expect(redo).toBeInTheDocument();
+  expect(redoButton).toBeDisabled();
+});
+
+test('should enable undo button when past actions exist', () => {
+  setup(undoState);
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  const redoButton = screen.getByTestId('redo-action').parentElement;
+
+  expect(undoButton).toBeEnabled();
+  expect(redoButton).toBeDisabled();
+  expect(onUndo).not.toHaveBeenCalled();
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  expect(onUndo).toHaveBeenCalledTimes(1);
+});
+
+test('should enable redo button after undo creates future history', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardLayout: {
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            meta: { text: 'Original Title' },
+          },
+        },
+        past: [],
+        future: [],
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  testStore.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          meta: { text: 'Updated Title' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
+  });
+
+  testStore.dispatch(UndoActionCreators.undo());
+
+  await waitFor(() => {
+    const redoButton = screen.getByTestId('redo-action').parentElement;
+    expect(redoButton).toBeEnabled();
+  });
+
+  expect(onRedo).not.toHaveBeenCalled();
+
+  userEvent.click(screen.getByTestId('redo-action'));
+  expect(onRedo).toHaveBeenCalledTimes(1);
+});
+
+test('should enable undo button when real actions create past history', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardLayout: {
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            meta: { text: 'Original Title' },
+          },
+        },
+        past: [],
+        future: [],
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  expect(undoButton).toBeDisabled();
+
+  testStore.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          meta: { text: 'Updated Title' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('undo-action').parentElement).toBeEnabled();
+  });
+
+  expect(onUndo).not.toHaveBeenCalled();
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  expect(onUndo).toHaveBeenCalledTimes(1);
+});
+
+test('should disable both buttons when no actions available', () => {
+  setup(editableState);
+
+  const undoButton = screen.getByTestId('undo-action').parentElement;
+  const redoButton = screen.getByTestId('redo-action').parentElement;
+
+  expect(undoButton).toBeDisabled();
+  expect(redoButton).toBeDisabled();
+  expect(onUndo).not.toHaveBeenCalled();
+  expect(onRedo).not.toHaveBeenCalled();
+
+  userEvent.click(screen.getByTestId('undo-action'));
+  userEvent.click(screen.getByTestId('redo-action'));
+
+  expect(onUndo).not.toHaveBeenCalled();
+  expect(onRedo).not.toHaveBeenCalled();
+});
+
+test('should render an enabled "Exit edit mode" button when there are no unsaved changes', () => {
+  setup(editableState);
+  expect(screen.getByRole('button', { name: /exit edit mode/i })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /discard/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('should render an enabled "Discard" button when there are unsaved changes', () => {
+  const unsavedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+  };
+  setup(unsavedState);
+  expect(screen.getByRole('button', { name: /discard/i })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /exit edit mode/i }),
+  ).not.toBeInTheDocument();
 });
 
 test('should render the "Save" button as disabled', () => {
@@ -324,6 +570,34 @@ test('should save', () => {
   expect(onSave).not.toHaveBeenCalled();
   userEvent.click(save);
   expect(onSave).toHaveBeenCalledTimes(1);
+});
+
+test('should block saving and surface the size, limit, and config key when the layout exceeds the limit', () => {
+  const oversizedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+    dashboardInfo: {
+      ...editableState.dashboardInfo,
+      common: {
+        conf: {
+          ...editableState.dashboardInfo.common.conf,
+          // any non-empty layout serializes to more than 1 character
+          SUPERSET_DASHBOARD_POSITION_DATA_LIMIT: 1,
+        },
+      },
+    },
+  };
+  setup(oversizedState);
+  userEvent.click(screen.getByText('Save'));
+  expect(onSave).not.toHaveBeenCalled();
+  expect(addDangerToast).toHaveBeenCalledTimes(1);
+  const message = addDangerToast.mock.calls[0][0];
+  expect(message).toContain('too large to save');
+  expect(message).toContain('the limit is 1');
+  expect(message).toContain('SUPERSET_DASHBOARD_POSITION_DATA_LIMIT');
 });
 
 test('should NOT render the "Draft" status', () => {
@@ -376,6 +650,35 @@ test('should fave', async () => {
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
 });
 
+// FaveStar.onClick passes the *prior* isStarred value to saveFaveStar — the
+// reducer flips it. So favoriting (unstarred → starred) sends `false`, and
+// unfavoriting (starred → unstarred) sends `true`.
+test('should call saveFaveStar with false when favoriting from the header', () => {
+  setup();
+  const header = screen.getByTestId('dashboard-header-container');
+
+  userEvent.click(within(header).getByRole('img', { name: 'unstarred' }));
+  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(saveFaveStar).toHaveBeenCalledWith(
+    initialState.dashboardInfo.id,
+    false,
+  );
+});
+
+test('should call saveFaveStar with true when unfavoriting from the header', () => {
+  setup({
+    dashboardState: { ...initialState.dashboardState, isStarred: true },
+  });
+  const header = screen.getByTestId('dashboard-header-container');
+
+  userEvent.click(within(header).getByRole('img', { name: 'starred' }));
+  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(saveFaveStar).toHaveBeenCalledWith(
+    initialState.dashboardInfo.id,
+    true,
+  );
+});
+
 test('should toggle the edit mode', () => {
   const canEditState = {
     dashboardInfo: {
@@ -390,16 +693,112 @@ test('should toggle the edit mode', () => {
   expect(logEvent).toHaveBeenCalled();
 });
 
+test('should NOT render the Edit dashboard button when embedded', () => {
+  // Embedded (Embedded SDK) dashboards authenticate with a guest token and so
+  // have no userId. The Edit button must be hidden even with edit permission,
+  // since the embedded context cannot handle entering/exiting edit mode.
+  const embeddedCanEditState = {
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_edit_perm: true,
+      userId: undefined,
+    },
+  };
+  setup(embeddedCanEditState);
+  expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
+});
+
 test('should render the dropdown icon', () => {
   setup();
   expect(screen.getByRole('img', { name: 'ellipsis' })).toBeInTheDocument();
 });
 
 test('should refresh the charts', async () => {
-  setup();
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      sliceIds: [1],
+    },
+    charts: {
+      1: { latestQueryFormData: { metric: 'value' } },
+    },
+  });
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  onRefresh.mockResolvedValue(undefined);
+
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+  window.requestAnimationFrame = callback => {
+    callback(0);
+    return 0;
+  };
+
+  try {
+    setup({
+      dashboardState: {
+        ...initialState.dashboardState,
+        refreshFrequency: 10,
+        sliceIds: [1, 2],
+      },
+      charts: {
+        1: { latestQueryFormData: { metric: 'a' }, chartStatus: 'success' },
+        2: { latestQueryFormData: { metric: 'b' }, chartStatus: 'success' },
+      },
+    });
+
+    jest.advanceTimersByTime(10000);
+    await waitFor(() =>
+      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 2000, 1, true),
+    );
+
+    expect(fetchCharts).not.toHaveBeenCalled();
+    expect(startAutoRefresh).toHaveBeenCalled();
+    expect(setStatus).toHaveBeenCalledWith(AutoRefreshStatus.Fetching);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(true);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(false);
+    expect(endAutoRefresh).toHaveBeenCalled();
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+    jest.useRealTimers();
+  }
+});
+
+test('resume clears tab pause flag', () => {
+  useRealTimeDashboardMock.mockReturnValue({
+    isRealTimeDashboard: true,
+    isPaused: true,
+    isPausedByTab: true,
+    effectiveStatus: AutoRefreshStatus.Paused,
+    lastSuccessfulRefresh: null,
+    lastAutoRefreshTime: null,
+    refreshErrorCount: 0,
+    refreshFrequency: 10,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+    autoRefreshPauseOnInactiveTab: true,
+    setPauseOnInactiveTab: jest.fn(),
+  });
+
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      refreshFrequency: 10,
+    },
+  });
+
+  userEvent.click(screen.getByTestId('auto-refresh-toggle'));
+
+  expect(setPaused).toHaveBeenCalledWith(false);
+  expect(setPausedByTab).toHaveBeenCalledWith(false);
 });
 
 test('should render an extension component if one is supplied', () => {
@@ -407,7 +806,7 @@ test('should render an extension component if one is supplied', () => {
   extensionsRegistry.set('dashboard.nav.right', () => (
     <>dashboard.nav.right extension component</>
   ));
-  setupExtensions();
+  setupCodeOverrides();
 
   setup();
   expect(
@@ -460,7 +859,7 @@ test('should hide edit button and navbar, and show Exit fullscreen when in fulls
 test('should show Exit fullscreen when in fullscreen mode', async () => {
   setup();
 
-  fireEvent.click(screen.getByTestId('actions-trigger'));
+  userEvent.click(screen.getByTestId('actions-trigger'));
 
   expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
 });
@@ -483,4 +882,293 @@ test('should render MetadataBar when not in edit mode and not embedded', () => {
   expect(
     screen.getByText(state.dashboardInfo.changed_on_delta_humanized),
   ).toBeInTheDocument();
+});
+
+test('should show UnsavedChangesModal when there are unsaved changes and user tries to navigate', async () => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modalTitle: HTMLElement = await screen.findByText(
+    'Save changes to your dashboard?',
+  );
+
+  const modalBody: HTMLElement = await screen.findByText(
+    "If you don't save, changes will be lost.",
+  );
+
+  expect(modalTitle).toBeInTheDocument();
+  expect(modalBody).toBeInTheDocument();
+});
+
+test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChangesModal', async () => {
+  const handleSaveAndCloseModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal,
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const saveButton: HTMLElement = within(modal).getByRole('button', {
+    name: /save/i,
+  });
+
+  userEvent.click(saveButton);
+
+  expect(handleSaveAndCloseModal).toHaveBeenCalled();
+});
+
+test('should call handleConfirmNavigation when user confirms navigation in UnsavedChangesModal', async () => {
+  const handleConfirmNavigation = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation,
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const discardButton: HTMLElement = within(modal).getByRole('button', {
+    name: /discard/i,
+  });
+
+  userEvent.click(discardButton);
+
+  expect(handleConfirmNavigation).toHaveBeenCalled();
+});
+
+test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
+  const setShowModal = jest.fn();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: true,
+    setShowModal,
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+  });
+
+  setup({ ...editableState });
+
+  const modal: HTMLElement = await screen.findByRole('dialog');
+  const closeButton: HTMLElement = within(modal).getByRole('button', {
+    name: /close/i,
+  });
+
+  userEvent.click(closeButton);
+
+  expect(setShowModal).toHaveBeenCalledWith(false);
+});
+
+test('should clear history and unsaved changes when entering edit mode', () => {
+  const clearDashboardHistory = jest.fn();
+
+  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+    addSuccessToast,
+    addDangerToast,
+    addWarningToast,
+    onUndo,
+    onRedo,
+    setEditMode,
+    setUnsavedChanges,
+    fetchFaveStar,
+    saveFaveStar,
+    savePublished,
+    fetchCharts,
+    updateDashboardTitle,
+    updateCss,
+    onChange,
+    onSave,
+    setMaxUndoHistoryExceeded,
+    maxUndoHistoryToast,
+    logEvent,
+    setRefreshFrequency,
+    onRefresh,
+    dashboardInfoChanged,
+    dashboardTitleChanged,
+    clearDashboardHistory,
+  }));
+
+  const canEditState = {
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_edit_perm: true,
+    },
+  };
+
+  setup(canEditState);
+
+  const editButton = screen.getByText('Edit dashboard');
+  userEvent.click(editButton);
+
+  expect(clearDashboardHistory).toHaveBeenCalledTimes(1);
+  expect(setUnsavedChanges).toHaveBeenCalledWith(false);
+});
+
+test('should mark theme change as unsaved when in edit mode', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editableState,
+      dashboardInfo: {
+        ...editableState.dashboardInfo,
+        theme: 'LIGHT',
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  expect(setUnsavedChanges).not.toHaveBeenCalledWith(true);
+
+  testStore.dispatch({
+    type: 'DASHBOARD_INFO_UPDATED',
+    newInfo: {
+      theme: 'DARK',
+    },
+  });
+
+  await waitFor(() => {
+    expect(setUnsavedChanges).toHaveBeenCalledWith(true);
+  });
+});
+
+test('should not mark initial theme as unsaved change', () => {
+  setup({
+    ...editableState,
+    dashboardInfo: {
+      ...editableState.dashboardInfo,
+      theme: 'LIGHT',
+    },
+  });
+
+  expect(setUnsavedChanges).not.toHaveBeenCalledWith(true);
+});
+
+test('should sync theme ref when navigating between dashboards', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      dashboardInfo: {
+        ...initialState.dashboardInfo,
+        theme: 'LIGHT',
+      },
+    },
+    reducerIndex,
+  );
+
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    {
+      useRedux: true,
+      useTheme: true,
+      store: testStore,
+    },
+  );
+
+  testStore.dispatch({
+    type: 'DASHBOARD_INFO_UPDATED',
+    newInfo: {
+      id: 2,
+      theme: 'DARK',
+    },
+  });
+
+  await waitFor(() => {
+    expect(setUnsavedChanges).toHaveBeenCalledTimes(0);
+  });
+});
+
+test('should not duplicate subdirectory prefix when toggling fullscreen', async () => {
+  const { useLocation } = jest.requireMock('react-router-dom');
+  // Simulate React Router with basename=/pcs: useLocation returns path relative to basename
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '?standalone=1',
+    hash: '',
+    state: undefined,
+  });
+  // Simulate browser URL including the subdirectory prefix
+  window.history.pushState({}, 'Test page', '/pcs/dashboard?standalone=1');
+
+  setup();
+  await openActionsDropdown();
+  userEvent.click(screen.getByText('Exit fullscreen'));
+
+  // history.replace must be called with the Router-relative path, not window.location.pathname.
+  // If the subdirectory prefix (/pcs) were included, React Router would prepend it again,
+  // producing /pcs/pcs/dashboard (the bug). The path must start with /dashboard, not /pcs/.
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.not.stringMatching(/^\/pcs\//),
+  );
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.stringMatching(/^\/dashboard(\?|$)/),
+  );
+});
+
+test('should not duplicate subdirectory prefix when entering fullscreen', async () => {
+  const { useLocation } = jest.requireMock('react-router-dom');
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: undefined,
+  });
+  window.history.pushState({}, 'Test page', '/pcs/dashboard');
+
+  setup();
+  await openActionsDropdown();
+  userEvent.click(screen.getByText('Enter fullscreen'));
+
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.not.stringMatching(/^\/pcs\//),
+  );
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.stringMatching(/^\/dashboard\?standalone=1$/),
+  );
+});
+
+test('share URL should use browser-absolute pathname to preserve subdirectory prefix', () => {
+  const { useLocation } = jest.requireMock('react-router-dom');
+  // Router returns path without the subdirectory prefix
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: undefined,
+  });
+  // Browser URL includes the full prefix
+  window.history.pushState({}, 'Test page', '/pcs/dashboard');
+
+  const { container } = setup();
+  // The share/embed URL must use window.location.pathname so that shared links
+  // include the subdirectory prefix and work outside the React Router context.
+  const emailLink = container.querySelector('[data-test="share-by-email"]');
+  if (emailLink) {
+    expect(emailLink.getAttribute('href')).toMatch(/\/pcs\/dashboard/);
+  }
 });

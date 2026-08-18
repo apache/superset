@@ -22,10 +22,12 @@ import {
 } from 'src/explore/components/DatasourcePanel/fixtures';
 import { screen, userEvent, render } from 'spec/helpers/testing-library';
 import DatasourcePanelItem, {
-  DatasourcePanelItemProps,
+  DatasourcePanelItemRowProps,
 } from './DatasourcePanelItem';
+import { FoldersEditorItemType } from 'src/components/Datasource/types';
+import { MetricItem, ColumnItem } from './types';
 
-const mockData: DatasourcePanelItemProps['data'] = {
+const mockData: DatasourcePanelItemRowProps = {
   flattenedItems: [
     { type: 'header', depth: 0, folderId: '1', height: 50 },
     ...metrics.map((m, idx) => ({
@@ -34,7 +36,7 @@ const mockData: DatasourcePanelItemProps['data'] = {
       folderId: '1',
       height: 32,
       index: idx,
-      item: { ...m, type: 'metric' as const },
+      item: { ...m, type: FoldersEditorItemType.Metric } as MetricItem,
     })),
     { type: 'divider', depth: 0, folderId: '1', height: 16 },
     { type: 'header', depth: 0, folderId: '2', height: 50 },
@@ -44,7 +46,7 @@ const mockData: DatasourcePanelItemProps['data'] = {
       folderId: '2',
       height: 32,
       index: idx,
-      item: { ...m, type: 'column' as const },
+      item: { ...m, type: FoldersEditorItemType.Column } as ColumnItem,
     })),
   ],
   folderMap: new Map([
@@ -54,7 +56,9 @@ const mockData: DatasourcePanelItemProps['data'] = {
         id: '1',
         isCollapsed: false,
         name: 'Metrics',
-        items: metrics.map(m => ({ ...m, type: 'metric' })),
+        items: metrics.map(
+          m => ({ ...m, type: FoldersEditorItemType.Metric }) as MetricItem,
+        ),
         totalItems: metrics.length,
         showingItems: metrics.length,
       },
@@ -65,7 +69,9 @@ const mockData: DatasourcePanelItemProps['data'] = {
         id: '2',
         isCollapsed: false,
         name: 'Columns',
-        items: columns.map(c => ({ ...c, type: 'column' })),
+        items: columns.map(
+          c => ({ ...c, type: FoldersEditorItemType.Column }) as ColumnItem,
+        ),
         totalItems: columns.length,
         showingItems: columns.length,
       },
@@ -76,14 +82,25 @@ const mockData: DatasourcePanelItemProps['data'] = {
   collapsedFolderIds: new Set(),
 };
 
-const setup = (data: DatasourcePanelItemProps['data'] = mockData) =>
+const setup = (data: DatasourcePanelItemRowProps = mockData) =>
   render(
     <>
       {data.flattenedItems.map((_, index) => (
-        <DatasourcePanelItem index={index} data={data} style={{}} />
+        <DatasourcePanelItem
+          // eslint-disable-next-line react/no-array-index-key -- test fixture has no stable id
+          key={index}
+          index={index}
+          style={{}}
+          ariaAttributes={{
+            role: 'listitem',
+            'aria-posinset': index + 1,
+            'aria-setsize': data.flattenedItems.length,
+          }}
+          {...data}
+        />
       ))}
     </>,
-    { useDnd: true },
+    { useDnd: true, useRedux: true, initialState: { explore: {} } },
   );
 
 test('renders each item accordingly', () => {

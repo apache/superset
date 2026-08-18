@@ -18,32 +18,41 @@
  */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   AppSection,
   DataMask,
   ensureIsArray,
   ExtraFormData,
-  GenericDataType,
   getColumnLabel,
   JsonObject,
   finestTemporalGrainFormatter,
-  t,
-  tn,
-  styled,
 } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
-import { debounce, isUndefined } from 'lodash';
+import { styled } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
+import { debounce, isUndefined } from 'lodash-es';
 import { useImmerReducer } from 'use-immer';
-import { Select } from 'src/components';
-// eslint-disable-next-line no-restricted-imports
-import { Space } from 'antd'; // Import Space directly from antd
-import { SLOW_DEBOUNCE } from 'src/constants';
-import { hasOption, propertyComparator } from 'src/components/Select/utils';
+import {
+  FormItem,
+  LabeledValue,
+  Select,
+  Space,
+  Constants,
+  Input,
+} from '@superset-ui/core/components';
+import {
+  hasOption,
+  propertyComparator,
+  stripSurroundingQuotes,
+} from '@superset-ui/core/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
-import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
-import { PluginFilterSelectProps, SelectValue } from './types';
+import { FilterPluginStyle, StatusMessage } from '../common';
+import {
+  PluginFilterSelectProps,
+  SelectFilterOperatorType,
+  SelectValue,
+} from './types';
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
@@ -99,10 +108,7 @@ const StyledSpace = styled(Space)<{
 
   &.ant-space {
     .ant-space-item {
-      width: ${({ inverseSelection, appSection }) =>
-        !inverseSelection || appSection === AppSection.FilterConfigModal
-          ? '100%'
-          : 'auto'};
+      width: ${({ inverseSelection }) => (!inverseSelection ? '100%' : 'auto')};
     }
   }
 `;
@@ -130,6 +136,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     parentRef,
     inputRef,
     filterBarOrientation,
+    clearAllTrigger,
+    onClearAllComplete,
   } = props;
   const {
     enableEmptyFilter,
@@ -139,6 +147,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
     defaultToFirstItem,
     searchAllOptions,
+    operatorType = SelectFilterOperatorType.Exact,
   } = formData;
 
   const groupby = useMemo(
@@ -148,11 +157,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
+  const prevDataRef = useRef(data);
+  const userClearedRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
   });
   const datatype: GenericDataType = coltypeMap[col];
+  const isLikeOperator =
+    operatorType !== SelectFilterOperatorType.Exact &&
+    datatype === GenericDataType.String;
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({
@@ -165,6 +179,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? true
       : filterState?.excludeFilterValues,
   );
+
+  const [likeInputValue, setLikeInputValue] = useState<string>(
+    filterState.value?.[0] != null ? String(filterState.value[0]) : '',
+  );
+
+  useEffect(() => {
+    const externalValue =
+      filterState.value?.[0] != null ? String(filterState.value[0]) : '';
+    setLikeInputValue(externalValue);
+  }, [filterState.value]);
 
   const prevExcludeFilterValues = useRef(excludeFilterValues);
 
@@ -203,6 +227,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           values,
           emptyFilter,
           excludeFilterValues && inverseSelection,
+          operatorType,
         ),
         filterState: {
           ...filterState,
@@ -229,6 +254,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       enableEmptyFilter,
       inverseSelection,
       excludeFilterValues,
+      operatorType,
       JSON.stringify(filterState),
       labelFormatter,
     ],
@@ -250,7 +276,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             },
           });
         }
-      }, SLOW_DEBOUNCE),
+      }, Constants.SLOW_DEBOUNCE),
     [dispatchDataMask, initialColtypeMap, searchAllOptions],
   );
 
@@ -264,12 +290,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       const values = value === null ? [null] : ensureIsArray(value);
 
       if (values.length === 0) {
+        userClearedRef.current = true;
         updateDataMask(null);
       } else {
+        userClearedRef.current = false;
         updateDataMask(values);
       }
     },
-    [updateDataMask],
+    [updateDataMask, formData.nativeFilterId, clearAllTrigger],
   );
 
   const placeholderText =
@@ -289,34 +317,60 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [filterState.validateMessage, filterState.validateStatus]);
 
   const uniqueOptions = useMemo(() => {
-    const allOptions = new Set([...data.map(el => el[col])]);
-    return [...allOptions].map((value: string) => ({
+    const allOptions = new Set(data.map(el => el[col]));
+    const baseOptions = [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,
       isNewOption: false,
     }));
-  }, [data, datatype, col, labelFormatter]);
+    if (creatable !== false && filterState.value) {
+      ensureIsArray(filterState.value)
+        .filter(v => v != null && !hasOption(v, baseOptions, true))
+        .forEach(v => {
+          baseOptions.push({ label: String(v), value: v, isNewOption: true });
+        });
+    }
+    return baseOptions;
+  }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
-    if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
-      uniqueOptions.unshift({
-        label: search,
-        value: search,
-        isNewOption: true,
-      });
+    const unquotedSearch = stripSurroundingQuotes(search);
+    if (
+      unquotedSearch &&
+      !searchAllOptions &&
+      creatable !== false &&
+      !hasOption(unquotedSearch, uniqueOptions, true)
+    ) {
+      return [
+        { label: unquotedSearch, value: unquotedSearch, isNewOption: true },
+        ...uniqueOptions,
+      ];
     }
     return uniqueOptions;
-  }, [multiSelect, search, uniqueOptions]);
+  }, [search, uniqueOptions, creatable, searchAllOptions]);
 
   const sortComparator = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) => {
-      const labelComparator = propertyComparator('label');
-      if (formData.sortAscending) {
-        return labelComparator(a, b);
+    (a: LabeledValue, b: LabeledValue) => {
+      // When sortMetric is specified, the backend already sorted the data correctly
+      // Don't override the backend's metric-based sorting with frontend alphabetical sorting
+      if (formData.sortMetric) {
+        return 0; // Preserve the original order from the backend
       }
-      return labelComparator(b, a);
+
+      // Only apply sorting when no sortMetric is specified. `label` is always
+      // a formatted string (see getDataRecordFormatter), so comparing by it
+      // never reaches propertyComparator's numeric branch; numeric columns
+      // sort by the raw `value` instead so "2, 10, 100" doesn't collapse
+      // into lexicographic "10, 100, 2".
+      const comparator = propertyComparator(
+        datatype === GenericDataType.Numeric ? 'value' : 'label',
+      );
+      if (formData.sortAscending) {
+        return comparator(a, b);
+      }
+      return comparator(b, a);
     },
-    [formData.sortAscending],
+    [formData.sortAscending, formData.sortMetric, datatype],
   );
 
   // Use effect for initialisation for filter plugin
@@ -335,6 +389,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       return;
     }
 
+    // Reset userClearedRef when clearAllTrigger fires so auto-select
+    // can re-apply if the filter is re-initialised after a global clear
+    if (clearAllTrigger) {
+      userClearedRef.current = false;
+    }
+
     if (filterState.value !== undefined) {
       // Set the filter state value if it is defined
       updateDataMask(filterState.value);
@@ -342,17 +402,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     }
 
     // Handle the default to first Value case
-    if (defaultToFirstItem) {
-      // Set to first item if defaultToFirstItem is true
-      const firstItem: SelectValue = data[0]
-        ? (groupby.map(col => data[0][col]) as string[])
-        : null;
-      if (firstItem?.[0] !== undefined) {
-        updateDataMask(firstItem);
+    // Skip default values when clearAllTrigger is active to prevent
+    // defaults from being applied during Clear All operation
+    if (!clearAllTrigger) {
+      if (defaultToFirstItem && !userClearedRef.current) {
+        // Set to first item if defaultToFirstItem is true
+        const firstItem: SelectValue = data[0]
+          ? (groupby.map(col => data[0][col]) as string[])
+          : null;
+        if (firstItem?.[0] !== undefined) {
+          updateDataMask(firstItem);
+        }
+      } else if (formData?.defaultValue) {
+        // Handle defalut value case
+        updateDataMask(formData.defaultValue);
       }
-    } else if (formData?.defaultValue) {
-      // Handle defalut value case
-      updateDataMask(formData.defaultValue);
     }
   }, [
     isDisabled,
@@ -363,11 +427,85 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     groupby,
     col,
     inverseSelection,
+    clearAllTrigger,
+  ]);
+
+  useEffect(() => {
+    const prev = prevDataRef.current;
+    const curr = data;
+
+    const hasDataChanged =
+      prev?.length !== curr?.length ||
+      prev?.some((row, i) => {
+        const prevVal = row[col];
+        const currVal = curr[i][col];
+        return typeof prevVal === 'bigint' || typeof currVal === 'bigint'
+          ? prevVal?.toString() !== currVal?.toString()
+          : prevVal !== currVal;
+      });
+
+    // If data actually changed (e.g., due to parent filter), reset flag
+    if (hasDataChanged) {
+      prevDataRef.current = data;
+    }
+  }, [data, col]);
+
+  useEffect(() => {
+    if (
+      filterState.value?.every((value?: any) =>
+        data.some(row => row[col] === value),
+      )
+    )
+      return;
+
+    const firstItem: SelectValue = data[0]
+      ? (groupby.map(col => data[0][col]) as string[])
+      : null;
+
+    // Skip default value update when clearAllTrigger is active
+    if (
+      !clearAllTrigger &&
+      defaultToFirstItem &&
+      !userClearedRef.current &&
+      Object.keys(formData?.extraFormData || {}).length &&
+      filterState.value !== undefined &&
+      firstItem !== null &&
+      filterState.value !== firstItem
+    ) {
+      if (firstItem?.[0] !== undefined) {
+        updateDataMask(firstItem);
+      }
+    }
+  }, [
+    defaultToFirstItem,
+    updateDataMask,
+    formData,
+    data,
+    JSON.stringify(filterState.value),
+    clearAllTrigger,
   ]);
 
   useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
+
+  useEffect(() => {
+    if (clearAllTrigger) {
+      dispatchDataMask({
+        type: 'filterState',
+        extraFormData: {},
+        filterState: {
+          value: undefined,
+          label: undefined,
+        },
+      });
+
+      updateDataMask(null);
+      setSearch('');
+      setLikeInputValue('');
+      onClearAllComplete?.(formData.nativeFilterId);
+    }
+  }, [clearAllTrigger, onClearAllComplete, updateDataMask]);
 
   useEffect(() => {
     if (prevExcludeFilterValues.current !== excludeFilterValues) {
@@ -378,6 +516,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           filterState.value,
           !filterState.value?.length,
           excludeFilterValues && inverseSelection,
+          operatorType,
         ),
         filterState: {
           ...(filterState as {
@@ -396,9 +535,68 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     setExcludeFilterValues(value === 'true');
   };
 
+  const updateDataMaskRef = useRef(updateDataMask);
+  useEffect(() => {
+    updateDataMaskRef.current = updateDataMask;
+  }, [updateDataMask]);
+
+  const debouncedLikeChange = useMemo(
+    () =>
+      debounce((text: string) => {
+        if (text) {
+          updateDataMaskRef.current([text]);
+        } else {
+          updateDataMaskRef.current(null);
+        }
+      }, Constants.SLOW_DEBOUNCE),
+    [],
+  );
+
+  useEffect(() => {
+    if (!isLikeOperator || clearAllTrigger) {
+      debouncedLikeChange.cancel();
+    }
+  }, [clearAllTrigger, debouncedLikeChange, isLikeOperator]);
+
+  useEffect(() => () => debouncedLikeChange.cancel(), [debouncedLikeChange]);
+
+  const handleLikeInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setLikeInputValue(e.target.value);
+      debouncedLikeChange(e.target.value);
+    },
+    [debouncedLikeChange],
+  );
+
+  const getSelectPopupContainer = useCallback(
+    (trigger: HTMLElement) => {
+      if (showOverflow) {
+        return (parentRef?.current as HTMLElement) || document.body;
+      }
+      if (appSection === AppSection.FilterConfigModal) {
+        return (trigger?.parentNode as HTMLElement) || document.body;
+      }
+      return document.body;
+    },
+    [appSection, parentRef, showOverflow],
+  );
+
+  const likeInputPlaceholder = useMemo(() => {
+    switch (operatorType) {
+      case SelectFilterOperatorType.Contains:
+        return t('Type to search (contains)...');
+      case SelectFilterOperatorType.StartsWith:
+        return t('Type to search (starts with)...');
+      case SelectFilterOperatorType.EndsWith:
+        return t('Type to search (ends with)...');
+      default:
+        return t('Type a value...');
+    }
+  }, [operatorType]);
+
   return (
     <FilterPluginStyle height={height} width={width}>
-      <StyledFormItem
+      <FormItem
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
@@ -415,43 +613,56 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                 { value: 'false', label: t('is') },
               ]}
               onChange={handleExclusionToggle}
+              getPopupContainer={getSelectPopupContainer}
             />
           )}
-          <Select
-            name={formData.nativeFilterId}
-            allowClear
-            allowNewOptions={!searchAllOptions && creatable !== false}
-            allowSelectAll={!searchAllOptions}
-            value={filterState.value || []}
-            disabled={isDisabled}
-            getPopupContainer={
-              showOverflow
-                ? () => (parentRef?.current as HTMLElement) || document.body
-                : (trigger: HTMLElement) =>
-                    (trigger?.parentNode as HTMLElement) || document.body
-            }
-            showSearch={showSearch}
-            mode={multiSelect ? 'multiple' : 'single'}
-            placeholder={placeholderText}
-            onClear={() => onSearch('')}
-            onSearch={onSearch}
-            onBlur={handleBlur}
-            onFocus={setFocusedFilter}
-            onMouseEnter={setHoveredFilter}
-            onMouseLeave={unsetHoveredFilter}
-            // @ts-ignore
-            onChange={handleChange}
-            ref={inputRef}
-            loading={isRefreshing}
-            oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
-            invertSelection={inverseSelection && excludeFilterValues}
-            options={options}
-            sortComparator={sortComparator}
-            onDropdownVisibleChange={setFilterActive}
-            className="select-container"
-          />
+          {isLikeOperator ? (
+            <Input
+              allowClear
+              placeholder={likeInputPlaceholder}
+              value={likeInputValue}
+              onChange={handleLikeInputChange}
+              onFocus={setFocusedFilter}
+              onBlur={unsetFocusedFilter}
+              onMouseEnter={setHoveredFilter}
+              onMouseLeave={unsetHoveredFilter}
+              disabled={isDisabled}
+              ref={inputRef}
+            />
+          ) : (
+            <Select
+              name={formData.nativeFilterId}
+              allowClear
+              autoClearSearchValue
+              allowNewOptions={!searchAllOptions && creatable !== false}
+              allowNewOptionsOnPaste={multiSelect && searchAllOptions}
+              allowSelectAll={!searchAllOptions}
+              value={multiSelect ? filterState.value || [] : filterState.value}
+              disabled={isDisabled}
+              getPopupContainer={getSelectPopupContainer}
+              showSearch={showSearch}
+              mode={multiSelect ? 'multiple' : 'single'}
+              placeholder={placeholderText}
+              onClear={() => onSearch('')}
+              onSearch={onSearch}
+              onBlur={handleBlur}
+              onFocus={setFocusedFilter}
+              onMouseEnter={setHoveredFilter}
+              onMouseLeave={unsetHoveredFilter}
+              // @ts-expect-error
+              onChange={handleChange}
+              ref={inputRef}
+              loading={isRefreshing}
+              oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
+              invertSelection={inverseSelection && excludeFilterValues}
+              options={options}
+              sortComparator={sortComparator}
+              onOpenChange={setFilterActive}
+              className="select-container"
+            />
+          )}
         </StyledSpace>
-      </StyledFormItem>
+      </FormItem>
     </FilterPluginStyle>
   );
 }

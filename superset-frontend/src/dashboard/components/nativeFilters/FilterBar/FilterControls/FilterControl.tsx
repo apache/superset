@@ -22,10 +22,10 @@ import {
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { styled, SupersetTheme, truncationCSS } from '@superset-ui/core';
-import { FormItem as StyledFormItem, Form } from 'src/components/Form';
-import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { isChartCustomization } from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
+import { t } from '@apache-superset/core/translation';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -33,235 +33,14 @@ import { FilterBarScrollContext } from '../Vertical';
 import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
 import { useIsFilterInScope } from '../../state';
-
-const FilterStyledIcon = styled.div`
-  position: absolute;
-  right: 0;
-`;
-
-const VerticalFilterControlTitle = styled.h4`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  margin: 0;
-  overflow-wrap: anywhere;
-`;
-
-const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
-  color: ${({ theme }) => theme.colors.grayscale.base};
-  ${truncationCSS};
-`;
-
-const HorizontalOverflowFilterControlTitle = styled(
-  HorizontalFilterControlTitle,
-)`
-  max-width: none;
-`;
-
-const VerticalFilterControlTitleBox = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
-`;
-
-const HorizontalFilterControlTitleBox = styled(VerticalFilterControlTitleBox)`
-  margin-bottom: unset;
-`;
-
-const HorizontalOverflowFilterControlTitleBox = styled(
-  VerticalFilterControlTitleBox,
-)`
-  width: 100%;
-`;
-
-const VerticalFilterControlContainer = styled(Form)`
-  width: 100%;
-  && .ant-form-item-label > label {
-    text-transform: none;
-    width: 100%;
-    padding-right: ${({ theme }) => theme.gridUnit * 11}px;
-  }
-  .ant-form-item-tooltip {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
-  }
-`;
-
-const HorizontalFilterControlContainer = styled(Form)`
-  && .ant-form-item-label > label {
-    margin-bottom: 0;
-    text-transform: none;
-  }
-  .ant-form-item-tooltip {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
-  }
-`;
-
-const HorizontalOverflowFilterControlContainer = styled(
-  VerticalFilterControlContainer,
-)`
-  && .ant-form-item-label {
-    line-height: 1;
-    & > label {
-      padding-right: unset;
-    }
-  }
-`;
-
-const VerticalFormItem = styled(StyledFormItem)<{
-  inverseSelection: boolean;
-}>`
-  .ant-form-item-label {
-    overflow: visible;
-    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
-      &::after {
-        display: none;
-      }
-    }
-  }
-
-  .select-container {
-    ${({ inverseSelection }) =>
-      inverseSelection &&
-      `
-      width: 140px;
-    `}
-  }
-
-  .select-bulk-actions {
-    ${({ inverseSelection }) =>
-      inverseSelection &&
-      `
-      flex-direction: column;
-    `}
-  }
-`;
-
-const HorizontalFormItem = styled(StyledFormItem)<{
-  inverseSelection: boolean;
-}>`
-  && {
-    margin-bottom: 0;
-    align-items: center;
-  }
-
-  .ant-form-item-label {
-    overflow: visible;
-    padding-bottom: 0;
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
-      &::after {
-        display: none;
-      }
-    }
-
-    & > label::after {
-      display: none;
-    }
-  }
-
-  .ant-form-item-control {
-    width: ${({ inverseSelection }) => (inverseSelection ? 252 : 164)}px;
-  }
-
-  .select-container {
-    ${({ inverseSelection, theme }) =>
-      inverseSelection &&
-      `
-      width: 164px;
-    `}
-  }
-
-  .select-bulk-actions {
-    flex-direction: column;
-  }
-`;
-
-const HorizontalOverflowFormItem = VerticalFormItem;
-
-const useFilterControlDisplay = (
-  orientation: FilterBarOrientation,
-  overflow: boolean,
-  inverseSelection: boolean,
-) =>
-  useMemo(() => {
-    if (orientation === FilterBarOrientation.Horizontal) {
-      if (overflow) {
-        return {
-          FilterControlContainer: HorizontalOverflowFilterControlContainer,
-          FormItem: (props: any) => (
-            <HorizontalOverflowFormItem
-              {...props}
-              inverseSelection={inverseSelection}
-            />
-          ),
-          FilterControlTitleBox: HorizontalOverflowFilterControlTitleBox,
-          FilterControlTitle: HorizontalOverflowFilterControlTitle,
-        };
-      }
-      return {
-        FilterControlContainer: HorizontalFilterControlContainer,
-        FormItem: (props: any) => (
-          <HorizontalFormItem {...props} inverseSelection={inverseSelection} />
-        ),
-        FilterControlTitleBox: HorizontalFilterControlTitleBox,
-        FilterControlTitle: HorizontalFilterControlTitle,
-      };
-    }
-    return {
-      FilterControlContainer: VerticalFilterControlContainer,
-      FormItem: (props: any) => (
-        <VerticalFormItem {...props} inverseSelection={inverseSelection} />
-      ),
-      FilterControlTitleBox: VerticalFilterControlTitleBox,
-      FilterControlTitle: VerticalFilterControlTitle,
-    };
-  }, [orientation, overflow, inverseSelection]);
-
-const ToolTipContainer = styled.div`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  display: flex;
-`;
-
-const RequiredFieldIndicator = () => (
-  <span
-    css={(theme: SupersetTheme) => ({
-      color: theme.colors.error.base,
-      fontSize: `${theme.typography.sizes.s}px`,
-      paddingLeft: '1px',
-    })}
-  >
-    *
-  </span>
-);
-
-const DescriptionToolTip = ({ description }: { description: string }) => (
-  <ToolTipContainer>
-    <Tooltip
-      title={description}
-      placement="right"
-      overlayInnerStyle={{
-        display: '-webkit-box',
-        WebkitLineClamp: 10,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'normal',
-      }}
-    >
-      {/* TODO: Remove fa-icon */}
-      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-      <i
-        className="fa fa-info-circle text-muted"
-        css={(theme: SupersetTheme) => ({
-          paddingLeft: `${theme.gridUnit}px`,
-          cursor: 'pointer',
-        })}
-      />
-    </Tooltip>
-  </ToolTipContainer>
-);
+import {
+  FilterStyledIcon,
+  RequiredFieldIndicator,
+  DescriptionToolTip,
+  DeckglLayerVisibilityTooltip,
+  useFilterControlDisplay,
+} from './FilterControlShared';
+import GroupByFilterCard from './GroupByFilterCard';
 
 const FilterControl = ({
   dataMaskSelected,
@@ -273,6 +52,8 @@ const FilterControl = ({
   parentRef,
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
+  clearAllTrigger,
+  onClearAllComplete,
 }: FilterControlProps) => {
   const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const [isFilterActive, setIsFilterActive] = useState(false);
@@ -284,7 +65,9 @@ const FilterControl = ({
     isFilterInScope(filter) &&
     checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
-  const isRequired = !!filter.controlValues?.enableEmptyFilter;
+  const isRequired =
+    !!filter.controlValues?.enableEmptyFilter ||
+    !!filter.controlValues?.defaultToFirstItem;
   const inverseSelection = !!filter.controlValues?.inverseSelection;
 
   const {
@@ -304,8 +87,20 @@ const FilterControl = ({
           {name}
         </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
+        {filter.filterType === 'filter_select' &&
+          filter.controlValues?.multiSelect && (
+            <DescriptionToolTip
+              description={t(
+                'When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
+              )}
+            />
+          )}
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
+        )}
+        {filter.filterType ===
+          ChartCustomizationPlugins.DeckglLayerVisibility && (
+          <DeckglLayerVisibilityTooltip />
         )}
         <FilterStyledIcon data-test="filter-icon">{icon}</FilterStyledIcon>
       </FilterControlTitleBox>
@@ -316,6 +111,8 @@ const FilterControl = ({
       name,
       isRequired,
       filter.description,
+      filter.filterType,
+      filter.controlValues?.multiSelect,
       icon,
     ],
   );
@@ -331,6 +128,24 @@ const FilterControl = ({
     return FilterCardPlacement.Right;
   }, [orientation, overflow]);
 
+  if (
+    isChartCustomization(filter) &&
+    filter.filterType === 'chart_customization_dynamic_groupby'
+  ) {
+    return (
+      <GroupByFilterCard
+        customizationItem={filter}
+        orientation={
+          orientation === FilterBarOrientation.Horizontal
+            ? 'horizontal'
+            : 'vertical'
+        }
+        dataMaskSelected={dataMaskSelected}
+        onFilterSelectionChange={onFilterSelectionChange}
+      />
+    );
+  }
+
   return (
     <>
       <InPortal node={portalNode}>
@@ -345,6 +160,8 @@ const FilterControl = ({
           orientation={orientation}
           overflow={overflow}
           validateStatus={validateStatus}
+          clearAllTrigger={clearAllTrigger}
+          onClearAllComplete={onClearAllComplete}
         />
       </InPortal>
       <FilterControlContainer

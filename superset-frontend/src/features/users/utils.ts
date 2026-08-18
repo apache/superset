@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
+import { SelectOption } from 'src/components/ListView';
 import { FormValues } from './types';
 
 export const createUser = async (values: FormValues) => {
-  const { confirmPassword, ...payload } = values;
+  const { confirmPassword: _confirmPassword, ...payload } = values;
   if (payload.active == null) {
     payload.active = false;
   }
@@ -40,4 +42,32 @@ export const updateUser = async (user_Id: number, values: FormValues) => {
 export const deleteUser = async (userId: number) =>
   SupersetClient.delete({
     endpoint: `/api/v1/security/users/${userId}`,
+  });
+
+export const getUserDisplayLabel = (user: {
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+}): string =>
+  [user.first_name, user.last_name].filter(Boolean).join(' ') ||
+  user.username ||
+  t('N/A');
+
+export const atLeastOneRoleOrGroup =
+  (fieldToCheck: 'roles' | 'groups') =>
+  ({
+    getFieldValue,
+  }: {
+    getFieldValue: (field: string) => Array<SelectOption>;
+  }) => ({
+    validator(_: object, value: Array<SelectOption>) {
+      const current = value || [];
+      const other = getFieldValue(fieldToCheck) || [];
+      if (current.length === 0 && other.length === 0) {
+        return Promise.reject(
+          new Error(t('Please select at least one role or group')),
+        );
+      }
+      return Promise.resolve();
+    },
   });

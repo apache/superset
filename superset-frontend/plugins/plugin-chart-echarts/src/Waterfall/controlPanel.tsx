@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlSubSectionHeader,
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   formatSelectOptions,
+  getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
@@ -58,41 +60,121 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+      ],
+    },
+    {
+      label: t('Series settings'),
+      expanded: true,
+      controlSetRows: [
         [
           <ControlSubSectionHeader>
-            {t('Series colors')}
+            {t('Series increase setting')}
           </ControlSubSectionHeader>,
         ],
         [
           {
             name: 'increase_color',
             config: {
-              label: t('Increase'),
+              label: t('Increase color'),
               type: 'ColorPickerControl',
               default: { r: 90, g: 193, b: 137, a: 1 },
               renderTrigger: true,
+              description: t(
+                'Select the color used for values that indicate an increase in the chart',
+              ),
             },
           },
           {
-            name: 'decrease_color',
+            name: 'increase_label',
             config: {
-              label: t('Decrease'),
-              type: 'ColorPickerControl',
-              default: { r: 224, g: 67, b: 85, a: 1 },
+              label: t('Increase label'),
+              type: 'TextControl',
               renderTrigger: true,
-            },
-          },
-          {
-            name: 'total_color',
-            config: {
-              label: t('Total'),
-              type: 'ColorPickerControl',
-              default: { r: 102, g: 102, b: 102, a: 1 },
-              renderTrigger: true,
+              description: t(
+                'Customize the label displayed for increasing values in the chart tooltips and legend.',
+              ),
             },
           },
         ],
-        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+        [
+          <ControlSubSectionHeader>
+            {t('Series decrease setting')}
+          </ControlSubSectionHeader>,
+        ],
+        [
+          {
+            name: 'decrease_color',
+            config: {
+              label: t('Decrease color'),
+              type: 'ColorPickerControl',
+              default: { r: 224, g: 67, b: 85, a: 1 },
+              renderTrigger: true,
+              description: t(
+                'Select the color used for values ​​that indicate a decrease in the chart.',
+              ),
+            },
+          },
+          {
+            name: 'decrease_label',
+            config: {
+              label: t('Decrease label'),
+              type: 'TextControl',
+              renderTrigger: true,
+              description: t(
+                'Customize the label displayed for decreasing values in the chart tooltips and legend.',
+              ),
+            },
+          },
+        ],
+        [
+          <ControlSubSectionHeader>
+            {t('Series total setting')}
+          </ControlSubSectionHeader>,
+        ],
+        [
+          {
+            name: 'show_total',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show total'),
+              renderTrigger: true,
+              default: true,
+              description: t('Display cumulative total at end'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'total_color',
+            config: {
+              label: t('Total color'),
+              type: 'ColorPickerControl',
+              default: { r: 102, g: 102, b: 102, a: 1 },
+              renderTrigger: true,
+              description: t(
+                'Select the color used for values that represent total bars in the chart',
+              ),
+            },
+          },
+
+          {
+            name: 'total_label',
+            config: {
+              label: t('Total label'),
+              type: 'TextControl',
+              renderTrigger: true,
+              description: t(
+                'Customize the label displayed for total values in the chart tooltips, legend, and chart axis.',
+              ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('X Axis'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'x_axis_label',
@@ -134,7 +216,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
+      ],
+    },
+    {
+      label: t('Y Axis'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'y_axis_label',
@@ -160,6 +247,17 @@ const config: ControlPanelConfig = {
       multi: false,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+    // Waterfall's `groupby` is a single-value control (multi: false;
+    // buildQuery groups by the whole array but transformProps only reads
+    // groupby[0]), so only one column should be taken off the queue here.
+    // Using popAllColumns() would let a memorized multi-column breakdown
+    // (e.g. from Table/Pivot) push extra dimensions into the SQL query
+    // that never surface in the rendered chart.
+    groupby: ensureIsArray(getStandardizedControls().shiftColumn()),
+  }),
 };
 
 export default config;

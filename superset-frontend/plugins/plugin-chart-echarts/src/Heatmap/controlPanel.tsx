@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptionsForRange,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
+import { xAxisLabelRotation } from '../controls';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],
@@ -153,7 +155,7 @@ const config: ControlPanelConfig = {
             name: 'xscale_interval',
             config: {
               type: 'SelectControl',
-              label: t('XScale Interval'),
+              label: t('X-scale interval'),
               renderTrigger: true,
               choices: [[-1, t('Auto')]].concat(
                 formatSelectOptionsForRange(1, 50),
@@ -171,7 +173,7 @@ const config: ControlPanelConfig = {
             name: 'yscale_interval',
             config: {
               type: 'SelectControl',
-              label: t('YScale Interval'),
+              label: t('Y-scale interval'),
               choices: [[-1, t('Auto')]].concat(
                 formatSelectOptionsForRange(1, 50),
               ),
@@ -248,6 +250,7 @@ const config: ControlPanelConfig = {
         ],
         ['y_axis_format'],
         ['x_axis_time_format'],
+        [xAxisLabelRotation],
         ['currency_format'],
         [
           {

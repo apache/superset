@@ -30,7 +30,7 @@ import logging  # noqa: E402
 
 from alembic import op  # noqa: E402
 from sqlalchemy import Column, Integer, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -48,7 +48,7 @@ class Slice(Base):
 
 def upgrade():  # noqa: C901
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).all():
         if slc.params:
@@ -65,7 +65,7 @@ def upgrade():  # noqa: C901
                 if updated:
                     slc.params = json.dumps(params)
             except Exception:
-                logging.exception(f"Unable to parse params for slice {slc.id}")
+                logging.exception("Unable to parse params for slice %s", slc.id)
 
         if slc.query_context:
             updated = False
@@ -93,7 +93,7 @@ def upgrade():  # noqa: C901
                 if updated:
                     slc.query_context = json.dumps(query_context)
             except Exception:
-                logging.exception(f"Unable to parse query context for slice {slc.id}")
+                logging.exception("Unable to parse query context for slice %s", slc.id)
 
     session.commit()
     session.close()

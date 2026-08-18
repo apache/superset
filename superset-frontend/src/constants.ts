@@ -16,19 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  DEFAULT_D3_FORMAT,
-  DEFAULT_D3_TIME_FORMAT,
-} from '@superset-ui/core';
-
+import { DEFAULT_D3_FORMAT, DEFAULT_D3_TIME_FORMAT } from '@superset-ui/core';
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
-
-export const BOOL_TRUE_DISPLAY = 'True';
-export const BOOL_FALSE_DISPLAY = 'False';
 
 export const URL_PARAMS = {
   standalone: {
@@ -53,6 +45,10 @@ export const URL_PARAMS = {
   },
   showFilters: {
     name: 'show_filters',
+    type: 'boolean',
+  },
+  showDownload: {
+    name: 'show_download',
     type: 'boolean',
   },
   expandFilters: {
@@ -111,6 +107,14 @@ export const URL_PARAMS = {
     name: 'focused_chart',
     type: 'number',
   },
+  editMode: {
+    name: 'edit',
+    type: 'boolean',
+  },
+  versionHistory: {
+    name: 'version_history',
+    type: 'boolean',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
@@ -119,33 +123,20 @@ export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.datasourceId.name,
   URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
+  URL_PARAMS.versionHistory.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,
   URL_PARAMS.nativeFiltersKey.name,
   URL_PARAMS.permalinkKey.name,
   URL_PARAMS.preselectFilters.name,
+  URL_PARAMS.editMode.name,
+  URL_PARAMS.versionHistory.name,
 ];
-
-/**
- * Faster debounce delay for inputs without expensive operation.
- */
-export const FAST_DEBOUNCE = 250;
-
-/**
- * Slower debounce delay for inputs with expensive API calls.
- */
-export const SLOW_DEBOUNCE = 500;
-
-/**
- * Display null as `N/A`
- */
-export const NULL_DISPLAY = t('N/A');
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   application_root: '/',
   static_assets_prefix: '',
-  flash_messages: [],
   conf: {},
   locale: 'en',
   feature_flags: {},
@@ -163,7 +154,11 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   extra_categorical_color_schemes: [],
   extra_sequential_color_schemes: [],
-  theme_overrides: {},
+  extra_theme_tokens: [],
+  theme: {
+    default: {},
+    dark: {},
+  },
   menu_data: {
     menu: [],
     brand: {
@@ -191,6 +186,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   d3_format: DEFAULT_D3_FORMAT,
   d3_time_format: DEFAULT_D3_TIME_FORMAT,
+  pdf_compression_level: 'MEDIUM',
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
@@ -204,3 +200,22 @@ export enum FilterPlugins {
   TimeColumn = 'filter_timecolumn',
   TimeGrain = 'filter_timegrain',
 }
+
+export enum ChartCustomizationPlugins {
+  DynamicGroupBy = 'chart_customization_dynamic_groupby',
+  TimeGrain = 'chart_customization_timegrain',
+  TimeColumn = 'chart_customization_timecolumn',
+  DeckglLayerVisibility = 'chart_customization_deckgl_layer_visibility',
+}
+
+export enum Actions {
+  CREATE = 'create',
+  UPDATE = 'update',
+}
+
+/**
+ * Default threshold for CSV streaming export.
+ * Exports with row counts >= this value will use streaming with progress tracking.
+ * Exports with row counts < this value will use traditional download.
+ */
+export const DEFAULT_CSV_STREAMING_ROW_THRESHOLD = 100000;

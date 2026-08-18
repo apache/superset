@@ -17,6 +17,8 @@
 
 from marshmallow import fields, Schema
 
+from superset.sqllab.schemas import tmp_table_name_validator
+
 
 class SqlJsonPayloadSchema(Schema):
     database_id = fields.Integer(required=True)
@@ -28,8 +30,10 @@ class SqlJsonPayloadSchema(Schema):
     tab = fields.String(allow_none=True)
     ctas_method = fields.String(allow_none=True)
     templateParams = fields.String(allow_none=True)  # noqa: N815
-    tmp_table_name = fields.String(allow_none=True)
+    tmp_table_name = fields.String(
+        allow_none=True,
+        validate=tmp_table_name_validator,
+    )
     select_as_cta = fields.Boolean(allow_none=True)
-    json = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)  # noqa: N815
     expand_data = fields.Boolean(allow_none=True)

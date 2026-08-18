@@ -25,28 +25,6 @@ export interface ChartSpec {
   viz: string;
 }
 
-const viewTypeIcons = {
-  card: 'appstore',
-  list: 'unordered-list',
-};
-
-export function setGridMode(type: 'card' | 'list') {
-  const icon = viewTypeIcons[type];
-  cy.get(`[aria-label="${icon}"]`).click();
-}
-
-export function toggleBulkSelect() {
-  cy.getBySel('bulk-select').click();
-}
-
-export function clearAllInputs() {
-  cy.get('body').then($body => {
-    if ($body.find('.ant-select-clear').length) {
-      cy.get('.ant-select-clear').click({ multiple: true, force: true });
-    }
-  });
-}
-
 const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => {
   const chartId = $chart.attr('data-test-chart-id');
   const vizType = $chart.attr('data-test-viz-type');
@@ -101,34 +79,6 @@ export function waitForChartLoad(chart: ChartSpec) {
   });
 }
 
-/**
- * Drag an element and drop it to another element.
- * Usage:
- *    drag(source).to(target);
- */
-export function drag(selector: string, content: string | number | RegExp) {
-  const dataTransfer = { data: {} };
-  return {
-    to(target: string | Cypress.Chainable) {
-      cy.get('.dragdroppable')
-        .contains(selector, content)
-        .trigger('mousedown', { which: 1, force: true });
-      cy.get('.dragdroppable')
-        .contains(selector, content)
-        .trigger('dragstart', { dataTransfer, force: true });
-      cy.get('.dragdroppable')
-        .contains(selector, content)
-        .trigger('drag', { force: true });
-
-      (typeof target === 'string' ? cy.get(target) : target)
-        .trigger('dragover', { dataTransfer, force: true })
-        .trigger('drop', { dataTransfer, force: true })
-        .trigger('dragend', { dataTransfer, force: true })
-        .trigger('mouseup', { which: 1, force: true });
-    },
-  };
-}
-
 export function resize(selector: string) {
   return {
     to(cordX: number, cordY: number) {
@@ -143,3 +93,29 @@ export function resize(selector: string) {
     },
   };
 }
+
+export const setSelectSearchInput = (
+  $input: any,
+  value: string,
+  async = false,
+) => {
+  // Ant Design 5 Select crashes Chromium with type/click events when showSearch is true.
+  // This copies the value directly to the input element as a workaround.
+  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    'value',
+  )?.set;
+  nativeInputValueSetter?.call($input[0], value);
+
+  // Trigger the input and change events
+  if (async) {
+    $input[0].dispatchEvent(new Event('mousedown', { bubbles: true }));
+  }
+
+  $input[0].dispatchEvent(new Event('input', { bubbles: true }));
+  $input[0].dispatchEvent(new Event('change', { bubbles: true }));
+
+  cy.get('.ant-select-item-option-content').should('exist').first().click({
+    force: true,
+  });
+};

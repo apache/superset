@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/Tree/transformProps';
 import { EchartsTreeChartProps } from '../../src/Tree/types';
 
@@ -37,7 +38,7 @@ describe('EchartsTree transformProps', () => {
     height: 600,
     theme: supersetTheme,
   };
-  it('should transform when parent present before child', () => {
+  test('should transform when parent present before child', () => {
     const queriesData = [
       {
         colnames: ['id_column', 'relation_column', 'name_column', 'count'],
@@ -104,7 +105,7 @@ describe('EchartsTree transformProps', () => {
       }),
     );
   });
-  it('should transform when child is present before parent', () => {
+  test('should transform when child is present before parent', () => {
     const queriesData = [
       {
         colnames: ['id_column', 'relation_column', 'name_column', 'count'],
@@ -174,7 +175,7 @@ describe('EchartsTree transformProps', () => {
       }),
     );
   });
-  it('ignore node if not attached to root', () => {
+  test('ignore node if not attached to root', () => {
     const formData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
@@ -255,7 +256,7 @@ describe('EchartsTree transformProps', () => {
       }),
     );
   });
-  it('should transform props if name column is not specified', () => {
+  test('should transform props if name column is not specified', () => {
     const formData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
@@ -337,7 +338,7 @@ describe('EchartsTree transformProps', () => {
       }),
     );
   });
-  it('should find root node with null parent when root node name is not provided', () => {
+  test('should find root node with null parent when root node name is not provided', () => {
     const formData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',

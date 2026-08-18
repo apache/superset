@@ -18,7 +18,9 @@
  */
 import { type ReactChild } from 'react';
 import fetchMock from 'fetch-mock';
+import { ErrorTypeEnum } from '@superset-ui/core';
 import { table, initialState } from 'src/SqlLab/fixtures';
+import setupErrorMessages from 'src/setup/setupErrorMessages';
 import {
   render,
   waitFor,
@@ -27,26 +29,25 @@ import {
 } from 'spec/helpers/testing-library';
 import TablePreview from '.';
 
-jest.mock(
-  'src/components/FilterableTable',
-  () =>
-    ({ data }: { data: Record<string, any>[] }) => (
-      <div>
-        {data.map((record, i) => (
-          <div key={i} data-test="mock-record-row">
-            {JSON.stringify(record)}
-          </div>
-        ))}
-      </div>
-    ),
-);
+jest.mock('src/components/FilterableTable', () => ({
+  __esModule: true,
+  FilterableTable: ({ data }: { data: Record<string, any>[] }) => (
+    <div>
+      {data.map((record, i) => (
+        <div key={i} data-test="mock-record-row">
+          {JSON.stringify(record)}
+        </div>
+      ))}
+    </div>
+  ),
+}));
 jest.mock(
   'react-virtualized-auto-sizer',
   () =>
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
-jest.mock('src/components/IconTooltip', () => ({
+jest.mock('@superset-ui/core/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,
     tooltip,
@@ -72,7 +73,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const mockedProps = {
@@ -80,6 +81,17 @@ const mockedProps = {
   catalog: table.catalog,
   schema: table.schema,
   tableName: table.name,
+};
+
+const OAUTH2_TAB_ID = 'tab-1';
+const oauth2Error = {
+  message: 'The database is currently not authenticated',
+  error_type: ErrorTypeEnum.OAUTH2_REDIRECT,
+  level: 'warning',
+  extra: {
+    url: 'https://example.com/oauth2/authorize',
+    tab_id: OAUTH2_TAB_ID,
+  },
 };
 
 test('renders columns', async () => {
@@ -104,7 +116,9 @@ test('renders indexes', async () => {
     initialState,
   });
   await waitFor(() =>
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    ),
   );
   expect(queryByText(`Indexes (${table.indexes.length})`)).toBeInTheDocument();
 });
@@ -127,43 +141,147 @@ test('renders preview', async () => {
     },
   });
   await waitFor(() =>
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    ),
   );
-  expect(fetchMock.calls(fetchPreviewEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(fetchPreviewEndpoint)).toHaveLength(0);
   fireEvent.click(getByText('Data preview'));
   await waitFor(() =>
-    expect(fetchMock.calls(fetchPreviewEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(fetchPreviewEndpoint)).toHaveLength(1),
   );
 });
 
+test('renders an OAuth2 authorization prompt when metadata errors with OAUTH2_REDIRECT', async () => {
+  // Register the OAuth2 redirect component so ErrorMessageWithStackTrace can
+  // resolve it for the OAUTH2_REDIRECT error type, mirroring app setup.
+  setupErrorMessages();
+  fetchMock.removeRoutes();
+  fetchMock.get(getTableMetadataEndpoint, {
+    status: 403,
+    body: { errors: [oauth2Error] },
+  });
+  fetchMock.get(getExtraTableMetadataEndpoint, {});
+
+  render(<TablePreview {...mockedProps} />, { useRedux: true, initialState });
+
+  // The structured SupersetError must flow through so the OAuth2 redirect link
+  // renders (and the crud-source retry can re-fetch once the dance completes).
+  const authLink = await screen.findByRole('link', {
+    name: 'provide authorization',
+  });
+  expect(authLink).toHaveAttribute(
+    'href',
+    'https://example.com/oauth2/authorize',
+  );
+});
+
+test('surfaces an OAUTH2_REDIRECT from the extended metadata request when the main request fails generically', async () => {
+  setupErrorMessages();
+  fetchMock.removeRoutes();
+  fetchMock.get(getTableMetadataEndpoint, {
+    status: 500,
+    body: { message: 'Something went wrong' },
+  });
+  fetchMock.get(getExtraTableMetadataEndpoint, {
+    status: 403,
+    body: { errors: [oauth2Error] },
+  });
+
+  render(<TablePreview {...mockedProps} />, { useRedux: true, initialState });
+
+  // The generic failure on the main request must not mask the actionable
+  // OAuth2 payload coming from the extended metadata request.
+  expect(
+    await screen.findByRole('link', { name: 'provide authorization' }),
+  ).toBeInTheDocument();
+});
+
+test('repopulates the preview once the OAuth2 dance completes', async () => {
+  setupErrorMessages();
+  fetchMock.removeRoutes();
+  fetchMock.get(getTableMetadataEndpoint, {
+    status: 403,
+    body: { errors: [oauth2Error] },
+  });
+  fetchMock.get(getExtraTableMetadataEndpoint, {});
+
+  const { getAllByTestId } = render(<TablePreview {...mockedProps} />, {
+    useRedux: true,
+    initialState,
+  });
+  await screen.findByRole('link', { name: 'provide authorization' });
+
+  // The second tab finished authorizing: the database now answers with the
+  // metadata, and the completion broadcast must drive the refetch.
+  fetchMock.removeRoutes();
+  fetchMock.get(getTableMetadataEndpoint, table);
+  fetchMock.get(getExtraTableMetadataEndpoint, {});
+  fireEvent(
+    window,
+    Object.assign(new Event('storage'), {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify({ tabId: OAUTH2_TAB_ID }),
+    }),
+  );
+
+  await waitFor(() =>
+    expect(getAllByTestId('mock-record-row')).toHaveLength(
+      table.columns.length,
+    ),
+  );
+});
+
+test('renders the error message when metadata fails without a structured error', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get(getTableMetadataEndpoint, {
+    status: 500,
+    body: { message: 'Something went wrong' },
+  });
+  fetchMock.get(getExtraTableMetadataEndpoint, {});
+
+  render(<TablePreview {...mockedProps} />, { useRedux: true, initialState });
+
+  // Without an errors[] array there is no SupersetError to hand to the
+  // registry, so the plain message must still surface to the user.
+  expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('table actions', () => {
   test('refreshes table metadata when triggered', async () => {
-    const { getByRole, getByText } = render(<TablePreview {...mockedProps} />, {
+    const { getByRole } = render(<TablePreview {...mockedProps} />, {
       useRedux: true,
       initialState,
     });
     await waitFor(() =>
-      expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+      expect(
+        fetchMock.callHistory.calls(getTableMetadataEndpoint),
+      ).toHaveLength(1),
     );
-    const menuButton = getByRole('button', { name: /Table actions/i });
-    fireEvent.click(menuButton);
-    fireEvent.click(getByText('Refresh table schema'));
+    const refreshButton = getByRole('button', { name: 'Refresh table schema' });
+    fireEvent.click(refreshButton);
     await waitFor(() =>
-      expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(2),
+      expect(
+        fetchMock.callHistory.calls(getTableMetadataEndpoint),
+      ).toHaveLength(2),
     );
   });
 
   test('shows CREATE VIEW statement', async () => {
-    const { getByRole, getByText } = render(<TablePreview {...mockedProps} />, {
+    const { getByRole } = render(<TablePreview {...mockedProps} />, {
       useRedux: true,
       initialState,
     });
     await waitFor(() =>
-      expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+      expect(
+        fetchMock.callHistory.calls(getTableMetadataEndpoint),
+      ).toHaveLength(1),
     );
-    const menuButton = getByRole('button', { name: /Table actions/i });
-    fireEvent.click(menuButton);
-    fireEvent.click(getByText('Show CREATE VIEW statement'));
+    const viewButton = getByRole('button', {
+      name: 'Show CREATE VIEW statement',
+    });
+    fireEvent.click(viewButton);
     await waitFor(() =>
       expect(
         screen.queryByRole('dialog', { name: 'CREATE VIEW statement' }),

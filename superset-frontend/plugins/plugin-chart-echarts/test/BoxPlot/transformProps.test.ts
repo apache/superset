@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
+import { ChartProps, SqlaFormData } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { EchartsBoxPlotChartProps } from '../../src/BoxPlot/types';
 import transformProps from '../../src/BoxPlot/transformProps';
 
@@ -31,6 +32,7 @@ describe('BoxPlot transformProps', () => {
     whiskerOptions: 'Tukey',
     yAxisFormat: 'SMART_NUMBER',
     viz_type: 'my_chart',
+    zoomable: true,
   };
   const chartProps = new ChartProps({
     formData,
@@ -69,12 +71,28 @@ describe('BoxPlot transformProps', () => {
     theme: supersetTheme,
   });
 
-  it('should transform chart props for viz', () => {
+  const buildChartProps = (formDataOverrides: Partial<SqlaFormData> = {}) =>
+    new ChartProps({
+      formData: { ...formData, ...formDataOverrides },
+      width: 800,
+      height: 600,
+      queriesData: chartProps.queriesData,
+      theme: supersetTheme,
+    }) as EchartsBoxPlotChartProps;
+
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsBoxPlotChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
         echartOptions: expect.objectContaining({
+          dataZoom: expect.arrayContaining([
+            {
+              moveOnMouseWheel: true,
+              type: 'inside',
+              zoomOnMouseWheel: false,
+            },
+          ]),
           series: expect.arrayContaining([
             expect.objectContaining({
               name: 'boxplot',
@@ -114,6 +132,43 @@ describe('BoxPlot transformProps', () => {
           ]),
         }),
       }),
+    );
+  });
+
+  test('should add a vertical Y-axis slider to dataZoom when yAxisSlider is enabled', () => {
+    const { echartOptions } = transformProps(
+      buildChartProps({ yAxisSlider: true }),
+    );
+    expect((echartOptions as any).dataZoom).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'slider',
+          show: true,
+          yAxisIndex: [0],
+          filterMode: 'none',
+        }),
+      ]),
+    );
+  });
+
+  test('should not add a Y-axis slider when yAxisSlider is disabled', () => {
+    const { echartOptions } = transformProps(
+      buildChartProps({ yAxisSlider: false }),
+    );
+    expect((echartOptions as any).dataZoom).not.toContainEqual(
+      expect.objectContaining({ type: 'slider' }),
+    );
+  });
+
+  test('should combine zoomable and yAxisSlider dataZoom entries', () => {
+    const { echartOptions } = transformProps(
+      buildChartProps({ zoomable: true, yAxisSlider: true }),
+    );
+    expect((echartOptions as any).dataZoom).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'inside' }),
+        expect.objectContaining({ type: 'slider', yAxisIndex: [0] }),
+      ]),
     );
   });
 });

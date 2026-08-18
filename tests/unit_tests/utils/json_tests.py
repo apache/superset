@@ -19,12 +19,15 @@ import math
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from typing import Any
 from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
 import pytest
+import pytz
 
+from superset.constants import PASSWORD_MASK
 from superset.utils import json
 from superset.utils.core import (
     zlib_compress,
@@ -54,7 +57,7 @@ def test_json_loads_exception():
 
 
 def test_json_loads_encoding():
-    unicode_data = b'{"a": "\u0073\u0074\u0072"}'
+    unicode_data = rb'{"a": "\u0073\u0074\u0072"}'
     data = json.loads(unicode_data)
     assert data["a"] == "str"
     utf16_data = b'\xff\xfe{\x00"\x00a\x00"\x00:\x00 \x00"\x00s\x00t\x00r\x00"\x00}\x00'
@@ -252,10 +255,152 @@ def test_json_int_dttm_ser():
     assert json.json_int_dttm_ser(datetime(1970, 1, 1)) == 0
     assert json.json_int_dttm_ser(date(1970, 1, 1)) == 0
     assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
+
+    # Timezone-aware datetime should preserve the absolute instant.
+    # 2020-01-01 00:00:00+08:00 == 2019-12-31 16:00:00Z
+    dttm_tz = datetime(2020, 1, 1, tzinfo=pytz.FixedOffset(8 * 60))
+    assert json.json_int_dttm_ser(dttm_tz) == 1577808000000.0
     assert json.json_int_dttm_ser(np.int64(1)) == 1
 
     with pytest.raises(TypeError):
         json.json_int_dttm_ser(np.datetime64())
+
+
+@pytest.mark.parametrize(
+    "payload,path_values,expected_result",
+    [
+        (
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": "XXXXXXXXXX",
+                },
+            },
+            {"$.credentials_info.private_key": "NEW_KEY"},
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": "NEW_KEY",
+                },
+            },
+        ),
+        (
+            {
+                "auth_params": {
+                    "privatekey_body": "XXXXXXXXXX",
+                    "privatekey_pass": "XXXXXXXXXX",
+                },
+                "other": "value",
+            },
+            {
+                "$.auth_params.privatekey_body": "-----BEGIN PRIVATE KEY-----",
+                "$.auth_params.privatekey_pass": "passphrase",
+            },
+            {
+                "auth_params": {
+                    "privatekey_body": "-----BEGIN PRIVATE KEY-----",
+                    "privatekey_pass": "passphrase",
+                },
+                "other": "value",
+            },
+        ),
+        (
+            {"existing": "value"},
+            {"$.nonexistent.path": "new_value"},
+            {"existing": "value"},
+        ),
+    ],
+)
+def test_set_masked_fields(
+    payload: dict[str, Any],
+    path_values: dict[str, Any],
+    expected_result: dict[str, Any],
+) -> None:
+    """
+    Test setting a value at a JSONPath location.
+    """
+    result = json.set_masked_fields(payload, path_values)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "payload,sensitive_fields,expected_result",
+    [
+        (
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "private_key": PASSWORD_MASK,
+                },
+            },
+            {"$.credentials_info.private_key", "$.credentials_info.type"},
+            ["$.credentials_info.private_key"],
+        ),
+        (
+            {
+                "credentials_info": {
+                    "private_key": "ACTUAL_KEY",
+                },
+            },
+            {"$.credentials_info.private_key"},
+            [],
+        ),
+        (
+            {
+                "auth_params": {
+                    "privatekey_body": PASSWORD_MASK,
+                    "privatekey_pass": "actual_pass",
+                },
+                "oauth2_client_info": {
+                    "secret": PASSWORD_MASK,
+                },
+            },
+            {
+                "$.auth_params.privatekey_body",
+                "$.auth_params.privatekey_pass",
+                "$.oauth2_client_info.secret",
+            },
+            [
+                "$.auth_params.privatekey_body",
+                "$.oauth2_client_info.secret",
+            ],
+        ),
+        (
+            {
+                "foo": PASSWORD_MASK,
+                "service_account_info": PASSWORD_MASK,
+            },
+            {"$.*"},
+            ["$.foo", "$.service_account_info"],
+        ),
+        (
+            {
+                "foo": PASSWORD_MASK,
+                "bar": "actual_value",
+            },
+            {"$.*"},
+            ["$.foo"],
+        ),
+        (
+            {
+                "foo": "actual_value",
+                "bar": "other_value",
+            },
+            {"$.*"},
+            [],
+        ),
+    ],
+)
+def test_get_masked_fields(
+    payload: dict[str, Any],
+    sensitive_fields: set[str],
+    expected_result: dict[str, Any],
+) -> None:
+    """
+    Test that get_masked_fields returns paths where value equals PASSWORD_MASK.
+    """
+    masked = json.get_masked_fields(payload, sensitive_fields)
+    assert sorted(masked) == sorted(expected_result)
 
 
 def test_format_timedelta():
@@ -270,3 +415,17 @@ def test_format_timedelta():
         json.format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3))
         == "-16 days, 4:03:00"
     )
+
+
+def test_dumps_escapes_non_ascii_by_default() -> None:
+    # Default ensure_ascii=True keeps output safe for narrow charset columns
+    # (e.g. MySQL utf8) by escaping non-ASCII characters to \uXXXX sequences.
+    assert json.dumps("Hello, world!") == '"Hello, world!"'
+    assert json.dumps("Привет") == '"\\u041f\\u0440\\u0438\\u0432\\u0435\\u0442"'
+
+
+def test_dumps_preserves_unicode_when_ensure_ascii_false() -> None:
+    # Opt-in ensure_ascii=False renders non-ASCII characters verbatim.
+    assert json.dumps("Hello, world!", ensure_ascii=False) == '"Hello, world!"'
+    assert json.dumps("Привет, мир!", ensure_ascii=False) == '"Привет, мир!"'
+    assert json.dumps("你好，世界！", ensure_ascii=False) == '"你好，世界！"'

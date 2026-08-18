@@ -24,6 +24,8 @@ from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
+from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.common.query_context import QueryContext
 from superset.exceptions import CacheLoadError
 
@@ -48,8 +50,13 @@ class ChartDataCommand(BaseCommand):
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
 
+        # Skip error check for query-only requests - errors are returned in payload
+        # This allows View Query modal to display validation errors
         for query in payload["queries"]:
-            if query.get("error"):
+            if (
+                query.get("error")
+                and self._query_context.result_type != ChartDataResultType.QUERY
+            ):
                 raise ChartDataQueryFailedError(
                     _("Error: %(error)s", error=query["error"])
                 )
@@ -62,6 +69,33 @@ class ChartDataCommand(BaseCommand):
             return_value.update(cache_key=payload["cache_key"])
 
         return return_value
+
+    def execute(self, **kwargs: Any) -> ChartDataExecutionResult:
+        """Execute and return timing as a typed sidecar."""
+        cache_query_context = kwargs.get("cache", False)
+        force_cached = kwargs.get("force_cached", False)
+        try:
+            result = self._query_context.get_payload_result(
+                cache_query_context=cache_query_context,
+                force_cached=force_cached,
+            )
+        except CacheLoadError as ex:
+            raise ChartDataCacheLoadError(ex.message) from ex
+
+        for query in result.queries:
+            if (
+                query.payload.get("error")
+                and self._query_context.result_type != ChartDataResultType.QUERY
+            ):
+                raise ChartDataQueryFailedError(
+                    _("Error: %(error)s", error=query.payload["error"])
+                )
+
+        return ChartDataExecutionResult(
+            query_context=self._query_context,
+            queries=result.queries,
+            cache_key=result.cache_key,
+        )
 
     def validate(self) -> None:
         self._query_context.raise_for_access()

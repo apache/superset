@@ -24,7 +24,7 @@ from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING
 from uuid import UUID
 
-from flask import current_app, g, Response
+from flask import current_app as app, g, Response
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.utils import core as utils
@@ -36,7 +36,21 @@ if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
 
-def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
+def record_statsd_gauge_failure(metric_prefix: str, ex: Exception) -> None:
+    """Record a warning or error gauge using the shared exception contract."""
+    try:
+        status = getattr(ex, "status", None)
+    except Exception:  # pylint: disable=broad-exception-caught
+        status = None
+    suffix = "warning" if isinstance(status, int) and status < 500 else "error"
+    app.config["STATS_LOGGER"].gauge(f"{metric_prefix}.{suffix}", 1)
+
+
+def statsd_gauge(
+    metric_prefix: str | None = None,
+    *,
+    ignored_exceptions: tuple[type[Exception], ...] = (),
+) -> Callable[..., Any]:
     def decorate(f: Callable[..., Any]) -> Callable[..., Any]:
         """
         Handle sending statsd gauge metric from any method or function
@@ -46,19 +60,12 @@ def statsd_gauge(metric_prefix: str | None = None) -> Callable[..., Any]:
             metric_prefix_ = metric_prefix or f.__name__
             try:
                 result = f(*args, **kwargs)
-                current_app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
+                app.config["STATS_LOGGER"].gauge(f"{metric_prefix_}.ok", 1)
                 return result
+            except ignored_exceptions:
+                raise
             except Exception as ex:
-                if (
-                    hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
-                ):
-                    current_app.config["STATS_LOGGER"].gauge(
-                        f"{metric_prefix_}.warning", 1
-                    )
-                else:
-                    current_app.config["STATS_LOGGER"].gauge(
-                        f"{metric_prefix_}.error", 1
-                    )
+                record_statsd_gauge_failure(metric_prefix_, ex)
                 raise
 
         return wrapped

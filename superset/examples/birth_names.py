@@ -19,19 +19,20 @@ import textwrap
 from typing import Union
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
-from ..utils.database import get_example_database
+from ..utils.database import get_example_database  # noqa: TID252
 from .helpers import (
     get_slice_json,
     get_table_connector_registry,
@@ -57,7 +58,7 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = read_example_data("birth_names2.json.gz", compression="gzip")
+    pdf = read_example_data("examples://birth_names2.json.gz", compression="gzip")
 
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
@@ -107,7 +108,7 @@ def load_birth_names(
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
     if not obj:
-        logger.debug(f"Creating table [{tbl_name}] reference")
+        logger.debug("Creating table [%s] reference", tbl_name)
         obj = table(table_name=tbl_name, schema=schema)
         db.session.add(obj)
 
@@ -134,16 +135,18 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
     if not any(col.column_name == "num_california" for col in columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
-        columns.append(
-            TableColumn(
-                column_name="num_california",
-                expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
-            )
+        column_it = TableColumn(
+            column_name="num_california",
+            expression="CASE WHEN %s = 'CA' THEN %s ELSE 0 END" % (col_state, col_num),
         )
+        db.session.add(column_it)
+        columns.append(column_it)
 
     if not any(col.metric_name == "sum__num" for col in metrics):
         col = str(column("num").compile(db.engine))
-        metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
+        metric = SqlMetric(metric_name="sum__num", expression="SUM(%s)" % col)
+        db.session.add(metric)
+        metrics.append(metric)
 
     for col in columns:
         if col.column_name == "ds":  # type: ignore
@@ -155,6 +158,8 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
 
 
 def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
+    from superset.subjects.utils import get_user_subject
+
     owner = security_manager.get_user_by_id(1)
     metrics = [
         {
@@ -173,7 +178,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "limit": "25",
         "granularity_sqla": "ds",
         "groupby": [],
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
@@ -213,7 +218,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 compare_suffix="over 5Y",
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -222,7 +227,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             params=get_slice_json(
                 defaults, viz_type="pie", groupby=["gender"], metric=metric
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -237,7 +242,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 show_legend=True,
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -274,7 +279,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 ],
                 groupby=["state"],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -288,7 +293,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 timeseries_limit_metric=metric,
                 metrics=[metric],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -305,7 +310,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "girl")],
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -319,7 +324,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 timeseries_limit_metric=metric,
                 metrics=[metric],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -336,7 +341,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "boy")],
                 metric=metric,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -354,7 +359,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -372,7 +377,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -394,7 +399,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
             ),
-            owners=[],
+            editors=[],
         ),
     ]
     misc_slices = [
@@ -419,7 +424,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 yAxisIndex=0,
                 yAxisIndexB=1,
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -428,7 +433,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             params=get_slice_json(
                 defaults, viz_type="echarts_timeseries_line", metrics=metrics
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -451,7 +456,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -471,7 +476,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 viz_type="big_number_total",
                 granularity_sqla="ds",
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -504,7 +509,9 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 },
                 limit="10",
             ),
-            owners=[owner] if owner else [],
+            editors=[get_user_subject(owner.id)]
+            if owner and get_user_subject(owner.id)
+            else [],
         ),
         Slice(
             **slice_kwargs,
@@ -525,7 +532,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     "label": "SUM(num_california)",
                 },
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -539,7 +546,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 adhoc_filters=[gen_filter("gender", "girl")],
                 subheader="total female participants",
             ),
-            owners=[],
+            editors=[],
         ),
         Slice(
             **slice_kwargs,
@@ -552,7 +559,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 groupbyColumns=["state"],
                 metrics=metrics,
             ),
-            owners=[],
+            editors=[],
         ),
     ]
     for slc in slices:
@@ -584,7 +591,6 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         }
     }"""
     )
-    # pylint: disable=echarts_timeseries_line-too-long
     pos = json.loads(
         textwrap.dedent(
             """\
@@ -859,11 +865,10 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         """  # noqa: E501
         )
     )
-    # pylint: enable=echarts_timeseries_line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
-    dash.position_json = json.dumps(pos, indent=4)
+    dash.position_json = json.dumps(pos, indent=4)  # noqa: TID251
     dash.slug = "births"
     return dash

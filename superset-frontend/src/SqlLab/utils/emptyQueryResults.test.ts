@@ -29,6 +29,7 @@ import {
 } from 'src/SqlLab/constants';
 import { queries, defaultQueryEditor } from '../fixtures';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('reduxStateToLocalStorageHelper', () => {
   const queriesObj: Record<string, any> = {};
   beforeEach(() => {
@@ -37,7 +38,7 @@ describe('reduxStateToLocalStorageHelper', () => {
     });
   });
 
-  it('should empty query.results if query.startDttm is > LOCALSTORAGE_MAX_QUERY_AGE_MS', () => {
+  test('should empty query.results if query.startDttm is > LOCALSTORAGE_MAX_QUERY_AGE_MS', () => {
     // make sure sample data contains old query
     const oldQuery = queries[0];
     const { id, startDttm } = oldQuery;
@@ -51,7 +52,7 @@ describe('reduxStateToLocalStorageHelper', () => {
     expect(emptiedQuery[id].results).toEqual({});
   });
 
-  it('should empty query.results if query,.results size is greater than LOCALSTORAGE_MAX_QUERY_RESULTS_KB', () => {
+  test('should empty query.results if query,.results size is greater than LOCALSTORAGE_MAX_QUERY_RESULTS_KB', () => {
     const reasonableSizeQuery = {
       ...queries[0],
       startDttm: Date.now(),
@@ -63,11 +64,9 @@ describe('reduxStateToLocalStorageHelper', () => {
       results: {
         data: [
           {
-            jsonValue: `{"str":"${new Array(
+            jsonValue: `{"str":"${'0'.repeat(
               (LOCALSTORAGE_MAX_QUERY_RESULTS_KB / BYTES_PER_CHAR) * KB_STORAGE,
-            )
-              .fill(0)
-              .join('')}"}`,
+            )}"}`,
           },
         ],
       },
@@ -83,7 +82,7 @@ describe('reduxStateToLocalStorageHelper', () => {
     );
   });
 
-  it('should only return selected keys for query editor', () => {
+  test('should only return selected keys for query editor', () => {
     const queryEditors = [{ ...defaultQueryEditor, dummy: 'value' }];
     expect(Object.keys(queryEditors[0])).toContain('dummy');
 

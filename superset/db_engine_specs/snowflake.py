@@ -27,16 +27,20 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from flask import current_app
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicPropertiesType,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
@@ -83,17 +87,73 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
+    # Snowflake doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
+
     parameters_schema = SnowflakeParametersSchema()
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    supports_grouping_sets = True
+
+    metadata = {
+        "description": "Snowflake is a cloud-native data warehouse.",
+        "logo": "snowflake.svg",
+        "homepage_url": "https://www.snowflake.com/",
+        "categories": [
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["snowflake-sqlalchemy"],
+        "connection_string": (
+            "snowflake://{user}:{password}@{account}.{region}/{database}"
+            "?role={role}&warehouse={warehouse}"
+        ),
+        "install_instructions": (
+            'echo "snowflake-sqlalchemy" >> ./docker/requirements-local.txt'
+        ),
+        "connection_examples": [
+            {
+                "description": "With role and warehouse",
+                "connection_string": (
+                    "snowflake://{user}:{password}@{account}.{region}/{database}"
+                    "?role={role}&warehouse={warehouse}"
+                ),
+            },
+            {
+                "description": "With defaults (role/warehouse optional)",
+                "connection_string": (
+                    "snowflake://{user}:{password}@{account}.{region}/{database}"
+                ),
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "Key Pair Authentication",
+                "description": "Use RSA key pair instead of password",
+                "requirements": (
+                    "Key pair must be generated and public key registered in Snowflake"
+                ),
+                "notes": (
+                    "Merge multi-line private key to one line with \\n between lines."
+                ),
+            },
+        ],
+        "notes": (
+            "Schema is not required in connection string. "
+            "Ensure user has privileges for all "
+            "databases/schemas/tables/views/warehouses."
+        ),
+        "docs_url": "https://docs.snowflake.com/en/user-guide/key-pair-auth.html",
+    }
 
     # pylint: disable=invalid-name
     encrypted_extra_sensitive_fields = {
-        "$.auth_params.privatekey_body",
-        "$.auth_params.privatekey_pass",
+        "$.auth_params.privatekey_body": "Private Key Body",
+        "$.auth_params.privatekey_pass": "Private Key Password",
     }
 
     _time_grain_expressions = {
@@ -206,12 +266,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         In Snowflake, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                "SELECT DATABASE_NAME from information_schema.databases"
-            )
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("SELECT DATABASE_NAME from information_schema.databases")
+                )
+            }
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -275,6 +336,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         :param cancel_query_id: Snowflake Session ID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Snowflake CURRENT_SESSION() returns an alphanumeric VARCHAR session ID
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9]+$"):
+            return False
+
         try:
             cursor.execute(f"SELECT SYSTEM$CANCEL_ALL_QUERIES({cancel_query_id})")
         except Exception:  # pylint: disable=broad-except
@@ -290,19 +356,21 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             dict[str, Any]
         ] = None,
     ) -> str:
-        return str(
-            URL.create(
-                "snowflake",
-                username=parameters.get("username"),
-                password=parameters.get("password"),
-                host=parameters.get("account"),
-                database=parameters.get("database"),
-                query={
-                    "role": parameters.get("role"),
-                    "warehouse": parameters.get("warehouse"),
-                },
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            "snowflake",
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters.get("account"),
+            database=parameters.get("database"),
+            query={
+                "role": parameters.get("role"),
+                "warehouse": parameters.get("warehouse"),
+            },
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(
@@ -394,9 +462,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             else:
                 with open(auth_params["privatekey_path"], "rb") as key_temp:
                     key = key_temp.read()
+            privatekey_pass = auth_params.get("privatekey_pass", None)
+            password = privatekey_pass.encode() if privatekey_pass is not None else None
             p_key = serialization.load_pem_private_key(
                 key,
-                password=auth_params["privatekey_pass"].encode(),
+                password=password,
                 backend=default_backend(),
             )
             pkb = p_key.private_bytes(
@@ -406,9 +476,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             )
             connect_args["private_key"] = pkb
         else:
-            allowed_extra_auths = current_app.config[
-                "ALLOWED_EXTRA_AUTHENTICATIONS"
-            ].get("snowflake", {})
+            allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
+                "snowflake", {}
+            )
             if auth_method in allowed_extra_auths:
                 snowflake_auth = allowed_extra_auths.get(auth_method)
             else:

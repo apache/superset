@@ -25,6 +25,7 @@ export type HandlerFunction = (...args: unknown[]) => void;
 export enum Behavior {
   InteractiveChart = 'INTERACTIVE_CHART',
   NativeFilter = 'NATIVE_FILTER',
+  ChartCustomization = 'CHART_CUSTOMIZATION',
 
   /**
    * Include `DRILL_TO_DETAIL` behavior if plugin handles `contextmenu` event
@@ -44,6 +45,13 @@ export interface ContextMenuFilters {
     filters: BinaryQueryObjectFilterClause[];
     groupbyFieldName: string;
     adhocFilterFieldName?: string;
+    /**
+     * Filters scoped to the clicked x-axis value (category or time bucket),
+     * as opposed to `filters`, which are scoped to the clicked series.
+     * When both are present, the Drill By UI lets the user choose which
+     * of the two (or both) to apply to the drilled chart.
+     */
+    xAxisFilters?: BinaryQueryObjectFilterClause[];
   };
 }
 
@@ -55,7 +63,11 @@ export enum AppSection {
   Embedded = 'EMBEDDED',
 }
 
-export type FilterState = { value?: any; [key: string]: any };
+export type FilterState = {
+  value?: any;
+  customColumnLabel?: string;
+  [key: string]: any;
+};
 
 export type DataMask = {
   extraFormData?: ExtraFormData;
@@ -66,6 +78,44 @@ export type DataMask = {
 export type SetDataMaskHook = {
   ({ filterState, extraFormData, ownState }: DataMask): void;
 };
+
+/**
+ * Backend-compatible filter clause for query execution
+ */
+export interface QueryFilterClause {
+  col: string;
+  op: string;
+  val: string | number | string[] | number[];
+}
+
+/**
+ * Backend-compatible sort specification
+ */
+export interface QuerySortBy {
+  id: string;
+  key: string;
+  desc: boolean;
+}
+
+/**
+ * Backend-compatible own state that will be sent to the chart data API.
+ * This represents the standardized format that the backend expects.
+ */
+export interface BackendOwnState {
+  sortBy?: QuerySortBy[];
+  columnOrder?: string[];
+  filters?: QueryFilterClause[];
+  [key: string]: unknown; // Allow additional properties for chart-specific needs
+}
+
+/**
+ * Converter function that transforms chart-specific state to backend format.
+ * Each chart plugin can implement this to convert its internal state representation
+ * to the standardized backend format.
+ */
+export type ChartStateConverter<TChartState = JsonObject> = (
+  chartState: TChartState,
+) => Partial<BackendOwnState>;
 
 export interface PlainObject {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

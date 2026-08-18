@@ -19,14 +19,16 @@
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import FrontendNetworkErrorMessage from './FrontendNetworkErrorMessage';
+import { FrontendNetworkErrorMessage } from './FrontendNetworkErrorMessage';
 
 jest.mock(
-  'src/components/Icons/AsyncIcon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) => (
-      <span role="img" aria-label={fileName.replace('_', '-')} />
-    ),
+    ({ fileName }: { fileName: string }) =>
+      (
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
+        <span role="img" aria-label={fileName.replace('_', '-')} />
+      ),
 );
 
 const mockedProps = {

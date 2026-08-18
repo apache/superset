@@ -18,8 +18,21 @@
  */
 
 import { ExtensibleFunction } from '../models';
-import { getNumberFormatter, NumberFormats } from '../number-format';
+// Import from the concrete modules rather than the `number-format` barrel to
+// avoid a circular dependency (the barrel pulls in getSmallNumberFormatter,
+// which imports CurrencyFormatter).
+import { getNumberFormatter } from '../number-format/NumberFormatterRegistrySingleton';
+import NumberFormats from '../number-format/NumberFormats';
 import { Currency } from '../query';
+import { RowData, RowDataValue } from './types';
+import { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
+import { getCurrencyLocale } from './currencyLocale';
+import {
+  resolveSymbolPosition,
+  formatWithSymbolPosition,
+} from './symbolPosition';
+
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 
 interface CurrencyFormatterConfig {
   d3Format?: string;
@@ -28,7 +41,11 @@ interface CurrencyFormatterConfig {
 }
 
 interface CurrencyFormatter {
-  (value: number | null | undefined): string;
+  (
+    value: number | null | undefined,
+    rowData?: RowData,
+    currencyColumn?: string,
+  ): string;
 }
 
 export const getCurrencySymbol = (currency: Partial<Currency>) =>
@@ -39,6 +56,32 @@ export const getCurrencySymbol = (currency: Partial<Currency>) =>
     .formatToParts(1)
     .find(x => x.type === 'currency')?.value;
 
+export function normalizeCurrency(value: RowDataValue): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') return null;
+
+  const normalized = value.trim().toUpperCase();
+
+  return ISO_4217_REGEX.test(normalized) ? normalized : null;
+}
+
+export function hasMixedCurrencies(currencies: RowDataValue[]): boolean {
+  let first: string | null = null;
+
+  for (const c of currencies) {
+    const normalized = normalizeCurrency(c);
+    if (normalized === null) continue;
+
+    if (first === null) {
+      first = normalized;
+    } else if (normalized !== first) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 class CurrencyFormatter extends ExtensibleFunction {
   d3Format: string;
 
@@ -47,10 +90,12 @@ class CurrencyFormatter extends ExtensibleFunction {
   currency: Currency;
 
   constructor(config: CurrencyFormatterConfig) {
-    super((value: number) => this.format(value));
+    super((value: number, rowData?: RowData, currencyColumn?: string) =>
+      this.format(value, rowData, currencyColumn),
+    );
     this.d3Format = config.d3Format || NumberFormats.SMART_NUMBER;
     this.currency = config.currency;
-    this.locale = config.locale || 'en-US';
+    this.locale = config.locale || getCurrencyLocale();
   }
 
   hasValidCurrency() {
@@ -58,21 +103,71 @@ class CurrencyFormatter extends ExtensibleFunction {
   }
 
   getNormalizedD3Format() {
-    return this.d3Format.replace(/\$|%/g, '');
+    return this.d3Format.replace(/\$/g, '');
   }
 
-  format(value: number) {
+  normalizeForCurrency(value: string) {
+    return value.replace(/%/g, '');
+  }
+
+  format(value: number, rowData?: RowData, currencyColumn?: string): string {
     const formattedValue = getNumberFormatter(this.getNormalizedD3Format())(
       value,
     );
-    if (!this.hasValidCurrency()) {
+
+    const isAutoMode = this.currency?.symbol === AUTO_CURRENCY_SYMBOL;
+
+    if (!this.hasValidCurrency() && !isAutoMode) {
       return formattedValue as string;
     }
 
-    if (this.currency.symbolPosition === 'prefix') {
-      return `${getCurrencySymbol(this.currency)} ${formattedValue}`;
+    // Remove % signs from formatted value for currency display
+    const normalizedValue = this.normalizeForCurrency(formattedValue);
+
+    if (isAutoMode) {
+      if (rowData && currencyColumn && rowData[currencyColumn]) {
+        const rawCurrency = rowData[currencyColumn];
+        const normalizedCurrency = normalizeCurrency(rawCurrency);
+
+        if (normalizedCurrency) {
+          try {
+            const symbol = getCurrencySymbol({ symbol: normalizedCurrency });
+            if (symbol) {
+              const position = resolveSymbolPosition(
+                normalizedCurrency,
+                this.currency.symbolPosition,
+                this.locale,
+              );
+              return formatWithSymbolPosition(
+                symbol,
+                normalizedValue,
+                position,
+              );
+            }
+          } catch {
+            // Invalid currency code - return value without currency symbol
+            return formattedValue;
+          }
+        }
+      }
+      return formattedValue;
     }
-    return `${formattedValue} ${getCurrencySymbol(this.currency)}`;
+
+    try {
+      const symbol = getCurrencySymbol(this.currency);
+      if (!symbol) {
+        return formattedValue;
+      }
+      const position = resolveSymbolPosition(
+        this.currency.symbol,
+        this.currency.symbolPosition,
+        this.locale,
+      );
+      return formatWithSymbolPosition(symbol, normalizedValue, position);
+    } catch {
+      // Invalid currency code - return value without currency symbol
+      return formattedValue;
+    }
   }
 }
 

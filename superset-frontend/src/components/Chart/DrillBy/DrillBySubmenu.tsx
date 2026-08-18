@@ -1,0 +1,457 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { t } from '@apache-superset/core/translation';
+import {
+  BaseFormData,
+  Behavior,
+  BinaryQueryObjectFilterClause,
+  Column,
+  ContextMenuFilters,
+  ensureIsArray,
+  getChartMetadataRegistry,
+} from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/theme';
+import {
+  Constants,
+  Input,
+  Loading,
+  Popover,
+  Icons,
+} from '@superset-ui/core/components';
+import { Radio } from '@superset-ui/core/components/Radio';
+import { debounce } from 'lodash-es';
+import { List, type RowComponentProps } from 'react-window';
+import { InputRef } from 'antd';
+import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
+import { VirtualizedMenuItem } from '../MenuItemWithTruncation';
+import { Dataset } from '../types';
+
+const SUBMENU_HEIGHT = 200;
+const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
+
+interface DrillByColumnRowProps {
+  columns: Column[];
+  onSelectColumn: (event: React.MouseEvent, column: Column) => void;
+}
+
+// Rendered via `rowComponent`, so it must be a stable reference (module
+// scope) rather than defined inline on every render of the submenu -
+// otherwise react-window would treat it as a new component type each
+// render and remount every row. All the data it needs is threaded
+// through `rowProps` instead of being closed over.
+function DrillByColumnRow({
+  index,
+  style,
+  columns,
+  onSelectColumn,
+}: RowComponentProps<DrillByColumnRowProps>) {
+  const column = columns[index];
+  return (
+    <VirtualizedMenuItem
+      tooltipText={column.verbose_name || column.column_name}
+      onClick={e => onSelectColumn(e, column)}
+      style={style}
+    >
+      {column.verbose_name || column.column_name}
+    </VirtualizedMenuItem>
+  );
+}
+
+enum DrillByFilterScope {
+  XAxis = 'x-axis',
+  Series = 'series',
+  All = 'all',
+}
+
+const formatFilterValues = (filters: BinaryQueryObjectFilterClause[]) =>
+  filters.map(filter => filter.formattedVal ?? String(filter.val)).join(', ');
+
+export interface DrillBySubmenuProps {
+  drillByConfig?: ContextMenuFilters['drillBy'];
+  formData: BaseFormData & { [key: string]: any };
+  onSelection?: (...args: any) => void;
+  onClick?: (event: React.MouseEvent) => void;
+  onCloseMenu?: () => void;
+  openNewModal?: boolean;
+  excludedColumns?: Column[];
+  onDrillBy?: (
+    column: Column,
+    dataset: Dataset,
+    drillByConfig?: ContextMenuFilters['drillBy'],
+  ) => void;
+  dataset?: Dataset;
+  isLoadingDataset?: boolean;
+}
+
+export const DrillBySubmenu = ({
+  drillByConfig,
+  formData,
+  onSelection = () => {},
+  onClick = () => {},
+  onCloseMenu = () => {},
+  openNewModal = true,
+  excludedColumns,
+  onDrillBy,
+  dataset,
+  isLoadingDataset = false,
+  ...rest
+}: DrillBySubmenuProps) => {
+  const theme = useTheme();
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearchInput, setDebouncedSearchInput] = useState('');
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [filterScope, setFilterScope] = useState(DrillByFilterScope.All);
+  const ref = useRef<InputRef>(null);
+  const menuItemRef = useRef<HTMLButtonElement>(null);
+
+  const columns = useMemo(
+    () => (dataset ? ensureIsArray(dataset.drillable_columns) : []),
+    [dataset],
+  );
+  const showSearch = columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD;
+
+  const seriesFilters = useMemo(
+    () => ensureIsArray(drillByConfig?.filters),
+    [drillByConfig?.filters],
+  );
+  const xAxisFilters = useMemo(
+    () => ensureIsArray(drillByConfig?.xAxisFilters),
+    [drillByConfig?.xAxisFilters],
+  );
+  // Both the clicked x-axis value and the clicked series can scope the
+  // drilled data; when both are available the user picks which to apply
+  const showScopeSelector = seriesFilters.length > 0 && xAxisFilters.length > 0;
+
+  const effectiveDrillByConfig = useMemo(():
+    | ContextMenuFilters['drillBy']
+    | undefined => {
+    if (!drillByConfig) {
+      return undefined;
+    }
+    let filters = [...xAxisFilters, ...seriesFilters];
+    if (showScopeSelector && filterScope === DrillByFilterScope.XAxis) {
+      filters = xAxisFilters;
+    } else if (showScopeSelector && filterScope === DrillByFilterScope.Series) {
+      filters = seriesFilters;
+    }
+    const config = { ...drillByConfig, filters };
+    // the x-axis filters have been folded into `filters` above
+    delete config.xAxisFilters;
+    return config;
+  }, [
+    drillByConfig,
+    filterScope,
+    seriesFilters,
+    showScopeSelector,
+    xAxisFilters,
+  ]);
+
+  const handleSelection = useCallback(
+    (event: React.MouseEvent, column: Column) => {
+      onClick(event);
+      onSelection(column, effectiveDrillByConfig);
+      if (openNewModal && onDrillBy && dataset) {
+        onDrillBy(column, dataset, effectiveDrillByConfig);
+      }
+      setPopoverOpen(false);
+      onCloseMenu();
+    },
+    [
+      effectiveDrillByConfig,
+      onClick,
+      onSelection,
+      openNewModal,
+      onDrillBy,
+      dataset,
+      onCloseMenu,
+    ],
+  );
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (popoverOpen) {
+      // Small delay to ensure popover is rendered
+      timeoutId = setTimeout(() => {
+        ref.current?.input?.focus({ preventScroll: true });
+      }, 100);
+    } else {
+      // Reset search input and filter scope when menu is closed
+      setSearchInput('');
+      setDebouncedSearchInput('');
+      setFilterScope(DrillByFilterScope.All);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [popoverOpen]);
+
+  const hasDrillBy = drillByConfig?.groupbyFieldName;
+
+  const handlesDimensionContextMenu = useMemo(
+    () =>
+      getChartMetadataRegistry()
+        .get(formData.viz_type)
+        ?.behaviors.find(behavior => behavior === Behavior.DrillBy),
+    [formData.viz_type],
+  );
+
+  const debouncedSetSearchInput = useMemo(
+    () =>
+      debounce((value: string) => {
+        setDebouncedSearchInput(value);
+      }, Constants.FAST_DEBOUNCE),
+    [],
+  );
+
+  const handleInput = (value: string) => {
+    setSearchInput(value);
+    debouncedSetSearchInput(value);
+  };
+
+  const filteredColumns = useMemo(
+    () =>
+      columns
+        .filter(column => {
+          // Filter out excluded columns
+          const excludedColumnNames =
+            excludedColumns?.map(col => col.column_name) || [];
+          return !excludedColumnNames.includes(column.column_name);
+        })
+        .filter(column =>
+          (column.verbose_name || column.column_name)
+            .toLowerCase()
+            .includes(debouncedSearchInput.toLowerCase()),
+        ),
+    [columns, debouncedSearchInput, excludedColumns],
+  );
+
+  let tooltip: ReactNode;
+
+  if (!handlesDimensionContextMenu) {
+    tooltip = t('Drill by is not yet supported for this chart type');
+  } else if (!hasDrillBy) {
+    tooltip = t('Drill by is not available for this data point');
+  }
+
+  if (
+    formData.matrixify_enable === true &&
+    ((formData.matrixify_mode_rows !== undefined &&
+      formData.matrixify_mode_rows !== 'disabled') ||
+      (formData.matrixify_mode_columns !== undefined &&
+        formData.matrixify_mode_columns !== 'disabled'))
+  ) {
+    return null;
+  }
+
+  const isDisabled = !handlesDimensionContextMenu || !hasDrillBy;
+
+  const listRowProps: DrillByColumnRowProps = {
+    columns: filteredColumns,
+    onSelectColumn: handleSelection,
+  };
+
+  const popoverContent = (
+    <div
+      role="menu"
+      tabIndex={0}
+      data-test="drill-by-submenu"
+      onKeyDown={e => e.stopPropagation()}
+      css={css`
+        width: 220px;
+        max-width: 220px;
+        .ant-input-affix-wrapper {
+          margin-bottom: ${theme.sizeUnit * 2}px;
+        }
+      `}
+      onClick={e => e.stopPropagation()}
+    >
+      {showScopeSelector && (
+        <div
+          data-test="drill-by-scope-selector"
+          css={css`
+            margin-bottom: ${theme.sizeUnit * 2}px;
+            padding-bottom: ${theme.sizeUnit * 2}px;
+            border-bottom: 1px solid ${theme.colorSplit};
+          `}
+        >
+          <div
+            css={css`
+              color: ${theme.colorTextSecondary};
+              margin-bottom: ${theme.sizeUnit}px;
+            `}
+          >
+            {t('Filter by')}
+          </div>
+          <Radio.Group
+            value={filterScope}
+            onChange={e => setFilterScope(e.target.value)}
+            css={css`
+              display: flex;
+              flex-direction: column;
+              .ant-radio-wrapper {
+                margin-inline-end: 0;
+                span:last-of-type {
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  white-space: nowrap;
+                }
+              }
+            `}
+          >
+            <Radio
+              value={DrillByFilterScope.XAxis}
+              title={formatFilterValues(xAxisFilters)}
+            >
+              {formatFilterValues(xAxisFilters)}
+            </Radio>
+            <Radio
+              value={DrillByFilterScope.Series}
+              title={formatFilterValues(seriesFilters)}
+            >
+              {formatFilterValues(seriesFilters)}
+            </Radio>
+            <Radio value={DrillByFilterScope.All}>{t('Both')}</Radio>
+          </Radio.Group>
+        </div>
+      )}
+      {showSearch && (
+        <Input
+          ref={ref}
+          prefix={
+            <Icons.SearchOutlined iconSize="l" iconColor={theme.colorIcon} />
+          }
+          onChange={e => {
+            e.stopPropagation();
+            handleInput(e.target.value);
+          }}
+          placeholder={t('Search columns')}
+          onClick={e => {
+            // prevent closing menu when clicking on input
+            e.nativeEvent.stopImmediatePropagation();
+          }}
+          allowClear
+          css={css`
+            width: 100%;
+            box-shadow: none;
+          `}
+          value={searchInput}
+        />
+      )}
+      {isLoadingDataset ? (
+        <div
+          css={css`
+            padding: ${theme.sizeUnit * 3}px 0;
+          `}
+        >
+          <Loading position="inline-centered" />
+        </div>
+      ) : filteredColumns.length ? (
+        <List
+          style={{ width: '100%', height: SUBMENU_HEIGHT }}
+          rowHeight={35}
+          rowCount={filteredColumns.length}
+          rowProps={listRowProps}
+          rowComponent={DrillByColumnRow}
+          overscanCount={20}
+        />
+      ) : (
+        <div
+          css={css`
+            padding: ${theme.sizeUnit * 2}px;
+            color: ${theme.colorTextDisabled};
+            text-align: center;
+          `}
+        >
+          {t('No columns found')}
+        </div>
+      )}
+    </div>
+  );
+
+  const menuItem = (
+    <button
+      type="button"
+      ref={menuItemRef}
+      aria-disabled={isDisabled}
+      tabIndex={isDisabled ? -1 : 0}
+      css={css`
+        appearance: none;
+        border: none;
+        background: none;
+        padding: 0;
+        font: inherit;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
+        color: ${isDisabled ? theme.colorTextDisabled : 'inherit'};
+        &:hover {
+          background: transparent;
+        }
+      `}
+      onClick={() => !isDisabled && setPopoverOpen(!popoverOpen)}
+    >
+      <span>{t('Drill by')}</span>
+      {isDisabled ? (
+        <MenuItemTooltip title={tooltip} />
+      ) : (
+        <Icons.RightOutlined iconSize="s" iconColor={theme.colorTextTertiary} />
+      )}
+    </button>
+  );
+
+  if (isDisabled) {
+    return menuItem;
+  }
+
+  return (
+    <Popover
+      content={popoverContent}
+      placement="rightTop"
+      open={popoverOpen}
+      onOpenChange={setPopoverOpen}
+      trigger={['hover', 'click']}
+      arrow={false}
+      styles={{
+        root: {
+          paddingLeft: 0,
+        },
+        // antd v6 renamed the inner content slot `body` -> `container`
+        container: {
+          padding: theme.sizeUnit * 2,
+          boxShadow: theme.boxShadow,
+          borderRadius: theme.borderRadius,
+        },
+      }}
+      {...rest}
+    >
+      {menuItem}
+    </Popover>
+  );
+};

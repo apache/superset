@@ -15,17 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
+from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import column, types
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
-from superset.db_engine_specs.postgres import PostgresEngineSpec as spec  # noqa: N813
+from superset.db_engine_specs.postgres import (
+    _check_not_redshift,
+    PostgresEngineSpec as spec,  # noqa: N813
+)
 from superset.exceptions import SupersetSecurityException
+from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -81,6 +88,8 @@ def test_convert_dttm(
         ("TIME", types.Time, None, GenericDataType.TEMPORAL, True),
         # Boolean
         ("BOOLEAN", types.Boolean, None, GenericDataType.BOOLEAN, False),
+        # Interval (mapped to NUMERIC for chart rendering)
+        ("INTERVAL", INTERVAL, None, GenericDataType.NUMERIC, False),
     ],
 )
 def test_get_column_spec(
@@ -141,6 +150,9 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
 
     assert spec.get_prequeries(database) == []
     assert spec.get_prequeries(database, schema="test") == ['set search_path = "test"']
+    assert spec.get_prequeries(database, schema='evil"; SELECT 1--') == [
+        'set search_path = "evil""; SELECT 1--"'
+    ]
 
 
 def test_get_default_schema_for_query(mocker: MockerFixture) -> None:
@@ -162,6 +174,27 @@ search_path -- another one
 = bar;
 SELECT * FROM some_table;
     """
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        spec.get_default_schema_for_query(database, query)
+    assert (
+        str(excinfo.value)
+        == "Users are not allowed to set a search path for security reasons."
+    )
+
+
+def test_get_default_schema_for_query_set_config(mocker: MockerFixture) -> None:
+    """
+    A ``set_config('search_path', ...)`` call rebinds unqualified-name
+    resolution on the shared cursor just like ``SET search_path``, so it
+    must be rejected too.
+    """
+    database = mocker.MagicMock()
+    query = mocker.MagicMock()
+    query.schema = "foo"
+    query.sql = (
+        "SELECT set_config('search_path', 'tenant_b', false); SELECT * FROM orders"
+    )
+
     with pytest.raises(SupersetSecurityException) as excinfo:
         spec.get_default_schema_for_query(database, query)
     assert (
@@ -243,3 +276,228 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
         spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
     )
     assert actual == expected_result
+
+
+def test_select_star(mocker: MockerFixture) -> None:
+    """
+    Test the ``select_star`` method.
+    """
+    database = mocker.MagicMock()
+    dialect = mocker.MagicMock()
+
+    def quote_table(table: Table, dialect: Dialect) -> str:
+        return ".".join(
+            part for part in (table.catalog, table.schema, table.table) if part
+        )
+
+    mocker.patch.object(spec, "quote_table", quote_table)
+
+    spec.select_star(
+        database=database,
+        table=Table("my_table", "my_schema", "my_catalog"),
+        dialect=dialect,
+        limit=100,
+        show_cols=False,
+        indent=True,
+        latest_partition=False,
+        cols=None,
+    )
+
+    query = database.compile_sqla_query.mock_calls[0][1][0]
+    assert (
+        str(query)
+        == """
+SELECT * \nFROM my_schema.my_table
+ LIMIT :param_1
+    """.strip()
+    )
+
+
+class TestRedshiftDetection:
+    """
+    Tests for detecting Redshift connections via the PostgreSQL dialect.
+    """
+
+    def test_check_not_redshift_detects_redshift(self) -> None:
+        """
+        Pool connect event raises for a Redshift version string.
+        """
+        cursor = MagicMock()
+        cursor.fetchone.return_value = (
+            "PostgreSQL 8.0.2 on i686-pc-linux-gnu, compiled by GCC gcc (GCC) "
+            "3.4.2 20041017 (Red Hat 3.4.2-6.fc3), Redshift 1.0.77467",
+        )
+        dbapi_conn = MagicMock()
+        dbapi_conn.cursor.return_value = cursor
+
+        with pytest.raises(ValueError, match="Redshift"):
+            _check_not_redshift(dbapi_conn, None)
+
+    def test_check_not_redshift_allows_postgres(self) -> None:
+        """
+        Pool connect event allows a regular PostgreSQL version string.
+        """
+        cursor = MagicMock()
+        cursor.fetchone.return_value = (
+            "PostgreSQL 15.2 on x86_64-pc-linux-gnu, compiled by gcc",
+        )
+        dbapi_conn = MagicMock()
+        dbapi_conn.cursor.return_value = cursor
+
+        _check_not_redshift(dbapi_conn, None)  # should not raise
+
+    def test_check_not_redshift_fails_open(self) -> None:
+        """
+        If SELECT version() errors, the connection is still allowed.
+        """
+        cursor = MagicMock()
+        cursor.execute.side_effect = Exception("permission denied")
+        dbapi_conn = MagicMock()
+        dbapi_conn.cursor.return_value = cursor
+
+        _check_not_redshift(dbapi_conn, None)  # should not raise
+
+    def test_mutate_db_sets_flag(self) -> None:
+        """
+        mutate_db_for_connection_test sets the check flag.
+        """
+        database = MagicMock()
+        spec.mutate_db_for_connection_test(database)
+        assert database._check_redshift_version is True
+
+    def test_pool_event_injected_when_flag_set(self, mocker: MockerFixture) -> None:
+        """
+        Pool event is added during test_connection.
+        """
+        database = mocker.MagicMock(
+            encrypted_extra=None,
+            _check_redshift_version=True,
+        )
+        params: dict[str, Any] = {}
+        spec.update_params_from_encrypted_extra(database, params)
+
+        assert "pool_events" in params
+        fns = [fn for fn, _ in params["pool_events"]]
+        assert _check_not_redshift in fns
+
+    def test_pool_event_not_injected_without_flag(self, mocker: MockerFixture) -> None:
+        """
+        Pool event is NOT added during normal operation.
+        """
+        database = mocker.MagicMock(encrypted_extra=None)
+        database._check_redshift_version = False
+        params: dict[str, Any] = {}
+        spec.update_params_from_encrypted_extra(database, params)
+
+        assert "pool_events" not in params
+
+
+def _compile(expr: Any) -> str:
+    return str(expr.compile(None, dialect=postgresql.dialect()))
+
+
+def test_get_timestamp_expr_date_column_casts_back_to_date() -> None:
+    """
+    DB Eng Specs (postgres): a time grain on a pure DATE column casts the
+    ``DATE_TRUNC`` result back to DATE to avoid timezone-driven date shifts.
+
+    See https://github.com/apache/superset/issues/42254.
+    """
+    col = column("event_date", type_=types.Date())
+    expr = spec.get_timestamp_expr(col, None, "P1D")
+    assert _compile(expr) == "CAST(DATE_TRUNC('day', event_date) AS DATE)"
+
+
+def test_get_timestamp_expr_datetime_column_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): DATETIME/TIMESTAMP columns keep their timestamp
+    semantics and are not cast back to DATE.
+    """
+    col = column("event_ts", type_=types.DateTime())
+    expr = spec.get_timestamp_expr(col, None, "P1D")
+    assert _compile(expr) == "DATE_TRUNC('day', event_ts)"
+
+
+def test_get_timestamp_expr_date_column_without_grain_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): without a time grain there is no DATE_TRUNC, so the
+    column is left untouched.
+    """
+    col = column("event_date", type_=types.Date())
+    expr = spec.get_timestamp_expr(col, None, None)
+    assert _compile(expr) == "event_date"
+
+
+def test_get_timestamp_expr_untyped_column_not_cast() -> None:
+    """
+    DB Eng Specs (postgres): columns without a known type (e.g. raw expressions)
+    are not cast to DATE.
+    """
+    col = column("some_expr")
+    expr = spec.get_timestamp_expr(col, None, "P1Y")
+    assert _compile(expr) == "DATE_TRUNC('year', some_expr)"
+
+
+def test_interval_type_mutator() -> None:
+    """
+    DB Eng Specs (postgres): Test INTERVAL type mutator
+
+    INTERVAL values are converted to milliseconds so users can apply
+    the built-in "DURATION" number format for human-readable display.
+    """
+    mutator = spec.column_type_mutators[INTERVAL]
+
+    # Timedelta conversion — the only path psycopg2/psycopg3 actually
+    # exercises. Result is in milliseconds for compatibility with the
+    # DURATION formatter.
+    td = timedelta(days=1, hours=2, minutes=30, seconds=45)
+    assert mutator(td) == 95445000.0  # (1*86400 + 2*3600 + 30*60 + 45) * 1000
+
+    # Zero duration
+    assert mutator(timedelta(0)) == 0.0
+
+    # Negative interval
+    assert mutator(timedelta(days=-1)) == -86400000.0
+
+    # None preserves NULL semantics (not converted to 0)
+    assert mutator(None) is None
+
+    # Unexpected non-timedelta types fall through to the defensive
+    # `return None` (and emit a warning) rather than producing a
+    # mixed-type column.
+    assert mutator("1 day 02:30:45") is None
+    assert mutator("P1DT2H30M45S") is None
+    assert mutator(12345) is None
+    assert mutator(True) is None
+    assert mutator([1, 2, 3]) is None
+    assert mutator({"days": 1}) is None
+
+
+def test_get_schema_names_excludes_only_actual_system_schemas(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): Test ``get_schema_names``
+
+    User-defined schemas that merely start with ``pg`` (but are not
+    actual Postgres system schemas, which always start with the literal
+    ``pg_``) must not be filtered out. See issue #30678.
+    """
+    inspector = mocker.MagicMock()
+    inspector.engine.connect().__enter__().execute.return_value = [
+        ("public",),
+        ("pgsql",),
+        ("pgstats",),
+        ("pg_catalog",),
+        ("pg_toast",),
+        ("information_schema",),
+    ]
+
+    schemas = spec.get_schema_names(inspector)
+
+    assert schemas == {
+        "public",
+        "pgsql",
+        "pgstats",
+        "information_schema",
+    }

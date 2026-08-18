@@ -16,22 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { ReactNode } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import FormModal from 'src/components/Modal/FormModal';
-import { FormItem } from 'src/components/Form';
-import { Input } from 'src/components/Input';
-import Checkbox from 'src/components/Checkbox';
-import Select from 'src/components/Select/Select';
-import { Role, UserObject } from 'src/pages/UsersList';
-import { FormInstance } from 'src/components';
+import {
+  Checkbox,
+  FormModal,
+  Select,
+  Input,
+  FormItem,
+  FormInstance,
+} from '@superset-ui/core/components';
+import { Group, Role, UserObject } from 'src/pages/UsersList/types';
+import { Actions } from 'src/constants';
 import { BaseUserListModalProps, FormValues } from './types';
-import { createUser, updateUser } from './utils';
+import { createUser, updateUser, atLeastOneRoleOrGroup } from './utils';
 
 export interface UserModalProps extends BaseUserListModalProps {
   roles: Role[];
   isEditMode?: boolean;
   user?: UserObject;
+  groups: Group[];
 }
 
 function UserListModal({
@@ -41,14 +47,18 @@ function UserListModal({
   roles,
   isEditMode = false,
   user,
+  groups,
 }: UserModalProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
   const handleFormSubmit = async (values: FormValues) => {
-    const handleError = async (err: any, action: 'create' | 'update') => {
+    const handleError = async (
+      err: any,
+      action: Actions.CREATE | Actions.UPDATE,
+    ) => {
       let errorMessage =
-        action === 'create'
-          ? t('Error while adding user!')
-          : t('Error while updating user!');
+        action === Actions.CREATE
+          ? t('There was an error creating the user. Please, try again.')
+          : t('There was an error updating the user. Please, try again.');
 
       if (err.status === 422) {
         const errorData = await err.json();
@@ -61,7 +71,7 @@ function UserListModal({
             );
           } else if (detail.includes('ab_user_email_key')) {
             errorMessage = t(
-              'This email is already associated with an account.',
+              'This email is already associated with an account. Please choose another one.',
             );
           }
         }
@@ -77,164 +87,189 @@ function UserListModal({
       }
       try {
         await updateUser(user.id, values);
-        addSuccessToast(t('User was successfully updated!'));
+        addSuccessToast(t('The user has been updated successfully.'));
       } catch (err) {
-        await handleError(err, 'update');
+        await handleError(err, Actions.UPDATE);
       }
     } else {
       try {
         await createUser(values);
-        addSuccessToast(t('User was successfully created!'));
+        addSuccessToast(t('The user has been created successfully.'));
       } catch (err) {
-        await handleError(err, 'create');
+        await handleError(err, Actions.CREATE);
       }
     }
   };
 
   const requiredFields = isEditMode
-    ? ['first_name', 'last_name', 'username', 'email', 'roles']
+    ? ['first_name', 'last_name', 'username', 'email']
     : [
         'first_name',
         'last_name',
         'username',
         'email',
         'password',
-        'roles',
         'confirmPassword',
       ];
 
   const initialValues = {
     ...user,
-    roles: user?.roles.map(role => role.id) || [],
+    roles: user?.roles?.map(role => role.id) || [],
+    groups: user?.groups?.map(group => group.id) || [],
   };
 
   return (
     <FormModal
       show={show}
       onHide={onHide}
-      title={isEditMode ? t('Edit User') : t('Add User')}
+      name={isEditMode ? 'Edit User' : 'Add User'}
+      title={
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit User') : t('Add User')}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={requiredFields}
       initialValues={initialValues}
     >
-      {(form: FormInstance) => (
-        <>
-          <FormItem
-            name="first_name"
-            label={t('First name')}
-            rules={[{ required: true, message: t('First name is required') }]}
-          >
-            <Input
+      {
+        ((_form: FormInstance) => (
+          <>
+            <FormItem
               name="first_name"
-              placeholder={t("Enter the user's first name")}
-            />
-          </FormItem>
-          <FormItem
-            name="last_name"
-            label={t('Last name')}
-            rules={[{ required: true, message: t('Last name is required') }]}
-          >
-            <Input
+              label={t('First name')}
+              rules={[{ required: true, message: t('First name is required') }]}
+            >
+              <Input
+                name="first_name"
+                placeholder={t("Enter the user's first name")}
+              />
+            </FormItem>
+            <FormItem
               name="last_name"
-              placeholder={t("Enter the user's last name")}
-            />
-          </FormItem>
-          <FormItem
-            name="username"
-            label={t('Username')}
-            rules={[{ required: true, message: t('Username is required') }]}
-          >
-            <Input
+              label={t('Last name')}
+              rules={[{ required: true, message: t('Last name is required') }]}
+            >
+              <Input
+                name="last_name"
+                placeholder={t("Enter the user's last name")}
+              />
+            </FormItem>
+            <FormItem
               name="username"
-              placeholder={t("Enter the user's username")}
-            />
-          </FormItem>
-          <FormItem
-            name="active"
-            label={t('Is active?')}
-            valuePropName="checked"
-          >
-            <Checkbox
-              onChange={checked => {
-                form.setFieldsValue({ isActive: checked });
-              }}
-            />
-          </FormItem>
-          <FormItem
-            name="email"
-            label={t('Email')}
-            rules={[
-              { required: true, message: t('Email is required') },
-              {
-                type: 'email',
-                message: t('Please enter a valid email address'),
-              },
-            ]}
-          >
-            <Input name="email" placeholder={t("Enter the user's email")} />
-          </FormItem>
-          <FormItem
-            name="roles"
-            label={t('Roles')}
-            rules={[{ required: true, message: t('Role is required') }]}
-          >
-            <Select
+              label={t('Username')}
+              rules={[{ required: true, message: t('Username is required') }]}
+            >
+              <Input
+                name="username"
+                placeholder={t("Enter the user's username")}
+              />
+            </FormItem>
+            <FormItem
+              name="active"
+              label={t('Is active?')}
+              valuePropName="checked"
+            >
+              <Checkbox />
+            </FormItem>
+            <FormItem
+              name="email"
+              label={t('Email')}
+              rules={[
+                { required: true, message: t('Email is required') },
+                {
+                  type: 'email',
+                  message: t('Please enter a valid email address'),
+                },
+              ]}
+            >
+              <Input name="email" placeholder={t("Enter the user's email")} />
+            </FormItem>
+            <FormItem
               name="roles"
-              mode="multiple"
-              placeholder={t('Select roles')}
-              options={roles.map(role => ({
-                value: role.id,
-                label: role.name,
-              }))}
-              getPopupContainer={trigger =>
-                trigger.closest('.antd5-modal-content')
-              }
-            />
-          </FormItem>
-
-          {!isEditMode && (
-            <>
-              <FormItem
-                name="password"
-                label={t('Password')}
-                rules={[{ required: true, message: t('Password is required') }]}
-              >
-                <Input.Password
+              label={t('Roles')}
+              dependencies={['groups']}
+              rules={[atLeastOneRoleOrGroup('groups')]}
+            >
+              <Select
+                name="roles"
+                mode="multiple"
+                placeholder={t('Select roles')}
+                options={roles.map(role => ({
+                  value: role.id,
+                  label: role.name,
+                }))}
+                getPopupContainer={trigger =>
+                  trigger.closest('.ant-modal-container')
+                }
+              />
+            </FormItem>
+            <FormItem
+              name="groups"
+              label={t('Groups')}
+              dependencies={['roles']}
+              rules={[atLeastOneRoleOrGroup('roles')]}
+            >
+              <Select
+                name="groups"
+                mode="multiple"
+                placeholder={t('Select groups')}
+                options={groups.map(group => ({
+                  value: group.id,
+                  label: group.name,
+                }))}
+                getPopupContainer={trigger =>
+                  trigger.closest('.ant-modal-container')
+                }
+              />
+            </FormItem>
+            {!isEditMode && (
+              <>
+                <FormItem
                   name="password"
-                  placeholder="Enter the user's password"
-                />
-              </FormItem>
-              <FormItem
-                name="confirmPassword"
-                label={t('Confirm Password')}
-                dependencies={['password']}
-                rules={[
-                  {
-                    required: true,
-                    message: t('Please confirm your password'),
-                  },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('password') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(
-                        new Error(t('Passwords do not match!')),
-                      );
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
+                  label={t('Password')}
+                  rules={[
+                    { required: true, message: t('Password is required') },
+                  ]}
+                >
+                  <Input.Password
+                    name="password"
+                    placeholder={t("Enter the user's password")}
+                  />
+                </FormItem>
+                <FormItem
                   name="confirmPassword"
-                  placeholder={t("Confirm the user's password")}
-                />
-              </FormItem>
-            </>
-          )}
-        </>
-      )}
+                  label={t('Confirm Password')}
+                  dependencies={['password']}
+                  rules={[
+                    {
+                      required: true,
+                      message: t('Please confirm your password'),
+                    },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue('password') === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(
+                          new Error(t('Passwords do not match!')),
+                        );
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password
+                    name="confirmPassword"
+                    placeholder={t("Confirm the user's password")}
+                  />
+                </FormItem>
+              </>
+            )}
+          </>
+        )) as unknown as ReactNode
+      }
     </FormModal>
   );
 }

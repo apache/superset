@@ -26,8 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
-from superset.security.guest_token import GuestTokenResourceType  # noqa: F401
-from superset.sql_parse import Table  # noqa: F401
+from superset.security.guest_token import GuestTokenResourceType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
@@ -306,7 +305,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
 
     def test_raise_for_access__happy_path(self):
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             security_manager.raise_for_access(
                 **{
                     kwarg: Mock(
@@ -324,7 +323,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
 
     def test_raise_for_access__native_filter_happy_path(self):
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             security_manager.raise_for_access(
                 **{
                     kwarg: Mock(
@@ -344,7 +343,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
 
     def test_raise_for_access__no_dashboard_in_form_data(self):
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
@@ -357,9 +356,102 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                     }
                 )
 
-    def test_raise_for_access__no_chart_in_form_data(self):
+    def test_raise_for_access__drill_to_detail_happy_path(self):
+        """
+        Drill to Detail: no slice_id in form_data, datasource is on the dashboard
+        the embedded user has access to.
+        """
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
+            security_manager.raise_for_access(
+                **{
+                    kwarg: Mock(
+                        datasource=self.datasource,
+                        form_data={
+                            "dashboardId": self.dash.id,
+                        },
+                        slice_=None,
+                        queries=[],
+                    )
+                }
+            )
+
+    def test_raise_for_access__drill_to_detail_datasource_not_on_dashboard(self):
+        """
+        Drill to Detail is denied when the target datasource is not associated
+        with the dashboard the embedded user has access to.
+        """
+        g.user = self.authorized_guest
+        for kwarg in ["query_context"]:
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=self.other_datasource,
+                            form_data={
+                                "dashboardId": self.dash.id,
+                            },
+                            slice_=None,
+                            queries=[],
+                        )
+                    }
+                )
+
+    def test_raise_for_access__drill_by_happy_path(self):
+        """
+        Drill By: slice_id=0 (sentinel), chart_id points to a chart on the dashboard
+        whose datasource matches, the requested groupby column is drillable and the
+        embedded user has access to.
+        """
+        g.user = self.authorized_guest
+        for kwarg in ["query_context"]:
+            security_manager.raise_for_access(
+                **{
+                    kwarg: Mock(
+                        datasource=self.datasource,
+                        form_data={
+                            "dashboardId": self.dash.id,
+                            "slice_id": 0,
+                            "chart_id": self.chart.id,
+                            "groupby": ["gender"],
+                        },
+                        slice_=None,
+                        queries=[],
+                    )
+                }
+            )
+
+    def test_raise_for_access__drill_by_chart_not_on_dashboard(self):
+        """
+        Drill By is denied when chart_id refers to a chart that is not on the
+        dashboard the embedded user has access to.
+        """
+        g.user = self.authorized_guest
+        for kwarg in ["query_context"]:
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=self.other_datasource,
+                            form_data={
+                                "dashboardId": self.dash.id,
+                                "slice_id": 0,
+                                "chart_id": self.other_chart.id,
+                                "groupby": ["gender"],
+                            },
+                            slice_=None,
+                            queries=[],
+                        )
+                    }
+                )
+
+    def test_raise_for_access__drill_by_columns_not_drillable(self):
+        """
+        Drill By is denied when the requested groupby columns are not marked as
+        drillable (groupby=True) on the datasource.
+        """
+        g.user = self.authorized_guest
+        for kwarg in ["query_context"]:
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
@@ -367,14 +459,19 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                             datasource=self.datasource,
                             form_data={
                                 "dashboardId": self.dash.id,
+                                "slice_id": 0,
+                                "chart_id": self.chart.id,
+                                "groupby": ["__not_a_drillable_column__"],
                             },
+                            slice_=None,
+                            queries=[],
                         )
                     }
                 )
 
     def test_raise_for_access__chart_not_on_dashboard(self):
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
@@ -390,7 +487,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
 
     def test_raise_for_access__chart_doesnt_belong_to_datasource(self):
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
@@ -406,7 +503,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
 
     def test_raise_for_access__native_filter_no_id_in_form_data(self):
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
@@ -426,7 +523,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
 
     def test_raise_for_access__native_filter_datasource_not_associated(self):
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
@@ -451,7 +548,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
     )
     def test_raise_for_access__embedded_feature_flag_off(self):
         g.user = self.authorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{
@@ -467,7 +564,7 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
 
     def test_raise_for_access__unauthorized_guest_user(self):
         g.user = self.unauthorized_guest
-        for kwarg in ["viz", "query_context"]:
+        for kwarg in ["query_context"]:
             with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     **{

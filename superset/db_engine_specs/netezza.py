@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.constants import TimeGrain
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
 
@@ -22,6 +23,19 @@ class NetezzaEngineSpec(PostgresBaseEngineSpec):
     engine = "netezza"
     default_driver = "nzpy"
     engine_name = "IBM Netezza Performance Server"
+
+    metadata = {
+        "description": "IBM Netezza Performance Server is a data warehouse appliance.",
+        "logo": "netezza.png",
+        "homepage_url": "https://www.ibm.com/products/netezza",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["nzalchemy"],
+        "connection_string": "netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 5480,
+    }
 
     _time_grain_expressions = {
         None: "{col}",

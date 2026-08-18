@@ -17,7 +17,7 @@
  * under the License.
  */
 import _JSONbig from 'json-bigint';
-import { cloneDeepWith } from 'lodash';
+import { cloneDeepWith } from 'lodash-es';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
 
@@ -55,23 +55,25 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
   if (parseMethod === 'json-bigint') {
     const rawData = await response.text();
     const json = JSONbig.parse(rawData);
+    const decoded = cloneDeepWith(json, (value: any) => {
+      if (
+        value?.isInteger?.() === true &&
+        (value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
+          value?.isLessThan?.(Number.MIN_SAFE_INTEGER))
+      ) {
+        // toFixed() avoids scientific notation, which BigInt() rejects.
+        return BigInt(value.toFixed());
+      }
+      // // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
+      // // TODO: clean up after json-bigint>1.0.1 is released
+      if (value?.isNaN?.() === false) {
+        return value?.toNumber?.();
+      }
+      return undefined;
+    });
     const result: JsonResponse = {
       response,
-      json: cloneDeepWith(json, (value: any) => {
-        if (
-          value?.isInteger?.() === true &&
-          (value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
-            value?.isLessThan?.(Number.MIN_SAFE_INTEGER))
-        ) {
-          return BigInt(value);
-        }
-        // // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
-        // // TODO: clean up after json-bigint>1.0.1 is released
-        if (value?.isNaN?.() === false) {
-          return value?.toNumber?.();
-        }
-        return undefined;
-      }),
+      json: decoded,
     };
     return result as ReturnType;
   }

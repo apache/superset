@@ -19,6 +19,7 @@ from typing import Any, Callable, Optional, Union
 import numpy as np
 from flask_babel import gettext as _
 from pandas import DataFrame, Series, to_numeric
+from pandas.api.types import is_object_dtype
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
@@ -107,11 +108,19 @@ def boxplot(  # noqa: C901
         below = series[series < whisker_low(series)]
         return above.tolist() + below.tolist()
 
-    operators: dict[str, Callable[[Any], Any]] = {
-        "mean": np.mean,
-        "median": np.median,
-        "max": whisker_high,
-        "min": whisker_low,
+    # "mean"/"median" are passed as strings rather than np.mean/np.median: the
+    # callables trigger a pandas FutureWarning in GroupBy.agg (see
+    # _PANDAS_STRING_AGGREGATORS in pandas_postprocessing/utils.py) and the
+    # string form resolves to the exact same aggregation. Under MINMAX,
+    # whisker_high/whisker_low are themselves plain np.max/np.min, so the same
+    # substitution applies there; under TUKEY/PERCENTILE they're closures and
+    # aren't eligible for the string shortcut.
+    is_minmax = whisker_type == PostProcessingBoxplotWhiskerType.MINMAX
+    operators: dict[str, Union[str, Callable[[Any], Any]]] = {
+        "mean": "mean",
+        "median": "median",
+        "max": "max" if is_minmax else whisker_high,
+        "min": "min" if is_minmax else whisker_low,
         "q1": quartile1,
         "q3": quartile3,
         "count": np.ma.count,
@@ -126,7 +135,7 @@ def boxplot(  # noqa: C901
     # nanpercentile needs numeric values, otherwise the isnan function
     # that's used in the underlying function will fail
     for column in metrics:
-        if df.dtypes[column] == np.object_:
-            df[column] = to_numeric(df[column], errors="coerce")
+        if is_object_dtype(df[column]):
+            df.loc[:, column] = to_numeric(df[column], errors="coerce")
 
     return aggregate(df, groupby=groupby, aggregates=aggregates)

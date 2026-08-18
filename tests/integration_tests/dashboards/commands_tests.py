@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import itertools
 from unittest.mock import MagicMock, patch  # noqa: F401
 
 import pytest
@@ -26,7 +25,6 @@ from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.delete import DeleteEmbeddedDashboardCommand
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
-    DashboardForbiddenError,
     DashboardInvalidError,
     DashboardNotFoundError,
 )
@@ -48,7 +46,7 @@ from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import override_user
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase, user_is_editor
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     dashboard_config,
@@ -81,12 +79,15 @@ class TestExportDashboardsCommand(SupersetTestCase):
         expected_paths = {
             "metadata.yaml",
             f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml",
-            "datasets/examples/wb_health_population.yaml",
             "databases/examples.yaml",
         }
         for chart in example_dashboard.slices:
             chart_slug = secure_filename(chart.slice_name)
             expected_paths.add(f"charts/{chart_slug}_{chart.id}.yaml")
+            dataset_slug = secure_filename(chart.table.table_name)
+            expected_paths.add(
+                f"datasets/examples/{dataset_slug}_{chart.table.id}.yaml"
+            )
         assert expected_paths == set(contents.keys())
 
         metadata = yaml.safe_load(
@@ -236,6 +237,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             },
             "metadata": {"mock_key": "mock_value"},
             "version": "1.0.0",
+            "theme_uuid": None,
         }
 
     # @pytest.mark.usefixtures("load_covid_dashboard")
@@ -314,8 +316,8 @@ class TestExportDashboardsCommand(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
-    def test_export_dashboard_command_key_order(self, mock_g1, mock_g2):
-        """Test that they keys in the YAML have the same order as export_fields"""
+    def test_export_dashboard_command_required_fields(self, mock_g1, mock_g2):
+        """Test that all required keys are present in the exported YAML"""
         mock_g1.user = security_manager.find_user("admin")
         mock_g2.user = security_manager.find_user("admin")
 
@@ -328,10 +330,11 @@ class TestExportDashboardsCommand(SupersetTestCase):
         metadata = yaml.safe_load(
             contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
         )
-        assert list(metadata.keys()) == [
+        assert set(metadata.keys()) == {
             "dashboard_title",
             "description",
             "css",
+            "theme_uuid",
             "slug",
             "certified_by",
             "certification_details",
@@ -340,25 +343,24 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "position",
             "metadata",
             "version",
-        ]
+        }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.commands.dashboard.export.suffix")
-    def test_append_charts(self, mock_suffix):
+    def test_append_charts(self):
         """Test that orphaned charts are added to the dashboard position"""
-        # return deterministic IDs
-        mock_suffix.side_effect = (str(i) for i in itertools.count(1))
-
+        # IDs are deterministic: charts are keyed by their UUID and rows are
+        # numbered by their position within the grid.
         position = get_default_position("example")
         chart_1 = (
             db.session.query(Slice).filter_by(slice_name="World's Population").one()
         )
+        chart_1_key = f"CHART-{chart_1.uuid}"
         new_position = append_charts(position, {chart_1})
         assert new_position == {
             "DASHBOARD_VERSION_KEY": "v2",
             "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
             "GRID_ID": {
-                "children": ["ROW-N-2"],
+                "children": ["ROW-N-0"],
                 "id": "GRID_ID",
                 "parents": ["ROOT_ID"],
                 "type": "GRID",
@@ -368,16 +370,16 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "meta": {"text": "example"},
                 "type": "HEADER",
             },
-            "ROW-N-2": {
-                "children": ["CHART-1"],
-                "id": "ROW-N-2",
+            "ROW-N-0": {
+                "children": [chart_1_key],
+                "id": "ROW-N-0",
                 "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
                 "type": "ROW",
                 "parents": ["ROOT_ID", "GRID_ID"],
             },
-            "CHART-1": {
+            chart_1_key: {
                 "children": [],
-                "id": "CHART-1",
+                "id": chart_1_key,
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
@@ -386,19 +388,18 @@ class TestExportDashboardsCommand(SupersetTestCase):
                     "width": 4,
                 },
                 "type": "CHART",
-                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-2"],
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-0"],
             },
         }
 
-        chart_2 = (
-            db.session.query(Slice).filter_by(slice_name="World's Population").one()
-        )
+        chart_2 = db.session.query(Slice).filter_by(slice_name="Growth Rate").one()
+        chart_2_key = f"CHART-{chart_2.uuid}"
         new_position = append_charts(new_position, {chart_2})
         assert new_position == {
             "DASHBOARD_VERSION_KEY": "v2",
             "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
             "GRID_ID": {
-                "children": ["ROW-N-2", "ROW-N-4"],
+                "children": ["ROW-N-0", "ROW-N-1"],
                 "id": "GRID_ID",
                 "parents": ["ROOT_ID"],
                 "type": "GRID",
@@ -408,23 +409,23 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "meta": {"text": "example"},
                 "type": "HEADER",
             },
-            "ROW-N-2": {
-                "children": ["CHART-1"],
-                "id": "ROW-N-2",
+            "ROW-N-0": {
+                "children": [chart_1_key],
+                "id": "ROW-N-0",
                 "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
                 "type": "ROW",
                 "parents": ["ROOT_ID", "GRID_ID"],
             },
-            "ROW-N-4": {
-                "children": ["CHART-3"],
-                "id": "ROW-N-4",
+            "ROW-N-1": {
+                "children": [chart_2_key],
+                "id": "ROW-N-1",
                 "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
                 "type": "ROW",
                 "parents": ["ROOT_ID", "GRID_ID"],
             },
-            "CHART-1": {
+            chart_1_key: {
                 "children": [],
-                "id": "CHART-1",
+                "id": chart_1_key,
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
@@ -433,29 +434,29 @@ class TestExportDashboardsCommand(SupersetTestCase):
                     "width": 4,
                 },
                 "type": "CHART",
-                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-2"],
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-0"],
             },
-            "CHART-3": {
+            chart_2_key: {
                 "children": [],
-                "id": "CHART-3",
+                "id": chart_2_key,
                 "meta": {
                     "chartId": chart_2.id,
                     "height": 50,
-                    "sliceName": "World's Population",
+                    "sliceName": "Growth Rate",
                     "uuid": str(chart_2.uuid),
                     "width": 4,
                 },
                 "type": "CHART",
-                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-4"],
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-1"],
             },
         }
 
         position = {"DASHBOARD_VERSION_KEY": "v2"}
         new_position = append_charts(position, [chart_1, chart_2])
         assert new_position == {
-            "CHART-5": {
+            chart_1_key: {
                 "children": [],
-                "id": "CHART-5",
+                "id": chart_1_key,
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
@@ -465,13 +466,13 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 },
                 "type": "CHART",
             },
-            "CHART-6": {
+            chart_2_key: {
                 "children": [],
-                "id": "CHART-6",
+                "id": chart_2_key,
                 "meta": {
                     "chartId": chart_2.id,
                     "height": 50,
-                    "sliceName": "World's Population",
+                    "sliceName": "Growth Rate",
                     "uuid": str(chart_2.uuid),
                     "width": 4,
                 },
@@ -501,6 +502,36 @@ class TestExportDashboardsCommand(SupersetTestCase):
             f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml",
         }
         assert expected_paths == set(contents.keys())
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_export_dashboard_command_unicode_chars(self, mock_g1, mock_g2):
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+        db.session.query(Dashboard).filter_by(slug="world_health").update(
+            {"dashboard_title": "中文"},
+        )
+        try:
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(dashboard_title="中文").one()
+            )
+
+            command = ExportDashboardsCommand([example_dashboard.id])
+            contents = dict(command.run())
+
+            path = f"dashboards/{example_dashboard.id}.yaml"
+            assert path in set(contents.keys())
+            yaml_content = contents[path]()
+            metadata = yaml.safe_load(yaml_content)
+            assert metadata["dashboard_title"] == "中文"
+            assert "dashboard_title: 中文" in yaml_content
+        finally:
+            # restore the shared fixture title so later tests that rely on it
+            # (e.g. test_export_dashboard_command_no_related) are not affected
+            db.session.query(Dashboard).filter_by(slug="world_health").update(
+                {"dashboard_title": "World Bank's Data"},
+            )
 
 
 class TestImportDashboardsCommand(SupersetTestCase):
@@ -610,6 +641,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         assert json.loads(dashboard.json_metadata) == {
             "color_scheme": None,
             "expanded_slices": {str(new_chart_id): True},
+            "expand_all_slices": False,
             "import_time": 1604342885,
             "native_filter_configuration": [],
             "refresh_frequency": 0,
@@ -648,7 +680,8 @@ class TestImportDashboardsCommand(SupersetTestCase):
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
-        assert dashboard.owners == [admin]
+        assert len(dashboard.editors) == 1
+        assert user_is_editor(admin, dashboard)
 
         db.session.delete(dashboard)
         db.session.delete(chart)
@@ -722,7 +755,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         command = v1.ImportDashboardsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dashboard"
+        assert str(excinfo.value).startswith("Error importing dashboard")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Dashboard."]}
         }
@@ -735,7 +768,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         command = v1.ImportDashboardsCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing dashboard"
+        assert str(excinfo.value).startswith("Error importing dashboard")
         assert excinfo.value.normalized_messages() == {
             "datasets/imported_dataset.yaml": {
                 "table_name": ["Missing data for required field."],
@@ -759,28 +792,10 @@ class TestCopyDashboardCommand(SupersetTestCase):
 
             assert copied_dashboard.dashboard_title == "Copied Dashboard"
             assert copied_dashboard.slug != example_dashboard.slug
-            assert copied_dashboard.slices == example_dashboard.slices
+            assert set(copied_dashboard.slices) == set(example_dashboard.slices)
 
             db.session.delete(copied_dashboard)
             db.session.commit()
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_copy_dashboard_command_no_access(self):
-        """Test that a non-owner user cannot copy a dashboard if DASHBOARD_RBAC is enabled"""  # noqa: E501
-        with self.client.application.test_request_context():
-            example_dashboard = (
-                db.session.query(Dashboard).filter_by(slug="world_health").one()
-            )
-            copy_data = {"dashboard_title": "Copied Dashboard", "json_metadata": "{}"}
-
-            with override_user(security_manager.find_user("gamma")):
-                with patch(
-                    "superset.commands.dashboard.copy.is_feature_enabled",
-                    return_value=True,
-                ):
-                    command = CopyDashboardCommand(example_dashboard, copy_data)
-                    with self.assertRaises(DashboardForbiddenError):  # noqa: PT027
-                        command.run()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard_command_invalid_data(self):

@@ -38,6 +38,8 @@ from sqlalchemy_utils import UUIDType  # noqa: E402
 
 from superset import db  # noqa: E402
 
+logger = logging.getLogger("alembic.env")
+
 add_uuid_column_to_import_mixin = import_module(
     "superset.migrations.versions."
     "2020-09-28_17-57_b56500de1855_add_uuid_column_to_import_mixin",
@@ -52,15 +54,15 @@ def has_uuid_column(table_name, bind):
     columns = {column["name"] for column in inspector.get_columns(table_name)}
     has_uuid_column = "uuid" in columns
     if has_uuid_column:
-        logging.info("Table %s already has uuid column, skipping...", table_name)
+        logger.info("Table %s already has uuid column, skipping...", table_name)
     else:
-        logging.info("Table %s doesn't have uuid column, adding...", table_name)
+        logger.info("Table %s doesn't have uuid column, adding...", table_name)
     return has_uuid_column
 
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for table_name, model in models.items():
         # this script adds missing uuid columns
@@ -85,10 +87,11 @@ def upgrade():
 
     # add UUID to Dashboard.position_json; this function is idempotent
     # so we can call it for all objects
+    slices_model = models["slices"]
     slice_uuid_map = {
         slc.id: slc.uuid
-        for slc in session.query(models["slices"])
-        .options(load_only("id", "uuid"))
+        for slc in session.query(slices_model)
+        .options(load_only(slices_model.id, slices_model.uuid))
         .all()
     }
     update_dashboards(session, slice_uuid_map)

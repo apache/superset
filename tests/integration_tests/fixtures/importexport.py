@@ -17,6 +17,8 @@
 from copy import deepcopy
 from typing import Any
 
+from superset.utils import json
+
 # example V0 import/export format
 dataset_ui_export: list[dict[str, Any]] = [
     {
@@ -67,7 +69,7 @@ dashboard_export: dict[str, Any] = {
                 "css": "",
                 "dashboard_title": "Births 2",
                 "description": None,
-                "json_metadata": '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": null, "remote_id": 1}',  # noqa: E501
+                "json_metadata": '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "expand_all_slices": false, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": null, "remote_id": 1}',  # noqa: E501
                 "position_json": '{"CHART--jvaBFZx78":{"children":[],"id":"CHART--jvaBFZx78","meta":{"chartId":83,"height":50,"sliceName":"Number of California Births","uuid":"c77bb4b3-09f4-4d9a-a9e2-66a627c64343","width":4},"parents":["ROOT_ID","GRID_ID","ROW-se_5H8KNiO"],"type":"CHART"},"DASHBOARD_VERSION_KEY":"v2","GRID_ID":{"children":["ROW-se_5H8KNiO"],"id":"GRID_ID","parents":["ROOT_ID"],"type":"GRID"},"HEADER_ID":{"id":"HEADER_ID","meta":{"text":"Births"},"type":"HEADER"},"ROOT_ID":{"children":["GRID_ID"],"id":"ROOT_ID","type":"ROOT"},"ROW-se_5H8KNiO":{"children":["CHART--jvaBFZx78"],"id":"ROW-se_5H8KNiO","meta":{"background":"BACKGROUND_TRANSPARENT"},"parents":["ROOT_ID","GRID_ID"],"type":"ROW"}}',  # noqa: E501
                 "slices": [
                     {
@@ -344,6 +346,12 @@ dashboard_metadata_config: dict[str, Any] = {
     "type": "Dashboard",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
+metadata_files = {
+    "database": database_metadata_config,
+    "dataset": dataset_metadata_config,
+    "chart": chart_metadata_config,
+    "dashboard": dashboard_metadata_config,
+}
 saved_queries_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "SavedQuery",
@@ -390,6 +398,30 @@ database_config_no_creds: dict[str, Any] = {
     "extra": {},
     "sqlalchemy_uri": "bigquery://test-db/",
     "uuid": "2ff17edc-f3fa-4609-a5ac-b484281225bc",
+    "version": "1.0.0",
+}
+
+database_config_with_masked_encrypted_extra: dict[str, Any] = {
+    "allow_csv_upload": False,
+    "allow_ctas": False,
+    "allow_cvas": False,
+    "allow_dml": False,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database_encrypted",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "bigquery://test-project/",
+    "uuid": "c9a1dde3-889e-5bc0-9ae9-0bc229e8fa90",
+    "masked_encrypted_extra": json.dumps(
+        {
+            "credentials_info": {
+                "type": "service_account",
+                "project_id": "test-project",
+                "private_key": "-----BEGIN PRIVATE KEY-----\nMyPriVaTeKeY\n-----END PRIVATE KEY-----\n",  # noqa: E501
+            }
+        }
+    ),
     "version": "1.0.0",
 }
 
@@ -503,6 +535,7 @@ database_with_ssh_tunnel_config_private_pass_only: dict[str, Any] = {
 dataset_config: dict[str, Any] = {
     "table_name": "imported_dataset",
     "main_dttm_col": None,
+    "currency_code_column": "currency",
     "description": "This is a dataset that was exported",
     "default_endpoint": "",
     "offset": 66,
@@ -554,10 +587,6 @@ chart_config: dict[str, Any] = {
     "params": {
         "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
         "datasource": "12__table",
-        "js_columns": ["color"],
-        "js_data_mutator": r"data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n}));",  # noqa: E501
-        "js_onclick_href": "",
-        "js_tooltip": "",
         "line_column": "path_json",
         "line_type": "json",
         "line_width": 150,
@@ -673,6 +702,7 @@ dashboard_config: dict[str, Any] = {
             "83": {"region": {"scope": ["ROOT_ID"], "immune": [83]}},
         },
         "expanded_slices": {"83": True},
+        "expand_all_slices": False,
         "refresh_frequency": 0,
         "default_filters": "{}",
         "color_scheme": None,

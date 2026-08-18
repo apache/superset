@@ -17,11 +17,9 @@
  * under the License.
  */
 
-/** Type checking is disabled for this file due to reselect only supporting
- * TS declarations for selectors with up to 12 arguments. */
-// @ts-nocheck
 import { RefObject } from 'react';
-import { createSelector } from 'reselect';
+import { createSelector, lruMemoize } from 'reselect';
+import { supersetTheme, SupersetTheme } from '@apache-superset/core/theme';
 import {
   AppSection,
   Behavior,
@@ -37,7 +35,6 @@ import {
   SetDataMaskHook,
 } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
-import { SupersetTheme } from '../../style';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -67,6 +64,19 @@ type Hooks = {
   setDataMask?: SetDataMaskHook;
   /** handle tooltip */
   setTooltip?: HandlerFunction;
+  /* handle legend scroll changes */
+  onLegendScroll?: HandlerFunction;
+  /**
+   * Resolve an async chart-data response (HTTP 202 from GLOBAL_ASYNC_QUERIES).
+   * Injected by the app so components in this package (e.g. Matrixify's
+   * StatefulChart) can await async results without importing app-level
+   * async-event middleware. Returns the resolved query results.
+   */
+  handleAsyncChartData?: (
+    response: Response,
+    json: JsonObject,
+    signal?: AbortSignal,
+  ) => Promise<QueryData[]> | QueryData[];
 } & PlainObject;
 
 /**
@@ -105,6 +115,10 @@ export interface ChartPropsConfig {
   inputRef?: RefObject<any>;
   /** Theme object */
   theme: SupersetTheme;
+  /* legend index */
+  legendIndex?: number;
+  inContextMenu?: boolean;
+  emitCrossFilters?: boolean;
 }
 
 const DEFAULT_WIDTH = 800;
@@ -135,6 +149,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   legendState?: LegendState;
 
+  legendIndex?: number;
+
   queriesData: QueryData[];
 
   width: number;
@@ -155,7 +171,11 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   theme: SupersetTheme;
 
-  constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
+  constructor(
+    config: ChartPropsConfig & { formData?: FormData } = {
+      theme: supersetTheme,
+    },
+  ) {
     const {
       annotationData = {},
       datasource = {},
@@ -164,6 +184,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       ownState = {},
       filterState = {},
       legendState,
+      legendIndex,
       initialValues = {},
       queriesData = [],
       behaviors = [],
@@ -190,6 +211,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.ownState = ownState;
     this.filterState = filterState;
     this.legendState = legendState;
+    this.legendIndex = legendIndex;
     this.behaviors = behaviors;
     this.displaySettings = displaySettings;
     this.appSection = appSection;
@@ -215,6 +237,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.ownState,
     input => input.filterState,
     input => input.legendState,
+    input => input.legendIndex,
     input => input.behaviors,
     input => input.displaySettings,
     input => input.appSection,
@@ -235,6 +258,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       ownState,
       filterState,
       legendState,
+      legendIndex,
       behaviors,
       displaySettings,
       appSection,
@@ -255,6 +279,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         ownState,
         filterState,
         legendState,
+        legendIndex,
         width,
         behaviors,
         displaySettings,
@@ -265,5 +290,16 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         emitCrossFilters,
         theme,
       }),
+    // Below config is to retain usage of 1-sized `lruMemoize` object in Reselect v4
+    // Reselect v5 introduces `weakMapMemoize` which is more performant but potentially memory-leaky
+    // due to infinite cache size.
+    // Source: https://github.com/reduxjs/reselect/releases/tag/v5.0.1
+    {
+      memoize: lruMemoize,
+      argsMemoize: lruMemoize,
+      memoizeOptions: {
+        maxSize: 10,
+      },
+    },
   );
 };

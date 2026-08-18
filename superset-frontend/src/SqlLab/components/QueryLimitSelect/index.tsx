@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useDispatch } from 'react-redux';
-import { t } from '@superset-ui/core';
-import { Dropdown } from 'src/components/Dropdown';
-import { Menu } from 'src/components/Menu';
-import { Icons } from 'src/components/Icons';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import { t } from '@apache-superset/core/translation';
+import { Dropdown, Button } from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import Button from 'src/components/Button';
 
 export interface QueryLimitSelectProps {
   queryEditorId: string;
@@ -33,6 +32,19 @@ export interface QueryLimitSelectProps {
 
 export function convertToNumWithSpaces(num: number) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
+}
+
+export function convertToShortNum(num: number) {
+  if (num < 1000) {
+    return num;
+  }
+  if (num < 1_000_000) {
+    return `${num / 1000}K`;
+  }
+  if (num < 1_000_000_000) {
+    return `${num / 1000_000}M`;
+  }
+  return num;
 }
 
 function renderQueryLimit(
@@ -48,14 +60,13 @@ function renderQueryLimit(
   limitDropdown.push(maxRow);
 
   return (
-    <Menu>
-      {[...new Set(limitDropdown)].map(limit => (
-        <Menu.Item key={`${limit}`} onClick={() => setQueryLimit(limit)}>
-          {/* // eslint-disable-line no-use-before-define */}
-          {convertToNumWithSpaces(limit)}{' '}
-        </Menu.Item>
-      ))}
-    </Menu>
+    <Menu
+      items={[...new Set(limitDropdown)].map(limit => ({
+        key: `${limit}`,
+        onClick: () => setQueryLimit(limit),
+        label: `${convertToNumWithSpaces(limit)} `,
+      }))}
+    />
   );
 }
 
@@ -64,7 +75,7 @@ const QueryLimitSelect = ({
   maxRow,
   defaultQueryLimit,
 }: QueryLimitSelectProps) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
   const queryLimit = queryEditor.queryLimit || defaultQueryLimit;
@@ -73,15 +84,18 @@ const QueryLimitSelect = ({
 
   return (
     <Dropdown
-      dropdownRender={() => renderQueryLimit(maxRow, setQueryLimit)}
+      popupRender={() => renderQueryLimit(maxRow, setQueryLimit)}
       trigger={['click']}
     >
-      <Button size="small" showMarginRight={false} type="link">
-        <span>{t('LIMIT')}:</span>
-        <span className="limitDropdown">
-          {convertToNumWithSpaces(queryLimit)}
-        </span>
-        <Icons.CaretDownOutlined iconSize="m" />
+      <Button
+        size="small"
+        color="default"
+        variant="text"
+        showMarginRight={false}
+      >
+        <span>{t('Limit')}</span>
+        <span className="limitDropdown">{convertToShortNum(queryLimit)}</span>
+        <Icons.DownOutlined iconSize="m" />
       </Button>
     </Dropdown>
   );

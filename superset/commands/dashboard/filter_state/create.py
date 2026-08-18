@@ -16,7 +16,7 @@
 # under the License.
 from typing import cast
 
-from flask import session
+from flask import current_app as app, session
 
 from superset.commands.dashboard.filter_state.utils import check_access
 from superset.commands.temporary_cache.create import CreateTemporaryCacheCommand
@@ -39,6 +39,9 @@ class CreateFilterStateCommand(CreateTemporaryCacheCommand):
         value = cast(str, cmd_params.value)  # schema ensures that value is not optional
         check_access(resource_id)
         entry: Entry = {"owner": get_user_id(), "value": value}
-        cache_manager.filter_state_cache.set(cache_key(resource_id, key), entry)
-        cache_manager.filter_state_cache.set(contextual_key, key)
+        timeout = app.config["FILTER_STATE_CACHE_CONFIG"].get("CACHE_DEFAULT_TIMEOUT")
+        cache_manager.filter_state_cache.set(
+            cache_key(resource_id, key), entry, timeout=timeout
+        )
+        cache_manager.filter_state_cache.set(contextual_key, key, timeout=timeout)
         return key

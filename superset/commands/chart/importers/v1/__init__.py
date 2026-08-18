@@ -36,6 +36,7 @@ from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
+from superset.subjects.utils import get_default_viewers_for_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,10 @@ class ImportChartsCommand(ImportModelsCommand):
                 dataset = import_dataset(config, overwrite=False)
                 datasets[str(dataset.uuid)] = dataset
 
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
+
         # import charts with the correct parent ref
         # Per-chart query_context synthesis outcome, for operator visibility of a
         # bulk import (FR-007): how many charts were made queryable, left as-is,
@@ -112,6 +117,7 @@ class ImportChartsCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
                 config = update_chart_config_dataset(config, dataset_dict)
+
                 # Capture the pre-import context state before `import_chart`
                 # mutates `config` (it synthesizes into config["query_context"]).
                 had_query_context = bool(config.get("query_context"))
@@ -122,6 +128,11 @@ class ImportChartsCommand(ImportModelsCommand):
                     n_queryable += 1
                 else:
                     n_non_derivable += 1
+
+                chart = import_chart(
+                    config, overwrite=overwrite, default_viewers=default_viewers
+                )
+
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):

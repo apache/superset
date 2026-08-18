@@ -32,6 +32,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     BasicParametersType as BaseBasicParametersType,
     BasicPropertiesType as BaseBasicPropertiesType,
+    DatabaseCategory,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.network import is_hostname_valid, is_port_open
@@ -85,6 +86,35 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "couchbase://user:password@host[:port]?truststorepath=value?ssl=value"
     )
     parameters_schema = CouchbaseParametersSchema()
+
+    metadata = {
+        "description": (
+            "Couchbase is a distributed NoSQL document database with SQL++ support."
+        ),
+        "logo": "couchbase.svg",
+        "homepage_url": "https://www.couchbase.com/",
+        "categories": [DatabaseCategory.SEARCH_NOSQL, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["couchbase-sqlalchemy"],
+        "connection_string": "couchbase://{username}:{password}@{host}:{port}?ssl=true",
+        "default_port": 8091,
+        "parameters": {
+            "username": "Couchbase username",
+            "password": "Couchbase password",
+            "host": "Couchbase host or connection string for cloud",
+            "port": "Couchbase port (default 8091)",
+            "database": "Couchbase database/bucket name",
+        },
+        "drivers": [
+            {
+                "name": "couchbase-sqlalchemy",
+                "pypi_package": "couchbase-sqlalchemy",
+                "connection_string": (
+                    "couchbase://{username}:{password}@{host}:{port}?ssl=true"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -146,7 +176,11 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 query=query_params,
             )
         print(uri)
-        return str(uri)
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return uri.render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(

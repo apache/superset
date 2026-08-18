@@ -17,28 +17,47 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-// eslint-disable-next-line no-restricted-imports
-import { UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
-import { t } from '@superset-ui/core';
+import { UploadFile } from '@superset-ui/core/components/Upload';
+import { Typography } from '@superset-ui/core/components/Typography';
+import { DatabaseForm, DatabaseObject } from '../types';
 import {
   EditHeaderTitle,
   EditHeaderSubtitle,
   StyledFormHeader,
   StyledStickyHeader,
 } from './styles';
-import { DatabaseForm, DatabaseObject } from '../types';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
 
 export const DOCUMENTATION_LINK = supersetTextDocs
   ? supersetTextDocs.support
-  : 'https://superset.apache.org/docs/configuration/databases#installing-database-drivers';
+  : 'https://superset.apache.org/user-docs/databases/#installing-database-drivers';
 
+// Engine identifiers (SQLAlchemy backend names) whose value differs from the
+// human-readable slug under /user-docs/databases/supported/. Engines whose slug
+// equals the engine name are handled by the generic link below.
 const irregularDocumentationLinks = {
-  postgresql: 'https://superset.apache.org',
-  mssql: 'https://superset.apache.org/docs/databases/sql-server',
-  gsheets: 'https://superset.apache.org/docs/databases/google-sheets',
+  mssql:
+    'https://superset.apache.org/user-docs/databases/supported/microsoft-sql-server',
+  gsheets:
+    'https://superset.apache.org/user-docs/databases/supported/google-sheets',
+  bigquery:
+    'https://superset.apache.org/user-docs/databases/supported/google-bigquery',
+  awsathena:
+    'https://superset.apache.org/user-docs/databases/supported/amazon-athena',
+  redshift:
+    'https://superset.apache.org/user-docs/databases/supported/amazon-redshift',
+  druid:
+    'https://superset.apache.org/user-docs/databases/supported/apache-druid',
+  hive: 'https://superset.apache.org/user-docs/databases/supported/apache-hive',
+  spark:
+    'https://superset.apache.org/user-docs/databases/supported/apache-spark-sql',
+  db2: 'https://superset.apache.org/user-docs/databases/supported/ibm-db2',
+  hana: 'https://superset.apache.org/user-docs/databases/supported/sap-hana',
+  clickhousedb:
+    'https://superset.apache.org/user-docs/databases/supported/clickhouse',
 };
 
 const documentationLink = (engine: string | undefined) => {
@@ -54,7 +73,7 @@ const documentationLink = (engine: string | undefined) => {
       engine as keyof typeof irregularDocumentationLinks
     ]
   ) {
-    return `https://superset.apache.org/docs/databases/${engine}`;
+    return `https://superset.apache.org/user-docs/databases/supported/${engine}`;
   }
   return irregularDocumentationLinks[
     engine as keyof typeof irregularDocumentationLinks
@@ -101,7 +120,9 @@ const ModalHeader = ({
           stepLast: 2,
         })}
       </p>
-      <h4>{t('Enter Primary Credentials')}</h4>
+      <Typography.Title level={4}>
+        {t('Enter Primary Credentials')}
+      </Typography.Title>
       <p className="helper-bottom">
         {t('Need help? Learn how to connect your database')}{' '}
         <a
@@ -125,7 +146,9 @@ const ModalHeader = ({
             stepLast: 3,
           })}
         </p>
-        <h4 className="step-3-text">{t('Database connected')}</h4>
+        <Typography.Title level={4} className="step-3-text">
+          {t('Database connected')}
+        </Typography.Title>
         <p className="subheader-text">
           {t(`Create a dataset to begin visualizing your data as a chart or go to
           SQL Lab to query your data.`)}
@@ -143,11 +166,11 @@ const ModalHeader = ({
             stepLast: 3,
           })}
         </p>
-        <h4>
+        <Typography.Title level={4}>
           {t('Enter the required %(dbModelName)s credentials', {
             dbModelName: dbModel.name,
           })}
-        </h4>
+        </Typography.Title>
         <p className="helper-bottom">
           {t('Need help? Learn more about')}{' '}
           <a
@@ -163,17 +186,21 @@ const ModalHeader = ({
   );
 
   const noDbHeader = (
-    <StyledFormHeader>
-      <div className="select-db">
-        <p className="helper-top">
-          {t('STEP %(stepCurr)s OF %(stepLast)s', {
-            stepCurr: 1,
-            stepLast: 3,
-          })}
-        </p>
-        <h4>{t('Select a database to connect')}</h4>
-      </div>
-    </StyledFormHeader>
+    <StyledStickyHeader>
+      <StyledFormHeader>
+        <div className="select-db">
+          <p className="helper-top">
+            {t('STEP %(stepCurr)s OF %(stepLast)s', {
+              stepCurr: 1,
+              stepLast: 3,
+            })}
+          </p>
+          <Typography.Title level={4}>
+            {t('Select a database to connect')}
+          </Typography.Title>
+        </div>
+      </StyledFormHeader>
+    </StyledStickyHeader>
   );
 
   const importDbHeader = (
@@ -185,11 +212,11 @@ const ModalHeader = ({
             stepLast: 2,
           })}
         </p>
-        <h4>
+        <Typography.Title level={4}>
           {t('Enter the required %(dbModelName)s credentials', {
             dbModelName: dbModel.name,
           })}
-        </h4>
+        </Typography.Title>
         <p className="helper-bottom">{fileCheck ? fileList[0].name : ''}</p>
       </StyledFormHeader>
     </StyledStickyHeader>

@@ -17,38 +17,36 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  t,
-  useTheme,
-  css,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
   createFetchRelated,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import {
+  ActionButton,
+  ConfirmStatusChange,
+  FaveStar,
+} from '@superset-ui/core/components';
+import {
+  Tag as AntdTag,
+  ListView,
+  ModifiedInfo,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewFilter,
+  type ListViewFilters,
+  type ListViewProps,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { Icons } from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
-// eslint-disable-next-line no-restricted-imports
-import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
-import FaveStar from 'src/components/FaveStar';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 
 const PAGE_SIZE = 25;
 
@@ -65,7 +63,6 @@ interface TagListProps {
 function TagList(props: TagListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const { userId } = user;
-  const theme = useTheme();
 
   const initialFilters = useMemo(
     () => [
@@ -137,23 +134,12 @@ function TagList(props: TagListProps) {
   const emptyState = {
     title: t('No Tags created'),
     image: 'dashboard.svg',
-    description:
+    description: t(
       'Create a new tag and assign it to existing entities like charts or dashboards',
-    buttonAction: () => setShowTagModal(true),
-    buttonText: (
-      <>
-        <Icons.PlusOutlined
-          iconSize="m"
-          iconColor={theme.colors.primary.light5}
-          css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
-          data-test="add-rule-empty"
-        />
-        Create a new Tag
-      </>
     ),
+    buttonAction: () => setShowTagModal(true),
+    buttonIcon: <Icons.PlusOutlined iconSize="m" data-test="add-rule-empty" />,
+    buttonText: t('Create a new Tag'),
   };
 
   const columns = useMemo(
@@ -184,11 +170,13 @@ function TagList(props: TagListProps) {
           },
         }: any) => (
           <AntdTag>
-            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
+            <Link to={`/all_entities/?id=${id}`}>{tagName}</Link>
           </AntdTag>
         ),
         Header: t('Name'),
         accessor: 'name',
+        size: 'xxl',
+        id: 'name',
       },
       {
         Cell: ({
@@ -202,6 +190,7 @@ function TagList(props: TagListProps) {
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -220,41 +209,31 @@ function TagList(props: TagListProps) {
                   onConfirm={() => handleTagsDelete([original])}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={t('Delete')}
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={t('Delete')}
                       placement="bottom"
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
-                      >
+                      icon={
                         <Icons.DeleteOutlined
                           data-test="dashboard-list-trash-icon"
                           iconSize="l"
                         />
-                      </span>
-                    </Tooltip>
+                      }
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  onClick={handleEdit}
+                />
               )}
             </Actions>
           );
@@ -267,19 +246,47 @@ function TagList(props: TagListProps) {
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
+    [
+      userId,
+      canDelete,
+      refreshData,
+      addSuccessToast,
+      addDangerToast,
+      saveFavoriteStatus,
+      favoriteStatus,
+    ],
   );
 
-  const filters: Filters = useMemo(() => {
+  const favoritesFilter: ListViewFilter = useMemo(
+    () => ({
+      Header: t('Favorite'),
+      key: 'favorite',
+      id: 'id',
+      urlDisplay: 'favorite',
+      input: 'select',
+      operator: FilterOperator.TagIsFav,
+      unfilteredLabel: t('Any'),
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    }),
+    [],
+  );
+
+  const filters: ListViewFilters = useMemo(() => {
     const filters_list = [
       {
         Header: t('Name'),
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'tag_list_search',
       },
+      ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Modified by'),
         key: 'changed_by',
@@ -300,9 +307,9 @@ function TagList(props: TagListProps) {
         ),
         paginate: true,
       },
-    ] as Filters;
+    ] as ListViewFilters;
     return filters_list;
-  }, [addDangerToast, props.user]);
+  }, [addDangerToast, props.user, userId, favoritesFilter]);
 
   const sortTypes = [
     {
@@ -338,18 +345,8 @@ function TagList(props: TagListProps) {
 
   // render new 'New Tag' btn
   subMenuButtons.push({
-    name: (
-      <>
-        <Icons.PlusOutlined
-          css={css`
-            vertical-align: text-top;
-          `}
-          iconSize="m"
-          iconColor={theme.colors.primary.light5}
-        />{' '}
-        {t('Tag')}
-      </>
-    ),
+    icon: <Icons.PlusOutlined iconSize="m" />,
+    name: t('Tag'),
     buttonStyle: 'primary',
     'data-test': 'bulk-select',
     onClick: () => setShowTagModal(true),

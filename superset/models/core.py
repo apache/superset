@@ -24,19 +24,20 @@ from __future__ import annotations
 import builtins
 import logging
 import textwrap
+import threading
 from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
-from flask import g
+from flask import current_app as app, g, has_app_context
 from flask_appbuilder import Model
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import (
@@ -56,14 +57,16 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapper, relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
+from superset_core.common.models import Database as CoreDatabase
 
-from superset import app, db, db_engine_specs, is_feature_enabled
+from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
+from superset.databases.error_provenance import mark_database_engine_error
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
@@ -75,8 +78,7 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, UUIDMixin
 from superset.result_set import SupersetResultSet
-from superset.sql.parse import SQLScript
-from superset.sql_parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import (
     DbapiDescription,
     OAuth2ClientConfig,
@@ -91,18 +93,22 @@ from superset.utils.oauth2 import (
     OAuth2ClientConfigSchema,
 )
 
-config = app.config
-custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
-stats_logger = config["STATS_LOGGER"]
-log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    from superset.databases.ssh_tunnel.models import SSHTunnel
-    from superset.models.sql_lab import Query
+# Per-process SQLAlchemy engine cache (#27897). Key is
+# (database_id, str(sqlalchemy_url), repr(sorted(engine_kwargs.items()))).
+# Lock-guarded against the gunicorn-threaded check-then-set race on first
+# access. Cache is per-process, per-(URL + final engine_kwargs), so a
+# password rotation, host change, or DB_CONNECTION_MUTATOR producing
+# different kwargs naturally falls through to a fresh engine.
+_ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
+_ENGINE_CACHE_LOCK = threading.Lock()
 
-DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
+if TYPE_CHECKING:
+    from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
+
+    from superset.models.sql_lab import Query
 
 
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
@@ -122,12 +128,49 @@ class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     css = Column(utils.MediumText(), default="")
 
 
+class Theme(AuditMixinNullable, ImportExportMixin, Model):
+    """Themes for dashboards"""
+
+    __tablename__ = "themes"
+    __table_args__ = (
+        sqla.Index("idx_theme_is_system_default", "is_system_default"),
+        sqla.Index("idx_theme_is_system_dark", "is_system_dark"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    theme_name = Column(String(250))
+    json_data = Column(utils.MediumText(), default="")
+    is_system = Column(Boolean, default=False, nullable=False)
+    is_system_default = Column(Boolean, default=False, nullable=False)
+    is_system_dark = Column(Boolean, default=False, nullable=False)
+
+    export_fields = ["theme_name", "json_data"]
+
+
+# Event listeners to clear the memoized bootstrap data cache when a theme is modified
+@sqla.event.listens_for(Theme, "after_insert")
+@sqla.event.listens_for(Theme, "after_update")
+@sqla.event.listens_for(Theme, "after_delete")
+def clear_bootstrap_cache(
+    _mapper: sqla.orm.Mapper,
+    _connection: sqla.engine.Connection,
+    _target: Theme,
+) -> None:
+    from superset.extensions import cache_manager
+    from superset.views.base import cached_common_bootstrap_data
+
+    try:
+        cache_manager.cache.delete_memoized(cached_common_bootstrap_data)
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.warning("Failed to clear theme bootstrap cache: %s", ex)
+
+
 class ConfigurationMethod(StrEnum):
     SQLALCHEMY_FORM = "sqlalchemy_form"
     DYNAMIC_FORM = "dynamic_form"
 
 
-class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -183,6 +226,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "allow_file_upload",
         "extra",
         "impersonate_user",
+        "configuration_method",
     ]
     extra_import_fields = [
         "password",
@@ -190,6 +234,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         "external_url",
         "encrypted_extra",
         "impersonate_user",
+        "ssh_tunnel",
     ]
     export_children = ["tables"]
 
@@ -245,6 +290,77 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     def disable_drill_to_detail(self) -> bool:
         # this will prevent any 'trash value' strings from going through
         return self.get_extra().get("disable_drill_to_detail", False) is True
+
+    @property
+    def disable_sampling_read_limit_override(self) -> bool:
+        return (
+            self.get_extra().get("disable_sampling_read_limit_override", False) is True
+        )
+
+    def sampling_read_limit_retry_sql(self, sql: str) -> str | None:
+        """Build the bounded-read retry form of a failed sampling query.
+
+        Honors the per-database ``disable_sampling_read_limit_override`` extra
+        flag before delegating to the engine spec, so operators can keep all
+        reads governed by their configured limits. Returns ``None`` when no
+        retry should be attempted (opt-out set, or the engine has no
+        bounded-read override).
+        """
+        if self.disable_sampling_read_limit_override:
+            return None
+        return self.db_engine_spec.apply_sampling_read_limit_override(sql)
+
+    def run_with_sampling_read_limit_retry(
+        self,
+        sql: str,
+        run: Callable[[str], Any],
+    ) -> Any:
+        """Run a system-generated sampling query, retrying with a bounded read.
+
+        Executes ``run(sql)`` unchanged first, so deployments whose sampling
+        queries already succeed never see altered SQL (including ClickHouse
+        ``readonly=1`` users, which reject in-query SETTINGS changes). Only
+        when the engine rejects the statement with a read-limit error (e.g.
+        ClickHouse ``max_rows_to_read`` / TOO_MANY_ROWS) is the query retried
+        once with the engine's bounded-read override appended, returning a
+        partial result instead of erroring.
+
+        Callers must only route sampling statements generated by Superset for
+        a physical-table dataset through this retry — never a virtual
+        dataset's user-authored base query, which stays fully governed by
+        operator read limits.
+
+        Note that ``run`` implementations going through ``get_df`` re-apply
+        the operator's ``SQL_QUERY_MUTATOR`` to the retry SQL. ClickHouse
+        accepts the override with mutator-added comments (any position) and
+        subquery wrapping; a mutator that appends non-comment clauses after
+        the statement is not supported here — the retry then fails and the
+        original read-limit error is surfaced.
+        """
+        try:
+            return run(sql)
+        except Exception as ex:
+            retry_sql = self.sampling_read_limit_retry_sql(sql)
+            if retry_sql is None or not self.db_engine_spec.is_read_limit_error(ex):
+                raise
+            logger.warning(
+                "Read limit rejected system sampling query on database %s; "
+                "retrying with the engine's bounded-read override: %s",
+                self.unique_name,
+                str(ex),
+            )
+            try:
+                return run(retry_sql)
+            except Exception as retry_ex:
+                # The retry is best-effort (e.g. readonly connections reject
+                # in-query SETTINGS changes); surface the original read-limit
+                # error, which is the root cause.
+                logger.warning(
+                    "Bounded-read retry failed on database %s: %s",
+                    self.unique_name,
+                    str(retry_ex),
+                )
+                raise ex from retry_ex
 
     @property
     def allow_multi_catalog(self) -> bool:
@@ -384,11 +500,19 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     def set_sqlalchemy_uri(self, uri: str) -> None:
         conn = make_url_safe(uri.strip())
+        custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
         if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
         conn = conn.set(password=PASSWORD_MASK if conn.password else None)
-        self.sqlalchemy_uri = str(conn)  # hides the password
+        # Store the literal PASSWORD_MASK sentinel (not the real secret -
+        # that already went to self.password above), so later code that
+        # compares conn.password against PASSWORD_MASK to detect an
+        # unchanged password keeps working. SQLAlchemy 2.0 changed
+        # str(URL) to substitute its own "***" for any password rather
+        # than rendering the value verbatim (str(conn) under 1.4), so
+        # render_as_string(hide_password=False) is required here.
+        self.sqlalchemy_uri = conn.render_as_string(hide_password=False)
 
     def get_effective_user(self, object_url: URL) -> str | None:
         """
@@ -413,7 +537,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
-        override_ssh_tunnel: SSHTunnel | None = None,
     ) -> Engine:
         """
         Context manager for a SQLAlchemy engine.
@@ -423,19 +546,15 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         to potentially establish SSH tunnels before the connection is created, and clean
         them up once the engine is no longer used.
         """
-        from superset.daos.database import (  # pylint: disable=import-outside-toplevel
-            DatabaseDAO,
-        )
 
         sqlalchemy_uri = self.sqlalchemy_uri_decrypted
 
-        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(self.id)
         ssh_context_manager = (
             ssh_manager_factory.instance.create_tunnel(
-                ssh_tunnel=ssh_tunnel,
+                ssh_tunnel=self.ssh_tunnel,
                 sqlalchemy_database_uri=sqlalchemy_uri,
             )
-            if ssh_tunnel
+            if self.ssh_tunnel
             else nullcontext()
         )
 
@@ -453,16 +572,59 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     ssh_context,
                 )
 
-            engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
+            engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
-                    yield self._get_sqla_engine(
+                    prequeries = self.db_engine_spec.get_prequeries(
+                        database=self,
+                        catalog=catalog,
+                        schema=schema,
+                    )
+                    # Prequeries attach a per-call ``connect`` listener below
+                    # (and remove it on exit). SQLAlchemy's listener collection
+                    # is an unlocked deque, so mutating it on an engine shared
+                    # via ``_ENGINE_CACHE`` races with concurrent connection
+                    # checkouts iterating the same deque ("RuntimeError: deque
+                    # mutated during iteration", surfacing as 500s). Request a
+                    # private, uncached engine whenever prequeries are present
+                    # so the listener add/remove never touches a shared object.
+                    engine = self._get_sqla_engine(
                         catalog=catalog,
                         schema=schema,
                         nullpool=nullpool,
                         source=source,
                         sqlalchemy_uri=sqlalchemy_uri,
+                        cacheable=not prequeries,
                     )
+                    if prequeries:
+                        # SQLAlchemy connect event: runs prequeries on every new
+                        # DBAPI connection (e.g. SET search_path for PostgreSQL).
+                        def run_prequeries(
+                            dbapi_connection: Any,
+                            connection_record: Any,  # pylint: disable=unused-argument
+                        ) -> None:
+                            cursor = dbapi_connection.cursor()
+                            try:
+                                for prequery in prequeries:
+                                    cursor.execute(prequery)
+                            finally:
+                                cursor.close()
+
+                        sqla.event.listen(engine, "connect", run_prequeries)
+                        try:
+                            yield engine
+                        finally:
+                            sqla.event.remove(engine, "connect", run_prequeries)
+                            # The engine is private (cacheable=False above), so
+                            # nothing else can hold a reference: dispose it to
+                            # release its pool immediately. With the default
+                            # nullpool=True this is a no-op safety net; it
+                            # matters if a caller ever passes nullpool=False,
+                            # where each private engine would otherwise keep a
+                            # short-lived QueuePool alive until GC.
+                            engine.dispose()
+                    else:
+                        yield engine
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -471,6 +633,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
         sqlalchemy_uri: str | None = None,
+        cacheable: bool = True,
     ) -> Engine:
         sqlalchemy_url = make_url_safe(
             sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
@@ -522,7 +685,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
         self.update_params_from_encrypted_extra(engine_kwargs)
 
-        if DB_CONNECTION_MUTATOR:
+        if DB_CONNECTION_MUTATOR := app.config["DB_CONNECTION_MUTATOR"]:  # noqa: N806
             source = source or get_query_source_from_request()
 
             sqlalchemy_url, engine_kwargs = DB_CONNECTION_MUTATOR(
@@ -532,10 +695,50 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 security_manager,
                 source,
             )
+        # Per-process engine cache (#27897). SQLAlchemy expects ``create_engine``
+        # to be called once per process per URL so its connection pool can do
+        # its job. Recreating the engine every call defeats the pool that
+        # operators configure via ``DB_CONNECTION_MUTATOR`` (e.g. duckdb with a
+        # size-1 queue). Cache regardless of ``nullpool``: even a NullPool
+        # engine has nontrivial construction cost (URL parsing, dialect
+        # resolution, connect_args setup, and re-running the mutator), and
+        # production callsites pass ``nullpool=True`` by default — gating the
+        # cache on ``not nullpool`` would leave it dormant everywhere it
+        # actually matters. Unsaved instances (``self.id is None``) are
+        # excluded so two distinct in-memory ``Database`` objects with the
+        # same URI can't collide on a shared cache entry. Callers that need to
+        # mutate the engine's event listeners (``get_sqla_engine`` with
+        # prequeries) pass ``cacheable=False`` for a private engine: listener
+        # registration on a shared engine races with concurrent connection
+        # checkouts iterating the same unlocked listener deque.
+        cache_key: tuple[int, str, str] | None = None
+        if cacheable and self.id is not None:
+            cache_key = (
+                self.id,
+                # SQLAlchemy 2.0 changed str(URL) to always substitute
+                # "***" for the password rather than rendering the real
+                # value (str(url) under 1.4). Using it here would make
+                # the cache key blind to password rotation - the module
+                # comment above depends on the key changing when the
+                # password does, so render_as_string(hide_password=False)
+                # is required to preserve that behavior.
+                sqlalchemy_url.render_as_string(hide_password=False),
+                repr(sorted(engine_kwargs.items())),
+            )
+            with _ENGINE_CACHE_LOCK:
+                if cached := _ENGINE_CACHE.get(cache_key):
+                    return cached
         try:
-            return create_engine(sqlalchemy_url, **engine_kwargs)
+            if "future" not in engine_kwargs:
+                engine_kwargs["future"] = True
+            engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+        sqla.event.listen(engine, "handle_error", mark_database_engine_error)
+        if cache_key is not None:
+            with _ENGINE_CACHE_LOCK:
+                _ENGINE_CACHE[cache_key] = engine
+        return engine
 
     def add_database_to_signature(
         self,
@@ -571,15 +774,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         ) as engine:
             with check_for_oauth2(self):
                 with closing(engine.raw_connection()) as conn:
-                    # pre-session queries are used to set the selected catalog/schema
-                    for prequery in self.db_engine_spec.get_prequeries(
-                        database=self,
-                        catalog=catalog,
-                        schema=schema,
-                    ):
-                        cursor = conn.cursor()
-                        cursor.execute(prequery)
-
                     yield conn
 
     def get_default_catalog(self) -> str | None:
@@ -594,7 +788,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
 
-    def get_default_schema_for_query(self, query: Query) -> str | None:
+    def get_default_schema_for_query(
+        self, query: Query, template_params: Optional[dict[str, Any]] = None
+    ) -> str | None:
         """
         Return the default schema for a given query.
 
@@ -608,7 +804,49 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         default schema is defined in the SQLAlchemy URI; and in others the default schema
         might be determined by the database itself (like `public` for Postgres).
         """  # noqa: E501
-        return self.db_engine_spec.get_default_schema_for_query(self, query)
+        return self.db_engine_spec.get_default_schema_for_query(
+            self, query, template_params
+        )
+
+    def resolve_query_default_schema(
+        self,
+        sql: str,
+        schema: str | None,
+        catalog: str | None,
+        template_params: Optional[dict[str, Any]] = None,
+    ) -> str | None:
+        """
+        Resolve the effective per-query default schema for a SQL string through
+        the query-aware :meth:`get_default_schema_for_query`.
+
+        Builds a transient (unsaved) ``Query`` probe so the engine spec resolves
+        the schema exactly as execution does -- running engine-specific per-query
+        security gates too -- then expunges it so the ``database`` backref's
+        ``cascade="all, delete-orphan"`` cannot autoflush this incomplete row
+        into the session. Centralizes the probe construction shared by the SQL
+        Lab executor, the cost-estimate command, and datasource denylist checks
+        so the schema-resolution behavior stays in sync across these
+        security-sensitive paths.
+
+        :param sql: Original (pre-render) SQL the query will execute
+        :param schema: Explicit per-query schema, if any
+        :param catalog: Resolved catalog
+        :param template_params: Jinja template parameters, if any
+        :returns: The runtime-resolved default schema, or None
+        """
+        from superset.models.sql_lab import Query
+
+        probe_query = Query(
+            database=self,
+            sql=sql,
+            schema=schema or None,
+            catalog=catalog,
+            client_id=utils.shortid()[:10],
+            user_id=utils.get_user_id(),
+        )
+        if probe_query in db.session:
+            db.session.expunge(probe_query)
+        return self.get_default_schema_for_query(probe_query, template_params)
 
     @staticmethod
     def post_process_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -616,7 +854,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             return (
                 not df_series.empty
                 and isinstance(df_series, pd.Series)
-                and isinstance(df_series[0], (list, dict))
+                and isinstance(df_series.iloc[0], (list, dict))
             )
 
         for col, coltype in df.dtypes.to_dict().items():
@@ -643,14 +881,109 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
           on the group of queries as a whole. Here the called passes the context
           as to whether the SQL is split or already.
         """  # noqa: E501
-        sql_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_mutator and (is_split == config["MUTATE_AFTER_SPLIT"]):
+        sql_mutator = app.config["SQL_QUERY_MUTATOR"]
+        if sql_mutator and (is_split == app.config["MUTATE_AFTER_SPLIT"]):
             return sql_mutator(
                 sql_,
                 security_manager=security_manager,
                 database=self,
             )
         return sql_
+
+    def _execute_sql_with_mutation_and_logging(
+        self,
+        sql: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+        fetch_last_result: bool = False,
+    ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
+        """
+        Internal method to execute SQL with mutation and logging.
+
+        :param sql: SQL query to execute
+        :param catalog: Optional catalog name
+        :param schema: Optional schema name
+        :param fetch_last_result: Whether to fetch results from last statement
+        :return: Tuple of (cursor, rows, description) where rows and description
+        are None if not fetching.
+        """
+        script = SQLScript(sql, self.db_engine_spec.engine)
+
+        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
+            engine_url = engine.url
+
+        log_query = app.config["QUERY_LOGGER"]
+
+        def _log_query(sql_: str) -> None:
+            if log_query:
+                log_query(
+                    engine_url,
+                    sql_,
+                    schema,
+                    __name__,
+                    security_manager,
+                )
+
+        with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
+            cursor = conn.cursor()
+            rows = None
+            description = None
+
+            for i, statement in enumerate(script.statements):
+                # For a single statement, execute the original SQL as-is. Re-rendering
+                # via statement.format() would round-trip through sqlglot
+                rendered = sql if len(script.statements) == 1 else statement.format()
+                sql_ = self.mutate_sql_based_on_config(
+                    rendered,
+                    is_split=True,
+                )
+                _log_query(sql_)
+
+                with event_logger.log_context(
+                    action="execute_sql",
+                    database=self,
+                    object_ref=__name__,
+                ):
+                    self.db_engine_spec.execute(cursor, sql_, self)
+
+                # Fetch results from last statement if requested
+                if fetch_last_result and i == len(script.statements) - 1:
+                    rows = self.db_engine_spec.fetch_data(cursor)
+                    # Some asynchronous DB-API drivers expose placeholder metadata
+                    # until fetching waits for the operation to finish.
+                    description = cursor.description
+                else:
+                    # Consume results without storing
+                    cursor.fetchall()
+
+            return cursor, rows, description
+
+    def execute_sql_statements(
+        self,
+        sql: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> None:
+        """
+        Execute SQL statements with proper logging and mutation.
+
+        This method handles:
+        - SQL mutation based on config (SQL_QUERY_MUTATOR)
+        - Query logging (QUERY_LOGGER)
+        - Event logging for execution
+        - Runtime error detection
+
+        This is useful for validation queries where we just need to check
+        if the SQL executes without errors.
+
+        :param sql: SQL query to execute
+        :param catalog: Optional catalog name
+        :param schema: Optional schema name
+        :raises: Any database execution errors will be propagated
+        """
+        self._execute_sql_with_mutation_and_logging(
+            sql, catalog, schema, fetch_last_result=False
+        )
 
     def get_df(
         self,
@@ -659,44 +992,18 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        script = SQLScript(sql, self.db_engine_spec.engine)
-        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
-            engine_url = engine.url
+        cursor, rows, description = self._execute_sql_with_mutation_and_logging(
+            sql, catalog, schema, fetch_last_result=True
+        )
 
-        def _log_query(sql: str) -> None:
-            if log_query:
-                log_query(
-                    engine_url,
-                    sql,
-                    schema,
-                    __name__,
-                    security_manager,
-                )
+        df = None
+        if rows is not None:
+            df = self.load_into_dataframe(description, rows)
 
-        with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            cursor = conn.cursor()
-            df = None
-            for i, statement in enumerate(script.statements):
-                sql_ = self.mutate_sql_based_on_config(
-                    statement.format(),
-                    is_split=True,
-                )
-                _log_query(sql_)
-                with event_logger.log_context(
-                    action="execute_sql",
-                    database=self,
-                    object_ref=__name__,
-                ):
-                    self.db_engine_spec.execute(cursor, sql_, self)
+        if mutator:
+            df = mutator(df)
 
-                rows = self.fetch_rows(cursor, i == len(script.statements) - 1)
-                if rows is not None:
-                    df = self.load_into_dataframe(cursor.description, rows)
-
-            if mutator:
-                df = mutator(df)
-
-            return self.post_process_df(df)
+        return self.post_process_df(df)
 
     @event_logger.log_this
     def fetch_rows(self, cursor: Any, last: bool) -> list[tuple[Any, ...]] | None:
@@ -751,17 +1058,17 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
-        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            return self.db_engine_spec.select_star(
-                self,
-                table,
-                engine=engine,
-                limit=limit,
-                show_cols=show_cols,
-                indent=indent,
-                latest_partition=latest_partition,
-                cols=cols,
-            )
+        dialect = self.get_dialect()
+        return self.db_engine_spec.select_star(
+            self,
+            table,
+            dialect=dialect,
+            limit=limit,
+            show_cols=show_cols,
+            indent=indent,
+            latest_partition=latest_partition,
+            cols=cols,
+        )
 
     def apply_limit_to_sql(
         self,
@@ -777,6 +1084,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             statement.set_limit_value(limit, self.db_engine_spec.limit_method)
 
         return script.format()
+
+    def get_column_description_limit_size(self) -> int:
+        return self.db_engine_spec.get_column_description_limit_size()
 
     def safe_sqlalchemy_uri(self) -> str:
         return self.sqlalchemy_uri
@@ -813,6 +1123,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
@@ -847,73 +1158,90 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     )
                 }
         except Exception as ex:
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+    @cache_util.memoized_func(
+        key="db:{self.id}:catalog:{catalog}:schema:{schema}:materialized_view_list",
+        cache=cache_manager.cache,
+    )
+    def get_all_materialized_view_names_in_schema(
+        self,
+        catalog: str | None,
+        schema: str,
+    ) -> set[Table]:
+        """Get all materialized views in the specified schema.
+
+        Parameters need to be passed as keyword arguments.
+
+        For unused parameters, they are referenced in
+        cache_util.memoized_func decorator.
+
+        :param catalog: optional catalog name
+        :param schema: schema name
+        :param cache: whether cache is enabled for the function
+        :param cache_timeout: timeout in seconds for the cache
+        :param force: whether to force refresh the cache
+        :return: set of materialized views
+        """
+        try:
+            with self.get_inspector(catalog=catalog, schema=schema) as inspector:
+                return {
+                    Table(view, schema, catalog)
+                    for view in self.db_engine_spec.get_materialized_view_names(
+                        database=self,
+                        inspector=inspector,
+                        schema=schema,
+                    )
+                }
+        except Exception as ex:
+            self._handle_oauth2_error(ex)
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+        return set()
 
     @contextmanager
     def get_inspector(
         self,
         catalog: str | None = None,
         schema: str | None = None,
-        ssh_tunnel: SSHTunnel | None = None,
     ) -> Inspector:
-        with self.get_sqla_engine(
-            catalog=catalog,
-            schema=schema,
-            override_ssh_tunnel=ssh_tunnel,
-        ) as engine:
+        with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             yield sqla.inspect(engine)
 
     @cache_util.memoized_func(
         key="db:{self.id}:catalog:{catalog}:schema_list",
         cache=cache_manager.cache,
     )
-    def get_all_schema_names(
-        self,
-        *,
-        catalog: str | None = None,
-        ssh_tunnel: SSHTunnel | None = None,
-    ) -> set[str]:
+    def get_all_schema_names(self, *, catalog: str | None = None) -> set[str]:
         """
         Return the schemas in a given database
 
         :param catalog: override default catalog
-        :param ssh_tunnel: SSH tunnel information needed to establish a connection
         :return: schema list
         """
         try:
-            with self.get_inspector(
-                catalog=catalog,
-                ssh_tunnel=ssh_tunnel,
-            ) as inspector:
+            with self.get_inspector(catalog=catalog) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
-            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
-                self.start_oauth2_dance()
-
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
         key="db:{self.id}:catalog_list",
         cache=cache_manager.cache,
     )
-    def get_all_catalog_names(
-        self,
-        *,
-        ssh_tunnel: SSHTunnel | None = None,
-    ) -> set[str]:
+    def get_all_catalog_names(self) -> set[str]:
         """
         Return the catalogs in a given database
 
-        :param ssh_tunnel: SSH tunnel information needed to establish a connection
         :return: catalog list
         """
         try:
-            with self.get_inspector(ssh_tunnel=ssh_tunnel) as inspector:
+            with self.get_inspector() as inspector:
                 return self.db_engine_spec.get_catalog_names(self, inspector)
         except Exception as ex:
-            if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
-                self.start_oauth2_dance()
-
+            self._handle_oauth2_error(ex)
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
@@ -971,7 +1299,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 table.table,
                 meta,
                 schema=table.schema or None,
-                autoload=True,
                 autoload_with=engine,
             )
 
@@ -1039,7 +1366,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             allowed_databases = literal_eval(allowed_databases)
 
         if hasattr(g, "user"):
-            extra_allowed_databases = config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
+            extra_allowed_databases = app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](
                 self, g.user
             )
             allowed_databases += extra_allowed_databases
@@ -1047,21 +1374,45 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
+        """Return the decrypted SQLAlchemy URI with properly encoded password."""
         try:
             conn = make_url_safe(self.sqlalchemy_uri)
         except DatabaseInvalidError:
             # if the URI is invalid, ignore and return a placeholder url
             # (so users see 500 less often)
             return "dialect://invalid_uri"
-        if custom_password_store:
-            conn = conn.set(password=custom_password_store(conn))
+
+        # Determine plaintext password from config or model
+        if has_app_context():
+            custom_password_store = app.config.get("SQLALCHEMY_CUSTOM_PASSWORD_STORE")
+            if custom_password_store and callable(custom_password_store):
+                raw_password = custom_password_store(conn)
+            else:
+                raw_password = self.password
         else:
-            conn = conn.set(password=self.password)
-        return str(conn)
+            raw_password = self.password
+
+        # URL.render_as_string() percent-encodes the password itself, so pass
+        # the raw, un-encoded password straight through. Pre-encoding it here
+        # (as this used to do) is safe under SQLAlchemy 1.4, whose
+        # render_as_string() treats URL.password as literal, but SQLAlchemy
+        # 2.0 always encodes on render - double-encoding a pre-escaped
+        # password (e.g. "%" -> "%25") turns it into "%2525" on write, which
+        # then decodes back to the wrong value ("%25" instead of "%") on the
+        # next reparse.
+        conn = conn.set(password=raw_password)
+
+        # render_as_string preserves the URL encoding of special
+        # characters in passwords
+        return conn.render_as_string(hide_password=False)
 
     @property
     def sql_url(self) -> str:
-        return f"/superset/sql/{self.id}/"
+        # SQL Lab moved to its own blueprint at /sqllab/; the legacy
+        # /superset/sql/<id>/ route was removed when Superset.route_base
+        # collapsed to "". Deep-link by databaseId instead so this property
+        # resolves to a live route under any application_root.
+        return f"/sqllab/?dbid={self.id}"
 
     @hybrid_property
     def perm(self) -> str:
@@ -1078,8 +1429,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+            inspector = sqla.inspect(engine)
             # do not pass "" as an empty schema; force null
-            return engine.has_table(table.table, table.schema or None)
+            if inspector.has_table(table.table, table.schema or None):
+                return True
+            return inspector.has_table(table.table.lower(), table.schema or None)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
@@ -1145,6 +1499,10 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
             schema = OAuth2ClientConfigSchema()
             client_config = schema.load(oauth2_client_info)
+            if "request_content_type" not in oauth2_client_info:
+                client_config["request_content_type"] = (
+                    self.db_engine_spec.oauth2_token_request_type
+                )
             return cast(OAuth2ClientConfig, client_config)
 
         return self.db_engine_spec.get_oauth2_config()
@@ -1159,6 +1517,16 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.start_oauth2_dance(self)
 
+    def _handle_oauth2_error(self, ex: Exception) -> None:
+        """
+        Handle exceptions that may require OAuth2 authentication.
+
+        If OAuth2 is enabled and the exception indicates that OAuth2 is needed,
+        starts the OAuth2 dance.
+        """
+        if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
+            self.start_oauth2_dance()
+
     def purge_oauth2_tokens(self) -> None:
         """
         Delete all OAuth2 tokens associated with this database.
@@ -1168,13 +1536,69 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         scope or in the endpoints.
         """
         db.session.query(DatabaseUserOAuth2Tokens).filter(
-            DatabaseUserOAuth2Tokens.id == self.id
+            DatabaseUserOAuth2Tokens.database_id == self.id
         ).delete()
+
+    def execute(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> QueryResult:
+        """
+        Execute SQL synchronously.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: QueryResult with status, data, and metadata
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute(sql, options)
+
+    def execute_async(
+        self,
+        sql: str,
+        options: QueryOptions | None = None,
+    ) -> AsyncQueryHandle:
+        """
+        Execute SQL asynchronously via Celery.
+
+        :param sql: SQL query to execute
+        :param options: QueryOptions with execution settings
+        :returns: AsyncQueryHandle for tracking the query
+        """
+        from superset.sql.execution import SQLExecutor
+
+        return SQLExecutor(self).execute_async(sql, options)
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)
 sqla.event.listen(Database, "after_update", security_manager.database_after_update)
 sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
+
+
+def _evict_engine_cache(
+    mapper: Mapper,
+    connection: Connection,
+    target: "Database",
+) -> None:
+    """Evict all cached engines for a database when it is updated or deleted.
+
+    URL/kwargs changes already produce a new cache key, so stale engines are
+    never served to callers.  This eviction step is purely to reclaim memory:
+    without it, old engines for a renamed host or rotated password would linger
+    in _ENGINE_CACHE until the process restarted.
+    """
+    if target.id is None:
+        return
+    with _ENGINE_CACHE_LOCK:
+        stale = [k for k in _ENGINE_CACHE if k[0] == target.id]
+        for k in stale:
+            _ENGINE_CACHE.pop(k, None)
+
+
+sqla.event.listen(Database, "after_update", _evict_engine_cache)
+sqla.event.listen(Database, "after_delete", _evict_engine_cache)
 
 
 class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
@@ -1183,7 +1607,9 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     """
 
     __tablename__ = "database_user_oauth2_tokens"
-    __table_args__ = (sqla.Index("idx_user_id_database_id", "user_id", "database_id"),)
+    __table_args__ = (
+        sqla.Index("idx_user_id_database_id", "user_id", "database_id", unique=True),
+    )
 
     id = Column(Integer, primary_key=True)
 

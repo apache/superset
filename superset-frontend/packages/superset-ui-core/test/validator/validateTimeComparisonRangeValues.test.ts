@@ -24,7 +24,7 @@ import {
 import './setup';
 
 describe('validateTimeComparisonRangeValues()', () => {
-  it('returns the warning message if invalid', () => {
+  test('returns the warning message if invalid', () => {
     expect(
       validateTimeComparisonRangeValues(ComparisonTimeRangeType.Custom, []),
     ).toBeTruthy();
@@ -38,7 +38,7 @@ describe('validateTimeComparisonRangeValues()', () => {
       validateTimeComparisonRangeValues(ComparisonTimeRangeType.Custom, null),
     ).toBeTruthy();
   });
-  it('returns empty array if the input is valid', () => {
+  test('returns empty array if the input is valid', () => {
     expect(
       validateTimeComparisonRangeValues(ComparisonTimeRangeType.Year, []),
     ).toEqual([]);

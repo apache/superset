@@ -19,7 +19,7 @@ from marshmallow import fields, Schema
 
 from superset.dashboards.schemas import UserSchema
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get query detail information"}},
@@ -60,6 +60,7 @@ class QuerySchema(Schema):
     schema = fields.String()
     sql = fields.String()
     sql_tables = fields.Method("get_sql_tables")
+    start_running_time = fields.Float(attribute="start_running_time")
     start_time = fields.Float(attribute="start_time")
     status = fields.String()
     tab_name = fields.String()

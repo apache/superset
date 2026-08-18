@@ -33,6 +33,8 @@ from superset.utils.core import generic_find_constraint_name
 revision = "1226819ee0e3"
 down_revision = "956a063c52b3"
 
+logger = logging.getLogger("alembic.env")
+
 
 naming_convention = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"
@@ -61,7 +63,7 @@ def upgrade():
                 ["datasource_name"],
             )
     except:  # noqa: E722
-        logging.warning("Could not find or drop constraint on `columns`")
+        logger.warning("Could not find or drop constraint on `columns`")
 
 
 def downgrade():

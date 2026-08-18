@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -28,12 +28,14 @@ from superset.commands.dataset.exceptions import (
     DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetInvalidError,
+    DatasetSoftDeletedTwinExistsError,
     TableNotFoundValidationError,
 )
+from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.extensions import security_manager
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -51,14 +53,13 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         dataset.fetch_metadata()
         return dataset
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         database_id = self._properties["database"]
         catalog = self._properties.get("catalog")
         schema = self._properties.get("schema")
         table_name = self._properties["table_name"]
         sql = self._properties.get("sql")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -74,6 +75,14 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             table = Table(table_name, schema, catalog)
 
             if not DatasetDAO.validate_uniqueness(database, table):
+                # Distinguish the hidden-twin case: uniqueness fails while
+                # the caller's dataset list looks empty. Raise the targeted
+                # 422 (naming the twin's uuid and the restore endpoint)
+                # instead of the opaque "already exists".
+                if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(
+                    database, table
+                ):
+                    raise DatasetSoftDeletedTwinExistsError(str(soft_twin.uuid))
                 exceptions.append(DatasetExistsValidationError(table))
 
         # Validate table exists on dataset if sql is not provided
@@ -95,10 +104,25 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                 )
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+            except SupersetParseError as ex:
+                exceptions.append(
+                    ValidationError(
+                        f"Invalid SQL: {ex.error.message}",
+                        field_name="sql",
+                    )
+                )
+        elif database:
+            try:
+                security_manager.raise_for_access(
+                    database=database,
+                    table=table,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+
+        # Datasets have editors only — there is no ``sqlatable_viewers`` table,
+        # so a ``viewers`` key would be dropped by the DAO's ``setattr`` loop.
+        populate_subjects(self._properties, exceptions, include_viewers=False)
+
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)

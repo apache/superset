@@ -58,17 +58,35 @@ const getMemoizedSectionsToRender = memoizeOne(
       }
     });
 
-    const { datasourceAndVizType } = sections;
+    const {
+      datasourceAndVizType,
+      matrixifyRows = null,
+      matrixifyColumns = null,
+      matrixifyCells = null,
+      matrixifyEnableSection = null,
+    } = sections;
 
     // list of datasource-specific controls that should be removed if the datasource is a specific type
-    const filterControlsForTypes = [DatasourceType.Query, DatasourceType.Table];
+    const filterControlsForTypes = [
+      DatasourceType.Query,
+      DatasourceType.Table,
+      DatasourceType.SemanticView,
+    ];
     const invalidControls = filterControlsForTypes.includes(datasourceType)
       ? ['granularity']
       : ['granularity_sqla', 'time_grain_sqla'];
 
-    return [datasourceAndVizType as ControlPanelSectionConfig]
+    return [
+      datasourceAndVizType as ControlPanelSectionConfig,
+      matrixifyEnableSection as ControlPanelSectionConfig,
+      matrixifyColumns as ControlPanelSectionConfig,
+      matrixifyRows as ControlPanelSectionConfig,
+      matrixifyCells as ControlPanelSectionConfig,
+    ]
+      .filter(Boolean) // Filter out null/undefined sections
       .concat(controlPanelSections.filter(isControlPanelSectionConfig))
       .map(section => {
+        if (!section) return null;
         const { controlSetRows } = section;
         return {
           ...section,
@@ -83,7 +101,8 @@ const getMemoizedSectionsToRender = memoizeOne(
                 .map(item => expandControlConfig(item, controlOverrides)),
             ) || [],
         };
-      });
+      })
+      .filter(Boolean); // Filter out any null results
   },
 );
 

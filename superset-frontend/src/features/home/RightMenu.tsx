@@ -16,30 +16,52 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Remove fa-icon
-/* eslint-disable icons/no-fa-icons-usage */
-import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
-
+import {
+  useState,
+  useEffect,
+  FC,
+  useMemo,
+  ReactNode,
+  Component,
+  ErrorInfo,
+} from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { get, isEmpty } from 'lodash';
-
+import { isEmpty } from 'lodash-es';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
+  SupersetClient,
+  getExtensionsRegistry,
+  isFeatureEnabled,
+  FeatureFlag,
+  CACHE_KEY,
+} from '@superset-ui/core';
+import {
   styled,
   css,
   SupersetTheme,
-  SupersetClient,
-  getExtensionsRegistry,
   useTheme,
-} from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
-import { Tooltip } from 'src/components/Tooltip';
-import { Icons } from 'src/components/Icons';
-import Label from 'src/components/Label';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+} from '@apache-superset/core/theme';
+import {
+  Tag,
+  Tooltip,
+  Menu,
+  Icons,
+  Typography,
+  TelemetryPixel,
+  Drawer,
+  Button,
+} from '@superset-ui/core/components';
+import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
+import {
+  ensureAppRoot,
+  navigateTo,
+  stripAppRoot,
+} from 'src/utils/navigationUtils';
+import { useIsMobile } from 'src/hooks/useIsMobile';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
@@ -51,27 +73,17 @@ import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
-import TelemetryPixel from 'src/components/TelemetryPixel';
-import LanguagePicker from './LanguagePicker';
+import { useThemeContext } from 'src/theme/ThemeProvider';
+import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
+import { useLanguageMenuItems } from './LanguagePicker';
 import {
   ExtensionConfigs,
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
+import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 const extensionsRegistry = getExtensionsRegistry();
-
-const versionInfoStyles = (theme: SupersetTheme) => css`
-  padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
-    ${theme.gridUnit * 4}px ${theme.gridUnit * 7}px;
-  color: ${theme.colors.grayscale.base};
-  font-size: ${theme.typography.sizes.xs}px;
-  white-space: nowrap;
-`;
-
-const styledDisabled = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light1};
-`;
 
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
@@ -79,7 +91,6 @@ const StyledDiv = styled.div<{ align: string }>`
   flex-direction: row;
   justify-content: ${({ align }) => align};
   align-items: center;
-  margin-right: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const StyledMenuItemWithIcon = styled.div`
@@ -90,34 +101,21 @@ const StyledMenuItemWithIcon = styled.div`
 `;
 
 const StyledAnchor = styled.a`
-  padding-right: ${({ theme }) => theme.gridUnit}px;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
+  padding-right: ${({ theme }) => theme.sizeUnit}px;
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
-const tagStyles = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light5};
-`;
-
-const styledChildMenu = (theme: SupersetTheme) => css`
-  &:hover {
-    color: ${theme.colors.primary.base} !important;
-    cursor: pointer !important;
-  }
-`;
-
-const { SubMenu } = Menu;
-
-const StyledSubMenu = styled(SubMenu)`
-  ${({ theme }) => css`
-    [data-icon='caret-down'] {
-      color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.xxs}px;
-      margin-left: ${theme.gridUnit}px;
+const StyledMenuItem = styled.div<{ disabled?: boolean }>`
+  ${({ theme, disabled }) => css`
+    &&:hover {
+      color: ${!disabled && theme.colorPrimary};
+      cursor: ${!disabled ? 'pointer' : 'not-allowed'};
     }
-    &.antd5-menu-submenu-active {
-      .antd5-menu-title-content {
-        color: ${theme.colors.primary.base};
-      }
+    ${
+      disabled &&
+      css`
+        color: ${theme.colorTextDisabled};
+      `
     }
   `}
 `;
@@ -128,6 +126,7 @@ const RightMenu = ({
   navbarRight,
   isFrontendRoute,
   environmentTag,
+  menu,
   setQuery,
 }: RightMenuProps & {
   setQuery: ({
@@ -138,6 +137,9 @@ const RightMenu = ({
     datasetAdded?: boolean;
   }) => void;
 }) => {
+  const theme = useTheme();
+  const isMobile = useIsMobile();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -152,6 +154,7 @@ const RightMenu = ({
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
+    SCARF_ANALYTICS,
   } = useSelector<any, ExtensionConfigs>(state => state.common.conf);
   const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
   const [showCSVUploadModal, setShowCSVUploadModal] = useState<boolean>(false);
@@ -181,10 +184,18 @@ const RightMenu = ({
     useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
+  const {
+    setThemeMode,
+    themeMode,
+    clearLocalOverrides,
+    hasDevOverride,
+    canSetMode,
+    canDetectOSPreference,
+  } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
       label: t('Data'),
-      icon: 'fa-database',
+      icon: <Icons.DatabaseOutlined data-test={`menu-item-${t('Data')}`} />,
       childs: [
         {
           label: t('Connect database'),
@@ -224,8 +235,11 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
+      // Keep the URL relative so isFrontendRoute() matches and Link navigates
+      // via React Router; the <Typography.Link> fallback applies ensureAppRoot
+      // exactly once for non-frontend routes.
       url: '/sqllab?new=true',
-      icon: 'fa-fw fa-search',
+      icon: <Icons.SearchOutlined data-test={`menu-item-${t('SQL query')}`} />,
       perm: 'can_sqllab',
       view: 'Superset',
     },
@@ -234,14 +248,16 @@ const RightMenu = ({
       url: Number.isInteger(dashboardId)
         ? `/chart/add?dashboard_id=${dashboardId}`
         : '/chart/add',
-      icon: 'fa-fw fa-bar-chart',
+      icon: <Icons.BarChartOutlined data-test={`menu-item-${t('Chart')}`} />,
       perm: 'can_write',
       view: 'Chart',
     },
     {
       label: t('Dashboard'),
-      url: '/dashboard/new',
-      icon: 'fa-fw fa-dashboard',
+      url: '/dashboard/new/',
+      icon: (
+        <Icons.DashboardOutlined data-test={`menu-item-${t('Dashboard')}`} />
+      ),
       perm: 'can_write',
       view: 'Dashboard',
     },
@@ -289,10 +305,6 @@ const RightMenu = ({
     }
   }, [canDatabase, canDataset]);
 
-  const menuIcon = (menu: MenuObjectProps) => (
-    <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
-  );
-
   const handleMenuSelection = (itemChose: any) => {
     if (itemChose.key === GlobalMenuDataOptions.DbConnection) {
       setShowDatabaseModal(true);
@@ -317,22 +329,23 @@ const RightMenu = ({
     "Enable 'Allow file uploads to database' in any database's settings",
   );
 
-  const buildMenuItem = (item: MenuObjectChildProps) =>
-    item.disable ? (
-      <Menu.Item key={item.name} css={styledDisabled} disabled>
+  const buildMenuItem = (item: MenuObjectChildProps): MenuItem => ({
+    key: item.name || item.label,
+    label: item.disable ? (
+      <StyledMenuItem disabled>
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
         </Tooltip>
-      </Menu.Item>
+      </StyledMenuItem>
+    ) : item.url ? (
+      <Typography.Link href={ensureAppRoot(item.url)}>
+        {item.label}
+      </Typography.Link>
     ) : (
-      <Menu.Item key={item.name} css={styledChildMenu}>
-        {item.url ? (
-          <a href={ensureAppRoot(item.url)}> {item.label} </a>
-        ) : (
-          item.label
-        )}
-      </Menu.Item>
-    );
+      item.label
+    ),
+    disabled: item.disable,
+  });
 
   const onMenuOpen = (openKeys: string[]) => {
     // We should query the API only if opening Data submenus
@@ -359,10 +372,345 @@ const RightMenu = ({
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
   const handleLogout = () => {
-    localStorage.removeItem('redux');
+    try {
+      window.localStorage.removeItem('redux');
+      window.sessionStorage.removeItem('login_attempted');
+      // Purge the namespaced Cache API store so cached GET responses are not
+      // retained on the device after the session ends. Best-effort: the
+      // returned promise is not awaited since logout navigates away.
+      if (typeof caches !== 'undefined') {
+        caches.delete(CACHE_KEY).catch(() => {
+          /* best-effort: ignore cache deletion failures */
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to clear storage on logout:', error);
+    }
   };
 
-  const theme = useTheme();
+  // Use the theme menu hook
+  const themeMenuItem = useThemeMenuItems({
+    setThemeMode,
+    themeMode,
+    hasLocalOverride: hasDevOverride(),
+    onClearLocalSettings: clearLocalOverrides,
+    allowOSPreference: canDetectOSPreference(),
+  });
+
+  const languageMenuItem = useLanguageMenuItems({
+    locale: navbarRight.locale || 'en',
+    languages: navbarRight.languages || {},
+  });
+
+  // Build main menu items
+  const menuItems = useMemo(() => {
+    // Build menu items for the new dropdown
+    const buildNewDropdownItems = (): MenuItem[] => {
+      const items: MenuItem[] = [];
+
+      dropdownItems?.forEach(menu => {
+        const canShowChild = menu.childs?.some(
+          item => typeof item === 'object' && !!item.perm,
+        );
+
+        if (menu.childs) {
+          if (canShowChild) {
+            const childItems: MenuItem[] = [];
+            menu.childs.forEach((item, idx) => {
+              if (typeof item !== 'string' && item.name && item.perm) {
+                if (idx === 3) {
+                  childItems.push({ type: 'divider', key: `divider-${idx}` });
+                }
+                childItems.push(buildMenuItem(item));
+              }
+            });
+
+            items.push({
+              key: `sub2_${menu.label}`,
+              label: menu.label,
+              icon: menu.icon,
+              children: childItems,
+              popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+            });
+          } else if (menu.url) {
+            if (
+              findPermission(menu.perm as string, menu.view as string, roles)
+            ) {
+              items.push({
+                key: menu.label,
+                label: isFrontendRoute(menu.url) ? (
+                  <Link to={stripAppRoot(menu.url || '')}>{menu.label}</Link>
+                ) : (
+                  <Typography.Link href={ensureAppRoot(menu.url || '')}>
+                    {menu.label}
+                  </Typography.Link>
+                ),
+                icon: menu.icon,
+              });
+            }
+          }
+        } else if (
+          findPermission(menu.perm as string, menu.view as string, roles)
+        ) {
+          items.push({
+            key: menu.label,
+            label: isFrontendRoute(menu.url) ? (
+              <Link to={stripAppRoot(menu.url || '')}>{menu.label}</Link>
+            ) : (
+              <Typography.Link href={ensureAppRoot(menu.url || '')}>
+                {menu.label}
+              </Typography.Link>
+            ),
+            icon: menu.icon,
+          });
+        }
+      });
+
+      return items;
+    };
+
+    // Build settings menu items
+    const buildSettingsMenuItems = (): MenuItem[] => {
+      const items: MenuItem[] = [];
+
+      settings?.forEach((section, index) => {
+        const sectionItems: MenuItem[] = [];
+
+        section.childs?.forEach(child => {
+          if (typeof child !== 'string') {
+            const menuItemDisplay = RightMenuItemIconExtension ? (
+              <StyledMenuItemWithIcon>
+                {child.label}
+                <RightMenuItemIconExtension menuChild={child} />
+              </StyledMenuItemWithIcon>
+            ) : (
+              child.label
+            );
+
+            sectionItems.push({
+              key: child.label,
+              label: isFrontendRoute(child.url) ? (
+                <Link to={stripAppRoot(child.url || '')}>
+                  {menuItemDisplay}
+                </Link>
+              ) : (
+                <Typography.Link
+                  href={child.url || ''}
+                  css={css`
+                    display: flex;
+                    align-items: center;
+                    line-height: ${theme.sizeUnit * 10}px;
+                  `}
+                >
+                  {menuItemDisplay}
+                </Typography.Link>
+              ),
+            });
+          }
+        });
+
+        items.push({
+          type: 'group',
+          label: section.label,
+          key: section.label,
+          children: sectionItems,
+        });
+
+        if (index < settings.length - 1) {
+          items.push({ type: 'divider', key: `divider_${index}` });
+        }
+      });
+
+      if (!navbarRight.user_is_anonymous) {
+        items.push({ type: 'divider', key: 'user-divider' });
+
+        const userItems: MenuItem[] = [];
+        if (navbarRight.user_info_url) {
+          userItems.push({
+            key: 'info',
+            label: (
+              <Typography.Link href={ensureAppRoot(navbarRight.user_info_url)}>
+                {t('Info')}
+              </Typography.Link>
+            ),
+          });
+        }
+        const showLogout =
+          !isEmbedded() ||
+          !isFeatureEnabled(FeatureFlag.DisableEmbeddedSupersetLogout);
+        if (showLogout) {
+          userItems.push({
+            key: 'logout',
+            label: (
+              <Typography.Link href={navbarRight.user_logout_url}>
+                {t('Logout')}
+              </Typography.Link>
+            ),
+            onClick: handleLogout,
+          });
+        }
+
+        items.push({
+          type: 'group',
+          label: t('User'),
+          key: 'user-section',
+          children: userItems,
+        });
+      }
+
+      if (navbarRight.version_string || navbarRight.version_sha) {
+        items.push({ type: 'divider', key: 'version-info-divider' });
+
+        const aboutItem: ItemType = {
+          type: 'group',
+          label: t('About'),
+          key: 'about-section',
+          children: [
+            {
+              key: 'about-info',
+              style: { height: 'auto', minHeight: 'auto' },
+              label: (
+                <div
+                  css={(themeArg: SupersetTheme) => css`
+                    font-size: ${themeArg.fontSizeSM}px;
+                    color: ${themeArg.colorTextSecondary || themeArg.colorText};
+                    white-space: pre-wrap;
+                    padding: ${themeArg.sizeUnit}px ${themeArg.sizeUnit * 2}px;
+                  `}
+                >
+                  {[
+                    navbarRight.show_watermark &&
+                      t('Powered by Apache Superset'),
+                    navbarRight.version_string &&
+                      `${t('Version')}: ${navbarRight.version_string}`,
+                    navbarRight.version_sha &&
+                      `${t('SHA')}: ${navbarRight.version_sha}`,
+                    navbarRight.build_number &&
+                      `${t('Build')}: ${navbarRight.build_number}`,
+                  ]
+                    .filter(Boolean)
+                    .join('\n')}
+                </div>
+              ),
+            },
+          ],
+        };
+        items.push(aboutItem);
+      }
+      return items;
+    };
+
+    const items: MenuItem[] = [];
+
+    if (RightMenuExtension) {
+      items.push({
+        key: 'extension',
+        label: <RightMenuExtension />,
+      });
+    }
+
+    if (!navbarRight.user_is_anonymous && showActionDropdown) {
+      items.push({
+        key: 'new-dropdown',
+        label: <Icons.PlusOutlined data-test="new-dropdown-icon" />,
+        className: 'submenu-with-caret',
+        icon: <Icons.DownOutlined iconSize="xs" />,
+        children: buildNewDropdownItems(),
+        popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      });
+    }
+
+    if (canSetMode()) {
+      items.push(themeMenuItem);
+    }
+
+    if (navbarRight.show_language_picker && languageMenuItem) {
+      items.push(languageMenuItem);
+    }
+
+    items.push({
+      key: 'settings',
+      label: t('Settings'),
+      icon: <Icons.DownOutlined iconSize="xs" />,
+      children: buildSettingsMenuItems(),
+      className: 'submenu-with-caret',
+      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+    });
+
+    return items;
+  }, [
+    RightMenuExtension,
+    navbarRight,
+    showActionDropdown,
+    canSetMode,
+    theme.colorPrimary,
+    themeMenuItem,
+    languageMenuItem,
+    dropdownItems,
+    roles,
+    settings,
+    RightMenuItemIconExtension,
+    buildMenuItem,
+    handleLogout,
+  ]);
+
+  // Build mobile menu items - consumption only (no create/admin actions)
+  const mobileMenuItems = useMemo(() => {
+    const items: MenuItem[] = [];
+
+    // Add Dashboards link at top (from main menu)
+    // Match on the FAB-internal `name`, which is stable across locales
+    // (`label` is translated and would break in non-English deployments)
+    const dashboardsMenu = menu?.find(item => item.name === 'Dashboards');
+    if (dashboardsMenu) {
+      const dashboardUrl = dashboardsMenu.url || '/dashboard/list/';
+      items.push({
+        key: 'dashboards',
+        label: isFrontendRoute(dashboardUrl) ? (
+          <Link to={stripAppRoot(dashboardUrl)}>{t('Dashboards')}</Link>
+        ) : (
+          <Typography.Link href={ensureAppRoot(dashboardUrl)}>
+            {t('Dashboards')}
+          </Typography.Link>
+        ),
+        icon: <Icons.DashboardOutlined />,
+      });
+    }
+
+    // Add theme menu (flatten children directly)
+    menuItems.forEach(item => {
+      if (!item || !('key' in item)) return;
+
+      // Only include theme-sub-menu and language picker
+      if (item.key === 'theme-sub-menu' || item.key === 'language-submenu') {
+        items.push({ type: 'divider', key: `divider-before-${item.key}` });
+
+        if ('children' in item && item.children) {
+          // Theme menu already has a nested group, so just add its children directly
+          item.children.forEach(child => {
+            items.push(child);
+          });
+        } else {
+          items.push(item);
+        }
+      }
+
+      // Extract user-related items from settings
+      if (item.key === 'settings' && 'children' in item && item.children) {
+        item.children.forEach(child => {
+          if (!child || !('key' in child)) return;
+
+          // Only include user-section and about-section
+          if (child.key === 'user-section' || child.key === 'about-section') {
+            items.push({ type: 'divider', key: `divider-before-${child.key}` });
+            items.push(child);
+          }
+        });
+      }
+    });
+
+    return items;
+  }, [menu, menuItems, isFrontendRoute]);
 
   return (
     <StyledDiv align={align}>
@@ -398,183 +746,125 @@ const RightMenu = ({
           type="columnar"
         />
       )}
-      {environmentTag?.text && (
-        <Label
-          css={{ borderRadius: `${theme.gridUnit * 125}px` }}
-          color={
-            /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
-              ? environmentTag.color
-              : get(theme.colors, environmentTag.color)
-          }
-        >
-          <span css={tagStyles}>{environmentTag.text}</span>
-        </Label>
-      )}
-      <Menu
-        css={css`
-          display: flex;
-          flex-direction: row;
-        `}
-        selectable={false}
-        mode="horizontal"
-        onClick={handleMenuSelection}
-        onOpenChange={onMenuOpen}
-        disabledOverflow
-      >
-        {RightMenuExtension && <RightMenuExtension />}
-        {!navbarRight.user_is_anonymous && showActionDropdown && (
-          <StyledSubMenu
-            key="sub1"
-            data-test="new-dropdown"
-            title={
-              <Icons.PlusOutlined
-                iconColor={theme.colors.primary.dark1}
-                data-test="new-dropdown-icon"
-              />
-            }
-            icon={<Icons.CaretDownOutlined iconSize="xs" />}
+      {environmentTag?.text &&
+        (() => {
+          // Map color values to Ant Design semantic colors
+          const validAntDesignColors = [
+            'error',
+            'warning',
+            'success',
+            'processing',
+            'default',
+          ];
+
+          const tagColor = validAntDesignColors.includes(environmentTag.color)
+            ? environmentTag.color
+            : 'default';
+
+          return (
+            <Tag
+              color={tagColor}
+              css={css`
+                border-radius: ${theme.sizeUnit * 125}px;
+              `}
+            >
+              {environmentTag.text}
+            </Tag>
+          );
+        })()}
+      {/* Mobile: hamburger menu with drawer */}
+      {isMobile && (
+        <>
+          <Button
+            buttonStyle="link"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label={t('Menu')}
           >
-            {dropdownItems?.map?.(menu => {
-              const canShowChild = menu.childs?.some(
-                item => typeof item === 'object' && !!item.perm,
-              );
-              if (menu.childs) {
-                if (canShowChild) {
-                  return (
-                    <StyledSubMenu
-                      key={`sub2_${menu.label}`}
-                      className="data-menu"
-                      title={menu.label}
-                      icon={menuIcon(menu)}
-                    >
-                      {menu?.childs?.map?.((item, idx) =>
-                        typeof item !== 'string' && item.name && item.perm ? (
-                          <Fragment key={item.name}>
-                            {idx === 3 && <Menu.Divider />}
-                            {buildMenuItem(item)}
-                          </Fragment>
-                        ) : null,
-                      )}
-                    </StyledSubMenu>
-                  );
+            <Icons.MenuOutlined iconSize="l" />
+          </Button>
+          <Drawer
+            title={null}
+            placement="right"
+            onClose={() => setMobileMenuOpen(false)}
+            open={mobileMenuOpen}
+            width={280}
+            styles={{
+              header: { display: 'none' },
+              body: { padding: 0 },
+            }}
+          >
+            <Menu
+              mode="inline"
+              selectable={false}
+              onOpenChange={onMenuOpen}
+              onClick={info => {
+                handleMenuSelection(info);
+                // The reused desktop items navigate via anchors that only
+                // span their label text, but the drawer's tap target is the
+                // full menu row — navigate explicitly so row taps work.
+                if (info.key === 'info' && navbarRight.user_info_url) {
+                  navigateTo(navbarRight.user_info_url);
+                  return;
                 }
-                if (!menu.url) {
-                  return null;
+                if (info.key === 'logout' && navbarRight.user_logout_url) {
+                  navigateTo(navbarRight.user_logout_url);
+                  return;
+                }
+                setMobileMenuOpen(false);
+              }}
+              items={mobileMenuItems}
+              css={css`
+                border-inline-end: none !important;
+              `}
+            />
+          </Drawer>
+        </>
+      )}
+      {/* Desktop: horizontal menu */}
+      {!isMobile && (
+        <Menu
+          css={css`
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            height: 100%;
+            border-bottom: none !important;
+
+            /* Remove the underline from menu items */
+            .ant-menu-item:after,
+            .ant-menu-submenu:after {
+              content: none !important;
+            }
+
+            .submenu-with-caret {
+              height: 100%;
+              padding: 0;
+              .ant-menu-submenu-title {
+                align-items: center;
+                display: flex;
+                gap: ${theme.sizeUnit * 2}px;
+                flex-direction: row-reverse;
+                height: 100%;
+              }
+              &.ant-menu-submenu::after {
+                inset-inline: ${theme.sizeUnit}px;
+              }
+              &.ant-menu-submenu:hover,
+              &.ant-menu-submenu-active {
+                .ant-menu-title-content {
+                  color: ${theme.colorPrimary};
                 }
               }
-              return (
-                findPermission(
-                  menu.perm as string,
-                  menu.view as string,
-                  roles,
-                ) && (
-                  <Menu.Item key={menu.label}>
-                    {isFrontendRoute(menu.url) ? (
-                      <Link to={menu.url || ''}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
-                      </Link>
-                    ) : (
-                      <a href={ensureAppRoot(menu.url || '')}>
-                        <i
-                          data-test={`menu-item-${menu.label}`}
-                          className={`fa ${menu.icon}`}
-                        />{' '}
-                        {menu.label}
-                      </a>
-                    )}
-                  </Menu.Item>
-                )
-              );
-            })}
-          </StyledSubMenu>
-        )}
-        <StyledSubMenu
-          key="sub3_settings"
-          title={t('Settings')}
-          icon={<Icons.CaretDownOutlined iconSize="xs" />}
-        >
-          {settings?.map?.((section, index) => [
-            <Menu.ItemGroup key={`${section.label}`} title={section.label}>
-              {section?.childs?.map?.(child => {
-                if (typeof child !== 'string') {
-                  const menuItemDisplay = RightMenuItemIconExtension ? (
-                    <StyledMenuItemWithIcon>
-                      {child.label}
-                      <RightMenuItemIconExtension menuChild={child} />
-                    </StyledMenuItemWithIcon>
-                  ) : (
-                    child.label
-                  );
-                  return (
-                    <Menu.Item key={`${child.label}`}>
-                      {isFrontendRoute(child.url) ? (
-                        <Link to={child.url || ''}>{menuItemDisplay}</Link>
-                      ) : (
-                        <a href={child.url || ''}>{menuItemDisplay}</a>
-                      )}
-                    </Menu.Item>
-                  );
-                }
-                return null;
-              })}
-            </Menu.ItemGroup>,
-            index < settings.length - 1 && (
-              <Menu.Divider key={`divider_${index}`} />
-            ),
-          ])}
-
-          {!navbarRight.user_is_anonymous && [
-            <Menu.Divider key="user-divider" />,
-            <Menu.ItemGroup key="user-section" title={t('User')}>
-              {navbarRight.user_info_url && (
-                <Menu.Item key="info">
-                  <a href={navbarRight.user_info_url}>{t('Info')}</a>
-                </Menu.Item>
-              )}
-              <Menu.Item key="logout" onClick={handleLogout}>
-                <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
-              </Menu.Item>
-            </Menu.ItemGroup>,
-          ]}
-          {(navbarRight.version_string || navbarRight.version_sha) && [
-            <Menu.Divider key="version-info-divider" />,
-            <Menu.ItemGroup key="about-section" title={t('About')}>
-              <div className="about-section">
-                {navbarRight.show_watermark && (
-                  <div css={versionInfoStyles}>
-                    {t('Powered by Apache Superset')}
-                  </div>
-                )}
-                {navbarRight.version_string && (
-                  <div css={versionInfoStyles}>
-                    {t('Version')}: {navbarRight.version_string}
-                  </div>
-                )}
-                {navbarRight.version_sha && (
-                  <div css={versionInfoStyles}>
-                    {t('SHA')}: {navbarRight.version_sha}
-                  </div>
-                )}
-                {navbarRight.build_number && (
-                  <div css={versionInfoStyles}>
-                    {t('Build')}: {navbarRight.build_number}
-                  </div>
-                )}
-              </div>
-            </Menu.ItemGroup>,
-          ]}
-        </StyledSubMenu>
-        {navbarRight.show_language_picker && (
-          <LanguagePicker
-            locale={navbarRight.locale}
-            languages={navbarRight.languages}
-          />
-        )}
-      </Menu>
+            }
+          `}
+          selectable={false}
+          mode="horizontal"
+          onClick={handleMenuSelection}
+          onOpenChange={onMenuOpen}
+          disabledOverflow
+          items={menuItems}
+        />
+      )}
       {navbarRight.documentation_url && (
         <>
           <StyledAnchor
@@ -582,11 +872,12 @@ const RightMenu = ({
             target="_blank"
             rel="noreferrer"
             title={navbarRight.documentation_text || t('Documentation')}
+            aria-label={navbarRight.documentation_text || t('Documentation')}
           >
             {navbarRight.documentation_icon ? (
-              <i className={navbarRight.documentation_icon} />
+              <Icons.BookOutlined />
             ) : (
-              <i className="fa fa-question" />
+              <Icons.QuestionCircleOutlined />
             )}
           </StyledAnchor>
           <span>&nbsp;</span>
@@ -599,11 +890,12 @@ const RightMenu = ({
             target="_blank"
             rel="noreferrer"
             title={navbarRight.bug_report_text || t('Report a bug')}
+            aria-label={navbarRight.bug_report_text || t('Report a bug')}
           >
             {navbarRight.bug_report_icon ? (
               <i className={navbarRight.bug_report_icon} />
             ) : (
-              <i className="fa fa-bug" />
+              <Icons.BugOutlined />
             )}
           </StyledAnchor>
           <span>&nbsp;</span>
@@ -611,14 +903,17 @@ const RightMenu = ({
       )}
       {navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>
-          <i className="fa fa-fw fa-sign-in" />
-          {t('Login')}
+          <Icons.LoginOutlined /> {t('Login')}
         </StyledAnchor>
       )}
       <TelemetryPixel
         version={navbarRight.version_string}
-        sha={navbarRight.version_sha}
-        build={navbarRight.build_number}
+        // Build details may be redacted to empty/null for non-admins; fall back
+        // to the component's "unknown" defaults instead of emitting empty path
+        // segments in the Scarf pixel URL.
+        sha={navbarRight.version_sha || undefined}
+        build={navbarRight.build_number || undefined}
+        enabled={SCARF_ANALYTICS !== false}
       />
     </StyledDiv>
   );
@@ -638,23 +933,39 @@ const RightMenuWithQueryWrapper: FC<RightMenuProps> = props => {
 // Superset still has multiple entry points, and not all of them have
 // the same setup, and critically, not all of them have the QueryParamProvider.
 // This wrapper ensures the RightMenu renders regardless of the provider being present.
-class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
-  state = {
-    hasError: false,
-  };
+// Note: Error boundaries require class components in React - there is no hooks equivalent
+// for getDerivedStateFromError and componentDidCatch.
+interface RightMenuErrorWrapperState {
+  hasError: boolean;
+}
 
-  static getDerivedStateFromError() {
+// eslint-disable-next-line react-prefer-function-component/react-prefer-function-component -- componentDidCatch requires class component
+class RightMenuErrorWrapper extends Component<
+  RightMenuProps & { children?: ReactNode },
+  RightMenuErrorWrapperState
+> {
+  constructor(props: RightMenuProps & { children?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): RightMenuErrorWrapperState {
     return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    console.error('RightMenu error caught:', error, errorInfo);
   }
 
   noop = () => {};
 
   render() {
+    const { children, ...rightMenuProps } = this.props;
     if (this.state.hasError) {
-      return <RightMenu setQuery={this.noop} {...this.props} />;
+      return <RightMenu setQuery={this.noop} {...rightMenuProps} />;
     }
 
-    return this.props.children;
+    return children;
   }
 }
 

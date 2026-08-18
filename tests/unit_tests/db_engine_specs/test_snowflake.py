@@ -216,21 +216,30 @@ def test_adjust_engine_params_fully_qualified() -> None:
     url = make_url("snowflake://user:pass@account/database_name/default")
 
     uri = SnowflakeEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "snowflake://user:pass@account/database_name/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "snowflake://user:pass@account/database_name/default"
+    )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "snowflake://user:pass@account/database_name/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "snowflake://user:pass@account/database_name/new_schema"
+    )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "snowflake://user:pass@account/new_catalog/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "snowflake://user:pass@account/new_catalog/default"
+    )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
         url,
@@ -238,7 +247,10 @@ def test_adjust_engine_params_fully_qualified() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "snowflake://user:pass@account/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "snowflake://user:pass@account/new_catalog/new_schema"
+    )
 
 
 def test_adjust_engine_params_catalog_only() -> None:
@@ -250,21 +262,30 @@ def test_adjust_engine_params_catalog_only() -> None:
     url = make_url("snowflake://user:pass@account/database_name")
 
     uri = SnowflakeEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "snowflake://user:pass@account/database_name"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "snowflake://user:pass@account/database_name"
+    )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "snowflake://user:pass@account/database_name/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "snowflake://user:pass@account/database_name/new_schema"
+    )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "snowflake://user:pass@account/new_catalog"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "snowflake://user:pass@account/new_catalog"
+    )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
         url,
@@ -272,7 +293,10 @@ def test_adjust_engine_params_catalog_only() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "snowflake://user:pass@account/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "snowflake://user:pass@account/new_catalog/new_schema"
+    )
 
 
 def test_get_default_catalog() -> None:
@@ -350,6 +374,48 @@ def test_mask_encrypted_extra_no_fields() -> None:
             },
         }
     )
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Snowflake uses equality operators for boolean filters instead of IS.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    # Create a mock SQLAlchemy column
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_TRUE filter - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    result_true = SnowflakeEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    # The result should be a equality comparison, not an IS comparison
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    # Test IS_FALSE filter
+    result_false = SnowflakeEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that Snowflake has the use_equality_for_boolean_filters property set to True.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert SnowflakeEngineSpec.use_equality_for_boolean_filters is True
 
 
 def test_unmask_encrypted_extra() -> None:

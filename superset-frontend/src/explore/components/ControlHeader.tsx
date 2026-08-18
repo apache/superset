@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode, useMemo, useRef } from 'react';
-import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { Tooltip } from 'src/components/Tooltip';
-import { FormLabel } from 'src/components/Form';
-import { Icons } from 'src/components/Icons';
+import { handleKeyboardActivation } from '@superset-ui/core';
+import { FC, ReactNode } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
+import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 type ValidationError = string;
 
@@ -38,14 +38,22 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  // Allow extra props from control spread patterns (e.g. {...this.props})
+  [key: string]: unknown;
 };
 
 const iconStyles = css`
   &.anticon {
     font-size: unset;
+    overflow: visible;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+    padding-bottom: 0.1em;
     .anticon {
       line-height: unset;
       vertical-align: unset;
+      overflow: visible;
     }
   }
 `;
@@ -64,23 +72,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   warning,
   danger,
 }) => {
-  const { gridUnit, colors } = useTheme();
-  const hasHadNoErrors = useRef(false);
-  const labelColor = useMemo(() => {
-    if (!validationErrors.length) {
-      hasHadNoErrors.current = true;
-    }
-
-    if (hasHadNoErrors.current) {
-      if (validationErrors.length) {
-        return colors.error.base;
-      }
-
-      return 'unset';
-    }
-
-    return colors.warning.base;
-  }, [colors.error.base, colors.warning.base, validationErrors.length]);
+  const theme = useTheme();
 
   if (!label) {
     return null;
@@ -97,7 +89,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           position: absolute;
           top: 50%;
           right: 0;
-          padding-left: ${gridUnit}px;
+          padding-left: ${theme.sizeUnit}px;
           transform: translate(100%, -50%);
           white-space: nowrap;
         `}
@@ -118,11 +110,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
         )}
         {renderTrigger && (
           <span>
-            <InfoTooltipWithTrigger
+            <InfoTooltip
               label={t('bolt')}
               tooltip={t('Changing this control takes effect instantly')}
               placement="top"
-              icon="bolt"
+              type="notice"
             />{' '}
           </span>
         )}
@@ -135,15 +127,25 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       <div className="pull-left">
         <FormLabel
           css={(theme: SupersetTheme) => css`
-            margin-bottom: ${theme.gridUnit * 0.5}px;
+            margin-bottom: ${theme.sizeUnit * 0.5}px;
             position: relative;
+            font-size: ${theme.fontSizeSM}px;
+            overflow: visible;
+            padding-bottom: 0.1em;
           `}
+          htmlFor={name}
         >
-          {leftNode && <span>{leftNode}</span>}
+          {leftNode && <span>{leftNode} </span>}
+          {/* This label text sits inside FormLabel's <label>, and HTML5
+              prohibits interactive content (including <button>) as a
+              descendant of <label>, so a real button tag isn't an option
+              here. */}
           <span
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="button"
             tabIndex={0}
             onClick={onClick}
+            onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
             style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
@@ -152,7 +154,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
                 <Icons.WarningOutlined
-                  iconColor={colors.warning.base}
+                  iconColor={theme.colorWarning}
                   css={css`
                     vertical-align: baseline;
                   `}
@@ -164,26 +166,26 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <Icons.ExclamationCircleOutlined
-                  iconColor={colors.error.base}
+                <Icons.CloseCircleOutlined
+                  iconColor={theme.colorErrorText}
                   iconSize="s"
                 />
               </Tooltip>{' '}
             </span>
           )}
           {validationErrors?.length > 0 && (
-            <span data-test="error-tooltip">
+            <span
+              data-test="error-tooltip"
+              css={css`
+                cursor: pointer;
+              `}
+            >
               <Tooltip
                 id="error-tooltip"
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.ExclamationCircleOutlined
-                  css={css`
-                    ${iconStyles};
-                    color: ${labelColor};
-                  `}
-                />
+                <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
               </Tooltip>{' '}
             </span>
           )}

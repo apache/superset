@@ -22,6 +22,8 @@
 
 set -e
 
+export NODE_NO_WARNINGS=1
+
 for file in $( find ../superset/translations/** -name '*.po' );
 do
   extension=${file##*.}
@@ -29,7 +31,11 @@ do
   if [ $extension == "po" ]
   then
     echo "po2json --domain superset --format jed1.x $file $filename.json"
-    po2json --domain superset --format jed1.x $file $filename.json
-    prettier --write $filename.json
+    po2json --domain superset --format jed1.x --fuzzy $file $filename.json
+    # messages.json is gitignored (generated output); oxfmt >=0.62 respects
+    # .gitignore even for explicitly-passed paths, so it would otherwise
+    # exit non-zero here with "All matched files may have been excluded by
+    # ignore rules." Skip the format step for this file instead of failing.
+    oxfmt --write --no-error-on-unmatched-pattern $(realpath $filename.json)
   fi
 done

@@ -21,9 +21,8 @@ import logging
 from typing import Any, Callable, TYPE_CHECKING
 from urllib.parse import urlparse
 
-from flask import current_app, Flask, request, Response, session
+from flask import current_app as app, Flask, request, Response, session
 from flask_login import login_user
-from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
 
 from superset.utils.class_utils import load_class_from_name
@@ -43,39 +42,13 @@ if TYPE_CHECKING:
 class MachineAuthProvider:
     def __init__(
         self,
-        auth_webdriver_func_override: Callable[
-            [WebDriver | BrowserContext, User], WebDriver | BrowserContext
-        ]
+        auth_webdriver_func_override: Callable[[BrowserContext, User], BrowserContext]
         | None = None,
     ):
-        # This is here in order to allow for the authenticate_webdriver
-        # or authenticate_browser_context (if PLAYWRIGHT_REPORTS_AND_THUMBNAILS is
-        # enabled) func to be overridden via config, as opposed to the entire
+        # This is here in order to allow for the authenticate_browser_context
+        # func to be overridden via config, as opposed to the entire
         # provider implementation
         self._auth_webdriver_func_override = auth_webdriver_func_override
-
-    def authenticate_webdriver(
-        self,
-        driver: WebDriver,
-        user: User,
-    ) -> WebDriver:
-        """
-        Default AuthDriverFuncType type that sets a session cookie flask-login style
-        :return: The WebDriver passed in (fluent)
-        """
-        # Short-circuit this method if we have an override configured
-        if self._auth_webdriver_func_override:
-            return self._auth_webdriver_func_override(driver, user)
-
-        # Setting cookies requires doing a request first
-        driver.get(headless_url("/login/"))
-
-        cookies = self.get_cookies(user)
-
-        for cookie_name, cookie_val in cookies.items():
-            driver.add_cookie({"name": cookie_name, "value": cookie_val})
-
-        return driver
 
     def authenticate_browser_context(
         self,
@@ -86,7 +59,7 @@ class MachineAuthProvider:
         if self._auth_webdriver_func_override:
             return self._auth_webdriver_func_override(browser_context, user)
 
-        url = urlparse(current_app.config["WEBDRIVER_BASEURL"])
+        url = urlparse(app.config["WEBDRIVER_BASEURL"])
 
         # Setting cookies requires doing a request first
         page = browser_context.new_page()
@@ -122,13 +95,13 @@ class MachineAuthProvider:
     @staticmethod
     def get_auth_cookies(user: User) -> dict[str, str]:
         # Login with the user specified to get the reports
-        with current_app.test_request_context("/login"):
+        with app.test_request_context("/login"):
             login_user(user)
             # A mock response object to get the cookie information from
             response = Response()
             # To ensure all `after_request` functions are called i.e Websockets JWT Auth
-            current_app.process_response(response)
-            current_app.session_interface.save_session(current_app, session, response)
+            app.process_response(response)
+            app.session_interface.save_session(app, session, response)
 
         cookies = {}
 

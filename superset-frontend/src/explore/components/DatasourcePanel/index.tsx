@@ -16,28 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useContext, useMemo, useState } from 'react';
-import {
-  css,
-  DatasourceType,
-  Metric,
-  QueryFormData,
-  styled,
-  t,
-} from '@superset-ui/core';
+import { useContext, useDeferredValue, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { DatasourceType, Metric, QueryFormData } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 import { matchSorter, rankings } from 'match-sorter';
-import Alert from 'src/components/Alert';
+import { Input } from '@superset-ui/core/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { Input } from 'src/components/Input';
-import { FAST_DEBOUNCE } from 'src/constants';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
-import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { DndItemType } from '../DndItemType';
 import { DatasourceFolder, DatasourcePanelColumn, DndItemValue } from './types';
 import { DropzoneContext } from '../ExploreContainer';
@@ -59,6 +52,7 @@ export interface IDatasource {
   sql?: string | null;
   datasource_name?: string | null;
   name?: string | null;
+  catalog?: string | null;
   schema?: string | null;
 }
 
@@ -75,34 +69,30 @@ export interface Props {
 
 const DatasourceContainer = styled.div`
   ${({ theme }) => css`
-    background-color: ${theme.colors.grayscale.light5};
     position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
     max-height: 100%;
-    .ant-collapse {
-      height: auto;
-    }
     .field-selections {
-      padding: 0 0 ${theme.gridUnit}px;
+      padding: 0 0 ${theme.sizeUnit}px;
       overflow: auto;
       height: 100%;
     }
     .field-length {
-      margin-bottom: ${theme.gridUnit * 2}px;
-      font-size: ${theme.typography.sizes.s}px;
-      color: ${theme.colors.grayscale.light1};
+      margin-bottom: ${theme.sizeUnit * 2}px;
+      font-size: ${theme.fontSizeSM}px;
+      color: ${theme.colorTextTertiary};
     }
     .form-control.input-md {
       display: inline-flex;
-      width: calc(100% - ${theme.gridUnit * 8}px);
-      height: ${theme.gridUnit * 8}px;
-      margin: ${theme.gridUnit * 2}px auto;
+      width: calc(100% - ${theme.sizeUnit * 8}px);
+      height: ${theme.sizeUnit * 8}px;
+      margin: ${theme.sizeUnit * 2}px auto;
     }
     .type-label {
-      font-size: ${theme.typography.sizes.s}px;
-      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.fontSizeSM}px;
+      color: ${theme.colorTextSecondary};
     }
     .Control {
       padding-bottom: 0;
@@ -112,7 +102,7 @@ const DatasourceContainer = styled.div`
 
 const StyledInfoboxWrapper = styled.div`
   ${({ theme }) => css`
-    margin: 0 ${theme.gridUnit * 2.5}px;
+    margin: 0 ${theme.sizeUnit * 2.5}px;
 
     span {
       text-decoration: underline;
@@ -131,7 +121,7 @@ const sortColumns = (slice: DatasourcePanelColumn[]) =>
       if (col2?.is_dttm && !col1?.is_dttm) {
         return 1;
       }
-      return 0;
+      return (col1?.column_name ?? '').localeCompare(col2?.column_name ?? '');
     })
     .sort((a, b) => (b?.is_certified ?? 0) - (a?.is_certified ?? 0));
 
@@ -169,7 +159,7 @@ export default function DataSourcePanel({
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const searchKeyword = useDebounceValue(inputValue, FAST_DEBOUNCE);
+  const searchKeyword = useDeferredValue(inputValue);
 
   const filteredColumns = useMemo(() => {
     if (!searchKeyword) {
@@ -200,7 +190,9 @@ export default function DataSourcePanel({
 
   const filteredMetrics = useMemo(() => {
     if (!searchKeyword) {
-      return allowedMetrics ?? [];
+      return [...(allowedMetrics ?? [])].sort((a, b) =>
+        (a?.metric_name ?? '').localeCompare(b?.metric_name ?? ''),
+      );
     }
     return matchSorter(allowedMetrics, searchKeyword, {
       keys: [
@@ -264,18 +256,20 @@ export default function DataSourcePanel({
     datasource.type &&
     saveableDatasets[datasource.type as keyof typeof saveableDatasets];
 
+  const theme = useTheme();
   const mainBody = useMemo(
     () => (
       <>
-        <Input
-          allowClear
-          onChange={evt => {
-            setInputValue(evt.target.value);
-          }}
-          value={inputValue}
-          className="form-control input-md"
-          placeholder={t('Search Metrics & Columns')}
-        />
+        <div style={{ padding: theme.sizeUnit * 4 }}>
+          <Input
+            allowClear
+            onChange={evt => {
+              setInputValue(evt.target.value);
+            }}
+            value={inputValue}
+            placeholder={t('Search Metrics & Columns')}
+          />
+        </div>
         <div className="field-selections" data-test="fieldSelections">
           {datasourceIsSaveable && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
@@ -292,14 +286,21 @@ export default function DataSourcePanel({
                 message=""
                 description={
                   <>
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       onClick={() => setShowSaveDatasetModal(true)}
                       className="add-dataset-alert-description"
+                      css={css`
+                        appearance: none;
+                        border: none;
+                        background: none;
+                        padding: 0;
+                        font: inherit;
+                        cursor: pointer;
+                      `}
                     >
                       {t('Create a dataset')}
-                    </span>
+                    </button>
                     {t(' to edit or add columns and metrics.')}
                   </>
                 }
@@ -334,7 +335,7 @@ export default function DataSourcePanel({
           formData={formData}
         />
       )}
-      {/* @ts-ignore */}
+      {/* @ts-expect-error */}
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>

@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import inspect
 import logging
-from datetime import datetime, timedelta
+import pickle
+from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable
 
 from flask import current_app as app, request
 from flask_caching import Cache
@@ -28,22 +29,29 @@ from flask_caching.backends import NullCache
 from werkzeug.wrappers import Response
 
 from superset import db
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.cache_manager import configurable_hash_method
+from superset.utils.hashing import hash_from_dict
 from superset.utils.json import json_int_dttm_ser
 
-if TYPE_CHECKING:
-    from superset.stats_logger import BaseStatsLogger
-
-config = app.config
-stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
 
 def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str:
-    hash_str = md5_sha_from_dict(values_dict, default=json_int_dttm_ser)
-    return f"{key_prefix}{hash_str}"
+    hash_str = hash_from_dict(values_dict, default=json_int_dttm_ser)
+    cache_key = f"{key_prefix}{hash_str}"
+
+    if logger.isEnabledFor(logging.DEBUG):
+        # Log cache key generation for debugging
+        logger.debug(
+            "Cache key generated: %s from dict keys: %s",
+            cache_key,
+            list(values_dict.keys()),
+        )
+
+    return cache_key
 
 
 def set_and_log_cache(
@@ -61,13 +69,48 @@ def set_and_log_cache(
         if cache_timeout is not None
         else app.config["CACHE_DEFAULT_TIMEOUT"]
     )
+
+    # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
+    if timeout == CACHE_DISABLED_TIMEOUT:
+        return
     try:
-        dttm = datetime.utcnow().isoformat().split(".")[0]
+        dttm: str = (
+            datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
+        )
         value = {**cache_value, "dttm": dttm}
+
+        # Skip caching results that are too large to protect the cache backend
+        # (e.g. Redis/Memcached) from being flooded by huge result sets. The chart
+        # still renders; the value is simply not cached, causing a re-query on the
+        # next load instead of a cache hit. Disabled when DATA_CACHE_MAX_VALUE_SIZE
+        # is None (the default), in which case no serialization overhead is incurred.
+        max_value_size = app.config.get("DATA_CACHE_MAX_VALUE_SIZE")
+        if max_value_size is not None:
+            value_size = len(pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL))
+            if value_size > max_value_size:
+                logger.warning(
+                    "Skipping cache set for key %s: serialized value size %d bytes "
+                    "exceeds DATA_CACHE_MAX_VALUE_SIZE (%d bytes)",
+                    cache_key,
+                    value_size,
+                    max_value_size,
+                )
+                app.config["STATS_LOGGER"].incr("skip_cache_value_too_large")
+                return
+
         cache_instance.set(cache_key, value, timeout=timeout)
+        stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
 
-        if datasource_uid and config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
+        # Log cache key details for debugging
+        logger.debug(
+            "CACHE SET - Key: %s, Datasource: %s, Timeout: %s",
+            cache_key,
+            datasource_uid,
+            timeout,
+        )
+
+        if datasource_uid and app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]:
             ck = CacheKey(
                 cache_key=cache_key,
                 cache_timeout=cache_timeout,
@@ -85,8 +128,6 @@ def set_and_log_cache(
 # resource? Flask-Caching will cache forever, but for the HTTP header we need
 # to specify a "far future" date.
 ONE_YEAR = 365 * 24 * 60 * 60  # 1 year in seconds
-
-logger = logging.getLogger(__name__)
 
 
 def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[..., Any]:
@@ -138,7 +179,10 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             if not force and obj is not None:
                 return obj
             obj = f(*args, **kwargs)
-            cache.set(cache_key, obj, timeout=cache_timeout)
+
+            # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
+            if cache_timeout != CACHE_DISABLED_TIMEOUT:
+                cache.set(cache_key, obj, timeout=cache_timeout)
             return obj
 
         return wrapped_f
@@ -149,7 +193,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
 def etag_cache(  # noqa: C901
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
+    max_age: int | float | None = None,
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
@@ -167,6 +211,9 @@ def etag_cache(  # noqa: C901
     """
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:  # noqa: C901
+        # Compute the actual timeout to use
+        timeout = max_age or app.config["CACHE_DEFAULT_TIMEOUT"]
+
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Response:  # noqa: C901
             # Check if the user can access the resource
@@ -202,7 +249,9 @@ def etag_cache(  # noqa: C901
 
             # Check if the cache is stale. Default the content_changed_time to now
             # if we don't know when it was last modified.
-            content_changed_time = datetime.utcnow()
+            content_changed_time: datetime = datetime.now(timezone.utc).replace(
+                tzinfo=None
+            )
             if get_last_modified:
                 content_changed_time = get_last_modified(*args, **kwargs)
                 if (
@@ -231,7 +280,7 @@ def etag_cache(  # noqa: C901
                     response.cache_control.public = True
 
                 response.last_modified = content_changed_time
-                expiration = max_age or ONE_YEAR  # max_age=0 also means far future
+                expiration = timeout or ONE_YEAR  # max_age=0 also means far future
                 response.expires = response.last_modified + timedelta(
                     seconds=expiration
                 )
@@ -239,7 +288,7 @@ def etag_cache(  # noqa: C901
 
                 # if we have a cache, store the response from the request
                 try:
-                    cache.set(cache_key, response, timeout=max_age)
+                    cache.set(cache_key, response, timeout=timeout)
                 except Exception:  # pylint: disable=broad-except
                     if app.debug:
                         raise
@@ -248,9 +297,9 @@ def etag_cache(  # noqa: C901
             return response.make_conditional(request)
 
         wrapper.uncached = f  # type: ignore
-        wrapper.cache_timeout = max_age  # type: ignore
+        wrapper.cache_timeout = timeout  # type: ignore
         wrapper.make_cache_key = cache._memoize_make_cache_key(  # type: ignore # pylint: disable=protected-access
-            make_name=None, timeout=max_age
+            make_name=None, timeout=timeout, hash_method=configurable_hash_method
         )
 
         return wrapper

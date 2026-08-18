@@ -81,7 +81,7 @@ def test_where_clause_n_prefix() -> None:
 
     tbl = table("tbl")
     sel = (
-        select([str_col, unicode_col])
+        select(str_col, unicode_col)
         .select_from(tbl)
         .where(str_col == "abc")
         .where(unicode_col == "abc")
@@ -430,3 +430,14 @@ def test_denormalize_name(name: str, expected_result: str):
     from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(mssql.dialect(), name) == expected_result
+
+
+def test_identifier_quote_uses_square_brackets() -> None:
+    """SQL Server quotes identifiers with square brackets."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert MssqlEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "[",
+        "end": "]",
+        "escape_by_doubling": True,
+    }

@@ -17,19 +17,20 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
   ensureIsArray,
   fetchTimeRange,
   getTimeOffset,
-  styled,
-  t,
-  useTheme,
 } from '@superset-ui/core';
-import { DEFAULT_DATE_PATTERN, Tooltip } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { Tooltip } from '@superset-ui/core/components';
 import {
+  DEFAULT_DATE_PATTERN,
   ColorSchemeEnum,
+} from '@superset-ui/chart-controls';
+import { isEmpty } from 'lodash-es';
+import {
   PopKPIComparisonSymbolStyleProps,
   PopKPIComparisonValueStyleProps,
   PopKPIProps,
@@ -38,11 +39,11 @@ import { useOverflowDetection } from './useOverflowDetection';
 
 const MetricNameText = styled.div<{ metricNameFontSize?: number }>`
   ${({ theme, metricNameFontSize }) => `
-    font-family: ${theme.typography.families.sansSerif};
-    font-weight: ${theme.typography.weights.normal};
-    font-size: ${metricNameFontSize || theme.typography.sizes.s * 2}px;
+    font-family: ${theme.fontFamily};
+    font-weight: ${theme.fontWeightNormal};
+    font-size: ${metricNameFontSize || theme.fontSizeSM * 2}px;
     text-align: center;
-    margin-bottom: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit * 3}px;
   `}
 `;
 
@@ -59,10 +60,10 @@ const NumbersContainer = styled.div`
 
 const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   ${({ theme, subheaderFontSize }) => `
-    font-weight: ${theme.typography.weights.light};
+    font-weight: ${theme.fontWeightLight};
     display: flex;
     justify-content: center;
-    font-size: ${subheaderFontSize || 20}px;
+    font-size: ${String(subheaderFontSize) || 20}px;
     flex: 1 1 0px;
   `}
 `;
@@ -71,9 +72,9 @@ const SymbolWrapper = styled.span<PopKPIComparisonSymbolStyleProps>`
   ${({ theme, backgroundColor, textColor }) => `
     background-color: ${backgroundColor};
     color: ${textColor};
-    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
-    border-radius: ${theme.gridUnit * 2}px;
-    margin-right: ${theme.gridUnit}px;
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+    border-radius: ${theme.borderRadius}px;
+    margin-right: ${theme.sizeUnit}px;
   `}
 `;
 
@@ -138,9 +139,9 @@ export default function PopKPI(props: PopKPIProps) {
   }, [currentTimeRangeFilter, shift, startDateOffset, dashboardTimeRange]);
 
   const theme = useTheme();
-  const flexGap = theme.gridUnit * 5;
+  const flexGap = theme.sizeUnit * 5;
   const wrapperDivStyles = css`
-    font-family: ${theme.typography.families.sansSerif};
+    font-family: ${theme.fontFamily};
     display: flex;
     justify-content: center;
     align-items: center;
@@ -150,46 +151,46 @@ export default function PopKPI(props: PopKPIProps) {
   `;
 
   const bigValueContainerStyles = css`
-    font-size: ${headerFontSize || 60}px;
-    font-weight: ${theme.typography.weights.normal};
+    font-size: ${String(headerFontSize) || 60}px;
+    font-weight: ${theme.fontWeightNormal};
     text-align: center;
-    margin-bottom: ${theme.gridUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 4}px;
   `;
 
   const SubtitleText = styled.div`
     ${({ theme }) => `
-    font-family: ${theme.typography.families.sansSerif};
-    font-weight: ${theme.typography.weights.medium};
+    font-family: ${theme.fontFamily};
+    font-weight: ${theme.fontWeightNormal};
     text-align: center;
     margin-top: -10px;
-    margin-bottom: ${theme.gridUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 4}px;
   `}
   `;
 
   const getArrowIndicatorColor = () => {
     if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
-      return theme.colors.grayscale.base;
+      return theme.colorTextTertiary;
     }
 
     if (percentDifferenceNumber > 0) {
       // Positive difference
       return comparisonColorScheme === ColorSchemeEnum.Green
-        ? theme.colors.success.base
-        : theme.colors.error.base;
+        ? theme.colorSuccess
+        : theme.colorError;
     }
     // Negative difference
     return comparisonColorScheme === ColorSchemeEnum.Red
-      ? theme.colors.success.base
-      : theme.colors.error.base;
+      ? theme.colorSuccess
+      : theme.colorError;
   };
 
   const arrowIndicatorStyle = css`
     color: ${getArrowIndicatorColor()};
-    margin-left: ${theme.gridUnit}px;
+    margin-left: ${theme.sizeUnit}px;
   `;
 
-  const defaultBackgroundColor = theme.colors.grayscale.light4;
-  const defaultTextColor = theme.colors.grayscale.base;
+  const defaultBackgroundColor = theme.colorBgContainer;
+  const defaultTextColor = theme.colorTextTertiary;
   const { backgroundColor, textColor } = useMemo(() => {
     let bgColor = defaultBackgroundColor;
     let txtColor = defaultTextColor;
@@ -201,12 +202,8 @@ export default function PopKPI(props: PopKPIProps) {
           comparisonColorScheme === ColorSchemeEnum.Red);
 
       // Set background and text colors based on the conditions
-      bgColor = useSuccess
-        ? theme.colors.success.light2
-        : theme.colors.error.light2;
-      txtColor = useSuccess
-        ? theme.colors.success.base
-        : theme.colors.error.base;
+      bgColor = useSuccess ? theme.colorSuccessBg : theme.colorErrorBg;
+      txtColor = useSuccess ? theme.colorSuccessText : theme.colorErrorText;
     }
 
     return {

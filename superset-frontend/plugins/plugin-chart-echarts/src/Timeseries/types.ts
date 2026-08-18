@@ -66,6 +66,8 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   logAxis: boolean;
   markerEnabled: boolean;
   markerSize: number;
+  maxMarkerSize?: number;
+  minMarkerSize?: number;
   metrics: QueryFormMetric[];
   minorSplitLine: boolean;
   minorTicks: boolean;
@@ -73,6 +75,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   orderDesc: boolean;
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
+  size?: QueryFormMetric;
   stack: StackType;
   stackDimension: string;
   timeCompare?: string[];
@@ -84,22 +87,25 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   yAxisFormat?: string;
   xAxisForceCategorical?: boolean;
   xAxisTimeFormat?: string;
+  xAxisNumberFormat?: string;
   timeGrainSqla?: TimeGranularity;
+  forceMaxInterval?: boolean;
   xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
+  xAxisLabelInterval: number | string;
   showValue: boolean;
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
+  colorByPrimaryAxis?: boolean;
   orientation?: OrientationType;
 } & LegendFormData &
   TitleFormData;
 
-export interface EchartsTimeseriesChartProps
-  extends BaseChartProps<EchartsTimeseriesFormData> {
+export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimeseriesFormData> {
   formData: EchartsTimeseriesFormData;
 }
 
@@ -108,6 +114,7 @@ export type TimeseriesChartTransformedProps =
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
       legendData?: OptionName[];
+      isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;
       xAxis: {
         label: string;

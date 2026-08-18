@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Check if the PR is a draft
         id: check-draft
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         with:
           script: |
             const isDraft = context.payload.pull_request.draft;

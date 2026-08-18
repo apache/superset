@@ -29,7 +29,7 @@ down_revision = "ee179a490af9"
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 
@@ -93,7 +93,7 @@ def fix_charts_schema_perm(session):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
     if isinstance(bind.dialect, SQLiteDialect):
         return  # sqlite doesn't have a concat function
 

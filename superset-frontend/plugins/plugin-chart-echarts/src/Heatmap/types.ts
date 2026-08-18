@@ -43,6 +43,7 @@ export interface HeatmapFormData extends QueryFormData {
   sortYAxis?: string;
   timeFormat?: string;
   xAxis: QueryFormColumn;
+  xAxisLabelRotation: number;
   xscaleInterval: number;
   valueBounds: [number | undefined | null, number | undefined | null];
   yAxisFormat?: string;

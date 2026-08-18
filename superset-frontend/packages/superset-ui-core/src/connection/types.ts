@@ -26,10 +26,18 @@ export type FetchRetryOptions = {
   retries?: number;
   retryDelay?:
     | number
-    | ((attempt: number, error: Error, response: Response) => number);
+    | ((
+        attempt: number,
+        error: Error | null,
+        response: Response | null,
+      ) => number);
   retryOn?:
     | number[]
-    | ((attempt: number, error: Error, response: Response) => boolean);
+    | ((
+        attempt: number,
+        error: Error | null,
+        response: Response | null,
+      ) => boolean);
 };
 export type Headers = { [k: string]: string };
 export type Host = string;
@@ -146,22 +154,25 @@ export interface ClientConfig {
   unauthorizedHandler?: () => void;
 }
 
-export interface SupersetClientInterface
-  extends Pick<
-    SupersetClientClass,
-    | 'delete'
-    | 'get'
-    | 'post'
-    | 'postForm'
-    | 'put'
-    | 'request'
-    | 'init'
-    | 'isAuthenticated'
-    | 'reAuthenticate'
-    | 'getGuestToken'
-  > {
+export interface SupersetClientInterface extends Pick<
+  SupersetClientClass,
+  | 'delete'
+  | 'get'
+  | 'post'
+  | 'postForm'
+  | 'postBlob'
+  | 'put'
+  | 'request'
+  | 'init'
+  | 'isAuthenticated'
+  | 'reAuthenticate'
+  | 'getGuestToken'
+  | 'getUrl'
+> {
   configure: (config?: ClientConfig) => SupersetClientInterface;
   reset: () => void;
+  getCSRFToken: () => CsrfPromise;
+  guestTokenHeaderName?: string;
 }
 
 export type SupersetClientResponse = Response | JsonResponse | TextResponse;

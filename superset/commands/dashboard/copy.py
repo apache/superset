@@ -18,7 +18,7 @@ import logging
 from functools import partial
 from typing import Any
 
-from superset import is_feature_enabled, security_manager
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import (
     DashboardCopyError,
@@ -40,6 +40,19 @@ class CopyDashboardCommand(BaseCommand):
     @transaction(on_error=partial(on_error, reraise=DashboardCopyError))
     def run(self) -> Dashboard:
         self.validate()
+        # Declare the high-level avenue before the copy touches the
+        # session. The change-record listener stamps
+        # ``version_transaction.action_kind = 'clone'`` so the new
+        # dashboard's baseline records read as "Cloned from <source>"
+        # in the timeline instead of "Dashboard created".
+        # Method-scoped imports — defer the versioning bootstrap path
+        # (``Model.metadata`` and Continuum-adjacent setup) out of this
+        # command's module-load graph; see ``changes.py`` module
+        # docstring for the broader init-order rationale.
+        from superset import db
+        from superset.versioning.changes import ACTION_KIND_CLONE, ACTION_KIND_KEY
+
+        db.session.info[ACTION_KIND_KEY] = ACTION_KIND_CLONE
         return DashboardDAO.copy_dashboard(self._original_dash, self._properties)
 
     def validate(self) -> None:
@@ -47,7 +60,5 @@ class CopyDashboardCommand(BaseCommand):
             "json_metadata"
         ):
             raise DashboardInvalidError()
-        if is_feature_enabled("DASHBOARD_RBAC") and not security_manager.is_owner(
-            self._original_dash
-        ):
+        if not security_manager.is_editor(self._original_dash):
             raise DashboardForbiddenError()

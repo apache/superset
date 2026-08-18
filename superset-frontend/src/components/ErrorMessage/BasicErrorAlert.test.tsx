@@ -18,15 +18,18 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
-import { ErrorLevel, supersetTheme } from '@superset-ui/core';
-import BasicErrorAlert from './BasicErrorAlert';
+import { ErrorLevel } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
-  'src/components/Icons/AsyncIcon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) => (
-      <span role="img" aria-label={fileName.replace('_', '-')} />
-    ),
+    ({ fileName }: { fileName: string }) =>
+      (
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
+        <span role="img" aria-label={fileName.replace('_', '-')} />
+      ),
 );
 
 const mockedProps = {
@@ -72,7 +75,7 @@ test('should render with warning theme', () => {
   render(<BasicErrorAlert {...mockedProps} />);
   expect(screen.getByRole('alert')).toHaveStyle(
     `
-      backgroundColor: ${supersetTheme.colors.warning.light2};
+      color: ${supersetTheme.colorWarningText};
     `,
   );
 });
@@ -85,7 +88,7 @@ test('should render with error theme', () => {
   render(<BasicErrorAlert {...errorProps} />);
   expect(screen.getByRole('alert')).toHaveStyle(
     `
-      backgroundColor: ${supersetTheme.colors.error.light2};
+      color: ${supersetTheme.colorErrorText};
     `,
   );
 });

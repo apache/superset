@@ -18,11 +18,12 @@ import logging
 import os
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
 import superset.utils.database
-from superset import app, db
+from superset import db
 from superset.connectors.sqla.models import BaseDatasource, SqlMetric
 from superset.examples.helpers import (
     get_examples_folder,
@@ -35,7 +36,7 @@ from superset.examples.helpers import (
 )
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import DatasourceType
 
@@ -55,7 +56,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
         table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
-            pdf = read_example_data("countries.json.gz", compression="gzip")
+            pdf = read_example_data("examples://countries.json.gz", compression="gzip")
             pdf.columns = [col.replace(".", "_") for col in pdf.columns]
             if database.backend == "presto":
                 pdf.year = pd.to_datetime(pdf.year)
@@ -106,9 +107,9 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
         if not any(col.metric_name == metric for col in tbl.metrics):
             aggr_func = metric[:3]
             col = str(column(metric[5:]).compile(db.engine))
-            tbl.metrics.append(
-                SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
-            )
+            metric_it = SqlMetric(metric_name=metric, expression=f"{aggr_func}({col})")
+            db.session.add(metric_it)
+            tbl.metrics.append(metric_it)
 
     tbl.fetch_metadata()
 
@@ -155,7 +156,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         "limit": "25",
         "granularity_sqla": "year",
         "groupby": [],
-        "row_limit": app.config["ROW_LIMIT"],
+        "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",
@@ -221,16 +222,16 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         ),
         Slice(
             slice_name="Life Expectancy VS Rural %",
-            viz_type="bubble",
+            viz_type="bubble_v2",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="bubble",
+                viz_type="bubble_v2",
                 since="2011-01-01",
                 until="2011-01-02",
                 series="region",
-                limit=0,
+                row_limit=0,
                 entity="country_name",
                 x="sum__SP_RUR_TOTL_ZS",
                 y="sum__SP_DYN_LE00_IN",

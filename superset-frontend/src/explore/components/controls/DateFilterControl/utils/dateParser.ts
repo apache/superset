@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extendedDayjs } from 'src/utils/dates';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { Dayjs } from 'dayjs';
 import { CustomRangeType } from 'src/explore/components/controls/DateFilterControl/types';
 import { DAYJS_FORMAT } from './constants';
@@ -40,11 +40,18 @@ export const ISO8601_AND_CONSTANT = RegExp(
 const SPECIFIC_MODE = ['specific', 'today', 'now'];
 
 export const dttmToDayjs = (dttm: string): Dayjs => {
+  // "now"/"today" are later formatted (see dttmToString) into a naive
+  // "YYYY-MM-DDTHH:mm:ss" string with no UTC offset, and that string is
+  // re-parsed elsewhere as local time (the `extendedDayjs(dttm)` fallback
+  // below). Resolving these constants in UTC rather than local time would
+  // make that round trip drift by the browser's UTC offset, which is what
+  // caused the "Now" anchor to display and query the wrong wall-clock time
+  // for users outside UTC.
   if (dttm === 'now') {
-    return extendedDayjs().utc().startOf('second');
+    return extendedDayjs().startOf('second');
   }
   if (dttm === 'today') {
-    return extendedDayjs().utc().startOf('day');
+    return extendedDayjs().startOf('day');
   }
   return extendedDayjs(dttm);
 };

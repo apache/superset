@@ -21,7 +21,7 @@ from urllib import parse
 
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class TDengineEngineSpec(BaseEngineSpec):
@@ -32,6 +32,23 @@ class TDengineEngineSpec(BaseEngineSpec):
     sqlalchemy_uri_placeholder = (
         "taosws://user:******@host:port/dbname[?key=value&key=value...]"
     )
+
+    metadata = {
+        "description": "TDengine is a high-performance time-series database for IoT.",
+        "logo": "tdengine.png",
+        "homepage_url": "https://tdengine.com/",
+        "categories": [DatabaseCategory.TIME_SERIES, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["taospy", "taos-ws-py"],
+        "connection_string": "taosws://{user}:{password}@{host}:{port}",
+        "default_port": 6041,
+        "connection_examples": [
+            {
+                "description": "Local connection",
+                "connection_string": "taosws://root:taosdata@127.0.0.1:6041",
+            },
+        ],
+        "docs_url": "https://www.tdengine.com",
+    }
 
     # time grain
     _time_grain_expressions = {

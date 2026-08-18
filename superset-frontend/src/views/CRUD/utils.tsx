@@ -17,24 +17,37 @@
  * under the License.
  */
 
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
-  logging,
-  styled,
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,
-  t,
   lruCache,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import Chart from 'src/types/Chart';
-import { intersection } from 'lodash';
+import { deletedToast, deleteFailedToast } from 'src/utils/softDeleteCopy';
+import { intersection } from 'lodash-es';
 import rison from 'rison';
-import { FetchDataConfig, FilterValue } from 'src/components/ListView';
+import type {
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilterValue as FilterValue,
+} from 'src/components';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
-import { Dashboard, Filter, TableTab } from './types';
+import { normalizeSubjectToPickerValue } from 'src/features/subjects/SubjectPicker/utils';
+import {
+  Dashboard,
+  EncryptedExtraField,
+  FileEncryptedExtraFields,
+  Filter,
+  TableTab,
+} from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
@@ -66,7 +79,7 @@ import { Dashboard, Filter, TableTab } from './types';
 })();
 
 export const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const createFetchResourceMethod =
@@ -75,7 +88,7 @@ const createFetchResourceMethod =
     resource: string,
     relation: string,
     handleError: (error: Response) => void,
-    user?: { userId: string | number; firstName: string; lastName: string },
+    user?: { userId?: string | number; firstName: string; lastName: string },
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
     const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
@@ -89,33 +102,51 @@ const createFetchResourceMethod =
     });
 
     let fetchedLoggedUser = false;
-    const loggedUser = user
-      ? {
-          label: `${user.firstName} ${user.lastName}`,
-          value: user.userId,
-        }
-      : undefined;
+    let loggedUserExtra: Record<string, unknown> | undefined;
+    const loggedUser =
+      user?.userId === undefined
+        ? undefined
+        : {
+            label: `${user.firstName} ${user.lastName}`,
+            value: user.userId,
+          };
 
-    const data: { label: string; value: string | number }[] = [];
+    const data: {
+      label: string;
+      value: string | number;
+      extra?: Record<string, unknown>;
+    }[] = [];
     json?.result
       ?.filter(({ text }: { text: string }) => text.trim().length > 0)
-      .forEach(({ text, value }: { text: string; value: string | number }) => {
-        if (
-          loggedUser &&
-          value === loggedUser.value &&
-          text === loggedUser.label
-        ) {
-          fetchedLoggedUser = true;
-        } else {
-          data.push({
-            label: text,
-            value,
-          });
-        }
-      });
+      .forEach(
+        ({
+          text,
+          value,
+          extra,
+        }: {
+          text: string;
+          value: string | number;
+          extra?: Record<string, unknown>;
+        }) => {
+          if (
+            loggedUser &&
+            value === loggedUser.value &&
+            text === loggedUser.label
+          ) {
+            fetchedLoggedUser = true;
+            loggedUserExtra = extra;
+          } else {
+            data.push({
+              label: text,
+              value,
+              extra,
+            });
+          }
+        },
+      );
 
     if (loggedUser && (!filterValue || fetchedLoggedUser)) {
-      data.unshift(loggedUser);
+      data.unshift({ ...loggedUser, extra: loggedUserExtra });
     }
 
     return {
@@ -168,14 +199,14 @@ export const getEditedObjects = (userId: string | number) => {
     .catch(err => err);
 };
 
-export const getUserOwnedObjects = (
+export const getUserEditableObjects = (
   userId: string | number,
   resource: string,
   filters: Filter[] = [
     {
-      col: 'owners',
-      opr: 'rel_m_m',
-      value: `${userId}`,
+      col: 'id',
+      opr: 'is_editable',
+      value: 1,
     },
   ],
   selectColumns?: string[],
@@ -238,6 +269,59 @@ export const getRecentActivityObjs = (
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
 
+const createFetchSubjectRelation =
+  (relation: string) =>
+  (
+    resource: string,
+    handleError: (error: Response) => void,
+    user?: { userId?: string | number; firstName: string; lastName: string },
+  ) => {
+    const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
+    const subjectUser =
+      currentUserSubjectId === undefined || !user
+        ? undefined
+        : {
+            ...user,
+            userId: currentUserSubjectId,
+          };
+    const fetchRelated = createFetchRelated(
+      resource,
+      relation,
+      handleError,
+      subjectUser,
+    );
+    return async (filterValue = '', page: number, pageSize: number) => {
+      const result = await fetchRelated(filterValue, page, pageSize);
+      return {
+        ...result,
+        data: result.data.flatMap(item => {
+          const secondaryLabel = item.extra?.secondary_label as
+            | string
+            | undefined;
+          const type = item.extra?.type as number | undefined;
+          const value = normalizeSubjectToPickerValue({
+            value: item.value,
+            text: item.label,
+            type,
+            secondary_label: secondaryLabel,
+          });
+          return value
+            ? [
+                {
+                  ...value,
+                  title: item.label,
+                },
+              ]
+            : [];
+        }),
+      };
+    };
+  };
+
+export const createFetchEditors = createFetchSubjectRelation('editors');
+export const createFetchSubjects = createFetchSubjectRelation('subjects');
+export const createFetchViewers = createFetchSubjectRelation('viewers');
+
 export function createErrorHandler(
   handleErrorFunc: (
     errMsg?: string | Record<string, string[] | string>,
@@ -246,7 +330,6 @@ export function createErrorHandler(
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
     // Taking the first error returned from the API
-    // @ts-ignore
     const errorsArray = parsedError?.errors;
     const config = await SupersetText;
     if (
@@ -268,6 +351,7 @@ export function handleChartDelete(
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
   userId?: string | number,
+  getData?: (tab: TableTab) => void,
 ) {
   const filters = {
     pageIndex: 0,
@@ -291,11 +375,12 @@ export function handleChartDelete(
   }).then(
     () => {
       if (chartFilter === 'Mine') refreshData(filters);
+      else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
-      addSuccessToast(t('Deleted: %s', sliceName));
+      addSuccessToast(deletedToast(sliceName));
     },
     () => {
-      addDangerToast(t('There was an issue deleting: %s', sliceName));
+      addDangerToast(deleteFailedToast(sliceName));
     },
   );
 }
@@ -307,6 +392,7 @@ export function handleDashboardDelete(
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
   userId?: string | number,
+  getData?: (tab: TableTab) => void,
 ) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
@@ -323,20 +409,20 @@ export function handleDashboardDelete(
         ],
         filters: [
           {
-            id: 'owners',
-            operator: 'rel_m_m',
-            value: `${userId}`,
+            id: 'id',
+            operator: 'is_editable',
+            value: true,
           },
         ],
       };
       if (dashboardFilter === 'Mine') refreshData(filters);
+      else if (dashboardFilter === 'Other' && getData)
+        getData(dashboardFilter as TableTab);
       else refreshData();
-      addSuccessToast(t('Deleted: %s', dashboardTitle));
+      addSuccessToast(deletedToast(dashboardTitle));
     },
     createErrorHandler(errMsg =>
-      addDangerToast(
-        t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
-      ),
+      addDangerToast(deleteFailedToast(dashboardTitle, errMsg)),
     ),
   );
 }
@@ -362,15 +448,27 @@ export const CardContainer = styled.div<{
   ${({ showThumbnails, theme }) => `
     overflow: hidden;
     display: grid;
-    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
+    justify-content: start;
+    grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
     max-height: ${showThumbnails ? '314' : '148'}px;
-    margin-top: ${theme.gridUnit * -6}px;
+    margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
-        ? `${theme.gridUnit * 8 + 3}px ${theme.gridUnit * 9}px`
-        : `${theme.gridUnit * 8 + 1}px ${theme.gridUnit * 9}px`
+        ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
+        : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
+
+    /* Full-width cards on mobile (consumption mode) */
+    ${
+      isMobileConsumptionEnabled()
+        ? `@media (max-width: ${theme.screenSMMax}px) {
+      grid-template-columns: 1fr;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
+    }`
+        : ''
+    }
   `}
 `;
 
@@ -379,7 +477,7 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .antd5-card-cover > div {
+  .ant-card-cover > div {
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }
@@ -423,51 +521,73 @@ export const isAlreadyExists = (payload: any) =>
   payload.includes('already exists and `overwrite=true` was not passed');
 
 export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPasswordsNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPrivateKeysNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPrivateKeyPasswordsNeeded = (
   errors: Record<string, any>[],
 ) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getAlreadyExists = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isAlreadyExists(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isAlreadyExists(payload))
+      .map(([fileName]) => fileName),
+  );
+
+// Matches error messages for masked_encrypted_extra fields.
+// Format: "Must provide value for masked_encrypted_extra field: $.path (Label)"
+// The label in parentheses is optional.
+const ENCRYPTED_EXTRA_FIELD_REGEX =
+  /^Must provide value for masked_encrypted_extra field: (.+?)(?:\s+\((.+)\))?$/;
+
+export /* eslint-disable no-underscore-dangle */
+const isNeedsEncryptedExtraField = (payload: any) =>
+  typeof payload === 'object' &&
+  Array.isArray(payload._schema) &&
+  payload._schema?.some((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e));
+
+export const getEncryptedExtraFieldsNeeded = (
+  errors: Record<string, any>[],
+): FileEncryptedExtraFields[] =>
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsEncryptedExtraField(payload))
+      .map(([fileName, payload]) => ({
+        fileName,
+        fields: (payload as any)._schema
+          .filter((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e))
+          .map((e: string) => {
+            const match = e.match(ENCRYPTED_EXTRA_FIELD_REGEX);
+            if (!match) return null;
+            const path = match[1];
+            return { path, label: match[2] || path };
+          })
+          .filter(Boolean) as EncryptedExtraField[],
+      })),
+  );
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {
@@ -483,7 +603,8 @@ export const hasTerminalValidation = (errors: Record<string, any>[]) =>
         isAlreadyExists(payload) ||
         isNeedsSSHPassword(payload) ||
         isNeedsSSHPrivateKey(payload) ||
-        isNeedsSSHPrivateKeyPassword(payload),
+        isNeedsSSHPrivateKeyPassword(payload) ||
+        isNeedsEncryptedExtraField(payload),
     );
   });
 
@@ -551,9 +672,9 @@ export function getFilterValues(
   if (tab === TableTab.Mine && user) {
     return [
       {
-        id: 'owners',
-        operator: 'rel_m_m',
-        value: `${user.userId}`,
+        id: 'id',
+        operator: 'is_editable',
+        value: true,
       },
     ];
   }

@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import contextlib
+import logging
 import re
 from datetime import datetime
 from decimal import Decimal
 from re import Pattern
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -39,10 +42,21 @@ from sqlalchemy.dialects.mysql import (
 from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+    BaseEngineSpec,
+    BasicParametersMixin,
+    DatabaseCategory,
+)
 from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.utils import json
 from superset.utils.core import GenericDataType
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -67,6 +81,10 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine_name = "MySQL"
     max_column_name_length = 64
 
+    # MySQL/MariaDB quote identifiers with backticks rather than ANSI double quotes.
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
+
     default_driver = "mysqldb"
     sqlalchemy_uri_placeholder = (
         "mysql://user:password@host:port/dbname[?key=value&key=value...]"
@@ -74,6 +92,106 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     encryption_parameters = {"ssl": "1"}
 
     supports_dynamic_schema = True
+    supports_multivalues_insert = True
+
+    metadata = {
+        "description": "MySQL is a popular open-source relational database.",
+        "logo": "mysql.png",
+        "homepage_url": "https://www.mysql.com/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["mysqlclient"],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "localhost, 127.0.0.1, IP address, or hostname",
+            "database": "Database name",
+        },
+        "host_examples": [
+            {"platform": "Localhost", "host": "localhost or 127.0.0.1"},
+            {"platform": "Docker on Linux", "host": "172.18.0.1"},
+            {"platform": "Docker on macOS", "host": "docker.for.mac.host.internal"},
+            {"platform": "On-premise", "host": "IP address or hostname"},
+        ],
+        "drivers": [
+            {
+                "name": "mysqlclient",
+                "pypi_package": "mysqlclient",
+                "connection_string": (
+                    "mysql://{username}:{password}@{host}/{database}"
+                ),
+                "is_recommended": True,
+                "notes": (
+                    "Recommended driver. May fail with caching_sha2_password auth."
+                ),
+            },
+            {
+                "name": "mysql-connector-python",
+                "pypi_package": "mysql-connector-python",
+                "connection_string": (
+                    "mysql+mysqlconnector://{username}:{password}@{host}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": (
+                    "Required for newer MySQL databases using "
+                    "caching_sha2_password authentication."
+                ),
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "MariaDB",
+                "description": (
+                    "MariaDB is a community-developed fork of MySQL, "
+                    "fully compatible with MySQL."
+                ),
+                "logo": "mariadb.png",
+                "homepage_url": "https://mariadb.org/",
+                "pypi_packages": ["mysqlclient"],
+                "connection_string": (
+                    "mysql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "categories": [DatabaseCategory.OPEN_SOURCE],
+            },
+            {
+                "name": "Amazon Aurora MySQL",
+                "description": (
+                    "Amazon Aurora MySQL is a fully managed, MySQL-compatible "
+                    "relational database with up to 5x the throughput of "
+                    "standard MySQL."
+                ),
+                "logo": "aws-aurora.jpg",
+                "homepage_url": "https://aws.amazon.com/rds/aurora/",
+                "pypi_packages": ["sqlalchemy-aurora-data-api"],
+                "connection_string": (
+                    "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+                    "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+                    "secret_arn={secret_arn}&region_name={region_name}"
+                ),
+                "parameters": {
+                    "aws_access_id": "AWS Access Key ID",
+                    "aws_secret_access_key": "AWS Secret Access Key",
+                    "database_name": "Database name",
+                    "aurora_cluster_arn": "Aurora cluster ARN",
+                    "secret_arn": "Secrets Manager ARN for credentials",
+                    "region_name": "AWS region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Uses the Data API for serverless access. "
+                    "Standard MySQL connections also work with mysqlclient."
+                ),
+                "categories": [
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+            },
+        ],
+    }
 
     column_type_mappings = (
         (
@@ -126,6 +244,11 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             LONGTEXT(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^var_string", re.IGNORECASE),
+            types.VARCHAR(),
+            GenericDataType.STRING,
+        ),
     )
     column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
         DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
@@ -133,12 +256,9 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "DATE_ADD(DATE({col}), "
-        "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
-        " + SECOND({col})) SECOND)",
-        TimeGrain.MINUTE: "DATE_ADD(DATE({col}), "
-        "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        TimeGrain.HOUR: "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
+        TimeGrain.SECOND: "DATE_FORMAT({col}, '%Y-%m-%d %H:%i:%s')",
+        TimeGrain.MINUTE: "DATE_FORMAT({col}, '%Y-%m-%d %H:%i:00')",
+        TimeGrain.HOUR: "DATE_FORMAT({col}, '%Y-%m-%d %H:00:00')",
         TimeGrain.DAY: "DATE({col})",
         TimeGrain.WEEK: "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         TimeGrain.MONTH: "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",
@@ -191,6 +311,54 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "mysqlconnector": {"allow_local_infile": 0},
     }
 
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
+    encrypted_extra_sensitive_fields = {
+        "$.aws_iam.external_id": "AWS IAM External ID",
+        "$.aws_iam.role_arn": "AWS IAM Role ARN",
+    }
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Extract sensitive parameters from encrypted_extra.
+
+        Handles AWS IAM authentication if configured, then merges any
+        remaining encrypted_extra keys into params.
+        """
+        if not database.encrypted_extra:
+            return
+
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+        # Handle AWS IAM auth: pop the key so it doesn't reach create_engine()
+        iam_config = encrypted_extra.pop("aws_iam", None)
+        if iam_config and iam_config.get("enabled"):
+            from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+            AWSIAMAuthMixin._apply_iam_authentication(
+                database,
+                params,
+                iam_config,
+                # MySQL drivers (mysqlclient) use 'ssl' dict, not 'ssl_mode'.
+                # SSL is typically configured via the database's extra settings,
+                # so we pass empty ssl_args here to avoid driver compatibility issues.
+                ssl_args={},
+                default_port=3306,
+            )
+
+        # Standard behavior: merge remaining keys into params
+        if encrypted_extra:
+            params.update(encrypted_extra)
+
     @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
@@ -242,9 +410,14 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if not cls.type_code_map:
             # only import and store if needed at least once
             # pylint: disable=import-outside-toplevel
-            import MySQLdb
+            try:
+                import MySQLdb
 
-            ft = MySQLdb.constants.FIELD_TYPE
+                mysql_module = MySQLdb
+            except ImportError:
+                mysql_module = __import__("pymysql")
+
+            ft = mysql_module.constants.FIELD_TYPE
             cls.type_code_map = {
                 getattr(ft, k): k for k in dir(ft) if not k.startswith("_")
             }
@@ -292,6 +465,11 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         :param cancel_query_id: MySQL Connection ID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # MySQL CONNECTION_ID() returns an unsigned integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             cursor.execute(f"KILL CONNECTION {cancel_query_id}")
         except Exception:  # pylint: disable=broad-except

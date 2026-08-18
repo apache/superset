@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import logger from './logging';
+import { logging as logger } from '@apache-superset/core/utils';
 
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
@@ -26,13 +26,18 @@ export enum FeatureFlag {
   AlertReports = 'ALERT_REPORTS',
   AlertReportTabs = 'ALERT_REPORT_TABS',
   AlertReportSlackV2 = 'ALERT_REPORT_SLACK_V2',
+  AlertReportWebhook = 'ALERT_REPORT_WEBHOOK',
+  AlertReportsFilter = 'ALERT_REPORTS_FILTER',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
-  AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
+  CssTemplates = 'CSS_TEMPLATES',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
-  DashboardRbac = 'DASHBOARD_RBAC',
+  DashboardVirtualizationDeferData = 'DASHBOARD_VIRTUALIZATION_DEFER_DATA',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
+  DatasetFolders = 'DATASET_FOLDERS',
+  DateRangeTimeshiftsEnabled = 'DATE_RANGE_TIMESHIFTS_ENABLED',
+  DisableEmbeddedSupersetLogout = 'DISABLE_EMBEDDED_SUPERSET_LOGOUT',
   /** @deprecated */
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
@@ -40,24 +45,35 @@ export enum FeatureFlag {
   EmbeddableCharts = 'EMBEDDABLE_CHARTS',
   EmbeddedSuperset = 'EMBEDDED_SUPERSET',
   EnableAdvancedDataTypes = 'ENABLE_ADVANCED_DATA_TYPES',
-  /** @deprecated */
-  EnableJavascriptControls = 'ENABLE_JAVASCRIPT_CONTROLS',
+  EnableExtensions = 'ENABLE_EXTENSIONS',
+  EnableViewers = 'ENABLE_VIEWERS',
   EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
   EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
+  FabApiKeyEnabled = 'FAB_API_KEY_ENABLED',
+  FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
+  GlobalTaskFramework = 'GLOBAL_TASK_FRAMEWORK',
+  GranularExportControls = 'GRANULAR_EXPORT_CONTROLS',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
+  Matrixify = 'MATRIXIFY',
+  MobileConsumptionMode = 'MOBILE_CONSUMPTION_MODE',
   ScheduledQueries = 'SCHEDULED_QUERIES',
+  SemanticLayers = 'SEMANTIC_LAYERS',
+  SoftDelete = 'SOFT_DELETE',
   SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
   SqlValidatorsByEngine = 'SQL_VALIDATORS_BY_ENGINE',
   SshTunneling = 'SSH_TUNNELING',
   TaggingSystem = 'TAGGING_SYSTEM',
   Thumbnails = 'THUMBNAILS',
   UseAnalogousColors = 'USE_ANALOGOUS_COLORS',
+  VersionHistory = 'VERSION_HISTORY',
   ForceSqlLabRunAsync = 'SQLLAB_FORCE_RUN_ASYNC',
   SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
   EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
   EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
+  TableV2TimeComparisonEnabled = 'TABLE_V2_TIME_COMPARISON_ENABLED',
+  AgGridTableEnabled = 'AG_GRID_TABLE_ENABLED',
 }
 
 export type ScheduleQueriesProps = {

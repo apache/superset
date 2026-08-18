@@ -21,22 +21,29 @@ from datetime import datetime
 from typing import Any
 
 import pytest
+from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
 from freezegun import freeze_time
 from jinja2 import DebugUndefined
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
 
-from superset import app
 from superset.commands.dataset.exceptions import DatasetNotFoundError
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.exceptions import SupersetTemplateException
+from superset.connectors.sqla.models import (
+    RowLevelSecurityFilter,
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+)
+from superset.exceptions import QueryObjectValidationError, SupersetTemplateException
 from superset.jinja_context import (
     dataset_macro,
     ExtraCache,
     get_template_processor,
+    JsonValue,
     metric_macro,
     safe_proxy,
     TimeFilter,
@@ -46,13 +53,14 @@ from superset.jinja_context import (
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_filter_values_adhoc_filters() -> None:
     """
     Test the ``filter_values`` macro with ``adhoc_filters``.
     """
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -73,7 +81,7 @@ def test_filter_values_adhoc_filters() -> None:
         assert cache.filter_values("name") == ["foo"]
         assert cache.applied_filters == ["name"]
 
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -99,7 +107,7 @@ def test_filter_values_extra_filters() -> None:
     """
     Test the ``filter_values`` macro with ``extra_filters``.
     """
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {"extra_filters": [{"col": "name", "op": "in", "val": "foo"}]}
@@ -141,7 +149,7 @@ def test_get_filters_adhoc_filters() -> None:
     """
     Test the ``get_filters`` macro.
     """
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -166,7 +174,7 @@ def test_get_filters_adhoc_filters() -> None:
         assert cache.removed_filters == []
         assert cache.applied_filters == ["name"]
 
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -189,7 +197,7 @@ def test_get_filters_adhoc_filters() -> None:
         ]
         assert cache.removed_filters == []
 
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -214,6 +222,36 @@ def test_get_filters_adhoc_filters() -> None:
         assert cache.applied_filters == ["name"]
 
 
+def test_get_filters_is_null_operator() -> None:
+    """
+    Test the ``get_filters`` macro with a IS_NULL operator,
+    which doesn't have a comparator
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SIMPLE",
+                            "operator": "IS NULL",
+                            "subject": "name",
+                            "comparator": None,
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.get_filters("name", remove_filter=True) == [
+            {"op": "IS NULL", "col": "name", "val": None}
+        ]
+        assert cache.removed_filters == ["name"]
+        assert cache.applied_filters == ["name"]
+
+
 def test_get_filters_remove_not_present() -> None:
     """
     Test the ``get_filters`` macro without a match and ``remove_filter`` set to True.
@@ -223,11 +261,224 @@ def test_get_filters_remove_not_present() -> None:
     assert cache.removed_filters == []
 
 
+def test_get_filters_query_context_filters() -> None:
+    """
+    Test that ``get_filters`` falls back to native query_context_filters when no
+    adhoc_filters are present — the drill-to-detail path sends filters in native
+    {col, op, val} format rather than adhoc_filters.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": ["foo", "bar"]}]
+    )
+    assert cache.get_filters("name") == [
+        {"op": "IN", "col": "name", "val": ["foo", "bar"]}
+    ]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_query_context_filters_remove_filter() -> None:
+    """
+    Test that ``get_filters`` with ``remove_filter=True`` marks the column as removed
+    when matching via query_context_filters.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": "foo"}]
+    )
+    assert cache.get_filters("name", remove_filter=True) == [
+        {"op": "IN", "col": "name", "val": ["foo"]}
+    ]
+    assert cache.removed_filters == ["name"]
+    assert cache.applied_filters == ["name"]
+
+
+def test_get_filters_query_context_filters_is_null() -> None:
+    """
+    Test that IS_NULL filters (which have no val) are returned correctly from
+    query_context_filters. Unary null operators legitimately have val=None.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "name", "op": "IS_NULL"}])
+    assert cache.get_filters("name") == [{"op": "IS_NULL", "col": "name", "val": None}]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_query_context_filters_is_not_null() -> None:
+    """
+    Test that IS_NOT_NULL filters (which have no val) are returned correctly from
+    query_context_filters. Unary null operators legitimately have val=None.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "name", "op": "IS_NOT_NULL"}])
+    assert cache.get_filters("name") == [
+        {"op": "IS_NOT_NULL", "col": "name", "val": None}
+    ]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_adhoc_filters_take_precedence_over_query_context_filters() -> None:
+    """
+    Test that adhoc_filters takes precedence over query_context_filters to avoid
+    duplicate filter entries for aggregated queries where both formats are present.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["adhoc_val"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(
+            query_context_filters=[{"col": "name", "op": "IN", "val": ["native_val"]}]
+        )
+        result = cache.get_filters("name")
+        assert result == [{"op": "IN", "col": "name", "val": ["adhoc_val"]}]
+
+
+def test_filter_values_query_context_filters() -> None:
+    """
+    Test that ``filter_values`` works via query_context_filters (drill-to-detail path).
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "name", "op": "IN", "val": ["foo", "bar"]}]
+    )
+    assert cache.filter_values("name") == ["foo", "bar"]
+    assert cache.applied_filters == ["name"]
+
+
+def test_get_filters_escaped_val_string_adhoc() -> None:
+    """
+    ``get_filters`` exposes an ``escaped_val`` companion for string values
+    when a dialect is configured, while leaving ``val`` raw.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "LIKE",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.get_filters("name")
+        assert result == [
+            {
+                "op": "LIKE",
+                "col": "name",
+                "val": "O'Brien",
+                "escaped_val": "O''Brien",
+            }
+        ]
+
+
+def test_get_filters_escaped_val_list_adhoc() -> None:
+    """
+    ``get_filters`` produces an ``escaped_val`` list with every string
+    member dialect-escaped; non-string members pass through untouched.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["O'Brien", "Smith"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.get_filters("name")
+        assert result == [
+            {
+                "op": "IN",
+                "col": "name",
+                "val": ["O'Brien", "Smith"],
+                "escaped_val": ["O''Brien", "Smith"],
+            }
+        ]
+
+
+def test_get_filters_escaped_val_query_context_filters() -> None:
+    """
+    The ``escaped_val`` companion is also populated when filters arrive via
+    the drill-to-detail ``query_context_filters`` path.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {"col": "name", "op": "LIKE", "val": "O'Brien"},
+        ],
+    )
+    assert cache.get_filters("name") == [
+        {
+            "op": "LIKE",
+            "col": "name",
+            "val": "O'Brien",
+            "escaped_val": "O''Brien",
+        }
+    ]
+
+
+def test_get_filters_no_escaped_val_without_dialect() -> None:
+    """
+    Without a dialect ``get_filters`` returns the original schema, with no
+    ``escaped_val`` key — preserving backwards compatibility for callers
+    that did not opt into a dialect-aware processor.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "LIKE",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        result = cache.get_filters("name")
+        assert result == [{"op": "LIKE", "col": "name", "val": "O'Brien"}]
+        assert "escaped_val" not in result[0]
+
+
 def test_url_param_query() -> None:
     """
     Test the ``url_param`` macro.
     """
-    with app.test_request_context(query_string={"foo": "bar"}):
+    with current_app.test_request_context(query_string={"foo": "bar"}):
         cache = ExtraCache()
         assert cache.url_param("foo") == "bar"
 
@@ -236,7 +487,7 @@ def test_url_param_default() -> None:
     """
     Test the ``url_param`` macro with a default value.
     """
-    with app.test_request_context():
+    with current_app.test_request_context():
         cache = ExtraCache()
         assert cache.url_param("foo", "bar") == "bar"
 
@@ -245,7 +496,7 @@ def test_url_param_no_default() -> None:
     """
     Test the ``url_param`` macro without a match.
     """
-    with app.test_request_context():
+    with current_app.test_request_context():
         cache = ExtraCache()
         assert cache.url_param("foo") is None
 
@@ -254,7 +505,7 @@ def test_url_param_form_data() -> None:
     """
     Test the ``url_param`` with ``url_params`` in ``form_data``.
     """
-    with app.test_request_context(
+    with current_app.test_request_context(
         query_string={"form_data": json.dumps({"url_params": {"foo": "bar"}})}
     ):
         cache = ExtraCache()
@@ -266,7 +517,7 @@ def test_url_param_escaped_form_data() -> None:
     Test the ``url_param`` with ``url_params`` in ``form_data`` returning
     an escaped value with a quote.
     """
-    with app.test_request_context(
+    with current_app.test_request_context(
         query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
     ):
         cache = ExtraCache(dialect=dialect())
@@ -277,7 +528,7 @@ def test_url_param_escaped_default_form_data() -> None:
     """
     Test the ``url_param`` with default value containing an escaped quote.
     """
-    with app.test_request_context(
+    with current_app.test_request_context(
         query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
     ):
         cache = ExtraCache(dialect=dialect())
@@ -289,7 +540,7 @@ def test_url_param_unescaped_form_data() -> None:
     Test the ``url_param`` with ``url_params`` in ``form_data`` returning
     an un-escaped value with a quote.
     """
-    with app.test_request_context(
+    with current_app.test_request_context(
         query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
     ):
         cache = ExtraCache(dialect=dialect())
@@ -300,11 +551,43 @@ def test_url_param_unescaped_default_form_data() -> None:
     """
     Test the ``url_param`` with default value containing an un-escaped quote.
     """
-    with app.test_request_context(
+    with current_app.test_request_context(
         query_string={"form_data": json.dumps({"url_params": {"foo": "O'Brien"}})}
     ):
         cache = ExtraCache(dialect=dialect())
         assert cache.url_param("bar", "O'Malley", escape_result=False) == "O'Malley"
+
+
+def test_url_param_escaped_request_args() -> None:
+    """
+    Values read from the request query string are escaped the same way as
+    values from ``form_data`` (both are interpolated into the rendered SQL).
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "O''Brien"
+
+
+def test_url_param_unescaped_request_args() -> None:
+    """
+    ``escape_result=False`` still opts out of escaping for request-args values.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo", escape_result=False) == "O'Brien"
+
+
+def test_url_param_postgres_backslash_preserved() -> None:
+    """
+    Test that backslashes are left untouched on PostgreSQL. Every supported
+    PostgreSQL version has ``standard_conforming_strings`` on by default, so
+    the backslash is not an escape character there; doubling it would rewrite
+    a value like ``C:\\Users`` to ``C:\\\\Users`` and silently fail to match
+    the original value.
+    """
+    with current_app.test_request_context(query_string={"foo": r"C:\Users"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == r"C:\Users"
 
 
 def test_safe_proxy_primitive() -> None:
@@ -355,16 +638,29 @@ def test_safe_proxy_nested_lambda() -> None:
         safe_proxy(func, {"foo": lambda: "bar"})
 
 
-def test_user_macros(mocker: MockerFixture):
+@pytest.mark.parametrize(
+    "add_to_cache_keys,mock_cache_key_wrapper_call_count",
+    [
+        (True, 4),
+        (False, 0),
+    ],
+)
+def test_user_macros(
+    mocker: MockerFixture,
+    add_to_cache_keys: bool,
+    mock_cache_key_wrapper_call_count: int,
+):
     """
     Test all user macros:
         - ``current_user_id``
         - ``current_username``
         - ``current_user_email``
         - ``current_user_roles``
+        - ``current_user_rls_rules``
     """
     mock_g = mocker.patch("superset.utils.core.g")
     mock_get_user_roles = mocker.patch("superset.security_manager.get_user_roles")
+    mock_get_user_rls = mocker.patch("superset.security_manager.get_rls_filters")
     mock_cache_key_wrapper = mocker.patch(
         "superset.jinja_context.ExtraCache.cache_key_wrapper"
     )
@@ -372,36 +668,20 @@ def test_user_macros(mocker: MockerFixture):
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
     mock_get_user_roles.return_value = [Role(name="my_role1"), Role(name="my_role2")]
-    cache = ExtraCache()
-    assert cache.current_user_id() == 1
-    assert cache.current_username() == "my_username"
-    assert cache.current_user_email() == "my_email@test.com"
-    assert cache.current_user_roles() == ["my_role1", "my_role2"]
-    assert mock_cache_key_wrapper.call_count == 4
+    mock_get_user_rls.return_value = [
+        RowLevelSecurityFilter(group_key="test", clause="1=1"),
+        RowLevelSecurityFilter(group_key="other_test", clause="product_id=1"),
+    ]
+    cache = ExtraCache(table=mocker.MagicMock())
+    assert cache.current_user_id(add_to_cache_keys) == 1
+    assert cache.current_username(add_to_cache_keys) == "my_username"
+    assert cache.current_user_email(add_to_cache_keys) == "my_email@test.com"
+    assert cache.current_user_roles(add_to_cache_keys) == ["my_role1", "my_role2"]
+    assert mock_cache_key_wrapper.call_count == mock_cache_key_wrapper_call_count
 
-    mock_get_user_roles.return_value = []
-    assert cache.current_user_roles() is None
-
-
-def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
-    """
-    Test all user macros with ``add_to_cache_keys`` set to ``False``.
-    """
-    mock_g = mocker.patch("superset.utils.core.g")
-    mock_get_user_roles = mocker.patch("superset.security_manager.get_user_roles")
-    mock_cache_key_wrapper = mocker.patch(
-        "superset.jinja_context.ExtraCache.cache_key_wrapper"
-    )
-    mock_g.user.id = 1
-    mock_g.user.username = "my_username"
-    mock_g.user.email = "my_email@test.com"
-    mock_get_user_roles.return_value = [Role(name="my_role1"), Role(name="my_role2")]
-    cache = ExtraCache()
-    assert cache.current_user_id(False) == 1
-    assert cache.current_username(False) == "my_username"
-    assert cache.current_user_email(False) == "my_email@test.com"
-    assert cache.current_user_roles(False) == ["my_role1", "my_role2"]
-    assert mock_cache_key_wrapper.call_count == 0
+    # Testing {{ current_user_rls_rules() }} macro isolated and always without
+    # the param because it does not support it to avoid shared cache.
+    assert cache.current_user_rls_rules() == ["1=1", "product_id=1"]
 
 
 def test_user_macros_without_user_info(mocker: MockerFixture):
@@ -410,11 +690,185 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     """
     mock_g = mocker.patch("superset.utils.core.g")
     mock_g.user = None
+    cache = ExtraCache(table=mocker.MagicMock())
+    assert cache.current_user_id() is None
+    assert cache.current_username() is None
+    assert cache.current_user_email() is None
+    assert cache.current_user_roles() is None
+    assert cache.current_user_rls_rules() is None
+
+
+def _user_metadata_cache_keys(
+    mocker: MockerFixture,
+    *,
+    user_id: int | None,
+    username: str | None,
+    email: str | None,
+    roles: list[str],
+) -> list[Any]:
+    """
+    Render the user-metadata macros for a given user and return the values they
+    contributed to the query cache key.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    if user_id is None:
+        mock_g.user = None
+    else:
+        mock_g.user.id = user_id
+        mock_g.user.username = username
+        mock_g.user.email = email
+    mocker.patch(
+        "superset.security_manager.get_user_roles",
+        return_value=[Role(name=name) for name in roles],
+    )
+    keys: list[Any] = []
+    cache = ExtraCache(extra_cache_keys=keys, table=mocker.MagicMock())
+    cache.current_user_id()
+    cache.current_username()
+    cache.current_user_email()
+    cache.current_user_roles()
+    return keys
+
+
+def test_user_metadata_cache_keys_isolate_distinct_users(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Two different users contribute disjoint values to the cache key, so neither
+    can be served the other's cached result. This is the property that keeps the
+    ``current_user_*`` macro family safe for per-user (and multi-tenant) queries.
+    """
+    alice = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    bob = _user_metadata_cache_keys(
+        mocker, user_id=2, username="bob", email="bob@example.com", roles=["Gamma"]
+    )
+    assert alice
+    assert bob
+    assert set(alice).isdisjoint(set(bob))
+
+
+def test_user_metadata_cache_keys_match_for_identical_users(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The same user always contributes the same values, so identical renders
+    correctly share a cache entry (no needless fragmentation).
+    """
+    first = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    second = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    # The real cache key is built from ``set(extra_cache_keys)``, so compare on
+    # the normalized set rather than the raw ordered list.
+    assert set(first) == set(second)
+
+
+def test_anonymous_user_never_collides_with_a_logged_in_user(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Refutes the "skip cache key when the value is absent" collision concern. A
+    real anonymous request has no user object, so ``current_user_id`` /
+    ``current_username`` / ``current_user_email`` return ``None`` and add nothing
+    to the key, while ``current_user_roles`` still contributes the Public role.
+    Two anonymous requests therefore render identically and correctly share one
+    cache entry, and neither can be served a logged-in user's cached result.
+    """
+    logged_in = _user_metadata_cache_keys(
+        mocker, user_id=1, username="alice", email="alice@example.com", roles=["Admin"]
+    )
+    anon_first = _user_metadata_cache_keys(
+        mocker, user_id=None, username=None, email=None, roles=["Public"]
+    )
+    anon_second = _user_metadata_cache_keys(
+        mocker, user_id=None, username=None, email=None, roles=["Public"]
+    )
+    # The absent id/username/email contribute nothing, so an anonymous request's
+    # key carries only its role, never a stray value for the missing fields.
+    assert set(anon_first) == {json.dumps(["Public"])}
+    # Two anonymous requests share a cache entry; neither collides with a user.
+    assert set(anon_first) == set(anon_second)
+    assert set(anon_first).isdisjoint(set(logged_in))
+
+
+@pytest.mark.parametrize(
+    "field, other_value",
+    [
+        ("user_id", 2),
+        ("username", "bob"),
+        ("email", "bob@example.com"),
+        ("roles", ["Gamma"]),
+    ],
+)
+def test_user_metadata_cache_keys_guard_each_field_independently(
+    mocker: MockerFixture,
+    field: str,
+    other_value: Any,
+) -> None:
+    """
+    Two users who differ in exactly one metadata field get distinct cache keys.
+    Guarding each field on its own means a regression that stops any single
+    macro (``current_user_id`` / ``current_username`` / ``current_user_email`` /
+    ``current_user_roles``) from contributing to the key would fail its case here,
+    rather than hiding behind the other fields.
+    """
+    base: dict[str, Any] = {
+        "user_id": 1,
+        "username": "alice",
+        "email": "alice@example.com",
+        "roles": ["Admin"],
+    }
+    variant: dict[str, Any] = {**base, field: other_value}
+    base_keys = _user_metadata_cache_keys(mocker, **base)
+    variant_keys = _user_metadata_cache_keys(mocker, **variant)
+    assert set(base_keys) != set(variant_keys)
+
+
+def test_current_user_rls_rules_with_no_table(mocker: MockerFixture):
+    """
+    Test the ``current_user_rls_rules`` macro when no table is provided.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_get_user_rls = mocker.patch("superset.security_manager.get_rls_filters")
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_cache_key_wrapper = mocker.patch(
+        "superset.jinja_context.ExtraCache.cache_key_wrapper"
+    )
+    mock_g.user.id = 1
+    mock_g.user.username = "my_username"
+    mock_g.user.email = "my_email@test.com"
     cache = ExtraCache()
-    assert cache.current_user_id() == None  # noqa: E711
-    assert cache.current_username() == None  # noqa: E711
-    assert cache.current_user_email() == None  # noqa: E711
-    assert cache.current_user_roles() == None  # noqa: E711
+    assert cache.current_user_rls_rules() is None
+    assert mock_cache_key_wrapper.call_count == 0
+    assert mock_get_user_rls.call_count == 0
+    assert mock_is_guest_user.call_count == 0
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_current_user_rls_rules_guest_user(mocker: MockerFixture):
+    """
+    Test the ``current_user_rls_rules`` with an embedded user.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_gg = mocker.patch("superset.tasks.utils.g")
+    mock_ggg = mocker.patch("superset.security.manager.g")
+    mock_get_user_rls = mocker.patch("superset.security_manager.get_guest_rls_filters")
+    mock_user = mocker.MagicMock()
+    mock_user.username = "my_username"
+    mock_user.is_guest_user = True
+    mock_user.is_anonymous = False
+    mock_g.user = mock_gg.user = mock_ggg.user = mock_user
+
+    mock_get_user_rls.return_value = [
+        {"group_key": "test", "clause": "1=1"},
+        {"group_key": "other_test", "clause": "product_id=1"},
+    ]
+    cache = ExtraCache(table=mocker.MagicMock())
+    assert cache.current_user_rls_rules() == ["1=1", "product_id=1"]
 
 
 def test_where_in() -> None:
@@ -441,6 +895,20 @@ def test_where_in_empty_list() -> None:
     assert where_in([]) == "()"
     # With the default_to_none parameter set to True, it should return None
     assert where_in([], default_to_none=True) is None
+
+
+def test_where_in_postgres_backslash_preserved() -> None:
+    """
+    Test that ``where_in`` leaves backslashes untouched on PostgreSQL. A
+    dialect instance built without a live connection (as
+    ``Database.get_dialect()`` does) defaults ``_backslash_escapes`` to
+    ``True``, which would double every backslash even though every
+    supported PostgreSQL version treats the backslash as a plain character
+    by default; doubling it would rewrite a value like ``C:\\Users`` to
+    ``C:\\\\Users`` and silently fail to match the original value.
+    """
+    where_in = WhereInMacro(dialect())
+    assert where_in([r"C:\Users"]) == r"('C:\Users')"
 
 
 @pytest.mark.parametrize(
@@ -628,6 +1096,34 @@ def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
+def test_metric_macro_guest_user_dataset_out_of_scope(mocker: MockerFixture) -> None:
+    """
+    Test that ``metric_macro`` denies a guest user a dataset that is not
+    reachable through any dashboard their guest token grants.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    guest_user = mocker.MagicMock()
+    guest_user.guest_token = {}
+    mocker.patch(
+        "superset.security_manager.get_current_guest_user_if_guest",
+        return_value=guest_user,
+    )
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        id=1,
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with pytest.raises(DatasetNotFoundError):
+        metric_macro(env, {}, "count", 1)
+
+
 def test_metric_macro_recursive(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when the definition is recursive.
@@ -681,6 +1177,40 @@ def test_metric_macro_expansion(mocker: MockerFixture) -> None:
 
     processor = get_template_processor(database=database)
     assert processor.process_template("{{ metric('c') }}") == "42"
+
+
+def test_metric_macro_does_not_expose_environment(mocker: MockerFixture) -> None:
+    """
+    A template must not be able to read the template environment through the
+    ``metric`` macro's bound arguments.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    processor = get_template_processor(database=database)
+    # Attribute access on the macro's partial is denied, so a reference to its
+    # bound args resolves to an undefined and any further use raises instead of
+    # yielding the environment object.
+    with pytest.raises(SecurityError):
+        processor.process_template("{{ metric.args[1] }}")
+    with pytest.raises(SecurityError):
+        processor.process_template(
+            "{{ metric.args[1].template_class.environment_class() }}"
+        )
+
+
+def test_supersetsandboxedenvironment_denies_unsafe_attributes() -> None:
+    """is_safe_attribute denies env/template class attrs and all attrs on partials."""
+    from functools import partial
+
+    from superset.jinja_context import SupersetSandboxedEnvironment
+
+    env = SupersetSandboxedEnvironment()
+    assert env.is_safe_attribute(env, "environment_class", None) is False
+    assert env.is_safe_attribute(env, "template_class", None) is False
+    macro = partial(lambda value: value, 1)
+    assert env.is_safe_attribute(macro, "args", macro.args) is False
+    assert env.is_safe_attribute(macro, "func", macro.func) is False
 
 
 def test_metric_macro_recursive_compound(mocker: MockerFixture) -> None:
@@ -818,7 +1348,7 @@ def test_metric_macro_no_dataset_id_no_context(mocker: MockerFixture) -> None:
     mock_g = mocker.patch("superset.jinja_context.g")
     mock_g.form_data = {}
     env = SandboxedEnvironment(undefined=DebugUndefined)
-    with app.test_request_context():
+    with current_app.test_request_context():
         with pytest.raises(SupersetTemplateException) as excinfo:
             metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
@@ -839,7 +1369,7 @@ def test_metric_macro_no_dataset_id_with_context_missing_info(
     mock_g.form_data = {"queries": []}
 
     env = SandboxedEnvironment(undefined=DebugUndefined)
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -886,7 +1416,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
 
     # Getting the data from the request context
     env = SandboxedEnvironment(undefined=DebugUndefined)
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -913,7 +1443,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
             }
         ],
     }
-    with app.test_request_context():
+    with current_app.test_request_context():
         assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
@@ -929,7 +1459,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
 
     # Getting the data from the request context
     env = SandboxedEnvironment(undefined=DebugUndefined)
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -960,7 +1490,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
             }
         ],
     }
-    with app.test_request_context():
+    with current_app.test_request_context():
         with pytest.raises(SupersetTemplateException) as excinfo:
             metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
@@ -995,7 +1525,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(
 
     # Getting the data from the request context
     env = SandboxedEnvironment(undefined=DebugUndefined)
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -1022,7 +1552,7 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(
             }
         ],
     }
-    with app.test_request_context():
+    with current_app.test_request_context():
         assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
@@ -1038,7 +1568,7 @@ def test_metric_macro_no_dataset_id_with_context_slice_id_none(
 
     # Getting the data from the request context
     env = SandboxedEnvironment(undefined=DebugUndefined)
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -1069,7 +1599,7 @@ def test_metric_macro_no_dataset_id_with_context_slice_id_none(
             }
         ],
     }
-    with app.test_request_context():
+    with current_app.test_request_context():
         with pytest.raises(SupersetTemplateException) as excinfo:
             metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
@@ -1091,7 +1621,7 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
 
     # Getting the data from the request context
     env = SandboxedEnvironment(undefined=DebugUndefined)
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -1122,7 +1652,7 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
             }
         ],
     }
-    with app.test_request_context():
+    with current_app.test_request_context():
         with pytest.raises(SupersetTemplateException) as excinfo:
             metric_macro(env, {}, "macro_key")
         assert str(excinfo.value) == (
@@ -1153,7 +1683,7 @@ def test_metric_macro_no_dataset_id_available_in_request_form_data(
 
     # Getting the data from the request context
     env = SandboxedEnvironment(undefined=DebugUndefined)
-    with app.test_request_context(
+    with current_app.test_request_context(
         data={
             "form_data": json.dumps(
                 {
@@ -1171,8 +1701,88 @@ def test_metric_macro_no_dataset_id_available_in_request_form_data(
         "datasource": "1__table",
     }
 
-    with app.test_request_context():
+    with current_app.test_request_context():
         assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
+
+
+def test_metric_macro_regular_user_uses_base_filter(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` uses base filter for regular users.
+
+    Regular users should have standard RBAC/RLS filters applied when accessing datasets.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = False
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    # Verify that find_by_id was called without skip_base_filter
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=False)
+
+
+def test_metric_macro_regular_user_raises_no_access(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` raises for regular user without dataset access.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = False
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = None
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with pytest.raises(DatasetNotFoundError) as excinfo:
+        assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    assert str(excinfo.value) == "Dataset ID 1 not found."
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=False)
+
+
+def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` skips base filter for embedded users.
+
+    Embedded users have dashboard-level access control via their embedding token,
+    so we bypass the regular dataset DAO filters for them.
+    """
+    mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
+    mock_is_guest_user.return_value = True
+
+    # Dashboard-level guest scope is asserted separately; here the dataset is
+    # in scope so the test can focus on the base-filter bypass.
+    mocker.patch(
+        "superset.jinja_context.guest_user_can_access_dataset",
+        return_value=True,
+    )
+
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
+
+    # Verify that find_by_id was called with skip_base_filter=True
+    DatasetDAO.find_by_id.assert_called_once_with(1, skip_base_filter=True)
 
 
 @pytest.mark.parametrize(
@@ -1346,7 +1956,7 @@ def test_get_time_filter(
 
     with (
         freeze_time("2024-09-03"),
-        app.test_request_context(
+        current_app.test_request_context(
             json={"queries": queries},
         ),
     ):
@@ -1358,3 +1968,1342 @@ def test_get_time_filter(
         assert cache.get_time_filter(*args, **kwargs) == time_filter, description
         assert cache.removed_filters == removed_filters
         assert cache.applied_filters == applied_filters
+
+
+def test_jinja2_template_syntax_error_handling(mocker: MockerFixture) -> None:
+    """Test TemplateSyntaxError handling with proper error message and 422 status"""
+    from superset.errors import SupersetErrorType
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+
+    # Test with invalid Jinja2 syntax
+    template = "SELECT * WHERE column = {{ variable such as 'default' }}"
+
+    with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+        processor.process_template(template)
+
+    exception = exc_info.value
+    assert len(exception.errors) == 1
+    error = exception.errors[0]
+
+    # Verify error message contains helpful guidance
+    assert "Jinja2 template error" in error.message
+    assert "TemplateSyntaxError" in error.message
+    assert "expected token" in error.message
+
+    # Verify error type and status
+    assert error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+    assert exception.status == 422
+
+    # Verify extra data includes template snippet
+    assert "template" in error.extra
+    assert error.extra["template"][:50] == template[:50]
+
+
+def test_jinja2_undefined_error_handling(mocker: MockerFixture) -> None:
+    """Test that UndefinedError is handled as client error"""
+    from unittest.mock import patch
+
+    from jinja2.exceptions import UndefinedError
+
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise UndefinedError
+    with patch.object(
+        processor.env, "from_string", side_effect=UndefinedError("Variable not defined")
+    ):
+        with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+        error = exception.errors[0]
+
+        # Should get client error message (422)
+        assert "Jinja2 template error" in error.message
+        assert "UndefinedError" in error.message
+        assert "Variable not defined" in error.message
+        assert exception.status == 422
+
+
+def test_jinja2_security_error_handling(mocker: MockerFixture) -> None:
+    """Test that SecurityError is handled as client error"""
+    from unittest.mock import patch
+
+    from jinja2.exceptions import SecurityError
+
+    from superset.exceptions import SupersetSyntaxErrorException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise SecurityError
+    with patch.object(
+        processor.env, "from_string", side_effect=SecurityError("Access denied")
+    ):
+        with pytest.raises(SupersetSyntaxErrorException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+        error = exception.errors[0]
+
+        # Should get client error message with SecurityError type
+        assert "Jinja2 template error" in error.message
+        assert "SecurityError" in error.message
+        assert "Access denied" in error.message
+        assert exception.status == 422
+
+
+def test_jinja2_server_error_handling(mocker: MockerFixture) -> None:
+    """Test that server errors (like MemoryError) are handled with 500 status"""
+    from unittest.mock import patch
+
+    from superset.exceptions import SupersetTemplateException
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT * FROM table"
+
+    # Mock the Environment.from_string to raise MemoryError (server error)
+    with patch.object(
+        processor.env, "from_string", side_effect=MemoryError("Out of memory")
+    ):
+        with pytest.raises(SupersetTemplateException) as exc_info:
+            processor.process_template(template)
+
+        exception = exc_info.value
+
+        # Should get server error message (500)
+        assert "Internal Jinja2 template error" in str(exception)
+        assert "MemoryError" in str(exception)
+        assert "Out of memory" in str(exception)
+
+
+def test_undefined_template_function_exception(mocker: MockerFixture) -> None:
+    """Test UndefinedTemplateFunctionException for undefined function identifiers."""
+    from superset.jinja_context import (
+        BaseTemplateProcessor,
+        UndefinedTemplateFunctionException,
+    )
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+
+    template = "SELECT {{ undefined_function() }}"
+    with pytest.raises(UndefinedTemplateFunctionException) as exc_info:
+        processor.process_template(template)
+
+    exception = exc_info.value
+    assert isinstance(exception, UndefinedTemplateFunctionException)
+    assert "undefined" in str(exception).lower()
+
+
+def test_undefined_template_function_exception_with_namespace(
+    mocker: MockerFixture,
+) -> None:
+    """Test namespaced undefined functions raise UndefinedError (not converted)."""
+    from jinja2.exceptions import UndefinedError
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT {{ namespace.undefined_function() }}"
+    with pytest.raises(UndefinedError):
+        processor.process_template(template)
+
+
+def test_undefined_template_variable_not_function(mocker: MockerFixture) -> None:
+    """Test undefined variables with method calls raise UndefinedError."""
+    from jinja2.exceptions import UndefinedError
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+
+    template = "SELECT {{ undefined_variable.some_method() }}"
+    with pytest.raises(UndefinedError):
+        processor.process_template(template)
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        ("SELECT {{ cache_key_wrapper(abc) }}", True),
+        ("SELECT {{ cache_key_wrapper(myfunc()) }}", True),
+        ("SELECT {{ url_param('foo') }}", True),
+        ("SELECT {{ url_param(get_param('foo')) }}", True),
+        ("SELECT {{ current_user_id() }}", True),
+        ("SELECT {{ current_username() }}", True),
+        ("SELECT {{ current_user_email() }}", True),
+        ("SELECT {{ current_user_roles() }}", True),
+        ("SELECT {{ current_user_rls_rules() }}", True),
+        ("SELECT {{ get_guest_user_attribute('department') }}", True),
+        ("SELECT 'cache_key_wrapper(abc)' AS false_positive", False),
+        ("SELECT 1", False),
+        ("SELECT '{{ 1 + 1 }}'", False),
+    ],
+)
+def test_extra_cache_regex(sql: str, expected: bool) -> None:
+    assert bool(ExtraCache.regex.search(sql)) is expected
+
+
+def test_get_guest_user_attribute_not_guest_user(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when user is not a guest user.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
+
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_with_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns correct attribute value for guest user.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "role": "developer",
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+
+    # Test existing attribute
+    result = cache.get_guest_user_attribute("department")
+    assert result == "Engineering"
+
+    # Test another existing attribute
+    result = cache.get_guest_user_attribute("region")
+    assert result == "US"
+
+    # Test non-existing attribute returns default
+    result = cache.get_guest_user_attribute("non_existing", "default_value")
+    assert result == "default_value"
+
+
+def test_get_guest_user_attribute_escaped(mocker: MockerFixture) -> None:
+    """
+    Test that string attribute values are dialect-escaped by default so they are
+    safe to interpolate directly into SQL, mirroring ``url_param``.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {"region": "O'Brien"}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("region") == "O''Brien"
+
+
+def test_get_guest_user_attribute_unescaped(mocker: MockerFixture) -> None:
+    """
+    Test that ``escape_result=False`` returns the raw attribute value.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {"region": "O'Brien"}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("region", escape_result=False) == "O'Brien"
+
+
+def test_get_guest_user_attribute_mysql_backslash_escaped(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that backslashes are escaped on MySQL, where the backslash is an
+    escape character. Without doubling it, a value like ``x\\' OR 1=1 -- ``
+    would render to ``'x\\'' OR 1=1 -- '``, which MySQL parses as the string
+    ``x'`` followed by an injected predicate.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {"attr": "x\\' OR 1=1 -- "}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=mysql.dialect())
+    # Both the backslash and the quote are doubled, so the rendered literal
+    # stays a single string on MySQL
+    assert cache.get_guest_user_attribute("attr") == "x\\\\'' OR 1=1 -- "
+
+
+def test_get_guest_user_attribute_postgres_backslash_preserved(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that backslashes are left untouched on PostgreSQL, where the
+    backslash is not an escape character by default (every supported version
+    has ``standard_conforming_strings`` on). A dialect instance built without
+    a live connection defaults to the opposite assumption, which would double
+    the backslash and silently corrupt the value.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {"attr": r"C:\Users"}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("attr") == r"C:\Users"
+
+
+def test_get_guest_user_attribute_default_escaped(mocker: MockerFixture) -> None:
+    """
+    Test that a caller-supplied default is routed through the same escaping as
+    attribute values, so the macro's contract holds on every branch.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=False)
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("attr", "O'Brien") == "O''Brien"
+    assert (
+        cache.get_guest_user_attribute("attr", "O'Brien", escape_result=False)
+        == "O'Brien"
+    )
+
+
+def test_get_guest_user_attribute_nested_strings_escaped(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that strings nested inside lists and dict values are escaped, while
+    dict keys (used for member lookups, not interpolation) are left untouched.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "tenant": {"id": "foo' OR 1=1 --", "names": ["O'Brien", 42]},
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache(dialect=dialect())
+    assert cache.get_guest_user_attribute("tenant") == {
+        "id": "foo'' OR 1=1 --",
+        "names": ["O''Brien", 42],
+    }
+
+
+def test_get_guest_user_attribute_cache_keys_collision_free(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the resolved value is keyed on every branch, so principals whose
+    tokens render different SQL never produce the same extra cache keys.
+
+    Mirrors the collision-free guarantees proven for the ``current_user_*``
+    macros: distinct attribute values, a null attribute, a missing attribute
+    falling back to the default, and the non-guest branch must all key
+    distinctly from one another.
+    """
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    def keys_for(is_guest: bool, attributes: Any) -> list[Any]:
+        mocker.patch("superset.security_manager.is_guest_user", return_value=is_guest)
+        guest_user = mocker.Mock()
+        guest_user.guest_token = {
+            "user": {"username": "test_guest", "attributes": attributes},
+            "resources": [{"type": "dashboard", "id": "test-id"}],
+            "rls_rules": [],
+        }
+        mock_g.user = guest_user
+        cache = ExtraCache(extra_cache_keys=[])
+        cache.get_guest_user_attribute("tenant", "fallback")
+        return cache.extra_cache_keys or []
+
+    scenarios = [
+        keys_for(True, {"tenant": "acme"}),
+        keys_for(True, {"tenant": "initech"}),
+        keys_for(True, {"tenant": None}),
+        keys_for(True, {}),  # falls back to the default
+        keys_for(False, None),  # non-guest branch, also the default
+    ]
+    # Every branch contributes a key
+    assert all(len(keys) == 1 for keys in scenarios)
+    # Distinct resolved values yield distinct keys
+    assert len({keys[0] for keys in scenarios[:3]}) == 3
+    # The default-resolving branches key identically (identical rendered SQL)
+    # but differently from any set or null attribute
+    assert scenarios[3] == scenarios[4]
+    assert scenarios[3][0] not in {keys[0] for keys in scenarios[:3]}
+
+
+def test_get_guest_user_attribute_without_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when guest user has no
+    attributes.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user without attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest"},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_empty_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when guest user has empty
+    attributes.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with empty attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": {}},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_null_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute returns default when guest user has null
+    attributes.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with null attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {"username": "test_guest", "attributes": None},
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+    result = cache.get_guest_user_attribute("department", "default_dept")
+    assert result == "default_dept"
+
+
+def test_get_guest_user_attribute_cache_key_behavior(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute correctly handles cache key behavior.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {"department": "Engineering", "region": "US"},
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+    # Mock the cache_key_wrapper method
+    mock_cache_wrapper = mocker.Mock()
+    cache.cache_key_wrapper = mock_cache_wrapper  # type: ignore
+
+    # Test with add_to_cache_keys=True (default)
+    result = cache.get_guest_user_attribute("department")
+    assert result == "Engineering"
+    mock_cache_wrapper.assert_called_once_with(
+        'guest_user_attribute:department:"Engineering"'
+    )
+
+    # Reset mock
+    mock_cache_wrapper.reset_mock()
+
+    # A missing attribute resolving to the default is still keyed, so a guest
+    # with the attribute set never shares a cache entry with one without it
+    result = cache.get_guest_user_attribute("missing", "fallback")
+    assert result == "fallback"
+    mock_cache_wrapper.assert_called_once_with(
+        'guest_user_attribute:missing:"fallback"'
+    )
+
+    # Reset mock
+    mock_cache_wrapper.reset_mock()
+
+    # Test with add_to_cache_keys=False
+    result = cache.get_guest_user_attribute("region", add_to_cache_keys=False)
+    assert result == "US"
+    mock_cache_wrapper.assert_not_called()
+
+
+def test_get_guest_user_attribute_none_value_cached(mocker: MockerFixture) -> None:
+    """
+    Test that None values are added to cache keys, so a guest whose attribute
+    is null does not collide with a guest whose attribute is set.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with attributes including None value
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {"department": "Engineering", "nullable_field": None},
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+    # Mock the cache_key_wrapper method
+    mock_cache_wrapper = mocker.Mock()
+    cache.cache_key_wrapper = mock_cache_wrapper  # type: ignore
+
+    # Test None value gets keyed
+    result = cache.get_guest_user_attribute("nullable_field")
+    assert result is None
+    mock_cache_wrapper.assert_called_once_with(
+        "guest_user_attribute:nullable_field:null"
+    )
+
+
+def test_get_guest_user_attribute_various_data_types(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute handles various data types in attributes.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with various data types in attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "string_attr": "text_value",
+                "int_attr": 42,
+                "float_attr": 3.14,
+                "bool_attr": True,
+                "list_attr": ["item1", "item2"],
+                "dict_attr": {"nested": "value"},
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+
+    # Test different data types
+    assert cache.get_guest_user_attribute("string_attr") == "text_value"
+    assert cache.get_guest_user_attribute("int_attr") == 42
+    assert cache.get_guest_user_attribute("float_attr") == 3.14
+    assert cache.get_guest_user_attribute("bool_attr") is True
+    assert cache.get_guest_user_attribute("list_attr") == ["item1", "item2"]
+    assert cache.get_guest_user_attribute("dict_attr") == {"nested": "value"}
+
+
+def test_guest_token_attributes_support(mocker: MockerFixture) -> None:
+    """
+    Test that guest tokens properly support the attributes field.
+    """
+    from typing import cast
+
+    from superset.security.guest_token import (
+        GuestToken,
+        GuestTokenResourceType,
+        GuestUser,
+    )
+
+    # Create a guest token with attributes
+    guest_token_with_attributes = cast(
+        GuestToken,
+        {
+            "user": {
+                "username": "test_guest",
+                "first_name": "Test",
+                "last_name": "Guest",
+                "attributes": {
+                    "department": "Engineering",
+                    "region": "US",
+                    "role": "developer",
+                    "team": "data-platform",
+                    "clearance_level": "standard",
+                },
+            },
+            "resources": [
+                {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard-id"}
+            ],
+            "rls_rules": [],
+            "iat": 1234567890,
+            "exp": 1234567890 + 3600,
+        },
+    )
+
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_with_attributes, roles=[mock_role])
+
+    # Verify guest user has access to the original token
+    assert hasattr(guest_user, "guest_token")
+    assert guest_user.guest_token == guest_token_with_attributes
+
+    # Verify attributes are accessible through the token
+    token_user = guest_user.guest_token["user"]
+    assert "attributes" in token_user
+    user_attributes = token_user["attributes"]
+    assert user_attributes is not None
+    assert user_attributes["department"] == "Engineering"
+    assert user_attributes["region"] == "US"
+    assert user_attributes["role"] == "developer"
+
+
+def test_guest_token_without_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that guest tokens work properly when no attributes are provided.
+    """
+    from typing import cast
+
+    from superset.security.guest_token import (
+        GuestToken,
+        GuestTokenResourceType,
+        GuestUser,
+    )
+
+    # Create a guest token without attributes
+    guest_token_without_attributes = cast(
+        GuestToken,
+        {
+            "user": {
+                "username": "test_guest",
+                "first_name": "Test",
+                "last_name": "Guest",
+            },
+            "resources": [
+                {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard-id"}
+            ],
+            "rls_rules": [],
+            "iat": 1234567890,
+            "exp": 1234567890 + 3600,
+        },
+    )
+
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_without_attributes, roles=[mock_role])
+
+    # Verify guest user is created successfully
+    assert hasattr(guest_user, "guest_token")
+    assert guest_user.guest_token == guest_token_without_attributes
+
+    # Verify attributes field is not present
+    token_user = guest_user.guest_token["user"]
+    assert "attributes" not in token_user
+
+
+def test_guest_token_with_empty_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that guest tokens handle empty attributes gracefully.
+    """
+    from typing import cast
+
+    from superset.security.guest_token import (
+        GuestToken,
+        GuestTokenResourceType,
+        GuestUser,
+    )
+
+    # Create a guest token with empty attributes
+    guest_token_with_empty_attributes = cast(
+        GuestToken,
+        {
+            "user": {
+                "username": "test_guest",
+                "first_name": "Test",
+                "last_name": "Guest",
+                "attributes": {},
+            },
+            "resources": [
+                {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard-id"}
+            ],
+            "rls_rules": [],
+            "iat": 1234567890,
+            "exp": 1234567890 + 3600,
+        },
+    )
+
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_with_empty_attributes, roles=[mock_role])
+
+    # Verify guest user is created successfully
+    assert hasattr(guest_user, "guest_token")
+
+    # Verify empty attributes are handled
+    token_user = guest_user.guest_token["user"]
+    assert "attributes" in token_user
+    assert token_user["attributes"] == {}
+
+
+def test_guest_token_with_null_attributes(mocker: MockerFixture) -> None:
+    """
+    Test that guest tokens handle null attributes gracefully.
+    """
+    from typing import cast
+
+    from superset.security.guest_token import (
+        GuestToken,
+        GuestTokenResourceType,
+        GuestUser,
+    )
+
+    # Create a guest token with null attributes
+    guest_token_with_null_attributes = cast(
+        GuestToken,
+        {
+            "user": {
+                "username": "test_guest",
+                "first_name": "Test",
+                "last_name": "Guest",
+                "attributes": None,
+            },
+            "resources": [
+                {"type": GuestTokenResourceType.DASHBOARD, "id": "test-dashboard-id"}
+            ],
+            "rls_rules": [],
+            "iat": 1234567890,
+            "exp": 1234567890 + 3600,
+        },
+    )
+
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_with_null_attributes, roles=[mock_role])
+
+    # Verify guest user is created successfully
+    assert hasattr(guest_user, "guest_token")
+
+    # Verify null attributes are handled
+    token_user = guest_user.guest_token["user"]
+    assert "attributes" in token_user
+    assert token_user["attributes"] is None
+
+
+def test_get_guest_user_attribute_integration(mocker: MockerFixture) -> None:
+    """
+    Integration test for get_guest_user_attribute with real GuestUser object.
+    """
+    from typing import cast
+
+    from superset.security.guest_token import (
+        GuestToken,
+        GuestTokenResourceType,
+        GuestUser,
+    )
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create a real GuestUser object with attributes
+    guest_token_with_attributes = cast(
+        GuestToken,
+        {
+            "user": {
+                "username": "integration_test_user",
+                "first_name": "Integration",
+                "last_name": "Test",
+                "attributes": {
+                    "department": "Data Science",
+                    "region": "EU",
+                    "access_level": "premium",
+                    "team_lead": True,
+                    "projects": ["analytics", "ml-platform"],
+                },
+            },
+            "resources": [
+                {
+                    "type": GuestTokenResourceType.DASHBOARD,
+                    "id": "integration-test-dashboard",
+                }
+            ],
+            "rls_rules": [],
+            "iat": 1234567890,
+            "exp": 1234567890 + 3600,
+        },
+    )
+
+    mock_role = mocker.Mock()
+    guest_user = GuestUser(token=guest_token_with_attributes, roles=[mock_role])
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+    mock_cache_wrapper = mocker.Mock()
+    cache.cache_key_wrapper = mock_cache_wrapper  # type: ignore
+
+    # Test various attribute types
+    assert cache.get_guest_user_attribute("department") == "Data Science"
+    assert cache.get_guest_user_attribute("region") == "EU"
+    assert cache.get_guest_user_attribute("access_level") == "premium"
+    assert cache.get_guest_user_attribute("team_lead") is True
+    assert cache.get_guest_user_attribute("projects") == ["analytics", "ml-platform"]
+
+    # Test non-existing attribute with default
+    assert cache.get_guest_user_attribute("non_existing", "default") == "default"
+
+    # Test cache key behavior
+    mock_cache_wrapper.assert_any_call('guest_user_attribute:department:"Data Science"')
+    mock_cache_wrapper.assert_any_call('guest_user_attribute:region:"EU"')
+    mock_cache_wrapper.assert_any_call('guest_user_attribute:access_level:"premium"')
+    mock_cache_wrapper.assert_any_call("guest_user_attribute:team_lead:true")
+
+
+def test_get_guest_user_attribute_json_value_types(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute properly handles all JSON-native types.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with attributes of various JSON-native types
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "string_attr": "hello world",
+                "int_attr": 42,
+                "float_attr": 3.14159,
+                "bool_true": True,
+                "bool_false": False,
+                "null_attr": None,
+                "list_attr": [1, "two", 3.0, True, None],
+                "dict_attr": {
+                    "nested_string": "value",
+                    "nested_int": 123,
+                    "nested_bool": False,
+                    "nested_list": ["a", "b", "c"],
+                    "nested_dict": {"deep": "value"},
+                },
+                "empty_list": [],
+                "empty_dict": {},
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+
+    # Test string type
+    result = cache.get_guest_user_attribute("string_attr")
+    assert result == "hello world"
+    assert isinstance(result, str)
+
+    # Test integer type
+    result = cache.get_guest_user_attribute("int_attr")
+    assert result == 42
+    assert isinstance(result, int)
+
+    # Test float type
+    result = cache.get_guest_user_attribute("float_attr")
+    assert result == 3.14159
+    assert isinstance(result, float)
+
+    # Test boolean types
+    result = cache.get_guest_user_attribute("bool_true")
+    assert result is True
+    assert isinstance(result, bool)
+
+    result = cache.get_guest_user_attribute("bool_false")
+    assert result is False
+    assert isinstance(result, bool)
+
+    # Test null/None type
+    result = cache.get_guest_user_attribute("null_attr")
+    assert result is None
+
+    # Test list type
+    result = cache.get_guest_user_attribute("list_attr")
+    expected_list = [1, "two", 3.0, True, None]
+    assert result == expected_list
+    assert isinstance(result, list)
+
+    # Test dict type
+    result = cache.get_guest_user_attribute("dict_attr")
+    expected_dict = {
+        "nested_string": "value",
+        "nested_int": 123,
+        "nested_bool": False,
+        "nested_list": ["a", "b", "c"],
+        "nested_dict": {"deep": "value"},
+    }
+    assert result == expected_dict
+    assert isinstance(result, dict)
+
+    # Test empty collections
+    result = cache.get_guest_user_attribute("empty_list")
+    assert result == []
+    assert isinstance(result, list)
+
+    result = cache.get_guest_user_attribute("empty_dict")
+    assert result == {}
+    assert isinstance(result, dict)
+
+
+def test_get_guest_user_attribute_json_value_defaults(mocker: MockerFixture) -> None:
+    """
+    Test that get_guest_user_attribute properly handles default values of all
+    JSON-native types.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with empty attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {},
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+
+    # Test default string
+    result = cache.get_guest_user_attribute("missing_attr", default="default_string")
+    assert result == "default_string"
+    assert isinstance(result, str)
+
+    # Test default integer
+    result = cache.get_guest_user_attribute("missing_attr", default=100)
+    assert result == 100
+    assert isinstance(result, int)
+
+    # Test default float
+    result = cache.get_guest_user_attribute("missing_attr", default=2.71)
+    assert result == 2.71
+    assert isinstance(result, float)
+
+    # Test default boolean
+    result = cache.get_guest_user_attribute("missing_attr", default=True)
+    assert result is True
+    assert isinstance(result, bool)
+
+    result = cache.get_guest_user_attribute("missing_attr", default=False)
+    assert result is False
+    assert isinstance(result, bool)
+
+    # Test default None
+    result = cache.get_guest_user_attribute("missing_attr", default=None)
+    assert result is None
+
+    # Test default list - using JsonValue compatible types
+    default_list: list[JsonValue] = ["default", "values"]
+    result = cache.get_guest_user_attribute("missing_attr", default=default_list)
+    assert result == default_list
+    assert isinstance(result, list)
+
+    # Test default dict - using JsonValue compatible types
+    default_dict: dict[str, JsonValue] = {"key": "value", "nested": {"deep": "data"}}
+    result = cache.get_guest_user_attribute("missing_attr", default=default_dict)
+    assert result == default_dict
+    assert isinstance(result, dict)
+
+    # Test default empty collections
+    empty_list: list[JsonValue] = []
+    result = cache.get_guest_user_attribute("missing_attr", default=empty_list)
+    assert result == []
+    assert isinstance(result, list)
+
+    empty_dict: dict[str, JsonValue] = {}
+    result = cache.get_guest_user_attribute("missing_attr", default=empty_dict)
+    assert result == {}
+    assert isinstance(result, dict)
+
+
+def test_get_guest_user_attribute_json_cache_key_serialization(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_guest_user_attribute properly serializes different JSON types
+    for cache keys.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with various attribute types
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "string_attr": "test_string",
+                "int_attr": 42,
+                "float_attr": 3.14,
+                "bool_attr": True,
+                "list_attr": ["item1", "item2"],
+                "dict_attr": {
+                    "key2": "value2",
+                    "key1": "value1",
+                },  # Unsorted to test sort_keys
+                "null_attr": None,
+                "nested_dict": {"level1": {"level2": ["array", "items"]}},
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+    mock_cache_wrapper = mocker.Mock()
+    cache.cache_key_wrapper = mock_cache_wrapper  # type: ignore
+
+    # Test string serialization
+    cache.get_guest_user_attribute("string_attr")
+    mock_cache_wrapper.assert_called_with(
+        'guest_user_attribute:string_attr:"test_string"'
+    )
+
+    # Test integer serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("int_attr")
+    mock_cache_wrapper.assert_called_with("guest_user_attribute:int_attr:42")
+
+    # Test float serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("float_attr")
+    mock_cache_wrapper.assert_called_with("guest_user_attribute:float_attr:3.14")
+
+    # Test boolean serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("bool_attr")
+    mock_cache_wrapper.assert_called_with("guest_user_attribute:bool_attr:true")
+
+    # Test list serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("list_attr")
+    mock_cache_wrapper.assert_called_with(
+        'guest_user_attribute:list_attr:["item1", "item2"]'
+    )
+
+    # Test dict serialization (with sorted keys)
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("dict_attr")
+    mock_cache_wrapper.assert_called_with(
+        'guest_user_attribute:dict_attr:{"key1": "value1", "key2": "value2"}'
+    )
+
+    # Test None value serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("null_attr")
+    mock_cache_wrapper.assert_called_with("guest_user_attribute:null_attr:null")
+
+    # Test nested dict serialization
+    mock_cache_wrapper.reset_mock()
+    cache.get_guest_user_attribute("nested_dict")
+    expected_json = '{"level1": {"level2": ["array", "items"]}}'
+    mock_cache_wrapper.assert_called_with(
+        f"guest_user_attribute:nested_dict:{expected_json}"
+    )
+
+
+def test_get_guest_user_attribute_json_cache_key_consistency(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that identical data structures produce identical cache keys regardless
+    of order.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create two guest users with identical dict data but different key order
+    guest_user1 = mocker.Mock()
+    guest_user1.is_guest_user = True
+    guest_user1.guest_token = {
+        "user": {
+            "username": "test_guest1",
+            "attributes": {
+                "config": {"theme": "dark", "notifications": True, "lang": "en"}
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+
+    guest_user2 = mocker.Mock()
+    guest_user2.is_guest_user = True
+    guest_user2.guest_token = {
+        "user": {
+            "username": "test_guest2",
+            "attributes": {
+                "config": {
+                    "lang": "en",
+                    "theme": "dark",
+                    "notifications": True,
+                }  # Different order
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+
+    cache = ExtraCache()
+    mock_cache_wrapper = mocker.Mock()
+    cache.cache_key_wrapper = mock_cache_wrapper  # type: ignore
+
+    # Test first user
+    mock_g.user = guest_user1
+    cache.get_guest_user_attribute("config")
+    first_call_args = mock_cache_wrapper.call_args[0][0]
+
+    # Test second user
+    mock_cache_wrapper.reset_mock()
+    mock_g.user = guest_user2
+    cache.get_guest_user_attribute("config")
+    second_call_args = mock_cache_wrapper.call_args[0][0]
+
+    # Both should produce the same cache key due to sort_keys=True
+    assert first_call_args == second_call_args
+    expected_json = '{"lang": "en", "notifications": true, "theme": "dark"}'
+    assert first_call_args == f"guest_user_attribute:config:{expected_json}"
+
+
+def test_get_guest_user_attribute_json_edge_cases(mocker: MockerFixture) -> None:
+    """
+    Test edge cases for JSON value handling in get_guest_user_attribute.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    mock_g = mocker.patch("superset.jinja_context.g")
+
+    # Create guest user with edge case attributes
+    guest_user = mocker.Mock()
+    guest_user.is_guest_user = True
+    guest_user.guest_token = {
+        "user": {
+            "username": "test_guest",
+            "attributes": {
+                "zero_int": 0,
+                "zero_float": 0.0,
+                "false_bool": False,
+                "empty_string": "",
+                "whitespace_string": "   ",
+                "special_chars": "Hello \"World\" with 'quotes' and \n newlines",
+                "unicode_string": "Hello 🌍 World",
+                "large_number": 9007199254740991,  # JavaScript MAX_SAFE_INTEGER
+                "scientific_notation": 1.23e-4,
+                "deeply_nested": {
+                    "level1": {"level2": {"level3": {"level4": "deep_value"}}}
+                },
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+    }
+    mock_g.user = guest_user
+
+    cache = ExtraCache()
+
+    # Test zero values (should not be confused with falsy defaults)
+    assert cache.get_guest_user_attribute("zero_int") == 0
+    assert cache.get_guest_user_attribute("zero_float") == 0.0
+    assert cache.get_guest_user_attribute("false_bool") is False
+
+    # Test empty string (should not be confused with None)
+    assert cache.get_guest_user_attribute("empty_string") == ""
+    assert cache.get_guest_user_attribute("whitespace_string") == "   "
+
+    # Test special characters
+    result = cache.get_guest_user_attribute("special_chars")
+    assert result == "Hello \"World\" with 'quotes' and \n newlines"
+
+    # Test unicode
+    result = cache.get_guest_user_attribute("unicode_string")
+    assert result == "Hello 🌍 World"
+
+    # Test large numbers
+    result = cache.get_guest_user_attribute("large_number")
+    assert result == 9007199254740991
+
+    # Test scientific notation
+    result = cache.get_guest_user_attribute("scientific_notation")
+    assert result == 1.23e-4
+
+    # Test deeply nested structure
+    result = cache.get_guest_user_attribute("deeply_nested")
+    expected = {"level1": {"level2": {"level3": {"level4": "deep_value"}}}}
+    assert result == expected
+
+    # Test accessing nested values works
+    if isinstance(result, dict):
+        level1 = result["level1"]
+        if isinstance(level1, dict):
+            level2 = level1["level2"]
+            if isinstance(level2, dict):
+                level3 = level2["level3"]
+                if isinstance(level3, dict):
+                    assert level3["level4"] == "deep_value"
+
+
+def test_guest_token_serialization_with_attributes() -> None:
+    """
+    Test that guest tokens with attributes can be serialized/deserialized.
+    """
+    guest_token_data: dict[str, Any] = {
+        "user": {
+            "username": "test_user",
+            "first_name": "Test",
+            "last_name": "User",
+            "attributes": {
+                "department": "Engineering",
+                "region": "US",
+                "roles": ["admin", "user"],
+                "metadata": {"team": "platform", "manager": "jane.doe"},
+            },
+        },
+        "resources": [{"type": "dashboard", "id": "test-id"}],
+        "rls_rules": [],
+        "iat": 1234567890,
+        "exp": 1234567890 + 3600,
+    }
+
+    # Test serialization
+    serialized = json.dumps(guest_token_data)
+    assert serialized is not None
+
+    # Test deserialization
+    deserialized = json.loads(serialized)
+    assert deserialized["user"]["attributes"]["department"] == "Engineering"
+    assert deserialized["user"]["attributes"]["region"] == "US"
+    assert deserialized["user"]["attributes"]["roles"] == ["admin", "user"]
+    assert deserialized["user"]["attributes"]["metadata"]["team"] == "platform"
+    assert deserialized["user"]["attributes"]["metadata"]["manager"] == "jane.doe"
+
+
+def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
+    """
+    A virtual dataset template that indexes into ``filter_values()`` (e.g.
+    ``filter_values('col')[0]``) raises a Jinja ``UndefinedError`` when no
+    dashboard filter is active for that column, since the call returns an
+    empty list. ``get_rendered_sql`` must surface this with the dedicated
+    "Virtual dataset template error" message rather than the generic
+    "Error while rendering virtual dataset query" message used for other
+    template errors.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        sql=(
+            "SELECT col FROM t WHERE col = "
+            """{{ "'" + filter_values('col')[0] + "'" }}"""
+        ),
+    )
+    processor = get_template_processor(database=database, table=table)
+
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Virtual dataset template error: list object has no element 0",
+    ):
+        table.get_rendered_sql(processor)

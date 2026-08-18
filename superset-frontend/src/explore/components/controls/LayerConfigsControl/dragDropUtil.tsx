@@ -17,8 +17,7 @@
  * under the License.
  */
 
-// eslint-disable-next-line no-restricted-imports
-import { TreeProps } from 'antd/lib/tree'; // TODO: Remove antd
+import { TreeProps } from '@superset-ui/core/components/Tree';
 import { DropInfoType, FlatLayerDataNode } from './types';
 
 /**

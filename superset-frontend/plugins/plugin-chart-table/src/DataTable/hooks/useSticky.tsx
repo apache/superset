@@ -30,7 +30,11 @@ import {
   UIEventHandler,
 } from 'react';
 import { TableInstance, Hooks } from 'react-table';
-import getScrollBarSize from '../utils/getScrollBarSize';
+import { useTheme, css } from '@apache-superset/core/theme';
+import {
+  CUSTOM_SCROLLBAR_SIZE,
+  getCustomScrollBarSize,
+} from '../utils/getScrollBarSize';
 import needScrollBar from '../utils/needScrollBar';
 import useMountedMemo from '../utils/useMountedMemo';
 
@@ -125,6 +129,8 @@ function StickyWrap({
   children: Table;
   sticky?: StickyState; // current sticky element sizes
 }) {
+  const theme = useTheme();
+
   if (!table || table.type !== 'table') {
     throw new Error('<StickyWrap> must have only one <table> element as child');
   }
@@ -162,8 +168,8 @@ function StickyWrap({
   const scrollFooterRef = useRef<HTMLDivElement>(null); // fixed footer
   const scrollBodyRef = useRef<HTMLDivElement>(null); // main body
 
-  const scrollBarSize = getScrollBarSize();
-  const { bodyHeight, columnWidths } = sticky;
+  const scrollBarSize = getCustomScrollBarSize();
+  const { bodyHeight, columnWidths, hasVerticalScroll } = sticky;
   const needSizer =
     !columnWidths ||
     sticky.width !== maxWidth ||
@@ -221,6 +227,26 @@ function StickyWrap({
   let footerTable: ReactElement | undefined;
   let bodyTable: ReactElement | undefined;
 
+  const scrollBarStyles = css`
+    &::-webkit-scrollbar {
+      width: ${CUSTOM_SCROLLBAR_SIZE}px;
+      height: ${CUSTOM_SCROLLBAR_SIZE}px;
+    }
+    &::-webkit-scrollbar-track {
+      background: ${theme.colorFillQuaternary};
+    }
+    &::-webkit-scrollbar-thumb {
+      background: ${theme.colorFillSecondary};
+      border-radius: ${theme.borderRadiusSM}px;
+      &:hover {
+        background: ${theme.colorFillTertiary};
+      }
+    }
+    &::-webkit-scrollbar-corner {
+      background: ${theme.colorFillQuaternary};
+    }
+  `;
+
   if (needSizer) {
     const theadWithRef = cloneElement(thead, { ref: theadRef });
     const tfootWithRef = tfoot && cloneElement(tfoot, { ref: tfootRef });
@@ -233,6 +259,7 @@ function StickyWrap({
           visibility: 'hidden',
           scrollbarGutter: 'stable',
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
         {cloneElement(
@@ -259,13 +286,18 @@ function StickyWrap({
       </colgroup>
     );
 
+    const headerContainerWidth = hasVerticalScroll
+      ? maxWidth - scrollBarSize
+      : maxWidth;
+
     headerTable = (
       <div
         key="header"
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
-          scrollbarGutter: 'stable',
+          width: headerContainerWidth,
+          boxSizing: 'border-box',
         }}
         role="presentation"
       >
@@ -285,7 +317,8 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
-          scrollbarGutter: 'stable',
+          width: headerContainerWidth,
+          boxSizing: 'border-box',
         }}
         role="presentation"
       >
@@ -314,8 +347,11 @@ function StickyWrap({
         style={{
           height: bodyHeight,
           overflow: 'auto',
-          scrollbarGutter: 'stable',
+          scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
+          width: maxWidth,
+          boxSizing: 'border-box',
         }}
+        css={scrollBarStyles}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
         role="presentation"
       >
@@ -330,12 +366,16 @@ function StickyWrap({
   }
 
   return (
+    // Virtualized/sticky table built from divs so the header/body can be
+    // positioned independently; a real <table> would break that layout, so
+    // role="table" is the correct ARIA pattern here, not the suggested tag.
     <div
       style={{
         width: maxWidth,
         height: sticky.realHeight || maxHeight,
         overflow: 'hidden',
       }}
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="table"
     >
       {headerTable}

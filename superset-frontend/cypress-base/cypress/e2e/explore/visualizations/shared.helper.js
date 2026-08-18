@@ -20,6 +20,30 @@
 // Constants for visualization tests
 // ***********************************************
 
+/**
+ * Look up a dataset ID by table name
+ * @param {string} tableName - The name of the table to look up
+ * @returns {Cypress.Chainable<number>} - The dataset ID
+ */
+export function getDatasetId(tableName) {
+  return cy
+    .request({
+      method: 'GET',
+      url: `/api/v1/dataset/?q=${encodeURIComponent(
+        JSON.stringify({
+          filters: [{ col: 'table_name', opr: 'eq', value: tableName }],
+        }),
+      )}`,
+    })
+    .then(response => {
+      const datasets = response.body.result;
+      if (datasets && datasets.length > 0) {
+        return datasets[0].id;
+      }
+      throw new Error(`Dataset with table name "${tableName}" not found`);
+    });
+}
+
 export const FORM_DATA_DEFAULTS = {
   datasource: '3__table',
   time_grain_sqla: null,

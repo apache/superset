@@ -19,7 +19,7 @@
 import ControlHeader, { ControlHeaderProps } from './ControlHeader';
 
 export default {
-  title: 'ControlHeader',
+  title: 'Components/ControlHeader',
   component: ControlHeader,
 };
 
@@ -42,10 +42,10 @@ const options: {
 export const ControlHeaderGallery = () => (
   <>
     {Object.entries(options).map(([name, props]) => (
-      <>
+      <div key={name}>
         <h4>{name}</h4>
         <ControlHeader {...props} />
-      </>
+      </div>
     ))}
   </>
 );

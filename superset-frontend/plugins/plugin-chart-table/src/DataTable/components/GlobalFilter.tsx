@@ -22,8 +22,11 @@ import {
   ChangeEventHandler,
   useRef,
   useEffect,
+  Ref,
 } from 'react';
 import { Row, FilterValue } from 'react-table';
+import { t, tn } from '@apache-superset/core/translation';
+import { Input, type InputRef, Space } from '@superset-ui/core/components';
 import useAsyncState from '../utils/useAsyncState';
 
 export interface SearchInputProps {
@@ -31,7 +34,7 @@ export interface SearchInputProps {
   value: string;
   onChange: ChangeEventHandler<HTMLInputElement>;
   onBlur?: () => void;
-  inputRef?: React.RefObject<HTMLInputElement>;
+  inputRef?: Ref<InputRef>;
 }
 
 const isSearchFocused = new Map();
@@ -56,17 +59,18 @@ function DefaultSearchInput({
   inputRef,
 }: SearchInputProps) {
   return (
-    <span className="dt-global-filter">
-      Search{' '}
-      <input
+    <Space direction="horizontal" size={4} className="dt-global-filter">
+      {t('Search')}
+      <Input
+        size="small"
         ref={inputRef}
-        className="form-control input-sm"
-        placeholder={`${count} records...`}
+        placeholder={tn('%s record...', '%s records...', count, count)}
         value={value}
         onChange={onChange}
         onBlur={onBlur}
+        className="form-control input-sm"
       />
-    </span>
+    </Space>
   );
 }
 
@@ -82,7 +86,7 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
   rowCount,
 }: GlobalFilterProps<D>) {
   const count = serverPagination ? rowCount : preGlobalFilteredRows.length;
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<InputRef>(null);
 
   const [value, setValue] = useAsyncState(
     filterValue,

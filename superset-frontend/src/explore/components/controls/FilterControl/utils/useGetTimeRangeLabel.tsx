@@ -53,21 +53,22 @@ export const useGetTimeRangeLabel = (adhocFilter: AdhocFilter): Results => {
       adhocFilter.comparator !== NO_TIME_RANGE &&
       actualTimeRange.title !== adhocFilter.comparator
     ) {
-      fetchTimeRange(adhocFilter.comparator, adhocFilter.subject).then(
-        ({ value, error }) => {
-          if (error) {
-            setActualTimeRange({
-              actualTimeRange: `${adhocFilter.subject} (${adhocFilter.comparator})`,
-              title: error,
-            });
-          } else {
-            setActualTimeRange({
-              actualTimeRange: value ?? '',
-              title: adhocFilter.comparator,
-            });
-          }
-        },
-      );
+      fetchTimeRange(
+        adhocFilter.comparator as string,
+        adhocFilter.subject as string,
+      ).then(({ value, error }) => {
+        if (error) {
+          setActualTimeRange({
+            actualTimeRange: `${adhocFilter.subject} (${adhocFilter.comparator})`,
+            title: error,
+          });
+        } else {
+          setActualTimeRange({
+            actualTimeRange: value ?? '',
+            title: adhocFilter.comparator as string | undefined,
+          });
+        }
+      });
     }
   }, [adhocFilter]);
 

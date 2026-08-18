@@ -1,0 +1,69 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: a6771c73-96fc-44c6-8b6e-9d303955ea48
+description: null
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: '100 years ago : now'
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: dttm
+  dashboards:
+  - 3
+  datasource: 21__table
+  extra_form_data: {}
+  matrixify_charts_per_row: 4
+  matrixify_dimension_columns:
+    dimension: ''
+    values: []
+  matrixify_dimension_rows:
+    dimension: ''
+    values: []
+  matrixify_dimension_selection_mode_columns: members
+  matrixify_dimension_selection_mode_rows: members
+  matrixify_fit_columns_dynamically: true
+  matrixify_mode_columns: metrics
+  matrixify_mode_rows: metrics
+  matrixify_row_height: 300
+  matrixify_show_column_headers: true
+  matrixify_show_row_labels: true
+  matrixify_topn_order_columns: desc
+  matrixify_topn_order_rows: desc
+  matrixify_topn_value_columns: 10
+  matrixify_topn_value_rows: 10
+  metric:
+    aggregate: SUM
+    column:
+      column_name: value
+    expressionType: SIMPLE
+    label: Value
+  rotation: square
+  row_limit: 50000
+  series: short_phrase
+  size_from: '10'
+  size_to: '70'
+  slice_id: 66
+  viz_type: word_cloud
+query_context: null
+slice_name: Unicode Cloud
+uuid: ed3032d8-7961-4576-8fc4-2a61639a38bf
+version: 1.0.0
+viz_type: word_cloud

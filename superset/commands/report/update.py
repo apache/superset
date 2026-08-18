@@ -19,6 +19,7 @@ from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset import security_manager
@@ -26,17 +27,28 @@ from superset.commands.base import UpdateMixin
 from superset.commands.report.base import BaseReportScheduleCommand
 from superset.commands.report.exceptions import (
     DatabaseNotFoundValidationError,
+    ReportScheduleAlertRequiredDatabaseValidationError,
+    ReportScheduleDatabaseNotAllowedValidationError,
     ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
+    ReportScheduleUserEmailNotFoundError,
 )
+from superset.commands.utils import compute_subjects
 from superset.daos.database import DatabaseDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
-from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportRecipientType,
+    ReportSchedule,
+    ReportScheduleType,
+    ReportState,
+)
 from superset.utils import json
+from superset.utils.core import get_user_email
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -73,7 +85,6 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Optional fields
         database_id = self._properties.get("database")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         exceptions: list[ValidationError] = []
 
@@ -87,6 +98,26 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         ):
             self._properties["last_state"] = ReportState.NOOP
 
+        # For reports created from charts or dashboards the recipient must always
+        # be the requesting user's own email address.
+        if (
+            self._model.creation_method
+            in (
+                ReportCreationMethod.CHARTS,
+                ReportCreationMethod.DASHBOARDS,
+            )
+            and "recipients" in self._properties
+        ):
+            if user_email := get_user_email():
+                self._properties["recipients"] = [
+                    {
+                        "type": ReportRecipientType.EMAIL,
+                        "recipient_config_json": {"target": user_email},
+                    }
+                ]
+            else:
+                exceptions.append(ReportScheduleUserEmailNotFoundError())
+
         # Validate name/type uniqueness if either is changing
         if name != self._model.name or report_type != self._model.type:
             if not ReportScheduleDAO.validate_update_uniqueness(
@@ -98,11 +129,38 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                     )
                 )
 
+        # Determine effective database state (payload overrides model)
+        if "database" in self._properties:
+            has_database = self._properties["database"] is not None
+        else:
+            has_database = self._model.database_id is not None
+
+        # Validate database is not allowed on Report type
+        if report_type == ReportScheduleType.REPORT and has_database:
+            exceptions.append(ReportScheduleDatabaseNotAllowedValidationError())
+
+        # Validate Alert has a database
+        if report_type == ReportScheduleType.ALERT and not has_database:
+            exceptions.append(ReportScheduleAlertRequiredDatabaseValidationError())
+
         # Validate if DB exists (for alerts)
-        if report_type == ReportScheduleType.ALERT and database_id:
+        if report_type == ReportScheduleType.ALERT and database_id is not None:
             if not (database := DatabaseDAO.find_by_id(database_id)):
                 exceptions.append(DatabaseNotFoundValidationError())
             self._properties["database"] = database
+
+        # Re-validate the alert SQL whenever the SQL or the target database
+        # changes, using the stored value for whichever half is absent from
+        # the payload.
+        if report_type == ReportScheduleType.ALERT and (
+            "sql" in self._properties or "database" in self._properties
+        ):
+            effective_database = (
+                self._properties.get("database") or self._model.database
+            )
+            effective_sql = self._properties.get("sql", self._model.sql)
+            if effective_database and effective_sql:
+                self.validate_alert_query(effective_database, effective_sql, exceptions)
 
         # validate report frequency
         try:
@@ -115,26 +173,43 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions, update=True)
+        self._validate_report_extra(exceptions)
 
         if "validator_config_json" in self._properties:
             self._properties["validator_config_json"] = json.dumps(
                 self._properties["validator_config_json"]
             )
 
-        # Check ownership
+        # Check editorship
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise ReportScheduleForbiddenError() from ex
 
-        # Validate/Populate owner
-        try:
-            owners = self.compute_owners(
-                self._model.owners,
-                owner_ids,
-            )
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        compute_subjects(
+            self._model,
+            self._properties,
+            exceptions,
+            include_viewers=False,
+        )
+
+        # Validate retry config: send_failed_reports requires retry_on_failure.
+        # Fall back to the existing DB value for fields not in the payload.
+        send_failed = self._properties.get(
+            "send_failed_reports", self._model.send_failed_reports
+        )
+        retry_enabled = self._properties.get(
+            "retry_on_failure", self._model.retry_on_failure
+        )
+        if send_failed and not retry_enabled:
+            msg = _("send_failed_reports requires retry_on_failure to be enabled")
+            exceptions.append(ValidationError({"send_failed_reports": [msg]}))
+
+        # Retries are only supported for reports, not alerts.
+        report_type = self._properties.get("type", self._model.type)
+        if report_type == ReportScheduleType.ALERT and retry_enabled:
+            msg = _("Retries are not supported for alerts")
+            exceptions.append(ValidationError({"retry_on_failure": [msg]}))
+
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

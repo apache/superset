@@ -16,13 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, useState } from 'react';
-import { SupersetTheme, t } from '@superset-ui/core';
-import { Button, AntdSelect } from 'src/components';
-import FormLabel from 'src/components/Form/FormLabel';
-import { Icons } from 'src/components/Icons';
-import { DatabaseParameters, FieldPropTypes } from '../../types';
-import { infoTooltip, CredentialInfoForm } from '../styles';
+import { useState, useEffect } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme, useTheme } from '@apache-superset/core/theme';
+import {
+  Button,
+  FormLabel,
+  Select,
+  Upload,
+  type UploadFile,
+  LabeledErrorBoundInput as ValidatedInput,
+} from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { DatabaseParameters, Engines, FieldPropTypes } from '../../types';
+import {
+  infoTooltip,
+  CredentialInfoForm,
+  CredentialInfoFormTextArea,
+} from '../styles';
 
 enum CredentialInfoOptions {
   JsonUpload,
@@ -35,6 +47,7 @@ enum CredentialInfoOptions {
 export const encryptedCredentialsMap = {
   gsheets: 'service_account_info',
   bigquery: 'credentials_info',
+  datastore: 'credentials_info',
 };
 
 export const EncryptedField = ({
@@ -42,123 +55,228 @@ export const EncryptedField = ({
   isEditMode,
   db,
   editNewDb,
+  isPublic = true,
+  setIsPublic,
+  isValidating,
+  validationErrors,
+  getValidation,
 }: FieldPropTypes) => {
-  const selectedFileInputRef = useRef<HTMLInputElement | null>(null);
+  const theme = useTheme() as SupersetTheme;
+  const credentialTextAreaCss = CredentialInfoFormTextArea(theme);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
-  const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
-    null,
-  );
-  const showCredentialsInfo = !isEditMode;
+  // `getValidation` closes over the parent's `db` state as of the last
+  // render, so calling it synchronously right after `onParametersChange`
+  // (which just dispatches a state update) would validate the *previous*
+  // credential value. Instead, remember the uploaded value and validate
+  // once the parameter prop actually reflects it.
+  const [pendingValidationValue, setPendingValidationValue] = useState<
+    string | null
+  >(null);
+  const { addDangerToast } = useToasts();
+  const isGSheets = db?.engine === Engines.GSheet;
+  const showCredentialsInfo = !isEditMode && (!isGSheets || !isPublic);
+  const showCredentialsSection = !isGSheets || !isPublic;
   const encryptedField =
     db?.engine &&
     encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
   const paramValue =
     db?.parameters?.[encryptedField as keyof DatabaseParameters];
+  // In edit mode the backend may return the existing (masked) credential in
+  // the parameters. Do not surface any pre-existing value in the field; the
+  // user must re-enter credentials to change them. This also matches the
+  // mount effect below, which resets the parameter to an empty string.
   const encryptedValue =
-    paramValue && typeof paramValue === 'object'
-      ? JSON.stringify(paramValue)
-      : paramValue;
+    isEditMode || paramValue == null
+      ? ''
+      : typeof paramValue === 'object'
+        ? JSON.stringify(paramValue)
+        : paramValue;
+
+  const handlePublicToggle = (value: string) => {
+    const nextIsPublic = value === 'true';
+    setIsPublic?.(nextIsPublic);
+    if (nextIsPublic) {
+      // Clear in-flight `parameters.*` so the save-time merge in
+      // DatabaseModal/index.tsx doesn't write them into masked_encrypted_extra.
+      changeMethods.onParametersChange({
+        target: { name: 'service_account_info', value: '' },
+      });
+      changeMethods.onParametersChange({
+        target: { name: 'oauth2_client_info', value: '' },
+      });
+      // Also delete any previously-stored values from masked_encrypted_extra
+      // itself (loaded in edit mode), since the save-time merge preserves
+      // existing keys and only overwrites them when `parameters.*` is truthy.
+      // Use the dedicated `ClearEncryptedExtraKey` action so the generic
+      // `EncryptedExtraInputChange` handler keeps its master semantics (store
+      // empty strings, never delete) for any other caller.
+      changeMethods.onClearEncryptedExtraKey('service_account_info');
+      changeMethods.onClearEncryptedExtraKey('oauth2_client_info');
+    }
+  };
+
+  const readTextFile = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsText(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+    });
+
+  useEffect(() => {
+    // Skip the initial clear when there's no engine-specific field name yet
+    // (e.g. the db prop hasn't finished loading): writing the falsy
+    // `encryptedField` as a key would pollute parameters with `false: ''`,
+    // and racing the async credential load isn't useful anyway.
+    if (!encryptedField) return;
+    changeMethods.onParametersChange({
+      target: {
+        name: encryptedField,
+        value: '',
+      },
+    });
+  }, []);
+
+  useEffect(() => {
+    if (
+      pendingValidationValue !== null &&
+      paramValue === pendingValidationValue
+    ) {
+      setPendingValidationValue(null);
+      getValidation();
+    }
+  }, [paramValue, pendingValidationValue, getValidation]);
+
   return (
     <CredentialInfoForm>
+      {isGSheets && (
+        <>
+          <FormLabel required>{t('Type of Google Sheets allowed')}</FormLabel>
+          <Select
+            value={isPublic ? 'true' : 'false'}
+            css={{ width: '100%' }}
+            onChange={value => handlePublicToggle(value as string)}
+            options={[
+              { value: 'true', label: t('Publicly shared sheets only') },
+              {
+                value: 'false',
+                label: t('Public and privately shared sheets'),
+              },
+            ]}
+          />
+        </>
+      )}
       {showCredentialsInfo && (
         <>
           <FormLabel>
             {t('How do you want to enter service account credentials?')}
           </FormLabel>
-          <AntdSelect
+          <Select
             defaultValue={uploadOption}
-            style={{ width: '100%' }}
-            onChange={option => setUploadOption(option)}
-          >
-            <AntdSelect.Option value={CredentialInfoOptions.JsonUpload}>
-              {t('Upload JSON file')}
-            </AntdSelect.Option>
-
-            <AntdSelect.Option value={CredentialInfoOptions.CopyPaste}>
-              {t('Copy and Paste JSON credentials')}
-            </AntdSelect.Option>
-          </AntdSelect>
+            css={{ width: '100%' }}
+            onChange={option => setUploadOption(option as number)}
+            options={[
+              {
+                value: CredentialInfoOptions.JsonUpload,
+                label: t('Upload JSON file'),
+              },
+              {
+                value: CredentialInfoOptions.CopyPaste,
+                label: t('Copy and Paste JSON credentials'),
+              },
+            ]}
+          />
         </>
       )}
-      {uploadOption === CredentialInfoOptions.CopyPaste ||
-      isEditMode ||
-      editNewDb ? (
-        <div className="input-container">
-          <FormLabel>{t('Service Account')}</FormLabel>
-          <textarea
-            className="input-form"
-            name={encryptedField}
-            value={
-              typeof encryptedValue === 'boolean'
-                ? String(encryptedValue)
-                : encryptedValue
-            }
-            onChange={changeMethods.onParametersChange}
-            placeholder={t(
-              'Paste content of service credentials JSON file here',
-            )}
-          />
-        </div>
+      {showCredentialsSection &&
+      (uploadOption === CredentialInfoOptions.CopyPaste ||
+        isEditMode ||
+        editNewDb) ? (
+        <ValidatedInput
+          id={encryptedField}
+          name={encryptedField}
+          required={false}
+          isValidating={isValidating}
+          value={
+            typeof encryptedValue === 'boolean'
+              ? String(encryptedValue)
+              : encryptedValue
+          }
+          validationMethods={{ onBlur: getValidation }}
+          errorMessage={
+            encryptedField ? validationErrors?.[encryptedField] : null
+          }
+          placeholder={t('Paste content of service credentials JSON file here')}
+          label={t('Service Account')}
+          onChange={changeMethods.onParametersChange}
+          helpText={t('Add service credentials')}
+          renderAsTextArea
+          textAreaCss={credentialTextAreaCss}
+        />
       ) : (
         showCredentialsInfo && (
           <div
             className="input-container"
             css={(theme: SupersetTheme) => infoTooltip(theme)}
           >
-            {!fileToUpload && (
-              <Button onClick={() => selectedFileInputRef.current?.click()}>
-                <Icons.LinkOutlined iconSize="m" />
-                {t('Upload credentials')}
-              </Button>
-            )}
-            {fileToUpload && (
-              <div className="credentials-uploaded">
-                <Button block disabled>
-                  <Icons.LinkOutlined iconSize="m" />
-                  {t('Credentials uploaded')}
-                </Button>
-                <Icons.DeleteFilled
-                  iconSize="m"
-                  onClick={() => {
-                    setFileToUpload(null);
-                    changeMethods.onParametersChange({
-                      target: {
-                        name: encryptedField,
-                        value: '',
-                      },
-                    });
-                  }}
-                />
-              </div>
-            )}
-
-            <input
-              ref={selectedFileInputRef}
-              id="selectedFile"
+            <Upload
               accept=".json"
-              className="input-upload"
-              type="file"
-              onChange={async event => {
-                let file;
-                if (event.target.files) {
-                  file = event.target.files[0];
-                }
-                setFileToUpload(file?.name);
+              maxCount={1}
+              fileList={fileList}
+              // avoid automatic upload
+              beforeUpload={() => false}
+              onRemove={() => {
+                setFileList([]);
+                setPendingValidationValue(null);
                 changeMethods.onParametersChange({
                   target: {
-                    type: null,
                     name: encryptedField,
-                    value: await file?.text(),
-                    checked: false,
+                    value: '',
                   },
                 });
-                if (selectedFileInputRef.current) {
-                  selectedFileInputRef.current.value = null as any;
+                return true;
+              }}
+              onChange={async info => {
+                const file = info.fileList?.[0]?.originFileObj;
+                if (file) {
+                  try {
+                    const fileContent = await readTextFile(file);
+                    changeMethods.onParametersChange({
+                      target: {
+                        type: null,
+                        name: encryptedField,
+                        value: fileContent,
+                        checked: false,
+                      },
+                    });
+                    setFileList(info.fileList);
+                    setPendingValidationValue(fileContent);
+                  } catch {
+                    setFileList([]);
+                    addDangerToast(
+                      t(
+                        'Unable to read the file, please refresh and try again.',
+                      ),
+                    );
+                  }
+                } else {
+                  setPendingValidationValue(null);
+                  changeMethods.onParametersChange({
+                    target: {
+                      name: encryptedField,
+                      value: '',
+                    },
+                  });
                 }
               }}
-            />
+            >
+              <Button icon={<Icons.LinkOutlined iconSize="m" />}>
+                {t('Upload credentials')}
+              </Button>
+            </Upload>
           </div>
         )
       )}

@@ -20,12 +20,18 @@
 # If you choose to use this type of deployment make sure to
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
+#
+# For verbose logging during development:
+# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
 x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest-dev}
 x-superset-volumes:
   &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - superset_home:/app/superset_home
+x-superset-environment: &superset-environment
+  # Tagged images must use their bundled packages rather than host bind mounts.
+  DEV_MODE: "false"
 
 services:
   redis:
@@ -41,7 +47,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: postgres:17
     container_name: superset_db
     restart: unless-stopped
     volumes:
@@ -54,6 +60,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment: *superset-environment
     image: *superset-image
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
@@ -65,8 +72,6 @@ services:
       superset-init:
         condition: service_completed_successfully
     volumes: *superset-volumes
-    environment:
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-init:
     image: *superset-image
@@ -77,6 +82,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment: *superset-environment
     depends_on:
       db:
         condition: service_started
@@ -86,9 +92,6 @@ services:
     volumes: *superset-volumes
     healthcheck:
       disable: true
-    environment:
-      SUPERSET_LOAD_EXAMPLES: "${SUPERSET_LOAD_EXAMPLES:-yes}"
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-worker:
     image: *superset-image
@@ -99,6 +102,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment: *superset-environment
     restart: unless-stopped
     depends_on:
       superset-init:
@@ -111,8 +115,6 @@ services:
           "CMD-SHELL",
           "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
         ]
-    environment:
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
   superset-worker-beat:
     image: *superset-image
@@ -123,6 +125,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    environment: *superset-environment
     restart: unless-stopped
     depends_on:
       superset-init:
@@ -131,8 +134,6 @@ services:
     volumes: *superset-volumes
     healthcheck:
       disable: true
-    environment:
-      SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 
 volumes:
   superset_home:

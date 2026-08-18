@@ -181,6 +181,7 @@ def test_get_uuid_entry(
 ) -> None:
     from superset.daos.key_value import KeyValueDAO
 
+    assert key_value_entry.uuid is not None
     found_entry = KeyValueDAO.get_entry(resource=RESOURCE, key=key_value_entry.uuid)
     assert found_entry is not None
     assert JSON_CODEC.decode(found_entry.value) == JSON_VALUE

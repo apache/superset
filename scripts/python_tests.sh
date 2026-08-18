@@ -33,4 +33,4 @@ superset load-test-users
 
 echo "Running tests"
 
-pytest --durations-min=2 --maxfail=1 --cov-report= --cov=superset ./tests/integration_tests "$@"
+pytest --durations-min=2 --cov-report= --cov=superset ./tests/integration_tests "$@"

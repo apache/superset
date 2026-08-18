@@ -16,23 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SortSeriesType } from '@superset-ui/chart-controls';
+import { LegendPaddingType, SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
-  GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
-  supersetTheme as theme,
 } from '@superset-ui/core';
+import { supersetTheme as theme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   calculateLowerLogTick,
   dedupSeries,
+  extractDataTotalValues,
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
   extractTooltipKeys,
   formatSeriesName,
+  getAreaScaledSymbolSize,
   getAxisType,
   getChartPadding,
   getLegendProps,
@@ -49,15 +51,81 @@ import {
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
-import { NULL_STRING } from '../../src/constants';
+import { NULL_STRING, StackControlsValue } from '../../src/constants';
+
+const {
+  getHorizontalLegendAvailableWidth,
+  getLegendLayoutResult,
+}: {
+  getHorizontalLegendAvailableWidth: (args: {
+    chartWidth: number;
+    orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+    padding?: LegendPaddingType;
+    zoomable?: boolean;
+  }) => number;
+  getLegendLayoutResult: (args: {
+    availableHeight?: number;
+    availableWidth?: number;
+    chartHeight: number;
+    chartWidth: number;
+    legendItems?: (
+      | string
+      | number
+      | null
+      | undefined
+      | { name?: string | number | null }
+    )[];
+    legendMargin?: string | number | null;
+    orientation: LegendOrientation;
+    show: boolean;
+    showSelectors?: boolean;
+    theme: typeof theme;
+    type: LegendType;
+  }) => {
+    effectiveMargin?: number;
+    effectiveType: LegendType;
+  };
+} = require('../../src/utils/series');
+
+const {
+  resolveLegendLayout,
+}: {
+  resolveLegendLayout: (args: {
+    availableHeight?: number;
+    availableWidth?: number;
+    chartHeight: number;
+    chartWidth: number;
+    legendItems?: (
+      | string
+      | number
+      | null
+      | undefined
+      | { name?: string | number | null }
+    )[];
+    legendMargin?: string | number | null;
+    orientation: LegendOrientation;
+    show: boolean;
+    showSelectors?: boolean;
+    theme: typeof theme;
+    type: LegendType;
+  }) => {
+    effectiveLegendMargin?: string | number | null;
+    effectiveLegendType: LegendType;
+    legendLayout: {
+      effectiveMargin?: number;
+      effectiveType: LegendType;
+    };
+  };
+} = require('../../src/utils/legendLayout');
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
+  selected: {},
   selectorLabel: {
-    fontFamily: theme.typography.families.sansSerif,
-    fontSize: theme.typography.sizes.s,
-    color: theme.colors.grayscale.base,
-    borderColor: theme.colors.grayscale.base,
+    fontFamily: theme.fontFamily,
+    fontSize: theme.fontSizeSM,
+    color: theme.colorText,
+    borderColor: theme.colorBorder,
   },
 };
 
@@ -400,8 +468,42 @@ test('sortAndFilterSeries by name with numbers desc', () => {
   ]);
 });
 
+test('extractDataTotalValues excludes extraMetricLabels from the stacked total (#42701)', () => {
+  const data: DataRecord[] = [
+    { category: '1-3d', A: 32, B: 0, Sort: 2 },
+    { category: '4-6d', A: 10, B: 5, Sort: 1 },
+  ];
+  const withoutExclusion = extractDataTotalValues(data, {
+    stack: true,
+    percentageThreshold: 0,
+    xAxisCol: 'category',
+  });
+  // Reproduces the bug: the sort-only metric leaks into the total.
+  expect(withoutExclusion.totalStackedValues).toEqual([34, 16]);
+
+  const withExclusion = extractDataTotalValues(data, {
+    stack: true,
+    percentageThreshold: 0,
+    xAxisCol: 'category',
+    extraMetricLabels: ['Sort'],
+  });
+  expect(withExclusion.totalStackedValues).toEqual([32, 15]);
+});
+
+test('extractDataTotalValues still respects legendState alongside extraMetricLabels', () => {
+  const data: DataRecord[] = [{ category: '1-3d', A: 32, B: 8, Sort: 2 }];
+  const result = extractDataTotalValues(data, {
+    stack: true,
+    percentageThreshold: 0,
+    xAxisCol: 'category',
+    extraMetricLabels: ['Sort'],
+    legendState: { A: true, B: false },
+  });
+  expect(result.totalStackedValues).toEqual([32]);
+});
+
 describe('extractSeries', () => {
-  it('should generate a valid ECharts timeseries series object', () => {
+  test('should generate a valid ECharts timeseries series object', () => {
     const data = [
       {
         __timestamp: '2000-01-01',
@@ -446,7 +548,77 @@ describe('extractSeries', () => {
     ]);
   });
 
-  it('should remove rows that have a null x-value', () => {
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // In "Expand" (100%/contribution) stacking mode, the raw datum value is
+  // divided by the row's total, which throws if the datum is still a
+  // BigInt at that point even though the total itself is a Number.
+  test('normalizes a BigInt datum value before dividing in Expand stack mode', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        metric_a: BigInt('9007199254740993'),
+        metric_b: 10,
+      },
+    ];
+    const totalStackedValues = [9007199254740993 + 10];
+
+    expect(() =>
+      extractSeries(data, {
+        totalStackedValues,
+        stack: StackControlsValue.Expand,
+      }),
+    ).not.toThrow();
+
+    const [series] = extractSeries(data, {
+      totalStackedValues,
+      stack: StackControlsValue.Expand,
+    });
+    const metricA = series.find(s => s.id === 'metric_a');
+    const expandedValue = (
+      metricA?.data as [string, number][] | undefined
+    )?.[0]?.[1];
+    expect(expandedValue).toBeCloseTo(9007199254740993 / totalStackedValues[0]);
+  });
+
+  // Regression for #36401: the default series sort (SortSeriesType.Sum)
+  // calls lodash's sumBy across all rows for a given series name. If one
+  // row's metric value was parsed as BigInt and another row's value for
+  // the same series is a Number, summing them throws before extractSeries
+  // ever reaches the Expand-mode conversion.
+  test('sorts series by sum without throwing when rows mix BigInt and Number values for the same series', () => {
+    const data = [
+      {
+        __timestamp: '2000-01-01',
+        a: BigInt('9007199254740993'),
+      },
+      {
+        __timestamp: '2000-02-01',
+        a: 5,
+      },
+    ];
+
+    expect(() =>
+      extractSeries(data, { sortSeriesType: SortSeriesType.Sum }),
+    ).not.toThrow();
+
+    const [series] = extractSeries(data, {
+      sortSeriesType: SortSeriesType.Sum,
+    });
+    expect(series).toEqual([
+      {
+        id: 'a',
+        name: 'a',
+        data: [
+          ['2000-01-01', 9007199254740992],
+          ['2000-02-01', 5],
+        ],
+      },
+    ]);
+  });
+
+  test('should remove rows that have a null x-value', () => {
     const data = [
       {
         x: 1,
@@ -492,7 +664,44 @@ describe('extractSeries', () => {
     ]);
   });
 
-  it('should do missing value imputation', () => {
+  test('should convert NULL x-values to NULL_STRING for categorical axis', () => {
+    const data = [
+      {
+        browser: 'Firefox',
+        count: 5,
+      },
+      {
+        browser: null,
+        count: 10,
+      },
+      {
+        browser: 'Chrome',
+        count: 8,
+      },
+    ];
+    expect(
+      extractSeries(data, {
+        xAxis: 'browser',
+        xAxisType: AxisType.Category,
+      }),
+    ).toEqual([
+      [
+        {
+          id: 'count',
+          name: 'count',
+          data: [
+            ['Firefox', 5],
+            [NULL_STRING, 10],
+            ['Chrome', 8],
+          ],
+        },
+      ],
+      [],
+      5,
+    ]);
+  });
+
+  test('should do missing value imputation', () => {
     const data = [
       {
         __timestamp: '2000-01-01',
@@ -564,7 +773,7 @@ describe('extractSeries', () => {
 });
 
 describe('extractGroupbyLabel', () => {
-  it('should join together multiple groupby labels', () => {
+  test('should join together multiple groupby labels', () => {
     expect(
       extractGroupbyLabel({
         datum: { a: 'abc', b: 'qwerty' },
@@ -573,13 +782,13 @@ describe('extractGroupbyLabel', () => {
     ).toEqual('abc, qwerty');
   });
 
-  it('should handle a single groupby', () => {
+  test('should handle a single groupby', () => {
     expect(
       extractGroupbyLabel({ datum: { xyz: 'qqq' }, groupby: ['xyz'] }),
     ).toEqual('qqq');
   });
 
-  it('should handle mixed types', () => {
+  test('should handle mixed types', () => {
     expect(
       extractGroupbyLabel({
         datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
@@ -588,7 +797,7 @@ describe('extractGroupbyLabel', () => {
     ).toEqual('abc, 123, 0.123, true');
   });
 
-  it('should handle null and undefined groupby', () => {
+  test('should handle null and undefined groupby', () => {
     expect(
       extractGroupbyLabel({
         datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
@@ -599,8 +808,48 @@ describe('extractGroupbyLabel', () => {
   });
 });
 
+describe('extractDataTotalValues', () => {
+  test('sums numeric metric values across a stacked datum', () => {
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      [{ __timestamp: '2000-01-01', metric_a: 10, metric_b: 20 }],
+      { stack: true, percentageThreshold: 50, xAxisCol: '__timestamp' },
+    );
+    expect(totalStackedValues).toEqual([30]);
+    expect(thresholdValues).toEqual([15]);
+  });
+
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // Summing a BigInt datum value against the Number accumulator here
+  // throws instead of producing a stacked total.
+  test('sums a stacked datum containing a BigInt metric value without throwing', () => {
+    const data: DataRecord[] = [
+      {
+        __timestamp: '2000-01-01',
+        metric_a: 10,
+        metric_b: BigInt('9007199254740993'),
+      },
+    ];
+    const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+      data,
+      {
+        stack: true,
+        percentageThreshold: 50,
+        xAxisCol: '__timestamp',
+      },
+    );
+    // BigInt('9007199254740993') exceeds Number.MAX_SAFE_INTEGER, so
+    // converting it to a Number loses precision (rounds to
+    // 9007199254740992). The assertions reflect that expected,
+    // best-effort numeric representation rather than exact BigInt math.
+    expect(totalStackedValues).toEqual([9007199254741002]);
+    expect(thresholdValues).toEqual([4503599627370501]);
+  });
+});
+
 describe('extractShowValueIndexes', () => {
-  it('should return the latest index for stack', () => {
+  test('should return the latest index for stack', () => {
     expect(
       extractShowValueIndexes(
         [
@@ -658,7 +907,7 @@ describe('extractShowValueIndexes', () => {
     ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
   });
 
-  it('should handle the negative numbers for total only', () => {
+  test('should handle the negative numbers for total only', () => {
     expect(
       extractShowValueIndexes(
         [
@@ -720,40 +969,40 @@ describe('extractShowValueIndexes', () => {
 describe('formatSeriesName', () => {
   const numberFormatter = getNumberFormatter();
   const timeFormatter = getTimeFormatter();
-  it('should handle missing values properly', () => {
+  test('should handle missing values properly', () => {
     expect(formatSeriesName(undefined)).toEqual('<NULL>');
     expect(formatSeriesName(null)).toEqual('<NULL>');
   });
 
-  it('should handle string values properly', () => {
+  test('should handle string values properly', () => {
     expect(formatSeriesName('abc XYZ!')).toEqual('abc XYZ!');
   });
 
-  it('should handle boolean values properly', () => {
+  test('should handle boolean values properly', () => {
     expect(formatSeriesName(true)).toEqual('true');
   });
 
-  it('should use default formatting for numeric values without formatter', () => {
+  test('should use default formatting for numeric values without formatter', () => {
     expect(formatSeriesName(12345678.9)).toEqual('12345678.9');
   });
 
-  it('should use numberFormatter for numeric values when formatter is provided', () => {
+  test('should use numberFormatter for numeric values when formatter is provided', () => {
     expect(formatSeriesName(12345678.9, { numberFormatter })).toEqual('12.3M');
   });
 
-  it('should use default formatting for date values without formatter', () => {
+  test('should use default formatting for date values without formatter', () => {
     expect(formatSeriesName(new Date('2020-09-11'))).toEqual(
       '2020-09-11T00:00:00.000Z',
     );
   });
 
-  it('should use timeFormatter for date values when formatter is provided', () => {
+  test('should use timeFormatter for date values when formatter is provided', () => {
     expect(formatSeriesName(new Date('2020-09-11'), { timeFormatter })).toEqual(
       '2020-09-11 00:00:00',
     );
   });
 
-  it('should normalize non-UTC string based timestamp', () => {
+  test('should normalize non-UTC string based timestamp', () => {
     const annualTimeFormatter = getTimeFormatter('%Y');
     expect(
       formatSeriesName('1995-01-01 00:00:00.000000', {
@@ -765,7 +1014,7 @@ describe('formatSeriesName', () => {
 });
 
 describe('getLegendProps', () => {
-  it('should return the correct props for scroll type with top orientation without zoom', () => {
+  test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
       getLegendProps(
         LegendType.Scroll,
@@ -784,7 +1033,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for scroll type with top orientation with zoom', () => {
+  test('should return the correct props for scroll type with top orientation with zoom', () => {
     expect(
       getLegendProps(
         LegendType.Scroll,
@@ -803,7 +1052,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with left orientation', () => {
+  test('should return the correct props for plain type with left orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
     ).toEqual({
@@ -815,7 +1064,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with right orientation without zoom', () => {
+  test('should return the correct props for plain type with right orientation without zoom', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -834,7 +1083,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with right orientation with zoom', () => {
+  test('should return the correct props for plain type with right orientation with zoom', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -853,12 +1102,26 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with bottom orientation', () => {
+  test('should return the correct props for plain type with bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
       show: false,
       bottom: 0,
+      right: 0,
+      orient: 'horizontal',
+      type: 'plain',
+      ...expectedThemeProps,
+    });
+  });
+
+  test('should return the correct props for plain type with top orientation', () => {
+    expect(
+      getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
+    ).toEqual({
+      show: false,
+      top: 0,
+      right: 0,
       orient: 'horizontal',
       type: 'plain',
       ...expectedThemeProps,
@@ -866,8 +1129,368 @@ describe('getLegendProps', () => {
   });
 });
 
+test('getLegendLayoutResult keeps plain horizontal legends when they fit within two rows', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveMargin: defaultLegendPadding[LegendOrientation.Top],
+    effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult honors user-selected plain type for many horizontal legend items given ample width (#39540)', () => {
+  // Regression contract for issue #39540: a legend with enough items to be
+  // scrollable must still honor a user-selected plain type when the chart is
+  // wide enough, instead of being unconditionally forced to scroll.
+  const layout = getLegendLayoutResult({
+    chartHeight: 600,
+    chartWidth: 1600,
+    legendItems: Array.from({ length: 10 }, (_, i) => `Series ${i + 1}`),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // One row of items fits, so only the base top padding is reserved.
+  expect(layout.effectiveMargin).toBe(20);
+});
+
+test('getLegendLayoutResult keeps user-selected plain type for bottom-oriented legends when space allows', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Bottom,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveMargin: defaultLegendPadding[LegendOrientation.Bottom],
+    effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult passes a user-selected scroll type through untouched', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Scroll,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
+test('getLegendLayoutResult adds extra margin for wrapped plain horizontal legends', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 640,
+    legendItems: [
+      'This is a long legend label',
+      'Another long legend label',
+      'Third long legend label',
+    ],
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout).toMatchObject({
+    effectiveType: LegendType.Plain,
+  });
+  expect(layout.effectiveMargin).toBeGreaterThan(
+    defaultLegendPadding[LegendOrientation.Top],
+  );
+});
+
+test('getLegendLayoutResult keeps plain when horizontal plain legends exceed two rows', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 240,
+    legendItems: [
+      'This is a long legend label',
+      'Another long legend label',
+      'Third long legend label',
+    ],
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // Each label is wider than the available width, so the row estimate
+  // overflows and falls back to one row per label: 20 + 2 * 24.
+  expect(layout.effectiveMargin).toBe(68);
+});
+
+test('getLegendLayoutResult bounds reserved margin for overflowing horizontal legends so the plot is not collapsed', () => {
+  const chartHeight = 200;
+  const layout = getLegendLayoutResult({
+    chartHeight,
+    chartWidth: 100,
+    legendItems: Array.from({ length: 100 }, (_, index) => `Series ${index}`),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
+  // 40% of the 200px chart height.
+  expect(layout.effectiveMargin).toBe(80);
+});
+
+test('getLegendLayoutResult bounds reserved margin for long vertical legend labels so the plot is not collapsed', () => {
+  const chartWidth = 1000;
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth,
+    legendItems: ['A'.repeat(200)],
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // 40% of the 1000px chart width.
+  expect(layout.effectiveMargin).toBe(400);
+});
+
+test('getLegendLayoutResult keeps plain when a single horizontal plain legend item exceeds available width', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 260,
+    legendItems: [
+      'This is a ridiculously long legend label that should not fit on one line',
+    ],
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // Overflow fallback with a single label reserves no extra row: 20 + 0 * 24.
+  expect(layout.effectiveMargin).toBe(20);
+});
+
+test('getLegendLayoutResult keeps plain when reserved horizontal width reduces plain legend capacity', () => {
+  const availableWidth = getHorizontalLegendAvailableWidth({
+    chartWidth: 265,
+    orientation: LegendOrientation.Top,
+    padding: { left: 20 },
+    zoomable: true,
+  });
+
+  const layout = getLegendLayoutResult({
+    availableWidth,
+    chartHeight: 400,
+    chartWidth: 265,
+    legendItems: ['Alpha', 'Beta', 'Gamma'],
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // 190px of available width wraps the three items onto three rows: 20 + 2 * 24.
+  expect(layout.effectiveMargin).toBe(68);
+});
+
+test('getLegendLayoutResult keeps plain when horizontal legend selectors alone exceed available width', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 95,
+    legendItems: ['A'],
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // The selector alone overflows, so the fallback reserves one row: 20 + 0 * 24.
+  expect(layout.effectiveMargin).toBe(20);
+});
+
+test('getLegendLayoutResult keeps plain vertical legends when they fit within a single column', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma'],
+      legendMargin: null,
+      orientation: LegendOrientation.Left,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveMargin: defaultLegendPadding[LegendOrientation.Left],
+    effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult adds extra margin for wide vertical plain legends', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 800,
+    legendItems: ['This is a very long legend label'],
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout).toMatchObject({
+    effectiveType: LegendType.Plain,
+  });
+  expect(layout.effectiveMargin).toBeGreaterThan(
+    defaultLegendPadding[LegendOrientation.Left],
+  );
+});
+
+test('getLegendLayoutResult keeps plain when vertical plain legends exceed one column', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 160,
+    chartWidth: 800,
+    legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'],
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // The widest label needs 128px, under the 170px base left padding, so the
+  // base padding wins.
+  expect(layout.effectiveMargin).toBe(170);
+});
+
+test('getLegendLayoutResult keeps plain when vertical plain legend selectors exceed available width', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 300,
+    legendItems: ['A', 'B', 'C'],
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // The 128px selector requirement is clamped to 120px (40% of the 300px
+  // width) and both stay under the 170px base left padding.
+  expect(layout.effectiveMargin).toBe(170);
+});
+
+test('getLegendLayoutResult honors an explicit List selection with many series', () => {
+  const manyItems = Array.from({ length: 40 }, (_, i) => `Series ${i + 1}`);
+
+  const horizontal = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 800,
+    legendItems: manyItems,
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+  expect(horizontal.effectiveType).toBe(LegendType.Plain);
+
+  const vertical = getLegendLayoutResult({
+    chartHeight: 160,
+    chartWidth: 800,
+    legendItems: manyItems,
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+  expect(vertical.effectiveType).toBe(LegendType.Plain);
+});
+
+test('getLegendLayoutResult counts empty-string legend labels when estimating layout', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 116,
+    legendItems: ['', 'A', 'B', 'C', 'D'],
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    showSelectors: false,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // The empty label still occupies a slot, wrapping five items onto three
+  // rows: 20 + 2 * 24.
+  expect(layout.effectiveMargin).toBe(68);
+});
+
+test('resolveLegendLayout returns both raw and effective legend layout values', () => {
+  expect(
+    resolveLegendLayout({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveLegendMargin: defaultLegendPadding[LegendOrientation.Top],
+    effectiveLegendType: LegendType.Plain,
+    legendLayout: {
+      effectiveMargin: defaultLegendPadding[LegendOrientation.Top],
+      effectiveType: LegendType.Plain,
+    },
+  });
+});
+
 describe('getChartPadding', () => {
-  it('should handle top default', () => {
+  test('should handle top default', () => {
     expect(getChartPadding(true, LegendOrientation.Top)).toEqual({
       bottom: 0,
       left: 0,
@@ -876,7 +1499,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should handle left default', () => {
+  test('should handle left default', () => {
     expect(getChartPadding(true, LegendOrientation.Left)).toEqual({
       bottom: 0,
       left: defaultLegendPadding[LegendOrientation.Left],
@@ -885,7 +1508,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the default padding when show is false', () => {
+  test('should return the default padding when show is false', () => {
     expect(
       getChartPadding(false, LegendOrientation.Left, 100, {
         top: 10,
@@ -901,7 +1524,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for left orientation', () => {
+  test('should return the correct padding for left orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Left, 100)).toEqual({
       bottom: 0,
       left: 100,
@@ -918,7 +1541,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for right orientation', () => {
+  test('should return the correct padding for right orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Right, 50)).toEqual({
       bottom: 0,
       left: 0,
@@ -935,7 +1558,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for top orientation', () => {
+  test('should return the correct padding for top orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Top, 20)).toEqual({
       bottom: 0,
       left: 0,
@@ -952,7 +1575,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for bottom orientation', () => {
+  test('should return the correct padding for bottom orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Bottom, 10)).toEqual({
       bottom: 10,
       left: 0,
@@ -971,7 +1594,7 @@ describe('getChartPadding', () => {
 });
 
 describe('dedupSeries', () => {
-  it('should deduplicate ids in series', () => {
+  test('should deduplicate ids in series', () => {
     expect(
       dedupSeries([
         {
@@ -997,17 +1620,17 @@ describe('dedupSeries', () => {
 });
 
 describe('sanitizeHtml', () => {
-  it('should remove html tags from series name', () => {
+  test('should remove html tags from series name', () => {
     expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
   });
 });
 
 describe('getOverMaxHiddenFormatter', () => {
-  it('should hide value if greater than max', () => {
+  test('should hide value if greater than max', () => {
     const formatter = getOverMaxHiddenFormatter({ max: 81000 });
     expect(formatter.format(84500)).toEqual('');
   });
-  it('should show value if less or equal than max', () => {
+  test('should show value if less or equal than max', () => {
     const formatter = getOverMaxHiddenFormatter({ max: 81000 });
     expect(formatter.format(81000)).toEqual('81000');
     expect(formatter.format(50000)).toEqual('50000');
@@ -1043,6 +1666,41 @@ test('getAxisType without forced categorical', () => {
 
 test('getAxisType with forced categorical', () => {
   expect(getAxisType(false, true, GenericDataType.Numeric)).toEqual(
+    AxisType.Category,
+  );
+});
+
+test('getAxisType treats numeric as category for bar charts', () => {
+  expect(
+    (getAxisType as (...args: unknown[]) => AxisType)(
+      false,
+      false,
+      GenericDataType.Numeric,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual(AxisType.Category);
+  expect(
+    (getAxisType as (...args: unknown[]) => AxisType)(
+      false,
+      false,
+      GenericDataType.Numeric,
+      EchartsTimeseriesSeriesType.Line,
+    ),
+  ).toEqual(AxisType.Value);
+});
+
+test('getAxisType does not coerce Numeric x-axis to Time regardless of values', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation:
+  // getAxisType only considers the coltype reported by the query, never the
+  // actual values. Numeric coltype must stay on a Value axis so a future
+  // change that introduces implicit temporal coercion is surfaced here.
+  expect(getAxisType(false, false, GenericDataType.Numeric)).toEqual(
+    AxisType.Value,
+  );
+  expect(getAxisType(false, false, GenericDataType.Temporal)).toEqual(
+    AxisType.Time,
+  );
+  expect(getAxisType(false, false, GenericDataType.String)).toEqual(
     AxisType.Category,
   );
 });
@@ -1156,12 +1814,12 @@ test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () 
 });
 
 describe('getTimeCompareStackId', () => {
-  it('returns the defaultId when timeCompare is empty', () => {
+  test('returns the defaultId when timeCompare is empty', () => {
     const result = getTimeCompareStackId('default', []);
     expect(result).toEqual('default');
   });
 
-  it('returns the defaultId when no value in timeCompare is included in name', () => {
+  test('returns the defaultId when no value in timeCompare is included in name', () => {
     const result = getTimeCompareStackId(
       'default',
       ['compare1', 'compare2'],
@@ -1170,7 +1828,7 @@ describe('getTimeCompareStackId', () => {
     expect(result).toEqual('default');
   });
 
-  it('returns the first value in timeCompare that is included in name', () => {
+  test('returns the first value in timeCompare that is included in name', () => {
     const result = getTimeCompareStackId(
       'default',
       ['compare1', 'compare2'],
@@ -1179,7 +1837,7 @@ describe('getTimeCompareStackId', () => {
     expect(result).toEqual('compare1');
   });
 
-  it('handles name being a number', () => {
+  test('handles name being a number', () => {
     const result = getTimeCompareStackId('default', ['123', '456'], 123);
     expect(result).toEqual('123');
   });
@@ -1209,4 +1867,30 @@ test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
 test('extractTooltipKeys with non-rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, false, false);
   expect(result).toEqual(['foo']);
+});
+
+test('getAreaScaledSymbolSize maps the value extent to the size range', () => {
+  // smallest value renders at the minimum diameter
+  expect(getAreaScaledSymbolSize(10, [10, 40], [5, 30])).toBe(5);
+  // largest value renders at the maximum diameter
+  expect(getAreaScaledSymbolSize(40, [10, 40], [5, 30])).toBe(30);
+});
+
+test('getAreaScaledSymbolSize scales area, not diameter', () => {
+  // the midpoint value's *area* is halfway between the min and max areas
+  const midSize = getAreaScaledSymbolSize(25, [10, 40], [5, 30]);
+  expect(midSize ** 2).toBeCloseTo((5 ** 2 + 30 ** 2) / 2);
+});
+
+test('getAreaScaledSymbolSize clamps values outside the extent', () => {
+  expect(getAreaScaledSymbolSize(-100, [10, 40], [5, 30])).toBe(5);
+  expect(getAreaScaledSymbolSize(1000, [10, 40], [5, 30])).toBe(30);
+});
+
+test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => {
+  const midAreaSize = Math.sqrt((5 ** 2 + 30 ** 2) / 2);
+  expect(getAreaScaledSymbolSize(7, [7, 7], [5, 30])).toBeCloseTo(midAreaSize);
+  expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
+    midAreaSize,
+  );
 });

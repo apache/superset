@@ -17,47 +17,56 @@
  * under the License.
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
-  css,
-  useTheme,
   SupersetClient,
   makeApi,
-  styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { extendedDayjs } from 'src/utils/dates';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import FacePile from 'src/components/FacePile';
-import { Tooltip } from 'src/components/Tooltip';
-import ListView, {
-  FilterOperator,
-  Filters,
-  ListViewProps,
-} from 'src/components/ListView';
+import { css, styled } from '@apache-superset/core/theme';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import {
+  Tooltip,
+  ConfirmStatusChange,
+  DeleteModal,
+  LastUpdated,
+} from '@superset-ui/core/components';
+import {
+  ModifiedInfo,
+  ListView,
+  ListViewFilterOperator as FilterOperator,
+  ListViewActionsBar,
+  type ListViewActionProps,
+  type ListViewProps,
+  type ListViewFilters,
+} from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { Switch } from 'src/components/Switch';
+import { Switch } from '@superset-ui/core/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import AlertStatusIcon from 'src/features/alerts/components/AlertStatusIcon';
 import RecipientIcon from 'src/features/alerts/components/RecipientIcon';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import DeleteModal from 'src/components/DeleteModal';
-import LastUpdated from 'src/components/LastUpdated';
 import {
   useListViewResource,
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  createFetchRelated,
+  createFetchEditors,
+} from 'src/views/CRUD/utils';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
-import { ModifiedInfo } from 'src/components/AuditInfo';
+import { useExecuteReportSchedule } from 'src/features/alerts/hooks/useExecuteReportSchedule';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -69,6 +78,7 @@ const AlertStateLabel: Record<AlertState, string> = {
   [AlertState.Error]: t('Error'),
   [AlertState.Noop]: t('Not triggered'),
   [AlertState.Grace]: t('On Grace'),
+  [AlertState.Retrying]: t('Retrying'),
 };
 
 interface AlertListProps {
@@ -88,19 +98,19 @@ const deleteAlerts = makeApi<number[], { message: string }>({
 });
 
 const RefreshContainer = styled.div`
-  width: 100%;
-  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 3}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  ${({ theme }) => css`
+    margin-top: ${theme.sizeUnit}px;
+    width: 100%;
+    padding: ${theme.sizeUnit * 2}px 0px ${theme.sizeUnit * 3}px;
+  `}
 `;
-
 const StyledHeaderWithIcon = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  > *:first-child {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+  > *:first-of-type {
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -112,10 +122,13 @@ function AlertList({
   user,
   addSuccessToast,
 }: AlertListProps) {
-  const theme = useTheme();
   const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
+  const userSubjects = useMemo(
+    () => new Set(getBootstrapData()?.common?.user_subjects ?? []),
+    [],
+  );
   const initialFilters = useMemo(
     () => [
       {
@@ -160,6 +173,53 @@ function AlertList({
   );
   const [currentAlertDeleting, setCurrentAlertDeleting] =
     useState<AlertObject | null>(null);
+
+  // Track in-flight execute requests with a ref for race-condition-safe double-click prevention
+  const executingIdsRef = useRef<Set<number>>(new Set());
+  const { executeReport } = useExecuteReportSchedule();
+
+  const handleExecuteReport = useCallback(
+    (alert: AlertObject) => {
+      const alertId = alert.id;
+      if (!alertId) {
+        return;
+      }
+      // Atomically check-and-set before any async work to prevent duplicate requests
+      // from rapid double-clicks that occur before a re-render can update state.
+      if (executingIdsRef.current.has(alertId)) {
+        return;
+      }
+      executingIdsRef.current.add(alertId);
+
+      executeReport(
+        alertId,
+        () => {
+          addSuccessToast(
+            t('%(alertType)s "%(alertName)s" triggered successfully', {
+              alertType: alert.type,
+              alertName: alert.name,
+            }),
+          );
+        },
+        error => {
+          addDangerToast(
+            t('Failed to trigger %(alertType)s "%(alertName)s": %(error)s', {
+              alertType: alert.type,
+              alertName: alert.name,
+              error,
+            }),
+          );
+        },
+      )
+        .catch(() => {
+          // Error already surfaced to the user via the onError callback above.
+        })
+        .finally(() => {
+          executingIdsRef.current.delete(alertId);
+        });
+    },
+    [executeReport, addSuccessToast, addDangerToast],
+  );
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
@@ -235,9 +295,13 @@ function AlertList({
           }),
         );
 
-        updateResource(update_id, { active: checked }, false, false)
-          .then()
-          .catch(() => setResourceCollection(original));
+        updateResource(update_id, { active: checked }, false, false).then(
+          response => {
+            if (!response) {
+              setResourceCollection(original);
+            }
+          },
+        );
       }
     },
     [alerts, setResourceCollection, updateResource],
@@ -259,6 +323,7 @@ function AlertList({
         accessor: 'last_state',
         size: 'xs',
         disableSortBy: true,
+        id: 'last_state',
       },
       {
         Cell: ({
@@ -275,11 +340,13 @@ function AlertList({
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
         size: 'lg',
+        id: 'last_eval_dttm',
       },
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xl',
+        size: 'xxl',
+        id: 'name',
       },
       {
         Header: t('Schedule'),
@@ -297,6 +364,7 @@ function AlertList({
             <span>{`${crontab_humanized} (${timezone})`}</span>
           </Tooltip>
         ),
+        id: 'crontab_humanized',
       },
       {
         Cell: ({
@@ -310,16 +378,17 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification method'),
         disableSortBy: true,
-        size: 'xl',
+        size: 'lg',
+        id: 'recipients',
       },
       {
         Cell: ({
           row: {
-            original: { owners = [] },
+            original: { editors = [] },
           },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        id: 'owners',
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        id: 'editors',
         disableSortBy: true,
         size: 'xl',
       },
@@ -335,12 +404,14 @@ function AlertList({
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
           const allowEdit =
-            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
-            isUserAdmin(user);
+            original.editors
+              ?.map((e: any) => e.value || e.id)
+              .some((id: number) => userSubjects.has(id)) || isUserAdmin(user);
 
           return (
             <Switch
@@ -355,7 +426,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
-        size: 'xl',
+        size: 'sm',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -366,8 +437,9 @@ function AlertList({
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
           const allowEdit =
-            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
-            isUserAdmin(user);
+            original.editors
+              ?.map((e: any) => e.value || e.id)
+              .some((id: number) => userSubjects.has(id)) || isUserAdmin(user);
 
           const actions = [
             canEdit
@@ -388,6 +460,15 @@ function AlertList({
                   onClick: handleEdit,
                 }
               : null,
+            allowEdit
+              ? {
+                  label: 'trigger-now-action',
+                  tooltip: t('Trigger now'),
+                  placement: 'bottom',
+                  icon: 'ThunderboltOutlined',
+                  onClick: () => handleExecuteReport(original),
+                }
+              : null,
             allowEdit && canDelete
               ? {
                   label: 'delete-action',
@@ -399,51 +480,51 @@ function AlertList({
               : null,
           ].filter(item => item !== null);
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
-        size: 'xl',
+        size: 'lg',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canEdit, isReportEnabled, toggleActive],
+    [
+      canDelete,
+      canEdit,
+      isReportEnabled,
+      toggleActive,
+      handleExecuteReport,
+      userSubjects,
+    ],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined
-            iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
-              vertical-align: text-top;
-            `}
-          />
-          {title}
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => {
-        handleAlertEdit(null);
-      },
-    });
-  }
   if (canDelete) {
     subMenuButtons.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
       'data-test': 'bulk-select-toggle',
+    });
+  }
+
+  if (canCreate) {
+    subMenuButtons.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t(title),
+      buttonStyle: 'primary',
+      onClick: () => {
+        handleAlertEdit(null);
+      },
     });
   }
 
@@ -454,12 +535,7 @@ function AlertList({
     buttonText: canCreate ? (
       <>
         <Icons.PlusOutlined
-          iconColor={theme.colors.primary.light5}
           iconSize="m"
-          css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
-            vertical-align: text-top;
-          `}
           data-test="add-annotation-layer-button"
         />
         {title}{' '}
@@ -467,7 +543,7 @@ function AlertList({
     ) : null,
   };
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
         Header: t('Name'),
@@ -475,23 +551,25 @@ function AlertList({
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'alert_report_list_search',
       },
       {
-        Header: t('Owner'),
-        key: 'owner',
-        id: 'owners',
+        Header: t('Editor'),
+        key: 'editor',
+        id: 'editors',
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchEditors(
           'report',
-          'owners',
           createErrorHandler(errMsg =>
-            t('An error occurred while fetching owners values: %s', errMsg),
+            t('An error occurred while fetching editor values: %s', errMsg),
           ),
           user,
         ),
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
         paginate: true,
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Status'),
@@ -533,6 +611,7 @@ function AlertList({
           user,
         ),
         paginate: true,
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],
@@ -559,6 +638,8 @@ function AlertList({
             url: '/alert/list/',
             usesRouter: true,
             'data-test': 'alert-list',
+            id: 'alert-tab',
+            'aria-controls': 'alert-list',
           },
           {
             name: 'Reports',
@@ -566,6 +647,8 @@ function AlertList({
             url: '/report/list/',
             usesRouter: true,
             'data-test': 'report-list',
+            id: 'report-tab',
+            'aria-controls': 'report-list',
           },
         ]}
         buttons={subMenuButtons}
@@ -623,24 +706,30 @@ function AlertList({
               ]
             : [];
           return (
-            <ListView<AlertObject>
-              className="alerts-list-view"
-              columns={columns}
-              count={alertsCount}
-              data={alerts}
-              emptyState={emptyState}
-              fetchData={fetchData}
-              filters={filters}
-              initialSort={initialSort}
-              loading={loading}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={toggleBulkSelect}
-              refreshData={refreshData}
-              addDangerToast={addDangerToast}
-              addSuccessToast={addSuccessToast}
-              pageSize={PAGE_SIZE}
-            />
+            <div
+              id={isReportEnabled ? 'report-list' : 'alert-list'}
+              role="tabpanel"
+              aria-labelledby={isReportEnabled ? 'report-tab' : 'alert-tab'}
+            >
+              <ListView<AlertObject>
+                className="alerts-list-view"
+                columns={columns}
+                count={alertsCount}
+                data={alerts}
+                emptyState={emptyState}
+                fetchData={fetchData}
+                filters={filters}
+                initialSort={initialSort}
+                loading={loading}
+                bulkActions={bulkActions}
+                bulkSelectEnabled={bulkSelectEnabled}
+                disableBulkSelect={toggleBulkSelect}
+                refreshData={refreshData}
+                addDangerToast={addDangerToast}
+                addSuccessToast={addSuccessToast}
+                pageSize={PAGE_SIZE}
+              />
+            </div>
           );
         }}
       </ConfirmStatusChange>

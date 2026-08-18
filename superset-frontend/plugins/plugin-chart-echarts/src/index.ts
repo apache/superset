@@ -17,6 +17,9 @@
  * under the License.
  */
 export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
+export { default as EchartsRoseChartPlugin } from './Rose';
+export { default as EchartsTimePivotChartPlugin } from './TimePivot';
+export { default as EchartsBulletChartPlugin } from './Bullet';
 export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
 export { default as EchartsAreaChartPlugin } from './Timeseries/Area';
 export { default as EchartsTimeseriesBarChartPlugin } from './Timeseries/Regular/Bar';
@@ -43,6 +46,7 @@ export { default as EchartsSunburstChartPlugin } from './Sunburst';
 export { default as EchartsBubbleChartPlugin } from './Bubble';
 export { default as EchartsSankeyChartPlugin } from './Sankey';
 export { default as EchartsWaterfallChartPlugin } from './Waterfall';
+export { default as EchartsGanttChartPlugin } from './Gantt';
 
 export { default as BoxPlotTransformProps } from './BoxPlot/transformProps';
 export { default as FunnelTransformProps } from './Funnel/transformProps';
@@ -60,8 +64,12 @@ export { default as BubbleTransformProps } from './Bubble/transformProps';
 export { default as WaterfallTransformProps } from './Waterfall/transformProps';
 export { default as HistogramTransformProps } from './Histogram/transformProps';
 export { default as SankeyTransformProps } from './Sankey/transformProps';
+export { default as GanttTransformProps } from './Gantt/transformProps';
 
 export { DEFAULT_FORM_DATA as TimeseriesDefaultFormData } from './Timeseries/constants';
+
+export * from './utils/eChartOptionsSchema';
+export * from './utils/safeEChartOptionsParser';
 
 export * from './types';
 

@@ -19,14 +19,17 @@ from textwrap import dedent
 from unittest import mock, skipUnless
 
 import pandas as pd
+import pytest
 from flask.ctx import AppContext
 from sqlalchemy import types  # noqa: F401
+from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.database import get_example_database
+from tests.common.assert_utils import assert_called_once_with_text
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -77,14 +80,16 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         assert result == {"a", "d"}
 
     def verify_presto_column(self, column, expected_results):
-        inspector = mock.Mock()
+        inspector = mock.MagicMock()
         preparer = inspector.engine.dialect.identifier_preparer
         preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
         row = mock.Mock()
         row.Column, row.Type, row.Null = column
-        inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
+        inspector.engine.connect().__enter__().execute().fetchall = mock.Mock(
+            return_value=[row]
+        )
         results = PrestoEngineSpec.get_columns(inspector, Table("", ""))
         assert len(expected_results) == len(results)
         for expected_result, result in zip(expected_results, results, strict=False):
@@ -570,6 +575,27 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         assert result["partitions"]["cols"] == ["ds", "hour"]
         assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 
+    def test_get_extra_table_metadata_no_table_found(self):
+        """
+        Test get_extra_table_metadata when a NoSuchTableError (simulating NoTableFound)
+        is raised by the database.get_df method.
+        """
+        # Setup a fake database
+        database = mock.MagicMock()
+        database.get_indexes.return_value = [
+            {"column_names": ["ds"]}
+        ]  # Return indexes so get_df is called
+        database.get_extra.return_value = {}
+        # Simulate that the table is not found
+        database.get_df.side_effect = NoSuchTableError("Table not found")
+
+        from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+
+        with pytest.raises(SupersetDBAPIProgrammingError):
+            PrestoEngineSpec.get_extra_table_metadata(
+                database, Table("test_table", "test_schema")
+            )
+
     def test_presto_where_latest_partition(self):
         db = mock.Mock()
         db.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
@@ -584,7 +610,9 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
             columns,
         )
         query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-        assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
+        # SQLAlchemy 2.0 changed how select() with no columns renders - a
+        # single trailing space before the newline instead of two under 1.4.
+        assert "SELECT \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
     def test_query_cost_formatter(self):
         raw_cost = [
@@ -807,15 +835,17 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
-        inspector.bind.execute.return_value.fetchall = mock.MagicMock(
-            return_value=["a", "b"]
+        inspector.engine.connect().__enter__().execute.return_value.fetchall = (
+            mock.MagicMock(return_value=["a", "b"])
         )
         table_name = "table_name"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name))
         assert result == ["a", "b"]
-        inspector.bind.execute.assert_called_once_with(
-            f'SHOW COLUMNS FROM "{table_name}"'
-        )
+        with inspector.engine.connect() as conn:
+            assert_called_once_with_text(
+                conn.execute,
+                f'SHOW COLUMNS FROM "{table_name}"',
+            )
 
     def test_show_columns_with_schema(self):
         inspector = mock.MagicMock()
@@ -823,16 +853,17 @@ class TestPrestoDbEngineSpec(SupersetTestCase):
         preparer.quote_identifier = preparer.quote = preparer.quote_schema = (
             lambda x: f'"{x}"'
         )
-        inspector.bind.execute.return_value.fetchall = mock.MagicMock(
-            return_value=["a", "b"]
+        inspector.engine.connect().__enter__().execute.return_value.fetchall = (
+            mock.MagicMock(return_value=["a", "b"])
         )
         table_name = "table_name"
         schema = "schema"
         result = PrestoEngineSpec._show_columns(inspector, Table(table_name, schema))
         assert result == ["a", "b"]
-        inspector.bind.execute.assert_called_once_with(
-            f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
-        )
+        with inspector.engine.connect() as conn:
+            assert_called_once_with_text(
+                conn.execute, f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
+            )
 
     def test_is_column_name_quoted(self):
         column_name = "mock"

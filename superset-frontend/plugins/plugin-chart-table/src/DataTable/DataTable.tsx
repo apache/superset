@@ -26,8 +26,10 @@ import {
   CSSProperties,
   DragEvent,
   useEffect,
+  useMemo,
 } from 'react';
-
+import { typedMemo, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   useTable,
   usePagination,
@@ -41,9 +43,8 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
-import { styled, typedMemo, usePrevious } from '@superset-ui/core';
-import { isEqual } from 'lodash';
-import { Space } from 'antd';
+import { isEqual } from 'lodash-es';
+import { Flex, Space } from '@superset-ui/core/components';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
@@ -55,6 +56,7 @@ import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
 import { SearchOption, SortByItem } from '../types';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
+import { SupersetTheme, css } from '@apache-superset/core/theme';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -78,7 +80,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   sticky?: boolean;
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
-  onColumnOrderChange: () => void;
+  onColumnOrderChange?: () => void;
   renderGroupingHeaders?: () => JSX.Element;
   renderTimeComparisonDropdown?: () => JSX.Element;
   handleSortByChange: (sortBy: SortByItem[]) => void;
@@ -89,6 +91,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   searchInputId?: string;
   onSearchColChange: (searchCol: string) => void;
   searchOptions: SearchOption[];
+  onFilteredDataChange?: (rows: Row<D>[], filterValue?: string) => void;
+  onFilteredRowsChange?: (rows: D[]) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -98,24 +102,6 @@ export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
 const sortTypes = {
   alphanumeric: sortAlphanumericCaseInsensitive,
 };
-
-const StyledSpace = styled(Space)`
-  display: flex;
-  justify-content: flex-end;
-
-  .search-select-container {
-    display: flex;
-  }
-
-  .search-by-label {
-    align-self: center;
-    margin-right: 4px;
-  }
-`;
-
-const StyledRow = styled.div`
-  display: flex;
-`;
 
 // Be sure to pass our updateMyData and the skipReset option
 export default typedMemo(function DataTable<D extends object>({
@@ -134,7 +120,7 @@ export default typedMemo(function DataTable<D extends object>({
   onServerPaginationChange,
   rowCount,
   selectPageSize,
-  noResults: noResultsText = 'No data found',
+  noResults: noResultsText = t('No data found'),
   hooks,
   serverPagination,
   wrapperRef: userWrapperRef,
@@ -149,6 +135,8 @@ export default typedMemo(function DataTable<D extends object>({
   searchInputId,
   onSearchColChange,
   searchOptions,
+  onFilteredDataChange,
+  onFilteredRowsChange,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -160,7 +148,25 @@ export default typedMemo(function DataTable<D extends object>({
     hooks || [],
   ].flat();
 
-  const columnNames = Object.keys(data?.[0] || {});
+  const columnNames = columns.map((column, index) => {
+    const normalizedColumn = column as typeof column & {
+      accessor?: string | ((row: D) => unknown);
+      columnKey?: string;
+      id?: string;
+    };
+
+    const accessorName =
+      typeof normalizedColumn.accessor === 'string'
+        ? normalizedColumn.accessor
+        : undefined;
+
+    return (
+      normalizedColumn.columnKey ??
+      normalizedColumn.id ??
+      accessorName ??
+      String(index)
+    );
+  });
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
   const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
@@ -220,6 +226,7 @@ export default typedMemo(function DataTable<D extends object>({
   );
 
   const {
+    rows, // filtered/sorted rows before pagination
     getTableProps,
     getTableBodyProps,
     prepareRow,
@@ -249,12 +256,38 @@ export default typedMemo(function DataTable<D extends object>({
       getTableSize: defaultGetTableSize,
       globalFilter: defaultGlobalFilter,
       sortTypes,
+      autoResetGlobalFilter: !isEqual(columnNames, previousColumnNames),
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
+      autoResetPage: !isEqual(columnNames, previousColumnNames),
       manualSortBy: !!serverPagination,
       ...moreUseTableOptions,
     },
     ...tableHooks,
   );
+
+  const rowSignature = useMemo(
+    // sort the rows by id to ensure the total is not recalculated when the rows are only reordered
+    () =>
+      rows
+        .map((row, index) => row.id ?? index)
+        .sort()
+        .join('|'),
+    [rows],
+  );
+
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+
+  useEffect(() => {
+    if (!onFilteredDataChange) {
+      return;
+    }
+
+    const searchText =
+      typeof filterValue === 'string' ? filterValue : undefined;
+
+    onFilteredDataChange(rowsRef.current, searchText);
+  }, [filterValue, onFilteredDataChange, rowSignature]);
 
   const handleSearchChange = useCallback(
     (query: string) => {
@@ -337,8 +370,7 @@ export default typedMemo(function DataTable<D extends object>({
       const colToBeMoved = currentCols.splice(columnBeingDragged, 1);
       currentCols.splice(newPosition, 0, colToBeMoved[0]);
       setColumnOrder(currentCols);
-      // toggle value in TableChart to trigger column width recalc
-      onColumnOrderChange();
+      onColumnOrderChange?.();
     }
     e.preventDefault();
   };
@@ -370,7 +402,7 @@ export default typedMemo(function DataTable<D extends object>({
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
             return (
-              <tr key={rowKey || row.id} {...rowProps} role="row">
+              <tr key={rowKey || row.id} {...rowProps}>
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
                 )}
@@ -391,11 +423,7 @@ export default typedMemo(function DataTable<D extends object>({
             const { key: footerGroupKey, ...footerGroupProps } =
               footerGroup.getHeaderGroupProps();
             return (
-              <tr
-                key={footerGroupKey || footerGroup.id}
-                {...footerGroupProps}
-                role="row"
-              >
+              <tr key={footerGroupKey || footerGroup.id} {...footerGroupProps}>
                 {footerGroup.headers.map(column =>
                   column.render('Footer', { key: column.id }),
                 )}
@@ -444,6 +472,84 @@ export default typedMemo(function DataTable<D extends object>({
       onServerPaginationChange(pageNumber, serverPageSize);
   }
 
+  // Emit filtered rows to parent in client-side mode (debounced via RAF)
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const rafRef = useRef<number | null>(null);
+  const lastSigRef = useRef<string>('');
+
+  // Prefer a stable identifier from original row data; otherwise use a deterministic
+  // concatenation of visible values (keys sorted so column order changes are detected).
+  function stableRowKey<D extends object>(r: Row<D>): string {
+    const orig = r.original as Record<string, unknown> | undefined;
+    if (orig) {
+      const idLike =
+        (orig as any).id ??
+        (orig as any).ID ??
+        (orig as any).key ??
+        (orig as any).uuid;
+      if (idLike != null) return String(idLike);
+    }
+
+    // Fallback: derive from row.values, but make it stable against column order changes.
+    const v = r.values as Record<string, unknown>;
+    const keys = Object.keys(v).sort(); // detect column order changes
+    return keys.map(k => String(v[k] ?? '')).join('|');
+  }
+
+  // Very small, fast hash for strings (no crypto dependency).
+  function hashString(s: string): string {
+    let h = 0;
+    for (let i = 0; i < s.length; i += 1) {
+      // oxlint-disable-next-line unicorn/prefer-math-trunc -- | 0 is intentional for 32-bit integer wrapping in hash
+      h = (h * 31 + s.charCodeAt(i)) | 0;
+    }
+    return String(h);
+  }
+
+  function signatureOfRows<D extends object>(rs: Row<D>[]): string {
+    const keys = rs.map(stableRowKey);
+    const len = keys.length;
+    const first = keys[0] ?? '';
+    const last = keys[len - 1] ?? '';
+    const digest = hashString(keys.join('\u0001')); // non-printable separator to avoid collisions
+    return `${len}|${first}|${last}|${digest}`;
+  }
+
+  useEffect(() => {
+    if (serverPagination || typeof onFilteredRowsChange !== 'function') {
+      return;
+    }
+
+    const sig = signatureOfRows(rows);
+
+    if (sig !== lastSigRef.current) {
+      lastSigRef.current = sig;
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+      rafRef.current = requestAnimationFrame(() => {
+        if (isMountedRef.current) {
+          // Only emit originals when the signature truly changed
+          onFilteredRowsChange(rows.map(r => r.original as D));
+        }
+      });
+    }
+
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [rows, serverPagination, onFilteredRowsChange]);
+
   return (
     <div
       ref={wrapperRef}
@@ -451,64 +557,62 @@ export default typedMemo(function DataTable<D extends object>({
     >
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
-          <StyledRow className="row">
-            <div
-              className={renderTimeComparisonDropdown ? 'col-sm-4' : 'col-sm-5'}
-            >
-              {hasPagination ? (
-                <SelectPageSize
-                  total={resultsSize}
-                  current={resultCurrentPageSize}
-                  options={pageSizeOptions}
-                  selectRenderer={
-                    typeof selectPageSize === 'boolean'
-                      ? undefined
-                      : selectPageSize
-                  }
-                  onChange={setPageSize}
-                />
-              ) : null}
-            </div>
-            {searchInput ? (
-              <StyledSpace
-                className={
-                  renderTimeComparisonDropdown ? 'col-sm-7' : 'col-sm-8'
+          <Flex
+            wrap
+            className="row"
+            align="center"
+            justify="space-between"
+            gap="middle"
+            css={(theme: SupersetTheme) => css`
+              font-size: ${theme.fontSizeSM}px;
+            `}
+          >
+            {hasPagination ? (
+              <SelectPageSize
+                total={resultsSize}
+                current={resultCurrentPageSize}
+                options={pageSizeOptions}
+                selectRenderer={
+                  typeof selectPageSize === 'boolean'
+                    ? undefined
+                    : selectPageSize
                 }
-              >
-                {serverPagination && (
-                  <div className="search-select-container">
-                    <span className="search-by-label">Search by: </span>
-                    <SearchSelectDropdown
-                      searchOptions={searchOptions}
-                      value={serverPaginationData?.searchColumn || ''}
-                      onChange={onSearchColChange}
-                    />
-                  </div>
-                )}
-                <GlobalFilter<D>
-                  searchInput={
-                    typeof searchInput === 'boolean' ? undefined : searchInput
-                  }
-                  preGlobalFilteredRows={preGlobalFilteredRows}
-                  setGlobalFilter={
-                    manualSearch ? handleSearchChange : setGlobalFilter
-                  }
-                  filterValue={manualSearch ? initialSearchText : filterValue}
-                  id={searchInputId}
-                  serverPagination={!!serverPagination}
-                  rowCount={rowCount}
-                />
-              </StyledSpace>
+                onChange={setPageSize}
+              />
             ) : null}
-            {renderTimeComparisonDropdown ? (
-              <div
-                className="col-sm-1"
-                style={{ float: 'right', marginTop: '6px' }}
-              >
-                {renderTimeComparisonDropdown()}
-              </div>
-            ) : null}
-          </StyledRow>
+            <Flex wrap align="center" gap="middle">
+              {searchInput && (
+                <>
+                  {serverPagination && searchOptions?.length > 0 && (
+                    <Space direction="vertical" size={4}>
+                      {t('Search by')}
+                      <SearchSelectDropdown
+                        searchOptions={searchOptions}
+                        value={serverPaginationData?.searchColumn || ''}
+                        onChange={onSearchColChange}
+                      />
+                    </Space>
+                  )}
+                  <GlobalFilter<D>
+                    searchInput={
+                      typeof searchInput === 'boolean' ? undefined : searchInput
+                    }
+                    preGlobalFilteredRows={preGlobalFilteredRows}
+                    setGlobalFilter={
+                      manualSearch ? handleSearchChange : setGlobalFilter
+                    }
+                    filterValue={manualSearch ? initialSearchText : filterValue}
+                    id={searchInputId}
+                    serverPagination={!!serverPagination}
+                    rowCount={rowCount}
+                  />
+                </>
+              )}
+              {renderTimeComparisonDropdown
+                ? renderTimeComparisonDropdown()
+                : null}
+            </Flex>
+          </Flex>
         </div>
       ) : null}
       {wrapStickyTable ? wrapStickyTable(renderTable) : renderTable()}

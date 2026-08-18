@@ -15,6 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .db2 import DB2
+from .dremio import Dremio
 from .firebolt import Firebolt, FireboltOld
+from .hana import Hana
+from .opensearch import OpenSearch
+from .pinot import Pinot
+from .vertica import Vertica
 
-__all__ = ["Firebolt", "FireboltOld"]
+__all__ = [
+    "DB2",
+    "Dremio",
+    "Firebolt",
+    "FireboltOld",
+    "Hana",
+    "OpenSearch",
+    "Pinot",
+    "Vertica",
+]

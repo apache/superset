@@ -17,19 +17,24 @@
 
 # pylint: disable=import-outside-toplevel, unused-argument
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.hashing import hash_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
+    ChartScreenshot,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
 )
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
+
+# A minimal valid PNG header, used wherever a test needs bytes that pass
+# ScreenshotCachePayload's image validation.
+FAKE_PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"fake-png-body"
 
 
 class MockCache:
@@ -72,9 +77,9 @@ def test_get_screenshot(mocker: MockerFixture, screenshot_obj):
     assert screenshot_data == fake_bytes
 
 
-def test_get_cache_key(screenshot_obj):
+def test_get_cache_key(app_context, screenshot_obj):
     """Test get_cache_key method"""
-    expected_cache_key = md5_sha_from_dict(
+    expected_cache_key = hash_from_dict(
         {
             "thumbnail_type": "",
             "digest": screenshot_obj.digest,
@@ -89,8 +94,8 @@ def test_get_cache_key(screenshot_obj):
 
 def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     """get_from_cache_key should always return a ScreenshotCachePayload Object"""
-    # backwards compatability test for retrieving plain bytes
-    fake_bytes = b"fake_screenshot_data"
+    # backwards compatibility test for retrieving plain bytes
+    fake_bytes = FAKE_PNG_BYTES
     BaseScreenshot.cache = MockCache()
     BaseScreenshot.cache.set("key", fake_bytes)
     cache_payload = screenshot_obj.get_from_cache_key("key")
@@ -106,10 +111,10 @@ class TestComputeAndCache:
             BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None
         )
         get_screenshot = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=b"new_image_data"
+            BASE_SCREENSHOT_PATH + ".get_screenshot", return_value=FAKE_PNG_BYTES
         )
         resize_image = mocker.patch(
-            BASE_SCREENSHOT_PATH + ".resize_image", return_value=b"resized_image_data"
+            BASE_SCREENSHOT_PATH + ".resize_image", return_value=FAKE_PNG_BYTES
         )
         BaseScreenshot.cache = MockCache()
         return {
@@ -123,6 +128,27 @@ class TestComputeAndCache:
         screenshot_obj.compute_and_cache(force=False)
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Updated"
+
+    def test_passes_cache_key_log_context_to_capture(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        """compute_and_cache must thread its cache_key into the capture layer
+        as log_context, so every webdriver/screenshot log line produced by a
+        thumbnail or direct-download run can be traced back to the exact
+        cached entry it was computing (reports already do this with their
+        execution_id)."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        cache_key = screenshot_obj.get_cache_key()
+        screenshot_obj.compute_and_cache(force=False)
+
+        get_screenshot: MagicMock = mocks.get("get_screenshot")
+        get_screenshot.assert_called_once()
+        assert (
+            get_screenshot.call_args.kwargs["log_context"] == f"cache_key={cache_key}"
+        )
+        resize_image: MagicMock = mocks.get("resize_image")
+        resize_image.assert_called_once()
+        assert resize_image.call_args.kwargs["log_context"] == f"cache_key={cache_key}"
 
     def test_screenshot_error(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
@@ -192,3 +218,129 @@ class TestComputeAndCache:
             force=False, window_size=(1, 1), thumb_size=thumb_size
         )
         resize_image.assert_called_once()
+
+
+class TestScreenshotCachePayloadGetImage:
+    """Test the get_image method behavior including exception handling"""
+
+    def test_get_image_returns_bytesio_when_image_exists(self):
+        """Test that get_image returns BytesIO object when image data exists"""
+        image_data = b"test image data"
+        payload = ScreenshotCachePayload(image=image_data)
+
+        result = payload.get_image()
+
+        assert result is not None
+        assert result.read() == image_data
+
+    def test_get_image_raises_exception_when_no_image(self):
+        """Test get_image raises ScreenshotImageNotAvailableException when no image"""
+        from superset.exceptions import ScreenshotImageNotAvailableException
+
+        payload = ScreenshotCachePayload()  # No image data
+
+        with pytest.raises(ScreenshotImageNotAvailableException):
+            payload.get_image()
+
+    def test_get_image_raises_exception_when_image_is_none(self):
+        """Test that get_image raises exception when image is explicitly set to None"""
+        from superset.exceptions import ScreenshotImageNotAvailableException
+
+        payload = ScreenshotCachePayload(image=None)
+
+        with pytest.raises(ScreenshotImageNotAvailableException):
+            payload.get_image()
+
+    def test_get_image_multiple_reads(self):
+        """Test that get_image returns fresh BytesIO each time"""
+        image_data = b"test image data"
+        payload = ScreenshotCachePayload(image=image_data)
+
+        result1 = payload.get_image()
+        result2 = payload.get_image()
+
+        # Both should be valid BytesIO objects
+        assert result1.read() == image_data
+        assert result2.read() == image_data
+
+        # Should be different BytesIO instances
+        assert result1 is not result2
+
+
+class TestBaseScreenshotDriverFallback:
+    """Test BaseScreenshot.driver() fallback logic for Playwright migration."""
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_returns_playwright_when_feature_enabled_and_available(
+        self, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() returns WebDriverPlaywright when enabled and available."""
+        mock_feature_flag.return_value = True
+
+        driver = screenshot_obj.driver()
+
+        assert driver.__class__.__name__ == "WebDriverPlaywright"
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_passes_window_size_to_playwright(
+        self, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() passes window_size parameter to WebDriverPlaywright."""
+        mock_feature_flag.return_value = True
+        custom_window_size = (1200, 800)
+
+        driver = screenshot_obj.driver(window_size=custom_window_size)
+
+        assert driver._window == custom_window_size
+        assert driver.__class__.__name__ == "WebDriverPlaywright"
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_driver_uses_default_window_size_when_none_provided(
+        self, mock_feature_flag, screenshot_obj
+    ):
+        """Test driver() uses screenshot object's window_size when none provided."""
+        mock_feature_flag.return_value = True
+
+        driver = screenshot_obj.driver()
+
+        assert driver._window == screenshot_obj.window_size
+        assert driver.__class__.__name__ == "WebDriverPlaywright"
+
+
+class TestScreenshotSubclassesDriverBehavior:
+    """Test ChartScreenshot inherits driver behavior."""
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_chart_screenshot_uses_playwright_when_enabled(self, mock_feature_flag):
+        """Test ChartScreenshot uses Playwright when feature enabled."""
+        mock_feature_flag.return_value = True
+
+        chart_screenshot = ChartScreenshot("http://example.com/chart", "digest")
+        driver = chart_screenshot.driver()
+
+        assert driver.__class__.__name__ == "WebDriverPlaywright"
+        assert driver._window == chart_screenshot.window_size
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.extensions.feature_flag_manager.is_feature_enabled")
+    def test_custom_window_size_passed_to_driver(self, mock_feature_flag):
+        """Test custom window size is passed correctly to driver."""
+        mock_feature_flag.return_value = True
+        custom_window_size = (1920, 1080)
+        custom_thumb_size = (960, 540)
+
+        chart_screenshot = ChartScreenshot(
+            "http://example.com/chart",
+            "digest",
+            window_size=custom_window_size,
+            thumb_size=custom_thumb_size,
+        )
+
+        driver = chart_screenshot.driver()
+
+        assert driver._window == custom_window_size
+        assert chart_screenshot.thumb_size == custom_thumb_size

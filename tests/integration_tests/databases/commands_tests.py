@@ -178,6 +178,20 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"]())
         metadata.pop("uuid")
 
+        # Datasets in a database bundle are exported with ``export_uuids=True``,
+        # so every column/metric carries a ``uuid`` so that custom folder
+        # references survive the round trip. They are assigned dynamically, so
+        # build lookups by name.
+        birth_names = next(
+            table for table in example_db.tables if table.table_name == "birth_names"
+        )
+        column_uuid_map = {
+            column.column_name: str(column.uuid) for column in birth_names.columns
+        }
+        metric_uuid_map = {
+            metric.metric_name: str(metric.uuid) for metric in birth_names.metrics
+        }
+
         metadata["columns"].sort(key=lambda x: x["column_name"])
         expected_metadata = {
             "cache_timeout": None,
@@ -194,6 +208,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": ds_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["ds"],
                 },
                 {
                     "column_name": "gender",
@@ -207,6 +222,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": "STRING" if example_db.backend == "hive" else "VARCHAR(16)",
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["gender"],
                 },
                 {
                     "column_name": "name",
@@ -222,6 +238,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     ),
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["name"],
                 },
                 {
                     "column_name": "num",
@@ -235,6 +252,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num"],
                 },
                 {
                     "column_name": "num_california",
@@ -248,6 +266,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": None,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_california"],
                 },
                 {
                     "column_name": "state",
@@ -261,6 +280,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": "STRING" if example_db.backend == "hive" else "VARCHAR(10)",
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["state"],
                 },
                 {
                     "column_name": "num_boys",
@@ -274,6 +294,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_boys"],
                 },
                 {
                     "column_name": "num_girls",
@@ -287,6 +308,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "type": big_int_type,
                     "advanced_data_type": None,
                     "verbose_name": None,
+                    "uuid": column_uuid_map["num_girls"],
                 },
             ],
             "database_uuid": str(db_uuid),
@@ -306,6 +328,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "metric_type": "count",
                     "verbose_name": "COUNT(*)",
                     "warning_text": None,
+                    "uuid": metric_uuid_map["count"],
                 },
                 {
                     "d3format": None,
@@ -316,6 +339,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "metric_type": None,
                     "verbose_name": None,
                     "warning_text": None,
+                    "uuid": metric_uuid_map["sum__num"],
                 },
             ],
             "offset": 0,
@@ -371,6 +395,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_csv_upload",
             "extra",
             "impersonate_user",
+            "configuration_method",
             "uuid",
             "version",
         ]
@@ -393,6 +418,30 @@ class TestExportDatabasesCommand(SupersetTestCase):
         assert "metadata.yaml" in prefixes
         assert "databases" in prefixes
         assert "datasets" not in prefixes
+
+    @patch("superset.security.manager.g")
+    def test_export_database_command_unicode_chars(self, mock_g):
+        mock_g.user = security_manager.find_user("admin")
+        db.session.query(Database).filter_by(database_name="中文").delete()
+        db.session.commit()
+        command = CreateDatabaseCommand(
+            {"database_name": "中文", "sqlalchemy_uri": "sqlite:///:memory:"},
+        )
+        example_db = command.run()
+
+        try:
+            command = ExportDatabasesCommand([example_db.id], export_related=False)
+            contents = dict(command.run())
+
+            path = f"databases/{example_db.id}.yaml"
+            assert path in set(contents.keys())
+            yaml_content = contents[path]()
+            assert "database_name: 中文" in yaml_content
+        finally:
+            # CreateDatabaseCommand commits the new database, so the cleanup must
+            # also be committed and must run even if an assertion above fails
+            db.session.query(Database).filter_by(database_name="中文").delete()
+            db.session.commit()
 
 
 class TestImportDatabasesCommand(SupersetTestCase):
@@ -609,7 +658,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to Database."]}
         }
@@ -622,7 +671,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "datasets/imported_dataset.yaml": {
                 "table_name": ["Missing data for required field."],
@@ -643,7 +692,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": ["Must provide a password for the database"]
@@ -667,7 +716,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": ["Must provide a password for the ssh tunnel"]
@@ -691,7 +740,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "_schema": [
@@ -813,7 +862,10 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Must provide credentials for the SSH Tunnel"
+        assert str(excinfo.value) == (
+            "Error importing database: databases/imported_database.yaml: "
+            "{'ssh_tunnel': {'password': 'Either password or private_key is required'}}"
+        )
 
     @patch("superset.databases.schemas.is_feature_enabled")
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
@@ -855,13 +907,15 @@ class TestImportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing database"
+        assert str(excinfo.value).startswith("Error importing database")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
-                "_schema": [
-                    "Must provide a private key for the ssh tunnel",
-                    "Must provide a private key password for the ssh tunnel",
-                ]
+                "ssh_tunnel": {
+                    "password": "Either password or private_key is required",
+                    "private_key": (
+                        "private_key is required when private_key_password is provided"
+                    ),
+                }
             }
         }
 
@@ -1202,3 +1256,54 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         assert result["count"] > 0
         assert len(result["result"]) > 0
         assert len(result["result"]) == result["count"]
+
+    @patch("superset.daos.database.DatabaseDAO.find_by_id")
+    @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    @patch("superset.utils.core.g")
+    def test_database_tables_list_tables_default_catalog(
+        self, mock_g, mock_can_access_database, mock_find_by_id
+    ):
+        database = get_example_database()
+        mock_find_by_id.return_value = database
+        mock_can_access_database.return_value = True
+        mock_g.user = security_manager.find_user("admin")
+
+        with (
+            patch.object(
+                database, "get_default_catalog", return_value="default_catalog"
+            ),
+            patch.object(
+                database, "get_all_table_names_in_schema", return_value=[]
+            ) as mock_get_all_table_names,
+            patch.object(
+                database, "get_all_view_names_in_schema", return_value=[]
+            ) as mock_get_all_view_names,
+            patch.object(
+                database, "get_all_materialized_view_names_in_schema", return_value=[]
+            ) as mock_get_all_materialized_view_names,
+        ):
+            command = TablesDatabaseCommand(database.id, None, "schema_name", False)
+            command.run()
+
+            # Assert that the default catalog is used instead of None
+            mock_get_all_table_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )
+            mock_get_all_materialized_view_names.assert_called_once_with(
+                catalog="default_catalog",
+                schema="schema_name",
+                force=False,
+                cache=database.table_cache_enabled,
+                cache_timeout=database.table_cache_timeout,
+            )

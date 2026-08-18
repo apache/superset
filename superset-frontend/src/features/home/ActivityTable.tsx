@@ -17,11 +17,12 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { extendedDayjs } from 'src/utils/dates';
-import { styled, t } from '@superset-ui/core';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
-import ListViewCard from 'src/components/ListViewCard';
+import { ListViewCard } from '@superset-ui/core/components';
 import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';
 import { ActivityData, LoadingCards } from 'src/pages/Home';
 import {
@@ -30,7 +31,8 @@ import {
   getEditedObjects,
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
-import { Icons } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable, RecentActivity } from './types';
@@ -66,12 +68,18 @@ interface ActivityProps {
 const Styles = styled.div`
   .recentCards {
     max-height: none;
-    grid-gap: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    grid-gap: ${({ theme }) => `${theme.sizeUnit * 4}px`};
   }
 `;
 
 const UNTITLED = t('[Untitled]');
 const UNKNOWN_TIME = t('Unknown');
+
+// Dashboards are the only activity entities viewable in the mobile
+// consumption experience; charts and saved queries link to unsupported views
+const isDashboardEntity = (entity: ActivityObject) =>
+  'dashboard_title' in entity ||
+  ('item_type' in entity && entity.item_type === 'dashboard');
 
 const getEntityTitle = (entity: ActivityObject) => {
   if ('dashboard_title' in entity) return entity.dashboard_title || UNTITLED;
@@ -100,15 +108,18 @@ const getEntityUrl = (entity: ActivityObject) => {
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
   if ('time' in entity) {
-    return t('Viewed %s', extendedDayjs(entity.time).fromNow());
+    return t('Viewed %s', (extendedDayjs(entity.time) as any).fromNow());
   }
 
   let time: number | string | undefined | null;
+  if (entity.changed_on_delta_humanized != null) {
+    return t('Modified %s', entity.changed_on_delta_humanized);
+  }
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
   return t(
     'Modified %s',
-    time == null ? UNKNOWN_TIME : extendedDayjs(time).fromNow(),
+    time == null ? UNKNOWN_TIME : (extendedDayjs(time) as any).fromNow(),
   );
 };
 
@@ -121,20 +132,30 @@ export default function ActivityTable({
 }: ActivityProps) {
   const [editedCards, setEditedCards] = useState<ActivityData[]>();
   const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
-
-  const getEditedCards = () => {
-    setIsFetchingEditedCards(true);
-    getEditedObjects(user.userId).then(r => {
-      setEditedCards([...r.editedChart, ...r.editedDash]);
-      setIsFetchingEditedCards(false);
-    });
-  };
+  const isMobile = useIsMobile();
 
   useEffect(() => {
+    let isMounted = true;
+
     if (activeChild === TableTab.Edited) {
-      getEditedCards();
+      setIsFetchingEditedCards(true);
+      getEditedObjects(user.userId).then(r => {
+        if (!isMounted) return;
+        // `getEditedObjects` swallows errors via `.catch(err => err)` and
+        // returns the raw error object, which has no `editedChart` /
+        // `editedDash` arrays. Guard against that so spreading can't throw.
+        const editedChart = Array.isArray(r?.editedChart) ? r.editedChart : [];
+        const editedDash = Array.isArray(r?.editedDash) ? r.editedDash : [];
+        setEditedCards([...editedChart, ...editedDash]);
+        setIsFetchingEditedCards(false);
+      });
     }
-  }, [activeChild]);
+
+    return () => {
+      isMounted = false;
+      setIsFetchingEditedCards(false);
+    };
+  }, [activeChild, user.userId]);
 
   const tabs = [
     {
@@ -165,12 +186,16 @@ export default function ActivityTable({
       },
     });
   }
-  const renderActivity = () => {
-    const activities =
-      (activeChild === TableTab.Edited
-        ? editedCards
-        : activityData[activeChild as keyof ActivityData]) ?? [];
-    return activities.map((entity: ActivityObject) => {
+  const rawActivities =
+    (activeChild === TableTab.Edited
+      ? editedCards
+      : activityData[activeChild as keyof ActivityData]) ?? [];
+  const activities = isMobile
+    ? rawActivities.filter(isDashboardEntity)
+    : rawActivities;
+
+  const renderActivity = () =>
+    activities.map((entity: ActivityObject) => {
       const url = getEntityUrl(entity);
       const lastActionOn = getEntityLastActionOn(entity);
       return (
@@ -188,16 +213,18 @@ export default function ActivityTable({
         </CardStyles>
       );
     });
-  };
 
   if ((isFetchingEditedCards && !editedCards) || isFetchingActivityData) {
     return <LoadingCards />;
   }
   return (
     <Styles>
-      <SubMenu activeChild={activeChild} tabs={tabs} />
-      {Number(activityData[activeChild as keyof ActivityData]?.length) > 0 ||
-      (activeChild === TableTab.Edited && editedCards?.length) ? (
+      <SubMenu
+        activeChild={activeChild}
+        tabs={tabs}
+        backgroundColor="transparent"
+      />
+      {activities.length > 0 ? (
         <CardContainer className="recentCards">
           {renderActivity()}
         </CardContainer>

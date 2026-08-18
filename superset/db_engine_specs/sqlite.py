@@ -27,7 +27,7 @@ from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 
 if TYPE_CHECKING:
@@ -42,6 +42,20 @@ class SqliteEngineSpec(BaseEngineSpec):
     engine_name = "SQLite"
 
     disable_ssh_tunneling = True
+    supports_multivalues_insert = True
+
+    metadata = {
+        "description": "SQLite is a self-contained, serverless SQL database engine.",
+        "logo": "sqlite.png",
+        "homepage_url": "https://www.sqlite.org/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": [],
+        "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
+        "notes": "No additional library needed. SQLite is bundled with Python.",
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -111,6 +125,20 @@ class SqliteEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "datetime({col}, 'unixepoch')"
+
+    @classmethod
+    def year_to_dttm(cls) -> str:
+        # SQLite's date functions parse a 'YYYY-01-01' string just fine, but won't
+        # accept a bare integer/real year (it's read as a Julian day number instead).
+        # The CASE guard is needed because printf() treats a NULL argument as 0,
+        # which would otherwise turn a missing year into '0000-01-01' rather than
+        # propagating the NULL. The outer datetime() call ensures a full datetime
+        # value comes back even when this expression isn't wrapped by a time-grain
+        # function (e.g. no time grain is applied).
+        return (
+            "datetime(CASE WHEN {col} IS NULL THEN NULL "
+            "ELSE printf('%04d-01-01', CAST({col} AS INTEGER)) END)"
+        )
 
     @classmethod
     def convert_dttm(

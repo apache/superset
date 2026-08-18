@@ -54,6 +54,8 @@ export const LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE =
 export const LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF =
   'dashboard_download_as_pdf';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE = 'chart_download_as_image';
+export const LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG = 'chart_download_as_png';
+export const LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF = 'chart_download_as_pdf';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV = 'chart_download_as_csv';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED =
   'chart_download_as_csv_pivoted';
@@ -63,6 +65,8 @@ export const LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE =
   'sqllab_warn_local_storage_usage';
 export const LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY =
   'sqllab_fetch_failed_query';
+export const LOG_ACTIONS_DRILL_TO_DETAIL_MODAL_OPENED =
+  'drill_to_detail_modal_opened';
 export const LOG_ACTIONS_DRILL_BY_MODAL_OPENED = 'drill_by_modal_opened';
 export const LOG_ACTIONS_FURTHER_DRILL_BY = 'further_drill_by';
 export const LOG_ACTIONS_DRILL_BY_EDIT_CHART = 'drill_by_edit_chart';
@@ -85,6 +89,8 @@ export const LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD =
   'sqllab_copy_result_to_clipboard';
 export const LOG_ACTIONS_SQLLAB_CREATE_CHART = 'sqllab_create_chart';
 export const LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE = 'sqllab_load_tab_state';
+export const LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB =
+  'sqllab_switch_south_pane_tab';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
@@ -110,6 +116,8 @@ export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF,
 ]);
 
 export const LOG_EVENT_DATASET_TYPE_DATASET_CREATION = [
