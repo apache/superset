@@ -172,6 +172,11 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             GenericDataType.NUMERIC,
         ),
         (
+            re.compile(r".*Float.*", re.IGNORECASE),
+            types.Float(),
+            GenericDataType.NUMERIC,
+        ),
+        (
             re.compile(r".*DateTime.*", re.IGNORECASE),
             types.DateTime(),
             GenericDataType.TEMPORAL,
@@ -388,6 +393,12 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     # file upload flow that the parent ClickHouseEngineSpec disables.
     supports_file_upload = True
 
+    # The clickhouse-connect SQLAlchemy dialect does NOT support multi-values
+    # inserts; leaving this True makes df_to_sql pass method="multi" to pandas,
+    # which raises before any rows reach ClickHouse. We insert via the driver's
+    # native bulk loader instead, so this must stay False.
+    supports_multivalues_insert = False
+
     sqlalchemy_uri_placeholder = (
         "clickhousedb://user:password@host[:port][/dbname][?secure=value&=value...]"
     )
@@ -538,6 +549,67 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         return type_code
 
     @classmethod
+    def get_columns(
+        cls,
+        inspector: Any,
+        table: Table,
+        options: dict[str, Any] | None = None,
+    ) -> list[Any]:
+        # clickhouse-connect's SQLAlchemy inspector runs reflection queries with
+        # ``Engine.execute()``, which the SQLAlchemy 2.0-style ("future") engine
+        # Superset builds does not implement — reflecting a table (e.g. the
+        # post-upload ``fetch_metadata`` step) then raises NotImplementedError.
+        # Rebind reflection to an explicit Connection, on which ``execute`` is
+        # supported, and defer to the base implementation from there.
+        # pylint: disable=import-outside-toplevel
+        from sqlalchemy import inspect as sqla_inspect
+        from sqlalchemy.engine import Engine
+
+        bind = inspector.bind
+        engine = bind if isinstance(bind, Engine) else bind.engine
+        with engine.connect() as connection:
+            return super().get_columns(sqla_inspect(connection), table, options)
+
+    @classmethod
+    def _clickhouse_column_type(cls, series: Any) -> str:
+        """Map a pandas column to a concrete ClickHouse type name.
+
+        We emit clickhouse-connect's native types rather than generic
+        SQLAlchemy ones: in this dialect a generic ``Float`` becomes
+        ``Float32`` (precision loss), a generic ``DateTime`` is second-precision
+        with a post-1970 range, and ``nullable=True`` does not produce
+        ``Nullable(...)`` at all. Every column is wrapped in ``Nullable`` so
+        missing values round-trip as NULL instead of a coerced default.
+        """
+        # pylint: disable=import-outside-toplevel
+        import pandas as pd
+
+        dtype = series.dtype
+        if pd.api.types.is_bool_dtype(dtype):
+            inner = "Bool"
+        elif pd.api.types.is_unsigned_integer_dtype(dtype):
+            # e.g. 9223372036854775808 is read as uint64 and overflows Int64.
+            inner = "UInt64"
+        elif pd.api.types.is_integer_dtype(dtype):
+            inner = "Int64"
+        elif pd.api.types.is_float_dtype(dtype):
+            inner = "Float64"
+        elif pd.api.types.is_datetime64_any_dtype(dtype):
+            inner = "DateTime64(6)"
+        elif pd.api.types.infer_dtype(series, skipna=True) in {
+            "datetime",
+            "datetime64",
+            "date",
+        }:
+            # Object columns that actually hold date/datetime values.
+            inner = "DateTime64(6)"
+        else:
+            # Text, and anything whose exact numeric type can't be inferred
+            # (safer than silently rounding/overflowing).
+            inner = "String"
+        return f"Nullable({inner})"
+
+    @classmethod
     def df_to_sql(
         cls,
         database: Database,
@@ -548,124 +620,63 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         """Upload a DataFrame to ClickHouse.
 
         ClickHouse requires every table to declare a table engine, which the
-        `CREATE TABLE` that pandas' ``to_sql`` emits does not — so instead of
-        letting pandas create the table we create it ourselves with a MergeTree
-        engine and then append the rows.
+        `CREATE TABLE` that pandas' ``to_sql`` emits does not. Rather than route
+        through pandas — whose multi-values insert the clickhouse-connect
+        dialect rejects, and whose generic SQLAlchemy types corrupt data — we
+        create a ``MergeTree`` table with explicit ClickHouse types and load the
+        rows through the driver's native bulk loader (``client.insert_df``).
 
-        The engine can be tuned per database through its ``extra`` JSON::
-
-            {"clickhouse_file_upload": {
-                "order_by": ["col1", "col2"],
-                "partition_by": "toYYYYMM(col1)",
-                "primary_key": "col1",
-                "settings": {"index_granularity": 8192}
-            }}
-
-        ``order_by`` defaults to ``tuple()`` (no sort key) so any upload works
-        without configuration.
+        The table uses ``ORDER BY tuple()`` (no sort key), which is the right
+        default for ad-hoc upload tables. Users who need sorting or partitioning
+        can create the table in SQL Lab and upload with the "append" strategy.
         """
-        # pylint: disable=import-outside-toplevel, import-error
-        import pandas as pd
-        from clickhouse_connect.cc_sqlalchemy.ddl.tableengine import MergeTree
-        from sqlalchemy import (
-            Column,
-            inspect,
-            MetaData,
-            Table as SqlaTable,
-            text,
-            types as sqltypes,
-        )
-
         if_exists = to_sql_kwargs.get("if_exists", "fail")
 
         if to_sql_kwargs.get("index"):
             # Fold the index into columns so the table we create matches what
-            # gets inserted; we always append with index=False below. Preserve
-            # the uploader's requested index_label as the new column name(s).
+            # gets inserted. Preserve the uploader's requested index_label.
             df = df.reset_index(names=to_sql_kwargs.get("index_label"))
 
-        config = (database.get_extra() or {}).get("clickhouse_file_upload", {})
-        order_by = config.get("order_by")
-        if order_by:
-            key_columns = set(
-                order_by if isinstance(order_by, (list, tuple)) else [order_by]
-            )
-            engine_kwargs: dict[str, Any] = {"order_by": order_by}
-        else:
-            # MergeTree still requires an ORDER BY; an empty tuple means "none".
-            key_columns = set()
-            engine_kwargs = {"order_by": text("tuple()")}
-        for key in ("partition_by", "primary_key", "settings"):
-            if config.get(key):
-                engine_kwargs[key] = config[key]
+        def _quote(identifier: str) -> str:
+            return "`" + str(identifier).replace("`", "``") + "`"
 
-        def _column_type(series: Any) -> sqltypes.TypeEngine:
-            dtype = series.dtype
-            if pd.api.types.is_bool_dtype(dtype):
-                return sqltypes.Boolean()
-            if pd.api.types.is_integer_dtype(dtype):
-                return sqltypes.BigInteger()
-            if pd.api.types.is_float_dtype(dtype):
-                return sqltypes.Float()
-            if pd.api.types.is_datetime64_any_dtype(dtype):
-                return sqltypes.DateTime()
-            # Object columns may still hold temporal values (e.g. parsed dates),
-            # so map those to DateTime to keep date operations working. Anything
-            # else falls back to String, matching pandas' default to_sql mapping.
-            if pd.api.types.infer_dtype(series, skipna=True) in {
-                "datetime",
-                "datetime64",
-                "date",
-            }:
-                return sqltypes.DateTime()
-            return sqltypes.String()
+        qualified = _quote(table.table)
+        if table.schema:
+            qualified = f"{_quote(table.schema)}.{qualified}"
 
         with cls.get_engine(
             database, catalog=table.catalog, schema=table.schema
         ) as engine:
-            has_table = inspect(engine).has_table(table.table, schema=table.schema)
-            if has_table and if_exists == "fail":
-                # Raise ValueError so the uploader surfaces its friendly
-                # "table already exists" message (see UploadCommand).
-                raise ValueError(f"Table {table.table} already exists.")
-            if has_table and if_exists == "replace":
-                SqlaTable(table.table, MetaData(), schema=table.schema).drop(
-                    engine, checkfirst=True
+            raw_connection = engine.raw_connection()
+            try:
+                # The clickhouse-connect DBAPI connection exposes the native
+                # client, whose insert_df is the driver's bulk load path.
+                client = raw_connection.driver_connection.client
+
+                exists = str(client.command(f"EXISTS TABLE {qualified}")).strip() == (
+                    "1"
                 )
-                has_table = False
+                if exists and if_exists == "fail":
+                    # Raise ValueError so the uploader surfaces its friendly
+                    # "table already exists" message (see UploadCommand).
+                    raise ValueError(f"Table {table.table} already exists.")
+                if exists and if_exists == "replace":
+                    client.command(f"DROP TABLE {qualified}")
+                    exists = False
 
-            if not has_table:
-                columns = [
-                    Column(
-                        str(name),
-                        _column_type(df[name]),
-                        nullable=str(name) not in key_columns,
+                if not exists:
+                    columns_ddl = ", ".join(
+                        f"{_quote(name)} {cls._clickhouse_column_type(df[name])}"
+                        for name in df.columns
                     )
-                    for name in df.columns
-                ]
-                SqlaTable(
-                    table.table,
-                    MetaData(),
-                    *columns,
-                    schema=table.schema,
-                    clickhouse_engine=MergeTree(**engine_kwargs),
-                ).create(engine, checkfirst=True)
+                    client.command(
+                        f"CREATE TABLE {qualified} ({columns_ddl}) "
+                        "ENGINE = MergeTree ORDER BY tuple()"
+                    )
 
-            insert_kwargs = {
-                **to_sql_kwargs,
-                "name": table.table,
-                "if_exists": "append",
-                "index": False,
-            }
-            insert_kwargs.pop("index_label", None)
-            if table.schema:
-                insert_kwargs["schema"] = table.schema
-            if (
-                engine.dialect.supports_multivalues_insert
-                or cls.supports_multivalues_insert
-            ):
-                insert_kwargs["method"] = "multi"
-            df.to_sql(con=engine, **insert_kwargs)
+                client.insert_df(table.table, df, database=table.schema or None)
+            finally:
+                raw_connection.close()
 
     @classmethod
     def build_sqlalchemy_uri(

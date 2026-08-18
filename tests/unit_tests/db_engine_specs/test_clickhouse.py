@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import sys
-import types as pytypes
 from datetime import date, datetime, timedelta, timezone
+from types import SimpleNamespace
 from typing import Any, Optional
 from unittest.mock import Mock
 
+import numpy as np
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
@@ -235,6 +235,19 @@ def test_connect_convert_dttm(
         ),
         ("Float32", Float, None, GenericDataType.NUMERIC, False),
         ("Float64", Float, None, GenericDataType.NUMERIC, False),
+        # The base spec's float pattern is anchored (`^float`), so wrapped float
+        # types only resolve as NUMERIC thanks to the ClickHouse-specific
+        # `.*Float.*` mapping. File upload creates `Nullable(Float64)` columns,
+        # which would otherwise be typed as STRING in Superset.
+        ("Nullable(Float32)", Float, None, GenericDataType.NUMERIC, False),
+        ("Nullable(Float64)", Float, None, GenericDataType.NUMERIC, False),
+        (
+            "LowCardinality(Nullable(Float64))",
+            Float,
+            None,
+            GenericDataType.NUMERIC,
+            False,
+        ),
         ("Decimal(1, 2)", DECIMAL, None, GenericDataType.NUMERIC, False),
         ("Decimal32(2)", DECIMAL, None, GenericDataType.NUMERIC, False),
         ("Decimal64(2)", DECIMAL, None, GenericDataType.NUMERIC, False),
@@ -790,186 +803,380 @@ def test_connect_supports_file_upload() -> None:
     )
 
 
-@pytest.fixture
-def upload_mocks(mocker: MockerFixture) -> Any:
+def test_connect_does_not_advertise_multivalues_insert() -> None:
     """
-    Wire up ``ClickHouseConnectEngineSpec.df_to_sql`` for unit testing without a
-    live ClickHouse: a fake ``clickhouse_connect`` module supplies a recording
-    ``MergeTree``, ``get_engine``/``inspect`` are stubbed, and the SQLAlchemy
-    ``Table`` and ``DataFrame.to_sql`` calls are captured instead of executed.
+    The clickhouse-connect dialect rejects multi-values inserts, so the spec
+    must keep advertising ``supports_multivalues_insert = False``: flipping it
+    on makes ``BaseEngineSpec.df_to_sql`` pass ``method="multi"`` to pandas,
+    which raises before any row reaches ClickHouse.
     """
     from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
 
-    merge_trees: list[Any] = []
+    assert ClickHouseConnectEngineSpec.supports_multivalues_insert is False
 
-    class FakeMergeTree:
-        def __init__(self, **kwargs: Any) -> None:
-            self.kwargs = kwargs
-            merge_trees.append(self)
 
-    tableengine = pytypes.ModuleType(
-        "clickhouse_connect.cc_sqlalchemy.ddl.tableengine"
+def test_connect_get_columns_reflects_through_a_connection(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Reflection is rebound to an explicit ``Connection``. clickhouse-connect's
+    inspector runs its reflection queries with ``Engine.execute()``, which the
+    2.0-style engine Superset builds does not implement, so reflecting an
+    ``Engine``-bound inspector (the post-upload ``fetch_metadata`` step) would
+    otherwise raise ``NotImplementedError``.
+    """
+    from sqlalchemy import create_engine, inspect as sqla_inspect
+    from sqlalchemy.engine import Connection
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    columns = [{"column_name": "a"}]
+    base_get_columns = mocker.patch.object(
+        BaseEngineSpec, "get_columns", return_value=columns
     )
-    tableengine.MergeTree = FakeMergeTree  # type: ignore[attr-defined]
-    mocker.patch.dict(
-        sys.modules,
-        {
-            "clickhouse_connect": pytypes.ModuleType("clickhouse_connect"),
-            "clickhouse_connect.cc_sqlalchemy": pytypes.ModuleType(
-                "clickhouse_connect.cc_sqlalchemy"
-            ),
-            "clickhouse_connect.cc_sqlalchemy.ddl": pytypes.ModuleType(
-                "clickhouse_connect.cc_sqlalchemy.ddl"
-            ),
-            "clickhouse_connect.cc_sqlalchemy.ddl.tableengine": tableengine,
-        },
+    engine = create_engine("sqlite://")
+
+    result = ClickHouseConnectEngineSpec.get_columns(
+        sqla_inspect(engine), Table("t"), {"opt": 1}
     )
+
+    assert result == columns
+    inspector, table, options = base_get_columns.call_args.args
+    assert isinstance(inspector.bind, Connection)
+    # The table and the caller's options are forwarded untouched.
+    assert table.table == "t"
+    assert options == {"opt": 1}
+    # The connection is opened for reflection only, and released afterwards.
+    assert inspector.bind.closed is True
+
+
+def test_connect_get_columns_accepts_a_connection_bound_inspector(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An inspector already bound to a ``Connection`` reaches the engine through
+    ``bind.engine``, and the caller's own connection is left open.
+    """
+    from sqlalchemy import create_engine, inspect as sqla_inspect
+    from sqlalchemy.engine import Connection
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    base_get_columns = mocker.patch.object(
+        BaseEngineSpec, "get_columns", return_value=[]
+    )
+    engine = create_engine("sqlite://")
+
+    with engine.connect() as connection:
+        ClickHouseConnectEngineSpec.get_columns(sqla_inspect(connection), Table("t"))
+
+        reflection_inspector = base_get_columns.call_args.args[0]
+        assert isinstance(reflection_inspector.bind, Connection)
+        assert reflection_inspector.bind is not connection
+        assert connection.closed is False
+
+
+@pytest.mark.parametrize(
+    "series,expected",
+    [
+        (pd.Series([True, False]), "Nullable(Bool)"),
+        (pd.Series([1, 2]), "Nullable(Int64)"),
+        (pd.Series([-1, 2], dtype="int32"), "Nullable(Int64)"),
+        # 9223372036854775808 overflows Int64 and is read back as uint64.
+        (pd.Series([9223372036854775808], dtype="uint64"), "Nullable(UInt64)"),
+        (pd.Series([1.5, 2.5]), "Nullable(Float64)"),
+        # Integers with a missing value are float64 in pandas.
+        (pd.Series([1, np.nan]), "Nullable(Float64)"),
+        (
+            pd.Series(pd.to_datetime(["2021-01-01", "2021-01-02"])),
+            "Nullable(DateTime64(6))",
+        ),
+        (
+            pd.Series(pd.to_datetime(["2021-01-01T00:00:00Z"])),
+            "Nullable(DateTime64(6))",
+        ),
+        # Object columns that actually hold dates/datetimes.
+        (pd.Series([date(2021, 1, 1), date(2021, 1, 2)]), "Nullable(DateTime64(6))"),
+        (
+            pd.Series([datetime(2021, 1, 1, 3, 4, 5), None]),
+            "Nullable(DateTime64(6))",
+        ),
+        (pd.Series(["x", "y"]), "Nullable(String)"),
+        (pd.Series([], dtype="object"), "Nullable(String)"),
+        # Mixed object columns fall back to String rather than silently
+        # rounding or overflowing.
+        (pd.Series([1, "x"]), "Nullable(String)"),
+    ],
+)
+def test_clickhouse_column_type(series: pd.Series, expected: str) -> None:
+    """
+    Pandas dtypes map to concrete ClickHouse types, every one of them wrapped in
+    ``Nullable`` so missing values round-trip as NULL instead of a coerced
+    default.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    assert ClickHouseConnectEngineSpec._clickhouse_column_type(series) == expected
+
+
+class FakeClickHouseClient:
+    """A stand-in for the native ``clickhouse_connect`` client."""
+
+    def __init__(self, exists: bool = False) -> None:
+        self.commands: list[str] = []
+        self.inserts: list[tuple[str, pd.DataFrame, Optional[str]]] = []
+        self.exists = exists
+
+    def command(self, sql: str) -> Any:
+        self.commands.append(sql)
+        if sql.startswith("EXISTS TABLE"):
+            return 1 if self.exists else 0
+        if sql.startswith("DROP TABLE"):
+            self.exists = False
+        elif sql.startswith("CREATE TABLE"):
+            self.exists = True
+        return None
+
+    def insert_df(
+        self, table: str, df: pd.DataFrame, database: Optional[str] = None
+    ) -> None:
+        self.inserts.append((table, df, database))
+
+    # -- assertion helpers -------------------------------------------------
+    @property
+    def create_statement(self) -> str:
+        return next(sql for sql in self.commands if sql.startswith("CREATE TABLE"))
+
+    def commands_of(self, verb: str) -> list[str]:
+        return [sql for sql in self.commands if sql.startswith(verb)]
+
+
+@pytest.fixture()
+def upload_mocks(mocker: MockerFixture) -> Any:
+    """
+    Wire ``ClickHouseConnectEngineSpec.df_to_sql`` up for unit testing without a
+    live ClickHouse: ``get_engine`` yields an engine whose raw connection
+    exposes a recording fake native client.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    client = FakeClickHouseClient()
+
+    raw_connection = mocker.MagicMock()
+    raw_connection.driver_connection.client = client
 
     engine = mocker.MagicMock()
-    engine.dialect.supports_multivalues_insert = False
+    engine.raw_connection.return_value = raw_connection
+
     engine_ctx = mocker.MagicMock()
     engine_ctx.__enter__.return_value = engine
-    mocker.patch.object(
+    get_engine = mocker.patch.object(
         ClickHouseConnectEngineSpec, "get_engine", return_value=engine_ctx
     )
 
-    inspector = mocker.MagicMock()
-    inspector.has_table.return_value = False
-    mocker.patch("sqlalchemy.inspect", return_value=inspector)
-
-    table_factory = mocker.patch("sqlalchemy.Table")
-    to_sql = mocker.patch.object(pd.DataFrame, "to_sql")
-
-    return pytypes.SimpleNamespace(
+    return SimpleNamespace(
         spec=ClickHouseConnectEngineSpec,
-        merge_trees=merge_trees,
-        inspector=inspector,
-        table_factory=table_factory,
-        to_sql=to_sql,
+        client=client,
+        raw_connection=raw_connection,
+        get_engine=get_engine,
     )
 
 
-def test_connect_df_to_sql_default_engine(upload_mocks: Any) -> None:
+def test_connect_df_to_sql_creates_mergetree_and_bulk_loads(
+    upload_mocks: Any,
+) -> None:
     """
-    With no ``extra`` config, the table is created with ``MergeTree`` and an
-    ``ORDER BY tuple()`` (no sort key), then rows are appended.
+    A new table is created as ``MergeTree`` with explicit ClickHouse column
+    types, then the rows go in through the driver's native bulk loader.
     """
-    database = Mock()
-    database.get_extra.return_value = {}
     df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
 
     upload_mocks.spec.df_to_sql(
-        database, Table("t"), df, {"if_exists": "fail", "index": False}
+        Mock(), Table("t"), df, {"if_exists": "fail", "index": False}
     )
 
-    # Table created with a MergeTree engine defaulting to tuple().
-    assert len(upload_mocks.merge_trees) == 1
-    assert str(upload_mocks.merge_trees[0].kwargs["order_by"]) == "tuple()"
-    upload_mocks.table_factory.return_value.create.assert_called_once()
+    assert upload_mocks.client.create_statement == (
+        "CREATE TABLE `t` (`a` Nullable(Int64), `b` Nullable(String)) "
+        "ENGINE = MergeTree ORDER BY tuple()"
+    )
 
-    # Rows are appended, not re-created, and the index is dropped.
-    upload_mocks.to_sql.assert_called_once()
-    kwargs = upload_mocks.to_sql.call_args.kwargs
-    assert kwargs["name"] == "t"
-    assert kwargs["if_exists"] == "append"
-    assert kwargs["index"] is False
+    # Rows are loaded via insert_df, never pandas' to_sql.
+    assert len(upload_mocks.client.inserts) == 1
+    name, inserted, database = upload_mocks.client.inserts[0]
+    assert name == "t"
+    assert database is None
+    pd.testing.assert_frame_equal(inserted, df)
 
 
-def test_connect_df_to_sql_configurable_engine(upload_mocks: Any) -> None:
+def test_connect_df_to_sql_qualifies_and_quotes_schema(upload_mocks: Any) -> None:
     """
-    ``order_by``/``partition_by`` are read from the database ``extra``, and
-    columns named in ``order_by`` become non-nullable sort keys.
+    The schema qualifies the DDL statements and is passed to ``insert_df`` as
+    the target database.
     """
-    database = Mock()
-    database.get_extra.return_value = {
-        "clickhouse_file_upload": {
-            "order_by": ["a"],
-            "partition_by": "toYYYYMM(a)",
-        }
-    }
-    df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    df = pd.DataFrame({"a": [1]})
 
-    upload_mocks.spec.df_to_sql(database, Table("t"), df, {"if_exists": "append"})
+    upload_mocks.spec.df_to_sql(
+        Mock(), Table("t", "my_schema"), df, {"if_exists": "fail"}
+    )
 
-    merge_tree = upload_mocks.merge_trees[0]
-    assert merge_tree.kwargs["order_by"] == ["a"]
-    assert merge_tree.kwargs["partition_by"] == "toYYYYMM(a)"
+    assert upload_mocks.client.commands[0] == "EXISTS TABLE `my_schema`.`t`"
+    assert upload_mocks.client.create_statement.startswith(
+        "CREATE TABLE `my_schema`.`t` ("
+    )
+    assert upload_mocks.client.inserts[0][2] == "my_schema"
 
-    # The sort-key column is non-nullable; the rest stay nullable.
-    columns = {
-        col.name: col for col in upload_mocks.table_factory.call_args.args[2:]
-    }
-    assert columns["a"].nullable is False
-    assert columns["b"].nullable is True
+
+def test_connect_df_to_sql_escapes_identifiers(upload_mocks: Any) -> None:
+    """
+    Backticks in table and column names are doubled, so an identifier cannot
+    terminate its own quoting and inject SQL into the DDL.
+    """
+    df = pd.DataFrame({"a`b": [1]})
+
+    upload_mocks.spec.df_to_sql(
+        Mock(), Table("t`) ENGINE = Log --"), df, {"if_exists": "fail"}
+    )
+
+    create = upload_mocks.client.create_statement
+    assert create == (
+        "CREATE TABLE `t``) ENGINE = Log --` (`a``b` Nullable(Int64)) "
+        "ENGINE = MergeTree ORDER BY tuple()"
+    )
 
 
 def test_connect_df_to_sql_fail_when_exists(upload_mocks: Any) -> None:
     """
     ``if_exists='fail'`` on an existing table raises ``ValueError`` so the
-    uploader surfaces its friendly "table already exists" message.
+    uploader surfaces its friendly "table already exists" message, and nothing
+    is created or inserted.
     """
-    upload_mocks.inspector.has_table.return_value = True
-    database = Mock()
-    database.get_extra.return_value = {}
+    upload_mocks.client.exists = True
     df = pd.DataFrame({"a": [1]})
 
     with pytest.raises(ValueError, match="already exists"):
-        upload_mocks.spec.df_to_sql(
-            database, Table("t"), df, {"if_exists": "fail"}
-        )
-    upload_mocks.to_sql.assert_not_called()
+        upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "fail"})
+
+    assert upload_mocks.client.commands_of("CREATE TABLE") == []
+    assert upload_mocks.client.commands_of("DROP TABLE") == []
+    assert upload_mocks.client.inserts == []
+
+
+def test_connect_df_to_sql_defaults_to_fail(upload_mocks: Any) -> None:
+    """``if_exists`` defaults to ``fail`` when the uploader doesn't pass it."""
+    upload_mocks.client.exists = True
+
+    with pytest.raises(ValueError, match="already exists"):
+        upload_mocks.spec.df_to_sql(Mock(), Table("t"), pd.DataFrame({"a": [1]}), {})
 
 
 def test_connect_df_to_sql_replace_drops_first(upload_mocks: Any) -> None:
-    """
-    ``if_exists='replace'`` drops the existing table before recreating it.
-    """
-    upload_mocks.inspector.has_table.return_value = True
-    database = Mock()
-    database.get_extra.return_value = {}
+    """``if_exists='replace'`` drops the existing table before recreating it."""
+    upload_mocks.client.exists = True
     df = pd.DataFrame({"a": [1]})
 
-    upload_mocks.spec.df_to_sql(database, Table("t"), df, {"if_exists": "replace"})
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "replace"})
 
-    upload_mocks.table_factory.return_value.drop.assert_called_once()
-    upload_mocks.table_factory.return_value.create.assert_called_once()
-    upload_mocks.to_sql.assert_called_once()
+    assert upload_mocks.client.commands_of("DROP TABLE") == ["DROP TABLE `t`"]
+    assert len(upload_mocks.client.commands_of("CREATE TABLE")) == 1
+    assert len(upload_mocks.client.inserts) == 1
 
 
-def test_connect_df_to_sql_preserves_index_label(upload_mocks: Any) -> None:
+def test_connect_df_to_sql_append_reuses_existing_table(upload_mocks: Any) -> None:
     """
-    When the index is uploaded, the requested ``index_label`` is used as the
-    new column name instead of pandas' default ``index``.
+    ``if_exists='append'`` on an existing table inserts into it as-is: no DROP,
+    and no CREATE that would clobber a user-defined sort key or partitioning.
     """
-    database = Mock()
-    database.get_extra.return_value = {}
-    df = pd.DataFrame({"a": [1, 2]})
+    upload_mocks.client.exists = True
+    df = pd.DataFrame({"a": [1]})
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "append"})
+
+    assert upload_mocks.client.commands == ["EXISTS TABLE `t`"]
+    assert len(upload_mocks.client.inserts) == 1
+
+
+def test_connect_df_to_sql_append_creates_missing_table(upload_mocks: Any) -> None:
+    """``if_exists='append'`` still creates the table when it doesn't exist."""
+    df = pd.DataFrame({"a": [1]})
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "append"})
+
+    assert len(upload_mocks.client.commands_of("CREATE TABLE")) == 1
+    assert len(upload_mocks.client.inserts) == 1
+
+
+def test_connect_df_to_sql_folds_index_into_columns(upload_mocks: Any) -> None:
+    """
+    When the index is uploaded it becomes a real column, under the requested
+    ``index_label``, in both the DDL and the inserted frame -- otherwise the
+    created table and the loaded rows would disagree on shape.
+    """
+    df = pd.DataFrame({"a": [1, 2]}, index=pd.Index([10, 20]))
 
     upload_mocks.spec.df_to_sql(
-        database,
+        Mock(),
         Table("t"),
         df,
         {"if_exists": "fail", "index": True, "index_label": "row_id"},
     )
 
-    columns = {col.name for col in upload_mocks.table_factory.call_args.args[2:]}
-    assert columns == {"row_id", "a"}
-    assert upload_mocks.to_sql.call_args.kwargs["index"] is False
+    assert upload_mocks.client.create_statement == (
+        "CREATE TABLE `t` (`row_id` Nullable(Int64), `a` Nullable(Int64)) "
+        "ENGINE = MergeTree ORDER BY tuple()"
+    )
+    inserted = upload_mocks.client.inserts[0][1]
+    assert list(inserted.columns) == ["row_id", "a"]
+    assert inserted["row_id"].tolist() == [10, 20]
 
 
-def test_connect_df_to_sql_infers_object_dates(upload_mocks: Any) -> None:
-    """
-    Object columns holding date values are typed as DateTime rather than being
-    flattened to String, so date operations keep working after upload.
-    """
-    database = Mock()
-    database.get_extra.return_value = {}
-    df = pd.DataFrame(
-        {"d": [date(2021, 1, 1), date(2021, 1, 2)], "s": ["x", "y"]}
+def test_connect_df_to_sql_ignores_index_when_not_requested(
+    upload_mocks: Any,
+) -> None:
+    """Without ``index=True`` the index is not written as a column."""
+    df = pd.DataFrame({"a": [1, 2]}, index=pd.Index([10, 20]))
+
+    upload_mocks.spec.df_to_sql(Mock(), Table("t"), df, {"if_exists": "fail"})
+
+    assert "row_id" not in upload_mocks.client.create_statement
+    assert list(upload_mocks.client.inserts[0][1].columns) == ["a"]
+
+
+def test_connect_df_to_sql_closes_raw_connection(upload_mocks: Any) -> None:
+    """The raw connection is returned to the pool on success..."""
+    upload_mocks.spec.df_to_sql(
+        Mock(), Table("t"), pd.DataFrame({"a": [1]}), {"if_exists": "fail"}
     )
 
-    upload_mocks.spec.df_to_sql(database, Table("t"), df, {"if_exists": "fail"})
+    upload_mocks.raw_connection.close.assert_called_once()
 
-    columns = {col.name: col for col in upload_mocks.table_factory.call_args.args[2:]}
-    assert isinstance(columns["d"].type, DateTime)
-    assert isinstance(columns["s"].type, String)
+
+def test_connect_df_to_sql_closes_raw_connection_on_error(upload_mocks: Any) -> None:
+    """...and also when the upload fails, so a rejected upload can't leak it."""
+    upload_mocks.client.exists = True
+
+    with pytest.raises(ValueError, match="already exists"):
+        upload_mocks.spec.df_to_sql(
+            Mock(), Table("t"), pd.DataFrame({"a": [1]}), {"if_exists": "fail"}
+        )
+
+    upload_mocks.raw_connection.close.assert_called_once()
+
+
+def test_connect_df_to_sql_passes_catalog_and_schema_to_engine(
+    upload_mocks: Any,
+) -> None:
+    """The engine is opened against the target table's catalog and schema."""
+    database = Mock()
+
+    upload_mocks.spec.df_to_sql(
+        database,
+        Table("t", "my_schema", "my_catalog"),
+        pd.DataFrame({"a": [1]}),
+        {"if_exists": "fail"},
+    )
+
+    upload_mocks.get_engine.assert_called_once_with(
+        database, catalog="my_catalog", schema="my_schema"
+    )
