@@ -1213,8 +1213,10 @@ test('Should display the canonical name in edit mode so edits target it', () => 
     initialState,
   });
   // In edit mode the editable field must show the canonical name, otherwise a
-  // save would round-trip the translation into slice_name.
-  expect(screen.getByText('Sales')).toBeInTheDocument();
+  // save would round-trip the translation into slice_name. Asserted on the
+  // field's value: EditableTitle renders an Input.TextArea when editing.
+  expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();
+  expect(screen.queryByDisplayValue('Ventes')).not.toBeInTheDocument();
   expect(screen.queryByText('Ventes')).not.toBeInTheDocument();
 });
 
