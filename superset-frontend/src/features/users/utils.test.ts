@@ -38,6 +38,21 @@ test('shows the password validation message from a 400 response', async () => {
   );
 });
 
+test('shows a plain string message from a 400 response', async () => {
+  const error = new Response(
+    JSON.stringify({ message: 'User must have at least one role or group!' }),
+    { status: 400 },
+  );
+  const addDangerToast = jest.fn();
+
+  await expect(
+    handleUserError(error, Actions.UPDATE, addDangerToast),
+  ).rejects.toBe(error);
+  expect(addDangerToast).toHaveBeenCalledWith(
+    'User must have at least one role or group!',
+  );
+});
+
 test('keeps the duplicate username message for a 422 response', async () => {
   const error = new Response(
     JSON.stringify({
@@ -53,6 +68,18 @@ test('keeps the duplicate username message for a 422 response', async () => {
   ).rejects.toBe(error);
   expect(addDangerToast).toHaveBeenCalledWith(
     'This username is already taken. Please choose another one.',
+  );
+});
+
+test('shows the generic message when a 422 response has no message', async () => {
+  const error = new Response(JSON.stringify({ foo: 'bar' }), { status: 422 });
+  const addDangerToast = jest.fn();
+
+  await expect(
+    handleUserError(error, Actions.CREATE, addDangerToast),
+  ).rejects.toBe(error);
+  expect(addDangerToast).toHaveBeenCalledWith(
+    'There was an error creating the user. Please, try again.',
   );
 });
 

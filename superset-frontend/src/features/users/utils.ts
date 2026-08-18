@@ -38,11 +38,11 @@ export const handleUserError = async (
     const errorData = await getClientErrorObject(err);
     const message: unknown = errorData.message;
 
-    if (err.status === 400 && message && typeof message === 'object') {
+    if (err.status === 400 && message && errorData.error) {
       errorMessage = errorData.error;
     } else if (
       err.status === 422 &&
-      errorData.error.includes('duplicate key value')
+      errorData.error?.includes('duplicate key value')
     ) {
       if (errorData.error.includes('ab_user_username_key')) {
         errorMessage = t(
