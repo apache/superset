@@ -41,7 +41,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "f7e8d9c0b1a2"
-down_revision = "e5f6a7b8c9d0"
+down_revision = "1072de5ed955"
 
 SUBJECTS_TABLE = "subjects"
 THEME_EDITORS = "theme_editors"
