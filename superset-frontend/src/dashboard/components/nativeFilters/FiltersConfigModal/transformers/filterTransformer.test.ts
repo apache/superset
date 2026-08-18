@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Filter, NativeFilterType } from '@superset-ui/core';
+import { DatasourceType, Filter, NativeFilterType } from '@superset-ui/core';
 import { NativeFiltersFormItem } from '../types';
 import { transformFilterForSave } from './filterTransformer';
 
@@ -27,7 +27,6 @@ const baseFormItem = {
   requiredFirst: {},
   defaultValue: null,
   defaultDataMask: { filterState: {}, extraFormData: {} },
-  sortMetric: null,
   description: '',
   // form-only fields that must never leak into the saved filter
   defaultValueQueriesData: null,
@@ -42,6 +41,8 @@ test('serializes a dataset-less filter (filter_time) into a full Filter', () => 
     name: 'Time Range',
     filterType: 'filter_time',
     dependencies: ['NATIVE_FILTER-parent'],
+    // the modal stamps this on every filter form, dataset or not
+    datasourceType: DatasourceType.Table,
   };
 
   const result = transformFilterForSave(
@@ -49,7 +50,9 @@ test('serializes a dataset-less filter (filter_time) into a full Filter', () => 
     formItem,
   ) as Filter;
 
-  // Keys the bug used to strip are present and well-formed.
+  // Keys the bug used to strip are present and well-formed. The target matches
+  // the ``{}`` the import and seed paths write, so one logical filter has one
+  // serialization regardless of provenance.
   expect(result.targets).toEqual([{}]);
   expect(result.defaultDataMask).toBeDefined();
   expect(result.cascadeParentIds).toEqual(['NATIVE_FILTER-parent']);
@@ -59,6 +62,11 @@ test('serializes a dataset-less filter (filter_time) into a full Filter', () => 
   expect(result).not.toHaveProperty('dependencies');
   // Empty requiredFirst collapses to undefined instead of the raw form object.
   expect(result.requiredFirst).toBeUndefined();
+
+  // A dataset-less filter has no sort metric control, so the persisted document
+  // must not gain a ``sortMetric`` key it never had. Asserted on the serialized
+  // form because ``undefined`` values survive in the object but not in JSON.
+  expect(JSON.parse(JSON.stringify(result))).not.toHaveProperty('sortMetric');
 
   expect(result.name).toBe('Time Range');
   expect(result.filterType).toBe('filter_time');

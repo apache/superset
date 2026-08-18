@@ -49,7 +49,11 @@ export function buildNativeFilterTarget(
         : formInputs.dataset;
   }
 
-  if (formInputs.datasourceType) {
+  // ``datasourceType`` describes the selected dataset, so it only belongs on a
+  // target that has one. Emitting it for a dataset-less filter (e.g.
+  // ``filter_time``) would make a UI save serialize a target the import and
+  // seed paths write as ``{}``.
+  if (formInputs.dataset != null && formInputs.datasourceType) {
     target.datasourceType = formInputs.datasourceType;
   }
 

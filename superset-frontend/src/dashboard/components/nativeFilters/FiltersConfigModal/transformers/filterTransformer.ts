@@ -118,7 +118,7 @@ function transformFormInput(
     adhoc_filters: formInputs.adhoc_filters,
     time_range: formInputs.time_range,
     granularity_sqla: formInputs.granularity_sqla,
-    sortMetric: formInputs.sortMetric ?? null,
+    sortMetric: formInputs.sortMetric,
     requiredFirst: formInputs.requiredFirst
       ? Object.values(formInputs.requiredFirst).find(rf => rf)
       : undefined,
