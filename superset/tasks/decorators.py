@@ -167,6 +167,12 @@ class TaskWrapper(Generic[P]):
     return value is discarded.
 
     Direct calls execute synchronously, .schedule() runs async via Celery.
+
+    The status-refresh reads below pass ``skip_base_filter=True`` to
+    ``TaskDAO.find_one_or_none`` because they read back the task this
+    executor itself submitted, keyed on the UUID it already holds -- not
+    a task requested by a user. See ``TaskFilter`` for the request-scoped
+    vs. internal-plumbing split.
     """
 
     def __init__(

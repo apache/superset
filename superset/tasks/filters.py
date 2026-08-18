@@ -33,6 +33,15 @@ class TaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     owned and shared tasks. Unsubscribing removes visibility.
 
     Admins see all tasks without filtering.
+
+    This filter applies to request-scoped reads only -- the REST API and
+    the MCP task tools -- where a task's visibility to the requesting
+    principal matters. Internal task-executor and scheduler code that
+    reads back the state of a task it already owns (e.g. polling for the
+    terminal status of the task it is currently executing) calls the DAO
+    with ``skip_base_filter=True`` instead: that code isn't presenting
+    task data to a user, and the UUID it operates on is never
+    caller-supplied, so the visibility check doesn't apply.
     """
 
     def apply(self, query: Query, value: Any) -> Query:

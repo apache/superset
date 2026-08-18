@@ -129,9 +129,9 @@ class TaskContext(CoreTaskContext):
         """
         from superset.daos.tasks import TaskDAO
 
-        # Internal executor path: load the running task itself, bypassing the
-        # user-visibility base filter (which governs the REST API and may run
-        # inside a request context with no logged-in user).
+        # Internal executor path: load the running task itself, keyed on a
+        # UUID this instance already holds, not a user-requested lookup;
+        # see TaskFilter for the request-scoped vs. internal-plumbing split.
         fresh_task = TaskDAO.find_one_or_none(
             uuid=self._task_uuid, skip_base_filter=True
         )

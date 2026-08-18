@@ -311,10 +311,10 @@ def execute_task(  # noqa: C901
     # Convert string UUID to native UUID (Celery deserializes as string)
     native_uuid = UUID(task_uuid)
 
-    # Internal executor path: load the task being run regardless of the
-    # request principal (the user-visibility base filter applies to the REST
-    # API, not to the trusted task runner, which may run inside a request
-    # context with no logged-in user, e.g. eager/synchronous execution).
+    # Internal executor path: load the task Celery was dispatched to run,
+    # keyed on the UUID passed at enqueue time, not a user-requested
+    # lookup; see TaskFilter for the request-scoped vs. internal-plumbing
+    # split. The refreshes below load the same task for the same reason.
     task = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
     if not task:
         logger.error("Task %s not found in metastore", task_uuid)
