@@ -48,14 +48,16 @@ class TestAsyncEventApi(SupersetTestCase):
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
 
-        # Create a mock cache backend instance
+        # The manager resolves its backend through CoordinationService.get_backend(),
+        # so patch there rather than assigning a (now-removed) private attribute.
         mock_cache = mock.Mock(spec=cache_backend_cls)
 
-        # Set the mock cache instance
-        async_query_manager._cache = mock_cache
-
         self.login(ADMIN_USERNAME)
-        test_func(mock_cache)
+        with mock.patch(
+            "superset.coordination.CoordinationService.get_backend",
+            return_value=mock_cache,
+        ):
+            test_func(mock_cache)
 
     def _test_events_logic(self, mock_cache):
         with mock.patch.object(mock_cache, "xrange") as mock_xrange:

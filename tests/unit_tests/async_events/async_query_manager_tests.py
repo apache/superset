@@ -20,7 +20,7 @@ from unittest.mock import ANY, Mock
 
 from flask import g
 from jwt import encode
-from pytest import fixture, mark, raises  # noqa: PT013
+from pytest import fixture, raises  # noqa: PT013
 
 from superset import security_manager
 from superset.async_events.async_query_manager import (
@@ -30,7 +30,6 @@ from superset.async_events.async_query_manager import (
 )
 from superset.async_events.cache_backend import (
     RedisCacheBackend,
-    RedisSentinelCacheBackend,
 )
 from superset.utils import json
 
@@ -263,22 +262,12 @@ def test_parse_channel_id_from_request_as_guest_user_differs_per_scope(
     assert with_datasets != with_rev
 
 
-@mark.parametrize(
-    "cache_type, cache_backend",
-    [
-        ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
-        ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-    ],
-)
 @mock.patch("superset.is_feature_enabled")
 def test_submit_chart_data_job_as_guest_user(
-    is_feature_enabled_mock, async_query_manager, cache_type, cache_backend
+    is_feature_enabled_mock, async_query_manager
 ):
     is_feature_enabled_mock.return_value = True
     set_current_as_guest_user()
-
-    # Mock the get_cache_backend method to return the current cache backend
-    async_query_manager.get_cache_backend = mock.Mock(return_value=cache_backend)
 
     job_mock = Mock()
     async_query_manager._load_chart_data_into_cache_job = job_mock
@@ -370,32 +359,44 @@ def test_validate_session_guest_user_creates_valid_token(async_query_manager):
 
 
 @fixture
-def cancellable_manager():
+def coordination_backend():
+    """Patch the coordination service to a mock Redis backend and expose it."""
+    backend = mock.Mock(spec=RedisCacheBackend)
+    with mock.patch(
+        "superset.coordination.CoordinationService.get_backend",
+        return_value=backend,
+    ):
+        yield backend
+
+
+@fixture
+def cancellable_manager(coordination_backend):
     """A manager wired to a mock Redis backend for cancellation tests."""
     manager = AsyncQueryManager()
     manager._jwt_expiration_seconds = 3600
     manager._stream_prefix = "async-events-"
-    manager._cache = mock.Mock(spec=RedisCacheBackend)
     return manager
 
 
-def test_init_job_registers_cancellable_record(cancellable_manager):
+def test_init_job_registers_cancellable_record(
+    cancellable_manager, coordination_backend
+):
     """init_job persists the owner identity a later cancel must match."""
     cancellable_manager.init_job("chan-1", 7)
 
-    cancellable_manager._cache.set.assert_called_once()
-    key, value = cancellable_manager._cache.set.call_args.args
+    coordination_backend.set.assert_called_once()
+    key, value = coordination_backend.set.call_args.args
     assert key.startswith("async-events-job-cancel:")
     assert json.loads(value) == {"channel_id": "chan-1", "user_id": 7}
 
 
-def test_cancel_job_authorized_revokes_task(cancellable_manager):
+def test_cancel_job_authorized_revokes_task(cancellable_manager, coordination_backend):
     cancellable_manager._stream_limit = 100
     cancellable_manager._stream_limit_firehose = 1000
-    cancellable_manager._cache.get.return_value = json.dumps(
+    coordination_backend.get.return_value = json.dumps(
         {"channel_id": "chan-1", "user_id": 7}
     )
-    cancellable_manager._cache.set.return_value = True
+    coordination_backend.set.return_value = True
 
     with mock.patch("superset.extensions.celery_app") as celery_app:
         cancellable_manager.cancel_job("job-1", "chan-1", 7)
@@ -405,26 +406,24 @@ def test_cancel_job_authorized_revokes_task(cancellable_manager):
     )
     # The job is flagged cancelled (conditionally, xx=True) so the worker knows
     # what the signal it is about to receive means.
-    assert cancellable_manager._cache.set.call_args.kwargs["xx"] is True
-    flagged = json.loads(cancellable_manager._cache.set.call_args.args[1])
+    assert coordination_backend.set.call_args.kwargs["xx"] is True
+    flagged = json.loads(coordination_backend.set.call_args.args[1])
     assert flagged["cancelled"] is True
 
 
-def test_cancel_job_emits_the_terminal_event(cancellable_manager):
+def test_cancel_job_emits_the_terminal_event(cancellable_manager, coordination_backend):
     """A task revoked before a worker picks it up never reports on itself."""
     cancellable_manager._stream_limit = 100
     cancellable_manager._stream_limit_firehose = 1000
-    cancellable_manager._cache.get.return_value = json.dumps(
+    coordination_backend.get.return_value = json.dumps(
         {"channel_id": "chan-1", "user_id": 7}
     )
-    cancellable_manager._cache.set.return_value = True
+    coordination_backend.set.return_value = True
 
     with mock.patch("superset.extensions.celery_app"):
         cancellable_manager.cancel_job("job-1", "chan-1", 7)
 
-    scoped_stream, event_data = cancellable_manager._cache.xadd.call_args_list[0].args[
-        :2
-    ]
+    scoped_stream, event_data = coordination_backend.xadd.call_args_list[0].args[:2]
     assert scoped_stream == "async-events-chan-1"
     assert json.loads(event_data["data"]) == {
         "channel_id": "chan-1",
@@ -436,16 +435,18 @@ def test_cancel_job_emits_the_terminal_event(cancellable_manager):
     }
     # the record has to outlive the event: the worker still needs to recognize
     # the signal on its way as a cancellation
-    cancellable_manager._cache.delete.assert_not_called()
+    coordination_backend.delete.assert_not_called()
 
 
-def test_cancel_job_completed_between_read_and_flag(cancellable_manager):
+def test_cancel_job_completed_between_read_and_flag(
+    cancellable_manager, coordination_backend
+):
     """If the job's record is cleared after the auth read, don't revoke."""
-    cancellable_manager._cache.get.return_value = json.dumps(
+    coordination_backend.get.return_value = json.dumps(
         {"channel_id": "chan-1", "user_id": 7}
     )
     # Conditional (xx) write finds no key: the job finished and cleaned up.
-    cancellable_manager._cache.set.return_value = None
+    coordination_backend.set.return_value = None
 
     with (
         mock.patch("superset.extensions.celery_app") as celery_app,
@@ -456,8 +457,8 @@ def test_cancel_job_completed_between_read_and_flag(cancellable_manager):
     celery_app.control.revoke.assert_not_called()
 
 
-def test_cancel_job_wrong_user_is_rejected(cancellable_manager):
-    cancellable_manager._cache.get.return_value = json.dumps(
+def test_cancel_job_wrong_user_is_rejected(cancellable_manager, coordination_backend):
+    coordination_backend.get.return_value = json.dumps(
         {"channel_id": "chan-1", "user_id": 7}
     )
 
@@ -470,9 +471,11 @@ def test_cancel_job_wrong_user_is_rejected(cancellable_manager):
     celery_app.control.revoke.assert_not_called()
 
 
-def test_cancel_job_wrong_channel_is_rejected(cancellable_manager):
+def test_cancel_job_wrong_channel_is_rejected(
+    cancellable_manager, coordination_backend
+):
     """A matching user on a different channel still cannot cancel the job."""
-    cancellable_manager._cache.get.return_value = json.dumps(
+    coordination_backend.get.return_value = json.dumps(
         {"channel_id": "chan-1", "user_id": 7}
     )
 
@@ -485,8 +488,8 @@ def test_cancel_job_wrong_channel_is_rejected(cancellable_manager):
     celery_app.control.revoke.assert_not_called()
 
 
-def test_cancel_job_unknown_raises(cancellable_manager):
-    cancellable_manager._cache.get.return_value = None
+def test_cancel_job_unknown_raises(cancellable_manager, coordination_backend):
+    coordination_backend.get.return_value = None
 
     with (
         mock.patch("superset.extensions.celery_app") as celery_app,
@@ -497,39 +500,41 @@ def test_cancel_job_unknown_raises(cancellable_manager):
     celery_app.control.revoke.assert_not_called()
 
 
-def test_is_job_cancelled(cancellable_manager):
-    cancellable_manager._cache.get.return_value = json.dumps(
+def test_is_job_cancelled(cancellable_manager, coordination_backend):
+    coordination_backend.get.return_value = json.dumps(
         {"channel_id": "chan-1", "user_id": 7, "cancelled": True}
     )
     assert cancellable_manager.is_job_cancelled("job-1") is True
 
-    cancellable_manager._cache.get.return_value = json.dumps(
+    coordination_backend.get.return_value = json.dumps(
         {"channel_id": "chan-1", "user_id": 7}
     )
     assert cancellable_manager.is_job_cancelled("job-1") is False
 
-    cancellable_manager._cache.get.return_value = None
+    coordination_backend.get.return_value = None
     assert cancellable_manager.is_job_cancelled("job-1") is False
 
 
-def test_is_job_cancelled_swallows_cache_errors(cancellable_manager):
+def test_is_job_cancelled_swallows_cache_errors(
+    cancellable_manager, coordination_backend
+):
     """A cache failure must not escape and mask the worker's original error."""
-    cancellable_manager._cache.get.side_effect = RuntimeError("redis down")
+    coordination_backend.get.side_effect = RuntimeError("redis down")
     assert cancellable_manager.is_job_cancelled("job-1") is False
 
 
-def test_update_job_clears_registry_before_terminal_event(cancellable_manager):
+def test_update_job_clears_registry_before_terminal_event(
+    cancellable_manager, coordination_backend
+):
     """Clearing first is what makes a cancel that lost the race a 404."""
     calls = []
     cancellable_manager._stream_limit = 100
     cancellable_manager._stream_limit_firehose = 1000
-    cancellable_manager._cache.delete.side_effect = lambda *_: calls.append("delete")
-    cancellable_manager._cache.xadd.side_effect = lambda *_: calls.append("xadd")
+    coordination_backend.delete.side_effect = lambda *_: calls.append("delete")
+    coordination_backend.xadd.side_effect = lambda *_: calls.append("xadd")
     job_metadata = {"channel_id": "chan-1", "job_id": "job-1", "user_id": 7}
 
     cancellable_manager.update_job(job_metadata, AsyncQueryManager.STATUS_DONE)
 
-    cancellable_manager._cache.delete.assert_called_once_with(
-        "async-events-job-cancel:job-1"
-    )
+    coordination_backend.delete.assert_called_once_with("async-events-job-cancel:job-1")
     assert calls == ["delete", "xadd", "xadd"]
