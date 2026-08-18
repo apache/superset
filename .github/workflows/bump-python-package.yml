@@ -21,6 +21,9 @@ on:
   #schedule:
   #  - cron: '0 0 * * *'  # Runs daily at midnight UTC
 
+permissions:
+  contents: read
+
 jobs:
   bump-python-package:
     runs-on: ubuntu-slim
@@ -45,7 +48,10 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        run: pip install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: "3.11"
+          enable-cache: true
 
       - name: supersetbot bump-python -p "${{ github.event.inputs.package }}"
         env:
