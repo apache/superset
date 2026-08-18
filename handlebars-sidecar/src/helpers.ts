@@ -31,4 +31,12 @@ export function registerHelpers(hb: typeof Handlebars): void {
   hb.registerHelper('add', (a: unknown, b: unknown) => Number(a) + Number(b));
   hb.registerHelper('subtract', (a: unknown, b: unknown) => Number(a) - Number(b));
   hb.registerHelper('multiply', (a: unknown, b: unknown) => Number(a) * Number(b));
+
+  // Fallback — returns first non-empty value
+  hb.registerHelper('fallback', (...args: unknown[]) => {
+    for (let i = 0; i < args.length - 1; i++) {
+      if (args[i] !== undefined && args[i] !== null && args[i] !== '') return args[i];
+    }
+    return '';
+  });
 }

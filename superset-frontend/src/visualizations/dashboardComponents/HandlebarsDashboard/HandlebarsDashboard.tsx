@@ -100,7 +100,9 @@ const HandlebarsDashboard = ({ dashboardId }: Props) => {
   );
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Fetch the template + slots from the dedicated config table.
+  // Fetch config — extracted so it can be called on mount and on refresh
+  const [configVersion, setConfigVersion] = useState(0);
+
   useEffect(() => {
     if (!dashboardId) {
       setConfigError('No dashboard ID available');
@@ -132,7 +134,14 @@ const HandlebarsDashboard = ({ dashboardId }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [dashboardId]);
+  }, [dashboardId, configVersion]);
+
+  // Listen for refresh events from the chat extension
+  useEffect(() => {
+    const handler = () => setConfigVersion(v => v + 1);
+    window.addEventListener('dynamic-dashboard-updated', handler);
+    return () => window.removeEventListener('dynamic-dashboard-updated', handler);
+  }, []);
 
   // Fetch slot data once config is loaded.
   useEffect(() => {
@@ -205,7 +214,7 @@ const HandlebarsDashboard = ({ dashboardId }: Props) => {
       setRendered('');
       setRenderError(e instanceof Error ? e.message : String(e));
     }
-  }, [apiConfig, context]);
+  }, [apiConfig, context, theme]);
 
   if (configError) return <ErrorPre>{configError}</ErrorPre>;
   if (fetchError) return <ErrorPre>{fetchError}</ErrorPre>;

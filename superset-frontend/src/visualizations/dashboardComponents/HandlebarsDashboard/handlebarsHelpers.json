@@ -50,5 +50,9 @@
   "multiply": {
     "signature": "{{multiply a b}}",
     "description": "Returns a * b"
+  },
+  "fallback": {
+    "signature": "{{fallback a b}}",
+    "description": "Returns the first non-empty value. Use for optional theme tokens: {{fallback theme.dashboardTileBg theme.colorBgContainer}}"
   }
 }

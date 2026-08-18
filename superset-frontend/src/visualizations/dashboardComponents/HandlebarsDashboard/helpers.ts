@@ -49,4 +49,12 @@ export const HELPER_IMPLEMENTATIONS: Record<
   add: (a: unknown, b: unknown) => Number(a) + Number(b),
   subtract: (a: unknown, b: unknown) => Number(a) - Number(b),
   multiply: (a: unknown, b: unknown) => Number(a) * Number(b),
+  // Fallback — use for optional theme tokens: {{fallback theme.dashboardTileBg theme.colorBgContainer}}
+  fallback: (...args: unknown[]) => {
+    // Last arg is Handlebars options object, skip it
+    for (let i = 0; i < args.length - 1; i++) {
+      if (args[i] !== undefined && args[i] !== null && args[i] !== '') return args[i];
+    }
+    return '';
+  },
 };
