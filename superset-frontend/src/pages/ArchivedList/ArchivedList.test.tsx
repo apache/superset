@@ -300,16 +300,33 @@ test('name search refetches with a contains filter on the name field', async () 
 });
 
 test('a search that matches nothing shows the empty-state and no restore actions', async () => {
-  // The list answers with zero rows regardless of query -- the assertion
-  // only needs to observe the empty state a filtered, empty result produces.
+  // The initial load returns real rows; only the search-triggered request
+  // answers empty. If the list were empty from the start, this test could
+  // pass even if the search never fired a request at all -- so the request
+  // itself is asserted below before trusting the rendered empty state.
   fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
+  fetchMock.getOnce(listEndpoint, {
+    result: mockCharts,
+    count: mockCharts.length,
+  });
   fetchMock.get(listEndpoint, { result: [], count: 0 });
   renderArchivedList();
-  await screen.findByTestId('archived-list-view');
+  await screen.findByText('Deleted Chart One');
 
   const searchInput = screen.getByPlaceholderText(/type a value/i);
   fireEvent.change(searchInput, { target: { value: 'e2e_nonexistent' } });
   fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 });
+
+  await waitFor(() => {
+    const hit = fetchMock.callHistory
+      .calls(/chart\/\?q/)
+      .find(call =>
+        call.url.includes(
+          '(col:slice_name,opr:chart_all_text,value:e2e_nonexistent)',
+        ),
+      );
+    expect(hit).toBeTruthy();
+  });
 
   // ListView renders this hardcoded copy whenever a filter is active and the
   // result set is empty, overriding the page's own `emptyState` prop
