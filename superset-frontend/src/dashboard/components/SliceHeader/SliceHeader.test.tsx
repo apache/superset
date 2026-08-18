@@ -1232,3 +1232,26 @@ test('Should fall back to the canonical name when no localized name is set', () 
   });
   expect(screen.getByText('Sales')).toBeInTheDocument();
 });
+
+test('Should use the localized name in the click-to-edit tooltip', async () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/dashboard/1/'],
+  });
+  render(
+    <Router history={history}>
+      <SliceHeader {...props} />
+    </Router>,
+    { useRedux: true, initialState },
+  );
+
+  // The tooltip describes what is on screen, so it names the localized title
+  // rather than the canonical one behind it.
+  userEvent.hover(screen.getByText('Ventes'));
+  expect(await screen.findByText('Click to edit Ventes.')).toBeInTheDocument();
+});
