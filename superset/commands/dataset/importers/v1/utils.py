@@ -248,7 +248,30 @@ def import_dataset(  # noqa: C901
     # implicit-restore re-import is a clean replacement, not a merge.
     is_soft_deleted_match = False
 
-    if existing := find_existing_for_import(SqlaTable, config["uuid"]):
+    existing = find_existing_for_import(SqlaTable, config["uuid"])
+    if not existing and can_write:
+        # A config carrying a fresh UUID but a (database, catalog, schema,
+        # table) identity that already belongs to an active dataset would be
+        # matched-and-updated on that unique key by ``import_from_dict``,
+        # without passing through the overwrite gate below (which only ran on a
+        # UUID match). Resolve that collision to the existing dataset here so
+        # the same gate applies; align the UUID so the subsequent import updates
+        # that row deterministically. (Soft-deleted twins are handled in the
+        # create branch further down.)
+        active_twin = (
+            db.session.query(SqlaTable)
+            .filter_by(
+                database_id=config["database_id"],
+                catalog=config.get("catalog"),
+                schema=config.get("schema"),
+                table_name=config["table_name"],
+            )
+            .first()
+        )
+        if active_twin is not None:
+            config["uuid"] = str(active_twin.uuid)
+            existing = find_existing_for_import(SqlaTable, config["uuid"])
+    if existing:
         if existing.deleted_at is not None:
             # RESTORE path — re-importing a soft-deleted UUID is an implicit
             # restore-with-update, a distinct operation from overwriting an

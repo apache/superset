@@ -2239,3 +2239,65 @@ def test_import_restore_blocked_by_active_twin_at_incoming_identity(
     assert "another active dataset" in str(excinfo.value)
     # Check-before-mutate: the failed import leaves the row soft-deleted.
     assert existing.deleted_at is not None
+
+
+def test_import_dataset_active_identity_collision_requires_overwrite_permission(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A config with a fresh UUID but the (database, catalog, schema, table)
+    identity of an existing ACTIVE dataset is matched on that unique key by
+    ``import_from_dict``. That path must go through the same overwrite
+    permission gate as a UUID match, so a caller who is neither an editor of the
+    existing dataset nor an admin cannot update it by reusing its physical
+    identity with a fresh UUID.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=False)
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    victim = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(victim)
+    db.session.flush()
+
+    importer_user = User(
+        username="importer",
+        first_name="at",
+        last_name="tacker",
+        email="importer@example.com",
+    )
+
+    # Fresh UUID, but the same physical identity as ``victim``.
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": "public",
+        "sql": "SELECT * FROM finance.salaries -- clobbered",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with override_user(importer_user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(copy.deepcopy(config), overwrite=True)
+    assert "overwrite" in str(excinfo.value).lower()
+
+    # The victim dataset must not have been clobbered.
+    assert victim.sql == "SELECT * FROM finance.salaries"
