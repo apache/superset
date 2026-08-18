@@ -339,6 +339,25 @@ def load_configs(
                 exceptions.append(
                     ValidationError({file_name: {"masked_encrypted_extra": [str(exc)]}})
                 )
+            except KeyError as exc:
+                # Some config fields (e.g. `uuid`, `ssh_tunnel`) are read
+                # directly from the imported YAML before schema validation runs;
+                # a config missing one of these keys raises a raw KeyError
+                # instead of failing validation cleanly like every other
+                # per-file error. Convert it into a ValidationError so it flows
+                # into the same aggregated error path.
+                field = str(exc).strip("'\"")
+                logger.error(
+                    "Missing required key %s in config for %s (prefix: %s)",
+                    exc,
+                    file_name,
+                    prefix,
+                )
+                exceptions.append(
+                    ValidationError(
+                        {file_name: {field: ["Missing data for required field."]}}
+                    )
+                )
 
     return configs
 
