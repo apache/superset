@@ -37,6 +37,7 @@ import {
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
+import type { GridComponentOption } from 'echarts/components';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
   EchartsTimeseriesSeriesType,
@@ -1033,6 +1034,45 @@ test('honors an explicit List selection for zoomable top legends even when toolb
   const transformed = transformProps(chartProps);
 
   expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
+});
+
+test('preserves plot space for a small zoomable chart with a many-item Plain legend', () => {
+  const chartHeight = 200;
+  const manyLegendValues = Object.fromEntries(
+    Array.from({ length: 40 }, (_, index) => [
+      `Country ${index + 1}, Product`,
+      index + 1,
+    ]),
+  );
+  const chartProps = createTestChartProps({
+    height: chartHeight,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      zoomable: true,
+      yAxisTitleMargin: 0,
+      yAxisTitlePosition: 'Left',
+    },
+    queriesData: [
+      createTestQueryData(
+        createTestData([manyLegendValues], { intervalMs: 300000000 }),
+      ),
+    ],
+  });
+
+  const transformed = transformProps(chartProps);
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect((transformed.echartOptions.legend as { type?: LegendType }).type).toBe(
+    LegendType.Plain,
+  );
+  expect(typeof grid.top).toBe('number');
+  expect(typeof grid.bottom).toBe('number');
+  expect(
+    chartHeight - (Number(grid.top) + Number(grid.bottom)),
+  ).toBeGreaterThanOrEqual(80);
 });
 
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {

@@ -39,8 +39,14 @@
 - **Verified:**
   `superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts` replaces
   the horizontal 40% cap with an 80px minimum plot-space floor. It reserves the
-  full estimated legend margin whenever that leaves at least 80px for the plot;
-  for larger legends, it reserves all available height except that floor.
+  full estimated legend margin whenever that leaves at least 80px of genuinely
+  available height for the plot; for larger legends, it reserves the available
+  height except that floor.
+- **Verified:**
+  `superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformProps.ts`
+  calculates the top and bottom padding required without a legend, including
+  zoom controls and axis-title offsets, and excludes those fixed reservations
+  before applying the plot-space floor.
 - **Verified:** The horizontal path continues to return `LegendType.Plain`; no
   Plain-to-Scroll fallback was added.
 - **Verified:**
@@ -48,6 +54,9 @@
   a 40-item, 800-by-400 regression case whose estimated eleven rows require a
   260px margin, and updates the small-chart overflow expectation to preserve an
   80px plot area.
+- **Verified:** A transform-level regression test covers a 200px-tall zoomable
+  chart with a many-item top Plain legend and verifies that the resulting grid
+  retains 80px of plot height after both top and bottom padding.
 - **Verified:** Vertical Plain legend layout is unchanged.
 
 ## Latent Bugs Found

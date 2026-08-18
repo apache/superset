@@ -1122,6 +1122,18 @@ export default function transformProps(
     name,
     icon: 'roundRect',
   }));
+  const nonLegendPadding = getPadding(
+    false,
+    legendOrientation,
+    addYAxisLabelOffset,
+    zoomable,
+    undefined,
+    addXAxisLabelOffset,
+    yAxisTitlePosition,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+    isHorizontal,
+  );
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
       showLegend,
@@ -1137,6 +1149,10 @@ export default function transformProps(
     );
 
     return resolveLegendLayout({
+      availableHeight: Math.max(
+        height - nonLegendPadding.top - nonLegendPadding.bottom,
+        0,
+      ),
       availableWidth:
         legendOrientation === LegendOrientation.Top ||
         legendOrientation === LegendOrientation.Bottom
