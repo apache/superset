@@ -16,14 +16,14 @@
 # under the License.
 
 """
-Widget control-set registration decorator for Superset.
+Widget registration decorator for Superset.
 
 This module provides the decorator an extension (or the host) uses to register
-a Dashboard V2 widget's control set with the host application, enabling
-automatic discovery — the same contract built-in widgets use.
+a Dashboard V2 widget with the host application, enabling automatic discovery —
+the same contract built-in widgets use.
 
 Usage:
-    from superset_core.widgets.controls import WidgetControls
+    from superset_core.widgets.base import Widget
     from superset_core.widgets.decorators import widget
 
     @widget(
@@ -31,7 +31,7 @@ Usage:
         name="My Widget",
         description="...",
     )
-    class MyWidgetControls(WidgetControls):
+    class MyWidget(Widget):
         controls_class = MyWidgetControlsModel
 """
 
@@ -39,7 +39,7 @@ from __future__ import annotations
 
 from typing import Callable, TypeVar
 
-# Type variable for decorated widget control-set classes
+# Type variable for decorated widget classes
 T = TypeVar("T")
 
 
@@ -49,7 +49,7 @@ def widget(
     description: str | None = None,
 ) -> Callable[[T], T]:
     """
-    Decorator to register a widget control set.
+    Decorator to register a widget.
 
     Automatically detects extension context and applies appropriate
     namespacing to prevent ``widget_type`` conflicts between the host and
@@ -62,21 +62,20 @@ def widget(
     Args:
         widget_type: Unique widget type identifier (e.g., "metric-tile",
             "balloons"), matching the dashboard node's ``type``. Used as the key
-            in the widget-controls registry.
+            in the widget registry.
         name: Human-readable display name (e.g., "Metric Tile"). Shown in the UI
             when listing available widget types.
         description: Optional description for documentation and UI tooltips.
 
     Returns:
-        The decorated widget control-set class, registered with the host
-        application.
+        The decorated widget class, registered with the host application.
 
     Raises:
         NotImplementedError: If called before the host implementation is
             initialized.
 
     Example:
-        from superset_core.widgets.controls import WidgetControls
+        from superset_core.widgets.base import Widget
         from superset_core.widgets.decorators import widget
 
         @widget(
@@ -84,13 +83,10 @@ def widget(
             name="My Widget",
             description="A custom widget",
         )
-        class MyWidgetControls(WidgetControls):
+        class MyWidget(Widget):
             controls_class = MyWidgetControlsModel
     """
     raise NotImplementedError(
         "Widget decorator not initialized. "
         "This decorator should be replaced during Superset startup."
     )
-
-
-__all__ = ["widget"]

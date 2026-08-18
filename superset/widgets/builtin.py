@@ -14,13 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Built-in Dashboard V2 widget control sets. Importing this registers them.
+"""Built-in Dashboard V2 widgets. Importing this registers them.
 
-Built-ins use the exact same public contract an extension does —
-``@widget`` + ``WidgetControls`` from ``superset_core.widgets`` — so there is no
-parallel registration path. This module is imported (for its decorator
-side-effects) by ``inject_widget_implementations`` once the decorator is
-concrete.
+Built-ins use the exact same public contract an extension does — ``@widget`` +
+``Widget`` from ``superset_core.widgets`` — so there is no parallel registration
+path. This module is imported (for its decorator side-effects) by
+``inject_widget_implementations`` once the decorator is concrete.
 """
 
 from __future__ import annotations
@@ -29,7 +28,7 @@ from copy import deepcopy
 from typing import Any
 
 from pydantic import BaseModel
-from superset_core.widgets import widget, WidgetControls
+from superset_core.widgets import Widget, widget
 
 from superset.widgets.controls import (
     AgGridTableControls,
@@ -45,7 +44,7 @@ from superset.widgets.controls import (
     name="Markdown",
     description="Rich text authored in Markdown.",
 )
-class Markdown(WidgetControls):
+class Markdown(Widget):
     controls_class = MarkdownControls
 
 
@@ -54,7 +53,7 @@ class Markdown(WidgetControls):
     name="ECharts",
     description="A chart from a raw ECharts option with $bind data markers.",
 )
-class Echarts(WidgetControls):
+class Echarts(Widget):
     controls_class = EchartsControls
 
 
@@ -63,7 +62,7 @@ class Echarts(WidgetControls):
     name="Metric Tile",
     description="A single live metric value rendered as a big number.",
 )
-class MetricTile(WidgetControls):
+class MetricTile(Widget):
     controls_class = MetricTileControls
 
 
@@ -72,7 +71,7 @@ class MetricTile(WidgetControls):
     name="Table",
     description="Query results rendered as an AG Grid table.",
 )
-class AgGridTable(WidgetControls):
+class AgGridTable(Widget):
     controls_class = AgGridTableControls
 
 
@@ -84,7 +83,7 @@ class AgGridTable(WidgetControls):
         "query (Chart Framework v2 POC)."
     ),
 )
-class Balloons(WidgetControls):
+class Balloons(Widget):
     """
     Explicit/typed chart: renders one balloon per query row, colored and sized
     per series. The per-series ``customize`` section is populated dynamically

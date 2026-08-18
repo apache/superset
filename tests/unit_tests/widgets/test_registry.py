@@ -17,13 +17,13 @@
 from __future__ import annotations
 
 import pytest
-from superset_core.widgets import widget, WidgetControls
+from superset_core.widgets import Widget, widget
 
 from superset.widgets.controls import BalloonsControls
 from superset.widgets.registry import registry
 
 
-def _block(widget_type: str) -> type[WidgetControls]:
+def _block(widget_type: str) -> type[Widget]:
     widget_cls = registry.get(widget_type)
     assert widget_cls is not None
     return widget_cls
@@ -36,20 +36,20 @@ def test_registry_lists_built_in_widget_types() -> None:
 
 def test_core_contract_is_importable() -> None:
     # Extensions register widgets via exactly these two public symbols.
-    assert WidgetControls is not None
+    assert Widget is not None
     assert callable(widget)
 
 
 def test_duplicate_widget_type_raises_naming_both() -> None:
     @widget(widget_type="dup-test-widget", name="First")
-    class First(WidgetControls):
+    class First(Widget):
         controls_class = BalloonsControls
 
     try:
         with pytest.raises(ValueError, match="already registered"):
 
             @widget(widget_type="dup-test-widget", name="Second")
-            class Second(WidgetControls):
+            class Second(Widget):
                 controls_class = BalloonsControls
     finally:
         registry.pop("dup-test-widget", None)

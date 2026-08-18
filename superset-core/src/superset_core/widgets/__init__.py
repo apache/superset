@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Public contract for registering Dashboard V2 widget control sets."""
+"""Public contract for registering Dashboard V2 widgets.
 
-from superset_core.widgets.controls import WidgetControls
-from superset_core.widgets.decorators import widget
+Re-exported with the redundant-alias form so these are recognized as
+intentional re-exports (this codebase does not use ``__all__``).
+"""
 
-__all__ = ["WidgetControls", "widget"]
+from superset_core.widgets.base import Widget as Widget
+from superset_core.widgets.decorators import widget as widget

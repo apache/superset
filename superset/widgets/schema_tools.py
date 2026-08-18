@@ -18,7 +18,7 @@
 Progressive-disclosure helpers over a control JSON Schema.
 
 Shared by the REST API and the MCP tools so the two never diverge. Pure
-functions over the dict a ``WidgetControls.get_control_schema`` returns (which
+functions over the dict a ``Widget.get_control_schema`` returns (which
 may carry ``x-dynamic`` enrichment and ``$defs``).
 
 - ``prune_to_minimal_viable`` — the **minimum viable object** an agent can fill

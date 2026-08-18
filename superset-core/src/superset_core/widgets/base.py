@@ -16,12 +16,21 @@
 # under the License.
 
 """
-Base class for schema-driven Dashboard V2 widget control sets.
+Base class for a Dashboard V2 widget's backend behavior.
 
 Lives in ``superset_core`` so extensions can subclass it exactly the way the
 host's built-in widgets do — the same contract, no app-internal imports. A
-concrete widget registers itself with the ``@widget`` decorator (see
+concrete widget registers itself as a whole with the ``@widget`` decorator (see
 ``superset_core.widgets.decorators``).
+
+``Widget`` is the single registered unit for a widget type. Today it exposes the
+**control panel** (the JSON Schema that drives the Inspector and MCP, plus
+commit-time validation). It is deliberately the wrapper — not a bare
+"controls" object — because a widget type's other backend concerns will hang off
+the same class and register together: e.g. building a ``SemanticQuery`` from the
+control values, and post-processing the query results before they reach the
+viz. Those aren't relevant to the frontend, but they belong in the same registry
+entry, so they live here rather than in a parallel registry.
 """
 
 from __future__ import annotations
@@ -39,15 +48,18 @@ from superset_core.semantic_layers.config import build_configuration_schema
 logger = logging.getLogger(__name__)
 
 
-class WidgetControls:
+class Widget:
     """
-    Base class for a schema-driven Dashboard V2 widget control set.
+    Base class for a Dashboard V2 widget's backend behavior (the registered
+    unit for a widget type).
 
     A concrete widget type is declared with the ``@widget`` decorator (which
     sets ``widget_type``/``name``/``description``) and sets a ``controls_class``
     (a Pydantic model). The model's JSON Schema *is* the control panel; it
     describes the widget's ``node.props`` and is served to both the frontend and
-    MCP.
+    MCP. Future backend concerns for a widget type (e.g. ``build_semantic_query``
+    from the control values, or a query-result handler) will be added here as
+    sibling methods so a widget is always registered as a whole.
     """
 
     widget_type: str
@@ -133,6 +145,3 @@ class WidgetControls:
                 for error in ex.errors()
             ]
         return []
-
-
-__all__ = ["WidgetControls"]

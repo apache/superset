@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset_core.widgets import WidgetControls
+from superset_core.widgets import Widget
 
 from superset.widgets.registry import registry
 
@@ -50,5 +50,5 @@ def unknown_widget_type_error(widget_type: str) -> dict[str, Any]:
     }
 
 
-def resolve_widget(widget_type: str) -> type[WidgetControls] | None:
+def resolve_widget(widget_type: str) -> type[Widget] | None:
     return registry.get(widget_type)
