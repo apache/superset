@@ -153,12 +153,13 @@ class WebhookNotification(BaseNotification):
         # start of each attempt and checks it against max_time only after that
         # attempt fails -- so the giveup decision uses the time measured before
         # the attempt ran, ignoring the attempt's own duration. With each
-        # request carrying timeout=60, a third attempt can begin past the 120s
-        # mark (its start gated by the prior check, which still saw ~60-70s) and
-        # then run its full 60s before the check trips. The loop therefore makes
-        # 3 attempts: total wall-clock is ~180-210s (180s of requests + up to
-        # ~30s of jitter sleeps: <=10s then <=20s), not 120s. factor is kept at
-        # 10 so legitimately-transient 5xx targets are not abandoned early.
+        # request carrying the ALERT_REPORTS_WEBHOOK_TIMEOUT (default 60s), a
+        # third attempt can begin past the 120s mark (its start gated by the
+        # prior check, which still saw ~60-70s) and then run its full request
+        # timeout before the check trips. The loop therefore makes 3 attempts:
+        # total wall-clock can exceed 120s by up to one request timeout plus
+        # jitter sleeps (<=10s then <=20s). factor is kept at 10 so
+        # legitimately-transient 5xx targets are not abandoned early.
         max_time=120,
     )
     @statsd_gauge("reports.webhook.send")
@@ -172,6 +173,7 @@ class WebhookNotification(BaseNotification):
         self._validate_webhook_url(wh_url)
         payload = self._get_req_payload()
         files = self._get_files()
+        timeout = current_app.config["ALERT_REPORTS_WEBHOOK_TIMEOUT"]
 
         try:
             if files:
@@ -186,12 +188,12 @@ class WebhookNotification(BaseNotification):
                     wh_url,
                     data=data,
                     files=files,
-                    timeout=60,
+                    timeout=timeout,
                     allow_redirects=False,
                 )
             else:
                 response = requests.post(
-                    wh_url, json=payload, timeout=60, allow_redirects=False
+                    wh_url, json=payload, timeout=timeout, allow_redirects=False
                 )
 
             logger.info(

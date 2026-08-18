@@ -182,6 +182,27 @@ SELECT * FROM some_table;
     )
 
 
+def test_get_default_schema_for_query_set_config(mocker: MockerFixture) -> None:
+    """
+    A ``set_config('search_path', ...)`` call rebinds unqualified-name
+    resolution on the shared cursor just like ``SET search_path``, so it
+    must be rejected too.
+    """
+    database = mocker.MagicMock()
+    query = mocker.MagicMock()
+    query.schema = "foo"
+    query.sql = (
+        "SELECT set_config('search_path', 'tenant_b', false); SELECT * FROM orders"
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        spec.get_default_schema_for_query(database, query)
+    assert (
+        str(excinfo.value)
+        == "Users are not allowed to set a search path for security reasons."
+    )
+
+
 def test_adjust_engine_params() -> None:
     """
     Test `adjust_engine_params`.
@@ -450,3 +471,33 @@ def test_interval_type_mutator() -> None:
     assert mutator(True) is None
     assert mutator([1, 2, 3]) is None
     assert mutator({"days": 1}) is None
+
+
+def test_get_schema_names_excludes_only_actual_system_schemas(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): Test ``get_schema_names``
+
+    User-defined schemas that merely start with ``pg`` (but are not
+    actual Postgres system schemas, which always start with the literal
+    ``pg_``) must not be filtered out. See issue #30678.
+    """
+    inspector = mocker.MagicMock()
+    inspector.engine.connect().__enter__().execute.return_value = [
+        ("public",),
+        ("pgsql",),
+        ("pgstats",),
+        ("pg_catalog",),
+        ("pg_toast",),
+        ("information_schema",),
+    ]
+
+    schemas = spec.get_schema_names(inspector)
+
+    assert schemas == {
+        "public",
+        "pgsql",
+        "pgstats",
+        "information_schema",
+    }

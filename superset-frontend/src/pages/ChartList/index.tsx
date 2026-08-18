@@ -46,6 +46,10 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
+  archiveConfirmDescription,
+  deleteActionLabel,
+} from 'src/utils/softDeleteCopy';
+import {
   ActionButton,
   ConfirmStatusChange,
   CertifiedBadge,
@@ -248,6 +252,9 @@ function ChartList(props: ChartListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  // When soft-delete is on, deleting archives the chart (recoverable), so the
+  // confirmation drops the type-DELETE friction and explains the archive.
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -275,11 +282,17 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(json.message);
+        addSuccessToast(
+          softDelete
+            ? t('Archived %s item(s)', chartsToDelete.length)
+            : json.message,
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected charts: %s', errMsg),
+          softDelete
+            ? t('There was an issue archiving the selected charts: %s', errMsg)
+            : t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
     );
@@ -561,21 +574,30 @@ function ChartList(props: ChartListProps) {
               )}
               {canDelete && (
                 <ConfirmStatusChange
-                  title={t('Please confirm')}
+                  recoverable={softDelete}
+                  title={
+                    softDelete
+                      ? t('Archive %(name)s?', { name: original.slice_name })
+                      : t('Please confirm')
+                  }
                   description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.slice_name}</b>?
-                    </>
+                    softDelete ? (
+                      archiveConfirmDescription(t('chart'))
+                    ) : (
+                      <>
+                        {t('Are you sure you want to delete')}{' '}
+                        <b>{original.slice_name}</b>?
+                      </>
+                    )
                   }
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
                     <ActionButton
-                      label={t('Delete')}
+                      label={deleteActionLabel()}
                       tooltip={
                         allowEdit
-                          ? t('Delete')
+                          ? deleteActionLabel()
                           : t(
                               'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
                             )
@@ -912,8 +934,13 @@ function ChartList(props: ChartListProps) {
         />
       )}
       <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t('Are you sure you want to delete the selected charts?')}
+        recoverable={softDelete}
+        title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
+        description={
+          softDelete
+            ? archiveConfirmDescription(t('charts'), true)
+            : t('Are you sure you want to delete the selected charts?')
+        }
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {
@@ -922,7 +949,7 @@ function ChartList(props: ChartListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: t('Delete'),
+              name: deleteActionLabel(),
               type: 'danger',
               onSelect: confirmDelete,
             });

@@ -202,3 +202,50 @@ def test_terminal_event_clears_transaction_state(
     getattr(lifecycle_session, terminal_event)()
 
     assert lifecycle_session.info == {"unrelated": "preserved"}
+
+
+def test_missing_table_stays_silent_during_persist(
+    lifecycle_session: Session,
+    mocker: Any,
+) -> None:
+    """The pre-migration race (version_changes not yet created) is the one
+    benign persist failure; it must produce neither a log line nor a
+    capture-error metric."""
+    mocker.patch.object(
+        listener,
+        "bulk_insert_records",
+        side_effect=sa.exc.OperationalError(
+            "INSERT", {}, Exception("no such table: version_changes")
+        ),
+    )
+    log_spy = mocker.patch.object(listener.logger, "exception")
+    metric_spy = mocker.patch.object(listener, "incr_capture_error")
+
+    listener._persist_buffered_records(lifecycle_session, tx_id=1, buffer={})
+
+    log_spy.assert_not_called()
+    metric_spy.assert_not_called()
+
+
+def test_transient_persist_failure_is_logged_and_counted(
+    lifecycle_session: Session,
+    mocker: Any,
+) -> None:
+    """A deadlock (or any operational failure that is not the missing-table
+    race) drops the save's change records; swallowing it under the
+    missing-table branch made that loss invisible — no log, no metric,
+    while the user's save reported success."""
+    mocker.patch.object(
+        listener,
+        "bulk_insert_records",
+        side_effect=sa.exc.OperationalError(
+            "INSERT", {}, Exception("database is locked")
+        ),
+    )
+    log_spy = mocker.patch.object(listener.logger, "exception")
+    metric_spy = mocker.patch.object(listener, "incr_capture_error")
+
+    listener._persist_buffered_records(lifecycle_session, tx_id=1, buffer={})
+
+    log_spy.assert_called_once()
+    metric_spy.assert_called_once_with("bulk_insert")

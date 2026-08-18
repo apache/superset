@@ -251,3 +251,26 @@ def test_partition_query_escapes_identifiers() -> None:
         database=None,  # type: ignore
     )
     assert result == "SHOW PARTITIONS `no_schema_tbl`"
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """HiveQL/Spark SQL quote identifiers with backticks, not ANSI double
+    quotes, unlike the PrestoEngineSpec parent class it otherwise reuses."""
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    assert HiveEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_spark_identifier_quote_uses_backticks() -> None:
+    """SparkEngineSpec inherits the backtick quoting from HiveEngineSpec."""
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    assert SparkEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }

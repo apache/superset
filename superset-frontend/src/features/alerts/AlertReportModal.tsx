@@ -721,7 +721,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
+    include_cta: true,
     grace_period: undefined,
+    retry_on_failure: false,
+    retry_max_attempts: 3,
+    send_failed_reports: false,
+    retry_notify_owners: true,
+    retry_notify_recipients: false,
   };
 
   const fetchDashboardFilterValues = async (
@@ -958,6 +964,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
       force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
+      include_cta: currentAlert?.include_cta ?? true,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -1603,7 +1610,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onChangeDashboardFilterValue = (
     idx: number,
     filterValues:
-      SelectValue | SelectValue[] | string | string[] | number | number[],
+      | SelectValue
+      | SelectValue[]
+      | string
+      | string[]
+      | number
+      | number[],
   ) => {
     let values: any;
     if (typeof filterValues === 'string') {
@@ -1772,10 +1784,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
   const validateContentSection = () => {
     const errors = [];
-    if (!(
-      (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
-      (contentType === ContentType.Chart && !!currentAlert?.chart)
-    )) {
+    if (
+      !(
+        (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
+        (contentType === ContentType.Chart && !!currentAlert?.chart)
+      )
+    ) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
 
@@ -1810,11 +1824,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.sql?.length) {
       errors.push(TRANSLATIONS.SQL_ERROR_TEXT);
     }
-    if (!(
-      (conditionNotNull || !!currentAlert?.validator_config_json?.op) &&
-      (conditionNotNull ||
-        currentAlert?.validator_config_json?.threshold !== undefined)
-    )) {
+    if (
+      !(
+        (conditionNotNull || !!currentAlert?.validator_config_json?.op) &&
+        (conditionNotNull ||
+          currentAlert?.validator_config_json?.threshold !== undefined)
+      )
+    ) {
       errors.push(TRANSLATIONS.ALERT_CONDITION_ERROR_TEXT);
     }
     updateValidationStatus(Sections.Alert, errors);
@@ -2597,6 +2613,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       </Checkbox>
                     </div>
                   )}
+                  <div className="inline-container">
+                    <Checkbox
+                      data-test="include-cta"
+                      checked={currentAlert?.include_cta !== false}
+                      onChange={(e: CheckboxChangeEvent) =>
+                        updateAlertState('include_cta', e.target.checked)
+                      }
+                    >
+                      {t('Include a link back to Superset')}
+                    </Checkbox>
+                    <InfoTooltip
+                      tooltip={t(
+                        'When unchecked, the "Explore in Superset" link is omitted from the delivered notifications.',
+                      )}
+                    />
+                  </div>
                 </>
               ),
             },
@@ -2730,6 +2762,123 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </>
               ),
             },
+            ...(isReport
+              ? [
+                  {
+                    key: 'error-handling',
+                    label: (
+                      <CollapseLabelInModal
+                        title={t('Error handling')}
+                        subtitle={t(
+                          'Configure retry behavior on delivery failure.',
+                        )}
+                        testId="error-handling-panel"
+                      />
+                    ),
+                    children: (
+                      <div className="header-section">
+                        <StyledSwitchContainer
+                          css={css`
+                            margin-bottom: ${theme.sizeUnit * 4}px;
+                          `}
+                        >
+                          <Switch
+                            checked={!!currentAlert?.retry_on_failure}
+                            onChange={(checked: boolean) => {
+                              updateAlertState('retry_on_failure', checked);
+                              if (!checked) {
+                                updateAlertState('send_failed_reports', false);
+                                updateAlertState('retry_notify_owners', true);
+                                updateAlertState(
+                                  'retry_notify_recipients',
+                                  false,
+                                );
+                                updateAlertState('retry_max_attempts', 3);
+                              }
+                            }}
+                          />
+                          <div className="switch-label">
+                            {t('Enable Retries')}
+                          </div>
+                          <InfoTooltip
+                            tooltip={t(
+                              'Automatically retry sending the report when delivery fails.',
+                            )}
+                          />
+                        </StyledSwitchContainer>
+                        {currentAlert?.retry_on_failure && (
+                          <>
+                            <ModalFormField label={t('Maximum Retry Attempts')}>
+                              <InputNumber
+                                min={1}
+                                max={10}
+                                value={currentAlert?.retry_max_attempts ?? 3}
+                                onChange={(value: number | null) =>
+                                  updateAlertState(
+                                    'retry_max_attempts',
+                                    value ?? 3,
+                                  )
+                                }
+                              />
+                            </ModalFormField>
+                            <StyledSwitchContainer
+                              css={css`
+                                margin-bottom: ${theme.sizeUnit * 4}px;
+                              `}
+                            >
+                              <Switch
+                                checked={!!currentAlert?.send_failed_reports}
+                                onChange={(checked: boolean) =>
+                                  updateAlertState(
+                                    'send_failed_reports',
+                                    checked,
+                                  )
+                                }
+                              />
+                              <div className="switch-label">
+                                {t('Send Failed Reports')}
+                              </div>
+                              <InfoTooltip
+                                tooltip={t(
+                                  'Notify all recipients when the report fails after exhausting all retry attempts.',
+                                )}
+                              />
+                            </StyledSwitchContainer>
+                            <ModalFormField label={t('Failure Notifications')}>
+                              <Checkbox
+                                checked={
+                                  currentAlert?.retry_notify_owners ?? true
+                                }
+                                onChange={(e: CheckboxChangeEvent) =>
+                                  updateAlertState(
+                                    'retry_notify_owners',
+                                    e.target.checked,
+                                  )
+                                }
+                              >
+                                {t('Owners')}
+                              </Checkbox>
+                              <Checkbox
+                                checked={
+                                  !!currentAlert?.retry_notify_recipients
+                                }
+                                onChange={(e: CheckboxChangeEvent) =>
+                                  updateAlertState(
+                                    'retry_notify_recipients',
+                                    e.target.checked,
+                                  )
+                                }
+                              >
+                                {t('Report Recipients')}
+                              </Checkbox>
+                            </ModalFormField>
+                          </>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]
+              : []),
           ]}
         />
       </div>

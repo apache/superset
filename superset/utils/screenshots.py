@@ -25,7 +25,7 @@ from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
-from superset import feature_flag_manager, thumbnail_cache
+from superset import thumbnail_cache
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
     LockAlreadyHeldException,
@@ -33,27 +33,17 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.utils.hashing import hash_from_dict
+from superset.utils.report_execution import ReportExecutionContext
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
     DashboardStandaloneMode,
     WebDriverPlaywright,
     WebDriverProxy,
-    WebDriverSelenium,
     WindowSize,
 )
 
 logger = logging.getLogger(__name__)
-
-# Import Playwright availability and install message
-try:
-    from superset.utils.webdriver import (
-        PLAYWRIGHT_AVAILABLE,
-        PLAYWRIGHT_INSTALL_MESSAGE,
-    )
-except ImportError:
-    PLAYWRIGHT_AVAILABLE = False
-    PLAYWRIGHT_INSTALL_MESSAGE = "Playwright module not found"
 
 
 DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
@@ -83,6 +73,26 @@ class ScreenshotCachePayloadType(TypedDict):
     image: str | None
     timestamp: str
     status: str
+
+
+# Magic bytes for a cheap image sanity check. This is intentionally not a full
+# decode: it's meant to catch 0-byte/corrupt/blank payloads before they're
+# cached or served, not to validate the image is renderable.
+PNG_MAGIC_BYTES = b"\x89PNG\r\n\x1a\n"
+JPEG_MAGIC_BYTES = b"\xff\xd8\xff"
+
+
+def validate_screenshot_image(image: bytes | None) -> str | None:
+    """Cheaply validate screenshot bytes before they're cached or served.
+
+    :return: None if the bytes look like a usable image, otherwise a short
+        reason ("empty" or "undecodable") suitable for logging.
+    """
+    if not image:
+        return "empty"
+    if not image.startswith((PNG_MAGIC_BYTES, JPEG_MAGIC_BYTES)):
+        return "undecodable"
+    return None
 
 
 class ScreenshotCachePayload:
@@ -147,6 +157,13 @@ class ScreenshotCachePayload:
     def get_status(self) -> str:
         return self.status.value
 
+    def get_invalid_image_reason(self) -> str | None:
+        """Reason this payload's image should not be served/cached, or None if
+        it passes validation (or it isn't claiming a successful screenshot)."""
+        if self.status != StatusValues.UPDATED:
+            return None
+        return validate_screenshot_image(self._image)
+
     def is_error_cache_ttl_expired(self) -> bool:
         error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
         return (
@@ -171,10 +188,6 @@ class ScreenshotCachePayload:
 
 
 class BaseScreenshot:
-    @property
-    def driver_type(self) -> str:
-        return app.config["WEBDRIVER_TYPE"]
-
     url: str
     digest: str | None
     screenshot: bytes | None
@@ -190,39 +203,28 @@ class BaseScreenshot:
         self.screenshot = None
 
     def driver(
-        self, window_size: WindowSize | None = None, user: User | None = None
+        self,
+        window_size: WindowSize | None = None,
     ) -> WebDriverProxy:
         window_size = window_size or self.window_size
-        if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
-            # Try to use Playwright if available (supports WebGL/DeckGL, unlike Cypress)
-            if PLAYWRIGHT_AVAILABLE:
-                return WebDriverPlaywright(self.driver_type, window_size)
-
-            # Playwright not available, falling back to Selenium
-            logger.info(
-                "PLAYWRIGHT_REPORTS_AND_THUMBNAILS enabled but Playwright not "
-                "installed. Falling back to Selenium (WebGL/Canvas charts may "
-                "not render correctly). %s",
-                PLAYWRIGHT_INSTALL_MESSAGE,
-            )
-
-        # Use Selenium as default/fallback
-        return WebDriverSelenium(self.driver_type, window_size, user)
+        # Empty string for driver_type — unused by WebDriverPlaywright internals
+        return WebDriverPlaywright("", window_size)
 
     def get_screenshot(
         self,
         user: User,
         window_size: WindowSize | None = None,
         log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
     ) -> bytes | None:
-        driver = self.driver(window_size, user)
-        try:
-            self.screenshot = driver.get_screenshot(
-                self.url, self.element, user, log_context=log_context
-            )
-        finally:
-            if isinstance(driver, WebDriverSelenium):
-                driver.destroy()
+        driver = self.driver(window_size)
+        self.screenshot = driver.get_screenshot(
+            self.url,
+            self.element,
+            user,
+            log_context=log_context,
+            report_execution_context=report_execution_context,
+        )
         return self.screenshot
 
     def get_cache_key(
@@ -263,6 +265,14 @@ class BaseScreenshot:
             elif isinstance(payload, dict):
                 payload = cast(ScreenshotCachePayloadType, payload)
                 payload = ScreenshotCachePayload.from_dict(payload)
+            if invalid_reason := payload.get_invalid_image_reason():
+                logger.warning(
+                    "Rejecting cached screenshot for %s: %s image payload; "
+                    "treating as a cache miss",
+                    cache_key,
+                    invalid_reason,
+                )
+                return None
             return payload
         logger.info("Failed at getting from cache: %s", cache_key)
         return None
@@ -310,41 +320,72 @@ class BaseScreenshot:
                 image = None
                 # Assuming all sorts of things can go wrong with Selenium
                 try:
-                    logger.info("trying to generate screenshot")
+                    logger.info(
+                        "trying to generate screenshot for cache_key=%s", cache_key
+                    )
                     with event_logger.log_context(
                         f"screenshot.compute.{self.thumbnail_type}"
                     ):
-                        image = self.get_screenshot(user=user, window_size=window_size)
+                        image = self.get_screenshot(
+                            user=user,
+                            window_size=window_size,
+                            log_context=f"cache_key={cache_key}",
+                        )
                 except Exception as ex:  # pylint: disable=broad-except
                     logger.warning(
-                        "Failed at generating thumbnail %s", ex, exc_info=True
+                        "Failed at generating thumbnail for cache_key=%s: %s",
+                        cache_key,
+                        ex,
+                        exc_info=True,
                     )
                     cache_payload.error()
                 if image and window_size != thumb_size:
                     try:
-                        image = self.resize_image(image, thumb_size=thumb_size)
+                        image = self.resize_image(
+                            image,
+                            thumb_size=thumb_size,
+                            log_context=f"cache_key={cache_key}",
+                        )
                     except Exception as ex:  # pylint: disable=broad-except
                         logger.warning(
-                            "Failed at resizing thumbnail %s", ex, exc_info=True
+                            "Failed at resizing thumbnail for cache_key=%s: %s",
+                            cache_key,
+                            ex,
+                            exc_info=True,
                         )
                         cache_payload.error()
                         image = None
 
                 # Cache the result (success or error) to avoid immediate retries
-                if image:
+                invalid_reason = validate_screenshot_image(image)
+                # `image and` is redundant at runtime (validate_screenshot_image
+                # only returns None for truthy, well-formed bytes) but mypy can't
+                # infer that image is non-None from invalid_reason being None
+                # across the function-call boundary, so it's kept for narrowing.
+                if image and invalid_reason is None:
                     with event_logger.log_context(
                         f"screenshot.cache.{self.thumbnail_type}"
                     ):
                         cache_payload.update(image)
-                elif cache_payload.status != StatusValues.ERROR:
-                    # Only call error() if not already set — avoids overwriting
-                    # the timestamp recorded when the actual failure occurred above.
-                    cache_payload.error()
+                else:
+                    if invalid_reason:
+                        logger.warning(
+                            "Not caching screenshot result for %s: %s image payload",
+                            cache_key,
+                            invalid_reason,
+                        )
+                    if cache_payload.status != StatusValues.ERROR:
+                        # Only call error() if not already set — avoids overwriting
+                        # the timestamp recorded when the actual failure occurred
+                        # above.
+                        cache_payload.error()
 
                 logger.info("Caching thumbnail: %s", cache_key)
                 self.cache.set(cache_key, cache_payload.to_dict())
                 logger.info(
-                    "Updated thumbnail cache; Status: %s", cache_payload.get_status()
+                    "Updated thumbnail cache for %s; Status: %s",
+                    cache_key,
+                    cache_payload.get_status(),
                 )
         except LockAlreadyHeldException:
             logger.info(
@@ -359,16 +400,23 @@ class BaseScreenshot:
         output: str = "png",
         thumb_size: WindowSize | None = None,
         crop: bool = True,
+        log_context: str | None = None,
     ) -> bytes:
+        context_suffix = f" [{log_context}]" if log_context else ""
         thumb_size = thumb_size or cls.thumb_size
         img = Image.open(BytesIO(img_bytes))
-        logger.debug("Selenium image size: %s", str(img.size))
+        logger.debug("Selenium image size: %s%s", str(img.size), context_suffix)
         if crop and img.size[1] != cls.window_size[1]:
             desired_ratio = float(cls.window_size[1]) / cls.window_size[0]
             desired_width = int(img.size[0] * desired_ratio)
-            logger.debug("Cropping to: %s*%s", str(img.size[0]), str(desired_width))
+            logger.debug(
+                "Cropping to: %s*%s%s",
+                str(img.size[0]),
+                str(desired_width),
+                context_suffix,
+            )
             img = img.crop((0, 0, img.size[0], desired_width))
-        logger.debug("Resizing to %s", str(thumb_size))
+        logger.debug("Resizing to %s%s", str(thumb_size), context_suffix)
         img = img.resize(thumb_size, Image.Resampling.LANCZOS)
         new_img = BytesIO()
         if output != "png":

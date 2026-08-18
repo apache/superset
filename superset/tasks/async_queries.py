@@ -16,31 +16,28 @@
 # under the License.
 from __future__ import annotations
 
-import copy
 import dataclasses
 import logging
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app, g
+from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
+from superset.charts.data.form_data import set_form_data
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
-    SupersetVizException,
 )
 from superset.extensions import (
     async_query_manager,
-    cache_manager,
     celery_app,
     security_manager,
 )
-from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import override_user
-from superset.views.utils import get_datasource_info, get_viz
+from superset.utils.error_sanitization import sanitize_error_dicts
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -49,10 +46,6 @@ logger = logging.getLogger(__name__)
 query_timeout = current_app.config[
     "SQLLAB_ASYNC_TIME_LIMIT_SEC"
 ]  # TODO: new config key
-
-
-def set_form_data(form_data: dict[str, Any]) -> None:
-    g.form_data = form_data
 
 
 def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:
@@ -84,6 +77,28 @@ def _load_user_from_job_metadata(job_metadata: dict[str, Any]) -> User:
     return user
 
 
+def _handle_soft_time_limit(
+    job_metadata: dict[str, Any], ex: Exception, activity: str
+) -> None:
+    """
+    SoftTimeLimitExceeded is raised both by a genuine timeout and by a
+    user-initiated cancel (revoke sends SIGUSR1). The cancel endpoint has
+    already emitted the terminal event for the latter - it has to, since a task
+    revoked while still queued never reaches this handler - so only a timeout
+    is reported here, and without one the client would wait forever.
+    """
+    if async_query_manager.is_job_cancelled(job_metadata["job_id"]):
+        logger.info("Cancelled by the user while %s", activity)
+        return
+
+    logger.warning("A timeout occurred while %s, error: %s", activity, ex)
+    async_query_manager.update_job(
+        job_metadata,
+        async_query_manager.STATUS_ERROR,
+        errors=[{"message": f"A timeout occurred while {activity}"}],
+    )
+
+
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
     job_metadata: dict[str, Any],
@@ -106,7 +121,7 @@ def load_chart_data_into_cache(
                 result_url=result_url,
             )
         except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while loading chart data, error: %s", ex)
+            _handle_soft_time_limit(job_metadata, ex, "loading chart data")
             raise
         except Exception as ex:
             # Extract SIP-40 style errors when available
@@ -119,80 +134,8 @@ def load_chart_data_into_cache(
                 error = str(ex.message if hasattr(ex, "message") else ex)
                 errors = [{"message": error}]
             async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, errors=errors
-            )
-            raise
-
-
-@celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
-def load_explore_json_into_cache(  # pylint: disable=too-many-locals
-    job_metadata: dict[str, Any],
-    form_data: dict[str, Any],
-    response_type: str | None = None,
-    force: bool = False,
-) -> None:
-    cache_key_prefix = "ejr-"  # ejr: explore_json request
-
-    with override_user(_load_user_from_job_metadata(job_metadata), force=False):
-        try:
-            set_form_data(form_data)
-            datasource_id, datasource_type = get_datasource_info(None, None, form_data)
-
-            # Perform a deep copy here so that below we can cache the original
-            # value of the form_data object. This is necessary since the viz
-            # objects modify the form_data object. If the modified version were
-            # to be cached here, it will lead to a cache miss when clients
-            # attempt to retrieve the value of the completed async query.
-            original_form_data = copy.deepcopy(form_data)
-
-            viz_obj = get_viz(
-                datasource_type=cast(str, datasource_type),
-                datasource_id=datasource_id,
-                form_data=form_data,
-                force=force,
-            )
-            # run query & cache results
-            payload = viz_obj.get_payload()
-            if viz_obj.has_error(payload):
-                raise SupersetVizException(errors=payload["errors"])
-
-            # Cache the original form_data value for async retrieval
-            cache_value = {
-                "form_data": original_form_data,
-                "response_type": response_type,
-            }
-            cache_key = generate_cache_key(cache_value, cache_key_prefix)
-            cache_instance = cache_manager.cache
-            cache_timeout = (
-                cache_instance.cache.default_timeout if cache_instance.cache else None
-            )
-            set_and_log_cache(
-                cache_instance, cache_key, cache_value, cache_timeout=cache_timeout
-            )
-            result_url = f"/explore_json/data/{cache_key}"
-            async_query_manager.update_job(
                 job_metadata,
-                async_query_manager.STATUS_DONE,
-                result_url=result_url,
-            )
-        except SoftTimeLimitExceeded as ex:
-            logger.warning(
-                "A timeout occurred while loading explore json, error: %s", ex
-            )
-            raise
-        except Exception as ex:
-            if isinstance(ex, SupersetVizException):
-                errors = ex.errors
-            # Extract SIP-40 style errors when available
-            elif isinstance(ex, SupersetErrorException):
-                errors = [dataclasses.asdict(ex.error)]  # type: ignore
-            elif isinstance(ex, SupersetErrorsException):
-                errors = [dataclasses.asdict(error) for error in ex.errors]  # type: ignore
-            else:
-                error = ex.message if hasattr(ex, "message") else str(ex)
-                errors = [error]  # type: ignore
-
-            async_query_manager.update_job(
-                job_metadata, async_query_manager.STATUS_ERROR, errors=errors
+                async_query_manager.STATUS_ERROR,
+                errors=sanitize_error_dicts(errors),
             )
             raise
