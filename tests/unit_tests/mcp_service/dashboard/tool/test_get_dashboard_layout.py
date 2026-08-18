@@ -344,6 +344,62 @@ async def test_get_dashboard_layout_identifier_takes_precedence_over_permalink(
     mock_find.assert_called_once_with(10, query_options=None)
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@pytest.mark.asyncio
+async def test_get_dashboard_layout_permalink_with_uuid_dashboard_id(
+    mock_permalink, mock_find, mcp_server
+):
+    """CreateDashboardPermalinkCommand stores dashboardId as the dashboard UUID,
+    so an explicit identifier plus that permalink must still yield filter state.
+    """
+    dashboard_uuid = "3f1a2b6c-9d4e-4f80-9c2a-7b1d5e6f8a90"
+    mock_permalink.return_value = (
+        "uuid-key",
+        {"dashboardId": dashboard_uuid, "state": {"activeTabs": ["TAB-2"]}},
+    )
+    mock_find.return_value = _build_dashboard_mock(
+        dashboard_id=42, uuid=dashboard_uuid, position_json=_tabbed_layout()
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout",
+            {"request": {"identifier": 42, "permalink_key": "uuid-key"}},
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["id"] == 42
+    assert data["is_permalink_state"] is True
+    assert data["permalink_key"] == "uuid-key"
+    assert data["filter_state"]["activeTabs"] == [_wrapped("TAB-2")]
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@patch(
+    "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+    return_value=None,
+)
+@pytest.mark.asyncio
+async def test_get_dashboard_layout_unknown_slug_keeps_not_found_error(
+    mock_permalink, mock_find, mcp_server
+):
+    """A plain slug typo keeps its own not-found error instead of asking the
+    user for a shared link they never mentioned.
+    """
+    mock_find.return_value = None
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout", {"request": {"identifier": "sales-dashbord"}}
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "not_found"
+    assert "sales-dashbord" in data["error"]
+    assert "fresh shared dashboard link" not in data["error"]
+
+
 def test_extract_layout_handles_invalid_json():
     tabs, charts = _extract_layout_from_position("{ not json")
     assert tabs == []

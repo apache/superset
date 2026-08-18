@@ -47,7 +47,8 @@ class DashboardLookupResult(Generic[LookupResultT]):
     result: LookupResultT | None
     permalink_key: str | None = None
     permalink_value: DashboardPermalinkValue | None = None
-    permalink_error: bool = False
+    resolved_from_permalink: bool = False
+    """True when the dashboard itself was selected from the permalink."""
 
 
 @dataclass(frozen=True)
@@ -139,34 +140,43 @@ def lookup_dashboard_reference(
     reference = key or (identifier if isinstance(identifier, str) else None)
     resolved = get_dashboard_permalink(reference) if reference else None
     if resolved is None:
-        return DashboardLookupResult(
-            result=result,
-            permalink_key=reference,
-            permalink_error=True,
-        )
+        return DashboardLookupResult(result=result, permalink_key=reference)
     key, value = resolved
     return DashboardLookupResult(
         result=lookup(value["dashboardId"]),
         permalink_key=key,
         permalink_value=value,
+        resolved_from_permalink=True,
     )
 
 
 def get_matching_dashboard_permalink_state(
     lookup_result: DashboardLookupResult[LookupResultT],
     dashboard_id: int | None,
+    dashboard_uuid: str | None = None,
+    dashboard_slug: str | None = None,
 ) -> DashboardPermalinkState | None:
-    """Return sanitized permalink state when it belongs to ``dashboard_id``."""
+    """Return sanitized permalink state when it belongs to the dashboard.
+
+    ``CreateDashboardPermalinkCommand`` stores ``dashboardId`` as the dashboard
+    UUID string, while older permalinks may hold a numeric ID or a slug, so the
+    reference is compared against every identifier the dashboard answers to.
+    """
     value = lookup_result.permalink_value
     key = lookup_result.permalink_key
     if value is None or key is None:
         return None
-    try:
-        permalink_dashboard_id = int(value["dashboardId"])
-    except (KeyError, TypeError, ValueError):
-        return None
-    if permalink_dashboard_id != dashboard_id:
-        return None
+    if not lookup_result.resolved_from_permalink:
+        # The identifier selected the dashboard, so the permalink only
+        # contributes state when it points at that same dashboard.
+        reference = value.get("dashboardId")
+        known_identifiers = {
+            str(candidate)
+            for candidate in (dashboard_id, dashboard_uuid, dashboard_slug)
+            if candidate is not None
+        }
+        if reference is None or str(reference) not in known_identifiers:
+            return None
 
     raw_state = value.get("state")
     state: dict[str, object] = dict(raw_state) if isinstance(raw_state, dict) else {}
