@@ -162,7 +162,7 @@ export const formatForecastTooltipSeries = ({
       )})`;
     }
   }
-  if (typeof anomaly === 'number') {
+  if (isFiniteNumber(anomaly)) {
     if (value) value += ' ';
     value += t('⚠ anomaly');
   }
