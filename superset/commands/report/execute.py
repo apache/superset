@@ -137,6 +137,29 @@ def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     return user, username
 
 
+def _should_build_execution_context(model: ReportSchedule) -> bool:
+    """
+    Whether an execution should run under a :class:`ReportExecutionContext`.
+
+    Reports always do — their behavior is unchanged. Alerts join them only when
+    they deliver a rendered PNG/PDF screenshot to recipients, which happens when
+    ``ALERTS_ATTACH_REPORTS`` is enabled. Delivered screenshots must fail closed:
+    the context selects the fail-closed readiness predicate and disables
+    partial-tile fallback, so a blank or incomplete capture raises instead of
+    being delivered.
+
+    CSV/text alerts, alerts without the attach flag, the non-delivered
+    query-context capture, and UI thumbnails are deliberately excluded and keep
+    their lenient capture contract.
+    """
+    if model.type == ReportScheduleType.REPORT:
+        return True
+    return model.report_format in (
+        ReportDataFormat.PNG,
+        ReportDataFormat.PDF,
+    ) and feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+
+
 def log_report_delivery_phase(
     report_context: ReportExecutionContext | None,
     recipient_type: ReportRecipientType | None,
@@ -1972,13 +1995,13 @@ class ReportSuccessState(BaseReportState):
 
         try:
             self.send()
-        except Exception as ex:  # pylint: disable=broad-except
-            if self._handle_retry_or_error(str(ex), ex):
+        except Exception as first_ex:  # pylint: disable=broad-except
+            if self._handle_retry_or_error(str(first_ex), first_ex):
                 return  # retry scheduled — exit cleanly
 
             try:
                 self.update_report_schedule_and_log(
-                    ReportState.ERROR, error_message=str(ex)
+                    ReportState.ERROR, error_message=str(first_ex)
                 )
             except (ReportScheduleUnexpectedError, SQLAlchemyError) as logging_ex:
                 # Logging failed (likely StaleDataError), but we still want to
@@ -1991,7 +2014,45 @@ class ReportSuccessState(BaseReportState):
                     exc_info=True,
                 )
                 # Re-raise the original exception, not the logging failure
-                raise ex from logging_ex
+                raise first_ex from logging_ex
+
+            # A delivery failure from the Success/Grace path must notify the
+            # owner just like the first-run path (ReportNotTriggeredErrorState).
+            # Without this, a schedule whose previous run succeeded would fail
+            # silently — e.g. once a screenshot capture starts failing closed.
+            # The error grace period still throttles repeated notifications.
+            if not self.is_in_error_grace_period():
+                second_error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+                try:
+                    self.send_error(
+                        f"Error occurred for {self._report_schedule.type}:"
+                        f" {self._report_schedule.name}",
+                        str(first_ex),
+                    )
+                except SupersetErrorsException as second_ex:
+                    second_error_message = ";".join(
+                        [error.message for error in second_ex.errors]
+                    )
+                except ReportScheduleUnexpectedError:
+                    # send_error failed due to logging issue; log and continue
+                    # to raise the original error
+                    logger.warning(
+                        "Failed to send error notification due to database issue",
+                        exc_info=True,
+                    )
+                except Exception as second_ex:  # pylint: disable=broad-except
+                    second_error_message = str(second_ex)
+                finally:
+                    try:
+                        self.update_report_schedule_and_log(
+                            ReportState.ERROR, error_message=second_error_message
+                        )
+                    except ReportScheduleUnexpectedError:
+                        # Logging failed again; log it but don't hide first_ex
+                        logger.warning(
+                            "Failed to log final error state due to database issue",
+                            exc_info=True,
+                        )
             raise
 
         # send() succeeded — clear retry state and log success. Any execution
@@ -2058,13 +2119,18 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
 
-            if self._model.type == ReportScheduleType.REPORT:
+            # Reports always run under an execution context; alerts join them
+            # only when they deliver a rendered screenshot, so a blank/partial
+            # capture fails closed instead of being delivered. Ownership and
+            # terminal-error persistence remain report-only recovery semantics.
+            if _should_build_execution_context(self._model):
                 # An invocation that enters on WORKING is a duplicate or stale
                 # recovery, not the owner that created the active row. Its state
                 # handler may terminalize a stale execution, but the command
                 # boundary must never infer ownership from a replayed UUID.
                 owns_report_working_state = (
-                    self._model.last_state != ReportState.WORKING
+                    self._model.type == ReportScheduleType.REPORT
+                    and self._model.last_state != ReportState.WORKING
                 )
                 total_seconds = resolve_report_execution_budget_seconds(
                     app.config,
