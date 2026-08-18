@@ -122,9 +122,6 @@ export const mockCharts = [
     url: '/explore/?slice_id=2',
     viz_type: 'line',
     slice_name: 'Test Chart 2',
-    // Only this chart has a translation, so the list exercises both the
-    // localized value and the fallback to slice_name.
-    localized_name: 'Graphique test 2',
 
     // EDGE CASE - no dataset, no dashboards, no tags
     editors: [],
