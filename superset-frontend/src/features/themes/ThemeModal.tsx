@@ -68,6 +68,12 @@ type ThemeModalObject = Omit<ThemeObject, 'editors'> & {
   editors?: SubjectPickerValue[];
 };
 
+// Shape sent to the create/update endpoints: editors are serialized to the
+// subject ids the API expects, not the hydrated Subject objects it returns.
+type ThemeSavePayload = Omit<ThemeObject, 'editors'> & {
+  editors?: number[];
+};
+
 /**
  * Convert Ace annotation format to EditorAnnotation format.
  */
@@ -176,7 +182,11 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     fetchResource,
     createResource,
     updateResource,
-  } = useSingleViewResource<ThemeObject>('theme', t('theme'), addDangerToast);
+  } = useSingleViewResource<ThemeObject, ThemeSavePayload>(
+    'theme',
+    t('theme'),
+    addDangerToast,
+  );
 
   // In edit mode a non-editor (and non-admin) may only view the theme. The
   // editorship check runs against the persisted editors from the fetched
