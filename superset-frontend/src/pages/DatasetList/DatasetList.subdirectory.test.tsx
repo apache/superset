@@ -124,9 +124,13 @@ test('explore link is single-prefixed under a subdirectory deployment', async ()
 });
 
 test('legacy dashboard default URL uses the router basename once', async () => {
+  // A subdirectory user pastes the full browser path, so the saved value
+  // carries both the application root and the legacy `/superset` prefix.
+  // stripAppRoot removes the root and the legacy normalization removes the
+  // prefix, leaving the basename to re-add the root exactly once.
   const dataset = {
     ...mockDatasets[0],
-    explore_url: '/superset/dashboard/123/?standalone=1#section',
+    explore_url: `${APP_ROOT}/superset/dashboard/123/?standalone=1#section`,
   };
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
