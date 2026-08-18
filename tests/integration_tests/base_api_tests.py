@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for Superset"""
 
+from pathlib import Path
 from unittest.mock import patch
 
 import rison
@@ -41,6 +42,57 @@ class TestOpenApiSpec(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         validate(response)
+
+    def test_dashboard_list_uses_generated_response_schema(self):
+        """Keep the generated dashboard list contract aligned with published docs.
+
+        If an intentional list schema change breaks this test, regenerate
+        ``docs/static/resources/openapi.json`` with ``superset update-api-docs``
+        under the production-default configuration, then review the focused
+        dashboard diff.
+        """
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get("api/v1/_openapi")
+
+        assert rv.status_code == 200
+        generated_spec = json.loads(rv.data.decode("utf-8"))
+        published_spec_path = (
+            Path(__file__).parents[2] / "docs" / "static" / "resources" / "openapi.json"
+        )
+        published_spec = json.loads(published_spec_path.read_text(encoding="utf-8"))
+
+        generated_result_items = generated_spec["paths"]["/api/v1/dashboard/"]["get"][
+            "responses"
+        ]["200"]["content"]["application/json"]["schema"]["properties"]["result"][
+            "items"
+        ]
+        published_result_items = published_spec["paths"]["/api/v1/dashboard/"]["get"][
+            "responses"
+        ]["200"]["content"]["application/json"]["schema"]["properties"]["result"][
+            "items"
+        ]
+
+        assert (
+            generated_result_items
+            == published_result_items
+            == {"$ref": "#/components/schemas/DashboardRestApi.get_list"}
+        )
+
+        schema_prefix = "DashboardRestApi.get_list"
+        generated_schemas = {
+            name: schema
+            for name, schema in generated_spec["components"]["schemas"].items()
+            if name == schema_prefix or name.startswith(f"{schema_prefix}.")
+        }
+        published_schemas = {
+            name: schema
+            for name, schema in published_spec["components"]["schemas"].items()
+            if name == schema_prefix or name.startswith(f"{schema_prefix}.")
+        }
+
+        assert generated_schemas == published_schemas, (
+            "Dashboard list OpenAPI components changed; regenerate the published spec"
+        )
 
     def test_info_endpoint(self):
         """

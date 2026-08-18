@@ -418,7 +418,8 @@ class DashboardRestApi(
                       result:
                         type: array
                         items:
-                          type: object
+                          $ref: >-
+                            #/components/schemas/{{self.__class__.__name__}}.get_list
             400:
               $ref: '#/components/responses/400'
             401:
