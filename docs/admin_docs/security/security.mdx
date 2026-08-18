@@ -198,6 +198,51 @@ Available per-entity overrides are:
 When an override is set, it replaces `SUBJECTS_RELATED_TYPES` for that picker. When it is `None`,
 the picker inherits the global default.
 
+#### Looking Up Subjects via API
+
+Superset exposes a read-only REST API for resolving subjects:
+
+```
+GET /api/v1/security/subject/
+```
+
+The main use case is **id mapping** — given a user, role, or group id, callers (including
+extensions) can look up the corresponding subject entity, and vice versa. Access is gated by
+the `can_read` permission on the `Subject` resource, which is granted to **Admins only** by
+default, since subjects enumerate every user, role, and group on the instance. Callers without
+that permission receive a `403`. Only `GET` (list, get, info) is exposed — there is no create,
+update, or delete, because subjects are derived automatically from users, roles, and groups and
+kept in sync internally.
+
+**Resolve the subject for a given principal id** using [Rison](https://github.com/Nanonid/rison)
+query syntax:
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:user_id,opr:eq,value:5)))
+GET /api/v1/security/subject/?q=(filters:!((col:role_id,opr:eq,value:3)))
+GET /api/v1/security/subject/?q=(filters:!((col:group_id,opr:eq,value:2)))
+```
+
+**Filter by subject type or active status:**
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:type,opr:eq,value:1)))
+GET /api/v1/security/subject/?q=(filters:!((col:active,opr:eq,value:!t)))
+```
+
+The `type` column is an integer enum: `1` for User, `2` for Role, `3` for Group
+(`superset.subjects.types.SubjectType`).
+
+**Search by label:**
+
+```
+GET /api/v1/security/subject/?q=(filters:!((col:label,opr:subject_all_text,value:finance)))
+```
+
+Each subject in the response includes flat scalar ids (`user_id`, `role_id`, `group_id`) rather
+than a nested object, so callers can match directly on whichever id they already have — only the
+id field matching the subject's `type` is populated; the others are `null`.
+
 ### Dashboard Access Control
 
 Access to dashboards is managed via editors (subjects that have edit permissions to the dashboard).

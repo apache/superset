@@ -15,9 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import gzip
+import ipaddress
 import logging
 import os
 import re
+import socket
+from http.client import HTTPConnection, HTTPResponse, HTTPSConnection
 from typing import Any
 from urllib import request
 from urllib.parse import urljoin, urlparse
@@ -47,7 +50,7 @@ from superset.models.helpers import ChildMultipleResultsFound
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
-from superset.utils.network import is_safe_host
+from superset.utils.network import is_safe_host, is_safe_ip
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +77,47 @@ class _ValidatingRedirectHandler(HTTPRedirectHandler):
         absolute_url = urljoin(req.full_url, newurl)
         validate_data_uri(absolute_url)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _raise_for_unsafe_peer(sock: socket.socket) -> None:
+    """
+    Validate that an established connection's actual peer is publicly
+    routable, so the address reached matches the policy applied to the host.
+    """
+    peer = sock.getpeername()[0]
+    if not is_safe_ip(ipaddress.ip_address(peer)):
+        raise DatasetForbiddenDataURI()
+
+
+class _PeerValidatingHTTPConnection(HTTPConnection):
+    """HTTP connection that validates the peer address on connect."""
+
+    def connect(self) -> None:
+        super().connect()
+        _raise_for_unsafe_peer(self.sock)
+
+
+class _PeerValidatingHTTPSConnection(HTTPSConnection):
+    """HTTPS connection that validates the peer address after the handshake."""
+
+    def connect(self) -> None:
+        super().connect()
+        _raise_for_unsafe_peer(self.sock)
+
+
+class _PeerValidatingHTTPHandler(request.HTTPHandler):
+    """Opens HTTP connections through the peer-validating connection class."""
+
+    def http_open(self, req: request.Request) -> HTTPResponse:
+        return self.do_open(_PeerValidatingHTTPConnection, req)
+
+
+class _PeerValidatingHTTPSHandler(request.HTTPSHandler):
+    """Opens HTTPS connections through the peer-validating connection class."""
+
+    def https_open(self, req: request.Request) -> HTTPResponse:
+        context = self._context  # type: ignore[attr-defined]
+        return self.do_open(_PeerValidatingHTTPSConnection, req, context=context)
 
 
 CHUNKSIZE = 512
@@ -581,7 +625,17 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
 
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
-    opener = request.build_opener(_ValidatingRedirectHandler)
+    handlers: list[request.BaseHandler | type[request.BaseHandler]] = [
+        _ValidatingRedirectHandler
+    ]
+    if not app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"]:
+        # Also enforce the policy at the socket layer: re-check the peer of
+        # every connection, including each redirect hop. Disable proxies so the
+        # connection is made directly to the destination and the peer check
+        # validates the destination address rather than a proxy's.
+        handlers.append(request.ProxyHandler({}))
+        handlers.extend([_PeerValidatingHTTPHandler, _PeerValidatingHTTPSHandler])
+    opener = request.build_opener(*handlers)
     data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
