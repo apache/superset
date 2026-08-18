@@ -1196,7 +1196,16 @@ def _collect_allowed_sql(
 
 
 def _query_has_novel_sql(query: Any, allowed: set[str]) -> bool:
-    """Whether a single query carries SQL not in the allowed set."""
+    """Whether a single query carries SQL not in the allowed set.
+
+    The full composed ``extras.where``/``extras.having`` value is checked
+    first; if it is in ``allowed`` (which includes full composed values from
+    the stored query context as a fallback) the split is skipped.  If a
+    stored expression contains a literal ``) AND (`` (e.g. a ``CASE WHEN``),
+    the split may break it into fragments that fail individually — a false
+    positive (403) rather than a bypass.  This is an acceptable trade-off:
+    such expressions in adhoc filters are rare, and the behavior fails closed.
+    """
     extras = query.extras or {}
     for param in ("where", "having"):
         composed = extras.get(param, "")
