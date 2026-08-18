@@ -35,7 +35,8 @@ from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.extensions import security_manager
-from superset.sql.parse import Table
+from superset.models.helpers import json_to_dict
+from superset.sql.parse import process_jinja_sql, Table
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,87 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         if database:
             if not catalog:
                 catalog = self._properties["catalog"] = database.get_default_catalog()
+
+            if sql:
+                try:
+                    template_params_raw: str | None = self._properties.get(
+                        "template_params"
+                    )
+                    template_params = json_to_dict(template_params_raw or "")
+                    parse_result = process_jinja_sql(
+                        sql,
+                        database,
+                        template_params,
+                    )
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.debug(
+                        "Keeping submitted dataset schema because optional SQL "
+                        "template processing failed",
+                        exc_info=True,
+                    )
+                else:
+                    script = parse_result.script
+                    tables = {table for table in parse_result.tables if table.table}
+                    if len(tables) != len(parse_result.tables):
+                        logger.debug(
+                            "Ignoring empty table-name parser artifacts while deriving "
+                            "the dataset schema"
+                        )
+
+                    if script.has_unparseable_statement:
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL contains "
+                            "an unparseable statement"
+                        )
+                    elif script.has_show_statement():
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL contains "
+                            "a metadata statement"
+                        )
+                    elif script.has_mutation():
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL mutates "
+                            "database state"
+                        )
+                    elif script.changes_default_schema():
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL changes "
+                            "the default schema"
+                        )
+                    elif script.has_quoted_table_location():
+                        logger.debug(
+                            "Keeping submitted dataset schema because a quoted table "
+                            "location may have case-sensitive identity"
+                        )
+                    elif not tables:
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL has no "
+                            "table references"
+                        )
+                    elif any(table.schema is None for table in tables):
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL has an "
+                            "unqualified table reference"
+                        )
+                    elif (
+                        len(
+                            qualified_table_locations := {
+                                (table.catalog, table.schema) for table in tables
+                            }
+                        )
+                        != 1
+                    ):
+                        logger.debug(
+                            "Keeping submitted dataset schema because the SQL spans "
+                            "multiple catalog/schema locations"
+                        )
+                    else:
+                        derived_catalog, derived_schema = next(
+                            iter(qualified_table_locations)
+                        )
+                        schema = self._properties["schema"] = derived_schema
+                        if derived_catalog is not None:
+                            catalog = self._properties["catalog"] = derived_catalog
 
             table = Table(table_name, schema, catalog)
 
