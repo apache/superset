@@ -145,6 +145,7 @@ def test_csv_upload_dataset():
     assert dataset is not None
     assert user_is_editor(security_manager.find_user("admin"), dataset)
 
+
 @only_postgresql
 @pytest.mark.usefixtures("setup_csv_upload_with_context_schema")
 def test_csv_upload_dataset_catalog():
@@ -173,6 +174,7 @@ def test_csv_upload_dataset_catalog():
     assert dataset.schema_perm == (
         f"[{upload_database.database_name}].[{catalog}].[public]"
     )
+
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
 def test_csv_upload_with_index():
