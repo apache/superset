@@ -143,12 +143,19 @@ def test_validate_parameters_catalog(
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
     g.user.email = "admin@example.com"
 
-    create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
-    conn = create_engine.return_value.connect.return_value
-    results = conn.execute.return_value
-    results.fetchall.side_effect = [
+    service_account_engine = mocker.MagicMock()
+    subject_engine = mocker.MagicMock()
+    create_engine = mocker.patch(
+        "superset.db_engine_specs.gsheets.create_engine",
+        side_effect=[service_account_engine, subject_engine],
+    )
+    service_account_engine.connect.return_value.execute.return_value.fetchall.side_effect = [  # noqa: E501
         ProgrammingError("The caller does not have permission"),
         [(1,)],
+        ProgrammingError("Unsupported table: https://www.google.com/"),
+    ]
+    subject_engine.connect.return_value.execute.return_value.fetchall.side_effect = [
+        ProgrammingError("The caller does not have permission"),
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
@@ -215,18 +222,29 @@ def test_validate_parameters_catalog(
         ),
     ]
 
-    create_engine.assert_called_with(
-        "gsheets://",
-        connect_args={
-            "adapter_kwargs": {
-                "gsheetsapi": {
-                    "service_account_info": {},
-                    "subject": "admin@example.com",
+    assert create_engine.call_args_list == [
+        mocker.call(
+            "gsheets://",
+            connect_args={
+                "adapter_kwargs": {
+                    "gsheetsapi": {"service_account_info": {}, "subject": None}
                 }
-            }
-        },
-        future=True,
-    )
+            },
+            future=True,
+        ),
+        mocker.call(
+            "gsheets://",
+            connect_args={
+                "adapter_kwargs": {
+                    "gsheetsapi": {
+                        "service_account_info": {},
+                        "subject": "admin@example.com",
+                    }
+                }
+            },
+            future=True,
+        ),
+    ]
 
 
 def test_validate_parameters_catalog_and_credentials(
@@ -240,12 +258,18 @@ def test_validate_parameters_catalog_and_credentials(
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
     g.user.email = "admin@example.com"
 
-    create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
-    conn = create_engine.return_value.connect.return_value
-    results = conn.execute.return_value
-    results.fetchall.side_effect = [
+    service_account_engine = mocker.MagicMock()
+    subject_engine = mocker.MagicMock()
+    create_engine = mocker.patch(
+        "superset.db_engine_specs.gsheets.create_engine",
+        side_effect=[service_account_engine, subject_engine],
+    )
+    service_account_engine.connect.return_value.execute.return_value.fetchall.side_effect = [  # noqa: E501
         [(2,)],
         [(1,)],
+        ProgrammingError("Unsupported table: https://www.google.com/"),
+    ]
+    subject_engine.connect.return_value.execute.return_value.fetchall.side_effect = [
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
@@ -289,18 +313,121 @@ def test_validate_parameters_catalog_and_credentials(
         )
     ]
 
-    create_engine.assert_called_with(
+    assert create_engine.call_args_list == [
+        mocker.call(
+            "gsheets://",
+            connect_args={
+                "adapter_kwargs": {
+                    "gsheetsapi": {"service_account_info": {}, "subject": None}
+                }
+            },
+            future=True,
+        ),
+        mocker.call(
+            "gsheets://",
+            connect_args={
+                "adapter_kwargs": {
+                    "gsheetsapi": {
+                        "service_account_info": {},
+                        "subject": "admin@example.com",
+                    }
+                }
+            },
+            future=True,
+        ),
+    ]
+
+
+def test_validate_parameters_without_domain_wide_delegation(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that validation succeeds for service accounts without domain-wide delegation.
+
+    Passing a `subject` forces Google's domain-wide delegation flow, which fails with
+    `invalid_grant` for service accounts that don't have it configured — the common
+    setup, where the spreadsheet is simply shared with the service account email.
+    """
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.com"
+
+    service_account_engine = mocker.MagicMock()
+    subject_engine = mocker.MagicMock()
+    create_engine = mocker.patch(
+        "superset.db_engine_specs.gsheets.create_engine",
+        side_effect=[service_account_engine, subject_engine],
+    )
+    service_account_engine.connect.return_value.execute.return_value.fetchall.return_value = [  # noqa: E501
+        (1,)
+    ]
+    subject_engine.connect.return_value.execute.side_effect = ProgrammingError(
+        "invalid_grant: Invalid email or User ID"
+    )
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {"service_account_info": "", "catalog": None},
+        "catalog": {"private_sheet": "https://docs.google.com/spreadsheets/d/1/edit"},
+    }
+
+    assert GSheetsEngineSpec.validate_parameters(properties) == []
+
+    # the service account is tried first, without a subject
+    assert create_engine.call_args_list[0] == mocker.call(
         "gsheets://",
         connect_args={
             "adapter_kwargs": {
-                "gsheetsapi": {
-                    "service_account_info": {},
-                    "subject": "admin@example.com",
-                }
+                "gsheetsapi": {"service_account_info": {}, "subject": None}
             }
         },
         future=True,
     )
+    # the sheet is readable by the service account itself, so we never fall back to
+    # impersonating the current user
+    subject_engine.connect.return_value.execute.assert_not_called()
+
+
+def test_validate_parameters_falls_back_to_domain_wide_delegation(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that validation falls back to impersonating the current user.
+
+    With domain-wide delegation the service account can only read sheets on behalf of
+    a subject, so an admin adding a sheet shared with them (and not with the service
+    account) must still validate successfully.
+    """
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.com"
+
+    service_account_engine = mocker.MagicMock()
+    subject_engine = mocker.MagicMock()
+    mocker.patch(
+        "superset.db_engine_specs.gsheets.create_engine",
+        side_effect=[service_account_engine, subject_engine],
+    )
+    service_account_engine.connect.return_value.execute.side_effect = ProgrammingError(
+        "The caller does not have permission"
+    )
+    subject_engine.connect.return_value.execute.return_value.fetchall.return_value = [
+        (1,)
+    ]
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {"service_account_info": "", "catalog": None},
+        "catalog": {"private_sheet": "https://docs.google.com/spreadsheets/d/1/edit"},
+    }
+
+    assert GSheetsEngineSpec.validate_parameters(properties) == []
 
 
 def test_mask_encrypted_extra() -> None:
