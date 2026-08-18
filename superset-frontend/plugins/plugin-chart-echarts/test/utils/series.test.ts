@@ -1248,6 +1248,27 @@ test('getLegendLayoutResult keeps plain when horizontal plain legends exceed two
   expect(layout.effectiveMargin).toBe(68);
 });
 
+test('getLegendLayoutResult reserves every row for many horizontal plain legend items', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 800,
+    legendItems: Array.from(
+      { length: 40 },
+      (_, index) => `Country ${index + 1}, Product`,
+    ),
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout.effectiveType).toBe(LegendType.Plain);
+  // The estimator packs the items into ten rows and the selectors into an
+  // eleventh: 20px base padding + 10 additional 24px rows.
+  expect(layout.effectiveMargin).toBe(260);
+});
+
 test('getLegendLayoutResult bounds reserved margin for overflowing horizontal legends so the plot is not collapsed', () => {
   const chartHeight = 200;
   const layout = getLegendLayoutResult({
@@ -1263,8 +1284,8 @@ test('getLegendLayoutResult bounds reserved margin for overflowing horizontal le
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
   expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  // 40% of the 200px chart height.
-  expect(layout.effectiveMargin).toBe(80);
+  // Reserve all but the 80px minimum plot space.
+  expect(layout.effectiveMargin).toBe(120);
 });
 
 test('getLegendLayoutResult bounds reserved margin for long vertical legend labels so the plot is not collapsed', () => {
