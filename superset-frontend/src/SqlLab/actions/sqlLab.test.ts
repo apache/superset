@@ -1090,6 +1090,13 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
+    const getDatabaseEndpoint = /\/api\/v1\/database\/\?q=/;
+    fetchMock.get(
+      getDatabaseEndpoint,
+      { count: 1, result: [{}] },
+      { name: 'getDatabase' },
+    );
+
     const updateTableSchemaExpandedEndpoint =
       'glob:**/tableschemaview/*/expanded';
     fetchMock.post(updateTableSchemaExpandedEndpoint, {});
@@ -1105,6 +1112,9 @@ describe('async actions', () => {
       isFeatureEnabledMock.mockImplementation(
         (feature: string) => feature === 'SQLLAB_BACKEND_PERSISTENCE',
       );
+      fetchMock.modifyRoute('getDatabase', {
+        response: { count: 1, result: [{}] },
+      });
     });
 
     afterEach(() => {
@@ -2042,7 +2052,7 @@ describe('async actions', () => {
       });
 
       test('clears a deleted database before migrating the tab state', async () => {
-        expect.assertions(4);
+        expect.assertions(6);
 
         const oldQueryEditor = {
           ...queryEditor,
@@ -2051,12 +2061,21 @@ describe('async actions', () => {
           schema: 'deleted_schema',
           inLocalStorage: true,
         };
+        const staleTable = {
+          id: 'stale-table',
+          dbId: 99,
+          queryEditorId: oldQueryEditor.id,
+          inLocalStorage: true,
+        };
         const store = mockStore({
           sqlLab: {
             queries: [],
-            tables: [],
-            databases: { 1: {} },
+            tables: [staleTable],
+            databases: { 1: {}, 99: {} },
           },
+        });
+        fetchMock.modifyRoute('getDatabase', {
+          response: { count: 0, result: [] },
         });
 
         await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
@@ -2072,6 +2091,10 @@ describe('async actions', () => {
         });
         expect(persistedQueryEditor).not.toHaveProperty('catalog');
         expect(persistedQueryEditor).not.toHaveProperty('schema');
+        expect(fetchMock.callHistory.calls('getDatabase')).toHaveLength(1);
+        expect(
+          fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+        ).toHaveLength(0);
         expect(store.getActions()).toEqual([
           {
             type: actions.MIGRATE_QUERY_EDITOR,
@@ -2085,6 +2108,10 @@ describe('async actions', () => {
               inLocalStorage: false,
               loaded: true,
             },
+          },
+          {
+            type: actions.REMOVE_TABLES,
+            tables: [staleTable],
           },
         ]);
       });
