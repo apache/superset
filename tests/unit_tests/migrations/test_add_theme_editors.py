@@ -29,7 +29,17 @@ from importlib import import_module
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from sqlalchemy import Column, create_engine, inspect, Integer, MetaData, String, Table
+from sqlalchemy import (
+    Boolean,
+    Column,
+    create_engine,
+    inspect,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    text,
+)
 from sqlalchemy.engine import Engine
 
 migration = import_module(
@@ -55,12 +65,16 @@ def engine() -> Engine:
         md,
         Column("id", Integer, primary_key=True),
         Column("label", String(255), nullable=False),
+        Column("user_id", Integer, nullable=True),
+        Column("type", Integer, nullable=True),
     )
     Table(
         "themes",
         md,
         Column("id", Integer, primary_key=True),
         Column("theme_name", String(250)),
+        Column("is_system", Boolean, nullable=False),
+        Column("created_by_fk", Integer, nullable=True),
     )
     md.create_all(engine)
     return engine
@@ -86,6 +100,57 @@ def test_upgrade_creates_theme_editors_table(engine: Engine) -> None:
     unique_col_sets = [set(uc["column_names"]) for uc in unique_constraints]
     assert {"subject_id", "theme_id"} in unique_col_sets, (
         "upgrade() must enforce uniqueness on (subject_id, theme_id)"
+    )
+
+
+def test_upgrade_backfills_theme_creators_as_editors(engine: Engine) -> None:
+    """Non-system themes with a creator that has a USER subject get one editor.
+
+    System themes and themes with a NULL creator get none, and a creator
+    without a USER-type subject is skipped rather than crashing.
+    """
+    with engine.begin() as conn:
+        # USER subject (type=1) for user 10, plus a ROLE subject that must be
+        # ignored, and a USER subject for user 20 (whose theme has no creator).
+        conn.execute(
+            text(
+                "INSERT INTO subjects (id, label, user_id, type) VALUES "
+                "(1, 'user-10', 10, 1), "
+                "(2, 'role-x', NULL, 2), "
+                "(3, 'user-20', 20, 1)"
+            )
+        )
+        # 1: non-system, creator 10 (has USER subject 1) -> one editor row
+        # 2: system, creator 10 -> none
+        # 3: non-system, NULL creator -> none
+        # 4: non-system, creator 99 (no USER subject) -> none
+        conn.execute(
+            text(
+                "INSERT INTO themes "
+                "(id, theme_name, is_system, created_by_fk) VALUES "
+                "(1, 'authored', 0, 10), "
+                "(2, 'system', 1, 10), "
+                "(3, 'no-creator', 0, NULL), "
+                "(4, 'orphan-creator', 0, 99)"
+            )
+        )
+
+    with engine.begin() as conn:
+        ctx = MigrationContext.configure(conn)
+        with Operations.context(ctx):
+            migration.upgrade()
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                "SELECT theme_id, subject_id FROM theme_editors "
+                "ORDER BY theme_id, subject_id"
+            )
+        ).all()
+
+    assert rows == [(1, 1)], (
+        "only the non-system theme with a creator holding a USER subject "
+        "should be backfilled, mapped to that subject"
     )
 
 
