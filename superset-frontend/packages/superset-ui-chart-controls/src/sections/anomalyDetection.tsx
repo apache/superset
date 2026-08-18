@@ -43,6 +43,10 @@ const validateConfidenceInterval = validateRange(
   n => n <= 0 || n >= 1,
   'Confidence interval must be between 0 and 1 (exclusive)',
 );
+const validateSeasonality = (v: unknown): string | false =>
+  v === null || v === undefined || v === '' || typeof v === 'boolean'
+    ? false
+    : legacyValidateInteger(v);
 export const ANOMALY_DEFAULT_DATA = {
   anomalyDetectionEnabled: false,
   anomalyDetectionMethod: 'zscore',
@@ -143,6 +147,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
+          validators: [validateSeasonality],
           label: t('Yearly seasonality'),
           choices: [
             [null, t('default')],
@@ -164,6 +169,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
+          validators: [validateSeasonality],
           label: t('Weekly seasonality'),
           choices: [
             [null, t('default')],
@@ -185,6 +191,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
+          validators: [validateSeasonality],
           label: t('Daily seasonality'),
           choices: [
             [null, t('default')],

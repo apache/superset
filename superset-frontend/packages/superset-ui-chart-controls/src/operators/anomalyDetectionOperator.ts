@@ -38,16 +38,25 @@ export const anomalyDetectionOperator: PostProcessingFactory<
     }
     const options: Record<string, unknown> = { method, index: xAxisLabel };
     if (method === 'prophet') {
-      options.confidence_interval =
-        parseFloat(formData.anomalyDetectionConfidenceInterval) || 0.8;
+      const confidenceInterval = parseFloat(
+        formData.anomalyDetectionConfidenceInterval,
+      );
+      options.confidence_interval = Number.isNaN(confidenceInterval)
+        ? 0.8
+        : confidenceInterval;
       options.yearly_seasonality = formData.anomalyDetectionSeasonalityYearly;
       options.weekly_seasonality = formData.anomalyDetectionSeasonalityWeekly;
       options.daily_seasonality = formData.anomalyDetectionSeasonalityDaily;
     } else {
-      options.rolling_window =
-        parseInt(formData.anomalyDetectionRollingWindow, 10) || 14;
-      options.sensitivity =
-        parseFloat(formData.anomalyDetectionSensitivity) || 3.0;
+      const rollingWindow = parseInt(
+        formData.anomalyDetectionRollingWindow,
+        10,
+      );
+      options.rolling_window = Number.isNaN(rollingWindow)
+        ? 14
+        : rollingWindow;
+      const sensitivity = parseFloat(formData.anomalyDetectionSensitivity);
+      options.sensitivity = Number.isNaN(sensitivity) ? 3.0 : sensitivity;
     }
     return {
       operation: 'anomaly_detection',
