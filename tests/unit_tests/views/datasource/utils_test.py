@@ -19,6 +19,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import current_app
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -256,3 +257,22 @@ def test_get_limit_clause_preserves_zero_and_negative_per_page(
         "row_offset": 0,
         "row_limit": expected_row_limit,
     }
+
+
+def test_get_limit_clause_caps_per_page_at_sql_max_row(
+    app_context: None,
+) -> None:
+    """When an operator configures ``SQL_MAX_ROW`` below the schema's
+    ``per_page`` maximum, ``apply_max_row_limit`` still reduces the
+    requested limit, and the offset for subsequent pages must be computed
+    from that reduced (effective) limit, not the raw request.
+    """
+    with patch.dict(current_app.config, {"SQL_MAX_ROW": 2000}):
+        assert get_limit_clause(page=1, per_page=10000) == {
+            "row_offset": 0,
+            "row_limit": 2000,
+        }
+        assert get_limit_clause(page=2, per_page=10000) == {
+            "row_offset": 2000,
+            "row_limit": 2000,
+        }
