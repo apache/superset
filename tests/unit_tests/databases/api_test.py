@@ -710,6 +710,10 @@ def test_oauth2_happy_path(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -786,6 +790,10 @@ def test_oauth2_permissions(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -867,6 +875,10 @@ def test_oauth2_multiple_tokens(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
