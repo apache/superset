@@ -429,6 +429,38 @@ def test_raise_for_access_query_default_schema(
     assert str(excinfo.value) == message
 
 
+def test_raise_for_access_query_schema_perm_uses_database_name(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_schema_perm` receives the database name.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+    get_schema_perm = mocker.patch.object(
+        sm, "get_schema_perm", return_value="[my_db].[public]"
+    )
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "my_db"
+    database.verbose_name = "Ma base"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "public"
+    query = mocker.MagicMock()
+    query.catalog = None
+    query.database = database
+    query.sql = "SELECT * FROM ab_user"
+
+    assert sm.raise_for_access(query=query) is None  # type: ignore
+
+    assert get_schema_perm.call_args.args[0] == "my_db"
+
+
 def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) -> None:
     """
     Test that Jinja gets rendered to SQL.
