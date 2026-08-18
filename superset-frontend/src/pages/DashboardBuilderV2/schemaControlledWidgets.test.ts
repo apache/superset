@@ -16,14 +16,55 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SCHEMA_CONTROLLED_WIDGET_TYPES } from './schemaControlledWidgets';
+import { renderHook, waitFor } from '@testing-library/react';
+import { SupersetClient } from '@superset-ui/core';
+import {
+  resetSchemaControlledWidgetTypesForTests,
+  useSchemaControlledWidgetTypes,
+} from './schemaControlledWidgets';
 
-// Guards the eager-import contract: this module must stay dependency-free so
-// the Inspector can import it without dragging in the JSONForms graph.
-test('lists the data-backed widgets that have a backend control schema', () => {
-  expect(SCHEMA_CONTROLLED_WIDGET_TYPES.has('balloons')).toBe(true);
-  expect(SCHEMA_CONTROLLED_WIDGET_TYPES.has('metric-tile')).toBe(true);
-  expect(SCHEMA_CONTROLLED_WIDGET_TYPES.has('ag-grid-table')).toBe(true);
-  // Prose / layout widgets keep the generic props form.
-  expect(SCHEMA_CONTROLLED_WIDGET_TYPES.has('markdown')).toBe(false);
+const getSpy = jest.spyOn(SupersetClient, 'get');
+
+beforeEach(() => {
+  resetSchemaControlledWidgetTypesForTests();
+  getSpy.mockReset();
+});
+
+test('derives the schema-controlled types from the backend registry', async () => {
+  getSpy.mockResolvedValue({
+    json: { result: [{ id: 'balloons' }, { id: 'metric-tile' }] },
+  } as never);
+
+  const { result } = renderHook(() => useSchemaControlledWidgetTypes());
+
+  // `null` while the first fetch is in flight, so the caller can show Loading.
+  expect(result.current).toBeNull();
+
+  await waitFor(() => expect(result.current).not.toBeNull());
+  expect(result.current?.has('balloons')).toBe(true);
+  expect(result.current?.has('metric-tile')).toBe(true);
+  // A type the backend didn't report gets the generic form, not a schema panel.
+  expect(result.current?.has('markdown')).toBe(false);
+  expect(getSpy).toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: '/api/v1/widgets/types' }),
+  );
+});
+
+test('fetches only once and caches the result across hook users', async () => {
+  getSpy.mockResolvedValue({ json: { result: [{ id: 'balloons' }] } } as never);
+
+  const first = renderHook(() => useSchemaControlledWidgetTypes());
+  await waitFor(() => expect(first.result.current).not.toBeNull());
+  renderHook(() => useSchemaControlledWidgetTypes());
+
+  expect(getSpy).toHaveBeenCalledTimes(1);
+});
+
+test('fails open to an empty set when the request errors', async () => {
+  getSpy.mockRejectedValue(new Error('boom'));
+
+  const { result } = renderHook(() => useSchemaControlledWidgetTypes());
+
+  await waitFor(() => expect(result.current).not.toBeNull());
+  expect(result.current?.size).toBe(0);
 });

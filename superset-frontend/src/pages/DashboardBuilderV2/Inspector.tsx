@@ -36,13 +36,13 @@ import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import { widgetLabel } from 'src/core/dashboard/widgetLabel';
 import DashboardProperties from './DashboardProperties';
 import PropsForm from './PropsForm';
-import { SCHEMA_CONTROLLED_WIDGET_TYPES } from './schemaControlledWidgets';
+import { useSchemaControlledWidgetTypes } from './schemaControlledWidgets';
 
 // Lazy so the JSONForms / semanticLayers graph the schema-driven control panel
 // pulls in stays out of the eagerly-loaded Inspector bundle (the same
 // core->features cycle that otherwise surfaces app-wide as `t is not a
 // function`). Loaded only when a schema-controlled widget is selected; the
-// membership check above uses the dependency-free `schemaControlledWidgets`.
+// dependency-free `schemaControlledWidgets` decides membership.
 const SchemaControlPanel = lazy(() => import('./SchemaControlPanel'));
 
 type LayoutProps = dashboardApi.LayoutProps;
@@ -425,26 +425,36 @@ const PropsEditor = ({
   // A schema-controlled widget draws its Form tab from a backend-served JSON
   // Schema (rendered bare — see the note above on why JsonForms must not sit
   // under an antd `Form`); every other widget falls back to the generic
-  // value-inferred `PropsForm`. Both write to the same `node.props`, and the
+  // value-inferred `PropsForm`. Which types are schema-controlled is derived
+  // from the backend (`useSchemaControlledWidgetTypes`), so adding a widget
+  // type needs no frontend edit. Both write to the same `node.props`, and the
   // JSON tab is identical for all widgets.
   //
   // The generic form drops `formOmitKeys` so it doesn't re-offer a value a
   // dedicated control already edits (a single-line input mirroring the Text
   // area above it). `updateProps` merges, so a key absent from the form's data
   // is left untouched rather than removed.
+  const schemaControlledTypes = useSchemaControlledWidgetTypes();
   const formProps =
     formOmitKeys && formOmitKeys.length > 0 && props
       ? Object.fromEntries(
           Object.entries(props).filter(([key]) => !formOmitKeys.includes(key)),
         )
       : props;
-  const formTab = SCHEMA_CONTROLLED_WIDGET_TYPES.has(widgetType) ? (
-    <Suspense fallback={<Loading position="inline-centered" size="s" />}>
-      <SchemaControlPanel nodeId={nodeId} />
-    </Suspense>
-  ) : (
-    <PropsForm nodeId={nodeId} props={formProps} />
-  );
+  let formTab: ReactNode;
+  if (schemaControlledTypes === null) {
+    // The backend list is still loading — show a spinner rather than briefly
+    // rendering the wrong control (generic form for a schema-driven widget).
+    formTab = <Loading position="inline-centered" size="s" />;
+  } else if (schemaControlledTypes.has(widgetType)) {
+    formTab = (
+      <Suspense fallback={<Loading position="inline-centered" size="s" />}>
+        <SchemaControlPanel nodeId={nodeId} />
+      </Suspense>
+    );
+  } else {
+    formTab = <PropsForm nodeId={nodeId} props={formProps} />;
+  }
 
   return (
     <Tabs

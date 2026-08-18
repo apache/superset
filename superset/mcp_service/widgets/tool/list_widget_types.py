@@ -37,7 +37,7 @@ def _list_widget_types_impl() -> List[Dict[str, Any]]:
             "name": cls.name,
             "description": cls.description,
         }
-        for cls in registry.list()
+        for cls in registry.values()
     ]
 
 

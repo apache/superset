@@ -16,19 +16,43 @@
 # under the License.
 from __future__ import annotations
 
+import pytest
+from superset_core.widgets import widget, WidgetControls
+
 from superset.widgets.controls import BalloonsControls
-from superset.widgets.registry import registry, WidgetControls
+from superset.widgets.registry import registry
 
 
 def _block(widget_type: str) -> type[WidgetControls]:
-    widget = registry.get(widget_type)
-    assert widget is not None
-    return widget
+    widget_cls = registry.get(widget_type)
+    assert widget_cls is not None
+    return widget_cls
 
 
 def test_registry_lists_built_in_widget_types() -> None:
-    ids = {cls.widget_type for cls in registry.list()}
+    ids = {cls.widget_type for cls in registry.values()}
     assert {"metric-tile", "ag-grid-table", "balloons"} <= ids
+
+
+def test_core_contract_is_importable() -> None:
+    # Extensions register widgets via exactly these two public symbols.
+    assert WidgetControls is not None
+    assert callable(widget)
+
+
+def test_duplicate_widget_type_raises_naming_both() -> None:
+    @widget(widget_type="dup-test-widget", name="First")
+    class First(WidgetControls):
+        controls_class = BalloonsControls
+
+    try:
+        with pytest.raises(ValueError, match="already registered"):
+
+            @widget(widget_type="dup-test-widget", name="Second")
+            class Second(WidgetControls):
+                controls_class = BalloonsControls
+    finally:
+        registry.pop("dup-test-widget", None)
 
 
 def test_get_control_schema_base_shape() -> None:
@@ -66,3 +90,39 @@ def test_minimal_object_validates_against_model() -> None:
     BalloonsControls.model_validate(
         {"dataBinding": {"datasetId": 1, "metrics": ["count"]}}
     )
+
+
+def test_validate_control_values_passes_for_valid_props() -> None:
+    errors = _block("balloons").validate_control_values(
+        {
+            "dataBinding": {
+                "datasetId": 1,
+                "metrics": ["count"],
+                "dimensions": ["gender"],
+            },
+            "colorDimension": "gender",
+        }
+    )
+    assert errors == []
+
+
+def test_validate_control_values_flags_color_dimension_not_grouped() -> None:
+    # colorDimension names a dimension that isn't in dataBinding.dimensions —
+    # the declarative cross-field rule must surface an actionable error.
+    errors = _block("balloons").validate_control_values(
+        {
+            "dataBinding": {
+                "datasetId": 1,
+                "metrics": ["count"],
+                "dimensions": ["name"],
+            },
+            "colorDimension": "gender",
+        }
+    )
+    assert errors
+    assert any("colorDimension" in error["message"] for error in errors)
+
+
+def test_validate_control_values_empty_when_no_values() -> None:
+    # Nothing to validate (required-field checks live elsewhere).
+    assert _block("balloons").validate_control_values(None) == []

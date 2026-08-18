@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class DataBinding(BaseModel):
@@ -207,10 +207,13 @@ class BalloonsControls(BaseModel):
         alias="colorDimension",
         title="Color dimension",
         description=(
-            "Which of the dataBinding dimensions colors the balloons — its "
-            "distinct values are the customizable series. Leave empty to color "
-            "by the last dimension. E.g. group by [name, gender] and set this to "
-            '"gender" to give one balloon per name, colored by gender.'
+            "Which grouping dimension colors the balloons — its distinct values "
+            "become the customizable series. The value MUST be one of "
+            "`dataBinding.dimensions`; if the dimension you want to color by "
+            "isn't grouped yet, add it to `dimensions` as well (it is not enough "
+            "to name it here). Leave empty to color by the last dimension. "
+            'E.g. to color by gender: set this to "gender" AND include "gender" '
+            'in dimensions (e.g. dimensions ["name", "gender"]).'
         ),
     )
     customize: Customization = Field(
@@ -218,6 +221,22 @@ class BalloonsControls(BaseModel):
         title="Customize",
         description="Per-series color and size overrides.",
     )
+
+    @model_validator(mode="after")
+    def _color_dimension_must_be_grouped(self) -> "BalloonsControls":
+        """``colorDimension`` colors balloons by a dimension's distinct values,
+        so that dimension must actually be grouped. Naming it here without
+        adding it to ``dataBinding.dimensions`` would silently color by nothing;
+        surface it as a validation error instead (the message tells the caller
+        exactly what to fix)."""
+        dimensions = self.data_binding.dimensions
+        if self.color_dimension and self.color_dimension not in dimensions:
+            raise ValueError(
+                f'colorDimension "{self.color_dimension}" must be one of the '
+                f"dataBinding dimensions {dimensions}; add it to `dimensions` "
+                f"as well."
+            )
+        return self
 
 
 class MarkdownControls(BaseModel):

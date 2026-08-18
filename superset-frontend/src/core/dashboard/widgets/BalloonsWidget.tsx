@@ -72,6 +72,34 @@ const MAX_FINAL_PX = 160;
 // number of animated nodes.
 const MAX_BALLOONS = 500;
 
+// Deterministic, well-distributed pseudo-randoms per balloon, seeded by its
+// stable key. Index-modulo arithmetic repeats every N balloons, so many rise at
+// the same pace and wave in the same phase (a visible synchronized ripple);
+// hashing the key decorrelates neighbours while staying stable across
+// re-renders (unlike Math.random, which would reshuffle every time rows change).
+function hashSeed(text: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0; // eslint-disable-line unicorn/prefer-math-trunc
+}
+
+function makeRandom(seed: number): () => number {
+  let state = seed || 1;
+  return () => {
+    // `| 0` / `>>> 0` are deliberate 32-bit (signed/unsigned) coercions the
+    // PRNG relies on — not truncation, so the Math.trunc suggestion is wrong.
+    // eslint-disable-next-line unicorn/prefer-math-trunc
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    // eslint-disable-next-line unicorn/prefer-math-trunc
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 // The climb: transform-only (GPU-composited, no per-frame layout) so a whole
 // field of balloons stays smooth. `cqh` is 1% of the container's height, so the
 // travel adapts to the widget size without measuring it in JS.
@@ -276,20 +304,27 @@ export default function BalloonsWidget({ nodeId }: { nodeId: string }) {
       return BASE_MIN_PX + ratio * (BASE_MAX_PX - BASE_MIN_PX);
     };
     return shown.map((row, index) => {
-      const riseSecs = 9 + (index % 10); // 9–18s ascent, deterministic
-      const swaySecs = 2.2 + ((index * 7) % 28) / 10; // 2.2–5s wave
+      const key = `${row.series}-${index}`;
+      // Each balloon gets its own pace and phase from its key, so the field
+      // rises organically rather than in synchronized bands.
+      const rand = makeRandom(hashSeed(key));
+      const riseSecs = 9 + rand() * 9; // 9–18s ascent
+      const swaySecs = 2.2 + rand() * 2.8; // 2.2–5s wave
       return {
-        key: `${row.series}-${index}`,
+        key,
         series: row.series,
         label: row.label,
         value: row.value,
         basePx: basePxOf(row.value),
         colorIndex: Math.max(0, seriesOrder.indexOf(row.series)),
-        left: 3 + ((index * 37) % 92),
+        left: 3 + rand() * 92,
         rise: riseSecs,
-        riseDelay: -((index * 13) % riseSecs),
+        // Continuous negative offsets across the full cycle pre-distribute the
+        // balloons along the climb and spread their wave phases, so nothing
+        // starts in lockstep.
+        riseDelay: -rand() * riseSecs,
         sway: swaySecs,
-        swayDelay: -((index * 5) % Math.ceil(swaySecs)),
+        swayDelay: -rand() * swaySecs,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

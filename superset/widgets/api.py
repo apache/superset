@@ -23,8 +23,6 @@ from flask import make_response, request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_babel import gettext as _
 
-# Importing registers the built-in widget control sets into the registry.
-import superset.widgets.builtin  # noqa: F401  pylint: disable=unused-import
 from superset.extensions import event_logger
 from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
@@ -53,6 +51,7 @@ class WidgetControlsRestApi(BaseSupersetApi):
     method_permission_name = {
         "types": "read",
         "control_schema": "read",
+        "validate": "read",
     }
     openapi_spec_tag = "Dashboard Controls (experimental)"
 
@@ -86,7 +85,7 @@ class WidgetControlsRestApi(BaseSupersetApi):
         """
         result = [
             {"id": cls.widget_type, "name": cls.name, "description": cls.description}
-            for cls in registry.list()
+            for cls in registry.values()
         ]
         return self.response(200, result=result)
 
@@ -226,3 +225,67 @@ class WidgetControlsRestApi(BaseSupersetApi):
         resp = make_response(json.dumps(payload, sort_keys=False), 200)
         resp.headers["Content-Type"] = "application/json; charset=utf-8"
         return resp
+
+    @expose("/type/<widget_type>/validate", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.validate",
+        log_to_statsd=False,
+    )
+    def validate(self, widget_type: str) -> Response:
+        """Validate control values against a widget type's model.
+
+        The commit-time gate: runs the widget's full model validation (including
+        cross-field rules declared on the control model) and returns any errors
+        as ``{"errors": [{"loc", "message"}]}`` (empty list when valid), so a
+        caller can reject a bad edit with an actionable message rather than
+        writing a silently-broken widget. Widget-agnostic — the rules live on
+        each widget's control model, not here.
+        ---
+        post:
+          summary: Validate control values for a widget type
+          parameters:
+            - in: path
+              name: widget_type
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    control_values:
+                      type: object
+          responses:
+            200:
+              description: Validation result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          errors:
+                            type: array
+                            items:
+                              type: object
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        widget = registry.get(widget_type)
+        if widget is None:
+            return self.response_404()
+        body = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            return self.response_400(message="Request body must be a JSON object.")
+        errors = widget.validate_control_values(body.get("control_values"))
+        return self.response(200, result={"errors": errors})

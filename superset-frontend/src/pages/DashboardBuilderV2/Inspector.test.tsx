@@ -23,14 +23,31 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import 'src/core/dashboard';
 import Inspector from './Inspector';
+import { resetSchemaControlledWidgetTypesForTests } from './schemaControlledWidgets';
 
 const provider = DashboardProvider.getInstance();
 
+// The Inspector derives which widget types get the schema-driven panel from
+// `/api/v1/widgets/types`; these tests use markdown/tabs (not in the list), so
+// they render the generic PropsForm. Stub the fetch so the decision is
+// deterministic and offline.
+jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+  json: {
+    result: [
+      { id: 'balloons' },
+      { id: 'metric-tile' },
+      { id: 'ag-grid-table' },
+    ],
+  },
+} as never);
+
 beforeEach(() => {
   provider.reset();
+  resetSchemaControlledWidgetTypesForTests();
 });
 
 /**

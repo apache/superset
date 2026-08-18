@@ -14,19 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-In-memory registry of Dashboard V2 widget control sets, keyed by widget type.
 
-The public contract (``WidgetControls`` base class + ``@widget`` decorator)
-lives in ``superset_core.widgets`` so extensions can register widgets the same
-way built-ins do. This module holds only the host-side registry the concrete
-decorator writes into (see
-``superset.core.api.core_api_injection.inject_widget_implementations``),
-mirroring ``superset.semantic_layers.registry``.
-"""
-
-from __future__ import annotations
+"""Public contract for registering Dashboard V2 widget control sets."""
 
 from superset_core.widgets.controls import WidgetControls
+from superset_core.widgets.decorators import widget
 
-registry: dict[str, type[WidgetControls]] = {}
+__all__ = ["WidgetControls", "widget"]

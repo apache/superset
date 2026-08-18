@@ -14,7 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Built-in Dashboard V2 widget control sets. Importing this registers them."""
+"""Built-in Dashboard V2 widget control sets. Importing this registers them.
+
+Built-ins use the exact same public contract an extension does —
+``@widget`` + ``WidgetControls`` from ``superset_core.widgets`` — so there is no
+parallel registration path. This module is imported (for its decorator
+side-effects) by ``inject_widget_implementations`` once the decorator is
+concrete.
+"""
 
 from __future__ import annotations
 
@@ -22,6 +29,7 @@ from copy import deepcopy
 from typing import Any
 
 from pydantic import BaseModel
+from superset_core.widgets import widget, WidgetControls
 
 from superset.widgets.controls import (
     AgGridTableControls,
@@ -30,42 +38,52 @@ from superset.widgets.controls import (
     MarkdownControls,
     MetricTileControls,
 )
-from superset.widgets.registry import registry, WidgetControls
 
 
-@registry.register
+@widget(
+    widget_type="markdown",
+    name="Markdown",
+    description="Rich text authored in Markdown.",
+)
 class Markdown(WidgetControls):
-    widget_type = "markdown"
-    name = "Markdown"
-    description = "Rich text authored in Markdown."
     controls_class = MarkdownControls
 
 
-@registry.register
+@widget(
+    widget_type="echarts",
+    name="ECharts",
+    description="A chart from a raw ECharts option with $bind data markers.",
+)
 class Echarts(WidgetControls):
-    widget_type = "echarts"
-    name = "ECharts"
-    description = "A chart from a raw ECharts option with $bind data markers."
     controls_class = EchartsControls
 
 
-@registry.register
+@widget(
+    widget_type="metric-tile",
+    name="Metric Tile",
+    description="A single live metric value rendered as a big number.",
+)
 class MetricTile(WidgetControls):
-    widget_type = "metric-tile"
-    name = "Metric Tile"
-    description = "A single live metric value rendered as a big number."
     controls_class = MetricTileControls
 
 
-@registry.register
+@widget(
+    widget_type="ag-grid-table",
+    name="Table",
+    description="Query results rendered as an AG Grid table.",
+)
 class AgGridTable(WidgetControls):
-    widget_type = "ag-grid-table"
-    name = "Table"
-    description = "Query results rendered as an AG Grid table."
     controls_class = AgGridTableControls
 
 
-@registry.register
+@widget(
+    widget_type="balloons",
+    name="Balloons",
+    description=(
+        "Rising colored balloons, one per query row — colored and sized by the "
+        "query (Chart Framework v2 POC)."
+    ),
+)
 class Balloons(WidgetControls):
     """
     Explicit/typed chart: renders one balloon per query row, colored and sized
@@ -74,9 +92,6 @@ class Balloons(WidgetControls):
     series values (the SIP's ``x-dynamic`` pattern).
     """
 
-    widget_type = "balloons"
-    name = "Balloons"
-    description = "Bouncing colored balls, one per query row (Chart Framework v2 POC)."
     controls_class = BalloonsControls
 
     # Default color per series index. Must match the frontend widget's palette

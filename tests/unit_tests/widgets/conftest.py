@@ -15,18 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-In-memory registry of Dashboard V2 widget control sets, keyed by widget type.
+Make the ``@widget`` decorator concrete and register the built-in widgets
+before any test module in this directory is collected.
 
-The public contract (``WidgetControls`` base class + ``@widget`` decorator)
-lives in ``superset_core.widgets`` so extensions can register widgets the same
-way built-ins do. This module holds only the host-side registry the concrete
-decorator writes into (see
-``superset.core.api.core_api_injection.inject_widget_implementations``),
-mirroring ``superset.semantic_layers.registry``.
+These are lightweight unit tests that don't spin up the full app fixture, but
+``superset.widgets.builtin`` applies ``@widget`` at import time — which is a
+stub until ``inject_widget_implementations`` runs. conftest.py is imported
+before its sibling test modules, so injecting here guarantees the decorator is
+live (and the registry populated) first. The injection needs no app context.
 """
 
-from __future__ import annotations
+from superset.core.api.core_api_injection import inject_widget_implementations
 
-from superset_core.widgets.controls import WidgetControls
-
-registry: dict[str, type[WidgetControls]] = {}
+inject_widget_implementations()

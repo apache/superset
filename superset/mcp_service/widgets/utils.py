@@ -27,13 +27,13 @@ from __future__ import annotations
 
 from typing import Any
 
-# Importing registers the built-in widget control sets into the registry.
-import superset.widgets.builtin  # noqa: F401  pylint: disable=unused-import
-from superset.widgets.registry import registry, WidgetControls
+from superset_core.widgets import WidgetControls
+
+from superset.widgets.registry import registry
 
 
 def valid_widget_types() -> list[str]:
-    return sorted(cls.widget_type for cls in registry.list())
+    return sorted(cls.widget_type for cls in registry.values())
 
 
 def unknown_widget_type_error(widget_type: str) -> dict[str, Any]:
