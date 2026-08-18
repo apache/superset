@@ -1134,6 +1134,9 @@ export default function transformProps(
     convertInteger(xAxisTitleMargin),
     isHorizontal,
   );
+  const nonLegendReservedHeight =
+    nonLegendPadding.top +
+    (isHorizontal ? nonLegendPadding.left : nonLegendPadding.bottom);
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
       showLegend,
@@ -1149,10 +1152,6 @@ export default function transformProps(
     );
 
     return resolveLegendLayout({
-      availableHeight: Math.max(
-        height - nonLegendPadding.top - nonLegendPadding.bottom,
-        0,
-      ),
       availableWidth:
         legendOrientation === LegendOrientation.Top ||
         legendOrientation === LegendOrientation.Bottom
@@ -1170,6 +1169,7 @@ export default function transformProps(
           ? colorByPrimaryAxisLegendData
           : sortedLegendData,
       legendMargin: candidateLegendMargin,
+      nonLegendReservedHeight,
       orientation: legendOrientation,
       show: showLegend,
       showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),

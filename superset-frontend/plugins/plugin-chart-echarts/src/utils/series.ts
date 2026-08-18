@@ -246,6 +246,7 @@ function getHorizontalPlainLegendLayout({
   availableWidth,
   currentMargin,
   legendLabels,
+  nonLegendReservedHeight,
   orientation,
   showSelectors,
   theme,
@@ -254,6 +255,7 @@ function getHorizontalPlainLegendLayout({
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
+  nonLegendReservedHeight?: number;
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
   showSelectors: boolean;
   theme: SupersetTheme;
@@ -270,10 +272,23 @@ function getHorizontalPlainLegendLayout({
   const requiredMargin =
     defaultLegendPadding[orientation] +
     Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
-  const boundedMargin = Math.min(
-    requiredMargin,
-    Math.max(availableHeight - MIN_HORIZONTAL_LEGEND_PLOT_SPACE, 0),
-  );
+  let boundedMargin: number;
+  if (nonLegendReservedHeight === undefined) {
+    boundedMargin =
+      availableHeight > 0
+        ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
+        : requiredMargin;
+  } else {
+    boundedMargin = Math.min(
+      requiredMargin,
+      Math.max(
+        availableHeight -
+          nonLegendReservedHeight -
+          MIN_HORIZONTAL_LEGEND_PLOT_SPACE,
+        0,
+      ),
+    );
+  }
 
   return {
     effectiveMargin: Math.max(currentMargin, boundedMargin),
@@ -328,6 +343,7 @@ export function getLegendLayoutResult({
   chartWidth,
   legendItems = [],
   legendMargin,
+  nonLegendReservedHeight,
   orientation,
   show,
   showSelectors = true,
@@ -342,6 +358,9 @@ export function getLegendLayoutResult({
   chartWidth: number;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
+  // The floor-based layout is opt-in while only Timeseries supplies accurate
+  // fixed padding; callers that omit it retain the legacy ratio cap.
+  nonLegendReservedHeight?: number;
   orientation: LegendOrientation;
   show: boolean;
   showSelectors?: boolean;
@@ -366,6 +385,7 @@ export function getLegendLayoutResult({
       availableWidth: resolvedAvailableWidth,
       currentMargin: resolvedLegendMargin,
       legendLabels,
+      nonLegendReservedHeight,
       orientation,
       showSelectors,
       theme,

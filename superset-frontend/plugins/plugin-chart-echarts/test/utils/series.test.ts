@@ -76,6 +76,7 @@ const {
       | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
+    nonLegendReservedHeight?: number;
     orientation: LegendOrientation;
     show: boolean;
     showSelectors?: boolean;
@@ -103,6 +104,7 @@ const {
       | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
+    nonLegendReservedHeight?: number;
     orientation: LegendOrientation;
     show: boolean;
     showSelectors?: boolean;
@@ -1248,7 +1250,7 @@ test('getLegendLayoutResult keeps plain when horizontal plain legends exceed two
   expect(layout.effectiveMargin).toBe(68);
 });
 
-test('getLegendLayoutResult reserves every row for many horizontal plain legend items', () => {
+test('getLegendLayoutResult reserves every row when fixed padding is supplied', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 800,
@@ -1257,6 +1259,7 @@ test('getLegendLayoutResult reserves every row for many horizontal plain legend 
       (_, index) => `Country ${index + 1}, Product`,
     ),
     legendMargin: null,
+    nonLegendReservedHeight: 0,
     orientation: LegendOrientation.Top,
     show: true,
     theme,
@@ -1276,6 +1279,7 @@ test('getLegendLayoutResult bounds reserved margin for overflowing horizontal le
     chartWidth: 100,
     legendItems: Array.from({ length: 100 }, (_, index) => `Series ${index}`),
     legendMargin: null,
+    nonLegendReservedHeight: 0,
     orientation: LegendOrientation.Top,
     show: true,
     theme,

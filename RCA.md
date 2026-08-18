@@ -37,16 +37,17 @@
 ## The Fix
 
 - **Verified:**
-  `superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts` replaces
-  the horizontal 40% cap with an 80px minimum plot-space floor. It reserves the
-  full estimated legend margin whenever that leaves at least 80px of genuinely
-  available height for the plot; for larger legends, it reserves the available
-  height except that floor.
+  `superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts` adds an
+  opt-in 80px minimum plot-space floor for callers that provide their fixed,
+  non-legend height reservation. It reserves the full estimated legend margin
+  whenever that leaves the floor intact and otherwise uses the remaining space.
+  Callers without an accurate reservation retain the previous 40% ratio cap.
 - **Verified:**
   `superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformProps.ts`
   calculates the top and bottom padding required without a legend, including
-  zoom controls and axis-title offsets, and excludes those fixed reservations
-  before applying the plot-space floor.
+  zoom controls and axis-title offsets. For horizontal-axis charts it uses the
+  left padding that becomes bottom padding after the axis swap, then excludes
+  those final-axis fixed reservations before applying the plot-space floor.
 - **Verified:** The horizontal path continues to return `LegendType.Plain`; no
   Plain-to-Scroll fallback was added.
 - **Verified:**
@@ -57,6 +58,10 @@
 - **Verified:** A transform-level regression test covers a 200px-tall zoomable
   chart with a many-item top Plain legend and verifies that the resulting grid
   retains 80px of plot height after both top and bottom padding.
+- **Verified:** A second transform-level regression covers the same constraint
+  after horizontal axes swap left and bottom padding.
+- **Verified:** Mixed Timeseries coverage pins the pre-existing 40% fallback for
+  shared-helper callers that have not opted into the floor-based calculation.
 - **Verified:** Vertical Plain legend layout is unchanged.
 
 ## Latent Bugs Found
@@ -73,6 +78,10 @@
   preserved. It is still reachable for an explicitly selected Scroll legend,
   so it is not wholly dead. Its fallback-specific rationale is stale, but the
   branch remains unchanged to avoid broadening this fix.
+- **Verified:** Mixed Timeseries, Gantt, Pie, Funnel, Radar, Bubble, and Graph
+  share the legend-layout resolver but do not provide chart-specific fixed
+  height reservations. They retain the legacy ratio cap until each caller can
+  be migrated with its own layout accounting.
 
 ## Prevention
 
@@ -81,4 +90,5 @@
   asserting that the user-selected Plain type is preserved.
 - **Inferred:** Future legend layout changes should test the selected legend
   type, the estimated item capacity, and the resulting grid margin together,
-  including a case that crosses any plot-preservation boundary.
+  including a case that crosses any plot-preservation boundary and a sibling
+  caller that must retain legacy behavior.

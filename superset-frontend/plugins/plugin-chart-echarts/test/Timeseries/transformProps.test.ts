@@ -1075,6 +1075,47 @@ test('preserves plot space for a small zoomable chart with a many-item Plain leg
   ).toBeGreaterThanOrEqual(80);
 });
 
+test('uses post-swap padding to preserve plot space for horizontal zoomable charts', () => {
+  const chartHeight = 200;
+  const manyLegendValues = Object.fromEntries(
+    Array.from({ length: 40 }, (_, index) => [
+      `Country ${index + 1}, Product`,
+      index + 1,
+    ]),
+  );
+  const chartProps = createTestChartProps({
+    height: chartHeight,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      orientation: OrientationType.Horizontal,
+      showLegend: true,
+      zoomable: true,
+      yAxisTitle: 'Revenue',
+      yAxisTitleMargin: 50,
+      yAxisTitlePosition: 'Left',
+    },
+    queriesData: [
+      createTestQueryData(
+        createTestData([manyLegendValues], { intervalMs: 300000000 }),
+      ),
+    ],
+  });
+
+  const transformed = transformProps(chartProps);
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect((transformed.echartOptions.legend as { type?: LegendType }).type).toBe(
+    LegendType.Plain,
+  );
+  expect(typeof grid.top).toBe('number');
+  expect(typeof grid.bottom).toBe('number');
+  expect(
+    chartHeight - (Number(grid.top) + Number(grid.bottom)),
+  ).toBeGreaterThanOrEqual(80);
+});
+
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
   // Regression test for issue #39540: switching the legend type control from
   // scroll to plain must reach the rendered ECharts config. Horizontal legends
