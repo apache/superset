@@ -101,20 +101,19 @@ async def get_dashboard_layout(
                 is_found=lambda value: isinstance(value, DashboardLayout),
             )
             result = lookup_result.result
-            if result is None or lookup_result.permalink_error:
-                error_type = (
-                    "permalink_not_found" if request.identifier is None else "not_found"
-                )
+            if result is None:
+                # Only reachable when the dashboard had to come from a permalink,
+                # so an identifier's own "not found" error is preserved below.
                 return DashboardError.create(
                     "Dashboard permalink could not be resolved. It may be invalid "
                     "or expired; ask for a fresh shared dashboard link.",
-                    error_type,
+                    "permalink_not_found",
                 )
 
         if isinstance(result, DashboardLayout):
             if lookup_result.permalink_value:
                 permalink_state = get_matching_dashboard_permalink_state(
-                    lookup_result, result.id
+                    lookup_result, result.id, result.uuid
                 )
                 if permalink_state:
                     payload = result.model_dump(mode="python")

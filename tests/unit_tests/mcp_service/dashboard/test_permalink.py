@@ -24,8 +24,10 @@ from flask import g
 
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.mcp_service.dashboard.permalink import (
+    DashboardLookupResult,
     extract_dashboard_permalink_key,
     get_dashboard_permalink,
+    get_matching_dashboard_permalink_state,
     refresh_request_user_for_permalink_access,
 )
 
@@ -137,3 +139,53 @@ def test_refresh_request_user_for_permalink_access_keeps_user_when_reload_fails(
         assert g.user is current_user
 
     mock_load.assert_called_once_with(username="admin")
+
+
+@pytest.mark.parametrize(
+    ("reference", "expected_match"),
+    [
+        # CreateDashboardPermalinkCommand stores str(dashboard.uuid).
+        ("3f1a2b6c-9d4e-4f80-9c2a-7b1d5e6f8a90", True),
+        # Legacy permalinks may hold the numeric id or the slug.
+        ("42", True),
+        ("sales-dashboard", True),
+        ("99", False),
+        ("00000000-0000-0000-0000-000000000000", False),
+    ],
+)
+def test_get_matching_dashboard_permalink_state_accepts_every_identifier(
+    app, reference: str, expected_match: bool
+) -> None:
+    lookup_result = DashboardLookupResult(
+        result=object(),
+        permalink_key="key-1",
+        permalink_value={"dashboardId": reference, "state": {"activeTabs": ["TAB-A"]}},
+    )
+    with app.test_request_context("/mcp"):
+        state = get_matching_dashboard_permalink_state(
+            lookup_result,
+            42,
+            "3f1a2b6c-9d4e-4f80-9c2a-7b1d5e6f8a90",
+            "sales-dashboard",
+        )
+
+    assert (state is not None) is expected_match
+
+
+def test_get_matching_dashboard_permalink_state_skips_check_when_permalink_resolved(
+    app,
+) -> None:
+    """The permalink-only path already selected the dashboard from the permalink,
+    so its state is never re-verified against the resolved identifiers.
+    """
+    lookup_result = DashboardLookupResult(
+        result=object(),
+        permalink_key="key-1",
+        permalink_value={"dashboardId": "whatever", "state": {"activeTabs": ["TAB-A"]}},
+        resolved_from_permalink=True,
+    )
+    with app.test_request_context("/mcp"):
+        state = get_matching_dashboard_permalink_state(lookup_result, 42)
+
+    assert state is not None
+    assert state.key == "key-1"
