@@ -1228,7 +1228,11 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
-            col = column(self.column_name, type_=type_)
+            identifier = db_engine_spec.prepare_identifier(
+                cast(str, self.column_name),
+                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            )
+            col = column(identifier, type_=type_)
         col = self.database.make_sqla_column_compatible(col, label)
         return col
 
@@ -1254,12 +1258,15 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
         pdf = self.python_date_format
         is_epoch = pdf in ("epoch_s", "epoch_ms")
-        column_spec = self.db_engine_spec.get_column_spec(
-            self.type, db_extra=self.db_extra
-        )
+        db_engine_spec = self.db_engine_spec
+        column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else DateTime
         if not self.expression and not time_grain and not is_epoch:
-            sqla_col = column(self.column_name, type_=type_)
+            identifier = db_engine_spec.prepare_identifier(
+                cast(str, self.column_name),
+                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            )
+            sqla_col = column(identifier, type_=type_)
             return self.database.make_sqla_column_compatible(sqla_col, label)
         if expression := self.expression:
             if template_processor:
@@ -1284,8 +1291,12 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
-            col = column(self.column_name, type_=type_)
-        time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
+            identifier = db_engine_spec.prepare_identifier(
+                cast(str, self.column_name),
+                normalize_columns=bool(getattr(self.table, "normalize_columns", False)),
+            )
+            col = column(identifier, type_=type_)
+        time_expr = db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
         return self.database.make_sqla_column_compatible(time_expr, label)
 
     @property
