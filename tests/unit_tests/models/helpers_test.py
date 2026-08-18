@@ -4552,6 +4552,40 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
     )
 
 
+def test_convert_tbl_column_quotes_snowflake_case_sensitive_identifier(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """The chart query-object path quotes exact-case Snowflake physical columns."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    mocker.patch.object(
+        Database,
+        "get_db_engine_spec",
+        return_value=SnowflakeEngineSpec,
+    )
+    table = SqlaTable(
+        database=database,
+        table_name="bug_test",
+        normalize_columns=False,
+    )
+    tbl_column = TableColumn(column_name="name", type="VARCHAR", table=table)
+
+    with database.get_sqla_engine() as engine:
+        dialect = engine.dialect
+
+    rendered = str(
+        table.convert_tbl_column_to_sqla_col(tbl_column).compile(
+            dialect=dialect,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert rendered == '"name"'
+
+
 @pytest.mark.parametrize(
     "native_type",
     [
