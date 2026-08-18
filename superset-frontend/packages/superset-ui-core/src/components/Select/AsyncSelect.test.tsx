@@ -107,9 +107,7 @@ const getAllSelectOptions = () =>
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.ant-select-dropdown-list')).getByText(
-      text,
-    ),
+    within(getElementByClassName('.ant-select-dropdown-list')).getByText(text),
   );
 
 const querySelectOption = (text: string) =>

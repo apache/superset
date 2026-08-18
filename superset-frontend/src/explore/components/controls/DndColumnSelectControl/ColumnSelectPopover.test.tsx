@@ -214,7 +214,9 @@ test('Should filter simple columns by column_name and verbose_name', async () =>
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
@@ -288,7 +290,9 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Total Sales')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Tax Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Net Profit')).not.toBeInTheDocument();

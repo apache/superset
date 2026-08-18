@@ -340,7 +340,9 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Gross Revenue')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Count')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Average Price')).not.toBeInTheDocument();
@@ -421,7 +423,9 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
 
   await userEvent.type(columnCombobox, 'product');
 
-  let dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Product Title')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
