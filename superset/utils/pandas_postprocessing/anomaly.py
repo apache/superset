@@ -243,15 +243,32 @@ def anomaly_detection(
     def _should_process_column(col: str) -> bool:
         if col == index:
             return False
-        if not pd.to_numeric(df[col], errors="coerce").notnull().all():
-            return False
         # Always skip confidence bound columns
         if col.endswith(forecast_bounds_suffixes):
             return False
-        # Always process __yhat and original data columns
-        return True
+        if f"{col}__yhat" in df.columns:
+            # a forecast column exists for this metric; skip the raw column
+            # if it has NaN for periods it has no observations for
+            return not pd.to_numeric(df[col], errors="coerce").isnull().any()
+        # process whatever numeric observations a sparse column has
+        non_null = df[col].dropna()
+        return len(non_null) > 0 and bool(
+            pd.to_numeric(non_null, errors="coerce").notnull().all()
+        )
 
-    for column in [col for col in df.columns if _should_process_column(col)]:
+    columns_to_process = [col for col in df.columns if _should_process_column(col)]
+    name_collisions = {f"{col}__anomaly" for col in columns_to_process} & set(
+        df.columns
+    )
+    if name_collisions:
+        raise InvalidPostProcessingError(
+            _(
+                "Cannot compute anomaly detection: column(s) %(cols)s already exist",
+                cols=", ".join(sorted(name_collisions)),
+            )
+        )
+
+    for column in columns_to_process:
         series = df[column].astype(float)
         if method == "prophet":
             is_anomaly = _detect_anomalies_prophet(

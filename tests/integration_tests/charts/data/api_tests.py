@@ -647,6 +647,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "sum__num" in row
         # Anomaly columns should be present
         assert "sum__num__anomaly" in row
+        # unlike prophet, anomaly detection adds no forecast periods
+        assert result["rowcount"] == 100
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_invalid_post_processing(self):

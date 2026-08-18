@@ -557,3 +557,26 @@ test('formatForecastTooltipSeries should append anomaly marker when anomaly is o
     }),
   ).toEqual(['<img>abc', '114, ŷ = 112 (106, 117) ⚠ anomaly']);
 });
+
+test('formatForecastTooltipSeries should append anomaly marker when anomaly is set', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      observation: 10,
+      anomaly: 10,
+      formatter,
+    }),
+  ).toEqual(['<img>abc', '10 ⚠ anomaly']);
+});
+
+test('formatForecastTooltipSeries should show anomaly marker without observation', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      anomaly: 10,
+      formatter,
+    }),
+  ).toEqual(['<img>abc', '⚠ anomaly']);
+});
