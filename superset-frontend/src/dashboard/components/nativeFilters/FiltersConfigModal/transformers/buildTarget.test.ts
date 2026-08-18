@@ -82,4 +82,3 @@ test('omits datasourceType when there is no dataset', () => {
     buildNativeFilterTarget({ datasourceType: DatasourceType.Table }),
   ).toEqual({});
 });
-
