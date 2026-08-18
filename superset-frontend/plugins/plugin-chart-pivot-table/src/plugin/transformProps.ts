@@ -219,9 +219,23 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       config.colorScheme !== ColorSchemeEnum.Green &&
       config.colorScheme !== ColorSchemeEnum.Red,
   );
+  // Scale conditional formatting over the leaf (detail) cells only. A
+  // GROUPING SETS result carries the rollup levels alongside the leaf rows, so
+  // using it directly would let the grand total -- an aggregate of the very
+  // cells being shaded -- dominate the color domain and leave every detail
+  // cell nearly unshaded once the totals toggles are on.
+  const leafLevel = data.reduce<QueryData | undefined>(
+    (leaf, level) =>
+      leaf === undefined ||
+      level.groupby.rows.length + level.groupby.columns.length >
+        leaf.groupby.rows.length + leaf.groupby.columns.length
+        ? level
+        : leaf,
+    undefined,
+  );
   const metricColorFormatters = getColorFormatters(
     pivotConditionalFormatting,
-    mainQuery.data,
+    leafLevel?.data ?? mainQuery.data,
     theme,
   );
 
