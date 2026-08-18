@@ -275,15 +275,31 @@ describe('ChartList', () => {
   });
 
   test('renders the localized chart name, falling back to slice_name', async () => {
+    // Served from a response of its own rather than the shared mock, which
+    // other suites assert against by canonical name.
+    const [translated, untranslated] = mockCharts;
+    fetchMock.removeRoutes();
+    fetchMock.get(
+      API_ENDPOINTS.CHARTS,
+      {
+        result: [
+          { ...translated, localized_name: 'Graphique traduit' },
+          untranslated,
+        ],
+        chart_count: 2,
+      },
+      { name: API_ENDPOINTS.CHARTS },
+    );
+
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
     // The chart with a translation shows it instead of the canonical name.
-    expect(await screen.findByText('Graphique test 2')).toBeInTheDocument();
-    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+    expect(await screen.findByText('Graphique traduit')).toBeInTheDocument();
+    expect(screen.queryByText(translated.slice_name)).not.toBeInTheDocument();
 
     // Charts without one keep showing slice_name.
-    expect(screen.getByText('Test Chart 0')).toBeInTheDocument();
+    expect(screen.getByText(untranslated.slice_name)).toBeInTheDocument();
   });
 });
 

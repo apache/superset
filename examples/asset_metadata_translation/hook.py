@@ -107,4 +107,4 @@ def translation_batch_hook(
         )
         return {}
 
-    return dict(rows)
+    return {row.default_text: row.translated_text for row in rows}

@@ -181,13 +181,16 @@ def translate(default_text: str | None, **context: object) -> str | None:
     if cache is not None and key in cache:
         return cache[key] or default_text
 
+    # The batch hook fully replaces the single-text one when configured, so a
+    # lone lookup goes through it as a one-element batch. Preferring it here
+    # keeps a direct lookup and a prefetch from resolving against different
+    # stores when a deployment has both set.
+    if app.config.get("TRANSLATION_BATCH_HOOK") is not None:
+        return translate_many([default_text], **context).get(default_text, default_text)
+
     hook = app.config.get("TRANSLATION_HOOK")
     if hook is None:
-        # A deployment may configure only the batch hook; route through it so
-        # it is a complete replacement rather than an add-on.
-        if app.config.get("TRANSLATION_BATCH_HOOK") is None:
-            return default_text
-        return translate_many([default_text], **context).get(default_text, default_text)
+        return default_text
 
     translated = _call_hook(hook, default_text, locale_str, context)
     if cache is not None:
