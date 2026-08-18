@@ -29,6 +29,7 @@ from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
+    DashboardError,
     DashboardInfo,
     ListDashboardsRequest,
 )
@@ -634,6 +635,87 @@ async def test_get_dashboard_info_identifier_takes_precedence_over_permalink(
     assert result.data["is_permalink_state"] is False
     assert "filter_state" not in result.data
     mock_run_tool.assert_called_once_with(10)
+
+
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_permalink_with_uuid_dashboard_id(
+    mock_permalink, mock_run_tool, mcp_server
+):
+    """CreateDashboardPermalinkCommand stores dashboardId as the dashboard UUID,
+    so an explicit identifier plus that permalink must still yield filter state.
+    """
+    dashboard_uuid = "3f1a2b6c-9d4e-4f80-9c2a-7b1d5e6f8a90"
+    mock_permalink.return_value = (
+        "uuid-key",
+        {"dashboardId": dashboard_uuid, "state": {"activeTabs": ["TAB-A"]}},
+    )
+    mock_run_tool.return_value = DashboardInfo(
+        id=42, dashboard_title="Sales Dashboard", uuid=dashboard_uuid
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info",
+            {"request": {"identifier": 42, "permalink_key": "uuid-key"}},
+        )
+
+    assert result.data["id"] == 42
+    assert result.data["is_permalink_state"] is True
+    assert result.data["permalink_key"] == "uuid-key"
+    assert result.data["filter_state"]["activeTabs"] == [_wrapped("TAB-A")]
+
+
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_permalink_with_slug_dashboard_id(
+    mock_permalink, mock_run_tool, mcp_server
+):
+    """Pre-3.1 permalinks can carry a slug in dashboardId."""
+    mock_permalink.return_value = (
+        "slug-key",
+        {"dashboardId": "sales-dashboard", "state": {"activeTabs": ["TAB-A"]}},
+    )
+    mock_run_tool.return_value = DashboardInfo(
+        id=42, dashboard_title="Sales Dashboard", slug="sales-dashboard"
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info",
+            {"request": {"identifier": 42, "permalink_key": "slug-key"}},
+        )
+
+    assert result.data["is_permalink_state"] is True
+    assert result.data["filter_state"]["activeTabs"] == [_wrapped("TAB-A")]
+
+
+@patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
+@patch(
+    "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+    return_value=None,
+)
+@pytest.mark.asyncio
+async def test_get_dashboard_info_unknown_slug_keeps_not_found_error(
+    mock_permalink, mock_run_tool, mcp_server
+):
+    """A plain slug typo keeps its own not-found error instead of asking the
+    user for a shared link they never mentioned.
+    """
+    mock_run_tool.return_value = DashboardError.create(
+        "DashboardInfo with identifier 'sales-dashbord' not found", "not_found"
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": "sales-dashbord"}}
+        )
+
+    assert result.data["error_type"] == "not_found"
+    assert "sales-dashbord" in result.data["error"]
+    assert "fresh shared dashboard link" not in result.data["error"]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")

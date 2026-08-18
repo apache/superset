@@ -78,14 +78,13 @@ def _lookup_dashboard(
         is_found=lambda result: isinstance(result, DashboardInfo),
     )
     result = lookup_result.result
-    if result is None or lookup_result.permalink_error:
-        error_type = (
-            "permalink_not_found" if request.identifier is None else "not_found"
-        )
+    if result is None:
+        # Only reachable when the dashboard had to come from a permalink, so the
+        # identifier's own "not found" error (when there is one) is preserved.
         result = DashboardError.create(
             "Dashboard permalink could not be resolved. It may be invalid or "
             "expired; ask for a fresh shared dashboard link.",
-            error_type,
+            "permalink_not_found",
         )
     return result, lookup_result
 
@@ -185,6 +184,8 @@ async def get_dashboard_info(
                     permalink_state = get_matching_dashboard_permalink_state(
                         lookup_result,
                         result.id,
+                        result.uuid,
+                        result.slug,
                     )
                     if permalink_state is None:
                         await ctx.warning(
