@@ -65,6 +65,7 @@ export type AntdExposedProps = Pick<
   | 'onOpenChange'
   | 'optionRender'
   | 'placeholder'
+  | 'prefix'
   | 'showArrow'
   | 'showSearch'
   | 'tokenSeparators'
