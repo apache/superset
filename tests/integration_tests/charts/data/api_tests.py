@@ -1180,12 +1180,20 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         self.login(GAMMA_USERNAME)
         rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
 
-        # --- RED anchor: unauthorized datasource access denied (SEC-T1) ---
-        assert rv.status_code == 403
-        assert (
-            rv.json["errors"][0]["error_type"]
-            == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
-        )
+        # --- RED anchor: a restricted user is DENIED — no data reachable via the
+        # synthesized context (NFR-SEC-01). Gamma cannot read the "Genders" chart,
+        # so the GET-by-pk path denies at the chart-access gate (404) before it
+        # reaches the datasource-access gate (403); either way the user is denied
+        # and no query result is returned. The synthesized context never relaxes
+        # authz — datasource fidelity is asserted separately in
+        # test_synthesized_context_datasource_fidelity.
+        assert rv.status_code in (403, 404)
+        assert rv.status_code != 200
+        if rv.status_code == 403:
+            assert (
+                rv.json["errors"][0]["error_type"]
+                == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
+            )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_get_with_x_axis_using_custom_sql(self):
