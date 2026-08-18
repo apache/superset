@@ -646,6 +646,65 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_dashboard_derives_stale_filter_scope(self):
+        """
+        Dashboard API: ``chartsInScope`` is derived from the layout, not read
+        back from the stored cache (sc-116923).
+        """
+        admin = self.get_user("admin")
+        slices = db.session.query(Slice).limit(2).all()
+        positions = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "parents": ["ROOT_ID"]},
+        }
+        for slc in slices:
+            positions[f"CHART-{slc.id}"] = {
+                "id": f"CHART-{slc.id}",
+                "type": "CHART",
+                "meta": {"chartId": slc.id},
+                "parents": ["ROOT_ID", "GRID_ID"],
+            }
+        # A scope naming charts the dashboard does not contain - the state every
+        # seeded and imported dashboard starts in.
+        stored_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "name": "Region",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "chartsInScope": [90001, 90002],
+                    "tabsInScope": ["TAB-gone"],
+                }
+            ]
+        }
+        dashboard = self.insert_dashboard(
+            "scope-cache",
+            "scope-cache",
+            [admin.id],
+            slices=slices,
+            position_json=json.dumps(positions),
+            json_metadata=json.dumps(stored_metadata),
+        )
+
+        self.login(ADMIN_USERNAME)
+        rv = self.get_assert_metric(f"api/v1/dashboard/{dashboard.id}", "get")
+        assert rv.status_code == 200
+
+        response_metadata = json.loads(
+            json.loads(rv.data.decode("utf-8"))["result"]["json_metadata"]
+        )
+        native_filter = response_metadata["native_filter_configuration"][0]
+        assert sorted(native_filter["chartsInScope"]) == sorted(
+            slc.id for slc in slices
+        )
+        assert native_filter["tabsInScope"] == []
+        assert native_filter["name"] == "Region"
+        # Deriving is read-only; the stored document is left alone.
+        assert json.loads(dashboard.json_metadata) == stored_metadata
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
     def test_get_dashboard_with_columns(self):
         """
         Dashboard API: Test get dashboard with column selection via q param

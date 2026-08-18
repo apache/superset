@@ -45,6 +45,8 @@ from superset.mcp_service.middleware import (
     ResponseSizeGuardMiddleware,
     StructuredContentStripperMiddleware,
 )
+from superset.mcp_service.utils.token_utils import estimate_token_count
+from superset.utils import json as utils_json
 from superset.utils.log import DBEventLogger
 
 
@@ -470,6 +472,71 @@ class TestResponseSizeGuardMiddleware:
         assert isinstance(result, dict)
         assert result["_response_truncated"] is True
         assert len(result["data"]) < 200
+
+    @pytest.mark.asyncio
+    async def test_truncates_multi_query_chart_rows_across_whole_response(self) -> None:
+        """All query results share the response's token budget."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        large_response = {
+            "chart_id": 1,
+            "data": [row] * 200,
+            "row_count": 200,
+            "query_results": [
+                {"query_index": 0, "data": [row] * 200, "row_count": 200},
+                {"query_index": 1, "data": [row] * 200, "row_count": 200},
+            ],
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["_response_truncated"] is True
+        assert all(query["data"] for query in result["query_results"])
+        returned_counts = [len(query["data"]) for query in result["query_results"]]
+        assert len(set(returned_counts)) == 1
+        assert returned_counts[0] < 200
+        assert [
+            query["row_count"] for query in result["query_results"]
+        ] == returned_counts
+
+    @pytest.mark.asyncio
+    async def test_multi_query_truncation_result_fits_budget(self) -> None:
+        """The final multi-query truncation note stays within the token budget."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=700)
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        context.message.arguments = {}
+        row = {f"col_{i}": f"value_{i}" for i in range(10)}
+        response = {
+            "chart_id": 1,
+            "data": [row] * 200,
+            "row_count": 200,
+            "query_results": [
+                {"query_index": 0, "data": [row] * 200, "row_count": 200},
+                {"query_index": 1, "data": [row] * 200, "row_count": 200},
+            ],
+        }
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(
+                context, AsyncMock(return_value=response)
+            )
+
+        assert isinstance(result, dict)
+        assert estimate_token_count(utils_json.dumps(result)) <= 700
+        assert " of 400 rows returned" in result["_truncation_notes"][0]
 
     @pytest.mark.asyncio
     async def test_data_query_truncation_updates_row_count(self) -> None:
