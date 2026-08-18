@@ -4002,6 +4002,33 @@ def test_sql_filters_structured_filter_adhoc_col_blocked(
     assert _sql_filters_modified(query_context, form_data, stored_chart, None)
 
 
+def test_sql_filters_structured_filter_stored_adhoc_col_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Cross-filter with an adhoc SQL column matching a stored chart dimension
+    is allowed."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [
+            {"sqlExpression": "YEAR(order_date)", "label": "order_year"},
+        ],
+    }
+
+    adhoc_col: Any = {
+        "sqlExpression": "YEAR(order_date)",
+        "label": "order_year",
+    }
+    query = QueryObject(
+        filters=[{"col": adhoc_col, "op": "==", "val": "2024"}],
+    )
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
 def test_sql_filters_structured_filter_string_col_allowed(
     mocker: MockerFixture,
 ) -> None:
@@ -4036,10 +4063,49 @@ def test_sql_filters_empty_filter_sentinel_allowed(
     assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
 
 
-def test_sql_filters_is_extra_adhoc_filter_allowed(
+def test_sql_filters_double_sentinel_allowed(
     mocker: MockerFixture,
 ) -> None:
-    """SQL adhoc filters tagged isExtra (from dashboard filter merging) are allowed."""
+    """Two required-but-empty filters compose ``(1 = 0) AND (1 = 0)``."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject(extras={"where": "(1 = 0) AND (1 = 0)"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_stored_clause_plus_sentinel_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A stored SQL filter composed with the empty-filter sentinel is allowed."""
+    sql_filter = {
+        "expressionType": "SQL",
+        "sqlExpression": "region = 'EMEA'",
+        "clause": "WHERE",
+    }
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {"adhoc_filters": [sql_filter]}
+
+    query = QueryObject(
+        extras={"where": "(region = 'EMEA') AND (1 = 0)"},
+    )
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_non_dict_adhoc_filter_skipped(
+    mocker: MockerFixture,
+) -> None:
+    """Non-dict items in adhoc_filters are skipped, not 500."""
     query_context = mocker.MagicMock()
     stored_chart = mocker.MagicMock()
     stored_chart.params_dict = {}
@@ -4047,15 +4113,40 @@ def test_sql_filters_is_extra_adhoc_filter_allowed(
     query = QueryObject()
     query_context.queries = [query]
 
-    dashboard_filter = {
-        "expressionType": "SQL",
-        "sqlExpression": "1 = 0",
-        "clause": "WHERE",
-        "isExtra": True,
+    form_data: dict[str, Any] = {
+        "slice_id": 1,
+        "adhoc_filters": ["not_a_dict", 42, None],
     }
-    form_data: dict[str, Any] = {"slice_id": 1, "adhoc_filters": [dashboard_filter]}
 
     assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_query_context_modified_chartless_sql_extras_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Chartless request (no slice_id) with SQL extras is blocked."""
+    query_context = mocker.MagicMock()
+    query_context.slice_ = None
+    query_context.form_data = {}
+    query_context.queries = [
+        QueryObject(extras={"where": "(1=1 UNION SELECT x FROM y)"}),
+    ]
+
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_chartless_sentinel_only_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Chartless request with only the empty-filter sentinel is allowed."""
+    query_context = mocker.MagicMock()
+    query_context.slice_ = None
+    query_context.form_data = {}
+    query_context.queries = [
+        QueryObject(extras={"where": "(1 = 0)"}),
+    ]
+
+    assert not query_context_modified(query_context)
 
 
 def test_raise_for_access_guest_user_sql_filter_injection_blocked(

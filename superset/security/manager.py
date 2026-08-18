@@ -1107,83 +1107,110 @@ def _orderby_modified(
     return False
 
 
-def _collect_allowed_sql_extras(
-    stored_chart: "Slice",
-    stored_query_context: Optional[dict[str, Any]],
-) -> tuple[set[str], set[str]]:
-    """
-    Collect the ``extras.where`` and ``extras.having`` values that a guest user
-    is allowed to send, derived from the stored chart and its query context.
-    """
-    from superset.common.form_data_query_context import freeform_where_having
-
-    allowed_where: set[str] = set()
-    allowed_having: set[str] = set()
-
-    stored_extras = freeform_where_having(stored_chart.params_dict)
-    if stored_extras.get("where"):
-        allowed_where.add(stored_extras["where"])
-    if stored_extras.get("having"):
-        allowed_having.add(stored_extras["having"])
-
-    if stored_query_context:
-        for query in stored_query_context.get("queries") or []:
-            extras = query.get("extras") or {}
-            if extras.get("where"):
-                allowed_where.add(extras["where"])
-            if extras.get("having"):
-                allowed_having.add(extras["having"])
-
-    return allowed_where, allowed_having
-
-
 # The frontend emits ``{expressionType: "SQL", sqlExpression: "1 = 0"}`` when
 # a native Select filter has "Filter value is required" enabled and no value
 # has been selected yet (superset-frontend/src/filters/utils.ts).  After
 # ``_sanitize_clause`` wraps it in parentheses the resulting ``extras.where``
-# value is ``(1 = 0)``.  This is safe — it returns zero rows — and must be
+# clause is ``(1 = 0)``.  This is safe — it returns zero rows — and must be
 # allowed so that embedded charts are not rejected before the user picks a
 # filter value.
-_EMPTY_FILTER_SENTINEL = "(1 = 0)"
+_EMPTY_FILTER_SENTINEL = "1 = 0"
 
 
-def _filter_has_adhoc_sql_col(flt: Any) -> bool:
+def _split_extras_clauses(composed: str) -> list[str]:
     """
-    Whether a structured ``{col, op, val}`` filter carries an adhoc column
-    with a ``sqlExpression``, which would reach ``adhoc_column_to_sqla``
-    and execute arbitrary SQL in the WHERE clause.
+    Extract raw SQL expressions from a composed ``extras.where`` /
+    ``extras.having`` string.
+
+    ``_sanitize_clause`` / ``processFilters.ts`` wraps each expression in
+    one layer of parentheses and joins them with ``' AND '``, producing
+    strings like ``(expr1) AND (expr2)``.  This reverses that: split on
+    ``) AND (``, strip the single outer parens, and return the raw
+    expressions.
     """
-    if not isinstance(flt, dict):
-        return False
-    col = flt.get("col")
-    return (
-        isinstance(col, dict)
-        and isinstance(col.get("sqlExpression"), str)
-        and bool(col.get("sqlExpression"))
-    )
+    if not composed:
+        return []
+    raw = composed.split(") AND (")
+    # Strip exactly one outer paren added by _sanitize_clause.
+    if raw[0].startswith("("):
+        raw[0] = raw[0][1:]
+    if raw[-1].endswith(")"):
+        raw[-1] = raw[-1][:-1]
+    return raw
 
 
-def _query_extras_sql_modified(
-    query: Any,
-    allowed_where: set[str],
-    allowed_having: set[str],
-) -> bool:
+def _add_allowed_sql_from_query_context(
+    allowed: set[str],
+    stored_query_context: dict[str, Any],
+) -> None:
+    """Add allowed SQL expressions from a stored query context."""
+    for query in stored_query_context.get("queries") or []:
+        for param in ("where", "having"):
+            composed = (query.get("extras") or {}).get(param, "")
+            for expr in _split_extras_clauses(composed):
+                allowed.add(expr)
+            # Keep the full composed value as a fallback in case a stored
+            # expression contains a literal ") AND (" that the split would
+            # incorrectly break apart.
+            if composed:
+                allowed.add(composed)
+        for key in ("columns", "groupby"):
+            for col in query.get(key) or []:
+                if isinstance(col, dict) and col.get("sqlExpression"):
+                    allowed.add(col["sqlExpression"])
+
+
+def _collect_allowed_sql(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> set[str]:
     """
-    Whether a single query's ``extras.where``/``extras.having`` or structured
-    filters inject SQL not present on the stored chart.
+    Collect every raw SQL expression a guest user is allowed to send,
+    derived from the stored chart's params and query context.
+
+    This single set validates all three SQL injection vectors:
+    ``extras.where``/``extras.having`` clauses, SQL-type adhoc filters, and
+    adhoc-column ``col`` values in structured filters.
+
+    The empty-filter sentinel ``1 = 0`` is always included.
     """
+    allowed: set[str] = {_EMPTY_FILTER_SENTINEL}
+    params = stored_chart.params_dict
+
+    for flt in params.get("adhoc_filters") or []:
+        if flt.get("expressionType") == "SQL" and flt.get("sqlExpression"):
+            allowed.add(flt["sqlExpression"])
+
+    if params.get("where"):
+        allowed.add(params["where"])
+
+    for key in _STORED_COLUMN_PARAMS:
+        for col in params.get(key) or []:
+            if isinstance(col, dict) and col.get("sqlExpression"):
+                allowed.add(col["sqlExpression"])
+
+    if stored_query_context:
+        _add_allowed_sql_from_query_context(allowed, stored_query_context)
+
+    return allowed
+
+
+def _query_has_novel_sql(query: Any, allowed: set[str]) -> bool:
+    """Whether a single query carries SQL not in the allowed set."""
     extras = query.extras or {}
-    req_where = extras.get("where", "")
-    if req_where and req_where != _EMPTY_FILTER_SENTINEL:
-        if req_where not in allowed_where:
-            return True
-    req_having = extras.get("having", "")
-    if req_having and req_having != _EMPTY_FILTER_SENTINEL:
-        if req_having not in allowed_having:
-            return True
+    for param in ("where", "having"):
+        composed = extras.get(param, "")
+        if composed and composed not in allowed:
+            for expr in _split_extras_clauses(composed):
+                if expr not in allowed:
+                    return True
+
     for flt in query.filter or []:
-        if _filter_has_adhoc_sql_col(flt):
-            return True
+        if isinstance(flt, dict):
+            col = flt.get("col")
+            if isinstance(col, dict) and col.get("sqlExpression"):
+                if col["sqlExpression"] not in allowed:
+                    return True
     return False
 
 
@@ -1194,37 +1221,33 @@ def _sql_filters_modified(
     stored_query_context: Optional[dict[str, Any]],
 ) -> bool:
     """
-    Whether the request injects custom SQL predicates that are not present on
-    the stored chart.  Covers three vectors:
+    Whether the request injects custom SQL not present on the stored chart.
+
+    Covers three vectors:
 
     1. ``extras.where`` / ``extras.having`` — raw SQL strings.
     2. Adhoc filters with ``expressionType == "SQL"`` in ``form_data``.
-    3. Structured ``{col, op, val}`` filters whose ``col`` is an adhoc column
-       carrying a ``sqlExpression`` (reaches ``adhoc_column_to_sqla``).
+    3. Structured ``{col, op, val}`` filters whose ``col`` carries a
+       ``sqlExpression`` (reaches ``adhoc_column_to_sqla``).
 
-    Dashboard native filters can inject the ``(1 = 0)`` empty-filter sentinel
-    and adhoc filters tagged ``isExtra`` via ``merge_extra_form_data``; both
-    are allowed so embedded charts with required-but-empty filters are not
-    rejected.
+    The ``(1 = 0)`` empty-filter sentinel injected by required-but-empty
+    native Select filters is always allowed.
     """
-    allowed_where, allowed_having = _collect_allowed_sql_extras(
-        stored_chart, stored_query_context
-    )
+    allowed = _collect_allowed_sql(stored_chart, stored_query_context)
 
-    if any(
-        _query_extras_sql_modified(query, allowed_where, allowed_having)
-        for query in query_context.queries
-    ):
+    if any(_query_has_novel_sql(q, allowed) for q in query_context.queries):
         return True
 
     stored_sql_filters: set[str] = {
         freeze_value(flt)
         for flt in stored_chart.params_dict.get("adhoc_filters") or []
-        if flt.get("expressionType") == "SQL"
+        if isinstance(flt, dict) and flt.get("expressionType") == "SQL"
     }
 
     for flt in form_data.get("adhoc_filters") or []:
-        if flt.get("expressionType") == "SQL" and not flt.get("isExtra"):
+        if not isinstance(flt, dict):
+            continue
+        if flt.get("expressionType") == "SQL":
             if freeze_value(flt) not in stored_sql_filters:
                 return True
 
@@ -1361,7 +1384,15 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # native filter is allowed to target; other chartless paths keep prior
     # behavior (see _native_filter_request_modified).
     if stored_chart is None:
-        return _native_filter_request_modified(query_context)
+        if _native_filter_request_modified(query_context):
+            return True
+        # Chartless non-native-filter requests (drill-to-detail, drill-by,
+        # samples) must not carry SQL extras; there is no stored chart to
+        # validate them against.  Only the empty-filter sentinel is allowed.
+        sentinel_only: set[str] = {_EMPTY_FILTER_SENTINEL}
+        return any(
+            _query_has_novel_sql(q, sentinel_only) for q in query_context.queries
+        )
 
     if form_data is None:
         return False
