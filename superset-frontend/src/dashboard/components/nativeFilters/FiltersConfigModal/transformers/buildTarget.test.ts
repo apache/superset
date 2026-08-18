@@ -72,3 +72,13 @@ test('omits datasourceType when undefined', () => {
   });
   expect(target).not.toHaveProperty('datasourceType');
 });
+
+test('omits datasourceType when there is no dataset', () => {
+  // The modal stamps a hidden ``datasourceType`` field on every filter form,
+  // including dataset-less types. Without a dataset there is nothing for it to
+  // describe, and emitting it would diverge from the ``{}`` target the import
+  // and seed paths write.
+  expect(
+    buildNativeFilterTarget({ datasourceType: DatasourceType.Table }),
+  ).toEqual({});
+});

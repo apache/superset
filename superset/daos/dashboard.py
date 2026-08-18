@@ -34,11 +34,12 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.dashboards.filters import DashboardAccessFilter, is_uuid
+from superset.dashboards.filter_scope import derive_metadata_scopes
+from superset.dashboards.filters import DashboardAccessFilter
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter
+from superset.models.dashboard import Dashboard, id_or_slug_filter, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
@@ -547,7 +548,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         cls, id: str
     ) -> dict[str, list[dict[str, Any]]]:
         dashboard = cls.get_by_id_or_slug(id)
-        metadata = json.loads(dashboard.json_metadata or "{}")
+        metadata = derive_metadata_scopes(
+            dashboard, json.loads(dashboard.json_metadata or "{}")
+        )
         native_filter_configuration = metadata.get("native_filter_configuration", [])
 
         tab_filters = defaultdict(list)
@@ -616,6 +619,13 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
             metadata["native_filter_configuration"] = updated_configuration
             dashboard.json_metadata = json.dumps(metadata)
+
+            # The client rebuilds its in-scope state from this response, so hand
+            # back derived scopes rather than the stored caches, which are stale
+            # for every filter the caller did not touch.
+            updated_configuration = derive_metadata_scopes(dashboard, metadata)[
+                "native_filter_configuration"
+            ]
 
         return updated_configuration
 

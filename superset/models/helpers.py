@@ -181,6 +181,24 @@ OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 R_SUFFIX = "__right_suffix"
 
 
+def _normalize_mssql_virtual_dataset_sql(
+    sql: str, parsed_script: SQLScript, engine: str
+) -> str:
+    """Remove SQL Server ordering that is invalid inside a derived table."""
+    if engine != "mssql" or not parsed_script.statements:
+        return sql
+
+    statement = parsed_script.statements[0]
+    if not isinstance(statement, SQLStatement):
+        return sql
+
+    return (
+        parsed_script.format()
+        if statement.remove_unbounded_top_level_order_by()
+        else sql
+    )
+
+
 def _as_wall_clock(series: pd.Series) -> pd.Series:
     """
     Return a datetime series as local wall-clock readings, dropping any
@@ -3173,6 +3191,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "predicates apply to its tables; continuing: %s",
                     ex,
                 )
+
+        from_sql = _normalize_mssql_virtual_dataset_sql(
+            from_sql, parsed_script, self.db_engine_spec.engine
+        )
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
