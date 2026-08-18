@@ -17,12 +17,15 @@
  * under the License.
  */
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { batch } from 'react-redux';
 import { store } from '../views/store';
 import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
 import { DashboardChartStates } from '../dashboard/types/chartState';
 import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
 import { getChartDataPayloads as getChartDataPayloadsUtil } from './utils';
+import { updateDataMask } from '../dataMask/actions';
 
 const bootstrapData = getBootstrapData();
 
@@ -40,6 +43,7 @@ type EmbeddedSupersetApi = {
   getChartDataPayloads: (params?: {
     chartId?: number;
   }) => Promise<Record<string, JsonObject>>;
+  setDataMask: ({ dataMask }: { dataMask: DataMaskStateWithId }) => void;
 };
 
 const getScrollSize = (): Size => ({
@@ -83,6 +87,58 @@ const getActiveTabs = () => store?.getState()?.dashboardState?.activeTabs || [];
 
 const getDataMask = () => store?.getState()?.dataMask || {};
 
+const isDashboardHydrated = () => Boolean(store?.getState()?.dashboardInfo?.id);
+
+const applyDataMask = (dataMask: DataMaskStateWithId) => {
+  // The dashboard's own data mask holds an entry for every native filter and
+  // every cross-filter-capable chart, so it doubles as the set of filter ids
+  // this dashboard can accept. Anything else — a filter id from a different
+  // dashboard, or the change-trigger flags that `observeDataMask` emits
+  // alongside the mask — would otherwise be inserted as a bogus filter and
+  // treated as a globally scoped filter by the active-filter derivation.
+  const knownFilterIds = new Set(Object.keys(getDataMask()));
+  const entries = Object.entries(dataMask);
+  const applicable = entries.filter(([id]) => knownFilterIds.has(id));
+  const ignored = entries.filter(([id]) => !knownFilterIds.has(id));
+
+  if (ignored.length) {
+    logging.warn(
+      '[superset] setDataMask ignored unknown filter ids:',
+      ignored.map(([id]) => id).join(', '),
+    );
+  }
+
+  batch(() => {
+    applicable.forEach(([filterId, mask]) => {
+      store?.dispatch(updateDataMask(filterId, mask));
+    });
+  });
+};
+
+// A mask requested before the dashboard hydrates cannot be applied yet: the
+// store holds no filter entries to validate the ids against, and hydration
+// would replace anything dispatched in the meantime. Hold the request and
+// replay it once hydration lands.
+let queuedDataMask: DataMaskStateWithId | undefined;
+let unsubscribeFromHydration: (() => void) | undefined;
+
+const setDataMask = ({ dataMask }: { dataMask: DataMaskStateWithId }) => {
+  if (isDashboardHydrated()) {
+    applyDataMask(dataMask);
+    return;
+  }
+
+  queuedDataMask = { ...queuedDataMask, ...dataMask };
+  unsubscribeFromHydration ??= store?.subscribe(() => {
+    if (!isDashboardHydrated()) return;
+    unsubscribeFromHydration?.();
+    unsubscribeFromHydration = undefined;
+    const pending = queuedDataMask;
+    queuedDataMask = undefined;
+    if (pending) applyDataMask(pending);
+  });
+};
+
 const getChartStates = () =>
   store?.getState()?.dashboardState?.chartStates || {};
 
@@ -102,4 +158,5 @@ export const embeddedApi: EmbeddedSupersetApi = {
   getDataMask,
   getChartStates,
   getChartDataPayloads,
+  setDataMask,
 };
