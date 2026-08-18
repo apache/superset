@@ -236,8 +236,10 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
 Themes now carry a list of **editors** (users, roles, or groups). A new
 `theme_editors` junction table is created by the migration
-`f7e8d9c0b1a2_add_theme_editors_table`. Themes never had owners, so the table
-starts empty and no backfill is performed.
+`f7e8d9c0b1a2_add_theme_editors_table`. On upgrade, each existing non-system
+theme's creator is backfilled as an editor so authors keep edit access (an
+empty editors list means admin-only). System themes are left with no editors
+and remain admin-only to edit.
 
 Behavioral changes:
 

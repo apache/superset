@@ -38,6 +38,7 @@ def _user_subject(username: str) -> Subject:
     """Get (or lazily create) the USER-type Subject for a username."""
     user = security_manager.find_user(username=username)
     subject = get_or_create_user_subject(user.id)
+    assert subject is not None
     db.session.commit()
     return subject
 
