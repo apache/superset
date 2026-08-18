@@ -122,6 +122,7 @@ export default function AddDataset() {
       dbId={dataset?.db?.id}
       catalog={dataset?.catalog}
       schema={dataset?.schema}
+      database={dataset?.db}
       setHasColumns={setHasColumns}
       datasets={datasets}
     />

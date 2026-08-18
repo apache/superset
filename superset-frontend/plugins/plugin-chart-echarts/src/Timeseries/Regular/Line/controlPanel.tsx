@@ -17,7 +17,10 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { getColumnLabel, QueryFormColumn } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSubSectionHeader,
@@ -105,6 +108,22 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'rebase_percent_change',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Percent change'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Rebase each series to its percent change from a baseline ' +
+                  'point, like the legacy Time-series Percent Change chart. ' +
+                  'Drag the vertical baseline on the chart to re-index.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'markerEnabled',
             config: {
               type: 'CheckboxControl',
@@ -144,8 +163,31 @@ const config: ControlPanelConfig = {
             name: 'x_axis_time_format',
             config: {
               ...sharedControls.x_axis_time_format,
-              default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Temporal],
+                ),
+              disableStash: true,
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_number_format',
+            config: {
+              ...sharedControls.x_axis_number_format,
+              default: '~g',
+              mapStateToProps: undefined,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Numeric],
+                ),
             },
           },
         ],

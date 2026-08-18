@@ -18,14 +18,21 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
-import { kebabCase } from 'lodash';
-// eslint-disable-next-line no-restricted-imports
+import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import type { AgGridContainerElement } from '@superset-ui/core/components';
+import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
+const PNG_SCALE = 2; // Higher quality for PNG
+export type BackgroundType = 'transparent' | 'solid';
 const TRANSPARENT_RGBA = 'transparent';
+const POLL_INTERVAL_MS = 100;
+
+// Tracks original cell styles to restore after capture
+type CellFixup = { el: HTMLElement; minHeight: string; overflow: string };
 
 /**
  * generate a consistent file stem from a description and date
@@ -80,6 +87,9 @@ const CRITICAL_STYLE_PROPERTIES = new Set([
   'table-layout',
   'vertical-align',
   'text-align',
+  'box-sizing',
+  'min-height',
+  'min-width',
 ]);
 
 const styleCache = new WeakMap<Element, CSSStyleDeclaration>();
@@ -253,7 +263,6 @@ const createEnhancedClone = (
   processCloneForVisibility(clone);
 
   const cleanup = () => {
-    styleCache.delete?.(originalElement);
     if (tempContainer.parentElement) {
       tempContainer.parentElement.removeChild(tempContainer);
     }
@@ -262,12 +271,61 @@ const createEnhancedClone = (
   return { clone, cleanup };
 };
 
+export type ImageFormat = 'jpeg' | 'png';
+
+export interface DownloadImageOptions {
+  format?: ImageFormat;
+  backgroundType?: BackgroundType;
+}
+
+// Polls until scrollHeight is stable for minStablePolls consecutive intervals or maxMs elapses.
+// ag-grid has no "layout settled" event, so polling is the recommended workaround.
+export const waitForStableScrollHeight = (
+  el: HTMLElement,
+  maxMs = 5000,
+  minStablePolls = 2,
+): Promise<void> =>
+  new Promise<void>(resolve => {
+    const deadline = Date.now() + maxMs;
+    let lastHeight = el.scrollHeight;
+    let stableCount = 0;
+
+    const poll = () => {
+      if (Date.now() >= deadline) {
+        resolve();
+        return;
+      }
+      try {
+        const h = el.scrollHeight;
+        if (h === lastHeight) {
+          stableCount += 1;
+          if (stableCount >= minStablePolls) {
+            resolve();
+            return;
+          }
+        } else {
+          stableCount = 0;
+          lastHeight = h;
+        }
+      } catch {
+        resolve(); // element removed from DOM
+        return;
+      }
+      setTimeout(poll, POLL_INTERVAL_MS);
+    };
+
+    setTimeout(poll, POLL_INTERVAL_MS);
+  });
+
 export default function downloadAsImageOptimized(
   selector: string,
   description: string,
   isExactSelector = false,
   theme?: SupersetTheme,
+  options: DownloadImageOptions = {},
 ) {
+  const { format = 'jpeg', backgroundType = 'solid' } = options;
+
   return async (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
       ? document.querySelector(selector)
@@ -280,6 +338,170 @@ export default function downloadAsImageOptimized(
       return;
     }
 
+    // Force any virtualized (unmounted) charts to render before capturing, so
+    // off-screen rows are not exported as loading spinners. Must be restored on
+    // every exit path below.
+    const didForceLoad = await forceLoadAllCharts(elementToPrint);
+
+    const filter = (node: Element) =>
+      typeof node.className === 'string'
+        ? !node.className.includes('mapboxgl-control-container') &&
+          !node.className.includes('header-controls')
+        : true;
+
+    const isPng = format === 'png';
+    const scale = isPng ? PNG_SCALE : 1;
+    const bgcolor =
+      isPng && backgroundType === 'transparent'
+        ? 'transparent'
+        : theme?.colorBgContainer;
+
+    // Only apply ag-grid path for single-chart captures.
+    // Skip entirely for dashboard-level exports (selector targets the .dashboard root).
+    const isDashboardCapture = (
+      elementToPrint as HTMLElement
+    ).classList.contains('dashboard');
+    const agContainers = isDashboardCapture
+      ? []
+      : elementToPrint.querySelectorAll('[data-themed-ag-grid]');
+    const agContainer =
+      agContainers.length === 1
+        ? (agContainers[0] as AgGridContainerElement)
+        : null;
+    const agRootWrapper = agContainer
+      ? (agContainer.querySelector('.ag-root-wrapper') as HTMLElement | null)
+      : null;
+
+    if (agContainer && agRootWrapper) {
+      const api = agContainer._agGridApi;
+      const isFirstDataRendered = agContainer._agGridFirstDataRendered === true;
+
+      if (!isFirstDataRendered) {
+        addWarningToast(
+          t('The chart is still loading. Please wait a moment and try again.'),
+        );
+        // This early return skips the capture, so restore virtualization here;
+        // otherwise it would stay forced-on for the rest of the session.
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
+        return;
+      }
+
+      // Capture resolved pixel widths before print layout can re-trigger sizeColumnsToFit.
+      // sizeColumnsToFit() sets flex (not pixel widths), so after print layout expands the
+      // container it recalculates column widths wider. We restore with flex: null to force
+      // pixel widths when calling applyColumnState after the layout switch.
+      const savedColumnState = api?.getColumnState?.();
+      const visibleColumnState =
+        savedColumnState?.filter(col => !col.hide) ?? [];
+      const originalWidth =
+        visibleColumnState.reduce((sum, col) => sum + (col.width ?? 0), 0) ||
+        agRootWrapper.offsetWidth;
+
+      // Chrome SVG foreignObject bug: % min-height resolves against canvas height,
+      // causing cells to expand to full image height and overlap adjacent rows.
+      const cellFixups: CellFixup[] = [];
+
+      try {
+        await document.fonts.ready;
+
+        if (api) {
+          api.setGridOption('domLayout', 'print');
+
+          // Wait for ResizeObserver + any triggered sizeColumnsToFit() to settle,
+          // then restore column widths before measurement.
+          await new Promise<void>(resolve =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+
+          if (visibleColumnState.length > 0) {
+            api.applyColumnState?.({
+              state: visibleColumnState.map(col => ({
+                colId: col.colId,
+                width: col.width,
+                flex: null,
+              })),
+              applyOrder: false,
+            });
+          }
+
+          // Rows never scrolled into view have stale cached heights; remeasure all.
+          api.resetRowHeights?.();
+
+          // 5 polls × POLL_INTERVAL_MS = 500 ms; autoHeight rows batch-measure slowly.
+          await waitForStableScrollHeight(agRootWrapper, 5000, 5);
+        }
+
+        agRootWrapper.querySelectorAll('.ag-cell').forEach(cell => {
+          const el = cell as HTMLElement;
+          const rowHeight =
+            (el.parentElement as HTMLElement)?.offsetHeight ?? 0;
+          // scrollHeight catches any cells where resetRowHeights lagged behind.
+          const minH = Math.max(rowHeight, el.scrollHeight);
+          cellFixups.push({
+            el,
+            minHeight: el.style.minHeight,
+            overflow: el.style.overflow,
+          });
+          el.style.minHeight = minH > 0 ? `${minH}px` : '0px';
+          el.style.overflow = 'hidden';
+        });
+
+        const imageHeight = agRootWrapper.scrollHeight;
+
+        const agImageOptions = {
+          bgcolor,
+          filter,
+          quality: IMAGE_DOWNLOAD_QUALITY,
+          height: imageHeight * scale,
+          width: originalWidth * scale,
+          cacheBust: true,
+          ...(isPng && {
+            style: {
+              transform: `scale(${PNG_SCALE})`,
+              transformOrigin: 'top left',
+              width: `${originalWidth}px`,
+              height: `${imageHeight}px`,
+            },
+          }),
+        };
+
+        const dataUrl = isPng
+          ? await domToImage.toPng(agRootWrapper, agImageOptions)
+          : await domToImage.toJpeg(agRootWrapper, agImageOptions);
+
+        const link = document.createElement('a');
+        link.download = `${generateFileStem(description)}.${isPng ? 'png' : 'jpg'}`;
+        link.href = dataUrl;
+        link.click();
+      } catch (error) {
+        console.error('Creating image failed', error);
+        addWarningToast(
+          t('Image download failed, please refresh and try again.'),
+        );
+      } finally {
+        cellFixups.forEach(({ el, minHeight, overflow }) => {
+          el.style.minHeight = minHeight;
+          el.style.overflow = overflow;
+        });
+        if (api) {
+          api.setGridOption('domLayout', 'normal');
+          if (savedColumnState) {
+            api.applyColumnState?.({
+              state: savedColumnState,
+              applyOrder: false,
+            });
+          }
+        }
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
+      }
+      return;
+    }
+
+    // All other chart types: use the clone-based approach
     let cleanup: (() => void) | null = null;
 
     try {
@@ -289,26 +511,33 @@ export default function downloadAsImageOptimized(
       );
       cleanup = cleanupFn;
 
-      const filter = (node: Element) =>
-        typeof node.className === 'string'
-          ? !node.className.includes('mapboxgl-control-container') &&
-            !node.className.includes('header-controls')
-          : true;
-
-      const dataUrl = await domToImage.toJpeg(clone, {
-        bgcolor: theme?.colorBgContainer,
+      const imageOptions = {
+        bgcolor,
         filter,
         quality: IMAGE_DOWNLOAD_QUALITY,
-        height: clone.scrollHeight,
-        width: clone.scrollWidth,
+        height: clone.scrollHeight * scale,
+        width: clone.scrollWidth * scale,
         cacheBust: true,
-      });
+        ...(isPng && {
+          style: {
+            transform: `scale(${PNG_SCALE})`,
+            transformOrigin: 'top left',
+            width: `${clone.scrollWidth}px`,
+            height: `${clone.scrollHeight}px`,
+          },
+        }),
+      };
+
+      const dataUrl = isPng
+        ? await domToImage.toPng(clone, imageOptions)
+        : await domToImage.toJpeg(clone, imageOptions);
 
       cleanup();
       cleanup = null;
 
+      const extension = isPng ? 'png' : 'jpg';
       const link = document.createElement('a');
-      link.download = `${generateFileStem(description)}.jpg`;
+      link.download = `${generateFileStem(description)}.${extension}`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
@@ -318,6 +547,9 @@ export default function downloadAsImageOptimized(
       );
     } finally {
       if (cleanup) cleanup();
+      if (didForceLoad) {
+        restoreVirtualization();
+      }
     }
   };
 }

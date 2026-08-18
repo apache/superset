@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useDeferredValue, useMemo } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import ControlHeader, {
   ControlHeaderProps,
@@ -28,7 +28,6 @@ import {
   EChartOptionsParseError,
 } from '@superset-ui/plugin-chart-echarts';
 import { EditorHost } from 'src/core/editors';
-import { useDebounceValue } from 'src/hooks/useDebounceValue';
 
 const Container = styled.div`
   border: 1px solid ${({ theme }) => theme.colorBorder};
@@ -50,10 +49,10 @@ export default function JSEditorControl({
   onChange,
   value,
 }: ControlHeaderProps & ControlComponentProps<string>) {
-  const debouncedValue = useDebounceValue(value);
+  const deferredValue = useDeferredValue(value);
   const error = useMemo(() => {
     try {
-      safeParseEChartOptions(debouncedValue ?? '');
+      safeParseEChartOptions(deferredValue ?? '');
       return null;
     } catch (err) {
       if (err instanceof EChartOptionsParseError) {
@@ -61,7 +60,7 @@ export default function JSEditorControl({
       }
       throw err;
     }
-  }, [debouncedValue]);
+  }, [deferredValue]);
   const headerProps = {
     name,
     label: label ?? name,

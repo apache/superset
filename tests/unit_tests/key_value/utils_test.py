@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 from unittest.mock import MagicMock
 from uuid import UUID
 
@@ -27,6 +28,50 @@ from superset.key_value.types import KeyValueResource
 RESOURCE = KeyValueResource.APP
 UUID_KEY = UUID("3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc")
 ID_KEY = 123
+
+
+def _decoded_byte_length(key: str) -> int:
+    """Return the number of random bytes encoded in a token_urlsafe string."""
+    padding = "=" * (-len(key) % 4)
+    return len(base64.urlsafe_b64decode(key + padding))
+
+
+def test_random_key_default_entropy() -> None:
+    """random_key defaults to at least 128 bits (16 bytes) of entropy."""
+    from superset.key_value.utils import MIN_KEY_NBYTES, random_key
+
+    assert MIN_KEY_NBYTES == 16
+    key = random_key()
+    assert _decoded_byte_length(key) >= 16
+
+
+def test_random_key_explicit_nbytes() -> None:
+    """random_key honors an explicit nbytes value at or above the minimum."""
+    from superset.key_value.utils import random_key
+
+    key = random_key(48)
+    assert _decoded_byte_length(key) == 48
+
+
+@pytest.mark.parametrize("nbytes", [0, 8, 15])
+def test_random_key_rejects_weak_entropy(nbytes: int) -> None:
+    """random_key rejects requests for fewer than 16 bytes of entropy."""
+    from superset.key_value.utils import random_key
+
+    with pytest.raises(ValueError, match="at least"):
+        random_key(nbytes)
+
+
+def test_uuid_namespace_from_md5_warns(caplog) -> None:
+    """The deprecated MD5 namespace path emits a deprecation warning."""
+    import logging
+
+    from superset.key_value.utils import _uuid_namespace_from_md5
+
+    with caplog.at_level(logging.WARNING):
+        _uuid_namespace_from_md5("seed")
+
+    assert any("deprecated" in record.message.lower() for record in caplog.records)
 
 
 @pytest.mark.parametrize(

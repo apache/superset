@@ -33,7 +33,6 @@ export const FoldersToolbar = styled.div`
     top: -${theme.margin}px; // offsets tabs component bottom margin
     z-index: 10;
     background: ${theme.colorBgContainer};
-    padding-top: ${theme.paddingMD}px;
     display: flex;
     flex-direction: column;
     gap: ${theme.paddingLG}px;

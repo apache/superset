@@ -26,7 +26,7 @@ test('t() warns and creates a default translator when called before configure', 
     const { t } = require('./TranslatorSingleton');
     const result = t('hello');
     expect(consoleSpy).toHaveBeenCalledWith(
-      'You should call configure(...) before calling other methods',
+      expect.stringMatching(/was called before configure\(\)/),
     );
     expect(result).toBe('hello');
     consoleSpy.mockRestore();
@@ -54,7 +54,7 @@ test('resetTranslation resets the configured singleton', () => {
     // After reset, calling t() should warn again
     t('hello');
     expect(consoleSpy).toHaveBeenCalledWith(
-      'You should call configure(...) before calling other methods',
+      expect.stringMatching(/was called before configure\(\)/),
     );
     consoleSpy.mockRestore();
   });
@@ -96,6 +96,69 @@ test('tn() calls translateWithNumber on the singleton', () => {
   });
 });
 
+test('pre-configure warning fires once per unique key', () => {
+  jest.isolateModules(() => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    t('apple');
+    t('apple');
+    t('apple');
+    t('banana');
+    expect(consoleSpy).toHaveBeenCalledTimes(2);
+    expect(consoleSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('"apple"'),
+    );
+    expect(consoleSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('"banana"'),
+    );
+    consoleSpy.mockRestore();
+  });
+});
+
+test('pre-configure warning suggests the lazy-function fix', () => {
+  jest.isolateModules(() => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    t('Sort ascending');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('() => t("Sort ascending")'),
+    );
+    consoleSpy.mockRestore();
+  });
+});
+
+test('pre-configure warning is suppressed in production', () => {
+  jest.isolateModules(() => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    t('hello');
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+    if (originalEnv !== undefined) {
+      process.env.NODE_ENV = originalEnv;
+    } else {
+      delete process.env.NODE_ENV;
+    }
+  });
+});
+
+test('resetTranslation clears the warned-keys dedupe set', () => {
+  jest.isolateModules(() => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t, resetTranslation } = require('./TranslatorSingleton');
+    t('hello');
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    resetTranslation();
+    t('hello');
+    expect(consoleSpy).toHaveBeenCalledTimes(2);
+    consoleSpy.mockRestore();
+  });
+});
+
 test('resetTranslation does nothing when not yet configured', () => {
   jest.isolateModules(() => {
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -105,8 +168,87 @@ test('resetTranslation does nothing when not yet configured', () => {
     // The singleton is still unconfigured, so t() warns
     t('hello');
     expect(consoleSpy).toHaveBeenCalledWith(
-      'You should call configure(...) before calling other methods',
+      expect.stringMatching(/was called before configure\(\)/),
     );
     consoleSpy.mockRestore();
+  });
+});
+
+// --- autoConfigureFromWindow ----------------------------------------------
+// These cover the bootstrap-injection path used to dodge the
+// module-level `const X = t(...)` race across code-split chunks
+// (upstream issue #35330).
+
+test('t() self-configures from window.__SUPERSET_LANGUAGE_PACK__ on first call', () => {
+  jest.isolateModules(() => {
+    window.__SUPERSET_LANGUAGE_PACK__ = {
+      domain: 'superset',
+      locale_data: {
+        superset: {
+          '': {
+            domain: 'superset',
+            lang: 'fr',
+            plural_forms: 'nplurals=2; plural=(n > 1);',
+          },
+          hello: ['bonjour'],
+        },
+      },
+    };
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    expect(t('hello')).toBe('bonjour');
+    // No "should call configure" warning because we self-configured first.
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+    delete window.__SUPERSET_LANGUAGE_PACK__;
+  });
+});
+
+test('t() falls back to msgid when window has no language pack', () => {
+  jest.isolateModules(() => {
+    delete window.__SUPERSET_LANGUAGE_PACK__;
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    expect(t('hello')).toBe('hello');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/was called before configure\(\)/),
+    );
+    consoleSpy.mockRestore();
+  });
+});
+
+test('explicit configure() takes precedence over window pack', () => {
+  jest.isolateModules(() => {
+    window.__SUPERSET_LANGUAGE_PACK__ = {
+      domain: 'superset',
+      locale_data: {
+        superset: {
+          '': {
+            domain: 'superset',
+            lang: 'fr',
+            plural_forms: 'nplurals=2; plural=(n > 1);',
+          },
+          hello: ['bonjour'],
+        },
+      },
+    };
+    const { configure, t } = require('./TranslatorSingleton');
+    configure({
+      languagePack: {
+        domain: 'superset',
+        locale_data: {
+          superset: {
+            '': {
+              domain: 'superset',
+              lang: 'es',
+              plural_forms: 'nplurals=2; plural=(n != 1);',
+            },
+            hello: ['hola'],
+          },
+        },
+      },
+    });
+    expect(t('hello')).toBe('hola');
+    delete window.__SUPERSET_LANGUAGE_PACK__;
   });
 });

@@ -21,7 +21,7 @@ from typing import Any
 from zipfile import ZipFile
 
 from flask import current_app as app, request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -55,13 +55,14 @@ from superset.themes.schemas import (
     ThemePostSchema,
     ThemePutSchema,
 )
+from superset.utils.core import sanitize_cookie_token
 from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +146,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     openapi_spec_methods = openapi_spec_methods_override
 
     related_field_filters = {
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
@@ -218,7 +219,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
     )
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete themes.
         ---
@@ -431,7 +432,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -489,7 +490,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -559,9 +560,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.set_system_default",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.set_system_default"
+        ),
         log_to_statsd=False,
     )
     def set_system_default(self, pk: int) -> Response:
@@ -626,9 +627,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.set_system_dark",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.set_system_dark"
+        ),
         log_to_statsd=False,
     )
     def set_system_dark(self, pk: int) -> Response:
@@ -693,9 +694,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.unset_system_default",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.unset_system_default"
+        ),
         log_to_statsd=False,
     )
     def unset_system_default(self) -> Response:
@@ -743,9 +744,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.unset_system_dark",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.unset_system_dark"
+        ),
         log_to_statsd=False,
     )
     def unset_system_dark(self) -> Response:

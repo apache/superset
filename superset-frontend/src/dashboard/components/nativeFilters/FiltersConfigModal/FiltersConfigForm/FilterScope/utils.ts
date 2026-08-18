@@ -100,6 +100,7 @@ export const buildTree = (
   initiallyExcludedCharts: number[],
   buildTreeLeafTitle: BuildTreeLeafTitle,
   sliceEntities?: Record<number, Slice>,
+  visited: Set<string> = new Set(),
 ) => {
   if (!node) {
     return;
@@ -154,6 +155,10 @@ export const buildTree = (
 
   if (node.type !== CHART_TYPE) {
     node?.children?.forEach?.(child => {
+      if (visited.has(child)) {
+        return;
+      }
+      visited.add(child);
       const childNode = layout?.[child];
       if (childNode) {
         buildTree(
@@ -165,6 +170,7 @@ export const buildTree = (
           initiallyExcludedCharts,
           buildTreeLeafTitle,
           sliceEntities,
+          visited,
         );
       } else {
         logging.warn(
@@ -192,13 +198,19 @@ const checkTreeItem = (
   layout: Layout,
   items: string[],
   excluded: number[],
+  visited: Set<string> = new Set(),
 ) => {
   items.forEach(item => {
+    if (visited.has(item)) {
+      return;
+    }
+    visited.add(item);
     checkTreeItem(
       checkedItems,
       layout,
       addInvisibleParents(layout, item),
       excluded,
+      visited,
     );
     if (
       layout[item]?.type === CHART_TYPE &&

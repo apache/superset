@@ -39,17 +39,26 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
+import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 import type { DatasourceModalProps } from '../types';
 
 const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
 );
 
+const MODAL_HEIGHT_VH = 90;
+const TOP_MARGIN_VH = (100 - MODAL_HEIGHT_VH) / 2;
+
 const StyledDatasourceModal = styled(Modal)`
-  && .ant-modal-content {
-    max-height: none;
+  top: ${TOP_MARGIN_VH}vh;
+  padding-bottom: 0;
+
+  && .ant-modal-container {
+    max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;
+    min-height: 500px;
+    min-width: 500px;
   }
 
   && .ant-modal-body {
@@ -63,7 +72,7 @@ const StyledDatasourceModal = styled(Modal)`
   }
 `;
 
-function buildExtraJsonObject(
+export function buildExtraJsonObject(
   item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
 ) {
   const certification =
@@ -75,7 +84,7 @@ function buildExtraJsonObject(
       : undefined;
   return JSON.stringify({
     certification,
-    warning_markdown: item?.warning_markdown,
+    warning_markdown: item?.warning_markdown || undefined,
   });
 }
 
@@ -110,9 +119,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       filter_select_enabled: datasource.filter_select_enabled,
       fetch_values_predicate: datasource.fetch_values_predicate,
       schema:
-        datasource.tableSelector?.schema ||
-        datasource.databaseSelector?.schema ||
-        datasource.schema,
+        datasource.tableSelector?.schema ??
+        datasource.databaseSelector?.schema ??
+        datasource.schema ??
+        null,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
       currency_code_column: datasource.currency_code_column ?? null,
@@ -165,9 +175,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           extra: buildExtraJsonObject(column),
         }),
       ),
-      owners: datasource.owners.map(
-        (o: Record<string, number>) => o.value || o.id,
-      ),
+      editors: mapSubjectValuesToIds(datasource.editors || []),
     };
     // Add folders if DATASET_FOLDERS feature is enabled
     if (isFeatureEnabled(FeatureFlag.DatasetFolders) && datasource.folders) {
@@ -200,7 +208,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       json.result.type = 'table';
       onDatasourceSave({
         ...json.result,
-        owners: currentDatasource.owners,
+        editors: currentDatasource.editors,
       });
       onHide();
     } catch (response) {
@@ -367,7 +375,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       }
       responsive
       resizable
-      resizableConfig={{ defaultSize: { width: 'auto', height: '900px' } }}
+      resizableConfig={{
+        defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        maxHeight: `${MODAL_HEIGHT_VH}vh`,
+      }}
       draggable
     >
       <DatasourceEditor

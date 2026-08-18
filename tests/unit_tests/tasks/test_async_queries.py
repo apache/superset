@@ -14,14 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest import mock
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetErrorsException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetErrorException,
+    SupersetErrorsException,
+)
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 
 
 @mock.patch("superset.tasks.async_queries.security_manager")
@@ -54,6 +61,62 @@ def test_load_chart_data_into_cache_with_error(
 
     mock_async_query_manager.update_job.assert_called_once_with(
         job_metadata, "error", errors=expected_errors
+    )
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_cancelled_emits_no_event(
+    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
+):
+    """A revoke leaves the terminal event to the cancel request that sent it."""
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1, "job_id": "job-1"}
+    form_data: dict[str, Any] = {}
+
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    # Sync Mock: is_job_cancelled is a plain method, but patching the manager
+    # yields an AsyncMock whose calls would otherwise return truthy coroutines.
+    mock_async_query_manager.is_job_cancelled = mock.Mock(return_value=True)
+    mock_query_context_schema_cls.return_value.load.side_effect = (
+        SoftTimeLimitExceeded()
+    )
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        load_chart_data_into_cache(job_metadata, form_data)
+
+    mock_async_query_manager.is_job_cancelled.assert_called_once_with("job-1")
+    mock_async_query_manager.update_job.assert_not_called()
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_timeout_emits_error(
+    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
+):
+    """A genuine timeout reports an error, or the client waits forever."""
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1, "job_id": "job-1"}
+    form_data: dict[str, Any] = {}
+
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    mock_async_query_manager.STATUS_ERROR = "error"
+    mock_async_query_manager.is_job_cancelled = mock.Mock(return_value=False)
+    mock_query_context_schema_cls.return_value.load.side_effect = (
+        SoftTimeLimitExceeded()
+    )
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        load_chart_data_into_cache(job_metadata, form_data)
+
+    mock_async_query_manager.update_job.assert_called_once_with(
+        job_metadata,
+        "error",
+        errors=[{"message": "A timeout occurred while loading chart data"}],
     )
 
 
@@ -149,3 +212,94 @@ def test_load_chart_data_into_cache_with_superset_errors_exception(
     assert errors[1]["message"] == "Table not found"
     assert errors[1]["error_type"] == SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR
     assert errors[1]["level"] == ErrorLevel.WARNING
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_preserves_oauth2_redirect_error(
+    mock_query_context_schema_cls: mock.MagicMock,
+    mock_command_cls: mock.MagicMock,
+    mock_async_query_manager: mock.MagicMock,
+    mock_security_manager: mock.MagicMock,
+) -> None:
+    """
+    OAuth2RedirectError raised by ``ChartDataCommand.run`` must reach the async
+    job's errors list as a structured SIP-40 envelope (with ``error_type`` and
+    the OAuth2 ``extra`` payload) instead of being flattened to a plain
+    message, so dashboard charts can render the OAuth2 banner when
+    GLOBAL_ASYNC_QUERIES is enabled.
+    """
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1}
+    form_data: dict[str, Any] = {}
+
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    mock_async_query_manager.STATUS_ERROR = "error"
+    mock_query_context_schema_cls.return_value.load.return_value = mock.MagicMock()
+
+    mock_command_cls.return_value.run.side_effect = OAuth2RedirectError(
+        url="https://accounts.example.com/o/oauth2/v2/auth?...",
+        tab_id="tab-123",
+        redirect_uri="https://superset.example.com/oauth2/redirect",
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        load_chart_data_into_cache(job_metadata, form_data)
+
+    call_args = mock_async_query_manager.update_job.call_args
+    assert call_args[0] == (job_metadata, "error")
+    errors = call_args[1]["errors"]
+    assert len(errors) == 1
+    # A flattened error would only carry the generic permission message; the
+    # structured envelope must be preserved for the frontend OAuth2 banner.
+    assert errors[0] != {"message": "You don't have permission to access the data."}
+    assert errors[0]["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
+    assert errors[0]["level"] == ErrorLevel.WARNING
+    assert errors[0]["extra"] == {
+        "url": "https://accounts.example.com/o/oauth2/v2/auth?...",
+        "tab_id": "tab-123",
+        "redirect_uri": "https://superset.example.com/oauth2/redirect",
+    }
+
+
+@mock.patch("superset.security.SupersetSecurityManager.is_guest_user")
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_redacts_error_for_guest_user(
+    mock_query_context_schema_cls,
+    mock_async_query_manager,
+    mock_security_manager,
+    mock_is_guest_user,
+    app_context: None,
+):
+    """An embedded viewer gets a generic message instead of the engine's."""
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1}
+    err = SupersetErrorsException(
+        [
+            SupersetError(
+                message="Table mydb.myschema.mytable was not found",
+                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": "BigQuery"},
+            )
+        ]
+    )
+
+    mock_is_guest_user.return_value = True
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    mock_async_query_manager.STATUS_ERROR = "error"
+    mock_query_context_schema_cls.return_value.load.side_effect = err
+
+    with pytest.raises(SupersetErrorsException):
+        load_chart_data_into_cache(job_metadata, {})
+
+    errors = mock_async_query_manager.update_job.call_args[1]["errors"]
+    assert errors[0]["message"] == str(GENERIC_ERROR_MESSAGE)
+    assert errors[0]["error_type"] == SupersetErrorType.GENERIC_BACKEND_ERROR
+    assert "engine_name" not in errors[0]["extra"]

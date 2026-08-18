@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '../../spec';
+import { render, screen, fireEvent } from '../../spec';
 import CodeSyntaxHighlighter from './index';
 
 // Simple mock that just returns the content
@@ -152,5 +152,45 @@ describe('CodeSyntaxHighlighter', () => {
     );
 
     expect(screen.getByText('SELECT * FROM users;')).toBeInTheDocument();
+  });
+
+  test('shows copy button by default', () => {
+    render(
+      <CodeSyntaxHighlighter language="sql">SELECT 1;</CodeSyntaxHighlighter>,
+    );
+
+    expect(screen.getByTitle('Copy to clipboard')).toBeInTheDocument();
+  });
+
+  test('hides copy button when showCopyButton is false', () => {
+    render(
+      <CodeSyntaxHighlighter language="sql" showCopyButton={false}>
+        SELECT 1;
+      </CodeSyntaxHighlighter>,
+    );
+
+    expect(screen.queryByTitle('Copy to clipboard')).not.toBeInTheDocument();
+  });
+
+  test('copy button does not throw when clipboard API is unavailable', () => {
+    const originalClipboard = navigator.clipboard;
+    Object.defineProperty(navigator, 'clipboard', {
+      value: undefined,
+      configurable: true,
+    });
+    document.execCommand = jest.fn().mockReturnValue(true);
+
+    render(
+      <CodeSyntaxHighlighter language="sql">SELECT 1;</CodeSyntaxHighlighter>,
+    );
+
+    expect(() =>
+      fireEvent.click(screen.getByTitle('Copy to clipboard')),
+    ).not.toThrow();
+
+    Object.defineProperty(navigator, 'clipboard', {
+      value: originalClipboard,
+      configurable: true,
+    });
   });
 });

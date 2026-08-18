@@ -31,6 +31,7 @@ from superset.commands.explore.form_data.parameters import (
 from superset.commands.explore.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
@@ -123,10 +124,17 @@ class GetExploreCommand(BaseCommand, ABC):
 
         if datasource:
             datasource_name = datasource.name
-            security_manager.raise_for_access(datasource=datasource)
+            if slc:
+                security_manager.raise_for_access(chart=slc)
+            else:
+                security_manager.raise_for_access(datasource=datasource)
 
         viz_type = form_data.get("viz_type")
-        if not viz_type and datasource and datasource.default_endpoint:
+        if (
+            not viz_type
+            and datasource
+            and getattr(datasource, "default_endpoint", None)
+        ):
             raise WrongEndpointError(redirect=datasource.default_endpoint)
 
         form_data["datasource"] = (
@@ -153,13 +161,33 @@ class GetExploreCommand(BaseCommand, ABC):
         except SQLAlchemyError:
             message = "SQLAlchemy error"
 
+        if self._datasource_id is not None:
+            try:
+                detailed_rls = DatasetDAO.get_rls_filters_for_dataset(
+                    self._datasource_id
+                )
+                if security_manager.can_access("can_read", "RowLevelSecurity"):
+                    datasource_data["rls_filters"] = detailed_rls
+                else:
+                    datasource_data["rls_filters"] = [
+                        {
+                            "id": f["id"],
+                            "name": f["name"],
+                            "filter_type": f["filter_type"],
+                            "group_key": f.get("group_key"),
+                        }
+                        for f in detailed_rls
+                    ]
+            except Exception:  # pylint: disable=broad-except
+                datasource_data["rls_filters"] = []
+
         metadata = None
 
         if slc:
             metadata = {
                 "created_on_humanized": slc.created_on_humanized,
                 "changed_on_humanized": slc.changed_on_humanized,
-                "owners": [owner.get_full_name() for owner in slc.owners],
+                "editors": [editor.label for editor in slc.editors],
                 "dashboards": [
                     {"id": dashboard.id, "dashboard_title": dashboard.dashboard_title}
                     for dashboard in slc.dashboards

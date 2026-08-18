@@ -21,7 +21,7 @@ from typing import Any
 
 import pytest
 from sqlalchemy import Column, create_engine, Date, Integer, MetaData, String, Table
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import db
@@ -173,7 +173,9 @@ def get_datasource_post() -> dict[str, Any]:
 
 @pytest.fixture
 def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
-    engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"], echo=True)
+    engine = create_engine(
+        app.config["SQLALCHEMY_DATABASE_URI"], echo=True, future=True
+    )
     meta = MetaData()
 
     students = Table(
@@ -194,6 +196,7 @@ def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
     column = TableColumn(table_id=dataset.id, column_name="name")
     dataset.columns = [column]
     db.session.add(dataset)
+    db.session.add(column)
     db.session.commit()
     yield dataset
 

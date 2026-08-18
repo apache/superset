@@ -44,5 +44,5 @@ export const ModalResultSetWrapper = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  max-height: 50vh;
+  height: 500px;
 `;

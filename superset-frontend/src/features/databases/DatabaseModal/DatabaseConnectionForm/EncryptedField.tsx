@@ -18,19 +18,23 @@
  */
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetTheme, css } from '@apache-superset/core/theme';
+import { SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import {
-  Input,
   Button,
   FormLabel,
   Select,
   Upload,
   type UploadFile,
+  LabeledErrorBoundInput as ValidatedInput,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DatabaseParameters, FieldPropTypes } from '../../types';
-import { infoTooltip, CredentialInfoForm } from '../styles';
+import { DatabaseParameters, Engines, FieldPropTypes } from '../../types';
+import {
+  infoTooltip,
+  CredentialInfoForm,
+  CredentialInfoFormTextArea,
+} from '../styles';
 
 enum CredentialInfoOptions {
   JsonUpload,
@@ -51,22 +55,68 @@ export const EncryptedField = ({
   isEditMode,
   db,
   editNewDb,
+  isPublic = true,
+  setIsPublic,
+  isValidating,
+  validationErrors,
+  getValidation,
 }: FieldPropTypes) => {
+  const theme = useTheme() as SupersetTheme;
+  const credentialTextAreaCss = CredentialInfoFormTextArea(theme);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
+  // `getValidation` closes over the parent's `db` state as of the last
+  // render, so calling it synchronously right after `onParametersChange`
+  // (which just dispatches a state update) would validate the *previous*
+  // credential value. Instead, remember the uploaded value and validate
+  // once the parameter prop actually reflects it.
+  const [pendingValidationValue, setPendingValidationValue] = useState<
+    string | null
+  >(null);
   const { addDangerToast } = useToasts();
-  const showCredentialsInfo = !isEditMode;
+  const isGSheets = db?.engine === Engines.GSheet;
+  const showCredentialsInfo = !isEditMode && (!isGSheets || !isPublic);
+  const showCredentialsSection = !isGSheets || !isPublic;
   const encryptedField =
     db?.engine &&
     encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
   const paramValue =
     db?.parameters?.[encryptedField as keyof DatabaseParameters];
+  // In edit mode the backend may return the existing (masked) credential in
+  // the parameters. Do not surface any pre-existing value in the field; the
+  // user must re-enter credentials to change them. This also matches the
+  // mount effect below, which resets the parameter to an empty string.
   const encryptedValue =
-    paramValue && typeof paramValue === 'object'
-      ? JSON.stringify(paramValue)
-      : paramValue;
+    isEditMode || paramValue == null
+      ? ''
+      : typeof paramValue === 'object'
+        ? JSON.stringify(paramValue)
+        : paramValue;
+
+  const handlePublicToggle = (value: string) => {
+    const nextIsPublic = value === 'true';
+    setIsPublic?.(nextIsPublic);
+    if (nextIsPublic) {
+      // Clear in-flight `parameters.*` so the save-time merge in
+      // DatabaseModal/index.tsx doesn't write them into masked_encrypted_extra.
+      changeMethods.onParametersChange({
+        target: { name: 'service_account_info', value: '' },
+      });
+      changeMethods.onParametersChange({
+        target: { name: 'oauth2_client_info', value: '' },
+      });
+      // Also delete any previously-stored values from masked_encrypted_extra
+      // itself (loaded in edit mode), since the save-time merge preserves
+      // existing keys and only overwrites them when `parameters.*` is truthy.
+      // Use the dedicated `ClearEncryptedExtraKey` action so the generic
+      // `EncryptedExtraInputChange` handler keeps its master semantics (store
+      // empty strings, never delete) for any other caller.
+      changeMethods.onClearEncryptedExtraKey('service_account_info');
+      changeMethods.onClearEncryptedExtraKey('oauth2_client_info');
+    }
+  };
 
   const readTextFile = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -77,6 +127,11 @@ export const EncryptedField = ({
     });
 
   useEffect(() => {
+    // Skip the initial clear when there's no engine-specific field name yet
+    // (e.g. the db prop hasn't finished loading): writing the falsy
+    // `encryptedField` as a key would pollute parameters with `false: ''`,
+    // and racing the async credential load isn't useful anyway.
+    if (!encryptedField) return;
     changeMethods.onParametersChange({
       target: {
         name: encryptedField,
@@ -85,8 +140,35 @@ export const EncryptedField = ({
     });
   }, []);
 
+  useEffect(() => {
+    if (
+      pendingValidationValue !== null &&
+      paramValue === pendingValidationValue
+    ) {
+      setPendingValidationValue(null);
+      getValidation();
+    }
+  }, [paramValue, pendingValidationValue, getValidation]);
+
   return (
     <CredentialInfoForm>
+      {isGSheets && (
+        <>
+          <FormLabel required>{t('Type of Google Sheets allowed')}</FormLabel>
+          <Select
+            value={isPublic ? 'true' : 'false'}
+            css={{ width: '100%' }}
+            onChange={value => handlePublicToggle(value as string)}
+            options={[
+              { value: 'true', label: t('Publicly shared sheets only') },
+              {
+                value: 'false',
+                label: t('Public and privately shared sheets'),
+              },
+            ]}
+          />
+        </>
+      )}
       {showCredentialsInfo && (
         <>
           <FormLabel>
@@ -94,9 +176,7 @@ export const EncryptedField = ({
           </FormLabel>
           <Select
             defaultValue={uploadOption}
-            css={css`
-              width: 100%;
-            `}
+            css={{ width: '100%' }}
             onChange={option => setUploadOption(option as number)}
             options={[
               {
@@ -111,25 +191,31 @@ export const EncryptedField = ({
           />
         </>
       )}
-      {uploadOption === CredentialInfoOptions.CopyPaste ||
-      isEditMode ||
-      editNewDb ? (
-        <div className="input-container">
-          <FormLabel>{t('Service Account')}</FormLabel>
-          <Input.TextArea
-            className="input-form"
-            name={encryptedField}
-            value={
-              typeof encryptedValue === 'boolean'
-                ? String(encryptedValue)
-                : encryptedValue
-            }
-            onChange={changeMethods.onParametersChange}
-            placeholder={t(
-              'Paste content of service credentials JSON file here',
-            )}
-          />
-        </div>
+      {showCredentialsSection &&
+      (uploadOption === CredentialInfoOptions.CopyPaste ||
+        isEditMode ||
+        editNewDb) ? (
+        <ValidatedInput
+          id={encryptedField}
+          name={encryptedField}
+          required={false}
+          isValidating={isValidating}
+          value={
+            typeof encryptedValue === 'boolean'
+              ? String(encryptedValue)
+              : encryptedValue
+          }
+          validationMethods={{ onBlur: getValidation }}
+          errorMessage={
+            encryptedField ? validationErrors?.[encryptedField] : null
+          }
+          placeholder={t('Paste content of service credentials JSON file here')}
+          label={t('Service Account')}
+          onChange={changeMethods.onParametersChange}
+          helpText={t('Add service credentials')}
+          renderAsTextArea
+          textAreaCss={credentialTextAreaCss}
+        />
       ) : (
         showCredentialsInfo && (
           <div
@@ -144,6 +230,7 @@ export const EncryptedField = ({
               beforeUpload={() => false}
               onRemove={() => {
                 setFileList([]);
+                setPendingValidationValue(null);
                 changeMethods.onParametersChange({
                   target: {
                     name: encryptedField,
@@ -166,7 +253,8 @@ export const EncryptedField = ({
                       },
                     });
                     setFileList(info.fileList);
-                  } catch (error) {
+                    setPendingValidationValue(fileContent);
+                  } catch {
                     setFileList([]);
                     addDangerToast(
                       t(
@@ -175,6 +263,7 @@ export const EncryptedField = ({
                     );
                   }
                 } else {
+                  setPendingValidationValue(null);
                   changeMethods.onParametersChange({
                     target: {
                       name: encryptedField,

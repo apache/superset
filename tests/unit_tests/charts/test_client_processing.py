@@ -15,14 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from io import BytesIO, StringIO
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm.session import Session
 
-from superset.charts.client_processing import apply_client_processing, pivot_df, table
+from superset.charts.client_processing import (
+    apply_client_processing,
+    apply_pivot_number_formats,
+    format_column,
+    pivot_df,
+    pivot_table_v2,
+    table,
+)
 from superset.common.chart_data import ChartDataResultFormat
+from superset.utils import excel
 from superset.utils.core import GenericDataType
 from tests.conftest import with_config
 
@@ -37,9 +47,9 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     assert (
         df.to_markdown()
         == """
-|    |    SUM(num) |
-|---:|------------:|
-|  0 | 8.06797e+07 |
+|    |   SUM(num) |
+|---:|-----------:|
+|  0 |   80679663 |
     """.strip()
     )
 
@@ -60,7 +70,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
         == f"""
 |                  |   ('SUM(num)',) |
 |:-----------------|----------------:|
-| ('{_("Total")} (Sum)',) |     8.06797e+07 |
+| ('{_("Total")} (Sum)',) |        80679663 |
     """.strip()
     )
 
@@ -82,7 +92,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
         == """
 |                  |   ('SUM(num)',) |
 |:-----------------|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |
+| ('Total (Sum)',) |        80679663 |
     """.strip()
     )
 
@@ -105,7 +115,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
         == f"""
 |               |   ('{_("Total")} (Sum)',) |
 |:--------------|-------------------:|
-| ('SUM(num)',) |        8.06797e+07 |
+| ('SUM(num)',) |           80679663 |
     """.strip()
     )
 
@@ -127,7 +137,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
         == f"""
 |                  |   ('SUM(num)',) |   ('Total (Sum)',) |
 |:-----------------|----------------:|-------------------:|
-| ('{_("Total")} (Sum)',) |     8.06797e+07 |        8.06797e+07 |
+| ('{_("Total")} (Sum)',) |        80679663 |           80679663 |
     """.strip()
     )
 
@@ -142,9 +152,9 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     assert (
         df.to_markdown()
         == """
-|    |    SUM(num) |   MAX(num) |
-|---:|------------:|-----------:|
-|  0 | 8.06797e+07 |      37296 |
+|    |   SUM(num) |   MAX(num) |
+|---:|-----------:|-----------:|
+|  0 |   80679663 |      37296 |
     """.strip()
     )
 
@@ -165,7 +175,7 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == f"""
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |
 |:-----------------|----------------:|----------------:|
-| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |
+| ('{_("Total")} (Sum)',) |        80679663 |           37296 |
     """.strip()
     )
 
@@ -187,7 +197,7 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == """
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |
 |:-----------------|----------------:|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |           37296 |
+| ('Total (Sum)',) |        80679663 |           37296 |
     """.strip()
     )
 
@@ -210,8 +220,8 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == f"""
 |               |   ('{_("Total")} (Sum)',) |
 |:--------------|-------------------:|
-| ('SUM(num)',) |        8.06797e+07 |
-| ('MAX(num)',) |    37296           |
+| ('SUM(num)',) |           80679663 |
+| ('MAX(num)',) |              37296 |
     """.strip()
     )
 
@@ -234,7 +244,7 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
         == f"""
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('{_("Total")} (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
-| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |         8.0717e+07 |
+| ('{_("Total")} (Sum)',) |        80679663 |           37296 |           80716959 |
     """.strip()
     )
 
@@ -1839,11 +1849,734 @@ def test_table():
     assert (
         formatted.to_markdown()
         == """
-|    | count      |
-|---:|:-----------|
+|    |      count |
+|---:|-----------:|
 |  0 | 80,679,663 |
     """.strip()
     )
+
+
+def test_table_applies_currency_format() -> None:
+    """
+    Table reports honor a column's `currencyFormat`.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["$ 1,234.50"]
+
+
+def test_table_applies_si_number_format() -> None:
+    """
+    Table reports honor d3 formats that Python's str.format cannot express.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.0}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"amount": {"d3NumberFormat": ".3s"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["1.23k"]
+
+
+def test_table_applies_smart_number_default_to_unconfigured_metric() -> None:
+    """
+    A metric with no saved d3 format still renders like Explore. The Table
+    plugin gives every metric column a formatter, and ``getNumberFormatter``
+    defaults to SMART_NUMBER, so the report must not leave the value raw.
+    """
+    df = pd.DataFrame.from_dict({"count": {0: 1234567}})
+    form_data = {"viz_type": "table", "metrics": ["count"], "percent_metrics": []}
+    formatted = table(df, form_data)
+    assert formatted["count"].tolist() == ["1.23M"]
+
+
+def test_table_leaves_unconfigured_numeric_dimension_untouched() -> None:
+    """
+    A numeric non-metric column with no configured format is left raw, matching
+    the browser, which only formats numeric dimensions when a format or currency
+    is set.
+    """
+    df = pd.DataFrame.from_dict({"year": {0: 2024}, "count": {0: 1234567}})
+    form_data = {"viz_type": "table", "metrics": ["count"], "percent_metrics": []}
+    formatted = table(df, form_data)
+    assert formatted["year"].tolist() == [2024]
+    assert formatted["count"].tolist() == ["1.23M"]
+
+
+def test_table_applies_percent_3_point_default_to_percent_metric() -> None:
+    """
+    Percent metric columns default to PERCENT_3_POINT in the Table plugin.
+    """
+    df = pd.DataFrame.from_dict({"%count": {0: 0.1234}})
+    form_data = {"viz_type": "table", "metrics": [], "percent_metrics": ["count"]}
+    formatted = table(df, form_data)
+    assert formatted["%count"].tolist() == ["12.340%"]
+
+
+def test_table_applies_datasource_saved_metric_format_without_chart_override() -> None:
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"amount": ",.2f"},
+        "verbose_map": {},
+    }
+
+    formatted = table(df, {"viz_type": "table"}, datasource)
+
+    assert formatted["amount"].tolist() == ["1,234.50"]
+
+
+def test_table_chart_format_overrides_datasource_saved_metric_format() -> None:
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"amount": ",.2f"},
+        "verbose_map": {},
+    }
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"amount": {"d3NumberFormat": ",.1f"}},
+    }
+
+    formatted = table(df, form_data, datasource)
+
+    assert formatted["amount"].tolist() == ["1,234.5"]
+
+
+def test_pivot_table_v2_applies_value_format() -> None:
+    """
+    Pivot table reports honor `valueFormat` and per-metric `columnFormats`.
+    """
+    df = pd.DataFrame(
+        {"region": ["A", "B"], "sales": [1234.5, 6789.0], "qty": [10.0, 20.0]}
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("sales",)].tolist() == ["1,234.50", "6,789.00"]
+    assert formatted[("qty",)].tolist() == ["10", "20"]
+
+
+def test_pivot_table_v2_applies_smart_number_default_without_value_format() -> None:
+    """
+    Pivot value cells with no ``valueFormat`` and no per-metric format default to
+    SMART_NUMBER, mirroring the frontend's ``getNumberFormatter`` default.
+    """
+    df = pd.DataFrame({"region": ["A", "B"], "sales": [1234567.0, 6789.0]})
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("sales",)].tolist() == ["1.23M", "6.79k"]
+
+
+def test_pivot_table_v2_applies_datasource_saved_metric_format_without_override() -> (
+    None
+):
+    df = pd.DataFrame({"region": ["A", "B"], "sales": [1234.5, 6789.0]})
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"sales": ",d"},
+        "verbose_map": {},
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].tolist() == ["1,235", "6,789"]
+
+
+def test_pivot_table_v2_chart_format_overrides_datasource_saved_metric_format() -> None:
+    df = pd.DataFrame({"region": ["A"], "sales": [1234.5]})
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"sales": ",d"},
+        "verbose_map": {},
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "columnFormats": {"sales": ",.1f"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].tolist() == ["1,234.5"]
+
+
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_combined() -> None:
+    """
+    Per-metric formats apply when `combineMetric` moves the metric to the last
+    column level.
+    """
+    df = pd.DataFrame(
+        {
+            "dept": ["A", "B"],
+            "region": ["x", "x"],
+            "sales": [100.0, 200.0],
+            "qty": [1111.0, 2222.0],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["dept"],
+        "groupbyColumns": ["region"],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+        "combineMetric": True,
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("x", "qty")].tolist() == ["1,111", "2,222"]
+    assert formatted[("x", "sales")].tolist() == ["100.00", "200.00"]
+
+
+def test_table_auto_currency_uses_detected_currency() -> None:
+    """
+    AUTO currency resolves to the payload's `detected_currency`, or falls back
+    to the plain number when detection found mixed currencies.
+    """
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    formatted = table(df, form_data, detected_currency="USD")
+    assert formatted["amount"].tolist() == ["$ 1,234.50"]
+
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    formatted = table(df, form_data, detected_currency=None)
+    assert formatted["amount"].tolist() == ["1,234.50"]
+
+
+def test_table_auto_currency_uses_per_row_currency_context() -> None:
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [100.0, 200.0, 300.0, 400.0],
+            "currency": ["USD", " eur ", None, "invalid"],
+        }
+    )
+
+    formatted = table(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted["amount"].tolist() == [
+        "$ 100.00",
+        "€ 200.00",
+        "300.00",
+        "400.00",
+    ]
+
+
+def test_table_saved_auto_currency_uses_per_row_currency_context() -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"amount": ",.2f"},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+        "metrics": [
+            {
+                "metric_name": "amount",
+                "currency": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        ],
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+
+    formatted = table(df, {"viz_type": "table"}, datasource)
+
+    assert formatted["amount"].tolist() == ["$ 100.00", "€ 200.00"]
+
+
+def test_pivot_table_v2_auto_currency_uses_detected_currency() -> None:
+    """
+    AUTO currency in pivot tables resolves to the payload's `detected_currency`.
+    """
+    df = pd.DataFrame({"region": ["A", "B"], "sales": [1234.5, 6789.0]})
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+    formatted = pivot_table_v2(df, form_data, detected_currency="EUR")
+    assert formatted[("sales",)].tolist() == ["€ 1,234.50", "€ 6,789.00"]
+
+
+def test_pivot_table_v2_auto_currency_uses_per_cell_currency_context() -> None:
+    df = pd.DataFrame(
+        {
+            "region": ["USD cell", "USD cell", "EUR cell", "Mixed", "Mixed", "Empty"],
+            "sales": [100.0, 50.0, 200.0, 300.0, 400.0, 500.0],
+            "currency": ["USD", " usd ", "EUR", "USD", "EUR", None],
+        }
+    )
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EUR cell",): "€ 200.00",
+        ("Empty",): "£ 500.00",
+        ("Mixed",): "700.00",
+        ("USD cell",): "$ 150.00",
+    }
+
+
+def test_pivot_table_v2_auto_currency_reads_stored_form_data_key() -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["US", "EU"],
+            "sales": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currency_format": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EU",): "€ 200.00",
+        ("US",): "$ 100.00",
+    }
+
+
+def test_pivot_table_v2_auto_currency_handles_sparse_2d_pivot() -> None:
+    """
+    A pivot with both rows and columns has empty cross-product cells. Pandas
+    fills those with scalar ``NaN`` rather than an empty currency tuple, which
+    must not crash AUTO currency resolution for the whole report.
+    """
+    df = pd.DataFrame(
+        {
+            "region": ["EU", "EU", "US"],
+            "product": ["a", "b", "a"],
+            "sales": [10.0, 20.0, 30.0],
+            "currency": ["EUR", "EUR", "USD"],
+        }
+    )
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": ["product"],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted[("sales", "a")].to_dict() == {
+        ("EU",): "€ 10.00",
+        ("US",): "$ 30.00",
+    }
+    # The missing (US, b) combination stays empty; the present EUR cell formats.
+    assert formatted[("sales", "b")].to_dict() == {
+        ("EU",): "€ 20.00",
+        ("US",): "",
+    }
+
+
+def test_pivot_table_v2_saved_auto_currency_uses_per_cell_context() -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {"sales": ",.2f"},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+        "metrics": [
+            {
+                "metric_name": "sales",
+                "currency": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        ],
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["US", "EU"],
+            "sales": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.1f",
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EU",): "€ 200.00",
+        ("US",): "$ 100.00",
+    }
+
+
+def test_pivot_table_v2_count_auto_currency_uses_detected_fallback() -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["US", "EU"],
+            "sales": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Count",
+        "valueFormat": ",d",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EU",): "£ 1",
+        ("US",): "£ 1",
+    }
+
+
+def test_pivot_table_v2_auto_currency_tracks_mixed_total_context() -> None:
+    df = pd.DataFrame(
+        {
+            "region": ["US", "EU"],
+            "sales": [100.0, 200.0],
+            "currency": ["USD", "EUR"],
+        }
+    )
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+        "colTotals": True,
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted[("sales",)].to_dict() == {
+        ("EU",): "€ 200.00",
+        ("US",): "$ 100.00",
+        ("Total (Sum)",): "300.00",
+    }
+
+
+def test_pivot_table_v2_auto_currency_tracks_subtotal_context() -> None:
+    df = pd.DataFrame(
+        {
+            "region": ["Mixed", "Mixed", "USD", "USD"],
+            "quarter": ["Q1", "Q2", "Q1", "Q2"],
+            "sales": [100.0, 200.0, 300.0, 400.0],
+            "currency": ["USD", "EUR", "USD", "USD"],
+        }
+    )
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": ["quarter"],
+        "metrics": ["sales"],
+        "aggregateFunction": "Sum",
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+        "rowTotals": True,
+    }
+
+    formatted = pivot_table_v2(df, form_data, datasource)
+
+    assert formatted.loc[("Mixed",), ("sales", "Q1")] == "$ 100.00"
+    assert formatted.loc[("Mixed",), ("sales", "Q2")] == "€ 200.00"
+    assert formatted.loc[("Mixed",), ("sales", "Subtotal")] == "300.00"
+    assert formatted.loc[("USD",), ("sales", "Subtotal")] == "$ 700.00"
+    assert formatted.loc[("Mixed",), ("Total (Sum)", "")] == "300.00"
+
+
+def test_apply_client_processing_passes_detected_currency() -> None:
+    """
+    The query payload's `detected_currency` reaches the number formatters.
+    """
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "detected_currency": "USD",
+                "data": [{"amount": 1234.5}],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    processed = apply_client_processing(result, form_data)
+    assert processed["queries"][0]["data"] == {"amount": {0: "$ 1,234.50"}}
+
+
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows() -> None:
+    """
+    Per-metric formats apply when `metricsLayout` is "ROWS" and the metric is
+    on the index instead of the columns.
+    """
+    df = pd.DataFrame(
+        {
+            "dept": ["A", "B"],
+            "region": ["x", "x"],
+            "sales": [100.0, 200.0],
+            "qty": [1111.0, 2222.0],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["dept"],
+        "groupbyColumns": ["region"],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "ROWS",
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+        "currencyFormats": {"sales": {"symbol": "USD", "symbolPosition": "prefix"}},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("x",)].tolist() == ["$ 100.00", "$ 200.00", "1,111", "2,222"]
+
+
+def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows_combined() -> (
+    None
+):
+    """
+    Per-metric formats apply when `metricsLayout` is "ROWS" and `combineMetric`
+    moves the metric to the last index level.
+    """
+    df = pd.DataFrame(
+        {
+            "dept": ["A", "B"],
+            "region": ["x", "x"],
+            "sales": [100.0, 200.0],
+            "qty": [1111.0, 2222.0],
+        }
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["dept"],
+        "groupbyColumns": ["region"],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "ROWS",
+        "combineMetric": True,
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("x",)].tolist() == ["100.00", "1,111", "200.00", "2,222"]
+
+
+def test_format_column_applies_d3_and_currency() -> None:
+    df = pd.DataFrame({"amount": [1234.5, 6789.0]})
+    format_column(df, "amount", ",.2f", {})
+    assert df["amount"].tolist() == ["1,234.50", "6,789.00"]
+
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(df, "amount", ",.2f", {"symbol": "USD", "symbolPosition": "prefix"})
+    assert df["amount"].tolist() == ["$ 1,234.50"]
+
+
+def test_format_column_is_noop_without_format() -> None:
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(df, "amount", None, {})
+    assert df["amount"].tolist() == [1234.5]
+
+
+def test_format_column_preserves_numeric_format_when_currency_is_invalid() -> None:
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(
+        df,
+        "amount",
+        ",.2f",
+        {"symbol": {"invalid": True}, "symbolPosition": "prefix"},
+    )
+    assert df["amount"].tolist() == ["1,234.50"]
+
+
+def test_format_column_preserves_raw_value_for_invalid_number_format() -> None:
+    df = pd.DataFrame({"amount": [1234.5]})
+    format_column(df, "amount", "not-a-format", {})
+    assert df["amount"].tolist() == ["1234.5"]
+
+
+def test_apply_pivot_number_formats_resolves_metric_level() -> None:
+    df = pd.DataFrame({("sales",): [1234.5], ("qty",): [10.0]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",), ("qty",)])
+    apply_pivot_number_formats(
+        df, {"valueFormat": ",.2f", "columnFormats": {"qty": ",d"}}
+    )
+    assert df[("sales",)].tolist() == ["1,234.50"]
+    assert df[("qty",)].tolist() == ["10"]
+
+
+def test_apply_pivot_number_formats_metric_at_last_level_when_combined() -> None:
+    df = pd.DataFrame({("x", "sales"): [100.0], ("x", "qty"): [1111.0]})
+    df.columns = pd.MultiIndex.from_tuples([("x", "sales"), ("x", "qty")])
+    apply_pivot_number_formats(
+        df,
+        {"combineMetric": True, "valueFormat": ",.2f", "columnFormats": {"qty": ",d"}},
+    )
+    assert df[("x", "sales")].tolist() == ["100.00"]
+    assert df[("x", "qty")].tolist() == ["1,111"]
+
+
+def test_apply_pivot_number_formats_falls_back_to_global_format() -> None:
+    df = pd.DataFrame({("sales",): [1234.5]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",)])
+    apply_pivot_number_formats(
+        df, {"valueFormat": ",.2f", "columnFormats": {"sales": ""}}
+    )
+    assert df[("sales",)].tolist() == ["1,234.50"]
+
+
+def test_apply_pivot_number_formats_preserves_raw_value_on_format_error() -> None:
+    df = pd.DataFrame({("sales",): [1234.5]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",)])
+    apply_pivot_number_formats(df, {"valueFormat": "not-a-format"})
+    assert df[("sales",)].tolist() == ["1234.5"]
+
+
+def test_apply_pivot_number_formats_auto_currency_without_detection() -> None:
+    df = pd.DataFrame({("sales",): [1234.5]})
+    df.columns = pd.MultiIndex.from_tuples([("sales",)])
+    apply_pivot_number_formats(
+        df,
+        {
+            "valueFormat": ",.2f",
+            "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+        },
+    )
+    assert df[("sales",)].tolist() == ["1,234.50"]
 
 
 def test_apply_client_processing_no_form_invalid_viz_type():
@@ -2152,6 +2885,134 @@ COUNT(is_software_dev)
     }
 
 
+def test_apply_client_processing_csv_format_escapes_formula_values():
+    """
+    A value starting with a formula trigger should be escaped in the CSV
+    output, consistent with the other CSV export paths.
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "is_software_dev\n=SUM(1+1)\n",
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "table",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    # the leading "=" is neutralized with a single-quote prefix
+    assert "'=SUM(1+1)" in processed["queries"][0]["data"]
+    assert "\n=SUM(1+1)" not in processed["queries"][0]["data"]
+
+
+def test_apply_client_processing_csv_format_bytes_data():
+    """
+    Regression for #32370: "Export to pivoted .csv" fails with a 505 error.
+
+    For a real ``resultType=post_processed``/``resultFormat=csv`` request,
+    the query's ``data`` is CSV *bytes* by the time it reaches
+    ``apply_client_processing`` --
+    ``QueryContextProcessor.get_data`` encodes it to bytes for any CSV
+    result_format (``superset/common/query_context_processor.py``), and
+    that's the exact payload ``ChartDataRestApi._send_chart_response`` hands
+    to ``apply_client_processing`` for a POST_PROCESSED result. The CSV
+    branch here passes that straight into ``StringIO(data)``, which raises
+    ``TypeError: initial_value must be str or None, not bytes`` -- a crash
+    that reproduces for every pivoted CSV export, not only the reporter's
+    special-character metric labels (this test uses one anyway, to also
+    pin the originally reported symptom).
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": b"name,% of total\nA,1\nB,2\n",
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "groupbyColumns": [],
+        "groupbyRows": ["name"],
+        "metrics": ["% of total"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "result_format": "csv",
+        "result_type": "post_processed",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    assert "% of total" in processed["queries"][0]["data"]
+
+
+@with_config({"CSV_EXPORT": {"encoding": "latin-1"}})
+def test_apply_client_processing_csv_format_bytes_data_non_default_encoding():
+    """
+    Regression for #32370: the CSV bytes payload must be decoded with the
+    configured ``CSV_EXPORT.encoding``, not a hardcoded ``utf-8``, since
+    ``QueryContextProcessor.get_data`` encodes with that same config value.
+    A UTF-8 decode of latin-1 bytes containing e.g. "é" (0xE9) would raise
+    ``UnicodeDecodeError`` instead of the intended CSV text.
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "name,city\nA,Montr\xe9al\n".encode("latin-1"),
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "groupbyColumns": [],
+        "groupbyRows": ["name"],
+        "metrics": ["city"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "result_format": "csv",
+        "result_type": "post_processed",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    assert "Montréal" in processed["queries"][0]["data"]
+
+
 def test_apply_client_processing_csv_format_empty_string():
     """
     It should be able to process csv results with no data
@@ -2223,10 +3084,14 @@ def test_apply_client_processing_csv_format_empty_string():
     }
 
 
-@pytest.mark.parametrize("data", [None, "", "\n"])
+@pytest.mark.parametrize("data", [None, "", "\n", b"", b"\n"])
 def test_apply_client_processing_csv_format_no_data(data):
     """
-    It should be able to process csv results with no data
+    It should be able to process csv results with no data, including the
+    bytes forms ``QueryContextProcessor.get_data`` actually produces for a
+    columnless frame (e.g. a bare newline), which must be decoded before
+    the empty-data check runs or they'd reach ``pd.read_csv`` and raise
+    ``EmptyDataError``.
     """
 
     result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]}
@@ -2587,10 +3452,10 @@ def test_apply_client_processing_verbose_map(session: Session):
         "queries": [
             {
                 "result_format": ChartDataResultFormat.JSON,
-                "data": {"COUNT(*)": {"Total (Sum)": 4725}},
+                "data": {"COUNT(*)": {"Total (Sum)": "4.73k"}},
                 "colnames": [("COUNT(*)",)],
                 "indexnames": [("Total (Sum)",)],
-                "coltypes": [GenericDataType.NUMERIC],
+                "coltypes": [GenericDataType.STRING],
                 "rowcount": 1,
             }
         ]
@@ -2788,3 +3653,370 @@ def test_apply_client_processing_csv_format_default_na_behavior():
     assert (
         "Alice," in lines[2]
     )  # Second data row should have empty last_name (NA converted to null)
+
+
+def _assert_xlsx_client_processing(index: bool) -> None:
+    """Assert XLSX post-processing preserves columns and configured index."""
+    source_df = pd.DataFrame(
+        {
+            "city": ["Paris", "London"],
+            "value": [10, 20],
+        },
+        index=pd.Index(["row-1", "row-2"], name="row"),
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=index),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "table",
+        "columns": ["city", "value"],
+        "metrics": [],
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+    output_df = pd.read_excel(
+        BytesIO(query["data"]),
+        index_col=0 if index else None,
+    )
+    expected_df = source_df if index else source_df.reset_index(drop=True)
+
+    pd.testing.assert_frame_equal(output_df, expected_df, check_names=False)
+    assert query["colnames"] == ["city", "value"]
+    if index:
+        assert query["indexnames"] == ["row-1", "row-2"]
+    else:
+        assert query["indexnames"] == [0, 1]
+    assert query["rowcount"] == 2
+
+
+@with_config({"EXCEL_EXPORT": {"index": True}})
+def test_apply_client_processing_xlsx_format_with_index() -> None:
+    """XLSX post-processing should preserve an exported index."""
+    _assert_xlsx_client_processing(index=True)
+
+
+@with_config({"EXCEL_EXPORT": {"index": False}})
+def test_apply_client_processing_xlsx_format_without_index() -> None:
+    """XLSX post-processing should not shift columns when index is omitted."""
+    _assert_xlsx_client_processing(index=False)
+
+
+@with_config({"EXCEL_EXPORT": {}})
+def test_apply_client_processing_xlsx_format_without_index_default_config() -> None:
+    """XLSX post-processing derives omitted index from the payload."""
+    _assert_xlsx_client_processing(index=False)
+
+
+@with_config({"EXCEL_EXPORT": {"index": False}})
+def test_apply_client_processing_xlsx_format_pivot_table_groupby_columns() -> None:
+    """XLSX post-processing should preserve pivot groupby columns."""
+    source_df = pd.DataFrame(
+        {
+            "city": ["Paris", "Paris", "London"],
+            "segment": ["Consumer", "Corporate", "Consumer"],
+            "value": [10, 20, 30],
+        },
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyColumns": ["segment"],
+        "groupbyRows": ["city"],
+        "metrics": ["value"],
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+    output_df = pd.read_excel(BytesIO(query["data"]), index_col=0)
+
+    assert query["rowcount"] == 2
+    assert query["indexnames"] == [("London",), ("Paris",)]
+    assert set(output_df.index) == {"London", "Paris"}
+    assert "value Consumer" in output_df.columns
+    assert "value Corporate" in output_df.columns
+
+
+@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
+def test_apply_client_processing_csv_format_custom_delimiter():
+    """
+    Test that apply_client_processing respects CSV_EXPORT sep and decimal config.
+    Without the fix, pd.read_csv() uses default comma separator and fails to parse
+    semicolon-delimited CSV correctly, causing HTTP 500 in email reports.
+    """
+    csv_data = "name;value\nfoo;1,5\nbar;2,0"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "value"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    # Should have header + 2 data rows, with correct column parsing
+    assert len(lines) == 3
+    # name and value should be separate columns, not merged into one
+    assert processed_result["queries"][0]["colnames"] == ["name", "value"]
+    # Output CSV must also use the configured separator and decimal
+    assert lines[0] == "name;value", f"Expected semicolon header, got: {lines[0]}"
+    assert "1,5" in lines[1], f"Expected comma decimal in row 1, got: {lines[1]}"
+    assert "2,0" in lines[2], f"Expected comma decimal in row 2, got: {lines[2]}"
+
+
+@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
+def test_apply_client_processing_pivot_table_v2_custom_sep_decimal():
+    """
+    Test that pivot_table_v2 respects CSV_EXPORT sep and decimal config.
+    pivot_table_v2 performs DataFrame manipulations before writing to CSV, so we
+    verify that the final to_csv() call correctly uses the configured sep and decimal.
+    """
+    csv_data = "COUNT(is_software_dev)\n4725"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    # pivot_table_v2 adds a row index (Total (Sum)) and produces output
+    # with the configured sep
+    assert len(lines) == 2
+    # Output must use the configured separator
+    assert ";" in lines[0], f"Expected semicolon separator in header, got: {lines[0]}"
+    assert ";" in lines[1], f"Expected semicolon separator in data row, got: {lines[1]}"
+    # The Total (Sum) label should appear in the index column
+    assert "Total (Sum)" in lines[1]
+
+
+@with_config(
+    {
+        "REPORTS_CSV_NA_NAMES": ["MISSING"],
+        "CSV_EXPORT": {"sep": ";", "decimal": ","},
+    }
+)
+def test_apply_client_processing_csv_format_na_values_and_sep_decimal_combined():
+    """
+    Test that apply_client_processing correctly handles both REPORTS_CSV_NA_NAMES and
+    CSV_EXPORT sep/decimal config at the same time.
+    """
+    csv_data = "name;status\nJeff;MISSING\nAlice;OK"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "status"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    assert len(lines) == 3  # header + 2 data rows
+    # Output must use configured separator
+    assert ";" in lines[0], f"Expected semicolon separator in header, got: {lines[0]}"
+    # "MISSING" should be treated as NA and rendered as empty in output
+    assert lines[1].endswith(";"), f"Expected empty status for Jeff, got: {lines[1]}"
+    # "OK" should be preserved as-is
+    assert lines[2] == "Alice;OK", f"Expected Alice;OK, got: {lines[2]}"
+
+
+@with_config({"CSV_EXPORT": {"decimal": ","}})
+def test_apply_client_processing_csv_format_partial_config_decimal_only():
+    """
+    Test that apply_client_processing handles a partial CSV_EXPORT config where
+    only decimal is set (sep falls back to the default comma).
+    """
+    # Default sep="," is used since no sep key is present in CSV_EXPORT
+    csv_data = "name,value\nfoo,5\nbar,10"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "value"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+    # Should parse and output correctly using default sep="," and decimal=","
+    assert len(lines) == 3  # header + 2 data rows
+    assert processed_result["queries"][0]["colnames"] == ["name", "value"]
+    # Output uses default sep="," (no sep in partial config)
+    assert lines[0] == "name,value", f"Expected comma-separated header, got: {lines[0]}"
+    assert "foo" in lines[1]
+    assert "bar" in lines[2]
+
+
+def test_apply_client_processing_csv_format_pivot_table_multiple_rows():
+    """
+    When multiple "Rows" fields are selected in a pivot table, exporting to
+    pivoted CSV should keep each field in its own column instead of merging
+    them into a single column.
+
+    See: https://github.com/apache/superset/issues/32369
+    """
+    csv_data = (
+        "city,segment,value\n"
+        "Paris,Consumer,10\n"
+        "Paris,Corporate,20\n"
+        "London,Consumer,30\n"
+        "London,Corporate,40\n"
+    )
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyColumns": [],
+        "groupbyRows": ["city", "segment"],
+        "metrics": ["value"],
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    query = processed_result["queries"][0]
+
+    output_data = query["data"]
+    lines = output_data.strip().split("\n")
+
+    # the header should have a separate column for each "Rows" field, instead
+    # of a single merged column
+    assert lines[0] == "city,segment,value"
+
+    # each data row should have the city and segment in their own columns
+    output_df = pd.read_csv(StringIO(output_data))
+    assert list(output_df.columns) == ["city", "segment", "value"]
+    assert set(zip(output_df["city"], output_df["segment"], strict=False)) == {
+        ("Paris", "Consumer"),
+        ("Paris", "Corporate"),
+        ("London", "Consumer"),
+        ("London", "Corporate"),
+    }

@@ -214,7 +214,8 @@ export default function transformProps(
               colorAlpha: OpacityEnum.SemiTransparent,
               color: theme.colorText,
               borderColor: theme.colorBgBase,
-              borderWidth: 2,
+              borderWidth: BORDER_WIDTH,
+              gapWidth: GAP_WIDTH,
             },
             label: {
               ...labelProps,

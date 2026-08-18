@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -26,7 +27,6 @@ import fetchMock from 'fetch-mock';
 import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { t } from '@apache-superset/core/translation';
 import PropertiesModal from '.';
 
 // Increase timeout for CI environment
@@ -42,71 +42,38 @@ jest.mock('@superset-ui/core', () => ({
   })),
 }));
 
+// Mock the Advanced JSON editor (Ace-based, not drivable in jsdom) with a plain
+// textarea so a direct JSON edit can be simulated. Keeps the "JSON Metadata"
+// label so the existing "should open advance" test still passes.
+jest.mock('./sections/AdvancedSection', () => ({
+  __esModule: true,
+  default: ({
+    jsonMetadata,
+    onJsonMetadataChange,
+  }: {
+    jsonMetadata: string;
+    onJsonMetadataChange: (value: string) => void;
+  }) => (
+    <div>
+      <span>JSON Metadata</span>
+      <textarea
+        aria-label="JSON metadata editor"
+        data-test="mock-json-editor"
+        value={jsonMetadata}
+        onChange={e => onJsonMetadataChange(e.target.value)}
+      />
+    </div>
+  ),
+}));
+
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const spyColorSchemeSelect = jest.spyOn(ColorSchemeSelect, 'default');
 const mockedJsonMetadata =
-  '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": "supersetColors", "label_colors": {"0": "#D3B3DA", "1": "#9EE5E5", "0. Pre-clinical": "#1FA8C9", "2. Phase II or Combined I/II": "#454E7C", "1. Phase I": "#5AC189", "3. Phase III": "#FF7F44", "4. Authorized": "#666666", "root": "#1FA8C9", "Protein subunit": "#454E7C", "Phase II": "#5AC189", "Pre-clinical": "#FF7F44", "Phase III": "#666666", "Phase I": "#E04355", "Phase I/II": "#FCC700", "Inactivated virus": "#A868B7", "Virus-like particle": "#3CCCCB", "Replicating bacterial vector": "#A38F79", "DNA-based": "#8FD3E4", "RNA-based vaccine": "#A1A6BD", "Authorized": "#ACE1C4", "Non-replicating viral vector": "#FEC0A1", "Replicating viral vector": "#B2B2B2", "Unknown": "#EFA1AA", "Live attenuated virus": "#FDE380", "COUNT(*)": "#D1C6BC"}, "filter_scopes": {"358": {"Country_Name": {"scope": ["ROOT_ID"], "immune": []}, "Product_Category": {"scope": ["ROOT_ID"], "immune": []}, "Clinical Stage": {"scope": ["ROOT_ID"], "immune": []}}}}';
+  '{"timed_refresh_immune_slices": [], "expanded_slices": {}, "expand_all_slices": false, "refresh_frequency": 0, "default_filters": "{}", "color_scheme": "supersetColors", "label_colors": {"0": "#D3B3DA", "1": "#9EE5E5", "0. Pre-clinical": "#1FA8C9", "2. Phase II or Combined I/II": "#454E7C", "1. Phase I": "#5AC189", "3. Phase III": "#FF7F44", "4. Authorized": "#666666", "root": "#1FA8C9", "Protein subunit": "#454E7C", "Phase II": "#5AC189", "Pre-clinical": "#FF7F44", "Phase III": "#666666", "Phase I": "#E04355", "Phase I/II": "#FCC700", "Inactivated virus": "#A868B7", "Virus-like particle": "#3CCCCB", "Replicating bacterial vector": "#A38F79", "DNA-based": "#8FD3E4", "RNA-based vaccine": "#A1A6BD", "Authorized": "#ACE1C4", "Non-replicating viral vector": "#FEC0A1", "Replicating viral vector": "#B2B2B2", "Unknown": "#EFA1AA", "Live attenuated virus": "#FDE380", "COUNT(*)": "#D1C6BC"}, "filter_scopes": {"358": {"Country_Name": {"scope": ["ROOT_ID"], "immune": []}, "Product_Category": {"scope": ["ROOT_ID"], "immune": []}, "Clinical Stage": {"scope": ["ROOT_ID"], "immune": []}}}}';
 
 spyColorSchemeSelect.mockImplementation(
   () => (<div>ColorSchemeSelect</div>) as any,
-);
-
-fetchMock.get(
-  'http://localhost/api/v1/dashboard/related/roles?q=(filter:%27%27,page:0,page_size:100)',
-  {
-    body: {
-      count: 6,
-      result: [
-        {
-          text: 'Admin',
-          value: 1,
-          extra: {},
-        },
-        {
-          text: 'Alpha',
-          value: 3,
-          extra: {},
-        },
-        {
-          text: 'Gamma',
-          value: 4,
-          extra: {},
-        },
-        {
-          text: 'Public',
-          value: 2,
-          extra: {},
-        },
-        {
-          text: 'sql_lab',
-          value: 6,
-          extra: {},
-        },
-      ],
-    },
-  },
-);
-
-fetchMock.get(
-  'http://localhost/api/v1/dashboard/related/owners?q=(filter:%27%27,page:0,page_size:100)',
-  {
-    body: {
-      count: 1,
-      result: [
-        {
-          text: 'Superset Admin',
-          value: 1,
-          extra: { active: true },
-        },
-        {
-          text: 'Inactive Admin',
-          value: 2,
-          extra: { active: false },
-        },
-      ],
-    },
-  },
 );
 
 const dashboardInfo = {
@@ -129,11 +96,11 @@ const dashboardInfo = {
   dashboard_title: 'COVID Vaccine Dashboard',
   id: 26,
   metadata: mockedJsonMetadata,
-  owners: [],
+  editors: [],
+  viewers: [],
   position_json:
     '{"CHART-63bEuxjDMJ": {"children": [], "id": "CHART-63bEuxjDMJ", "meta": {"chartId": 369, "height": 76, "sliceName": "Vaccine Candidates per Country", "sliceNameOverride": "Map of Vaccine Candidates", "uuid": "ddc91df6-fb40-4826-bdca-16b85af1c024", "width": 7}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-zvw7luvEL"], "type": "CHART"}, "CHART-F-fkth0Dnv": {"children": [], "id": "CHART-F-fkth0Dnv", "meta": {"chartId": 314, "height": 76, "sliceName": "Vaccine Candidates per Country", "sliceNameOverride": "Treemap of Vaccine Candidates per Country", "uuid": "e2f5a8a7-feb0-4f79-bc6b-01fe55b98b3c", "width": 5}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-zvw7luvEL"], "type": "CHART"}, "CHART-RjD_ygqtwH": {"children": [], "id": "CHART-RjD_ygqtwH", "meta": {"chartId": 351, "height": 59, "sliceName": "Vaccine Candidates per Phase", "sliceNameOverride": "Vaccine Candidates per Phase", "uuid": "30b73c65-85e7-455f-bb24-801bb0cdc670", "width": 2}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-xSeNAspgw"], "type": "CHART"}, "CHART-aGfmWtliqA": {"children": [], "id": "CHART-aGfmWtliqA", "meta": {"chartId": 312, "height": 59, "sliceName": "Vaccine Candidates per Phase", "uuid": "392f293e-0892-4316-bd41-c927b65606a4", "width": 4}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-xSeNAspgw"], "type": "CHART"}, "CHART-dCUpAcPsji": {"children": [], "id": "CHART-dCUpAcPsji", "meta": {"chartId": 325, "height": 82, "sliceName": "Vaccine Candidates per Country & Stage", "sliceNameOverride": "Heatmap of Countries & Clinical Stages", "uuid": "cd111331-d286-4258-9020-c7949a109ed2", "width": 4}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-zhOlQLQnB"], "type": "CHART"}, "CHART-eirDduqb1A": {"children": [], "id": "CHART-eirDduqb1A", "meta": {"chartId": 358, "height": 59, "sliceName": "Filtering Vaccines", "sliceNameOverride": "Filter Box of Vaccines", "uuid": "c29381ce-0e99-4cf3-bf0f-5f55d6b94176", "width": 3}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-xSeNAspgw"], "type": "CHART"}, "CHART-fYo7IyvKZQ": {"children": [], "id": "CHART-fYo7IyvKZQ", "meta": {"chartId": 371, "height": 82, "sliceName": "Vaccine Candidates per Country & Stage", "sliceNameOverride": "Sunburst of Country & Clinical Stages", "uuid": "f69c556f-15fe-4a82-a8bb-69d5b6954123", "width": 5}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-zhOlQLQnB"], "type": "CHART"}, "CHART-j4hUvP5dDD": {"children": [], "id": "CHART-j4hUvP5dDD", "meta": {"chartId": 364, "height": 82, "sliceName": "Vaccine Candidates per Approach & Stage", "sliceNameOverride": "Heatmap of Approaches & Clinical Stages", "uuid": "0c953c84-0c9a-418d-be9f-2894d2a2cee0", "width": 3}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-zhOlQLQnB"], "type": "CHART"}, "DASHBOARD_VERSION_KEY": "v2", "GRID_ID": {"children": [], "id": "GRID_ID", "parents": ["ROOT_ID"], "type": "GRID"}, "HEADER_ID": {"id": "HEADER_ID", "meta": {"text": "COVID Vaccine Dashboard"}, "type": "HEADER"}, "MARKDOWN-VjQQ5SFj5v": {"children": [], "id": "MARKDOWN-VjQQ5SFj5v", "meta": {"code": "# COVID-19 Vaccine Dashboard\\n\\nEverywhere you look, you see negative news about COVID-19. This is to be expected; it\'s been a brutal year and this disease is no joke. This dashboard hopes to use visualization to inject some optimism about the coming return to normalcy we enjoyed before 2020! There\'s lots to be optimistic about:\\n\\n- the sheer volume of attempts to fund the R&D needed to produce and bring an effective vaccine to market\\n- the large number of countries involved in at least one vaccine candidate (and the diversity of economic status of these countries)\\n- the diversity of vaccine approaches taken\\n- the fact that 2 vaccines have already been approved (and a hundreds of thousands of patients have already been vaccinated)\\n\\n### The Dataset\\n\\nThis dashboard is powered by data maintained by the Millken Institute ([link to dataset](https://airtable.com/shrSAi6t5WFwqo3GM/tblEzPQS5fnc0FHYR/viwDBH7b6FjmIBX5x?blocks=bipZFzhJ7wHPv7x9z)). We researched each vaccine candidate and added our own best guesses for the country responsible for each vaccine effort.\\n\\n_Note that this dataset was last updated on 12/23/2020_.\\n\\n", "height": 59, "width": 3}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ", "ROW-xSeNAspgw"], "type": "MARKDOWN"}, "ROOT_ID": {"children": ["TABS-wUKya7eQ0Z"], "id": "ROOT_ID", "type": "ROOT"}, "ROW-xSeNAspgw": {"children": ["MARKDOWN-VjQQ5SFj5v", "CHART-aGfmWtliqA", "CHART-RjD_ygqtwH", "CHART-eirDduqb1A"], "id": "ROW-xSeNAspgw", "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ"], "type": "ROW"}, "ROW-zhOlQLQnB": {"children": ["CHART-j4hUvP5dDD", "CHART-dCUpAcPsji", "CHART-fYo7IyvKZQ"], "id": "ROW-zhOlQLQnB", "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ"], "type": "ROW"}, "ROW-zvw7luvEL": {"children": ["CHART-63bEuxjDMJ", "CHART-F-fkth0Dnv"], "id": "ROW-zvw7luvEL", "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z", "TAB-BCIJF4NvgQ"], "type": "ROW"}, "TAB-BCIJF4NvgQ": {"children": ["ROW-xSeNAspgw", "ROW-zvw7luvEL", "ROW-zhOlQLQnB"], "id": "TAB-BCIJF4NvgQ", "meta": {"text": "Overview"}, "parents": ["ROOT_ID", "TABS-wUKya7eQ0Z"], "type": "TAB"}, "TABS-wUKya7eQ0Z": {"children": ["TAB-BCIJF4NvgQ"], "id": "TABS-wUKya7eQ0Z", "meta": {}, "parents": ["ROOT_ID"], "type": "TABS"}}',
   published: false,
-  roles: [],
   slug: null,
   thumbnail_url:
     '/api/v1/dashboard/26/thumbnail/b24805e98d90116da8c0974d24f5c533/',
@@ -201,7 +168,7 @@ describe('PropertiesModal', () => {
 
     // Check for collapse section texts (not headings anymore)
     expect(screen.getByText('General information')).toBeInTheDocument();
-    expect(screen.getByText('Access & ownership')).toBeInTheDocument();
+    expect(screen.getByText('Access')).toBeInTheDocument();
     expect(screen.getByText('Styling')).toBeInTheDocument();
     expect(screen.getByText('Refresh settings')).toBeInTheDocument();
     expect(screen.getByText('Advanced settings')).toBeInTheDocument();
@@ -212,7 +179,7 @@ describe('PropertiesModal', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 
     // Only General information section is expanded by default
-    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug
+    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Name, Slug and Description
 
     // Expand Styling section to see the ColorSchemeControlWrapper
     const stylingHeaderText = screen.getByText('Styling');
@@ -233,7 +200,6 @@ describe('PropertiesModal', () => {
 
   test('should render - FeatureFlag enabled', async () => {
     mockedIsFeatureEnabled.mockImplementation((flag: any) => {
-      if (flag === FeatureFlag.DashboardRbac) return true;
       if (flag === FeatureFlag.TaggingSystem) return true;
       return false;
     });
@@ -250,19 +216,17 @@ describe('PropertiesModal', () => {
 
     // Check for collapse section texts instead of headings
     expect(screen.getByText('General information')).toBeInTheDocument();
-    expect(screen.getByText('Access & ownership')).toBeInTheDocument();
+    expect(screen.getByText('Access')).toBeInTheDocument();
     expect(screen.getByText('Styling')).toBeInTheDocument();
     expect(screen.getByText('Refresh settings')).toBeInTheDocument();
     expect(screen.getByText('Advanced settings')).toBeInTheDocument();
     expect(screen.getByText('Certification')).toBeInTheDocument();
 
     // General information section is expanded by default
-    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Name and Slug are visible
+    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Name, Slug and Description are visible
 
-    // Expand Access & ownership to see Tags
-    const accessPanel = screen
-      .getByText('Access & ownership')
-      .closest('[role="button"]');
+    // Expand Access to see Tags
+    const accessPanel = screen.getByText('Access').closest('[role="button"]');
     if (accessPanel) {
       await userEvent.click(accessPanel);
     }
@@ -290,7 +254,6 @@ describe('PropertiesModal', () => {
 
   test('should open advance', async () => {
     mockedIsFeatureEnabled.mockImplementation((flag: any) => {
-      if (flag === FeatureFlag.DashboardRbac) return true;
       if (flag === FeatureFlag.TaggingSystem) return true;
       return false;
     });
@@ -302,7 +265,7 @@ describe('PropertiesModal', () => {
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
 
-    expect(screen.getAllByRole('textbox')).toHaveLength(2); // Only Name and Slug visible initially
+    expect(screen.getAllByRole('textbox')).toHaveLength(3); // Only Name, Slug and Description visible initially
 
     // Click on the Advanced settings collapse panel to expand it
     const advancedHeaderText = screen.getByText('Advanced settings');
@@ -321,9 +284,186 @@ describe('PropertiesModal', () => {
     });
   });
 
+  test('preserves a refresh_frequency edited in the JSON editor on save (#42116)', async () => {
+    // Save (onlyApply: false) PUTs to the API before calling onSubmit, so the
+    // request must be mocked or onSubmit is never reached.
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // Expand the Advanced settings panel so the (mocked) JSON editor mounts.
+    const advancedHeader = screen
+      .getByText('Advanced settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(advancedHeader!);
+
+    // Edit refresh_frequency directly in the JSON editor without touching the
+    // Refresh dropdown (the reproduction of #42116).
+    const editor = await screen.findByTestId('mock-json-editor');
+    fireEvent.change(editor, {
+      target: { value: JSON.stringify({ refresh_frequency: 30 }) },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(30);
+  });
+
+  test('preserves an explicit 0 from the JSON editor over a non-zero dropdown value (#42116)', async () => {
+    // A truthy value like 30 can't tell `??` and `||` apart. Only a falsy-but-
+    // explicit `refresh_frequency: 0` in the JSON, combined with a non-zero
+    // Refresh dropdown, catches a regression from `??` back to `||` on
+    // index.tsx, which would let the dropdown's non-zero value win over an
+    // explicit "Don't refresh".
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    // A non-zero refresh_frequency in dashboardInfo so the Refresh dropdown
+    // initializes to a truthy value (dashboardInfo, when passed, is used
+    // directly instead of triggering a fetch -- see the `!currentDashboardInfo`
+    // check in the data-loading effect). handleDashboardData reads the parsed
+    // `metadata` object, not the `json_metadata` string.
+    const nonZeroMetadata = mockedJsonMetadata.replace(
+      '"refresh_frequency": 0',
+      '"refresh_frequency": 30',
+    );
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: nonZeroMetadata,
+        metadata: JSON.parse(nonZeroMetadata),
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // Confirm the Refresh dropdown actually picked up the non-zero value.
+    const refreshHeader = screen
+      .getByText('Refresh settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(refreshHeader!);
+    expect(
+      await screen.findByRole('radio', { name: '30 seconds' }),
+    ).toBeChecked();
+
+    // Edit the JSON editor to explicitly set refresh_frequency to 0 ("Don't
+    // refresh") without touching the Refresh dropdown.
+    const advancedHeader = screen
+      .getByText('Advanced settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(advancedHeader!);
+    const editor = await screen.findByTestId('mock-json-editor');
+    fireEvent.change(editor, {
+      target: { value: JSON.stringify({ refresh_frequency: 0 }) },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(0);
+  });
+
+  test('propagates a Refresh dropdown-only change into the submitted JSON metadata', async () => {
+    // Selecting a value from the Refresh dropdown without touching the
+    // Advanced JSON editor must still make it into the submitted payload --
+    // handleRefreshFrequencyChange writes the new value into the JSON
+    // metadata object on change (#42116, requested in review).
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    // dashboardInfo, when passed, is used directly instead of triggering a
+    // fetch (see the `!currentDashboardInfo` check in the data-loading
+    // effect); handleDashboardData reads the parsed `metadata` object, not
+    // the `json_metadata` string, so `metadata` must be parsed here too --
+    // otherwise the seeded JSON has no `refresh_frequency` key at all and
+    // save falls back to the selected 60 through the `?? refreshFrequency`
+    // path regardless of whether the dropdown-to-JSON sync under test
+    // actually runs.
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+        metadata: JSON.parse(mockedJsonMetadata),
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // mockedJsonMetadata starts at refresh_frequency: 0, so selecting
+    // "1 minute" (60) is a real change coming only from the dropdown.
+    const refreshHeader = screen
+      .getByText('Refresh settings')
+      .closest('.ant-collapse-header');
+    await userEvent.click(refreshHeader!);
+    await userEvent.click(
+      await screen.findByRole('radio', { name: '1 minute' }),
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = JSON.parse(props.onSubmit.mock.calls[0][0].jsonMetadata);
+    expect(submitted.refresh_frequency).toBe(60);
+  });
+
   test('should close modal', async () => {
     mockedIsFeatureEnabled.mockImplementation((flag: any) => {
-      if (flag === FeatureFlag.DashboardRbac) return true;
       if (flag === FeatureFlag.TaggingSystem) return true;
       return false;
     });
@@ -347,11 +487,10 @@ describe('PropertiesModal', () => {
     put.mockResolvedValue({
       json: {
         result: {
-          roles: 'roles',
           dashboard_title: 'dashboard_title',
           slug: 'slug',
           json_metadata: 'json_metadata',
-          owners: 'owners',
+          editors: 'editors',
         },
       },
     } as any);
@@ -387,6 +526,57 @@ describe('PropertiesModal', () => {
       expect(submitCall.title).toBe('COVID Vaccine Dashboard');
       // certifiedBy and certificationDetails come from dashboardInfo, not props
     });
+  });
+
+  test('preserves certification fields on save without opening Certification section', async () => {
+    // Accordion Collapse only mounts the active panel, so certifiedBy /
+    // certificationDetails FormItems are unregistered until Certification is
+    // opened. onFinish must use getFieldsValue(true) to read store values for
+    // unregistered fields; otherwise save clears certified_by to null.
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockResolvedValue({
+      json: {
+        result: {
+          dashboard_title: 'dashboard_title',
+          slug: 'slug',
+          json_metadata: 'json_metadata',
+          editors: 'editors',
+        },
+      },
+    } as any);
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    // Only General information fields are mounted; Certification inputs are not.
+    expect(screen.getAllByRole('textbox')).toHaveLength(3);
+    expect(screen.queryByText('Certified by')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitCall = props.onSubmit.mock.calls[0][0];
+    expect(submitCall.certifiedBy).toBe('John Doe');
+    expect(submitCall.certificationDetails).toBe('Sample certification');
+
+    expect(put).toHaveBeenCalled();
+    const putRequest = put.mock.calls[0][0];
+    expect(typeof putRequest.body).toBe('string');
+    const putBody = JSON.parse(putRequest.body as string);
+    expect(putBody.certified_by).toBe('John Doe');
+    expect(putBody.certification_details).toBe('Sample certification');
   });
 
   test('submitting with onlyApply:true', async () => {
@@ -513,177 +703,6 @@ describe('PropertiesModal', () => {
       expect(textboxes.length).toBeGreaterThanOrEqual(2);
     });
   });
-
-  test('should show all roles', async () => {
-    mockedIsFeatureEnabled.mockImplementation((flag: any) => {
-      if (flag === FeatureFlag.DashboardRbac) return true;
-      if (flag === FeatureFlag.TaggingSystem) return true;
-      return false;
-    });
-
-    const props = createProps();
-    const propsWithDashboardInfo = { ...props, dashboardInfo };
-
-    const getSelect = () => screen.getByRole('combobox', { name: t('Roles') });
-    const open = () => waitFor(() => userEvent.click(getSelect()));
-
-    const getElementsByClassName = (className: string) =>
-      document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
-
-    const findAllSelectOptions = () =>
-      waitFor(() => {
-        const elements = getElementsByClassName(
-          '.ant-select-item-option-content',
-        );
-        if (elements.length === 0) throw new Error('No options found');
-        return elements;
-      });
-
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-
-    // Expand the Access & ownership section first to access roles
-    const accessHeaderText = screen.getByText('Access & ownership');
-    const accessHeader = accessHeaderText.closest('.ant-collapse-header');
-    if (accessHeader) {
-      await userEvent.click(accessHeader);
-      // Wait for animation to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-
-    await waitFor(
-      () => {
-        // Now we have 3 comboboxes: Owners, Roles, and Tags
-        const comboboxes = screen.getAllByRole('combobox');
-        expect(comboboxes.length).toBeGreaterThanOrEqual(3);
-        expect(
-          screen.getByRole('combobox', { name: t('Roles') }),
-        ).toBeInTheDocument();
-      },
-      { timeout: 5000 },
-    );
-
-    await open();
-
-    const options = await findAllSelectOptions();
-
-    expect(options).toHaveLength(5);
-    expect(options[0]).toHaveTextContent('Admin');
-  }, 30000);
-
-  test('should show active owners with dashboard rbac', async () => {
-    mockedIsFeatureEnabled.mockImplementation((flag: any) => {
-      if (flag === FeatureFlag.DashboardRbac) return true;
-      if (flag === FeatureFlag.TaggingSystem) return true;
-      return false;
-    });
-
-    const props = createProps();
-    const propsWithDashboardInfo = { ...props, dashboardInfo };
-
-    const getSelect = () => screen.getByRole('combobox', { name: t('Owners') });
-    const open = () => waitFor(() => userEvent.click(getSelect()));
-
-    const getElementsByClassName = (className: string) =>
-      document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
-
-    const findAllSelectOptions = () =>
-      waitFor(
-        () => {
-          const elements = getElementsByClassName(
-            '.ant-select-item-option-content',
-          );
-          if (elements.length === 0) throw new Error('No options found');
-          return elements;
-        },
-        { timeout: 5000 },
-      );
-
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-
-    // Expand the Access & ownership section first to access owners
-    const accessHeaderText = screen.getByText('Access & ownership');
-    const accessHeader = accessHeaderText.closest('.ant-collapse-header');
-    if (accessHeader) {
-      await userEvent.click(accessHeader);
-      // Wait for animation to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-
-    await waitFor(
-      () => {
-        const comboboxes = screen.getAllByRole('combobox');
-        expect(comboboxes.length).toBeGreaterThanOrEqual(3);
-        expect(
-          screen.getByRole('combobox', { name: t('Owners') }),
-        ).toBeInTheDocument();
-      },
-      { timeout: 5000 },
-    );
-
-    await open();
-
-    const options = await findAllSelectOptions();
-
-    expect(options).toHaveLength(1);
-    expect(options[0]).toHaveTextContent('Superset Admin');
-  }, 30000);
-
-  test('should show active owners without dashboard rbac', async () => {
-    mockedIsFeatureEnabled.mockReturnValue(false);
-
-    const props = createProps();
-    const propsWithDashboardInfo = { ...props, dashboardInfo };
-
-    const getSelect = () => screen.getByRole('combobox', { name: t('Owners') });
-    const open = () => waitFor(() => userEvent.click(getSelect()));
-    const getElementsByClassName = (className: string) =>
-      document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
-
-    const findAllSelectOptions = () =>
-      waitFor(
-        () => {
-          const elements = getElementsByClassName(
-            '.ant-select-item-option-content',
-          );
-          if (elements.length === 0) throw new Error('No options found');
-          return elements;
-        },
-        { timeout: 5000 },
-      );
-
-    render(<PropertiesModal {...propsWithDashboardInfo} />, {
-      useRedux: true,
-    });
-
-    // Expand the Access & ownership section first to access owners
-    const accessHeaderText = screen.getByText('Access & ownership');
-    const accessHeader = accessHeaderText.closest('.ant-collapse-header');
-    if (accessHeader) {
-      await userEvent.click(accessHeader);
-      // Wait for animation to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-
-    await waitFor(
-      () => {
-        expect(
-          screen.getByRole('combobox', { name: t('Owners') }),
-        ).toBeInTheDocument();
-      },
-      { timeout: 5000 },
-    );
-
-    await open();
-
-    const options = await findAllSelectOptions();
-
-    expect(options).toHaveLength(1);
-    expect(options[0]).toHaveTextContent('Superset Admin');
-  }, 30000);
 
   test('should not run validation while data is loading', async () => {
     mockedIsFeatureEnabled.mockReturnValue(false);

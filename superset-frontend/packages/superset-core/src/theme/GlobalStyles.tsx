@@ -29,14 +29,20 @@ import '@fontsource/ibm-plex-mono/600.css';
 /* eslint-enable import/extensions */
 
 import { css, useTheme, Global } from '@emotion/react';
+import { useThemeMode } from './utils/themeUtils';
 
 export const GlobalStyles = () => {
   const theme = useTheme();
+  const isDark = useThemeMode();
   return (
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
-        // SPA
+        /* SPA */
+        html {
+          color-scheme: ${isDark ? 'dark' : 'light'};
+        }
+
         html,
         body,
         #app {
@@ -87,7 +93,7 @@ export const GlobalStyles = () => {
           }
         }
 
-        // Overriding bootstrap styles
+        /* Overriding bootstrap styles */
         #app {
           flex: 1 1 auto;
           position: relative;
@@ -99,8 +105,18 @@ export const GlobalStyles = () => {
           cursor: pointer;
         }
 
-        // Override geostyler CSS that hides AntD ColorPicker alpha input
-        // See: https://github.com/apache/superset/issues/34721
+        /* antd 6 removed the Tag's default trailing margin (v5 shipped */
+        /* margin-inline-end: 8px on every tag) in favor of parents spacing */
+        /* tags via flex/Space gaps. The app's layouts predate that and rely */
+        /* on the v5 default (e.g. the dashboard header's Published tag), */
+        /* so restore it for visual parity. Remove once Tag-adjacent layouts */
+        /* declare their own gaps. */
+        .ant-tag {
+          margin-inline-end: ${theme.marginXS}px;
+        }
+
+        /* Override geostyler CSS that hides AntD ColorPicker alpha input */
+        /* See: https://github.com/apache/superset/issues/34721 */
         .ant-color-picker .ant-color-picker-alpha-input {
           display: block;
         }
@@ -108,6 +124,21 @@ export const GlobalStyles = () => {
         .ant-color-picker .ant-color-picker-slider-alpha {
           display: flex;
           margin-top: ${theme.marginXS}px;
+        }
+
+        .superset-explore-popover.ant-popover
+          .ant-popover-container:has(.ant-popover-title) {
+          padding-top: 0;
+        }
+        .superset-explore-popover.ant-popover .ant-popover-title {
+          padding-top: ${theme.paddingXS}px;
+          margin-bottom: ${theme.paddingSM}px;
+          line-height: 1;
+        }
+        .superset-explore-popover.ant-popover
+          .ant-popover-container:has(.ant-popover-title)
+          .ant-tabs-tab {
+          padding-top: 0;
         }
       `}
     />

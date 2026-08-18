@@ -197,7 +197,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       <h3>{t('Settings')}</h3>
       <Form layout="vertical">
         <FormItem
-          name="allowed-domains"
+          htmlFor="allowed-domains"
           label={
             <span>
               {t('Allowed Domains (comma separated)')}{' '}

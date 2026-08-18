@@ -82,7 +82,18 @@ export default function buildQuery(formData: QueryFormData) {
           flattenOperator(fd, queryObject),
         ],
       } as QueryObject;
-      return [normalizeOrderBy(tmpQueryObject)];
+      // Preserve `order_desc` and `series_limit_metric` on the query object and
+      // only normalize `orderby`. `normalizeOrderBy` strips those two fields from
+      // its result, but the backend series-limit subquery reads `order_desc`
+      // directly to pick the top-N series, so dropping it makes the sort
+      // direction silently ignored for the displayed result. Mirrors the
+      // single-query Timeseries chart's buildQuery.
+      return [
+        {
+          ...tmpQueryObject,
+          orderby: normalizeOrderBy(tmpQueryObject).orderby,
+        },
+      ];
     }),
   );
 

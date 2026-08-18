@@ -41,6 +41,11 @@ describe('ChartLayer', () => {
     chartLayer.charts = [
       {
         htmlElement: document.createElement('div'),
+        root: { render: jest.fn(), unmount: jest.fn() } as any,
+        coordinate: [0, 0],
+        width: 100,
+        height: 100,
+        feature: {},
       },
     ];
 

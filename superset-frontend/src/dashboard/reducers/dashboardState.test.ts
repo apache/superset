@@ -19,6 +19,7 @@
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import dashboardStateReducer from './dashboardState';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 import {
   ADD_SLICE,
   ON_CHANGE,
@@ -27,6 +28,7 @@ import {
   SET_EDIT_MODE,
   SET_FOCUSED_FILTER_FIELD,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
+  SET_REFRESH_FREQUENCY,
   SET_UNSAVED_CHANGES,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
@@ -206,7 +208,89 @@ describe('DashboardState reducer', () => {
         }),
       );
     });
+
+    test('preserves a hydrate-seeded outer ancestor across a nested-tab switch', () => {
+      const store = mockStore({
+        dashboardState: { activeTabs: ['TAB-Outer1', 'TAB-Inner1'] },
+        dashboardLayout: {
+          present: {
+            'TAB-Outer1': { parents: [] },
+            'TAB-Outer2': { parents: [] },
+            'TAB-Inner1': { parents: ['TAB-Outer1', 'TABS-2'] },
+            'TAB-Inner2': { parents: ['TAB-Outer1', 'TABS-2'] },
+          },
+        },
+      });
+      const request = setActiveTab('TAB-Inner2', 'TAB-Inner1');
+      const thunkAction = request(
+        store.dispatch,
+        store.getState as () => RootState,
+      );
+
+      const result = typedDashboardStateReducer(
+        createMockDashboardState({
+          activeTabs: ['TAB-Outer1', 'TAB-Inner1'],
+        }),
+        thunkAction,
+      );
+
+      expect(result.activeTabs).toContain('TAB-Outer1');
+      expect(result.activeTabs).toEqual(
+        expect.arrayContaining(['TAB-Outer1', 'TAB-Inner2']),
+      );
+    });
+
+    // Pins the exact seam that replaced the deleted useActiveDashboardTabs
+    // layout-walk reconstruction: the Tabs component's initial-mount
+    // dispatch (no prevTabId) must not drop a hydrate-seeded outer ancestor
+    // either. The prior test only covers a later prev→next switch.
+    test('preserves a hydrate-seeded outer ancestor on the initial mount dispatch (no prevTabId)', () => {
+      const store = mockStore({
+        dashboardState: { activeTabs: ['TAB-Outer1', 'TAB-Inner1'] },
+        dashboardLayout: {
+          present: {
+            'TAB-Outer1': { parents: [] },
+            'TAB-Outer2': { parents: [] },
+            'TAB-Inner1': { parents: ['TAB-Outer1', 'TABS-2'] },
+            'TAB-Inner2': { parents: ['TAB-Outer1', 'TABS-2'] },
+          },
+        },
+      });
+      const request = setActiveTab('TAB-Inner1', undefined);
+      const thunkAction = request(
+        store.dispatch,
+        store.getState as () => RootState,
+      );
+
+      const result = typedDashboardStateReducer(
+        createMockDashboardState({
+          activeTabs: ['TAB-Outer1', 'TAB-Inner1'],
+        }),
+        thunkAction,
+      );
+
+      expect(result.activeTabs).toContain('TAB-Outer1');
+      expect(result.activeTabs).toEqual(
+        expect.arrayContaining(['TAB-Outer1', 'TAB-Inner1']),
+      );
+    });
   });
+  // Pins a side effect of seeding activeTabs at hydration (see
+  // actions/hydrate.ts / util/getDefaultActiveTabs.ts): a non-empty seeded
+  // activeTabs now reaches HYDRATE_DASHBOARD with entries, which the
+  // existing "Initialize tab activation times for initially active tabs"
+  // branch below was already written to handle — previously unreachable in
+  // practice on a fresh load because activeTabs was always seeded `[]`.
+  test('HYDRATE_DASHBOARD populates tabActivationTimes for a seeded activeTabs value', () => {
+    const result = typedDashboardStateReducer(undefined, {
+      type: HYDRATE_DASHBOARD,
+      data: { dashboardState: { activeTabs: ['TAB-1'] } },
+    });
+
+    expect(result.activeTabs).toEqual(['TAB-1']);
+    expect(result.tabActivationTimes?.['TAB-1']).toEqual(expect.any(Number));
+  });
+
   test('SET_ACTIVE_TABS', () => {
     expect(
       typedDashboardStateReducer(
@@ -272,11 +356,18 @@ describe('DashboardState reducer', () => {
         { expandedSlices: { 1: true, 2: false } } as Partial<DashboardState>,
         { type: TOGGLE_EXPAND_SLICE, sliceId: 1 },
       ),
-    ).toEqual({ expandedSlices: { 2: false } });
+    ).toEqual({ expandedSlices: { 1: false, 2: false } });
 
     expect(
       typedDashboardStateReducer(
         { expandedSlices: { 1: true, 2: false } } as Partial<DashboardState>,
+        { type: TOGGLE_EXPAND_SLICE, sliceId: 2 },
+      ),
+    ).toEqual({ expandedSlices: { 1: true, 2: true } });
+
+    expect(
+      typedDashboardStateReducer(
+        { expandedSlices: { 1: true } } as Partial<DashboardState>,
         { type: TOGGLE_EXPAND_SLICE, sliceId: 2 },
       ),
     ).toEqual({ expandedSlices: { 1: true, 2: true } });
@@ -299,6 +390,54 @@ describe('DashboardState reducer', () => {
     ).toEqual({
       hasUnsavedChanges: false,
     });
+  });
+
+  test('SET_REFRESH_FREQUENCY never clears existing unsaved changes', () => {
+    // A persistent update marks the dashboard dirty.
+    expect(
+      typedDashboardStateReducer({} as Partial<DashboardState>, {
+        type: SET_REFRESH_FREQUENCY,
+        refreshFrequency: 30,
+        isPersistent: true,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        refreshFrequency: 30,
+        shouldPersistRefreshFrequency: true,
+        hasUnsavedChanges: true,
+      }),
+    );
+
+    // A non-persistent update must preserve, not clear, pending unsaved changes
+    // (e.g. the dashboard header's unmount cleanup during a remount).
+    expect(
+      typedDashboardStateReducer(
+        { hasUnsavedChanges: true } as Partial<DashboardState>,
+        {
+          type: SET_REFRESH_FREQUENCY,
+          refreshFrequency: 0,
+          isPersistent: false,
+        },
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        refreshFrequency: 0,
+        shouldPersistRefreshFrequency: false,
+        hasUnsavedChanges: true,
+      }),
+    );
+
+    // With no pending changes, a non-persistent update leaves the flag false.
+    expect(
+      typedDashboardStateReducer(
+        { hasUnsavedChanges: false } as Partial<DashboardState>,
+        {
+          type: SET_REFRESH_FREQUENCY,
+          refreshFrequency: 0,
+          isPersistent: false,
+        },
+      ).hasUnsavedChanges,
+    ).toBe(false);
   });
 
   test('should set maxUndoHistoryExceeded', () => {

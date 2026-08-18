@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Meta, StoryObj } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react-webpack5';
 import Slider from '@superset-ui/core/components/Slider/index';
 import { useState } from 'react';
 import { Row, Col } from '.';

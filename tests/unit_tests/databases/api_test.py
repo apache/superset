@@ -40,7 +40,7 @@ from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
-from superset.sql.parse import Table
+from superset.sql.parse import Partition, Table
 from superset.superset_typing import OAuth2State
 from superset.utils import json
 from superset.utils.oauth2 import encode_oauth2_state
@@ -243,6 +243,13 @@ def test_database_connection(
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
+                "supports_offset": True,
+                "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
@@ -332,6 +339,13 @@ def test_database_connection(
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
+                "supports_offset": True,
+                "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
@@ -945,6 +959,58 @@ def test_oauth2_error(
             ),
         ),
         (
+            # an unset schema stringified by a broken client must be treated
+            # as absent (see #36305)
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "undefined",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
             {
                 "type": "csv",
                 "file": (create_csv_file(), "out.csv"),
@@ -1039,6 +1105,38 @@ def test_csv_upload(
     assert response.json == {"message": "OK"}
     init_mock.assert_called_with(*upload_called_with)
     reader_mock.assert_called_with(*reader_called_with)
+
+
+@pytest.mark.parametrize(
+    "schema_in,schema_out",
+    [
+        ("", None),
+        ("  ", None),
+        ("undefined", None),
+        ("null", None),
+        (None, None),
+        # only the exact JS stringification artifacts are dropped — a quoted
+        # schema actually named ``NULL``/``Undefined`` or an identifier with
+        # surrounding whitespace is preserved verbatim
+        ("NULL", "NULL"),
+        ("Undefined", "Undefined"),
+        (" public ", " public "),
+        ("myschema", "myschema"),
+    ],
+)
+def test_upload_post_schema_normalizes_schema(
+    schema_in: str | None,
+    schema_out: str | None,
+) -> None:
+    """
+    Empty/whitespace-only values and the exact stringified-unset artifacts
+    ("undefined"/"null") are dropped; every other value is preserved verbatim.
+    """
+    from superset.databases.schemas import UploadPostSchema
+
+    data = {} if schema_in is None else {"schema": schema_in}
+    result = UploadPostSchema().load(data, partial=True)
+    assert result.get("schema") == schema_out
 
 
 @pytest.mark.parametrize(
@@ -1856,6 +1954,43 @@ def test_columnar_metadata_validation(
     assert response.json == {"message": {"file": ["Field may not be null."]}}
 
 
+def test_metadata_file_too_large(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """
+    The metadata endpoint rejects an oversized file with a 413 before the
+    reader parses it, so the size limit cannot be bypassed by hitting
+    ``upload_metadata`` instead of ``upload``.
+    """
+    file_metadata = mocker.patch.object(CSVReader, "file_metadata")
+    mocker.patch.dict(current_app.config, {"UPLOAD_MAX_FILE_SIZE_BYTES": 4})
+    response = client.post(
+        "/api/v1/database/upload_metadata/",
+        data={"type": "csv", "file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 413
+    assert (
+        response.json["errors"][0]["message"]
+        == "Database upload file exceeds the maximum allowed size."
+    )
+    file_metadata.assert_not_called()
+
+
+def test_metadata_within_size_limit(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """A file under ``UPLOAD_MAX_FILE_SIZE_BYTES`` passes the metadata endpoint."""
+    _ = mocker.patch.object(CSVReader, "file_metadata")
+    mocker.patch.dict(current_app.config, {"UPLOAD_MAX_FILE_SIZE_BYTES": 1024 * 1024})
+    response = client.post(
+        "/api/v1/database/upload_metadata/",
+        data={"type": "csv", "file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+
+
 def test_table_metadata_happy_path(
     mocker: MockerFixture,
     client: Any,
@@ -1865,27 +2000,34 @@ def test_table_metadata_happy_path(
     Test the `table_metadata` endpoint.
     """
     database = mocker.MagicMock()
+    # Non-ODPS backend: partition detection short-circuits to (False, []).
+    database.backend = "postgresql"
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    no_partition = Partition(False, ())
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t")
     assert response.json == {"hello": "world"}
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t"),
+        no_partition,
     )
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t&schema=s")
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", "s"),
+        no_partition,
     )
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t&catalog=c")
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", None, "c"),
+        no_partition,
     )
 
     response = client.get(
@@ -1894,6 +2036,7 @@ def test_table_metadata_happy_path(
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", "s", "c"),
+        no_partition,
     )
 
 
@@ -1939,6 +2082,7 @@ def test_table_metadata_slashes(
     Test the `table_metadata` endpoint with names that have slashes.
     """
     database = mocker.MagicMock()
+    database.backend = "postgresql"
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
@@ -1947,6 +2091,7 @@ def test_table_metadata_slashes(
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("foo/bar"),
+        Partition(False, ()),
     )
 
 
@@ -2248,7 +2393,7 @@ def test_catalogs_with_oauth2(
     security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
 
     response = client.get("/api/v1/database/1/catalogs/")
-    assert response.status_code == 500
+    assert response.status_code == 403
     assert response.json == {
         "errors": [
             {
@@ -2349,7 +2494,7 @@ def test_schemas_with_oauth2(
     security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
 
     response = client.get("/api/v1/database/1/schemas/")
-    assert response.status_code == 500
+    assert response.status_code == 403
     assert response.json == {
         "errors": [
             {
@@ -2375,7 +2520,7 @@ def test_export_includes_configuration_method(
     """
     import zipfile
 
-    import prison
+    import rison
 
     from superset.models.core import Database
 
@@ -2389,7 +2534,7 @@ def test_export_includes_configuration_method(
     db.session.add(db_obj)
     db.session.commit()
 
-    rison_ids = prison.dumps([db_obj.id])
+    rison_ids = rison.dumps([db_obj.id])
     response = client.get(f"/api/v1/database/export/?q={rison_ids}")
     assert response.status_code == 200
 

@@ -37,8 +37,11 @@ from superset.commands.report.exceptions import (
     AlertQueryMultipleRowsError,
     AlertQueryTimeout,
     AlertValidatorConfigError,
+    ReportScheduleExecutorNotFoundError,
 )
+from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
+from superset.sql.parse import SQLScript
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import override_user
@@ -180,6 +183,18 @@ class AlertCommand(BaseCommand):
             "execution_id": self._execution_id,
         }
 
+    def _validate_rendered_sql(self, rendered_sql: str) -> None:
+        """
+        Enforce SQL-level constraints on the rendered alert query: a single
+        statement, and no mutations unless the database allows DML.
+        """
+        database = self._report_schedule.database
+        script = SQLScript(rendered_sql, engine=database.backend)
+        if len(script.statements) != 1:
+            raise AlertQueryError(message=_("Alert query must be a single statement"))
+        if script.has_mutation() and not database.allow_dml:
+            raise AlertQueryError(message=_("Alert query must be read-only"))
+
     @logs_context(context_func=_get_alert_metadata_from_object)
     def _execute_query(self) -> pd.DataFrame:
         """
@@ -192,8 +207,10 @@ class AlertCommand(BaseCommand):
         sql_template = jinja_context.get_template_processor(
             database=self._report_schedule.database
         )
-        rendered_sql = sql_template.process_template(self._report_schedule.sql)
+
         try:
+            rendered_sql = sql_template.process_template(self._report_schedule.sql)
+            self._validate_rendered_sql(rendered_sql)
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
             )
@@ -210,7 +227,26 @@ class AlertCommand(BaseCommand):
                 model=self._report_schedule,
             )
             user = security_manager.find_user(username)
+            # A deleted/disabled executor user makes find_user return None. Raise
+            # the dedicated error so the handler below re-surfaces it instead of
+            # masking it as an opaque AlertQueryError (or letting the missing user
+            # surface as a NoneType error from the downstream auth flow).
+            if user is None:
+                raise ReportScheduleExecutorNotFoundError(username)
+
             with override_user(user):
+                # Run table-level authorization as the executing user against
+                # the rendered SQL.
+                try:
+                    security_manager.raise_for_access(
+                        database=self._report_schedule.database,
+                        sql=rendered_sql,
+                        force_dataset_match=True,
+                    )
+                except SupersetSecurityException as ex:
+                    raise AlertQueryError(
+                        message=_("Alert query failed the authorization check")
+                    ) from ex
                 start = default_timer()
                 df = self._report_schedule.database.get_df(sql=limited_rendered_sql)
                 stop = default_timer()
@@ -223,6 +259,14 @@ class AlertCommand(BaseCommand):
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
+        except ReportScheduleExecutorNotFoundError:
+            # A missing executor user is a configuration problem, not a transient
+            # query error; surface the typed error rather than masking it.
+            raise
+        except AlertQueryError:
+            # Re-raise the typed validation/authorization errors as-is instead
+            # of masking them behind the generic error below.
+            raise
         except Exception as ex:
             logger.warning("An error occurred when running alert query")
             # The exception message here can reveal to much information to malicious

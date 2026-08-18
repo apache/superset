@@ -234,6 +234,26 @@ describe('ControlPanelsContainer', () => {
     );
   });
 
+  test('renders section with function label and description', async () => {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: () => t('Dynamic Section Label'),
+          description: () => t('Dynamic section description'),
+          expanded: true,
+          controlSetRows: [['groupby']],
+        },
+      ],
+    });
+    render(<ControlPanelsContainer {...getDefaultProps()} />, {
+      useRedux: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Dynamic Section Label')).toBeInTheDocument();
+    });
+  });
+
   test('hidden state of controls is correctly applied', async () => {
     getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().registerValue('table', {
@@ -405,6 +425,119 @@ describe('ControlPanelsContainer', () => {
 
     // Clean up
     getChartControlPanelRegistry().remove('line');
+  });
+
+  test('should stash control value when visibility is false and disableStash is not set', async () => {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Query'),
+          expanded: true,
+          controlSetRows: [
+            [
+              {
+                name: 'x_axis_time_format',
+                config: {
+                  type: 'SelectControl',
+                  label: t('Time Format'),
+                  default: 'smart_date',
+                  choices: [['smart_date', 'Adaptive Formatting']],
+                  visibility: () => false,
+                },
+              },
+            ],
+          ],
+        },
+      ],
+    });
+
+    const props = getDefaultProps();
+    props.form_data = {
+      ...props.form_data,
+      x_axis_time_format: 'smart_date',
+    };
+
+    const { getByTestId } = render(
+      <>
+        <ControlPanelsContainer {...props} />
+        <FormDataMock />
+      </>,
+      {
+        useRedux: true,
+        initialState: {
+          explore: {
+            form_data: {
+              ...defaultState.form_data,
+              x_axis_time_format: 'smart_date',
+            },
+          },
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('mock-formdata')).not.toHaveTextContent(
+        'x_axis_time_format',
+      );
+    });
+  });
+
+  test('should preserve control value when visibility is false and disableStash is true', async () => {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Query'),
+          expanded: true,
+          controlSetRows: [
+            [
+              {
+                name: 'x_axis_time_format',
+                config: {
+                  type: 'SelectControl',
+                  label: t('Time Format'),
+                  default: 'smart_date',
+                  choices: [['smart_date', 'Adaptive Formatting']],
+                  visibility: () => false,
+                  disableStash: true,
+                },
+              },
+            ],
+          ],
+        },
+      ],
+    });
+
+    const props = getDefaultProps();
+    props.form_data = {
+      ...props.form_data,
+      x_axis_time_format: 'smart_date',
+    };
+
+    const { getByTestId } = render(
+      <>
+        <ControlPanelsContainer {...props} />
+        <FormDataMock />
+      </>,
+      {
+        useRedux: true,
+        initialState: {
+          explore: {
+            form_data: {
+              ...defaultState.form_data,
+              x_axis_time_format: 'smart_date',
+            },
+          },
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('mock-formdata')).toHaveTextContent(
+        'x_axis_time_format',
+      );
+    });
   });
 
   test('should not show Matrixify tab for table chart types', async () => {

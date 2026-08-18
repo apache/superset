@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  configureStore,
-  createListenerMiddleware,
-} from '@reduxjs/toolkit';
+import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
 import type { QueryEditor } from 'src/SqlLab/types';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import {
@@ -369,7 +366,10 @@ test('onDidCloseTab fires with Tab on REMOVE_QUERY_EDITOR', async () => {
 
 test('onDidChangeActiveTab fires with Tab on SET_ACTIVE_QUERY_EDITOR', () => {
   // Add a second editor so switching back is a real change
-  mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: makeSecondEditor() });
+  mockStore.dispatch({
+    type: ADD_QUERY_EDITOR,
+    queryEditor: makeSecondEditor(),
+  });
 
   const listener = jest.fn();
   const disposable = sqlLab.onDidChangeActiveTab(listener);
@@ -418,7 +418,10 @@ test('onDidCreateTab fires with Tab on ADD_QUERY_EDITOR', () => {
 
 test('editor-scoped listener does not fire for a different editor', () => {
   // Add a second editor (ADD_QUERY_EDITOR makes it active)
-  mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: makeSecondEditor() });
+  mockStore.dispatch({
+    type: ADD_QUERY_EDITOR,
+    queryEditor: makeSecondEditor(),
+  });
 
   // Switch back to editor-1 so the predicate captures immutable-1
   mockStore.dispatch({
@@ -444,7 +447,10 @@ test('editor-scoped listener does not fire for a different editor', () => {
 
 test('editor-scoped predicate filters tab events via queryEditor lookup', () => {
   // Add a second editor and switch back to editor-1
-  mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: makeSecondEditor() });
+  mockStore.dispatch({
+    type: ADD_QUERY_EDITOR,
+    queryEditor: makeSecondEditor(),
+  });
   mockStore.dispatch({
     type: SET_ACTIVE_QUERY_EDITOR,
     queryEditor: { id: EDITOR_ID },
@@ -468,7 +474,10 @@ test('editor-scoped predicate filters tab events via queryEditor lookup', () => 
 
 test('globalPredicate listener fires for a non-active tab', () => {
   // Add editor-2 and switch to it
-  mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: makeSecondEditor() });
+  mockStore.dispatch({
+    type: ADD_QUERY_EDITOR,
+    queryEditor: makeSecondEditor(),
+  });
   mockStore.dispatch({
     type: SET_ACTIVE_QUERY_EDITOR,
     queryEditor: { id: 'editor-2' },

@@ -69,6 +69,31 @@ import {
   TIMESERIES_CONSTANTS,
 } from '../constants';
 
+function parseTimeShiftToMs(timeShift?: string | null): number {
+  if (!timeShift) return 0;
+
+  const match = timeShift
+    .trim()
+    .match(/^(-?\d+(?:\.\d+)?)\s*(second|minute|hour|day|week|month|year)s?$/i);
+
+  if (!match) return 0;
+
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+
+  const MS: Record<string, number> = {
+    second: 1000,
+    minute: 60 * 1000,
+    hour: 60 * 60 * 1000,
+    day: 24 * 60 * 60 * 1000,
+    week: 7 * 24 * 60 * 60 * 1000,
+    month: 30 * 24 * 60 * 60 * 1000,
+    year: 365 * 24 * 60 * 60 * 1000,
+  };
+
+  return value * (MS[unit] ?? 0);
+}
+
 // based on weighted wiggle algorithm
 // source: https://ieeexplore.ieee.org/document/4658136
 export const getBaselineSeriesForStream = (
@@ -205,6 +230,7 @@ export function transformSeries(
     seriesContexts?: { [key: string]: ForecastSeriesEnum[] };
     markerEnabled?: boolean;
     markerSize?: number;
+    symbolSizeFn?: (value: (number | string | null)[]) => number;
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: StackType;
@@ -239,6 +265,7 @@ export function transformSeries(
     seriesContexts = {},
     markerEnabled,
     markerSize,
+    symbolSizeFn,
     areaOpacity = 1,
     seriesType,
     stack,
@@ -389,6 +416,9 @@ export function transformSeries(
     ...(colorByPrimaryAxis ? {} : { itemStyle }),
     // @ts-ignore
     type: plotType,
+    // Cap bar width so a single data point doesn't stretch across the
+    // entire chart area. Bars with many categories auto-size below this cap.
+    ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
     // @ts-expect-error
@@ -410,7 +440,7 @@ export function transformSeries(
     emphasis,
     showSymbol,
     symbol,
-    symbolSize: markerSize,
+    symbolSize: symbolSizeFn ?? markerSize,
     label: {
       show: !!showValue,
       position: isHorizontal ? 'right' : 'top',
@@ -469,6 +499,7 @@ export function transformFormulaAnnotation(
   return {
     name,
     id: name,
+    z: 10,
     itemStyle: {
       color: color || colorScale(name, sliceId),
     },
@@ -562,6 +593,7 @@ export function transformIntervalAnnotation(
     id: `Interval - ${name}`,
     type: 'line',
     animation: false,
+    z: 10,
     markArea: {
       silent: false,
       itemStyle: {
@@ -657,6 +689,7 @@ export function transformEventAnnotation(
     id: `Event - ${name}`,
     type: 'line',
     animation: false,
+    z: 10,
     markLine: {
       silent: false,
       symbol: 'none',
@@ -680,14 +713,27 @@ export function transformTimeseriesAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
+
+  const shiftMs = parseTimeShiftToMs((layer as any)?.overrides?.time_shift);
+
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { records } = result;
   if (records) {
     const data = records.map(record => {
       const keys = Object.keys(record);
-      const x = keys.length > 0 ? record[keys[0]] : 0;
+
+      let x = keys.length > 0 ? record[keys[0]] : 0;
       const y = keys.length > 1 ? record[keys[1]] : 0;
+
+      if (shiftMs !== 0 && x != null) {
+        const xMs = typeof x === 'string' ? new Date(x).getTime() : Number(x);
+
+        if (!Number.isNaN(xMs)) {
+          x = xMs + shiftMs;
+        }
+      }
+
       return isHorizontal
         ? ([y, x] as [number, OptionName])
         : ([x, y] as [OptionName, number]);
@@ -702,6 +748,7 @@ export function transformTimeseriesAnnotation(
       type: 'line',
       id: name,
       name,
+      z: 10,
       data,
       symbolSize: showMarkers ? markerSize : 0,
       itemStyle: computedStyle,

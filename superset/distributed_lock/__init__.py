@@ -46,8 +46,10 @@ def DistributedLock(  # noqa: N802
                         to prevent deadlocks from crashed processes.
     :param kwargs: Additional key parameters to differentiate locks
     :yields: UUID identifying this lock acquisition
-    :raises AcquireDistributedLockFailedException: If lock is already held
-            or Redis connection fails
+    :raises LockAlreadyHeldException: If the lock is already held by another process
+            (subclass of AcquireDistributedLockFailedException)
+    :raises AcquireDistributedLockFailedException: If the lock backend fails
+            (Redis/DB connection error)
     """
     # pylint: disable=import-outside-toplevel
     from superset.commands.distributed_lock.acquire import AcquireDistributedLock

@@ -24,7 +24,7 @@ import {
   addDangerToast,
   addSuccessToast,
 } from 'src/components/MessageToasts/actions';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { Dispatch, AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { ReportObject, ReportCreationMethod } from 'src/features/reports/types';
@@ -169,8 +169,31 @@ export const addReport =
         dispatch({ type: ADD_REPORT, json } as AddReportAction);
         dispatch(addSuccessToast(t('The report has been created')));
       })
-      .catch(() => {
+      .catch(err => {
         dispatch(addDangerToast(t('Failed to create report')));
+        throw err;
+      });
+
+export const SUBSCRIBE_REPORT = 'SUBSCRIBE_REPORT' as const;
+
+export interface SubscribeReportAction {
+  type: typeof SUBSCRIBE_REPORT;
+  json: ReportApiJsonResponse;
+}
+
+export const subscribeReport =
+  (report: Partial<ReportObject>) => (dispatch: Dispatch<AnyAction>) =>
+    SupersetClient.post({
+      endpoint: `/api/v1/report/subscribe`,
+      jsonPayload: report,
+    })
+      .then(({ json }) => {
+        dispatch({ type: SUBSCRIBE_REPORT, json } as SubscribeReportAction);
+        dispatch(addSuccessToast(t('The report has been created')));
+      })
+      .catch(err => {
+        dispatch(addDangerToast(t('Failed to create report')));
+        throw err;
       });
 
 export const EDIT_REPORT = 'EDIT_REPORT' as const;
@@ -191,8 +214,9 @@ export const editReport =
         dispatch({ type: EDIT_REPORT, json } as EditReportAction);
         dispatch(addSuccessToast(t('Report updated')));
       })
-      .catch(() => {
+      .catch(err => {
         dispatch(addDangerToast(t('Failed to update report')));
+        throw err;
       });
 
 export function toggleActive(report: ReportObject, isActive: boolean) {
@@ -253,5 +277,6 @@ export function deleteActiveReport(report: DeletableReport) {
 export type ReportAction =
   | SetReportAction
   | AddReportAction
+  | SubscribeReportAction
   | EditReportAction
   | DeleteReportAction;

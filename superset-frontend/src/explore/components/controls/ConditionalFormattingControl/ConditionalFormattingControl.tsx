@@ -136,6 +136,11 @@ const ConditionalFormattingControl = ({
         return `${targetValueLeft} ${Comparator.LessOrEqual} ${columnName} ${Comparator.LessThan} ${targetValueRight}`;
       case Comparator.BetweenOrRightEqual:
         return `${targetValueLeft} ${Comparator.LessThan} ${columnName} ${Comparator.LessOrEqual} ${targetValueRight}`;
+      case Comparator.IsTrue:
+      case Comparator.IsFalse:
+      case Comparator.IsNull:
+      case Comparator.IsNotNull:
+        return `${columnName} ${operator}`;
       default:
         return `${columnName} ${operator} ${targetValue}`;
     }
@@ -157,7 +162,7 @@ const ConditionalFormattingControl = ({
               onChange={(newConfig: ConditionalFormattingConfig) =>
                 onEdit(newConfig, index)
               }
-              destroyTooltipOnHide
+              destroyOnHidden
               extraColorChoices={extraColorChoices}
               allColumns={allColumns}
             >
@@ -174,7 +179,7 @@ const ConditionalFormattingControl = ({
           title={t('Add new formatter')}
           columns={columnOptions}
           onChange={onSave}
-          destroyTooltipOnHide
+          destroyOnHidden
           extraColorChoices={extraColorChoices}
           allColumns={allColumns}
         >

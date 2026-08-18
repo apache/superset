@@ -32,6 +32,10 @@ export class EditDatasetModal extends Modal {
     UNLOCK_ICON: '[data-test="unlock"]',
   };
 
+  // FAST_DEBOUNCE in @superset-ui/core is 250 ms; pad slightly so the
+  // debounced onChange has reliably flushed before we click Save.
+  private static readonly TEXT_CONTROL_DEBOUNCE_FLUSH_MS = 350;
+
   private readonly tabs: Tabs;
   private readonly specificLocator: Locator;
 
@@ -40,8 +44,11 @@ export class EditDatasetModal extends Modal {
     // Use getByRole with specific name to target Edit Dataset dialog
     // The dialog has aria-labelledby that resolves to "edit Edit Dataset"
     this.specificLocator = page.getByRole('dialog', { name: /edit.*dataset/i });
-    // Scope tabs to modal's tablist to avoid matching tablists elsewhere on page
-    this.tabs = new Tabs(page, this.specificLocator.getByRole('tablist'));
+    // Scope tabs to modal dialog so nav getter finds .ant-tabs-nav as descendant
+    this.tabs = new Tabs(
+      page,
+      this.specificLocator.locator('.ant-tabs').first(),
+    );
   }
 
   /**
@@ -91,6 +98,7 @@ export class EditDatasetModal extends Modal {
    */
   async fillName(name: string): Promise<void> {
     await this.nameInput.fill(name);
+    await this.waitForTextControlDebounce();
   }
 
   /**
@@ -185,5 +193,17 @@ export class EditDatasetModal extends Modal {
     await dateFormatInput.element.waitFor({ state: 'visible' });
     await dateFormatInput.clear();
     await dateFormatInput.fill(format);
+    await this.waitForTextControlDebounce();
+  }
+
+  /**
+   * TextControl debounces its onChange by FAST_DEBOUNCE (250 ms) before
+   * propagating the value to the parent form. Wait past that window so a
+   * subsequent Save click captures the new value rather than the stale state.
+   */
+  private async waitForTextControlDebounce(): Promise<void> {
+    await this.page.waitForTimeout(
+      EditDatasetModal.TEXT_CONTROL_DEBOUNCE_FLUSH_MS,
+    );
   }
 }

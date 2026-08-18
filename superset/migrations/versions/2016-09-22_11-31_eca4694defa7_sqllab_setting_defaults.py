@@ -24,7 +24,7 @@ Create Date: 2016-09-22 11:31:50.543820
 
 from alembic import op
 from sqlalchemy import Boolean, Column, Integer
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 
@@ -45,7 +45,7 @@ class Database(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for obj in session.query(Database).all():
         obj.allow_run_sync = True

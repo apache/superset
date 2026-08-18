@@ -18,7 +18,7 @@
  */
 import { normalizeTimestamp, QueryState } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { isEqual, omit } from 'lodash';
+import { isEqual, omit } from 'lodash-es';
 import { shallowEqual } from 'react-redux';
 import { now } from '@superset-ui/core/utils/dates';
 import type { SqlLabRootState, QueryEditor, Table } from '../types';
@@ -604,8 +604,20 @@ export default function sqlLabReducer(
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
       const { unsavedQueryEditor } = state;
+      const actionId = action.queryEditor!.id!;
+      // Skip the O(n) tabViewId scan on the common path (keystroke: actionId already
+      // matches the active editor's client-side id). Only scan when ids differ, which
+      // happens when restoring from history with a backend-assigned tabViewId.
+      const normalizedId =
+        unsavedQueryEditor?.id === actionId
+          ? actionId
+          : ((
+              getFromArr(state.queryEditors, actionId, 'tabViewId') as
+                | QueryEditor
+                | undefined
+            )?.id ?? actionId);
       if (
-        unsavedQueryEditor?.id === action.queryEditor!.id &&
+        unsavedQueryEditor?.id === normalizedId &&
         unsavedQueryEditor.sql === action.sql
       ) {
         return state;
@@ -618,7 +630,7 @@ export default function sqlLabReducer(
             sql: action.sql ?? undefined,
             ...(action.queryId && { latestQueryId: action.queryId }),
           },
-          action.queryEditor!.id!,
+          normalizedId,
         ),
       };
     },
@@ -704,7 +716,7 @@ export default function sqlLabReducer(
           {
             hideLeftBar: action.hideLeftBar,
           },
-          action.queryEditor!.id!,
+          action.queryEditorId!,
         ),
       };
     },
@@ -718,7 +730,13 @@ export default function sqlLabReducer(
           extra_json: JSON.parse(db.extra || ''),
         };
       });
-      return { ...state, databases };
+      return {
+        ...state,
+        databases: {
+          ...state.databases,
+          ...databases,
+        },
+      };
     },
     [actions.REFRESH_QUERIES]() {
       let newQueries = { ...state.queries };
@@ -751,14 +769,15 @@ export default function sqlLabReducer(
               }),
               // race condition:
               // because of async behavior, sql lab may still poll a couple of seconds
-              // when it started fetching or finished rendering results
+              // after it started fetching or finished rendering results. Guard only
+              // against re-applying a redundant Success onto a state that's already at
+              // or past Success (Fetching/Success) — Running is strictly before
+              // Success, so an incoming Success there is new information, not a stale
+              // poll, and must be allowed through (otherwise an async query can never
+              // leave Running once observed there).
               state:
                 currentState === QueryState.Success &&
-                [
-                  QueryState.Fetching,
-                  QueryState.Success,
-                  QueryState.Running,
-                ].includes(prevState)
+                [QueryState.Fetching, QueryState.Success].includes(prevState)
                   ? prevState
                   : currentState,
             };

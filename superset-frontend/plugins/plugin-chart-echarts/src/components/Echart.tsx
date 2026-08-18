@@ -56,16 +56,23 @@ import {
   VisualMapComponent,
   LegendComponent,
   DataZoomComponent,
+  type DataZoomComponentOption,
   ToolboxComponent,
   GraphicComponent,
   AriaComponent,
   MarkAreaComponent,
   MarkLineComponent,
 } from 'echarts/components';
-import { LabelLayout } from 'echarts/features';
-import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
+import { LabelLayout, LegacyGridContainLabel } from 'echarts/features';
+import {
+  EchartsHandler,
+  EchartsProps,
+  EchartsStylesProps,
+  QueryEventHandlers,
+} from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+import { loadLocale } from './echartsLocale';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -113,17 +120,23 @@ use([
   TitleComponent,
   VisualMapComponent,
   LabelLayout,
+  // Superset chart options rely on `grid.containLabel`, which echarts 6
+  // ignores (clipping axis labels) unless this legacy feature is registered.
+  LegacyGridContainLabel,
 ]);
 
-const loadLocale = async (locale: string) => {
-  let lang;
+// Report/thumbnail screenshots use standalone="true" (charts) or 3 (reports);
+// live embeds use 1/2 and keep animation. See superset/utils/screenshots.py.
+export function isReportScreenshotMode(): boolean {
   try {
-    lang = await import(`echarts/lib/i18n/lang${locale}`);
+    const standalone = new URLSearchParams(window.location.search).get(
+      'standalone',
+    );
+    return standalone === 'true' || standalone === '3';
   } catch {
-    // Locale not supported in ECharts
+    return false;
   }
-  return lang?.default;
-};
+}
 
 function Echart(
   {
@@ -131,6 +144,7 @@ function Echart(
     height,
     echartOptions,
     eventHandlers,
+    queryEventHandlers,
     zrEventHandlers,
     selectedValues = {},
     refs,
@@ -146,6 +160,7 @@ function Echart(
   }
   const [didMount, setDidMount] = useState(false);
   const chartRef = useRef<EChartsType>();
+  const previousQueryEventHandlers = useRef<QueryEventHandlers>([]);
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
     [selectedValues],
@@ -179,7 +194,13 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // Pass width and height to init to avoid "Can't get DOM width or height" warning
+        // since the DOM element may not have its dimensions yet when init is called
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          width,
+          height,
+        });
       }
       // did mount
       handleSizeChange({ width, height });
@@ -189,10 +210,18 @@ function Echart(
 
   useEffect(() => {
     if (didMount) {
+      previousQueryEventHandlers.current.forEach(({ name, handler }) => {
+        chartRef.current?.off(name, handler);
+      });
       Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.off(name);
         chartRef.current?.on(name, handler);
       });
+
+      (queryEventHandlers || []).forEach(({ name, query, handler }) => {
+        chartRef.current?.on(name, query, handler);
+      });
+      previousQueryEventHandlers.current = queryEventHandlers || [];
 
       Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
         chartRef.current?.getZr().off(name);
@@ -256,15 +285,24 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      // Disable animations during auto-refresh to reduce visual noise
-      const animationOverride = isDashboardRefreshing
-        ? {
-            animation: false,
-            animationDuration: 0,
-          }
-        : {};
+      // Disable animation on auto-refresh and screenshots. Screenshots have no
+      // "render finished" signal, so a running draw can be captured mid-frame,
+      // producing partial/blank charts.
+      const animationOverride =
+        isDashboardRefreshing || isReportScreenshotMode()
+          ? {
+              animation: false,
+              animationDuration: 0,
+            }
+          : {};
+
+      // ECharts' built-in ARIA descriptions are off by default so behavior
+      // doesn't change for existing deployments; a theme or chart's options
+      // can opt in (or further customize aria handling) by overriding this.
+      const ariaDefault = { aria: { enabled: false } };
 
       const themedEchartOptions = mergeEchartsThemeOverrides(
+        ariaDefault,
         baseTheme,
         echartOptions,
         globalOverrides,
@@ -273,17 +311,82 @@ function Echart(
       );
 
       const notMerge = !isDashboardRefreshing;
-      if (!notMerge) {
-        chartRef.current?.dispatchAction({ type: 'hideTip' });
-      }
+      chartRef.current?.dispatchAction({ type: 'hideTip' });
+      // setOption(notMerge:true) replaces the dataZoom config, dropping any
+      // range the user has engaged. Preserve it across the call.
+      const previousZoom = notMerge
+        ? (
+            chartRef.current?.getOption() as {
+              dataZoom?: DataZoomComponentOption[];
+            }
+          )?.dataZoom
+        : undefined;
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
         replaceMerge: notMerge ? undefined : ['series'],
-        lazyUpdate: isDashboardRefreshing,
+        // lazyUpdate defers render, causing tooltip crashes on stale shapes (#39247)
+        lazyUpdate: false,
       });
+      if (previousZoom?.length) {
+        // Skip restore when the new option reshapes dataZoom (different count
+        // means index-based restore could land on the wrong component).
+        const newZoom = (
+          chartRef.current?.getOption() as {
+            dataZoom?: DataZoomComponentOption[];
+          }
+        )?.dataZoom;
+        if (newZoom?.length === previousZoom.length) {
+          const batch = previousZoom
+            .map((dz, dataZoomIndex) => ({
+              dataZoomIndex,
+              start: dz.start,
+              end: dz.end,
+              startValue: dz.startValue,
+              endValue: dz.endValue,
+            }))
+            .filter(b => {
+              const hasAny =
+                b.start !== undefined ||
+                b.end !== undefined ||
+                b.startValue !== undefined ||
+                b.endValue !== undefined;
+              if (!hasAny) return false;
+              // Default full-range zoom is functionally identical to the
+              // fresh state setOption already produces — skip the dispatch.
+              const isDefaultRange =
+                b.start === 0 &&
+                b.end === 100 &&
+                b.startValue === undefined &&
+                b.endValue === undefined;
+              return !isDefaultRange;
+            });
+          if (batch.length) {
+            chartRef.current?.dispatchAction({ type: 'dataZoom', batch });
+          }
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
-  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
+  }, [
+    didMount,
+    echartOptions,
+    eventHandlers,
+    queryEventHandlers,
+    zrEventHandlers,
+    theme,
+    vizType,
+  ]);
+
+  // Clear tooltip on refresh start to avoid stale content (#39247)
+  useEffect(() => {
+    if (didMount && isDashboardRefreshing && chartRef.current) {
+      chartRef.current.dispatchAction({ type: 'hideTip' });
+      chartRef.current.dispatchAction({
+        type: 'updateAxisPointer',
+        currTrigger: 'leave',
+      });
+    }
+  }, [didMount, isDashboardRefreshing]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 

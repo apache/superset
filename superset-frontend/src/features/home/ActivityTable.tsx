@@ -32,6 +32,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { Chart } from 'src/types/Chart';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable, RecentActivity } from './types';
@@ -73,6 +74,12 @@ const Styles = styled.div`
 
 const UNTITLED = t('[Untitled]');
 const UNKNOWN_TIME = t('Unknown');
+
+// Dashboards are the only activity entities viewable in the mobile
+// consumption experience; charts and saved queries link to unsupported views
+const isDashboardEntity = (entity: ActivityObject) =>
+  'dashboard_title' in entity ||
+  ('item_type' in entity && entity.item_type === 'dashboard');
 
 const getEntityTitle = (entity: ActivityObject) => {
   if ('dashboard_title' in entity) return entity.dashboard_title || UNTITLED;
@@ -125,20 +132,30 @@ export default function ActivityTable({
 }: ActivityProps) {
   const [editedCards, setEditedCards] = useState<ActivityData[]>();
   const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
-
-  const getEditedCards = () => {
-    setIsFetchingEditedCards(true);
-    getEditedObjects(user.userId).then(r => {
-      setEditedCards([...r.editedChart, ...r.editedDash]);
-      setIsFetchingEditedCards(false);
-    });
-  };
+  const isMobile = useIsMobile();
 
   useEffect(() => {
+    let isMounted = true;
+
     if (activeChild === TableTab.Edited) {
-      getEditedCards();
+      setIsFetchingEditedCards(true);
+      getEditedObjects(user.userId).then(r => {
+        if (!isMounted) return;
+        // `getEditedObjects` swallows errors via `.catch(err => err)` and
+        // returns the raw error object, which has no `editedChart` /
+        // `editedDash` arrays. Guard against that so spreading can't throw.
+        const editedChart = Array.isArray(r?.editedChart) ? r.editedChart : [];
+        const editedDash = Array.isArray(r?.editedDash) ? r.editedDash : [];
+        setEditedCards([...editedChart, ...editedDash]);
+        setIsFetchingEditedCards(false);
+      });
     }
-  }, [activeChild]);
+
+    return () => {
+      isMounted = false;
+      setIsFetchingEditedCards(false);
+    };
+  }, [activeChild, user.userId]);
 
   const tabs = [
     {
@@ -169,12 +186,16 @@ export default function ActivityTable({
       },
     });
   }
-  const renderActivity = () => {
-    const activities =
-      (activeChild === TableTab.Edited
-        ? editedCards
-        : activityData[activeChild as keyof ActivityData]) ?? [];
-    return activities.map((entity: ActivityObject) => {
+  const rawActivities =
+    (activeChild === TableTab.Edited
+      ? editedCards
+      : activityData[activeChild as keyof ActivityData]) ?? [];
+  const activities = isMobile
+    ? rawActivities.filter(isDashboardEntity)
+    : rawActivities;
+
+  const renderActivity = () =>
+    activities.map((entity: ActivityObject) => {
       const url = getEntityUrl(entity);
       const lastActionOn = getEntityLastActionOn(entity);
       return (
@@ -192,7 +213,6 @@ export default function ActivityTable({
         </CardStyles>
       );
     });
-  };
 
   if ((isFetchingEditedCards && !editedCards) || isFetchingActivityData) {
     return <LoadingCards />;
@@ -204,8 +224,7 @@ export default function ActivityTable({
         tabs={tabs}
         backgroundColor="transparent"
       />
-      {Number(activityData[activeChild as keyof ActivityData]?.length) > 0 ||
-      (activeChild === TableTab.Edited && editedCards?.length) ? (
+      {activities.length > 0 ? (
         <CardContainer className="recentCards">
           {renderActivity()}
         </CardContainer>

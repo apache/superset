@@ -168,7 +168,7 @@ class HelloWorldAPI(RestApi):
 
 **Key points:**
 
-- Uses [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator with automatic context detection
+- Uses [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator with automatic context detection
 - Extends `RestApi` from `superset_core.rest_api.api`
 - Uses Flask-AppBuilder decorators (`@expose`, `@protect`, `@safe`)
 - Returns responses using `self.response(status_code, result=data)`
@@ -184,7 +184,7 @@ Replace the generated print statement with API import to trigger registration:
 from .api import HelloWorldAPI  # noqa: F401
 ```
 
-The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects extension context and registers your API with proper namespacing.
+The [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects extension context and registers your API with proper namespacing.
 
 ## Step 5: Create Frontend Component
 
@@ -223,9 +223,9 @@ The `@apache-superset/core` package must be listed in both `peerDependencies` (t
 
 **`frontend/webpack.config.js`**
 
-The webpack configuration requires specific settings for Module Federation. Key settings include `externalsType: "window"` and `externals` to map `@apache-superset/core` to `window.superset` at runtime, `import: false` for shared modules to use the host's React instead of bundling a separate copy, and `remoteEntry.[contenthash].js` for cache busting.
+The webpack configuration requires specific settings for Module Federation. `@apache-superset/core` is declared as a `shared` singleton alongside `react`/`react-dom`/`antd` — Superset injects a per-extension instance of the package into the container's share scope at load time, so the extension's own webpack config only needs to mark it `shared` with `singleton: true`, not resolve it itself. `import: false` on each shared entry means the extension doesn't bundle its own copy and instead uses the instance the host (or, for `@apache-superset/core`, the loader) provides. `remoteEntry.[contenthash].js` gives the built remote entry file a content hash for cache busting.
 
-**Convention**: Superset always loads extensions by requesting the `./index` module from the Module Federation container. The `exposes` entry must be exactly `'./index': './src/index.tsx'` — do not rename or add additional entries. All API registrations must be reachable from that file. See [Architecture](./architecture#module-federation) for a full explanation.
+**Convention**: Superset always loads extensions by requesting the `./index` module from the Module Federation container. The `exposes` entry must be exactly `'./index': './src/index.tsx'` — do not rename or add additional entries. All API registrations must be reachable from that file. See [Architecture](./architecture.md#module-federation) for a full explanation.
 
 ```javascript
 const path = require('path');
@@ -254,11 +254,6 @@ module.exports = (env, argv) => {
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
-    },
-    // Map @apache-superset/core imports to window.superset at runtime
-    externalsType: 'window',
-    externals: {
-      '@apache-superset/core': 'superset',
     },
     module: {
       rules: [
@@ -291,6 +286,10 @@ module.exports = (env, argv) => {
             singleton: true,
             requiredVersion: packageConfig.peerDependencies['antd'],
             import: false,
+          },
+          '@apache-superset/core': {
+            singleton: true,
+            import: false, // Resolved to a per-extension instance by the loader
           },
         },
       }),
@@ -496,9 +495,9 @@ Superset will extract and validate the extension metadata, load the assets, regi
 Here's what happens when your extension loads:
 
 1. **Superset starts**: Reads `manifest.json` from the `.supx` bundle and loads the backend entrypoint
-2. **Backend registration**: `entrypoint.py` imports your API class, triggering the [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator to register it automatically
+2. **Backend registration**: `entrypoint.py` imports your API class, triggering the [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator to register it automatically
 3. **Frontend loads**: When SQL Lab opens, Superset fetches the remote entry file
-4. **Module Federation**: Webpack loads your extension module and resolves `@apache-superset/core` to `window.superset`
+4. **Module Federation**: Webpack loads your extension module; the extension's `@apache-superset/core` import resolves to a per-extension instance injected into its container's share scope by the loader
 5. **Registration**: The module executes at load time, calling `views.registerView` to register your panel
 6. **Rendering**: When the user opens your panel, React renders `<HelloWorldPanel />`
 7. **API call**: The component fetches data from `/extensions/my-org/hello-world/message`
@@ -509,9 +508,9 @@ Here's what happens when your extension loads:
 
 Now that you have a working extension, explore:
 
-- **[Development](./development)** - Project structure, APIs, and development workflow
-- **[Contribution Types](./contribution-types)** - Other contribution points beyond panels
-- **[Deployment](./deployment)** - Packaging and deploying your extension
-- **[Security](./security)** - Security best practices for extensions
+- **[Development](./development.md)** - Project structure, APIs, and development workflow
+- **[Contribution Types](./contribution-types.md)** - Other contribution points beyond panels
+- **[Deployment](./deployment.md)** - Packaging and deploying your extension
+- **[Security](./security.md)** - Security best practices for extensions
 
 For a complete real-world example, examine the query insights extension in the Superset codebase.

@@ -138,16 +138,16 @@ describe('UsersList', () => {
   test('renders filters options', async () => {
     await renderAndWait();
 
-    const submenu = screen.queryAllByTestId('filters-select')[0];
-    expect(within(submenu).getByText(/first name/i)).toBeInTheDocument();
-    expect(within(submenu).getByText(/last name/i)).toBeInTheDocument();
-    expect(within(submenu).getByText(/email/i)).toBeInTheDocument();
-    expect(within(submenu).getByText(/username/i)).toBeInTheDocument();
-    expect(within(submenu).getByText(/roles/i)).toBeInTheDocument();
-    expect(within(submenu).getByText(/is active?/i)).toBeInTheDocument();
-    expect(within(submenu).getByText(/created on/i)).toBeInTheDocument();
-    expect(within(submenu).getByText(/changed on/i)).toBeInTheDocument();
-    expect(within(submenu).getByText(/last login/i)).toBeInTheDocument();
+    // The compact filter UI shows: only the first search filter as an input,
+    // and select/datetime filters as pill buttons. Only "First name" search
+    // renders (subsequent search filters are hidden — one search box per page).
+    expect(screen.getByTestId('filters-search')).toBeInTheDocument();
+
+    // Select and datetime filters render as compact pill buttons
+    const pills = screen.getAllByTestId('compact-filter-pill');
+    const pillLabels = pills.map(p => p.textContent ?? '');
+    expect(pillLabels.some(l => /roles/i.test(l))).toBe(true);
+    expect(pillLabels.some(l => /is active\?/i.test(l))).toBe(true);
   });
 
   test('renders correct list columns', async () => {

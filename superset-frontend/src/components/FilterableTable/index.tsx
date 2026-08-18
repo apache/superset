@@ -65,6 +65,7 @@ export const FilterableTable = ({
   expandedColumns = [],
   allowHTML = true,
   striped,
+  themeOverrides,
 }: FilterableTableProps) => {
   const getCellContent = useCellContentParser({
     columnKeys: orderedColumnKeys,
@@ -110,7 +111,7 @@ export const FilterableTable = ({
   );
 
   const keywordFilter = useCallback(
-    node => {
+    (node: { data: Datum }) => {
       if (filterText && node.data) {
         return hasMatch(filterText, node.data);
       }
@@ -131,6 +132,7 @@ export const FilterableTable = ({
         striped={striped}
         enableActions
         columnReorderable
+        themeOverrides={themeOverrides}
       />
     </div>
   );

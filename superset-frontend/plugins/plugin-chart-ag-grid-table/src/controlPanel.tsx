@@ -55,7 +55,7 @@ import {
   withLabel,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { isEmpty, last } from 'lodash';
+import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 
 /**
@@ -281,11 +281,7 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-                  ? (datasource as Dataset)?.columns?.filter(
-                      (c: ColumnMeta) => c.filterable,
-                    )
-                  : datasource?.columns,
+                columns: datasource?.columns || [],
                 savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
@@ -429,21 +425,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'show_totals',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show summary'),
-              default: false,
-              description: t(
-                'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
-              ),
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
-        ],
       ],
     },
     {
@@ -491,6 +472,63 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t('Whether to include a client-side search box'),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Visual formatting'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'show_totals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show summary'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or an aggregation of numeric columns in raw records mode. Note that row limit does not apply to the result.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'totals_aggregate',
+            config: {
+              type: 'SelectControl',
+              label: t('Summary aggregation'),
+              renderTrigger: true,
+              description: t(
+                'Aggregation used for the summary row, independent of each ' +
+                  "metric's own aggregation. Only applies to simple metrics " +
+                  '(a metric built from custom SQL keeps its own aggregation ' +
+                  'in the summary row).',
+              ),
+              default: 'SUM',
+              clearable: false,
+              choices: [
+                ['SUM', t('Sum')],
+                ['AVG', t('Average')],
+              ],
+              visibility: ({ controls }) =>
+                Boolean(controls?.show_totals?.value),
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_numbered_column',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Add numbered column'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the numbered column'),
             },
           },
         ],
@@ -587,18 +625,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-      ],
-    },
-    {
-      label: t('Visual formatting'),
-      expanded: true,
-      controlSetRows: [
         [
           {
             name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Show cell bars'),
+              label: t('Show cell bars for all columns'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -612,7 +644,7 @@ const config: ControlPanelConfig = {
             name: 'align_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Align +/-'),
+              label: t('Align +/- for all columns'),
               renderTrigger: true,
               default: false,
               description: t(
@@ -626,7 +658,7 @@ const config: ControlPanelConfig = {
             name: 'color_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Add colors to cell bars for +/-'),
+              label: t('Add colors to cell bars for +/- for all columns'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -700,12 +732,8 @@ const config: ControlPanelConfig = {
                 const extraColorChoices = hasTimeComparison
                   ? [
                       {
-                        value: ColorSchemeEnum.Green,
-                        label: t('Green for increase, red for decrease'),
-                      },
-                      {
-                        value: ColorSchemeEnum.Red,
-                        label: t('Red for increase, green for decrease'),
+                        label: t('Trend colors'),
+                        colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
                       },
                     ]
                   : [];

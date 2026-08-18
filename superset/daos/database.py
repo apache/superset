@@ -17,14 +17,26 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
+from urllib.parse import unquote
 
+import requests
+from flask import current_app as app
 from sqlalchemy.orm import joinedload
+
+try:
+    from odps import ODPS, options as odps_options
+    from odps.errors import BaseODPSError
+except ImportError:
+    ODPS = None
+    odps_options = None
+    BaseODPSError = None
 
 from superset import is_feature_enabled
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelingNotEnabledError
 from superset.connectors.sqla.models import SqlaTable
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, SKIP_VISIBILITY_FILTER_CLASSES
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
@@ -71,6 +83,8 @@ class DatabaseDAO(BaseDAO[Database]):
         skip_base_filter: bool = False,
         id_column: str | None = None,
         query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> Database | None:
         """
         Find a database by id, eagerly loading the SSH tunnel relationship.
@@ -79,6 +93,10 @@ class DatabaseDAO(BaseDAO[Database]):
         if query_options:
             all_options.extend(query_options)
         query = db.session.query(cls.model_cls).options(*all_options)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         query = cls._apply_base_filter(query, skip_base_filter)
 
         column_name = id_column or cls.id_column_name
@@ -242,6 +260,69 @@ class DatabaseDAO(BaseDAO[Database]):
             )
             .all()
         )
+
+    @classmethod
+    def is_odps_partitioned_table(
+        cls, database: Database, table_name: str
+    ) -> tuple[bool, list[str]]:
+        """
+        This function is used to determine and retrieve
+        partition information of the ODPS table.
+        The return values are whether the partition
+        table is partitioned and the names of all partition fields.
+        """
+        if not database:
+            raise ValueError("Database not found")
+        if database.backend != "odps":
+            return False, []
+        if ODPS is None:
+            logger.warning("pyodps is not installed, cannot check ODPS partition info")
+            return False, []
+        uri = database.sqlalchemy_uri
+        access_key = database.password
+        pattern = re.compile(
+            r"odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?"
+            r"endpoint=(?P<endpoint>[^&]+))"
+        )
+        if not uri or not isinstance(uri, str):
+            logger.warning(
+                "Invalid or missing sqlalchemy URI, please provide a correct URI"
+            )
+            return False, []
+        if match := pattern.match(unquote(uri)):
+            access_id = match.group("username")
+            project = match.group("project")
+            endpoint = match.group("endpoint")
+            # `get_table` is a synchronous network call. Bound it with a
+            # configurable connect/read timeout so an unreachable or slow ODPS
+            # endpoint can't block the worker indefinitely.
+            timeout = app.config["ODPS_PARTITION_DETECT_TIMEOUT"]
+            if odps_options is not None:
+                odps_options.connect_timeout = timeout
+                odps_options.read_timeout = timeout
+            try:
+                odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
+                table = odps_client.get_table(table_name)
+                if table.exist_partition:
+                    partition_spec = table.table_schema.partitions
+                    partition_fields = [partition.name for partition in partition_spec]
+                    return True, partition_fields
+                return False, []
+            except (BaseODPSError, requests.exceptions.RequestException) as ex:
+                # Network/auth/lookup failures against ODPS shouldn't break table
+                # preview; fall back to the non-partitioned path.
+                logger.warning(
+                    "Error fetching ODPS partition info for table %r: %s",
+                    table_name,
+                    ex,
+                )
+                return False, []
+        logger.warning(
+            "ODPS sqlalchemy_uri did not match the expected pattern; "
+            "unable to determine partition info for table %r",
+            table_name,
+        )
+        return False, []
 
 
 class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):

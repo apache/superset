@@ -27,7 +27,7 @@ import {
 } from 'react';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
@@ -36,6 +36,7 @@ import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponen
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import {
   useIsAutoRefreshing,
   useIsRefreshInFlight,
@@ -45,6 +46,7 @@ import {
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import type { LayoutItem, RootState } from 'src/dashboard/types';
 import type {
   DropResult,
@@ -57,7 +59,7 @@ export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
 // Delay before refreshing charts to ensure they are fully mounted
 const CHART_MOUNT_DELAY = 100;
 
-interface TabProps {
+export interface TabProps {
   dashboardId: number;
   id: string;
   parentId: string;
@@ -154,6 +156,14 @@ const Tab = (props: TabProps): ReactElement => {
   const canEdit = useSelector(
     (state: RootState) => state.dashboardInfo.dash_edit_perm,
   );
+  // The empty-state call to action offers a route into edit mode; during a
+  // version preview the grid gate blocks its activation, but it would still
+  // render as a live-looking link that silently does nothing. Withhold the
+  // affordance instead, as DashboardBuilder's empty state does.
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
+  );
+  const canEnterEditMode = canEdit && !isVersionPreviewActive;
   const dashboardLayout = useSelector(
     (state: RootState) => state.dashboardLayout.present,
   );
@@ -328,12 +338,14 @@ const Tab = (props: TabProps): ReactElement => {
                       : t('There are no components added to this tab')
                   }
                   description={
-                    canEdit &&
+                    canEnterEditMode &&
                     (editMode ? (
                       <span>
                         {t('You can')}{' '}
                         <Typography.Link
-                          href={`/chart/add?dashboard_id=${dashboardId}`}
+                          href={ensureAppRoot(
+                            `/chart/add?dashboard_id=${dashboardId}`,
+                          )}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
@@ -344,13 +356,21 @@ const Tab = (props: TabProps): ReactElement => {
                     ) : (
                       <span>
                         {t('You can add the components in the')}{' '}
-                        <span
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
                           onClick={() => dispatch(setEditMode(true))}
+                          css={css`
+                            appearance: none;
+                            border: none;
+                            background: none;
+                            padding: 0;
+                            font: inherit;
+                            cursor: pointer;
+                            text-decoration: underline;
+                          `}
                         >
                           {t('edit mode')}
-                        </span>
+                        </button>
                       </span>
                     ))
                   }

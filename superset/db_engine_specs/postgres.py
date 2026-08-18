@@ -21,20 +21,24 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy import text, types
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
     DatabaseCategory,
+    TimestampExpression,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -135,6 +139,34 @@ def parse_options(connect_args: dict[str, Any]) -> dict[str, str]:
     return {token[0]: token[1] for token in tokens}
 
 
+def _normalize_interval(v: Any) -> Optional[float]:
+    """Convert PostgreSQL INTERVAL values to milliseconds.
+
+    psycopg2 and psycopg3 always return INTERVAL values as datetime.timedelta
+    objects. We convert to milliseconds so users can apply the built-in
+    "DURATION" number format for human-readable display (e.g.,
+    "1d 2h 30m 45s") and so the values participate cleanly in numeric
+    aggregations in bar/pie charts.
+
+    Returns None for the NULL case (preserves NULL semantics) and for any
+    unexpected non-timedelta type (avoids producing a mixed-type column
+    when an unfamiliar driver surfaces something other than timedelta).
+    """
+    if v is None:
+        return None
+    if hasattr(v, "total_seconds"):
+        return v.total_seconds() * 1000
+    # Defensive: psycopg2/3 should always hand us a timedelta. If a future
+    # driver doesn't, surface the surprise in the logs rather than silently
+    # dropping the value so operators can diagnose it.
+    logger.warning(
+        "Cannot normalize PostgreSQL INTERVAL value of type %s to numeric; "
+        "returning None.",
+        type(v).__name__,
+    )
+    return None
+
+
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """Abstract class for Postgres 'like' databases"""
 
@@ -228,6 +260,31 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
     @classmethod
+    def get_timestamp_expr(
+        cls,
+        col: ColumnClause,
+        pdf: str | None,
+        time_grain: str | None,
+    ) -> TimestampExpression:
+        """
+        Construct a timestamp expression while preserving pure ``DATE`` semantics.
+
+        Applying ``DATE_TRUNC`` to a ``DATE`` column implicitly casts the value to
+        ``TIMESTAMP``, which can trigger unwanted timezone conversion on the client
+        and shift the displayed date by a day. To avoid this, the truncated value is
+        cast back to ``DATE`` when the source column is a pure ``DATE`` type.
+
+        See https://github.com/apache/superset/issues/42254.
+        """
+        expr = super().get_timestamp_expr(col, pdf, time_grain)
+        col_type = getattr(col, "type", None)
+        # ``DateTime``/``TIMESTAMP`` are distinct SQLAlchemy types (not subclasses
+        # of ``Date``), so this only matches pure ``DATE`` columns.
+        if time_grain and isinstance(col_type, Date):
+            return TimestampExpression(f"CAST({expr.name} AS DATE)", col, type_=Date())
+        return expr
+
+    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:
@@ -249,6 +306,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     supports_dynamic_schema = True
     supports_catalog = True
     supports_dynamic_catalog = True
+    supports_grouping_sets = True
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
@@ -488,6 +546,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     DatabaseCategory.CLOUD_AWS,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
+                "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
             },
         ],
     }
@@ -526,7 +585,16 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             ENUM(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^interval", re.IGNORECASE),
+            INTERVAL(),
+            GenericDataType.NUMERIC,
+        ),
     )
+
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        INTERVAL: _normalize_interval,
+    }
 
     @classmethod
     def get_schema_from_engine_params(
@@ -573,12 +641,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         """
         Return the default schema for a given query.
 
-        This method simply uses the parent method after checking that there are no
-        malicious path setting in the query.
+        This method simply uses the parent method after checking that the query
+        cannot rebind the schema used to resolve unqualified table names.
         """
         script = process_jinja_sql(query.sql, database, template_params).script
-        settings = script.get_settings()
-        if "search_path" in settings:
+        if script.changes_default_schema():
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -694,7 +761,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         be anything, and we would have to block users from running any queries
         referencing tables without an explicit schema.
         """
-        return [f'set search_path = "{schema}"'] if schema else []
+        if not schema:
+            return []
+        escaped = schema.replace('"', '""')
+        return [f'set search_path = "{escaped}"']
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
@@ -741,15 +811,42 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
         In Postgres, a catalog is called a "database".
         """
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                """
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("""
 SELECT datname FROM pg_database
 WHERE datistemplate = false;
-            """
-            )
-        }
+                    """)
+                )
+            }
+
+    @classmethod
+    def get_schema_names(cls, inspector: Inspector) -> set[str]:
+        """
+        Return all schema names, excluding the ``pg_``-prefixed Postgres
+        system schemas (e.g. ``pg_catalog``, ``pg_toast``).
+
+        SQLAlchemy's Postgres dialect filters out system schemas with the
+        query ``nspname NOT LIKE 'pg_%'``. Since ``_`` is a single-character
+        wildcard in SQL ``LIKE`` patterns, this unintentionally excludes any
+        user-defined schema that merely starts with ``pg`` followed by any
+        other character (e.g. ``pgsql``, ``pgstats``), not only the
+        ``pg_``-prefixed system schemas. Matching on the literal ``pg_``
+        prefix instead keeps those user-defined schemas.
+
+        TODO: drop this override once sqlalchemy/sqlalchemy#13471 is merged
+        and released, and SQLAlchemy is bumped past that version.
+        """
+        with inspector.engine.connect() as conn:
+            return {
+                name
+                for (name,) in conn.execute(
+                    text("SELECT nspname FROM pg_namespace ORDER BY nspname")
+                )
+                if not name.startswith("pg_")
+            }
 
     @classmethod
     def get_table_names(
@@ -821,6 +918,11 @@ WHERE datistemplate = false;
         :param cancel_query_id: Postgres PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # PostgreSQL pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             cursor.execute(
                 "SELECT pg_terminate_backend(pid) "  # noqa: S608

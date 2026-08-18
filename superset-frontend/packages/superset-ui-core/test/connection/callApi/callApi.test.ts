@@ -360,18 +360,26 @@ describe('callApi()', () => {
   });
 
   describe('caching', () => {
-    const origLocation = window.location;
+    let locationSpy: jest.SpyInstance;
+    let mockProtocol = 'https:';
 
     beforeAll(() => {
-      Object.defineProperty(window, 'location', { value: {} });
+      locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+        get protocol() {
+          return mockProtocol;
+        },
+        set protocol(v: string) {
+          mockProtocol = v;
+        },
+      } as Location);
     });
 
     afterAll(() => {
-      Object.defineProperty(window, 'location', { value: origLocation });
+      locationSpy.mockRestore();
     });
 
     beforeEach(async () => {
-      window.location.protocol = 'https:';
+      mockProtocol = 'https:';
       await caches.delete(constants.CACHE_KEY);
     });
 

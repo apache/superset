@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
+import { NumberFormatter } from '@superset-ui/core';
+
 /*
  function for finding the max metric values among all series data for Radar Chart
 */
@@ -42,19 +45,20 @@ export const findGlobalMax = (
 interface TooltipParams {
   color: string;
   name?: string;
-  value: number[];
+  value: (number | null)[];
 }
 
 interface TooltipMetricValue {
   metric: string;
-  value: number;
+  value: number | string;
 }
 
 export const renderNormalizedTooltip = (
   params: TooltipParams,
   metrics: string[],
-  getDenormalizedValue: (seriesName: string, value: string) => number,
+  getDenormalizedValue: (seriesName: string, value: string) => number | null,
   metricsWithCustomBounds: Set<string>,
+  formatter?: NumberFormatter,
 ): string => {
   const { color, name = '', value: values } = params;
   const seriesName = name || 'series0';
@@ -70,7 +74,14 @@ export const renderNormalizedTooltip = (
 
     return {
       metric,
-      value: originalValue,
+      // A missing metric stays null; show it plainly rather than running it
+      // through the formatter, which would render a misleading "NaN".
+      value:
+        originalValue == null
+          ? t('N/A')
+          : formatter
+            ? formatter(originalValue)
+            : originalValue,
     };
   });
 

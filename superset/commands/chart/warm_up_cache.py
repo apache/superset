@@ -18,21 +18,20 @@
 
 from typing import Any, cast, Optional, Union
 
-from flask import g
-
 from superset.commands.base import BaseCommand
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import (
+    ChartAccessDeniedError,
     ChartInvalidError,
     WarmUpCacheChartNotFoundError,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.extensions import db
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
-from superset.views.utils import get_dashboard_extra_filters, get_form_data, get_viz
-from superset.viz import viz_types
+from superset.views.utils import get_dashboard_extra_filters
 
 
 class ChartWarmUpCacheCommand(BaseCommand):
@@ -56,39 +55,22 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         return get_dashboard_extra_filters(chart_id, self._dashboard_id)
 
-    def _warm_up_legacy_cache(
-        self, chart: Slice, form_data: dict[str, Any]
-    ) -> tuple[Any, Any]:
-        """Warm up cache for legacy visualizations."""
-        if not chart.datasource:
-            raise ChartInvalidError("Chart's datasource does not exist")
-
-        if self._dashboard_id:
-            form_data["extra_filters"] = self._get_dashboard_filters(chart.id)
-
-        g.form_data = form_data
-        payload = get_viz(
-            datasource_type=chart.datasource.type,
-            datasource_id=chart.datasource.id,
-            form_data=form_data,
-            force=True,
-        ).get_payload()
-        delattr(g, "form_data")
-
-        return payload["errors"] or None, payload["status"]
-
     def _warm_up_non_legacy_cache(self, chart: Slice) -> tuple[Any, Any]:
         """Warm up cache for non-legacy visualizations."""
         query_context = chart.get_query_context()
 
         if not query_context:
-            raise ChartInvalidError("Chart's query context does not exist")
+            raise ChartInvalidError(
+                "Chart's query context does not exist. Open the chart in "
+                "Explore once (or re-save it) to generate it."
+            )
 
         # Apply dashboard filters if dashboard_id is provided
         if dashboard_filters := self._get_dashboard_filters(chart.id):
             for query in query_context.queries:
-                query.filter.extend(
+                query.filter = (
                     cast(list[QueryObjectFilterClause], dashboard_filters)
+                    + query.filter
                 )
 
         query_context.force = True
@@ -110,12 +92,7 @@ class ChartWarmUpCacheCommand(BaseCommand):
         chart = cast(Slice, self._chart_or_id)
 
         try:
-            form_data = get_form_data(chart.id, use_slice_data=True)[0]
-
-            if form_data.get("viz_type") in viz_types:
-                error, status = self._warm_up_legacy_cache(chart, form_data)
-            else:
-                error, status = self._warm_up_non_legacy_cache(chart)
+            error, status = self._warm_up_non_legacy_cache(chart)
         except Exception as ex:  # pylint: disable=broad-except
             error = error_msg_from_exception(ex)
             status = None
@@ -124,8 +101,13 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
     def validate(self) -> None:
         if isinstance(self._chart_or_id, Slice):
-            return
-        chart = db.session.query(Slice).filter_by(id=self._chart_or_id).scalar()
-        if not chart:
-            raise WarmUpCacheChartNotFoundError()
-        self._chart_or_id = chart
+            chart = self._chart_or_id
+        else:
+            chart = db.session.query(Slice).filter_by(id=self._chart_or_id).scalar()
+            if not chart:
+                raise WarmUpCacheChartNotFoundError()
+            self._chart_or_id = chart
+        try:
+            security_manager.raise_for_access(chart=chart)
+        except SupersetSecurityException as ex:
+            raise ChartAccessDeniedError() from ex

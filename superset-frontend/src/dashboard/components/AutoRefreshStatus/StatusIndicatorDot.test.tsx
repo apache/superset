@@ -17,7 +17,8 @@
  * under the License.
  */
 import { render, screen, act } from 'spec/helpers/testing-library';
-import { StatusIndicatorDot } from './StatusIndicatorDot';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { getStatusConfig, StatusIndicatorDot } from './StatusIndicatorDot';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 afterEach(() => {
@@ -60,6 +61,15 @@ test('renders with paused status', () => {
   render(<StatusIndicatorDot status={AutoRefreshStatus.Paused} />);
   const dot = screen.getByTestId('status-indicator-dot');
   expect(dot).toHaveAttribute('data-status', AutoRefreshStatus.Paused);
+});
+
+test('uses the icon color for the paused status outline', () => {
+  expect(
+    getStatusConfig(supersetTheme, AutoRefreshStatus.Paused),
+  ).toMatchObject({
+    needsBorder: true,
+    outlineColor: 'currentColor',
+  });
 });
 
 test('has correct accessibility attributes', () => {

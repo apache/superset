@@ -144,7 +144,7 @@ class UpdateTaskCommand(BaseCommand):
         # Skip this check for internal updates (e.g., task executor updating progress)
         if not self._skip_security_check:
             try:
-                security_manager.raise_for_ownership(self._model)
+                security_manager.raise_for_editorship(self._model)
             except SupersetSecurityException as ex:
                 raise TaskForbiddenError() from ex
 

@@ -68,7 +68,7 @@ export function ActionsBar({ actions }: ActionsBarProps) {
         const IconComponent = Icons[icon as IconNameType];
         return (
           <ActionButton
-            key={tooltip ? undefined : index}
+            key={rest.label ?? index}
             icon={<IconComponent iconSize="l" />}
             tooltip={tooltip}
             {...rest}

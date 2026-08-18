@@ -73,7 +73,7 @@ test('should render the control label', async () => {
 
 test('should render the remove button', async () => {
   render(setup(mockedProps), { useDnd: true, useRedux: true });
-  const removeBtn = await screen.findByRole('button');
+  const removeBtn = await screen.findByTestId('remove-control-button');
   expect(removeBtn).toBeInTheDocument();
 });
 

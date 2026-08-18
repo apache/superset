@@ -18,6 +18,7 @@
  */
 
 import { AdhocFilter, DataMask } from '@superset-ui/core';
+import { DatasourceType } from './Datasource';
 
 export interface ColumnOption {
   label: string;
@@ -38,6 +39,7 @@ export interface NativeFilterScope {
 export interface NativeFilterTarget {
   datasetId: number;
   column: NativeFilterColumn;
+  datasourceType?: DatasourceType;
 
   // maybe someday support this?
   // show values from these columns in the filter options selector
@@ -81,6 +83,7 @@ export type Filter = {
   granularity?: string;
   time_grain_sqla?: string;
   time_range?: string;
+  time_grains?: string[];
   requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];
@@ -101,11 +104,11 @@ export type ChartCustomization = {
   defaultDataMask: DataMask;
   controlValues: {
     sortAscending?: boolean;
-    sortMetric?: string;
     [key: string]: any;
   };
   description?: string;
   removed?: boolean;
+  time_grains?: string[];
 };
 
 export type ChartCustomizationDivider = Partial<

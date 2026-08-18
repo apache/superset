@@ -39,7 +39,7 @@ export interface DetailsPanelProps {
   children: JSX.Element;
   popoverVisible: boolean;
   popoverContentRef: RefObject<HTMLDivElement>;
-  popoverTriggerRef: RefObject<HTMLDivElement>;
+  popoverTriggerRef: RefObject<HTMLButtonElement>;
   setPopoverVisible: (visible: boolean) => void;
 }
 
@@ -181,7 +181,7 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
-      color={`${theme.colorBgElevated}cc`}
+      color={theme.colorBgElevated}
       content={content}
       open={popoverVisible}
       onOpenChange={handleVisibility}

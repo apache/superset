@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column } from '@superset-ui/core';
+import { Column, DatasourceType } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ChartsState,
@@ -30,6 +30,9 @@ import {
   shouldShowTimeRangePicker,
   mostUsedDataset,
   doesColumnMatchFilterType,
+  getTimeGrainOptions,
+  mapSemanticTypeToGenericDataType,
+  doesChartMatchFilterDatasource,
 } from './utils';
 
 // Test hasTemporalColumns - validates time range pre-filter visibility logic
@@ -275,4 +278,102 @@ test('isValidFilterValue returns false when range filter value is not an array',
   expect(isValidFilterValue('not an array', true)).toBe(false);
   expect(isValidFilterValue(null, true)).toBe(false);
   expect(isValidFilterValue(undefined, true)).toBe(false);
+});
+
+test('getTimeGrainOptions normalizes tuple payloads into visible select options', () => {
+  expect(
+    getTimeGrainOptions([
+      ['P1D', 'Day'],
+      ['PT1H', 'Hour'],
+      ['P1W', 'Week'],
+    ]),
+  ).toEqual([
+    { value: 'P1D', label: 'Day' },
+    { value: 'PT1H', label: 'Hour' },
+    { value: 'P1W', label: 'Week' },
+  ]);
+});
+
+test('getTimeGrainOptions falls back to value when tuple label is empty', () => {
+  expect(
+    getTimeGrainOptions([
+      ['P1D', ''],
+      ['P1W', 'Week'],
+    ]),
+  ).toEqual([
+    { value: 'P1D', label: 'P1D' },
+    { value: 'P1W', label: 'Week' },
+  ]);
+});
+
+test('mapSemanticTypeToGenericDataType maps numeric semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('int64')).toBe(
+    GenericDataType.Numeric,
+  );
+  expect(mapSemanticTypeToGenericDataType('decimal128(10,2)')).toBe(
+    GenericDataType.Numeric,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType maps temporal semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('timestamp[ms]')).toBe(
+    GenericDataType.Temporal,
+  );
+  expect(mapSemanticTypeToGenericDataType('date32[day]')).toBe(
+    GenericDataType.Temporal,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType maps string and boolean semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('string')).toBe(
+    GenericDataType.String,
+  );
+  expect(mapSemanticTypeToGenericDataType('bool')).toBe(
+    GenericDataType.Boolean,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType returns undefined for unknown types', () => {
+  expect(mapSemanticTypeToGenericDataType('struct<a:int64>')).toBeUndefined();
+  expect(mapSemanticTypeToGenericDataType(undefined)).toBeUndefined();
+});
+
+test('doesChartMatchFilterDatasource requires matching datasource type for equal IDs', () => {
+  const loadedDatasets = {
+    '7__table': { id: 7, datasource_type: DatasourceType.Table },
+    '7__semantic_view': { id: 7, datasource_type: DatasourceType.SemanticView },
+  } as unknown as DatasourcesState;
+
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__table',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(false);
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__semantic_view',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(true);
+});
+
+test('doesChartMatchFilterDatasource falls back to datasource UID parsing', () => {
+  const loadedDatasets = {} as DatasourcesState;
+
+  expect(
+    doesChartMatchFilterDatasource('7__semantic_view', loadedDatasets, 7),
+  ).toBe(false);
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__semantic_view',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(true);
 });

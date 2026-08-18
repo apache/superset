@@ -22,6 +22,7 @@ import {
   Behavior,
   ChartCustomization,
   DataMaskStateWithId,
+  DatasourceType,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
@@ -31,8 +32,9 @@ import {
   ExtraFormDataOverride,
   ExtraFormDataAppend,
 } from '@superset-ui/core';
-import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
+import { getChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
+import type { ChartLayoutItems } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { isIterable } from 'src/utils/types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
@@ -46,10 +48,12 @@ const getDefaultRowLimit = (): number => {
 
 export const getFormData = ({
   datasetId,
+  datasourceType,
   dependencies = {},
   groupby,
   defaultDataMask,
   controlValues,
+  time_grains,
   filterType,
   sortMetric,
   adhoc_filters,
@@ -61,12 +65,14 @@ export const getFormData = ({
 }: (Partial<Filter> | Partial<ChartCustomization>) & {
   dashboardId: number;
   datasetId?: number;
+  datasourceType?: DatasourceType;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   sortMetric?: string | null;
   granularity_sqla?: string;
+  time_grains?: string[];
 }): Partial<QueryFormData> => {
   const otherProps: {
     datasource?: string;
@@ -74,7 +80,8 @@ export const getFormData = ({
     sortMetric?: string;
   } = {};
   if (datasetId) {
-    otherProps.datasource = `${datasetId}__table`;
+    const dsType = datasourceType || DatasourceType.Table;
+    otherProps.datasource = `${datasetId}__${dsType}`;
   }
   if (groupby) {
     otherProps.groupby = [groupby];
@@ -84,9 +91,12 @@ export const getFormData = ({
   }
 
   const vizType = filterType;
+  const timeGrainsFormData =
+    time_grains && time_grains.length > 0 ? { time_grains } : {};
 
   return {
     ...controlValues,
+    ...timeGrainsFormData,
     ...otherProps,
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],
@@ -164,19 +174,24 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
 }
 
 export const findTabsWithChartsInScope = (
-  chartLayoutItems: LayoutItem[],
+  chartLayoutItems: ChartLayoutItems,
   chartsInScope: number[],
-) =>
-  new Set<string>(
-    chartsInScope
-      .map(chartId =>
-        chartLayoutItems
-          .find(item => item?.meta?.chartId === chartId)
-          ?.parents?.filter(parent => parent.startsWith(`${TAB_TYPE}-`)),
-      )
-      .filter(id => id !== undefined)
-      .flat() as string[],
-  );
+) => {
+  const chartLayoutItemMap = getChartLayoutItemMap(chartLayoutItems);
+  const tabsInScope = new Set<string>();
+
+  chartsInScope.forEach(chartId => {
+    chartLayoutItemMap.get(chartId)?.forEach(layoutItem => {
+      layoutItem.parents?.forEach(parent => {
+        if (parent.startsWith(`${TAB_TYPE}-`)) {
+          tabsInScope.add(parent);
+        }
+      });
+    });
+  });
+
+  return tabsInScope;
+};
 
 export const getFilterValueForDisplay = (
   value?: string[] | null | string | number | object,

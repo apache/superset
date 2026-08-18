@@ -24,6 +24,8 @@ import {
 } from 'react-reverse-portal';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { isChartCustomization } from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
+import { t } from '@apache-superset/core/translation';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -35,6 +37,7 @@ import {
   FilterStyledIcon,
   RequiredFieldIndicator,
   DescriptionToolTip,
+  DeckglLayerVisibilityTooltip,
   useFilterControlDisplay,
 } from './FilterControlShared';
 import GroupByFilterCard from './GroupByFilterCard';
@@ -62,7 +65,9 @@ const FilterControl = ({
     isFilterInScope(filter) &&
     checkIsMissingRequiredValue(filter, filter.dataMask?.filterState);
   const validateStatus = isMissingRequiredValue ? 'error' : undefined;
-  const isRequired = !!filter.controlValues?.enableEmptyFilter;
+  const isRequired =
+    !!filter.controlValues?.enableEmptyFilter ||
+    !!filter.controlValues?.defaultToFirstItem;
   const inverseSelection = !!filter.controlValues?.inverseSelection;
 
   const {
@@ -82,8 +87,20 @@ const FilterControl = ({
           {name}
         </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
+        {filter.filterType === 'filter_select' &&
+          filter.controlValues?.multiSelect && (
+            <DescriptionToolTip
+              description={t(
+                'When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
+              )}
+            />
+          )}
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
+        )}
+        {filter.filterType ===
+          ChartCustomizationPlugins.DeckglLayerVisibility && (
+          <DeckglLayerVisibilityTooltip />
         )}
         <FilterStyledIcon data-test="filter-icon">{icon}</FilterStyledIcon>
       </FilterControlTitleBox>
@@ -94,6 +111,8 @@ const FilterControl = ({
       name,
       isRequired,
       filter.description,
+      filter.filterType,
+      filter.controlValues?.multiSelect,
       icon,
     ],
   );

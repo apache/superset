@@ -19,23 +19,29 @@
 /* eslint camelcase: 0 */
 import {
   ComponentType,
+  Suspense,
+  lazy,
   memo,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { bindActionCreators, Dispatch } from 'redux';
-import { connect } from 'react-redux';
+import { connect, shallowEqual, useSelector } from 'react-redux';
 import {
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
+  isFeatureEnabled,
+  FeatureFlag,
   QueryFormData,
   JsonObject,
   MatrixifyFormData,
   DatasourceType,
+  ensureIsArray,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -44,10 +50,11 @@ import {
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
+import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
-import { Tooltip } from '@superset-ui/core/components';
+import type { Action, Location } from 'history';
+import { ActionButton, Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -65,6 +72,7 @@ import {
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
@@ -72,6 +80,12 @@ import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
 import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+  selectRestoreTarget,
+  toChartStateHistoryState,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
@@ -86,12 +100,22 @@ import {
 } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { User } from 'src/types/bootstrapTypes';
+import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
+
+// Lazy-loaded so deployments with the VersionHistory flag off never pay
+// the bundle cost of the feature's component graph.
+const ExploreVersionHistory = lazy(
+  () => import('src/features/versionHistory/ExploreVersionHistory'),
+);
+const ChartVersionPreview = lazy(
+  () => import('src/features/versionHistory/ChartVersionPreview'),
+);
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
@@ -171,6 +195,7 @@ const updateHistory = debounce(
     title,
     tabId,
     history,
+    sliceId,
   ) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
@@ -225,7 +250,20 @@ const updateHistory = debounce(
           force,
           false,
         );
-        history.replace(url, payload);
+        const previousChartState = getChartStateFromHistoryState(
+          history.location.state,
+        );
+        const state = toChartStateHistoryState(payload, sliceId);
+        if (
+          isReplace ||
+          !previousChartState ||
+          isEqual(previousChartState, getChartStateFromHistoryState(state))
+        ) {
+          history.replace(url, state);
+        } else {
+          // one entry per chart state is what makes the Back button undo it
+          history.push(url, state);
+        }
       }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
@@ -380,6 +418,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const [lastQueriedControls, setLastQueriedControls] = useState(
     props.controls,
   );
+  /** set while the chart state of a popped history entry is being applied */
+  const restoringFromHistory = useRef(false);
+  const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(
@@ -387,6 +428,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
   const tabId = useTabId();
   const history = useHistory();
+  const isChartVersionPreviewActive = useSelector(
+    selectIsChartVersionPreviewActive,
+  );
 
   const theme = useTheme();
 
@@ -396,7 +440,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
-      document.title = props.sliceName;
+      document.title = sanitizeDocumentTitle(props.sliceName);
     }
   }, [props.sliceName]);
 
@@ -412,8 +456,53 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
   );
 
+  // M3 + M4: fire compatibility check on mount and whenever the metric /
+  // dimension selection changes.  Only semantic views use the endpoint;
+  // SQL datasets short-circuit to null inside fetchCompatibility.
+  const selectedMetrics = useMemo(
+    () =>
+      ensureIsArray(props.form_data.metrics).filter(
+        (m): m is string => typeof m === 'string',
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(props.form_data.metrics)],
+  );
+  const selectedDimensions = useMemo(
+    () =>
+      [
+        ...ensureIsArray(props.form_data.groupby),
+        ...ensureIsArray(props.form_data.columns),
+        ...(typeof props.form_data.x_axis === 'string'
+          ? [props.form_data.x_axis]
+          : []),
+      ].filter((d): d is string => typeof d === 'string'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      JSON.stringify(props.form_data.groupby),
+      JSON.stringify(props.form_data.columns),
+      props.form_data.x_axis,
+    ],
+  );
+  useEffect(() => {
+    props.actions.fetchCompatibility(
+      props.datasource.type,
+      props.datasource.id as number,
+      selectedMetrics,
+      selectedDimensions,
+    );
+    // props.datasource.id covers the saved-chart-loading case (M4)
+  }, [
+    props.datasource.id,
+    props.datasource.type,
+    selectedMetrics,
+    selectedDimensions,
+  ]);
+
   const addHistory = useCallback(
-    async ({ isReplace = false, title } = {}) => {
+    async ({
+      isReplace = false,
+      title,
+    }: { isReplace?: boolean; title?: string } = {}) => {
       const formData = props.dashboardId
         ? {
             ...props.form_data,
@@ -432,6 +521,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         title,
         tabId,
         history,
+        restoreTarget.slice_id,
       );
     },
     [
@@ -439,6 +529,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.form_data,
       props.datasource.id,
       props.datasource.type,
+      restoreTarget.slice_id,
       props.standalone,
       props.force,
       tabId,
@@ -447,6 +538,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
 
   const onQuery = useCallback(() => {
+    if (isChartVersionPreviewActive) {
+      return;
+    }
     props.actions.setForceQuery(false);
 
     // Skip main query if Matrixify is enabled
@@ -471,6 +565,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.actions,
     props.chart.id,
     props.form_data,
+    isChartVersionPreviewActive,
   ]);
 
   const handleKeydown = useCallback(
@@ -508,6 +603,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         : {},
     );
   });
+
+  // a pending update would run against whatever chart the user moved on to
+  useEffect(() => () => updateHistory.cancel(), []);
 
   useChangeEffect(tabId, (previous, current) => {
     if (current) {
@@ -553,7 +651,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         : getFormDataFromControls(props.controls);
       props.actions.updateQueryFormData(newQueryFormData, props.chart.id);
       props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-      addHistory();
+      if (!restoringFromHistory.current) {
+        // an entry for a state we just stepped back to would break the next Back
+        addHistory();
+      }
     },
     [
       addHistory,
@@ -562,6 +663,27 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.chart.latestQueryFormData,
       props.controls,
     ],
+  );
+
+  // Explore's own entries carry the chart state they were pushed with, so a POP
+  // into one is an undo/redo: apply it and re-query in place, which is also why
+  // ExplorePage skips its reload for them.
+  useEffect(
+    () =>
+      history.listen((loc: Location, action: Action) => {
+        const chartState = getChartStateFromHistoryState(loc.state);
+        if (
+          action !== 'POP' ||
+          !chartState ||
+          !isSameChartState(chartState, restoreTarget)
+        ) {
+          return;
+        }
+        restoringFromHistory.current = true;
+        props.actions.setExploreControls(chartState);
+        props.actions.triggerQuery(true, props.chart.id);
+      }),
+    [history, restoreTarget, props.actions, props.chart.id],
   );
 
   // effect to run when controls change
@@ -647,7 +769,12 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               (currentTemplate ? ' ' : '') +
               newVariables.join(' ');
 
-            props.actions.setControlValue('tooltip_template', updatedTemplate);
+            props.actions.setControlValue(
+              'tooltip_template',
+              updatedTemplate,
+              undefined,
+              { programmatic: true },
+            );
           }
         }
       }
@@ -660,9 +787,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         );
 
         if (xAxisTitle && currentMargin < 30) {
-          props.actions.setControlValue('x_axis_title_margin', 30);
+          props.actions.setControlValue('x_axis_title_margin', 30, undefined, {
+            programmatic: true,
+          });
         } else if (!xAxisTitle && currentMargin !== 0) {
-          props.actions.setControlValue('x_axis_title_margin', 0);
+          props.actions.setControlValue('x_axis_title_margin', 0, undefined, {
+            programmatic: true,
+          });
         }
       }
 
@@ -673,9 +804,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         );
 
         if (yAxisTitle && currentMargin < 30) {
-          props.actions.setControlValue('y_axis_title_margin', 30);
+          props.actions.setControlValue('y_axis_title_margin', 30, undefined, {
+            programmatic: true,
+          });
         } else if (!yAxisTitle && currentMargin !== 0) {
-          props.actions.setControlValue('y_axis_title_margin', 0);
+          props.actions.setControlValue('y_axis_title_margin', 0, undefined, {
+            programmatic: true,
+          });
         }
       }
 
@@ -688,6 +823,16 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       }
     }
   }, [props.controls, props.ownState]);
+
+  // A restore queries the controls it just applied, so they are the last
+  // queried ones - otherwise the chart would be reported as stale.
+  // Runs after the effect above so that one still sees the restore.
+  useEffect(() => {
+    if (restoringFromHistory.current) {
+      restoringFromHistory.current = false;
+      setLastQueriedControls(props.controls);
+    }
+  }, [props.controls]);
 
   const chartIsStale = useMemo(() => {
     if (lastQueriedControls) {
@@ -846,8 +991,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           setForceQuery: props.actions.setForceQuery,
           postChartFormData: props.actions.postChartFormData,
           updateQueryFormData: props.actions.updateQueryFormData,
-          setControlValue: (controlName: string, value: any, chartId: number) =>
-            props.actions.setControlValue(controlName, value),
+          setControlValue: (
+            controlName: string,
+            value: any,
+            _chartId: number,
+          ) => props.actions.setControlValue(controlName, value),
         }}
         can_overwrite={props.can_overwrite}
         can_download={props.can_download}
@@ -943,41 +1091,65 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         >
           <div className="title-container">
             <span className="horizontal-text">{t('Chart Source')}</span>
-            <span
-              role="button"
-              tabIndex={0}
-              className="action-button"
+            <ActionButton
+              label={t('Collapse Datasource panel')}
+              icon={
+                <Icons.VerticalAlignTopOutlined
+                  iconSize="xl"
+                  css={css`
+                    transform: rotate(-90deg);
+                  `}
+                  className="collapse-icon"
+                  iconColor={theme.colorPrimary}
+                />
+              }
               onClick={toggleCollapse}
-            >
-              <Icons.VerticalAlignTopOutlined
-                iconSize="xl"
-                css={css`
-                  transform: rotate(-90deg);
-                `}
-                className="collapse-icon"
-                iconColor={theme.colorPrimary}
-              />
-            </span>
+            />
           </div>
-          {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
-          <DataSourcePanel
-            formData={props.form_data}
-            datasource={props.datasource as any}
-            controls={props.controls as any}
-            actions={props.actions as any}
-            width={width}
-          />
-          {/* eslint-enable @typescript-eslint/no-explicit-any */}
+          <div
+            data-test="explore-datasource-gate"
+            aria-disabled={isChartVersionPreviewActive}
+            css={css`
+              height: 100%;
+              ${
+                isChartVersionPreviewActive
+                  ? `
+                  pointer-events: none;
+                  opacity: 0.5;
+                `
+                  : ''
+              }
+            `}
+            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+          >
+            {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
+            <DataSourcePanel
+              formData={props.form_data}
+              datasource={props.datasource as any}
+              controls={props.controls as any}
+              actions={props.actions as any}
+              width={width}
+            />
+            {/* eslint-enable @typescript-eslint/no-explicit-any */}
+          </div>
         </Resizable>
         {isCollapsed ? (
-          <div
+          <button
+            type="button"
             className="sidebar"
+            css={css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              margin: 0;
+              font: inherit;
+            `}
             onClick={toggleCollapse}
             data-test="open-datasource-tab"
-            role="button"
-            tabIndex={0}
+            aria-label={t('Open Datasource tab')}
           >
-            <span role="button" tabIndex={0} className="action-button">
+            <span className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
                 <Icons.VerticalAlignTopOutlined
                   iconSize="xl"
@@ -989,7 +1161,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                 />
               </Tooltip>
             </span>
-          </div>
+          </button>
         ) : null}
         <Resizable
           onResizeStop={(evt, direction, ref, d) =>
@@ -1004,22 +1176,40 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
         >
-          <ConnectedControlPanelsContainer
-            exploreState={props.exploreState}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Combined actions type is compatible at runtime
-            actions={props.actions as any}
-            form_data={props.form_data}
-            controls={props.controls}
-            chart={props.chart}
-            datasource_type={props.datasource_type}
-            isDatasourceMetaLoading={props.isDatasourceMetaLoading}
-            onQuery={onQuery}
-            onStop={onStop}
-            canStopQuery={props.can_add || props.can_overwrite}
-            errorMessage={dataTabErrorMessage}
-            buttonErrorMessage={errorMessage}
-            chartIsStale={chartIsStale}
-          />
+          <div
+            data-test="explore-controls-gate"
+            aria-disabled={isChartVersionPreviewActive}
+            css={css`
+              height: 100%;
+              ${
+                isChartVersionPreviewActive
+                  ? `
+                  pointer-events: none;
+                  opacity: 0.5;
+                `
+                  : ''
+              }
+            `}
+            // inert blocks keyboard focus too; React 18 needs the spread form
+            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+          >
+            <ConnectedControlPanelsContainer
+              exploreState={props.exploreState}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Combined actions type is compatible at runtime
+              actions={props.actions as any}
+              form_data={props.form_data}
+              controls={props.controls}
+              chart={props.chart}
+              datasource_type={props.datasource_type}
+              isDatasourceMetaLoading={props.isDatasourceMetaLoading}
+              onQuery={onQuery}
+              onStop={onStop}
+              canStopQuery={props.can_add || props.can_overwrite}
+              errorMessage={dataTabErrorMessage}
+              buttonErrorMessage={errorMessage}
+              chartIsStale={chartIsStale}
+            />
+          </div>
         </Resizable>
         <div
           className={cx(
@@ -1027,8 +1217,19 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             isCollapsed ? 'col-sm-9' : 'col-sm-7',
           )}
         >
-          {renderChartContainer()}
+          {isChartVersionPreviewActive ? (
+            <Suspense fallback={null}>
+              <ChartVersionPreview />
+            </Suspense>
+          ) : (
+            renderChartContainer()
+          )}
         </div>
+        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+          <Suspense fallback={null}>
+            <ExploreVersionHistory />
+          </Suspense>
+        )}
       </ExplorePanelContainer>
       {props.isSaveModalVisible && (
         <SaveModal
@@ -1119,8 +1320,12 @@ function mapStateToProps(state: ExploreRootState) {
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
-  // exclude clientView from extra_form_data; keep other ownState pieces
-  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+  // exclude clientView and metricSqlExpressions from extra_form_data;
+  // metricSqlExpressions is runtime-only and must not be serialised to chart params
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, [
+    'clientView',
+    'metricSqlExpressions',
+  ]);
 
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },

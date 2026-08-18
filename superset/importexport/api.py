@@ -30,6 +30,7 @@ from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
 from superset.utils import json
+from superset.utils.core import parse_boolean_string
 from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 
@@ -157,6 +158,12 @@ class ImportExportRestApi(BaseSupersetApi):
                     sparse:
                       description: allow sparse update of resources
                       type: boolean
+                    overwrite:
+                      description: >-
+                        overwrite existing assets? Defaults to ``true`` for
+                        backwards compatibility. When ``false``, the import
+                        fails if any of the assets already exist.
+                      type: boolean
           responses:
             200:
               description: Assets import result
@@ -188,6 +195,9 @@ class ImportExportRestApi(BaseSupersetApi):
         if not contents:
             raise NoValidFilesFoundError()
         sparse = request.form.get("sparse") == "true"
+        # Defaults to True for backwards compatibility: historically this
+        # endpoint always overwrote existing assets.
+        overwrite = parse_boolean_string(request.form.get("overwrite", "true"))
 
         passwords = (
             json.loads(request.form["passwords"])
@@ -218,6 +228,7 @@ class ImportExportRestApi(BaseSupersetApi):
         command = ImportAssetsCommand(
             contents,
             sparse=sparse,
+            overwrite=overwrite,
             passwords=passwords,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,

@@ -67,10 +67,13 @@ export const StyledScheduleTitle = styled.div`
   }
 `;
 
+// Named-reference type annotation: TypeScript 6.0 declaration emit (TS2883)
+// can't name CronProps from react-js-cron via its nested node_modules path.
+// Aliasing to `typeof CronPicker` emits a named reference in the .d.ts.
 export const StyledCronPicker = styled(CronPicker)`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
   width: ${({ theme }) => theme.sizeUnit * 120}px;
-`;
+` as typeof CronPicker;
 
 export const StyledCronError = styled.p`
   color: ${({ theme }) => theme.colorError};
@@ -109,4 +112,18 @@ export const StyledRadio = styled(Radio)`
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.sizeUnit * 4}px;
   margin-top: 0;
+`;
+
+export const StyledErrorHandlingSection = styled.div`
+  margin-top: ${({ theme }) => theme.sizeUnit * 6}px;
+  border-top: 1px solid ${({ theme }) => theme.colorSplit};
+  padding-top: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
+
+export const StyledRetryFieldGroup = styled.div`
+  margin-top: ${({ theme }) => theme.sizeUnit * 3}px;
+  padding-left: ${({ theme }) => theme.sizeUnit * 4}px;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 3}px;
 `;

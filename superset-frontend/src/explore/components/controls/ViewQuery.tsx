@@ -40,7 +40,7 @@ import {
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
-import { makeUrl } from 'src/utils/pathUtils';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
@@ -62,6 +62,8 @@ const StyledSyntaxContainer = styled.div`
 
 const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
+  height: ${({ theme }) => theme.sizeUnit * 26}px;
+  margin-top: 0;
 `;
 
 const StyledFooter = styled.div`
@@ -138,11 +140,8 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       };
       if (domEvent.metaKey || domEvent.ctrlKey) {
         domEvent.preventDefault();
-        window.open(
-          makeUrl(
-            `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
-          ),
-          '_blank',
+        openInNewTab(
+          `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
         );
       } else {
         history.push({ pathname: '/sqllab', state: { requestedQuery } });
@@ -163,7 +162,12 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         ) : (
           <StyledThemedSyntaxHighlighter
             language={language}
-            customStyle={{ flex: 1, marginBottom: theme.sizeUnit * 3 }}
+            customStyle={{
+              flex: 1,
+              marginBottom: theme.sizeUnit * 3,
+              fontSize: theme.fontSize * 0.75,
+              padding: 0,
+            }}
           >
             {currentSQL}
           </StyledThemedSyntaxHighlighter>

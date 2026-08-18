@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useMemo, useCallback, useEffect, memo } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, memo } from 'react';
 
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
@@ -27,21 +27,29 @@ import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
+import { ConnectDragSource } from 'react-dnd';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 import useFilterFocusHighlightStyles from 'src/dashboard/util/useFilterFocusHighlightStyles';
+import { AntdThemeProvider } from '@superset-ui/core/components';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_BASE_UNIT,
+  GRID_COLUMN_COUNT,
   GRID_GUTTER_SIZE,
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
 } from 'src/dashboard/util/constants';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 
 export const CHART_MARGIN = 32;
 
-interface ChartHolderProps {
+// Vertical space reserved for app chrome (main nav + dashboard header +
+// tab bar) when capping chart heights to the viewport on mobile.
+export const MOBILE_CHROME_HEIGHT = 160;
+
+export interface ChartHolderProps {
   id: string;
   parentId: string;
   dashboardId: number;
@@ -94,6 +102,7 @@ const ChartHolder = ({
   isInView,
 }: ChartHolderProps) => {
   const theme = useTheme();
+  const isMobile = useIsMobile();
   const fullSizeStyle = css`
     && {
       position: fixed !important;
@@ -105,6 +114,28 @@ const ChartHolder = ({
   `;
   const { chartId } = component.meta;
   const isFullSize = fullSizeChartId === chartId;
+  const chartHolderRef = useRef<HTMLDivElement | null>(null);
+
+  // Tracks viewport height while mobile so the height cap below stays
+  // correct across device rotation and mobile browser chrome (address
+  // bar) show/hide, instead of freezing at whatever height was current
+  // when isMobile last flipped.
+  const [viewportHeight, setViewportHeight] = useState(
+    () => window.innerHeight,
+  );
+  useEffect(() => {
+    if (!isMobile) {
+      return undefined;
+    }
+    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      window.removeEventListener('orientationchange', updateViewportHeight);
+    };
+  }, [isMobile]);
 
   const focusHighlightStyles = useFilterFocusHighlightStyles(chartId ?? 0);
   const directPathToChild = useSelector(
@@ -164,6 +195,14 @@ const ChartHolder = ({
   }, [outlinedComponentId]);
 
   const widthMultiple = useMemo(() => {
+    // Mobile consumption mode stacks charts vertically at full width, so
+    // report the full column count. This keeps the pixel width handed to the
+    // chart plugin (and to ResizableContainer's inline size) in sync with the
+    // stacked layout instead of the desktop grid fraction.
+    if (isMobile && !editMode) {
+      return GRID_COLUMN_COUNT;
+    }
+
     const columnParentWidth = getComponentById(
       parentComponent.parents?.find(parent => parent.startsWith(COLUMN_TYPE)),
     )?.meta?.width;
@@ -179,10 +218,28 @@ const ChartHolder = ({
   }, [
     component,
     getComponentById,
+    isMobile,
+    editMode,
     parentComponent.meta.width,
     parentComponent.parents,
     parentComponent.type,
   ]);
+
+  // Grid units of height for this chart. In mobile consumption mode the
+  // authored desktop height is capped to the viewport (minus app chrome) so
+  // tall charts don't dominate the single-column stacked layout. Used for
+  // both the ResizableContainer shell and the height handed to the plugin,
+  // so the two can't disagree.
+  const heightMultiple = useMemo(() => {
+    const authoredHeight = component.meta.height ?? GRID_MIN_ROW_UNITS;
+    if (isMobile && !editMode) {
+      const maxUnits = Math.floor(
+        (viewportHeight - MOBILE_CHROME_HEIGHT) / GRID_BASE_UNIT,
+      );
+      return Math.max(GRID_MIN_ROW_UNITS, Math.min(authoredHeight, maxUnits));
+    }
+    return authoredHeight;
+  }, [component.meta.height, isMobile, editMode, viewportHeight]);
 
   const { chartWidth, chartHeight } = useMemo(() => {
     let width = 0;
@@ -197,16 +254,14 @@ const ChartHolder = ({
           (widthMultiple - 1) * GRID_GUTTER_SIZE -
           CHART_MARGIN,
       );
-      height = Math.floor(
-        (component.meta.height ?? 0) * GRID_BASE_UNIT - CHART_MARGIN,
-      );
+      height = Math.floor(heightMultiple * GRID_BASE_UNIT - CHART_MARGIN);
     }
 
     return {
       chartWidth: width,
       chartHeight: height,
     };
-  }, [columnWidth, component, isFullSize, widthMultiple]);
+  }, [columnWidth, heightMultiple, isFullSize, widthMultiple]);
 
   const handleDeleteComponent = useCallback(() => {
     deleteComponent(id, parentId);
@@ -239,7 +294,7 @@ const ChartHolder = ({
   }, []);
 
   const renderChild = useCallback(
-    ({ dragSourceRef }) => (
+    ({ dragSourceRef }: { dragSourceRef?: ConnectDragSource }) => (
       <ResizableContainer
         id={component.id}
         adjustableWidth={parentComponent.type === ROW_TYPE}
@@ -247,7 +302,7 @@ const ChartHolder = ({
         widthStep={columnWidth}
         widthMultiple={widthMultiple}
         heightStep={GRID_BASE_UNIT}
-        heightMultiple={component.meta.height ?? GRID_MIN_ROW_UNITS}
+        heightMultiple={heightMultiple}
         minWidthMultiple={GRID_MIN_COLUMN_COUNT}
         minHeightMultiple={GRID_MIN_ROW_UNITS}
         maxWidthMultiple={availableColumnCount + widthMultiple}
@@ -257,7 +312,19 @@ const ChartHolder = ({
         editMode={editMode}
       >
         <div
-          ref={dragSourceRef}
+          ref={el => {
+            if (typeof dragSourceRef === 'function') {
+              dragSourceRef(el);
+            } else if (
+              dragSourceRef &&
+              Object.prototype.hasOwnProperty.call(dragSourceRef, 'current')
+            ) {
+              (
+                dragSourceRef as React.MutableRefObject<HTMLDivElement | null>
+              ).current = el;
+            }
+            chartHolderRef.current = el;
+          }}
           data-test="dashboard-component-chart-holder"
           style={focusHighlightStyles}
           css={isFullSize ? fullSizeStyle : undefined}
@@ -269,57 +336,70 @@ const ChartHolder = ({
             outlinedComponentId ? 'fade-in' : 'fade-out',
           )}
         >
-          {!editMode && (
-            <AnchorLink
-              id={component.id}
-              scrollIntoView={outlinedComponentId === component.id}
+          <AntdThemeProvider
+            getPopupContainer={(triggerNode: HTMLElement) =>
+              document.fullscreenElement
+                ? (triggerNode?.closest?.(
+                    '[data-test="dashboard-component-chart-holder"]',
+                  ) as HTMLElement) || document.body
+                : document.body
+            }
+          >
+            {!editMode && (
+              <AnchorLink
+                id={component.id}
+                scrollIntoView={outlinedComponentId === component.id}
+              />
+            )}
+            {!!outlinedComponentId && (
+              <style>
+                {`label[for=${outlinedColumnName}] + .Select .Select__control {
+                      border-color: ${theme.colorPrimary};
+                      transition: border-color 1s ease-in-out;
+                    }`}
+              </style>
+            )}
+            <Chart
+              componentId={component.id}
+              id={component.meta.chartId ?? 0}
+              dashboardId={dashboardId}
+              width={chartWidth}
+              height={chartHeight}
+              sliceName={
+                component.meta.sliceNameOverride ||
+                component.meta.sliceName ||
+                ''
+              }
+              updateSliceName={(_sliceId: number, name: string) =>
+                handleUpdateSliceName(name)
+              }
+              isComponentVisible={isComponentVisible}
+              handleToggleFullSize={handleToggleFullSize}
+              isFullSize={isFullSize}
+              setControlValue={handleExtraControl}
+              extraControls={extraControls}
+              isInView={isInView}
+              chartHolderRef={chartHolderRef}
             />
-          )}
-          {!!outlinedComponentId && (
-            <style>
-              {`label[for=${outlinedColumnName}] + .Select .Select__control {
-                    border-color: ${theme.colorPrimary};
-                    transition: border-color 1s ease-in-out;
-                  }`}
-            </style>
-          )}
-          <Chart
-            componentId={component.id}
-            id={component.meta.chartId ?? 0}
-            dashboardId={dashboardId}
-            width={chartWidth}
-            height={chartHeight}
-            sliceName={
-              component.meta.sliceNameOverride || component.meta.sliceName || ''
-            }
-            updateSliceName={(_sliceId: number, name: string) =>
-              handleUpdateSliceName(name)
-            }
-            isComponentVisible={isComponentVisible}
-            handleToggleFullSize={handleToggleFullSize}
-            isFullSize={isFullSize}
-            setControlValue={handleExtraControl}
-            extraControls={extraControls}
-            isInView={isInView}
-          />
-          {editMode && (
-            <HoverMenu position="top">
-              <div data-test="dashboard-delete-component-button">
-                <DeleteComponentButton onDelete={handleDeleteComponent} />
-              </div>
-            </HoverMenu>
-          )}
+            {editMode && (
+              <HoverMenu position="top">
+                <div data-test="dashboard-delete-component-button">
+                  <DeleteComponentButton onDelete={handleDeleteComponent} />
+                </div>
+              </HoverMenu>
+            )}
+          </AntdThemeProvider>
         </div>
       </ResizableContainer>
     ),
     [
       component.id,
-      component.meta.height,
       component.meta.chartId,
       component.meta.sliceNameOverride,
       component.meta.sliceName,
       parentComponent.type,
       columnWidth,
+      heightMultiple,
       widthMultiple,
       availableColumnCount,
       onResizeStart,

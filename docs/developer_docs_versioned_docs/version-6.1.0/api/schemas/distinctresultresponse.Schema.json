@@ -1,0 +1,10 @@
+{
+  "schema": {
+    "properties": {
+      "text": { "description": "The distinct item", "type": "string" }
+    },
+    "type": "object",
+    "title": "DistinctResultResponse"
+  },
+  "schemaType": "response"
+}

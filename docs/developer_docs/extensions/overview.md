@@ -43,7 +43,7 @@ Extensions can provide:
 
 ## UI Components for Extensions
 
-Extension developers have access to pre-built UI components via `@apache-superset/core/components`. Browse all available components on the [UI Components](/docs/components/) page and filter by **Extension Compatible** to see components available to extensions.
+Extension developers have access to pre-built UI components via `@apache-superset/core/components`. Browse all available components on the [UI Components](/developer-docs/components/) page and filter by **Extension Compatible** to see components available to extensions.
 
 ## Next Steps
 
@@ -55,5 +55,6 @@ Extension developers have access to pre-built UI components via `@apache-superse
 - **[Deployment](./deployment)** - Packaging and deploying extensions
 - **[MCP Integration](./mcp)** - Adding AI agent capabilities using extensions
 - **[Security](./security)** - Security considerations and best practices
+- **[Storage](./storage)** - Managed storage API for persisting extension data
 - **[Tasks](./tasks)** - Framework for creating and managing long running tasks
 - **[Community Extensions](./registry)** - Browse extensions shared by the community

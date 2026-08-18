@@ -33,6 +33,11 @@ class CreateAsyncChartDataJobCommand:
         )
 
     def run(self, form_data: dict[str, Any], user_id: Optional[int]) -> dict[str, Any]:
+        if not getattr(self, "_async_channel_id", None):
+            raise RuntimeError(
+                "CreateAsyncChartDataJobCommand.run() called before validate(); "
+                "the async channel id was not initialized."
+            )
         return async_query_manager.submit_chart_data_job(
             self._async_channel_id, form_data, user_id
         )

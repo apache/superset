@@ -16,67 +16,66 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { isPostProcessingRank, QueryFormData } from '@superset-ui/core';
 import buildQuery from '../../src/Heatmap/buildQuery';
 
-describe('Heatmap buildQuery - Rank Operation for Normalized Field', () => {
-  const baseFormData = {
-    datasource: '5__table',
-    granularity_sqla: 'ds',
-    metric: 'count',
-    x_axis: 'category',
-    groupby: ['region'],
-    viz_type: 'heatmap',
-  } as QueryFormData;
+const baseFormData = {
+  datasource: '5__table',
+  granularity_sqla: 'ds',
+  metric: 'count',
+  x_axis: 'category',
+  groupby: ['region'],
+  viz_type: 'heatmap',
+} as QueryFormData;
 
-  test('should ALWAYS include rank operation when normalized=true', () => {
-    const formData = {
-      ...baseFormData,
-      normalized: true,
-    };
+const getQuery = (formData: QueryFormData) => buildQuery(formData).queries[0];
+const getRankOperation = (formData: QueryFormData) =>
+  getQuery(formData).post_processing?.find(isPostProcessingRank);
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-
-    const rankOperation = query.post_processing?.find(
-      op => op?.operation === 'rank',
-    );
-
-    expect(rankOperation).toBeDefined();
-    expect(rankOperation?.operation).toBe('rank');
+test('adds X axis orderby when sorting alphabetically ascending', () => {
+  const query = getQuery({
+    ...baseFormData,
+    sort_x_axis: 'alpha_asc',
   });
 
-  test('should ALWAYS include rank operation when normalized=false', () => {
-    const formData = {
-      ...baseFormData,
-      normalized: false,
-    };
+  expect(query.orderby).toEqual([['category', true]]);
+});
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-
-    const rankOperation = query.post_processing?.find(
-      op => op?.operation === 'rank',
-    );
-
-    expect(rankOperation).toBeDefined();
-    expect(rankOperation?.operation).toBe('rank');
+test('adds Y axis orderby when sorting alphabetically descending', () => {
+  const query = getQuery({
+    ...baseFormData,
+    sort_y_axis: 'alpha_desc',
   });
 
-  test('should ALWAYS include rank operation when normalized is undefined', () => {
-    const formData = {
-      ...baseFormData,
-      // normalized not set
-    };
+  expect(query.orderby).toEqual([['region', false]]);
+});
 
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-
-    const rankOperation = query.post_processing?.find(
-      op => op?.operation === 'rank',
-    );
-
-    expect(rankOperation).toBeDefined();
-    expect(rankOperation?.operation).toBe('rank');
+test('should ALWAYS include rank operation when normalized=true', () => {
+  const rankOperation = getRankOperation({
+    ...baseFormData,
+    normalized: true,
   });
+
+  expect(rankOperation).toBeDefined();
+  expect(rankOperation?.operation).toBe('rank');
+});
+
+test('should ALWAYS include rank operation when normalized=false', () => {
+  const rankOperation = getRankOperation({
+    ...baseFormData,
+    normalized: false,
+  });
+
+  expect(rankOperation).toBeDefined();
+  expect(rankOperation?.operation).toBe('rank');
+});
+
+test('should ALWAYS include rank operation when normalized is undefined', () => {
+  const rankOperation = getRankOperation({
+    ...baseFormData,
+    // normalized not set
+  });
+
+  expect(rankOperation).toBeDefined();
+  expect(rankOperation?.operation).toBe('rank');
 });

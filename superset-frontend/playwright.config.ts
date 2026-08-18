@@ -94,12 +94,31 @@ export default defineConfig({
       name: 'chromium',
       testIgnore: [
         '**/tests/auth/**/*.spec.ts',
+        '**/tests/sqllab/**/*.spec.ts',
+        '**/tests/embedded/**/*.spec.ts',
+        '**/tests/mobile/**/*.spec.ts',
         ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
       ],
       use: {
         browserName: 'chromium',
         testIdAttribute: 'data-test',
         // Reuse authentication state from global setup (fast E2E tests)
+        storageState: 'playwright/.auth/user.json',
+      },
+    },
+    {
+      // SQL Lab needs its own project because tab state is stored server-side
+      // per user (/tabstateview/*). All workers share the same auth user, so
+      // parallel workers mutating tabs would cause nondeterministic tab counts
+      // and cross-worker tab deletions. Other test suites (dataset, dashboard,
+      // chart) don't need this because they create/delete isolated resources
+      // via API with unique names — no shared mutable state between tests.
+      name: 'chromium-sqllab',
+      testMatch: '**/tests/sqllab/**/*.spec.ts',
+      fullyParallel: false,
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
         storageState: 'playwright/.auth/user.json',
       },
     },
@@ -115,6 +134,46 @@ export default defineConfig({
         // No storageState = clean browser with no cached cookies
       },
     },
+    // Strict 'true' check: non-empty strings like 'false' or '0' would
+    // otherwise enable the embedded project, matching the env-parsing
+    // convention used in docker/pythonpath_dev/superset_config_docker_light.py.
+    ...(process.env.INCLUDE_EMBEDDED?.toLowerCase() === 'true'
+      ? [
+          {
+            // Embedded dashboard tests - validates the full embedding flow:
+            // external app -> SDK -> iframe -> guest token -> dashboard render.
+            // Each spec file mutates per-dashboard embedding state (UUID,
+            // allowed_domains) on a single shared Superset, so files must not
+            // run in parallel even if more are added later.
+            name: 'chromium-embedded',
+            testMatch: '**/tests/embedded/**/*.spec.ts',
+            fullyParallel: false,
+            use: {
+              browserName: 'chromium' as const,
+              testIdAttribute: 'data-test',
+              // Uses admin auth for API calls to configure embedding and get guest tokens
+              storageState: 'playwright/.auth/user.json',
+            },
+          },
+        ]
+      : []),
+    // Mobile consumption-mode tests need the MOBILE_CONSUMPTION_MODE feature
+    // flag enabled in the Flask backend (the workflow's mobile step sets
+    // SUPERSET_FEATURE_MOBILE_CONSUMPTION_MODE), so they only run when the
+    // environment opts in. Same strict 'true' check as INCLUDE_EMBEDDED.
+    ...(process.env.INCLUDE_MOBILE?.toLowerCase() === 'true'
+      ? [
+          {
+            name: 'chromium-mobile',
+            testMatch: '**/tests/mobile/**/*.spec.ts',
+            use: {
+              browserName: 'chromium' as const,
+              testIdAttribute: 'data-test',
+              storageState: 'playwright/.auth/user.json',
+            },
+          },
+        ]
+      : []),
   ],
 
   // Web server setup - disabled in CI (Flask started separately in workflow)

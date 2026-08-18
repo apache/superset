@@ -18,6 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import {
+  BRAND_COLOR,
   extractTimegrain,
   getNumberFormatter,
   NumberFormats,
@@ -140,8 +141,9 @@ export default function transformProps(
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
-  const { r, g, b } = colorPicker;
-  const mainColor = `rgb(${r}, ${g}, ${b})`;
+  const mainColor = colorPicker
+    ? `rgb(${colorPicker.r}, ${colorPicker.g}, ${colorPicker.b})`
+    : undefined;
 
   const xAxisLabel = getXAxisLabel(rawFormData) as string;
   let trendLineData: TimeSeriesDatum[] | undefined;
@@ -280,6 +282,11 @@ export default function transformProps(
       ? formatTime
       : numberFormatter;
 
+  const lineWidth = 2;
+  // Pad the grid by half the stroke width so the trendline isn't clipped at
+  // the edges of the chart area (the stroke extends beyond the data point).
+  const strokePad = lineWidth / 2;
+
   const echartOptions: EChartsCoreOption = trendLineData
     ? {
         series: [
@@ -290,12 +297,15 @@ export default function transformProps(
             symbol: 'circle',
             symbolSize: 10,
             showSymbol: false,
-            color: mainColor,
+            color: mainColor ?? BRAND_COLOR,
+            lineStyle: {
+              width: lineWidth,
+            },
             areaStyle: {
               color: new graphic.LinearGradient(0, 0, 0, 1, [
                 {
                   offset: 0,
-                  color: mainColor,
+                  color: mainColor ?? BRAND_COLOR,
                 },
                 {
                   offset: 1,
@@ -344,10 +354,10 @@ export default function transformProps(
                 top: TIMESERIES_CONSTANTS.gridOffsetTop,
               }
             : {
-                bottom: 0,
-                left: 0,
-                right: 0,
-                top: 0,
+                bottom: strokePad,
+                left: strokePad,
+                right: strokePad,
+                top: strokePad,
               },
         tooltip: {
           ...getDefaultTooltip(refs),

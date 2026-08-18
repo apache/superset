@@ -21,7 +21,7 @@ import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, Divider, Dropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { commands, menus } from 'src/core';
+import { commands, useMenu } from 'src/core';
 
 export interface PanelToolbarProps {
   viewId: string;
@@ -35,7 +35,7 @@ const PanelToolbar = ({
   defaultSecondaryActions,
 }: PanelToolbarProps) => {
   const theme = useTheme();
-  const menu = menus.getMenu(viewId);
+  const menu = useMenu(viewId);
 
   const primaryItems = menu?.primary || [];
   const secondaryItems = menu?.secondary || [];
@@ -55,14 +55,14 @@ const PanelToolbar = ({
 
           return (
             <Button
-              key={item.view}
+              key={item.command}
               onClick={() => commands.executeCommand(command?.id)}
               tooltip={command?.description ?? command?.title}
               icon={<Icon iconSize="m" />}
               buttonSize="small"
               aria-label={command?.title}
               variant="text"
-              color="primary"
+              color="default"
             />
           );
         })
@@ -140,7 +140,7 @@ const PanelToolbar = ({
         >
           <Button
             showMarginRight={false}
-            color="primary"
+            color="default"
             variant="text"
             css={css`
               padding: 8px;

@@ -77,7 +77,7 @@ def test_ping_sqlite_exception(mocker: MockerFixture, mock_engine: MockerFixture
     assert result is True
 
     mock_dialect.do_ping.assert_has_calls(
-        [mocker.call(mock_connection), mocker.call(mock_engine)]
+        [mocker.call(mock_connection), mocker.call(mock_connection)]
     )
 
 
@@ -85,7 +85,7 @@ def test_ping_runtime_exception(mocker: MockerFixture, mock_engine: MockerFixtur
     """
     Test the ``ping`` method when a RuntimeError is raised.
     """
-    mock_engine, _, mock_dialect = mock_engine
+    mock_engine, mock_connection, mock_dialect = mock_engine
     mock_timeout = mocker.patch("superset.commands.database.utils.timeout")
     mock_timeout.side_effect = RuntimeError("timeout")
     mock_dialect.do_ping.return_value = True
@@ -93,7 +93,7 @@ def test_ping_runtime_exception(mocker: MockerFixture, mock_engine: MockerFixtur
     result = ping(mock_engine)
 
     assert result is True
-    mock_dialect.do_ping.assert_called_once_with(mock_engine)
+    mock_dialect.do_ping.assert_called_once_with(mock_connection)
 
 
 @pytest.fixture

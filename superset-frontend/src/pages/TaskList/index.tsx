@@ -25,14 +25,21 @@ import {
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
-import { Tooltip, Label, Modal, Checkbox } from '@superset-ui/core/components';
+import { useSelector } from 'react-redux';
+import {
+  ActionButton,
+  Tooltip,
+  Label,
+  Modal,
+  Checkbox,
+} from '@superset-ui/core/components';
 import {
   CreatedInfo,
   ListView,
   ListViewFilterOperator as FilterOperator,
   type ListViewFilters,
-  FacePile,
 } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu from 'src/features/home/SubMenu';
@@ -52,6 +59,7 @@ import {
 } from 'src/features/tasks/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import type { RootState } from 'src/views/store';
 
 const PAGE_SIZE = 25;
 
@@ -77,6 +85,7 @@ interface TaskListProps {
 
 function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const theme = useTheme();
+  const locale = useSelector((state: RootState) => state.common?.locale);
 
   // Check if GTF feature flag is enabled
   if (!isFeatureEnabled(FeatureFlag.GlobalTaskFramework)) {
@@ -338,14 +347,14 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             return '-';
           }
 
-          // Convert subscribers to FacePile format
-          const users = subscribers.map((sub: TaskSubscriber) => ({
+          // Convert subscribers to SubjectPile format
+          const subjects = subscribers.map((sub: TaskSubscriber) => ({
             id: sub.user_id,
-            first_name: sub.first_name,
-            last_name: sub.last_name,
+            label: `${sub.first_name} ${sub.last_name}`.trim(),
+            type: 1,
           }));
 
-          return <FacePile users={users} maxCount={3} />;
+          return <SubjectPile subjects={subjects} maxCount={3} />;
         },
         accessor: 'subscriber_count',
         Header: t('Subscribers'),
@@ -380,7 +389,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { duration_seconds },
           },
-        }: TaskCellProps) => formatDuration(duration_seconds) ?? '-',
+        }: TaskCellProps) => formatDuration(duration_seconds, locale) ?? '-',
         accessor: 'duration_seconds',
         Header: t('Duration'),
         size: 'sm',
@@ -506,20 +515,13 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                 </Tooltip>
               )}
               {canCancelTask && (
-                <Tooltip
-                  id="cancel-action-tooltip"
-                  title={t('Cancel')}
+                <ActionButton
+                  label={t('Cancel')}
+                  tooltip={t('Cancel')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={() => openCancelModal(original)}
-                  >
-                    <Icons.StopOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.StopOutlined iconSize="l" />}
+                  onClick={() => openCancelModal(original)}
+                />
               )}
             </div>
           );
@@ -530,7 +532,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
     ],
-    [user.userId, theme, openCancelModal],
+    [user.userId, theme, locale, openCancelModal],
   );
 
   const filters: ListViewFilters = useMemo(

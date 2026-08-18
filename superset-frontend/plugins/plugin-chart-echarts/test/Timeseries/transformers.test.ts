@@ -16,20 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CategoricalColorScale, ChartProps } from '@superset-ui/core';
+import {
+  CategoricalColorScale,
+  ChartProps,
+  TimeGranularity,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
+import type { ScatterSeriesOption } from 'echarts/charts';
 import { EchartsTimeseriesSeriesType } from '../../src';
 import { TIMESERIES_CONSTANTS } from '../../src/constants';
-import { LegendOrientation } from '../../src/types';
+import {
+  LegendOrientation,
+  EchartsTimeseriesChartProps,
+} from '../../src/types';
 import {
   transformSeries,
   transformNegativeLabelsPosition,
   getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
-import { EchartsTimeseriesChartProps } from '../../src/types';
 import * as seriesUtils from '../../src/utils/series';
 
 // Mock the colorScale function
@@ -120,6 +127,36 @@ describe('transformSeries', () => {
 
     // OpacityEnum.NonTransparent = 1 (not dimmed)
     expect((result as any).itemStyle.opacity).toBe(1);
+  });
+
+  test('should use symbolSizeFn for symbolSize when provided', () => {
+    const symbolSizeFn = jest.fn(
+      (value: (number | string | null)[]) => Number(value[1]) * 2,
+    );
+    const opts = {
+      seriesType: EchartsTimeseriesSeriesType.Scatter,
+      markerSize: 7,
+      symbolSizeFn,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    const { symbolSize } = result as ScatterSeriesOption;
+    expect(symbolSize).toBe(symbolSizeFn);
+    expect(symbolSizeFn(['A', 4])).toBe(8);
+  });
+
+  test('should fall back to markerSize for symbolSize when symbolSizeFn is not provided', () => {
+    const opts = {
+      seriesType: EchartsTimeseriesSeriesType.Scatter,
+      markerSize: 7,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    expect((result as ScatterSeriesOption).symbolSize).toBe(7);
   });
 });
 
@@ -235,6 +272,7 @@ function buildTimeseriesChartProps(
       colorScheme: 'bnbColors',
       datasource: '3__table',
       granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
       metric: 'sum__num',
       viz_type: 'my_viz',
       ...overrides,
@@ -263,6 +301,7 @@ test('should configure time axis labels to show max label for last month visibil
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
+    timeGrainSqla: TimeGranularity.MONTH,
     metric: 'sum__num',
     viz_type: 'my_viz',
   };

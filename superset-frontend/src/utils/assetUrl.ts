@@ -30,10 +30,29 @@ export function assetUrl(path: string): string {
 /**
  * Returns the path prepended with the staticAssetsPrefix if the string is a relative path else it returns
  * the string as is.
+ *
+ * Idempotent — a path that already begins with the static-assets prefix at a
+ * segment boundary is returned unchanged, mirroring the dedupe pattern used by
+ * `ensureAppRoot` in pathUtils.ts and `SupersetClient.getUrl`.
+ *
+ * If `url_or_path` is null or undefined, `undefined` is returned so callers
+ * (e.g. a partial theme reaching the frontend from a source other than
+ * `superset_config.py`, such as a DB-stored theme created via the API) don't
+ * crash on the unconditional `.startsWith()` call below.
+ *
  * @param url_or_path A url or relative path to a resource
  */
-export function ensureStaticPrefix(url_or_path: string): string {
-  if (url_or_path.startsWith('/')) return assetUrl(url_or_path);
-
-  return url_or_path;
+export function ensureStaticPrefix(
+  url_or_path: string | null | undefined,
+): string | undefined {
+  if (url_or_path == null) return undefined;
+  if (!url_or_path.startsWith('/')) return url_or_path;
+  const prefix = staticAssetsPrefix();
+  if (
+    prefix &&
+    (url_or_path === prefix || url_or_path.startsWith(`${prefix}/`))
+  ) {
+    return url_or_path;
+  }
+  return assetUrl(url_or_path);
 }
