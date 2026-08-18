@@ -21,6 +21,7 @@ import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
 import { useResultsPane } from './useResultsPane';
+import { useState } from 'react';
 
 const Wrapper = styled.div`
   display: flex;
@@ -72,19 +73,22 @@ export const ResultsPaneOnDashboard = ({
     queriesResponse,
   });
 
-  if (resultsPanes.length === 1) {
-    return <Wrapper>{resultsPanes[0]}</Wrapper>;
-  }
+  const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
 
-  const items = resultsPanes.map((pane, idx) => ({
-    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
-    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
-    children: pane,
-  }));
+  const items = resultsPanes.map((pane, idx) => {
+    const tabKey =
+      idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`;
+
+    return {
+      key: tabKey,
+      label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+      children: activeTabKey === tabKey ? pane : null,
+    };
+  });
 
   return (
     <Wrapper>
-      <Tabs items={items} />
+      <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={items} />
     </Wrapper>
   );
 };

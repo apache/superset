@@ -712,11 +712,26 @@ const transformProps = (
   let totalQuery;
   let rowCount;
   if (serverPagination) {
-    [baseQuery, countQuery, totalQuery] = queriesData;
+    [baseQuery, countQuery] = queriesData;
     rowCount = (countQuery?.data?.[0]?.rowcount as number) ?? 0;
   } else {
-    [baseQuery, totalQuery] = queriesData;
+    [baseQuery] = queriesData;
     rowCount = baseQuery?.rowcount ?? 0;
+  }
+  // `buildQuery` may prepend an extra query (used to compute percent metrics
+  // against the entire result set when `percent_metric_calculation` is set to
+  // `all_records`) before the totals query. Since the totals query, when
+  // present, is always the last entry in `queriesData`, look it up positionally
+  // from the end rather than assuming a fixed index. The minimum number of
+  // queries expected without a totals query is 1 (base query), or 2 when
+  // server pagination is enabled (base query + row count query).
+  const minQueriesWithoutTotals = serverPagination ? 2 : 1;
+  if (
+    showTotals &&
+    queryMode === QueryMode.Aggregate &&
+    queriesData.length > minQueriesWithoutTotals
+  ) {
+    totalQuery = queriesData[queriesData.length - 1];
   }
   const data = processDataRecords(baseQuery?.data, columns);
   const comparisonData = processComparisonDataRecords(
@@ -737,8 +752,15 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData, theme) ??
-    defaultColorFormatters;
+    getColorFormatters(
+      (conditionalFormatting || []).filter(
+        (config: ConditionalFormattingConfig) =>
+          config.colorScheme !== ColorSchemeEnum.Green &&
+          config.colorScheme !== ColorSchemeEnum.Red,
+      ),
+      passedData,
+      theme,
+    ) ?? defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
     baseQuery?.data,

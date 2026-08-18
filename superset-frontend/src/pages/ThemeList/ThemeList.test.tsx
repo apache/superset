@@ -103,7 +103,7 @@ const mockThemes = [
     is_system_default: false,
     is_system_dark: false,
     is_system: false,
-    json_data: '{"colors": {"primary": "#52c41a"}}',
+    json_data: '{"algorithm": "default", "colors": {"primary": "#52c41a"}}',
     created_by: { id: 2, first_name: 'Test', last_name: 'User' },
     changed_on_delta_humanized: '3 days ago',
     changed_by: {
@@ -358,6 +358,32 @@ test('shows set dark action for non-dark themes', async () => {
   const setDarkButtons = await screen.findAllByTestId('set-dark-action');
   // Should have set dark buttons for Light Theme and Custom Theme (not Dark Theme which is already dark)
   expect(setDarkButtons.length).toBe(2);
+});
+
+test('warns when setting a light theme as the system dark theme', async () => {
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  // Custom Theme declares the light algorithm; Light Theme declares none
+  const setDarkButtons = await screen.findAllByTestId('set-dark-action');
+  await userEvent.click(setDarkButtons[1]);
+
+  expect(
+    await screen.findByText(/This theme uses the light algorithm/),
+  ).toBeInTheDocument();
 });
 
 test('shows unset dark action for system dark theme', async () => {

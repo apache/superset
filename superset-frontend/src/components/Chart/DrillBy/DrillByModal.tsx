@@ -17,14 +17,7 @@
  * under the License.
  */
 
-import {
-  SyntheticEvent,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
@@ -35,7 +28,6 @@ import {
   isDefined,
   ContextMenuFilters,
   AdhocFilter,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -62,7 +54,7 @@ import {
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
-import { getQuerySettings, exportChart } from 'src/explore/exploreUtils';
+import { exportChart } from 'src/explore/exploreUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
@@ -409,13 +401,11 @@ export default function DrillByModal({
   const handleReload = useCallback(() => {
     setChartDataResult(undefined);
     setIsChartDataLoading(true);
-    const [useLegacyApi] = getQuerySettings(drilledFormData);
+
     getChartDataRequest({
       formData: drilledFormData,
     })
-      .then(({ response, json }) =>
-        handleChartDataResponse(response, json, useLegacyApi),
-      )
+      .then(({ response, json }) => handleChartDataResponse(response, json))
       .then(queriesResponse => {
         setChartDataResult(queriesResponse);
       })
@@ -499,15 +489,12 @@ export default function DrillByModal({
 
   useEffect(() => {
     if (drilledFormData) {
-      const [useLegacyApi] = getQuerySettings(drilledFormData);
       setIsChartDataLoading(true);
       setChartDataResult(undefined);
       getChartDataRequest({
         formData: drilledFormData,
       })
-        .then(({ response, json }) =>
-          handleChartDataResponse(response, json, useLegacyApi),
-        )
+        .then(({ response, json }) => handleChartDataResponse(response, json))
         .then(queriesResponse => {
           setChartDataResult(queriesResponse);
         })
@@ -562,30 +549,27 @@ export default function DrillByModal({
           items={breadcrumbItems}
           itemRender={(route, _, routes, paths) => {
             const isLastElement = routes.indexOf(route) === routes.length - 1;
-            // `route.onClick` is typed by antd as a `MouseEventHandler`, but
-            // the underlying handler ignores its argument, so it's safe to
-            // broaden it to an optional `SyntheticEvent` callback here to
-            // reuse it as the keyboard-activation handler below.
-            const onRouteClick = route.onClick as
-              ((event?: SyntheticEvent) => void) | undefined;
             return isLastElement ? (
               <span data-test="drill-by-breadcrumb-item">
                 {route.title}
                 {paths}
               </span>
             ) : (
-              <span
+              <button
+                type="button"
                 data-test="drill-by-breadcrumb-item"
-                role="button"
-                tabIndex={0}
-                onClick={onRouteClick}
-                onKeyDown={handleKeyboardActivation(() => onRouteClick?.())}
+                onClick={route.onClick}
                 css={css`
+                  appearance: none;
+                  border: none;
+                  background: none;
+                  padding: 0;
+                  font: inherit;
                   cursor: pointer;
                 `}
               >
                 {route.title}
-              </span>
+              </button>
             );
           }}
         />

@@ -31,6 +31,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 import pytest
+from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime  # noqa: F401
 
@@ -150,6 +151,7 @@ class TestDatabaseModel(SupersetTestCase):
         SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
     )
     def test_impersonate_user_presto(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://", future=True)
         uri = "presto://localhost"
         principal_user = security_manager.find_user(username="gamma")
         extra = """
@@ -201,6 +203,7 @@ class TestDatabaseModel(SupersetTestCase):
     )
     @mock.patch("superset.models.core.create_engine")
     def test_adjust_engine_params_mysql(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://", future=True)
         model = Database(
             database_name="test_database1",
             sqlalchemy_uri="mysql://user:password@localhost",
@@ -208,7 +211,14 @@ class TestDatabaseModel(SupersetTestCase):
         model._get_sqla_engine()
         call_args = mocked_create_engine.call_args
 
-        assert str(call_args[0][0]) == "mysql://user:password@localhost"
+        # SQLAlchemy 2.0 changed URL.__str__() to hide the password by
+        # default (it used to render it in full under 1.4); use
+        # render_as_string(hide_password=False) to compare the real,
+        # unmasked URL the engine was actually created with.
+        assert (
+            call_args[0][0].render_as_string(hide_password=False)
+            == "mysql://user:password@localhost"
+        )
         assert call_args[1]["connect_args"]["local_infile"] == 0
 
         model = Database(
@@ -218,11 +228,15 @@ class TestDatabaseModel(SupersetTestCase):
         model._get_sqla_engine()
         call_args = mocked_create_engine.call_args
 
-        assert str(call_args[0][0]) == "mysql+mysqlconnector://user:password@localhost"
+        assert (
+            call_args[0][0].render_as_string(hide_password=False)
+            == "mysql+mysqlconnector://user:password@localhost"
+        )
         assert call_args[1]["connect_args"]["allow_local_infile"] == 0
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_trino(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://", future=True)
         principal_user = security_manager.find_user(username="gamma")
 
         with override_user(principal_user):
@@ -245,8 +259,12 @@ class TestDatabaseModel(SupersetTestCase):
             model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
+            # SQLAlchemy 2.0 changed URL.__str__() to hide the password by
+            # default (it used to render it in full under 1.4); use
+            # render_as_string(hide_password=False) to compare the real,
+            # unmasked URL the engine was actually created with.
             assert (
-                str(call_args[0][0])
+                call_args[0][0].render_as_string(hide_password=False)
                 == "trino://original_user:original_user_password@localhost/"
             )
             assert call_args[1]["connect_args"]["user"] == "gamma"
@@ -259,6 +277,7 @@ class TestDatabaseModel(SupersetTestCase):
         SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
     )
     def test_impersonate_user_hive(self, mocked_create_engine):
+        mocked_create_engine.return_value = create_engine("sqlite://", future=True)
         uri = "hive://localhost"
         principal_user = security_manager.find_user(username="gamma")
         extra = """

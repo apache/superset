@@ -33,7 +33,7 @@ from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType, get_user_agent, QuerySource
 
@@ -125,7 +125,11 @@ class DuckDBParametersMixin:
         ):
             return MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
 
-        return str(URL(drivername=cls.engine, database=database, query=query))
+        # SQLAlchemy 2.0 made URL a strict NamedTuple - the raw URL(...)
+        # constructor now requires username/password/host/port to be passed
+        # explicitly (they used to default to None). URL.create() keeps
+        # those optional, matching the pre-2.0 URL(...) behavior used here.
+        return str(URL.create(drivername=cls.engine, database=database, query=query))
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
@@ -310,39 +314,6 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         return None
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        """
-        Override fetch_data to work around duckdb-engine cursor.description bug.
-
-        The duckdb-engine SQLAlchemy driver has a bug where cursor.description
-        becomes None after calling fetchall(), even though the native DuckDB cursor
-        preserves this information correctly.
-
-        See: https://github.com/Mause/duckdb_engine/issues/1322
-
-        This method captures the cursor description before fetchall() and restores
-        it afterward to prevent downstream processing failures.
-        """
-        # Capture description BEFORE fetchall() invalidates it
-        description = cursor.description
-
-        # Execute fetchall() (which will clear cursor.description in duckdb-engine)
-        if cls.arraysize:
-            cursor.arraysize = cls.arraysize
-        try:
-            if cls.limit_method == LimitMethod.FETCH_MANY and limit:
-                data = cursor.fetchmany(limit)
-            else:
-                data = cursor.fetchall()
-        except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex) from ex
-
-        # Restore the captured description for downstream processing
-        cursor.description = description
-
-        return data
-
-    @classmethod
     def get_table_names(
         cls, database: Database, inspector: Inspector, schema: str | None
     ) -> set[str]:
@@ -443,8 +414,14 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
                 f"Need MotherDuck token to connect to database '{database}'."
             )
 
+        # SQLAlchemy 2.0 made URL a strict NamedTuple - the raw URL(...)
+        # constructor now requires username/password/host/port to be passed
+        # explicitly (they used to default to None). URL.create() keeps
+        # those optional, matching the pre-2.0 URL(...) behavior used here.
         return str(
-            URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
+            URL.create(
+                drivername=DuckDBEngineSpec.engine, database=database, query=query
+            )
         )
 
     @classmethod

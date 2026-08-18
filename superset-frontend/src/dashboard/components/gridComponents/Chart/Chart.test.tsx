@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import { act, fireEvent, render } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import * as redux from 'redux';
 
@@ -145,18 +145,79 @@ test('should render a ChartContainer', () => {
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
-test('should render a description if it has one and isExpanded=true', () => {
-  const { container } = setup(
-    {},
-    {
-      dashboardState: {
-        ...defaultState.dashboardState,
-        expandedSlices: { [props.id]: true },
+const noDescriptionRenderInputs = ([undefined, false, true] as const).flatMap(
+  sliceExpanded =>
+    ([undefined, false, true] as const).map(allExpanded => ({
+      sliceExpanded,
+      allExpanded,
+    })),
+);
+
+test.each(noDescriptionRenderInputs)(
+  'should not render a description when it has none, expandedSlices=$sliceExpanded and expandAllSlices=$allExpanded',
+  ({ sliceExpanded, allExpanded }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: sliceExpanded },
+          expandAllSlices: allExpanded,
+        },
+        sliceEntities: {
+          ...sliceEntities,
+          slices: {
+            [queryId]: {
+              ...sliceEntities.slices[queryId],
+              description_markdown: undefined,
+              owners: [],
+              viz_type: VizType.Table,
+            },
+          },
+        },
       },
-    },
-  );
-  expect(container.querySelector('.slice_description')).toBeInTheDocument();
-});
+    );
+    expect(
+      container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+const chartDescriptionRenderInputs = [
+  { expandSlice: undefined, expandAllSlices: undefined, result: false },
+  { expandSlice: undefined, expandAllSlices: false, result: false },
+  { expandSlice: undefined, expandAllSlices: true, result: true },
+  { expandSlice: false, expandAllSlices: undefined, result: false },
+  { expandSlice: false, expandAllSlices: false, result: false },
+  { expandSlice: false, expandAllSlices: true, result: false },
+  { expandSlice: true, expandAllSlices: undefined, result: true },
+  { expandSlice: true, expandAllSlices: false, result: true },
+  { expandSlice: true, expandAllSlices: true, result: true },
+];
+
+test.each(chartDescriptionRenderInputs)(
+  'should $result render a description if it has one, expandedSlices=$expandSlice and expandAllSlices=$expandAllSlices',
+  ({ expandSlice, expandAllSlices, result }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: expandSlice },
+          expandAllSlices,
+        },
+      },
+    );
+
+    if (result) {
+      expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    } else {
+      expect(
+        container.querySelector('.slice_description'),
+      ).not.toBeInTheDocument();
+    }
+  },
+);
 
 test('should call refreshChart when SliceHeader calls forceRefresh', () => {
   const { getByText, getByRole } = setup({});
@@ -565,4 +626,210 @@ test('should pass filterState from dataMask to ChartContainer', () => {
     'filterState',
     mockFilterState,
   );
+});
+
+test('should pass chartStackTrace to ChartContainer so dashboard chart errors stay expandable', () => {
+  // Regression guard for #31858: the dashboard chart wrapper stopped forwarding
+  // the stack trace, so failed charts rendered a flat error with no "See more"
+  // affordance while the same error in Explore stayed expandable.
+  const stackTrace = 'Traceback (most recent call last): ValueError: boom';
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          chartStackTrace: stackTrace,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'chartStackTrace',
+    stackTrace,
+  );
+});
+
+function installResizeObserverMock() {
+  const observeMock = jest.fn();
+  const disconnectMock = jest.fn();
+  let observerCallback: ResizeObserverCallback | undefined;
+  const mockResizeObserver = jest.fn().mockImplementation(callback => {
+    observerCallback = callback;
+    return { observe: observeMock, disconnect: disconnectMock };
+  });
+  global.ResizeObserver = mockResizeObserver as any;
+
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  return {
+    observeMock,
+    getObserverCallback: () => observerCallback,
+    restore: () => {
+      delete (global as any).ResizeObserver;
+      getComputedStyleSpy.mockRestore();
+    },
+  };
+}
+
+test('A chart description configured to start expanded is visible after initial render', () => {
+  const { observeMock, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    expect(observeMock).toHaveBeenCalled();
+  } finally {
+    restore();
+  }
+});
+
+test('The description height is correctly updated after asynchronous markdown rendering completes', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 300 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 100,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(300 - 22 - 100);
+  } finally {
+    restore();
+  }
+});
+
+test('The ResizeObserver callback updates the measured height', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 400 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 200,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(400 - 22 - 200);
+  } finally {
+    restore();
+  }
+});
+
+test('Existing expand/collapse behavior continues to work', () => {
+  const { restore } = installResizeObserverMock();
+  try {
+    const collapsedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: false },
+        },
+      },
+    );
+    expect(
+      collapsedSetup.container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+
+    const expandedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(
+      expandedSetup.container.querySelector('.slice_description'),
+    ).toBeInTheDocument();
+  } finally {
+    restore();
+  }
 });

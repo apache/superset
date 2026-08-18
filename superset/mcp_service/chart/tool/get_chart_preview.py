@@ -29,6 +29,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import db, event_logger
+from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.ascii_charts import (
     generate_ascii_chart,
     generate_ascii_table,
@@ -218,6 +219,36 @@ def _build_query_metrics(form_data: Dict[str, Any]) -> list[Metric]:
     return metrics
 
 
+def _first_query_has_fields(query_context: Any) -> bool:
+    """Return True if the rendered query has metrics or columns configured.
+
+    A chart with neither (e.g. a big_number chart saved without a metric)
+    cannot be previewed; downstream query execution would only surface a
+    generic "empty query" error. Preview strategies render only the first
+    query result, so validation must inspect that same query.
+    """
+    queries = getattr(query_context, "queries", None)
+    if not queries:
+        # No queries to inspect (or an object without a `.queries`
+        # attribute, e.g. a test double) — defer to normal query
+        # execution rather than guessing.
+        return True
+    query = queries[0]
+    return bool(query.metrics or query.columns)
+
+
+def _no_query_fields_error(chart: ChartLike) -> ChartError:
+    """Build a clear error for charts with no metrics/columns to query."""
+    return ChartError(
+        error=(
+            f"Chart {chart.slice_name or chart.id!r} "
+            f"(viz_type={chart.viz_type!r}) has no metrics or columns "
+            "configured, so a preview cannot be generated."
+        ),
+        error_type="NoQueryFields",
+    )
+
+
 def _build_chart_description(chart: ChartLike) -> str:
     """Build a human-readable chart description, with hints for special chart types."""
     base = (
@@ -246,8 +277,6 @@ class PreviewFormatStrategy:
     def _authorize_guest_query(self, query_context: Any) -> None:
         """For a guest, attach the dashboard context so raise_for_access
         authorizes the preview query."""
-        from superset.mcp_service import guest_scope
-
         if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
             guest_scope.authorize_query(query_context, dashboard_id, self.chart)
 
@@ -300,14 +329,17 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
+            if not _first_query_has_fields(query_context):
+                return _no_query_fields_error(self.chart)
+
             self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
 
-            data = []
+            data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data", [])
+                data = result["queries"][0].get("data") or []
 
             ascii_chart = generate_ascii_chart(
                 data,
@@ -362,14 +394,17 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 force=False,
             )
 
+            if not _first_query_has_fields(query_context):
+                return _no_query_fields_error(self.chart)
+
             self._authorize_guest_query(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
 
-            data = []
+            data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data", [])
+                data = result["queries"][0].get("data") or []
 
             table_data = generate_ascii_table(data, 120)
 
@@ -1257,12 +1292,12 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Generating preview for chart %s", getattr(chart, "id", "NO_ID"))
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
-        # Skip the dataset pre-check for transient charts (no ID) and for guests
-        # (authorized via the dashboard context, not dataset RBAC).
-        from superset.mcp_service import guest_scope
-
-        if getattr(chart, "id", None) is not None and not guest_scope.is_guest_read():
-            validation_result = validate_chart_dataset(chart, check_access=True)
+        # Transient charts have a falsy id of 0, so skip the pre-check for them.
+        # Guests keep the existence check but skip RBAC (dashboard-authorized).
+        if getattr(chart, "id", None):
+            validation_result = validate_chart_dataset(
+                chart.datasource_id, check_access=not guest_scope.is_guest_read()
+            )
             if not validation_result.is_valid:
                 await ctx.warning(
                     "Chart found but dataset is not accessible: %s"
