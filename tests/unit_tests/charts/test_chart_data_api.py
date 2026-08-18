@@ -932,7 +932,8 @@ def test_default_export_filename_caps_very_long_chart_names() -> None:
         MagicMock(slice_name="x" * 250),
     )
 
-    assert filename.startswith("superset_" + "x" * 50)
+    assert filename.startswith("superset_" + "x" * 150)
+    assert "x" * 151 not in filename
     assert len(filename) + len(".xlsx") <= 255
 
 
