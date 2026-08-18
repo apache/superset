@@ -52,7 +52,7 @@ test('preserves source order when sortAscending is unset', () => {
   expect(compare(banana, apple)).toBe(0);
 });
 
-const groupByCustomization = {
+const groupByCustomization: ChartCustomization = {
   id: 'groupby-1',
   name: 'Group By',
   filterType: 'filter_groupby',
@@ -61,7 +61,7 @@ const groupByCustomization = {
   scope: { rootPath: [], excluded: [] },
   controlValues: {},
   defaultDataMask: {},
-} as unknown as ChartCustomization;
+};
 
 test('renders the column-loading spinner small and muted', async () => {
   render(<GroupByFilterCard customizationItem={groupByCustomization} />, {
