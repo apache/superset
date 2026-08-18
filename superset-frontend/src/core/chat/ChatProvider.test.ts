@@ -330,6 +330,50 @@ test('registerClientTool warns and overwrites on a duplicate name', () => {
   warn.mockRestore();
 });
 
+test('registerClientTool warns when called after registerChat', () => {
+  const provider = ChatProvider.getInstance();
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+
+  provider.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel);
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.dashboard__get_root',
+  });
+
+  expect(warn).toHaveBeenCalledTimes(1);
+  expect(warn.mock.calls[0][0]).toContain('chat.registerClientTool(s)');
+  expect(warn.mock.calls[0][0]).toContain('registerChat()');
+  warn.mockRestore();
+});
+
+test('registerClientTool does not warn when called before registerChat', () => {
+  const provider = ChatProvider.getInstance();
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.dashboard__get_root',
+  });
+  provider.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel);
+
+  expect(warn).not.toHaveBeenCalled();
+  warn.mockRestore();
+});
+
+test('registerClientTool only warns once per late-registration, even across many tools', () => {
+  const provider = ChatProvider.getInstance();
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+
+  provider.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel);
+  provider.registerClientTools([
+    { ...noopTool, name: 'acme.dashboard__one' },
+    { ...noopTool, name: 'acme.dashboard__two' },
+  ]);
+
+  expect(warn).toHaveBeenCalledTimes(1);
+  warn.mockRestore();
+});
+
 test('getTools aggregates every registered tool', () => {
   const provider = ChatProvider.getInstance();
 
