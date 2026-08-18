@@ -40,7 +40,7 @@
     "oxfmt": "^0.62.0",
     "tscw-config": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.66.0",
+    "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.10"
   },
   "engines": {
