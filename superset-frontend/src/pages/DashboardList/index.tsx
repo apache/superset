@@ -281,6 +281,7 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name: changedByName,
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle = '',
+                localized_title: localizedTitle,
                 slug = '',
                 description = '',
                 json_metadata: jsonMetadata = '',
@@ -297,6 +298,9 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name: changedByName,
                 changed_by: changedBy,
                 dashboard_title: dashboardTitle,
+                // Refreshed alongside the canonical title: a translation of the
+                // previous title would otherwise keep displaying over the new one.
+                localized_title: localizedTitle,
                 slug,
                 description,
                 json_metadata: jsonMetadata,

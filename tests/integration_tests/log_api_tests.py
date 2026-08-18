@@ -233,30 +233,34 @@ class TestLogApi(SupersetTestCase):
             "en": {"flag": "us", "name": "English"},
             "mi": {"flag": "nz", "name": "Māori"},
         }
-        with (
-            patch.dict(
-                app.config,
-                {"LANGUAGES": languages, "TRANSLATION_HOOK": _hook},
-            ),
-            patch("superset.utils.i18n.get_locale", return_value="mi"),
-        ):
-            rv = self.client.get("api/v1/log/recent_activity/")
-            assert rv.status_code == 200
-            response = json.loads(rv.data.decode("utf-8"))
+        try:
+            with (
+                patch.dict(
+                    app.config,
+                    {"LANGUAGES": languages, "TRANSLATION_HOOK": _hook},
+                ),
+                patch("superset.utils.i18n.get_locale", return_value="mi"),
+            ):
+                rv = self.client.get("api/v1/log/recent_activity/")
+                assert rv.status_code == 200
+                response = json.loads(rv.data.decode("utf-8"))
 
-        db.session.delete(log1)
-        db.session.delete(dash)
-        db.session.commit()
-
-        # Find our dashboard's entry by URL rather than assuming ordering, since
-        # the shared test database may contain other recent activity.
-        ours = [
-            item
-            for item in response["result"]
-            if item.get("item_url") == "/dashboard/loc_slug/"
-        ]
-        assert ours, "expected the seeded dashboard in recent activity"
-        assert ours[0]["item_title"] == "Papatohu Hokohoko"
+            # Find our dashboard's entry by URL rather than assuming ordering,
+            # since the shared test database may contain other recent activity.
+            ours = [
+                item
+                for item in response["result"]
+                if item.get("item_url") == "/dashboard/loc_slug/"
+            ]
+            assert ours, "expected the seeded dashboard in recent activity"
+            assert ours[0]["item_title"] == "Papatohu Hokohoko"
+        finally:
+            # Cleanup runs even when an assertion above fails: these rows live in
+            # a database shared with every other integration test, and leaking
+            # them breaks unrelated counts downstream.
+            db.session.delete(log1)
+            db.session.delete(dash)
+            db.session.commit()
 
     def test_get_recent_activity_actions_filter(self):
         """

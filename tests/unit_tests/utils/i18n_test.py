@@ -382,3 +382,19 @@ def test_memo_is_skipped_outside_a_request(
     assert i18n.translate("Sales") == "Ventes"
 
     assert hook.call_count == 2
+
+
+def test_batch_hook_takes_precedence_when_both_are_configured(
+    mocker: MockerFixture, fr_locale: None
+) -> None:
+    """A direct lookup must not resolve against a different store than a batch."""
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    single_hook = mocker.MagicMock(return_value="from-single-hook")
+    current_app.config["TRANSLATION_HOOK"] = single_hook
+    current_app.config["TRANSLATION_BATCH_HOOK"] = lambda texts, locale, **k: {
+        "Sales": "Ventes"
+    }
+
+    assert i18n.translate("Sales") == "Ventes"
+    single_hook.assert_not_called()
