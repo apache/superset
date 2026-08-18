@@ -686,7 +686,17 @@ export function syncQueryEditor(
   queryEditor: QueryEditor,
 ): SqlLabThunkAction<Promise<unknown>> {
   return function (dispatch: AppDispatch, getState: GetState) {
-    const { tables, queries } = getState().sqlLab;
+    const { tables, queries, databases } = getState().sqlLab;
+    const databaseWasRemoved =
+      queryEditor.dbId !== undefined && !databases[queryEditor.dbId];
+    const queryEditorToMigrate = databaseWasRemoved
+      ? {
+          ...queryEditor,
+          dbId: undefined,
+          catalog: undefined,
+          schema: undefined,
+        }
+      : queryEditor;
     const localStorageTables = tables.filter(
       (table: Table) =>
         table.inLocalStorage && table.queryEditorId === queryEditor.id,
@@ -696,11 +706,16 @@ export function syncQueryEditor(
     );
     return SupersetClient.post({
       endpoint: '/tabstateview/',
-      postPayload: { queryEditor },
+      postPayload: {
+        queryEditor: {
+          ...queryEditorToMigrate,
+          dbId: queryEditorToMigrate.dbId ?? null,
+        },
+      },
     })
       .then(({ json }) => {
         const newQueryEditor = {
-          ...queryEditor,
+          ...queryEditorToMigrate,
           inLocalStorage: false,
           loaded: true,
           tabViewId: json.id.toString(),

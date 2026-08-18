@@ -1993,6 +1993,7 @@ describe('async actions', () => {
           sqlLab: {
             queries,
             tables,
+            databases: { 1: {} },
           },
         });
         const expectedActions = [
@@ -2038,6 +2039,54 @@ describe('async actions', () => {
               fetchMock.callHistory.calls(updateTableSchemaEndpoint),
             ).toHaveLength(2);
           });
+      });
+
+      test('clears a deleted database before migrating the tab state', async () => {
+        expect.assertions(4);
+
+        const oldQueryEditor = {
+          ...queryEditor,
+          dbId: 99,
+          catalog: 'deleted_catalog',
+          schema: 'deleted_schema',
+          inLocalStorage: true,
+        };
+        const store = mockStore({
+          sqlLab: {
+            queries: [],
+            tables: [],
+            databases: { 1: {} },
+          },
+        });
+
+        await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+
+        const call = fetchMock.callHistory.calls(updateTabStateEndpoint)[0];
+        const formData = call.options.body as FormData;
+        const persistedQueryEditor = JSON.parse(
+          formData.get('queryEditor') as string,
+        );
+        expect(persistedQueryEditor).toMatchObject({
+          dbId: null,
+          sql: oldQueryEditor.sql,
+        });
+        expect(persistedQueryEditor).not.toHaveProperty('catalog');
+        expect(persistedQueryEditor).not.toHaveProperty('schema');
+        expect(store.getActions()).toEqual([
+          {
+            type: actions.MIGRATE_QUERY_EDITOR,
+            oldQueryEditor,
+            newQueryEditor: {
+              ...oldQueryEditor,
+              dbId: undefined,
+              catalog: undefined,
+              schema: undefined,
+              tabViewId: '1',
+              inLocalStorage: false,
+              loaded: true,
+            },
+          },
+        ]);
       });
     });
   });
