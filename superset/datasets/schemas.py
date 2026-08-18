@@ -142,7 +142,7 @@ class DatasetFiltersPutSchema(Schema):
     description = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
     filter_name = fields.String(required=True, validate=Length(1, 255))
-    verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name = fields.String(allow_none=True, validate=Length(max=1024))
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 

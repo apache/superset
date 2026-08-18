@@ -145,6 +145,22 @@ def test_dataset_metrics_put_schema_handles_malformed_currency() -> None:
     assert result["currency"] == {}
 
 
+def test_dataset_filters_put_schema_rejects_oversized_verbose_name() -> None:
+    from superset.datasets.schemas import DatasetFiltersPutSchema
+
+    schema = DatasetFiltersPutSchema()
+    base = {"filter_name": "active", "expression": "status = 1"}
+
+    assert schema.load({**base, "verbose_name": None})["verbose_name"] is None
+    assert schema.load({**base, "verbose_name": ""})["verbose_name"] == ""
+    assert (
+        schema.load({**base, "verbose_name": "x" * 1024})["verbose_name"] == "x" * 1024
+    )
+
+    with pytest.raises(ValidationError):
+        schema.load({**base, "verbose_name": "x" * 1025})
+
+
 def test_import_v1_metric_schema_parses_currency_string() -> None:
     """Test that ImportV1MetricSchema parses string currency payloads."""
     from superset.datasets.schemas import ImportV1MetricSchema
