@@ -61,7 +61,11 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
-from superset.utils.i18n import translate, translate_many
+from superset.utils.i18n import (
+    is_asset_translation_enabled,
+    translate,
+    translate_many,
+)
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -346,12 +350,14 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             positions = json.loads(positions)
         # Resolve every chart name in one shot; the per-slice ``localized_name``
         # lookups below then read from the request memo instead of hitting the
-        # translation hook once per chart.
-        translate_many(
-            (slc.slice_name for slc in self.slices),
-            model_name="Slice",
-            field_name="slice_name",
-        )
+        # translation hook once per chart. Gated so a disabled deployment does
+        # not pay for the extra pass over the slices.
+        if is_asset_translation_enabled():
+            translate_many(
+                (slc.slice_name for slc in self.slices),
+                model_name="Slice",
+                field_name="slice_name",
+            )
         return {
             "id": self.id,
             "metadata": self.params_dict,

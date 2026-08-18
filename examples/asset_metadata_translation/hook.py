@@ -69,7 +69,7 @@ def translation_batch_hook(
     default_texts: Sequence[str],
     locale: str,
     **kwargs: object,
-) -> dict[str, str | None]:
+) -> dict[str, str]:
     """Look up many stored translations in one query.
 
     The batch counterpart to :func:`translation_hook`: Superset passes every
@@ -94,7 +94,7 @@ def translation_batch_hook(
             )
             .filter(
                 AssetTranslation.language_code == locale,
-                AssetTranslation.default_text.in_(list(default_texts)),
+                AssetTranslation.default_text.in_(default_texts),
                 AssetTranslation.model_name == kwargs.get("model_name", ""),
                 AssetTranslation.field_name == kwargs.get("field_name", ""),
             )

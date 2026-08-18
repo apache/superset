@@ -273,6 +273,18 @@ describe('ChartList', () => {
 
     expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
   });
+
+  test('renders the localized chart name, falling back to slice_name', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    // The chart with a translation shows it instead of the canonical name.
+    expect(await screen.findByText('Graphique test 2')).toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+
+    // Charts without one keep showing slice_name.
+    expect(screen.getByText('Test Chart 0')).toBeInTheDocument();
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
