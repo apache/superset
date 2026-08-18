@@ -580,3 +580,15 @@ test('formatForecastTooltipSeries should show anomaly marker without observation
     }),
   ).toEqual(['<img>abc', '⚠ anomaly']);
 });
+
+test('formatForecastTooltipSeries should not show anomaly marker for a non-finite anomaly value', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      observation: 10,
+      anomaly: NaN,
+      formatter,
+    }),
+  ).toEqual(['<img>abc', '10']);
+});

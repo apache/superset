@@ -468,3 +468,36 @@ def test_detect_anomalies_prophet_tz_aware():
 def test_parse_seasonality_non_int_string():
     """Cover the except branch: non-numeric value passes through unchanged."""
     assert _parse_seasonality("fourier_order") == "fourier_order"
+
+
+def test_anomaly_detection_prophet_non_temporal_index():
+    """Prophet method with a non-datetime index raises a clean error."""
+    df = pd.DataFrame({DTTM_ALIAS: ["a", "b", "c"], "metric": [1.0, 2.0, 3.0]})
+
+    with pytest.raises(InvalidPostProcessingError, match="temporal"):
+        anomaly_detection(df=df, method="prophet", confidence_interval=0.8)
+
+
+def test_detect_anomalies_prophet_fit_failure():
+    """A Prophet fit/predict failure surfaces as InvalidPostProcessingError."""
+    from superset.utils.pandas_postprocessing.anomaly import _detect_anomalies_prophet
+
+    dates = pd.date_range("2020-01-01", periods=10, freq="D")
+    df = pd.DataFrame({DTTM_ALIAS: dates, "metric": [1.0] * 10})
+
+    mock_model = MagicMock()
+    mock_model.fit.side_effect = ValueError("not enough data")
+    mock_prophet_module = MagicMock()
+    mock_prophet_module.Prophet = MagicMock(return_value=mock_model)
+
+    with patch.dict("sys.modules", {"prophet": mock_prophet_module}):
+        with pytest.raises(InvalidPostProcessingError, match="not enough data"):
+            _detect_anomalies_prophet(
+                df=df,
+                column="metric",
+                index=DTTM_ALIAS,
+                confidence_interval=0.8,
+                yearly_seasonality=False,
+                weekly_seasonality=False,
+                daily_seasonality=False,
+            )

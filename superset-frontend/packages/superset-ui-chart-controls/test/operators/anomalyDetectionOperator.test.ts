@@ -205,6 +205,38 @@ test('should skip anomalyDetectionOperator for prophet without temporal column',
   ).toEqual(undefined);
 });
 
+test('should resolve the temporal indicator from an adhoc x-axis column for prophet', () => {
+  expect(
+    anomalyDetectionOperator(
+      {
+        ...formData,
+        granularity_sqla: undefined,
+        time_grain_sqla: undefined,
+        x_axis: {
+          label: 'ds',
+          expressionType: 'SQL',
+          sqlExpression: 'ds',
+          timeGrain: 'P1M',
+        },
+        anomalyDetectionEnabled: true,
+        anomalyDetectionMethod: 'prophet',
+        anomalyDetectionConfidenceInterval: '0.8',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'anomaly_detection',
+    options: {
+      method: 'prophet',
+      index: 'ds',
+      confidence_interval: 0.8,
+      yearly_seasonality: undefined,
+      weekly_seasonality: undefined,
+      daily_seasonality: undefined,
+    },
+  });
+});
+
 test('should use default method zscore when anomalyDetectionMethod is not set', () => {
   expect(
     anomalyDetectionOperator(

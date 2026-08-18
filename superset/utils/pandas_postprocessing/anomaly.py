@@ -128,9 +128,14 @@ def _detect_anomalies_prophet(
         weekly_seasonality=weekly_seasonality,
         daily_seasonality=daily_seasonality,
     )
-    model.fit(fit_df)
+    try:
+        model.fit(fit_df)
+        forecast = model.predict(fit_df[["ds"]])
+    except Exception as ex:  # noqa: BLE001
+        raise InvalidPostProcessingError(
+            _("Unable to fit Prophet model: %(error)s", error=str(ex))
+        ) from ex
 
-    forecast = model.predict(fit_df[["ds"]])
     is_anomaly = (fit_df["y"].values < forecast["yhat_lower"].values) | (
         fit_df["y"].values > forecast["yhat_upper"].values
     )
@@ -185,6 +190,10 @@ def _validate_anomaly_inputs(
             )
     if index not in df.columns:
         raise InvalidPostProcessingError(_("DataFrame must include temporal column"))
+    if method == "prophet" and not pd.api.types.is_datetime64_any_dtype(df[index]):
+        raise InvalidPostProcessingError(
+            _("Prophet method requires a temporal index column")
+        )
     if len(df.columns) < 2:
         raise InvalidPostProcessingError(
             _("DataFrame must include at least one series")
@@ -208,10 +217,12 @@ def anomaly_detection(
     suffixed with `__anomaly` containing the original value where an anomaly
     is detected, and NaN elsewhere.
 
-    When forecast columns are present (from Prophet post-processing), anomaly
-    detection automatically runs on the forecast prediction (__yhat) columns
-    and skips the original data columns (which contain NaN for future periods).
-    Confidence bound columns (__yhat_lower, __yhat_upper) are always skipped.
+    When a forecast prediction (__yhat) column is present for a series (from
+    Prophet post-processing), anomaly detection automatically runs on that
+    forecast column instead, and skips the raw data column if it has any
+    missing values (as it typically will for future periods the forecast
+    covers but the raw data does not). Confidence bound columns
+    (__yhat_lower, __yhat_upper) are always skipped.
 
     :param df: DataFrame containing all-numeric data (temporal column ignored)
     :param method: Detection algorithm - 'zscore' for Z-score based detection,
