@@ -1206,7 +1206,7 @@ def _query_has_novel_sql(query: Any, allowed: set[str]) -> bool:
     positive (403) rather than a bypass.  This is an acceptable trade-off:
     such expressions in adhoc filters are rare, and the behavior fails closed.
     """
-    extras = query.extras or {}
+    extras = getattr(query, "extras", None) or {}
     for param in ("where", "having"):
         composed = extras.get(param, "")
         if composed and composed not in allowed:
@@ -1214,7 +1214,7 @@ def _query_has_novel_sql(query: Any, allowed: set[str]) -> bool:
                 if expr not in allowed:
                     return True
 
-    for flt in query.filter or []:
+    for flt in getattr(query, "filter", None) or []:
         if isinstance(flt, dict):
             col = flt.get("col")
             if isinstance(col, dict) and col.get("sqlExpression"):
