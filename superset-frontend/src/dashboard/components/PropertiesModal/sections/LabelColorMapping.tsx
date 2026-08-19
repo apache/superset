@@ -22,8 +22,32 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { ColorPicker } from 'antd';
 
+// Strict typing to satisfy the tsc compiler
+interface ThemeProps {
+  theme: {
+    gridUnit?: number;
+    borderRadius?: number;
+    colors?: {
+      grayscale?: {
+        light4?: string;
+        light2?: string;
+        light1?: string;
+        dark1?: string;
+        base?: string;
+      };
+      primary?: {
+        base?: string;
+        dark1?: string;
+      };
+      error?: {
+        base?: string;
+      };
+    };
+  };
+}
+
 const Container = styled.div`
-  ${({ theme }) => `
+  ${({ theme }: ThemeProps) => `
     margin-bottom: ${(theme?.gridUnit || 4) * 4}px;
     padding: ${(theme?.gridUnit || 4) * 4}px;
     background-color: ${theme?.colors?.grayscale?.light4};
@@ -32,7 +56,7 @@ const Container = styled.div`
 `;
 
 const HeaderRow = styled.div`
-  ${({ theme }) => `
+  ${({ theme }: ThemeProps) => `
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -41,7 +65,7 @@ const HeaderRow = styled.div`
 `;
 
 const Row = styled.div`
-  ${({ theme }) => `
+  ${({ theme }: ThemeProps) => `
     display: flex;
     align-items: center;
     margin-bottom: ${(theme?.gridUnit || 4) * 2}px;
@@ -56,7 +80,7 @@ const InputGroup = styled.div`
 `;
 
 const StyledInput = styled.input`
-  ${({ theme }) => `
+  ${({ theme }: ThemeProps) => `
     flex: 1;
     width: 100%;
     height: 32px;
@@ -73,7 +97,7 @@ const StyledInput = styled.input`
 `;
 
 const ColorPickerWrapper = styled.div`
-  ${({ theme }) => `
+  ${({ theme }: ThemeProps) => `
     display: flex;
     align-items: center;
 
@@ -91,7 +115,7 @@ const ColorPickerWrapper = styled.div`
 `;
 
 const ActionButton = styled.button`
-  ${({ theme }) => `
+  ${({ theme }: ThemeProps) => `
     background: transparent;
     border: none;
     color: ${theme?.colors?.grayscale?.base};
@@ -107,7 +131,7 @@ const ActionButton = styled.button`
 `;
 
 const AddMoreLink = styled.div`
-  ${({ theme }) => `
+  ${({ theme }: ThemeProps) => `
     color: ${theme?.colors?.primary?.dark1};
     font-size: 14px;
     font-weight: bold;
@@ -236,7 +260,7 @@ const LabelColorMapping = ({
       <HeaderRow>
         <div>
           <h4
-            css={(theme: any) => ({
+            css={(theme: ThemeProps['theme']) => ({
               marginBottom: theme?.gridUnit || 4,
               marginTop: 0,
             })}
@@ -244,7 +268,7 @@ const LabelColorMapping = ({
             {t('Label Colors')}
           </h4>
           <p
-            css={(theme: any) => ({
+            css={(theme: ThemeProps['theme']) => ({
               margin: 0,
               fontSize: 12,
               color: theme?.colors?.grayscale?.base,
@@ -259,7 +283,7 @@ const LabelColorMapping = ({
 
       {rows.length === 0 && (
         <p
-          css={(theme: any) => ({
+          css={(theme: ThemeProps['theme']) => ({
             fontStyle: 'italic',
             color: theme?.colors?.grayscale?.light1,
           })}
