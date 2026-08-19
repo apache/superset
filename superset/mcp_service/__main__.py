@@ -165,7 +165,22 @@ def main() -> None:
         if transport == "streamable-http":
             host = os.environ.get("FASTMCP_HOST", "127.0.0.1")
             port = int(os.environ.get("FASTMCP_PORT", "5008"))
-            mcp.run(transport=transport, host=host, port=port, stateless_http=True)
+
+            # See MCP_STATELESS_HTTP's docstring in mcp_config.py -- stateless
+            # mode races a tool's progress notifications against the
+            # transport teardown that follows its HTTP request.
+            from superset.mcp_service.flask_singleton import get_flask_app
+            from superset.mcp_service.mcp_config import MCP_STATELESS_HTTP
+
+            stateless_http = get_flask_app().config.get(
+                "MCP_STATELESS_HTTP", MCP_STATELESS_HTTP
+            )
+            mcp.run(
+                transport=transport,
+                host=host,
+                port=port,
+                stateless_http=stateless_http,
+            )
         else:
             mcp.run(transport=transport)
 

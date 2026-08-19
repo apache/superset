@@ -32,6 +32,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
@@ -47,6 +48,7 @@ from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
+    ChartQueryResult,
     DataColumn,
     GetChartDataRequest,
     PerformanceMetadata,
@@ -112,12 +114,14 @@ _MAX_RECOMMENDATIONS = 4
 
 def _coerce_row_limit(value: Any, default: int) -> int:
     """Coerce a row_limit (which may arrive as a str from chart.params) to int,
-    falling back to ``default`` when it is missing or non-numeric — downstream
-    apply_max_row_limit compares it against an int."""
+    falling back to ``default`` when it is missing, non-numeric, or non-positive.
+    A non-positive limit would otherwise flow through apply_max_row_limit as-is
+    and emit ``LIMIT -1`` (unbounded on some engines, an error on others)."""
     try:
-        return int(value)
+        coerced = int(value)
     except (TypeError, ValueError):
         return default
+    return coerced if coerced > 0 else default
 
 
 def _recommend_visualizations(
@@ -264,6 +268,12 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
         field_path=("data",),
         excluded_field_names=frozenset(),
     )
+    for query_index, query_result in enumerate(payload.get("query_results") or []):
+        query_result["data"] = sanitize_for_llm_context(
+            query_result.get("data", []),
+            field_path=("query_results", str(query_index), "data"),
+            excluded_field_names=frozenset(),
+        )
     payload["columns"] = [
         {
             **column,
@@ -277,6 +287,29 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
     ]
 
     return ChartData.model_validate(payload)
+
+
+def _build_query_results(
+    query_results: list[dict[str, Any]], limit: int | None
+) -> list[ChartQueryResult] | None:
+    """Preserve every result when a chart executes more than one query."""
+    if len(query_results) <= 1:
+        return None
+
+    results = []
+    for index, query_result in enumerate(query_results):
+        data = query_result.get("data", [])
+        returned_data = data[:limit] if limit else data
+        results.append(
+            ChartQueryResult(
+                query_index=index,
+                columns=query_result.get("colnames", []),
+                data=returned_data,
+                row_count=len(returned_data),
+                total_rows=query_result.get("rowcount"),
+            )
+        )
+    return results
 
 
 @tool(
@@ -335,6 +368,13 @@ async def get_chart_data(  # noqa: C901
 
         # Handle unsaved chart (form_data_key only, no identifier)
         if not request.identifier and request.form_data_key:
+            # The unsaved-chart cache is not dashboard-scoped, so guests can't
+            # use it.
+            if guest_scope.is_guest_read():
+                return ChartError(
+                    error="No accessible chart found for this request.",
+                    error_type="NotFound",
+                )
             with event_logger.log_context(
                 action="mcp.get_chart_data.unsaved_chart_from_cache"
             ):
@@ -344,6 +384,10 @@ async def get_chart_data(  # noqa: C901
                 )
                 cached_form_data = get_cached_form_data(request.form_data_key)
                 if not cached_form_data:
+                    logger.warning(
+                        "get_chart_data: no cached form_data for form_data_key=%s",
+                        request.form_data_key,
+                    )
                     return ChartError(
                         error="No cached chart data found for form_data_key. "
                         "The cache may have expired.",
@@ -352,11 +396,22 @@ async def get_chart_data(  # noqa: C901
                 try:
                     cached_form_data_dict = utils_json.loads(cached_form_data)
                 except (TypeError, ValueError) as e:
+                    logger.warning(
+                        "get_chart_data: failed to parse cached form_data "
+                        "for form_data_key=%s: %s",
+                        request.form_data_key,
+                        e,
+                    )
                     return ChartError(
                         error=f"Failed to parse cached form_data: {e}",
                         error_type="ParseError",
                     )
                 if not isinstance(cached_form_data_dict, dict):
+                    logger.warning(
+                        "get_chart_data: cached form_data is not a JSON object "
+                        "for form_data_key=%s",
+                        request.form_data_key,
+                    )
                     return ChartError(
                         error="Cached form_data is not a valid JSON object.",
                         error_type="ParseError",
@@ -383,6 +438,7 @@ async def get_chart_data(  # noqa: C901
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
             await ctx.debug("Looking up chart: identifier=%s" % (request.identifier,))
             if request.identifier is None:
+                logger.warning("get_chart_data: called without a chart identifier")
                 return ChartError(
                     error="Chart identifier is required",
                     error_type="ValidationError",
@@ -395,6 +451,9 @@ async def get_chart_data(  # noqa: C901
 
         if not chart:
             await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
+            logger.warning(
+                "get_chart_data: chart not found: identifier=%s", request.identifier
+            )
             safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
             return ChartError(
                 error=(
@@ -414,23 +473,30 @@ async def get_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
 
-        # Skip the dataset RBAC pre-check for guests (see guest_scope.is_guest_read).
-        if not guest_scope.is_guest_read():
-            validation_result = validate_chart_dataset(chart, check_access=True)
-            if not validation_result.is_valid:
-                await ctx.warning(
-                    "Chart found but dataset is not accessible: %s"
-                    % (validation_result.error,)
-                )
-                return ChartError(
-                    error=validation_result.error
-                    or "Chart's dataset is not accessible. "
-                    "Dataset may have been deleted.",
-                    error_type="DatasetNotAccessible",
-                )
-            # Log any warnings (e.g., virtual dataset warnings)
-            for warning in validation_result.warnings:
-                await ctx.warning("Dataset warning: %s" % (warning,))
+        # Guests skip the RBAC check (authorize_query covers it) but keep the
+        # existence check, so a deleted dataset still returns
+        # DatasetNotAccessible.
+        validation_result = validate_chart_dataset(
+            chart.datasource_id, check_access=not guest_scope.is_guest_read()
+        )
+        if not validation_result.is_valid:
+            await ctx.warning(
+                "Chart found but dataset is not accessible: %s"
+                % (validation_result.error,)
+            )
+            logger.warning(
+                "get_chart_data: dataset not accessible for chart_id=%s: %s",
+                chart.id,
+                validation_result.error,
+            )
+            return ChartError(
+                error=validation_result.error
+                or "Chart's dataset is not accessible. Dataset may have been deleted.",
+                error_type="DatasetNotAccessible",
+            )
+        # Log any warnings (e.g., virtual dataset warnings)
+        for warning in validation_result.warnings:
+            await ctx.warning("Dataset warning: %s" % (warning,))
 
         start_time = time.time()
 
@@ -443,8 +509,10 @@ async def get_chart_data(  # noqa: C901
             from superset.charts.schemas import ChartDataQueryContextSchema
             from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-            # Check if form_data_key is provided - use cached form_data instead
-            if request.form_data_key:
+            # Guests always read the saved chart config: the cache isn't
+            # dashboard-scoped and its payload could point the query at another
+            # datasource.
+            if request.form_data_key and not guest_scope.is_guest_read():
                 with event_logger.log_context(
                     action="mcp.get_chart_data.unsaved_state_override"
                 ):
@@ -487,11 +555,13 @@ async def get_chart_data(  # noqa: C901
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
-                # Build query context from cached form_data (unsaved state)
-                row_limit = (
+                # row_limit may arrive as a str. The trailing fallback keeps a
+                # falsy 0 resolving to ROW_LIMIT.
+                row_limit = _coerce_row_limit(
                     request.limit
                     or cached_form_data_dict.get("row_limit")
-                    or current_app.config["ROW_LIMIT"]
+                    or current_app.config["ROW_LIMIT"],
+                    current_app.config["ROW_LIMIT"],
                 )
 
                 query_context = build_query_context_from_form_data(
@@ -572,6 +642,12 @@ async def get_chart_data(  # noqa: C901
                         "Re-save the chart to populate query_context."
                         % (chart.id, viz_type)
                     )
+                    logger.warning(
+                        "get_chart_data: cannot construct fallback query for "
+                        "chart_id=%s (viz_type=%s): no metrics/columns found",
+                        chart.id,
+                        viz_type,
+                    )
                     return ChartError(
                         error=(
                             f"Chart {chart.id} (type: {viz_type}) has no "
@@ -596,8 +672,8 @@ async def get_chart_data(  # noqa: C901
                 # Apply request overrides to the saved query_context
                 query_context_json["force"] = request.force_refresh
 
-                # Apply row limit if specified (respects chart's configured limits)
-                if request.limit:
+                # Ignore a non-positive limit so it can't emit LIMIT -1 downstream.
+                if request.limit and request.limit > 0:
                     for query in query_context_json.get("queries", []):
                         query["row_limit"] = request.limit
 
@@ -631,6 +707,12 @@ async def get_chart_data(  # noqa: C901
             if guest_dashboard_id is not None:
                 guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
 
+            set_query_context_form_data(
+                query_context,
+                chart.datasource_id,
+                chart.datasource_type,
+            )
+
             # Execute the query
             with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
                 command = ChartDataCommand(query_context)
@@ -642,6 +724,12 @@ async def get_chart_data(  # noqa: C901
                 await ctx.warning(
                     "Empty query results: chart_id=%s, chart_type=%s"
                     % (chart.id, chart.viz_type)
+                )
+                logger.warning(
+                    "get_chart_data: empty query results for chart_id=%s, "
+                    "chart_type=%s",
+                    chart.id,
+                    chart.viz_type,
                 )
                 return ChartError(
                     error=f"No query results returned for chart {chart.id}. "
@@ -665,8 +753,12 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not data:
+            if not any(query.get("data") for query in result["queries"]):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart.id,))
+                logger.warning(
+                    "get_chart_data: no data in query results for chart_id=%s",
+                    chart.id,
+                )
                 return ChartError(
                     error=f"No data available for chart {chart.id}", error_type="NoData"
                 )
@@ -841,6 +933,9 @@ async def get_chart_data(  # noqa: C901
                     chart_type=chart.viz_type or "unknown",
                     columns=columns,
                     data=data[: request.limit] if request.limit else data,
+                    query_results=_build_query_results(
+                        result["queries"], request.limit
+                    ),
                     row_count=len(data),
                     total_rows=query_result.get("rowcount"),
                     summary=summary,
@@ -853,6 +948,12 @@ async def get_chart_data(  # noqa: C901
                 )
             )
 
+        except (OAuth2RedirectError, OAuth2Error):
+            # OAuth errors subclass SupersetException and would otherwise be
+            # swallowed by the generic handler below; re-raise so the
+            # dedicated outer handlers return the OAuth redirect message
+            # instead of a generic DataError.
+            raise
         except (CommandException, SupersetException, ValueError) as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
@@ -873,6 +974,10 @@ async def get_chart_data(  # noqa: C901
             "Chart data requires OAuth authentication: identifier=%s"
             % request.identifier
         )
+        logger.info(
+            "get_chart_data: OAuth authentication required for identifier=%s",
+            request.identifier,
+        )
         return ChartError(
             error=build_oauth2_redirect_message(ex),
             error_type="OAUTH2_REDIRECT",
@@ -880,6 +985,10 @@ async def get_chart_data(  # noqa: C901
     except OAuth2Error:
         await ctx.error(
             "OAuth2 configuration error: identifier=%s" % request.identifier
+        )
+        logger.warning(
+            "get_chart_data: OAuth2 configuration error for identifier=%s",
+            request.identifier,
         )
         return ChartError(
             error=OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -928,13 +1037,21 @@ async def _query_from_form_data(
             datasource_id = parts[0]
 
     if not datasource_id:
+        logger.warning(
+            "get_chart_data: cached form_data has no datasource information "
+            "(form_data_key=%s)",
+            request.form_data_key,
+        )
         return ChartError(
             error="Cached form_data does not contain datasource information.",
             error_type="InvalidFormData",
         )
 
-    row_limit = (
-        request.limit or form_data.get("row_limit") or current_app.config["ROW_LIMIT"]
+    # row_limit may arrive as a str. The trailing fallback keeps a falsy 0
+    # resolving to ROW_LIMIT.
+    row_limit = _coerce_row_limit(
+        request.limit or form_data.get("row_limit") or current_app.config["ROW_LIMIT"],
+        current_app.config["ROW_LIMIT"],
     )
     viz_type = form_data.get("viz_type", "unknown")
 
@@ -954,6 +1071,11 @@ async def _query_from_form_data(
             result = command.run()
 
         if not result or "queries" not in result or len(result["queries"]) == 0:
+            logger.warning(
+                "get_chart_data: empty query results for unsaved chart "
+                "(form_data_key=%s)",
+                request.form_data_key,
+            )
             return ChartError(
                 error="No query results returned for unsaved chart.",
                 error_type="EmptyQuery",
@@ -963,7 +1085,11 @@ async def _query_from_form_data(
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
 
-        if not data:
+        if not any(query.get("data") for query in result["queries"]):
+            logger.warning(
+                "get_chart_data: no data for unsaved chart (form_data_key=%s)",
+                request.form_data_key,
+            )
             return ChartError(
                 error="No data available for unsaved chart.",
                 error_type="NoData",
@@ -1008,6 +1134,7 @@ async def _query_from_form_data(
                 chart_type=viz_type,
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
+                query_results=_build_query_results(result["queries"], request.limit),
                 row_count=len(data),
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
@@ -1029,6 +1156,11 @@ async def _query_from_form_data(
             )
         )
 
+    except (OAuth2RedirectError, OAuth2Error):
+        # OAuth errors subclass SupersetException; re-raise so the caller's
+        # outer OAuth handlers return the redirect instead of a generic
+        # DataError.
+        raise
     except (CommandException, SupersetException, ValueError) as e:
         logger.error("Error querying unsaved chart data: %s", e)
         return ChartError(
@@ -1172,6 +1304,11 @@ def _try_xlsxwriter_fallback(
     except ImportError:
         from superset.mcp_service.chart.schemas import ChartError
 
+        logger.warning(
+            "get_chart_data: Excel export failed for chart_id=%s — "
+            "neither openpyxl nor xlsxwriter is installed",
+            chart.id,
+        )
         return ChartError(
             error="Excel export requires openpyxl or xlsxwriter package",
             error_type="ExportError",

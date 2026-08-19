@@ -844,21 +844,30 @@ def test_adjust_engine_params_fully_qualified() -> None:
     url = make_url("trino://user:pass@localhost:8080/system/default")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/default"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/new_schema"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/default"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/default"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -866,7 +875,10 @@ def test_adjust_engine_params_fully_qualified() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    )
 
 
 def test_adjust_engine_params_catalog_only() -> None:
@@ -878,21 +890,30 @@ def test_adjust_engine_params_catalog_only() -> None:
     url = make_url("trino://user:pass@localhost:8080/system")
 
     uri = TrinoEngineSpec.adjust_engine_params(url, {})[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/system/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/system/new_schema"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
         {},
         catalog="new_catalog",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog"
+    )
 
     uri = TrinoEngineSpec.adjust_engine_params(
         url,
@@ -900,7 +921,10 @@ def test_adjust_engine_params_catalog_only() -> None:
         catalog="new_catalog",
         schema="new_schema",
     )[0]
-    assert str(uri) == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    assert (
+        uri.render_as_string(hide_password=False)
+        == "trino://user:pass@localhost:8080/new_catalog/new_schema"
+    )
 
 
 @pytest.mark.parametrize(
@@ -1649,4 +1673,83 @@ def test_handle_boolean_filter() -> None:
     assert (
         str(result_computed.compile(compile_kwargs={"literal_binds": True}))
         == "(expiration = 1) = true"
+    )
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    All `auth_params` values and the OAuth2 client secret are masked, while
+    `auth_method` and other non-sensitive fields stay visible.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    config = json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {"token": "my-secret-token"},
+            "oauth2_client_info": {"id": "client-id", "secret": "my-secret"},
+        }
+    )
+
+    assert TrinoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "jwt",
+            "auth_params": {"token": "XXXXXXXXXX"},
+            "oauth2_client_info": {"id": "client-id", "secret": "XXXXXXXXXX"},
+        }
+    )
+
+
+def test_mask_encrypted_extra_jwt_in_connect_args() -> None:
+    """
+    A JWT passed via `connect_args.requests_kwargs` is masked without touching
+    the surrounding connection settings.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "my-secret-token"},
+            },
+        }
+    )
+
+    assert TrinoEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "connect_args": {
+                "protocol": "https",
+                "requests_kwargs": {"jwt": "XXXXXXXXXX"},
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Masked credentials are reused from the previous value; edited ones are kept.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    old = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "old-password"},
+        }
+    )
+    # `username` is not masked on read, so it comes back in cleartext; only the
+    # masked `password` is revealed from the previous value.
+    new = json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "XXXXXXXXXX"},
+        }
+    )
+
+    assert TrinoEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "auth_method": "basic",
+            "auth_params": {"username": "alice", "password": "old-password"},
+        }
     )
