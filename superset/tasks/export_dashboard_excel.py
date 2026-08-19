@@ -307,6 +307,13 @@ def _write_chart_sheets(
     json_body["result_type"] = ChartDataResultType.FULL
     json_body.pop("force", None)
 
+    # Guest authorization links a chart to its dashboard through
+    # ``form_data.dashboardId`` (raise_for_access); saved contexts don't carry
+    # it, so stamp it the way the browser does on interactive requests.
+    form_data = dict(json_body.get("form_data") or {})
+    form_data["dashboardId"] = dashboard_id
+    json_body["form_data"] = form_data
+
     filter_context = get_dashboard_filter_context(
         dashboard_id=dashboard_id,
         chart_id=chart.id,
