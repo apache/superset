@@ -115,8 +115,9 @@ function readPath(source: unknown, path: string): unknown {
  *
  * The fallback keeps options already authored against token names rendering,
  * rather than breaking every saved canvas over a vocabulary change. New ones
- * are taught the chart theme fields — see the `$bind` guidance in
- * `clientTools`.
+ * are taught the chart theme fields by the widget control schema — see the
+ * `$bind` guidance on `EchartsControls.echarts_options` in
+ * `superset/widgets/controls.py`.
  *
  * A function field (`getColor`) is not a value an option can carry, so it is
  * skipped rather than spliced in as one: a series is coloured by name in
