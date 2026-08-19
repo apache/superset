@@ -819,6 +819,24 @@ def test_images_mode_none_render_is_skipped(mocks: dict[str, Any]) -> None:
     assert "Export Summary" in uploaded["sheets"]
 
 
+def test_query_context_is_stamped_with_the_dashboard_id(
+    mocks: dict[str, Any],
+) -> None:
+    """Guest datasource authorization links a chart to its dashboard through
+    form_data.dashboardId (raise_for_access); the browser stamps it on every
+    interactive request and the task must do the same when replaying a saved
+    context, or every chart in a guest export fails the access check."""
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    (payload,), _ = mocks["ChartDataQueryContextSchema"].return_value.load.call_args
+    assert payload["form_data"]["dashboardId"] == 1
+
+
 def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
     mocks["ChartDataCommand"].return_value.run.return_value = {
