@@ -16,6 +16,8 @@
 # under the License.
 from unittest.mock import call, patch
 
+import pandas as pd
+import pytest
 from flask_appbuilder.security.sqla.models import User
 
 from superset.common.query_object import QueryObject
@@ -438,3 +440,47 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
         ],
         any_order=True,
     )
+
+
+def _double_value(df: pd.DataFrame, column: str) -> pd.DataFrame:
+    """Custom op that doubles a numeric column — used in tests only."""
+    df = df.copy()
+    df[column] = df[column] * 2
+    return df
+
+
+def test_exec_post_processing_extra_ops(app_context: None) -> None:
+    """EXTRA_PANDAS_POSTPROCESSING_OPS are applied and mutate the dataframe."""
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "_double_value", "options": {"column": "value"}}
+        ],
+    )
+
+    with patch.dict(
+        "superset.common.query_object.current_app.config",
+        {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_double_value]},
+    ):
+        result = query_object.exec_post_processing(df)
+
+    assert list(result["value"]) == [2, 4, 6]
+
+
+def test_exec_post_processing_unknown_op_raises(app_context: None) -> None:
+    """An operation not in builtins or EXTRA_PANDAS_POSTPROCESSING_OPS raises."""
+    from superset.exceptions import InvalidPostProcessingError
+
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "nonexistent_op"}],
+    )
+
+    with patch.dict(
+        "superset.common.query_object.current_app.config",
+        {"EXTRA_PANDAS_POSTPROCESSING_OPS": []},
+    ):
+        with pytest.raises(InvalidPostProcessingError):
+            query_object.exec_post_processing(df)
