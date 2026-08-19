@@ -13,6 +13,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   supersetbot:
     runs-on: ubuntu-26.04

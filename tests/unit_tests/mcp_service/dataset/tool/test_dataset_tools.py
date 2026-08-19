@@ -1758,22 +1758,22 @@ class TestDatasetSortableColumns:
 
     def test_dataset_sortable_columns_definition(self):
         """Test that dataset sortable columns are properly defined."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
 
-        assert SORTABLE_DATASET_COLUMNS == [
+        assert DATASET_SORTABLE_COLUMNS == [
             "id",
             "table_name",
             "schema",
             "changed_on",
+            "changed_on_delta_humanized",
             "created_on",
         ]
-        # Ensure no computed properties are included
-        assert "changed_on_delta_humanized" not in SORTABLE_DATASET_COLUMNS
-        assert "changed_by_name" not in SORTABLE_DATASET_COLUMNS
-        assert "database_name" not in SORTABLE_DATASET_COLUMNS
-        assert "uuid" not in SORTABLE_DATASET_COLUMNS
+        # Ensure unsupported computed properties are excluded
+        assert "changed_by_name" not in DATASET_SORTABLE_COLUMNS
+        assert "database_name" not in DATASET_SORTABLE_COLUMNS
+        assert "uuid" not in DATASET_SORTABLE_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
@@ -1805,17 +1805,58 @@ class TestDatasetSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            list_datasets,
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
+        from superset.mcp_service.dataset.tool.list_datasets import list_datasets
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
         assert "Sortable columns for" in list_datasets.__doc__
         assert "order_column" in list_datasets.__doc__
-        for col in SORTABLE_DATASET_COLUMNS:
+        for col in DATASET_SORTABLE_COLUMNS:
             assert col in list_datasets.__doc__
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_datasets_changed_on_delta_humanized_order_column(
+        self, mock_dataset_list, mcp_server
+    ):
+        """Regression test: order_column='changed_on_delta_humanized' is the
+        "Last modified" column name used by Superset's own REST API and list
+        views. Production chatbot calls pass it when asked to sort datasets
+        by "most recently modified" and must not be rejected. It resolves to
+        'changed_on' for the DAO, matching REST API sort behaviour (see
+        daos/datasource.py's sort_col_map and
+        models/helpers.py:changed_on_delta_humanized)."""
+        mock_dataset_list.return_value = ([], 0)
+
+        async with Client(mcp_server) as client:
+            request = ListDatasetsRequest(order_column="changed_on_delta_humanized")
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+
+            mock_dataset_list.assert_called_once()
+            call_args = mock_dataset_list.call_args[1]
+            assert call_args["order_column"] == "changed_on"
+
+            data = json.loads(result.content[0].text)
+            assert data["datasets"] == []
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_datasets_invalid_order_column_raises_tool_error(
+        self, mock_dataset_list, mcp_server
+    ):
+        """A genuinely unknown order_column must still be rejected."""
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+                await client.call_tool(
+                    "list_datasets", {"request": {"order_column": "random"}}
+                )
+            assert "Invalid order_column" in str(excinfo.value)
+        mock_dataset_list.assert_not_called()
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
@@ -1938,6 +1979,23 @@ def test_create_virtual_dataset_request_optional_fields() -> None:
     assert req.schema_name == "public"
     assert req.catalog == "main"
     assert req.description == "A virtual dataset"
+
+
+def test_create_virtual_dataset_rejects_non_aggregate_saved_metric() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="saved metrics must aggregate rows"):
+        CreateVirtualDatasetRequest(
+            database_id=1,
+            sql="SELECT needed_operators FROM staffing",
+            dataset_name="Staffing",
+            metrics=[
+                {
+                    "metric_name": "needed_operators",
+                    "expression": "needed_operators",
+                }
+            ],
+        )
 
 
 # --- Tool logic tests ---
@@ -2076,6 +2134,39 @@ async def test_create_virtual_dataset_create_failed(mcp_server: object) -> None:
     assert data["columns"] == []
     assert data["error"] is not None
     assert "Failed to create dataset" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_sql_error_is_actionable(
+    mcp_server: object,
+) -> None:
+    """Warehouse SQL errors are recoverable tool results, not adapter crashes."""
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = SupersetGenericDBErrorException(
+        "Invalid column name 'missing_value'"
+    )
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT missing_value FROM sample_events",
+                dataset_name="Test",
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+    assert "Invalid column name" in data["error"]
 
 
 @pytest.mark.asyncio
@@ -2248,7 +2339,13 @@ async def test_create_virtual_dataset_update_failure_rollback(
     if exception_to_raise == "DatasetUpdateFailedError":
         mock_update_instance.run.side_effect = DatasetUpdateFailedError()
     else:
-        mock_update_instance.run.side_effect = DatasetInvalidError()
+        from superset.commands.dataset.exceptions import (
+            DatasetColumnsExistsValidationError,
+        )
+
+        invalid_error = DatasetInvalidError()
+        invalid_error.append(DatasetColumnsExistsValidationError())
+        mock_update_instance.run.side_effect = invalid_error
     mock_update_cls = MagicMock(return_value=mock_update_instance)
 
     mock_delete_instance = MagicMock()
@@ -2295,7 +2392,11 @@ async def test_create_virtual_dataset_update_failure_rollback(
     # Verify the error response
     data = json.loads(result.content[0].text)
     assert data["id"] is None
-    assert "creation rolled back" in data["error"]
+    if exception_to_raise == "DatasetInvalidError":
+        assert "columns" in data["error"]
+        assert "already exist" in data["error"]
+    else:
+        assert "creation rolled back" in data["error"]
 
 
 @pytest.mark.asyncio

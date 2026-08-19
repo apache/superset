@@ -14,11 +14,44 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import ipaddress
 from unittest.mock import patch
 
 import pytest
 
-from superset.utils.network import is_safe_host
+from superset.utils.network import is_safe_host, is_safe_ip
+
+
+@pytest.mark.parametrize(
+    ("ip", "expected"),
+    [
+        # Public → safe
+        ("93.184.216.34", True),
+        ("8.8.8.8", True),
+        ("2606:2800:220:1:248:1893:25c8:1946", True),
+        # Loopback → unsafe
+        ("127.0.0.1", False),
+        ("::1", False),
+        # RFC-1918 private ranges → unsafe
+        ("10.0.0.1", False),
+        ("172.16.0.1", False),
+        ("192.168.0.1", False),
+        # Link-local / IMDS → unsafe
+        ("169.254.169.254", False),
+        # CGNAT (RFC 6598) → unsafe
+        ("100.100.100.200", False),
+        # Multicast → unsafe, despite ip.is_global being True for these
+        ("224.0.0.1", False),
+        ("ff02::1", False),
+        # IPv4-mapped IPv6 → unwrapped and checked against IPv4 ranges
+        ("::ffff:127.0.0.1", False),
+        ("::ffff:8.8.8.8", True),
+    ],
+)
+def test_is_safe_ip(ip: str, expected: bool) -> None:
+    """`is_safe_ip` must classify individual addresses directly, independent
+    of hostname resolution."""
+    assert is_safe_ip(ipaddress.ip_address(ip)) is expected
 
 
 @pytest.mark.parametrize(

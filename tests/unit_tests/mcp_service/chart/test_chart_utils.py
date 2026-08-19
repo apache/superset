@@ -2049,6 +2049,25 @@ class TestValidateChartDataset:
         assert result.dataset_id == 7
         assert result.dataset_name == "my_table"
         assert result.warnings == []
+        # check_access=True keeps the DatasourceFilter base filter and the RBAC check.
+        mock_find.assert_called_once_with(7, skip_base_filter=False)
+        mock_access.assert_called_once_with(dataset)
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_no_access_check_is_existence_only(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """check_access=False (embedded guests) resolves the dataset with the base
+        filter skipped and never runs the RBAC check. DatasetDAO's DatasourceFilter
+        returns nothing for a principal without datasource grants, so leaving it on
+        would turn the existence check into an access check and deny every guest."""
+        dataset = MagicMock(table_name="orders", sql=None)
+        mock_find.return_value = dataset
+        result = validate_chart_dataset(7, check_access=False)
+        assert result.is_valid
+        mock_find.assert_called_once_with(7, skip_base_filter=True)
+        mock_access.assert_not_called()
 
     @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")

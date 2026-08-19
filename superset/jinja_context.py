@@ -1272,6 +1272,34 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     raise SupersetTemplateException(exc_message)
 
 
+def guest_user_can_access_dataset(dataset: SqlaTable) -> bool:
+    """
+    Whether the current guest (embedded) user may read the given dataset.
+
+    Guest access is granted per dashboard, so the dataset must back at least
+    one chart on a dashboard the guest token covers; a ``datasets`` allowlist
+    on the token further restricts the reachable IDs.
+
+    :param dataset: a dataset resolved without the DAO base filter.
+    :returns: whether the guest user may read the dataset.
+    """
+    guest_user = security_manager.get_current_guest_user_if_guest()
+    if not guest_user:
+        return False
+
+    allowed_datasets: list[int] | None = guest_user.guest_token.get("datasets")
+    if allowed_datasets is not None and (
+        not isinstance(allowed_datasets, list) or dataset.id not in allowed_datasets
+    ):
+        return False
+
+    return any(
+        security_manager.has_guest_access(dashboard)
+        for slc in dataset.slices
+        for dashboard in slc.dashboards
+    )
+
+
 def metric_macro(
     env: Environment,
     context: dict[str, Any],
@@ -1294,13 +1322,19 @@ def metric_macro(
     if not dataset_id:
         dataset_id = get_dataset_id_from_context(metric_key)
 
-    # Embedded user access is validated at the dashboard level, so we bypass
-    # the regular DAO filter for them
+    # Embedded (guest) user access is validated at the dashboard level, so the
+    # regular DAO filter is bypassed for them and dashboard-level scope is
+    # enforced explicitly below.
     dataset = DatasetDAO.find_by_id(
         dataset_id,
         skip_base_filter=security_manager.is_guest_user(),
     )
     if not dataset:
+        raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
+
+    # With the base filter skipped, scope a guest to datasets reachable through
+    # a dashboard their token grants; reuse the not-found error for consistency.
+    if security_manager.is_guest_user() and not guest_user_can_access_dataset(dataset):
         raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
 
     metrics: dict[str, str] = {
