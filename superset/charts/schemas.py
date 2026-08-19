@@ -1012,7 +1012,15 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
-    _builtin_ops = pandas_postprocessing.__all__
+    # OPERATIONS excludes escape_separator/unescape_separator: those are
+    # internal str -> str helpers used by flatten, not DataFrame
+    # post-processing operations, so dispatching one against a DataFrame
+    # raises a confusing TypeError instead of the intended clean validation
+    # error. No field-level `validate=` here: it would run before, and thus
+    # reject, any EXTRA_PANDAS_POSTPROCESSING_OPS-registered custom
+    # operation, which `validate_operation` below is responsible for
+    # allowing.
+    _builtin_ops = pandas_postprocessing.OPERATIONS
 
     operation = fields.String(
         metadata={
