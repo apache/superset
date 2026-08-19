@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections.abc import Sequence
-from functools import partial
+from functools import partial, wraps
 from typing import Any, Callable
 
 import numpy as np
@@ -122,6 +122,13 @@ def scalar_to_sequence(val: Any) -> Sequence[str]:
 
 def validate_column_args(*argnames: str) -> Callable[..., Any]:
     def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
+        # `wraps` carries over `__name__`, `__doc__` and, crucially, sets
+        # `__wrapped__`, so `inspect.signature` reports the decorated operation's
+        # own parameters rather than the wrapper's `(df, **options)`. Without it
+        # every decorated operation looks like it accepts arbitrary keywords,
+        # which hides the signature from any caller that wants to tell a
+        # supported option from one a stored query kept past its removal.
+        @wraps(func)
         def wrapped(df: DataFrame, **options: Any) -> Any:
             if _is_multi_index_on_columns(df):
                 # MultiIndex column validate first level
