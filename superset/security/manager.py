@@ -1230,6 +1230,37 @@ def _query_has_novel_sql(query: Any, allowed: set[str]) -> bool:
     return False
 
 
+def _add_dashboard_column_expressions(
+    allowed: set[str], dashboard_id: Any, target_chart_id: int
+) -> None:
+    """
+    Add ``sqlExpression`` values from adhoc columns on every chart of the
+    given dashboard (except the target chart, which is already covered).
+
+    This allows cross-filter structured filters whose ``col`` carries the
+    source chart's custom SQL dimension to pass validation.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.models.dashboard import Dashboard
+
+    if not isinstance(dashboard_id, int):
+        return
+    dashboard = (
+        db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+    )
+    if dashboard is None:
+        return
+    for slc in dashboard.slices:
+        if slc.id == target_chart_id:
+            continue
+        params = slc.params_dict
+        for key in _STORED_COLUMN_PARAMS:
+            for col in params.get(key) or []:
+                if isinstance(col, dict) and col.get("sqlExpression"):
+                    allowed.add(col["sqlExpression"])
+
+
 def _sql_filters_modified(
     query_context: "QueryContext",
     form_data: dict[str, Any],
@@ -1247,9 +1278,16 @@ def _sql_filters_modified(
        ``sqlExpression`` (reaches ``adhoc_column_to_sqla``).
 
     The ``(1 = 0)`` empty-filter sentinel injected by required-but-empty
-    native Select filters is always allowed.
+    native Select filters is always allowed.  For vector 3, SQL expressions
+    from all charts on the requesting dashboard are allowed so that
+    cross-filters referencing a sibling chart's custom SQL dimension pass.
     """
     allowed = _collect_allowed_sql(stored_chart, stored_query_context)
+
+    # For structured filter col validation, also allow SQL expressions from
+    # sibling charts on the same dashboard (cross-filter support).
+    if dashboard_id := (form_data or {}).get("dashboardId"):
+        _add_dashboard_column_expressions(allowed, dashboard_id, stored_chart.id)
 
     if any(_query_has_novel_sql(q, allowed) for q in query_context.queries):
         return True

@@ -4029,6 +4029,50 @@ def test_sql_filters_structured_filter_stored_adhoc_col_allowed(
     assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
 
 
+def test_sql_filters_cross_filter_adhoc_col_from_sibling_chart_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Cross-filter with an adhoc SQL column from a sibling chart on the same
+    dashboard is allowed."""
+    from superset.models.dashboard import Dashboard
+
+    # Target chart (chart B) has no custom SQL columns.
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.id = 2
+    stored_chart.params_dict = {"metrics": ["count"]}
+
+    # Source chart (chart A) has the custom SQL dimension.
+    sibling_chart = mocker.MagicMock()
+    sibling_chart.id = 1
+    sibling_chart.params_dict = {
+        "columns": [
+            {"sqlExpression": "YEAR(order_date)", "label": "order_year"},
+        ],
+    }
+
+    # Dashboard contains both charts.
+    dashboard = mocker.MagicMock(spec=Dashboard)
+    dashboard.slices = [sibling_chart, stored_chart]
+
+    mocker.patch("superset.db.session.query")
+    db_query = mocker.patch("superset.db.session.query").return_value
+    db_query.filter.return_value.one_or_none.return_value = dashboard
+
+    adhoc_col: Any = {
+        "sqlExpression": "YEAR(order_date)",
+        "label": "order_year",
+    }
+    query = QueryObject(
+        filters=[{"col": adhoc_col, "op": "==", "val": "2024"}],
+    )
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 2, "dashboardId": 10}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
 def test_sql_filters_structured_filter_string_col_allowed(
     mocker: MockerFixture,
 ) -> None:
