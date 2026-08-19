@@ -2239,3 +2239,79 @@ def test_import_restore_blocked_by_active_twin_at_incoming_identity(
     assert "another active dataset" in str(excinfo.value)
     # Check-before-mutate: the failed import leaves the row soft-deleted.
     assert existing.deleted_at is not None
+
+
+def test_peer_validating_connection_blocks_rebound_peer() -> None:
+    """
+    The import fetch validates the connected peer address, so a hostname that
+    passes ``is_safe_host`` and then re-resolves to an internal address (DNS
+    rebinding) is rejected before any request bytes are sent.
+    """
+    from http.client import HTTPConnection
+    from unittest.mock import MagicMock, patch
+
+    from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
+    from superset.commands.dataset.importers.v1.utils import (
+        _PeerValidatingHTTPConnection,
+    )
+
+    sock = MagicMock()
+    sock.getpeername.return_value = ("169.254.169.254", 80)
+
+    with patch.object(
+        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
+    ):
+        conn = _PeerValidatingHTTPConnection("rebinder.example.com")
+        with pytest.raises(DatasetForbiddenDataURI):
+            conn.connect()
+
+
+def test_load_data_disables_proxy_when_internal_urls_disallowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``load_data`` builds its opener with an explicit no-proxy handler when
+    internal data URLs are disallowed, so a configured HTTP(S) proxy can't
+    intercept the connection the peer check validates.
+    """
+    from superset.commands.dataset.importers.v1.utils import load_data
+
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+
+    mocker.patch("superset.commands.dataset.importers.v1.utils.validate_data_uri")
+    mocker.patch(
+        "superset.examples.helpers.normalize_example_data_url",
+        side_effect=lambda uri: uri,
+    )
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils._convert_temporal_columns"
+    )
+    mocker.patch("superset.commands.dataset.importers.v1.utils.db.session.connection")
+    mock_df = Mock()
+    mock_df.keys.return_value = []
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.pd.read_csv",
+        return_value=mock_df,
+    )
+    mock_opener = Mock()
+    mock_opener.open.return_value = io.BytesIO(b"")
+    mock_build_opener = mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.request.build_opener",
+        return_value=mock_opener,
+    )
+
+    dataset = Mock(spec=SqlaTable)
+    dataset.columns = []
+    dataset.table_name = "my_table"
+    dataset.schema = None
+
+    database = Mock(spec=Database)
+    database.sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+
+    load_data("https://example.org/data.csv", dataset, database)
+
+    handlers = mock_build_opener.call_args.args
+    assert any(
+        isinstance(handler, request.ProxyHandler) and not handler.proxies  # type: ignore[attr-defined]
+        for handler in handlers
+    )
