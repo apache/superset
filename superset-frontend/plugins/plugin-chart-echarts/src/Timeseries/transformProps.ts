@@ -518,13 +518,15 @@ export default function transformProps(
         perGroupTotalStackedValues[group] = [];
       }
       const groupTotals = perGroupTotalStackedValues[group];
-      (entry.data as [any, number][] | undefined)?.forEach((datum, dataIndex) => {
-        if (entry.id && legendState && !legendState[entry.id]) return;
-        const val = isHorizontal ? datum[0] : datum[1];
-        if (typeof val === 'number') {
-          groupTotals[dataIndex] = (groupTotals[dataIndex] ?? 0) + val;
-        }
-      });
+      (entry.data as [any, number][] | undefined)?.forEach(
+        (datum, dataIndex) => {
+          if (entry.id && legendState && !legendState[entry.id]) return;
+          const val = isHorizontal ? datum[0] : datum[1];
+          if (typeof val === 'number') {
+            groupTotals[dataIndex] = (groupTotals[dataIndex] ?? 0) + val;
+          }
+        },
+      );
     });
   }
 
