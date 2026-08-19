@@ -20,9 +20,10 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import { ColorPicker } from 'antd';
 
 const Container = styled.div`
-  ${({ theme }: any) => `
+  ${({ theme }) => `
     margin-bottom: ${(theme?.gridUnit || 4) * 4}px;
     padding: ${(theme?.gridUnit || 4) * 4}px;
     background-color: ${theme?.colors?.grayscale?.light4};
@@ -31,7 +32,7 @@ const Container = styled.div`
 `;
 
 const HeaderRow = styled.div`
-  ${({ theme }: any) => `
+  ${({ theme }) => `
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -40,7 +41,7 @@ const HeaderRow = styled.div`
 `;
 
 const Row = styled.div`
-  ${({ theme }: any) => `
+  ${({ theme }) => `
     display: flex;
     align-items: center;
     margin-bottom: ${(theme?.gridUnit || 4) * 2}px;
@@ -55,7 +56,7 @@ const InputGroup = styled.div`
 `;
 
 const StyledInput = styled.input`
-  ${({ theme }: any) => `
+  ${({ theme }) => `
     flex: 1;
     width: 100%;
     height: 32px;
@@ -71,29 +72,26 @@ const StyledInput = styled.input`
   `}
 `;
 
-const StyledColorInput = styled.input`
-  ${({ theme }: any) => `
-    cursor: pointer;
-    height: 32px;
-    width: 40px;
-    padding: 0;
-    border: 1px solid ${theme?.colors?.grayscale?.light2};
-    border-radius: 0 ${theme?.borderRadius || 4}px ${theme?.borderRadius || 4}px 0;
-    outline: none;
-    background: none;
+const ColorPickerWrapper = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
 
-    &::-webkit-color-swatch-wrapper {
-      padding: 2px;
-    }
-    &::-webkit-color-swatch {
-      border: none;
-      border-radius: 2px;
+    .ant-color-picker-trigger {
+      height: 32px;
+      min-width: 40px;
+      border-radius: 0 ${theme?.borderRadius || 4}px ${theme?.borderRadius || 4}px 0;
+      border: 1px solid ${theme?.colors?.grayscale?.light2};
+      border-left: none;
+      box-shadow: none;
+      padding: 0 4px;
+      justify-content: center;
     }
   `}
 `;
 
 const ActionButton = styled.button`
-  ${({ theme }: any) => `
+  ${({ theme }) => `
     background: transparent;
     border: none;
     color: ${theme?.colors?.grayscale?.base};
@@ -109,7 +107,7 @@ const ActionButton = styled.button`
 `;
 
 const AddMoreLink = styled.div`
-  ${({ theme }: any) => `
+  ${({ theme }) => `
     color: ${theme?.colors?.primary?.dark1};
     font-size: 14px;
     font-weight: bold;
@@ -299,13 +297,14 @@ const LabelColorMapping = ({
                   />
                 ))}
               </datalist>
-              <StyledColorInput
-                type="color"
-                value={row.color}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleUpdateRow(row.id, row.label, e.target.value)
-                }
-              />
+              <ColorPickerWrapper>
+                <ColorPicker
+                  value={row.color}
+                  onChange={(_, hexString) =>
+                    handleUpdateRow(row.id, row.label, hexString)
+                  }
+                />
+              </ColorPickerWrapper>
             </InputGroup>
 
             <ActionButton
