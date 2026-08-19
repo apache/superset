@@ -16,37 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from "react";
+import React from 'react';
 import {
   act,
   render,
   screen,
   userEvent,
   waitFor,
-} from "spec/helpers/testing-library";
-import { Menu, MenuItem } from "@superset-ui/core/components/Menu";
+} from 'spec/helpers/testing-library';
+import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
   FeatureFlag,
   getClientErrorObject,
   isFeatureEnabled,
   SupersetClient,
-} from "@superset-ui/core";
-import { useDownloadMenuItems } from ".";
+} from '@superset-ui/core';
+import { useDownloadMenuItems } from '.';
 
 const mockAddSuccessToast = jest.fn();
 const mockAddDangerToast = jest.fn();
+const mockAddInfoToast = jest.fn();
 
-jest.mock("src/components/MessageToasts/withToasts", () => ({
+let mockIsEmbedded = false;
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: () => mockIsEmbedded,
+}));
+
+jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: React.ComponentType) => Component,
   useToasts: () => ({
     addSuccessToast: mockAddSuccessToast,
     addDangerToast: mockAddDangerToast,
+    addInfoToast: mockAddInfoToast,
   }),
 }));
 
-jest.mock("@superset-ui/core", () => ({
-  ...jest.requireActual("@superset-ui/core"),
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn().mockReturnValue(false),
   getClientErrorObject: jest.fn().mockResolvedValue({}),
   SupersetClient: {
@@ -59,13 +66,13 @@ const mockSupersetClient = SupersetClient as jest.Mocked<typeof SupersetClient>;
 const mockGetClientErrorObject = getClientErrorObject as jest.Mock;
 
 const createProps = () => ({
-  pdfMenuItemTitle: "Export to PDF",
-  imageMenuItemTitle: "Download as Image",
-  dashboardTitle: "Test Dashboard",
+  pdfMenuItemTitle: 'Export to PDF',
+  imageMenuItemTitle: 'Download as Image',
+  dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
   dashboardId: 123,
-  title: "Download",
-  submenuKey: "download",
+  title: 'Download',
+  submenuKey: 'download',
   userCanExport: true,
 });
 
@@ -94,12 +101,13 @@ const originalLocation = window.location;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockIsEmbedded = false;
   // Reset the implementation each test: clearAllMocks resets call history but
   // not mockReturnValue, so an override in one test would otherwise leak.
   (isFeatureEnabled as jest.Mock).mockReturnValue(false);
   // @ts-ignore
   delete window.location;
-  window.location = { href: "" } as Location;
+  window.location = { href: '' } as Location;
 });
 
 // "Export Images to Excel" is gated on the webdriver screenshot feature flags.
@@ -113,57 +121,58 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-test("Should render all menu items", () => {
+test('Should render all menu items', () => {
   enableWebDriverScreenshot();
   render(<MenuWrapper />, {
     useRedux: true,
   });
 
   // Screenshot options
-  expect(screen.getByText("Export to PDF")).toBeInTheDocument();
-  expect(screen.getByText("Download as Image")).toBeInTheDocument();
+  expect(screen.getByText('Export to PDF')).toBeInTheDocument();
+  expect(screen.getByText('Download as Image')).toBeInTheDocument();
 
   // Export options
-  expect(screen.getByText("Export Data to Excel")).toBeInTheDocument();
-  expect(screen.getByText("Export Images to Excel")).toBeInTheDocument();
-  expect(screen.getByText("Export YAML")).toBeInTheDocument();
-  expect(screen.getByText("Export as Example")).toBeInTheDocument();
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.getByText('Export Images to Excel')).toBeInTheDocument();
+  expect(screen.getByText('Export YAML')).toBeInTheDocument();
+  expect(screen.getByText('Export as Example')).toBeInTheDocument();
 });
 
-test("Export Images to Excel is hidden when the webdriver is not enabled", () => {
+test('Export Images to Excel is hidden when the webdriver is not enabled', () => {
   // Default: webdriver screenshot flags off. Image export needs the webdriver,
   // so only the data export is offered.
   render(<MenuWrapper />, { useRedux: true });
 
-  expect(screen.getByText("Export Data to Excel")).toBeInTheDocument();
-  expect(screen.queryByText("Export Images to Excel")).not.toBeInTheDocument();
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
 });
 
-test("Excel export items are hidden when userCanExport is false", () => {
+test('Excel export items are hidden when userCanExport is false', () => {
   render(<MenuWrapperWithProps userCanExport={false} />, { useRedux: true });
 
-  expect(screen.queryByText("Export Data to Excel")).not.toBeInTheDocument();
-  expect(screen.queryByText("Export Images to Excel")).not.toBeInTheDocument();
+  expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
   // YAML export is not gated and remains visible
-  expect(screen.getByText("Export YAML")).toBeInTheDocument();
+  expect(screen.getByText('Export YAML')).toBeInTheDocument();
 });
 
 test('Export Data to Excel posts mode "data" and shows a pending toast', async () => {
   mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: "abc" },
+    json: { job_id: 'abc' },
   } as never);
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export Data to Excel"));
+  await userEvent.click(screen.getByText('Export Data to Excel'));
 
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
-      endpoint: "/api/v1/dashboard/123/export_xlsx/",
-      jsonPayload: { active_data_mask: {}, mode: "data" },
+      endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      jsonPayload: { active_data_mask: {}, mode: 'data' },
     });
-    expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      "Your export is being prepared. You'll receive an email when it's ready.",
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      "Your export is being generated. You'll receive an email when it's ready.",
+      { noDuplicate: true },
     );
   });
 });
@@ -171,46 +180,48 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
 test('Export Images to Excel posts mode "images" and shows a pending toast', async () => {
   enableWebDriverScreenshot();
   mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: "abc" },
+    json: { job_id: 'abc' },
   } as never);
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export Images to Excel"));
+  await userEvent.click(screen.getByText('Export Images to Excel'));
 
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
-      endpoint: "/api/v1/dashboard/123/export_xlsx/",
-      jsonPayload: { active_data_mask: {}, mode: "images" },
+      endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      jsonPayload: { active_data_mask: {}, mode: 'images' },
     });
-    expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      "Your export is being prepared. You'll receive an email when it's ready.",
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      "Your export is being generated. You'll receive an email when it's ready.",
+      { noDuplicate: true },
     );
   });
 });
 
-test("Export Data to Excel polls status and auto-downloads once ready", async () => {
+test('Export Data to Excel polls status and auto-downloads once ready', async () => {
   // A guest/embedded session has no email to be notified at, so completion is
   // discovered by polling export_xlsx/status/<job_id>/ instead -- exercised
   // here regardless of session type, since the same polling drives the
   // auto-download for a regular session too.
   jest.useFakeTimers();
   mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: "abc" },
+    json: { job_id: 'abc' },
   } as never);
   mockSupersetClient.get.mockResolvedValue({
     json: {
-      status: "ready",
-      download_url: "/api/v1/dashboard/export_xlsx/download/abc/",
+      status: 'ready',
+      download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
     },
   } as never);
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export Data to Excel"));
+  await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
-    expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      "Your export is being prepared. You'll receive an email when it's ready.",
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      "Your export is being generated. You'll receive an email when it's ready.",
+      { noDuplicate: true },
     ),
   );
 
@@ -220,32 +231,33 @@ test("Export Data to Excel polls status and auto-downloads once ready", async ()
 
   await waitFor(() => {
     expect(mockSupersetClient.get).toHaveBeenCalledWith({
-      endpoint: "/api/v1/dashboard/export_xlsx/status/abc/",
+      endpoint: '/api/v1/dashboard/export_xlsx/status/abc/',
     });
     expect(window.location.href).toBe(
-      "/api/v1/dashboard/export_xlsx/download/abc/",
+      '/api/v1/dashboard/export_xlsx/download/abc/',
     );
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      "Your export is ready and downloading.",
+      'Your export is ready and downloading.',
     );
   });
 });
 
-test("Export Data to Excel keeps polling while status is pending", async () => {
+test('Export Data to Excel keeps polling while status is pending', async () => {
   jest.useFakeTimers();
   mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: "abc" },
+    json: { job_id: 'abc' },
   } as never);
   mockSupersetClient.get.mockResolvedValue({
-    json: { status: "pending" },
+    json: { status: 'pending' },
   } as never);
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export Data to Excel"));
+  await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
-    expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      "Your export is being prepared. You'll receive an email when it's ready.",
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      "Your export is being generated. You'll receive an email when it's ready.",
+      { noDuplicate: true },
     ),
   );
 
@@ -261,24 +273,25 @@ test("Export Data to Excel keeps polling while status is pending", async () => {
 
   // Still pending -- no terminal toast, and the browser never navigated.
   expect(mockAddDangerToast).not.toHaveBeenCalled();
-  expect(window.location.href).toBe("");
+  expect(window.location.href).toBe('');
 });
 
-test("Export Data to Excel shows an error toast when the export job fails", async () => {
+test('Export Data to Excel shows an error toast when the export job fails', async () => {
   jest.useFakeTimers();
   mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: "abc" },
+    json: { job_id: 'abc' },
   } as never);
   mockSupersetClient.get.mockResolvedValue({
-    json: { status: "error", message: "The export could not be built." },
+    json: { status: 'error', message: 'The export could not be built.' },
   } as never);
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export Data to Excel"));
+  await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
-    expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      "Your export is being prepared. You'll receive an email when it's ready.",
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      "Your export is being generated. You'll receive an email when it's ready.",
+      { noDuplicate: true },
     ),
   );
 
@@ -288,110 +301,110 @@ test("Export Data to Excel shows an error toast when the export job fails", asyn
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
-      "The export could not be built.",
+      'The export could not be built.',
     );
   });
-  expect(window.location.href).toBe("");
+  expect(window.location.href).toBe('');
 });
 
 test('Export Data to Excel shows an "already in progress" toast when throttled', async () => {
   // The throttle response is 202 with a message but no job_id.
   mockSupersetClient.post.mockResolvedValue({
     json: {
-      message: "An Excel export for this dashboard is already in progress.",
+      message: 'An Excel export for this dashboard is already in progress.',
     },
   } as never);
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export Data to Excel"));
+  await userEvent.click(screen.getByText('Export Data to Excel'));
 
   await waitFor(() => {
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      "An export for this dashboard is already in progress.",
+      'An export for this dashboard is already in progress.',
     );
   });
 });
 
-test("Export Data to Excel shows a config error toast on 501", async () => {
-  mockSupersetClient.post.mockRejectedValue(new Error("not configured"));
+test('Export Data to Excel shows a config error toast on 501', async () => {
+  mockSupersetClient.post.mockRejectedValue(new Error('not configured'));
   mockGetClientErrorObject.mockResolvedValue({ status: 501 });
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export Data to Excel"));
+  await userEvent.click(screen.getByText('Export Data to Excel'));
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
-      "Excel export is not configured on this server.",
+      'Excel export is not configured on this server.',
     );
   });
 });
 
-test("Export Data to Excel shows a generic error toast on other failures", async () => {
-  mockSupersetClient.post.mockRejectedValue(new Error("boom"));
+test('Export Data to Excel shows a generic error toast on other failures', async () => {
+  mockSupersetClient.post.mockRejectedValue(new Error('boom'));
   mockGetClientErrorObject.mockResolvedValue({ status: 500 });
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export Data to Excel"));
+  await userEvent.click(screen.getByText('Export Data to Excel'));
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
-      "Sorry, something went wrong. Try again later.",
+      'Sorry, something went wrong. Try again later.',
     );
   });
 });
 
-test("Export as Example calls SupersetClient.get with correct endpoint", async () => {
-  const mockBlob = new Blob(["test"], { type: "application/zip" });
-  const mockResponse: Pick<Response, "blob" | "headers"> = {
+test('Export as Example calls SupersetClient.get with correct endpoint', async () => {
+  const mockBlob = new Blob(['test'], { type: 'application/zip' });
+  const mockResponse: Pick<Response, 'blob' | 'headers'> = {
     blob: jest.fn().mockResolvedValue(mockBlob),
     headers: new Headers({
-      "Content-Disposition": 'attachment; filename="dashboard_123_example.zip"',
+      'Content-Disposition': 'attachment; filename="dashboard_123_example.zip"',
     }),
   };
   mockSupersetClient.get.mockResolvedValue(mockResponse as unknown as Response);
 
   // Mock URL.createObjectURL / revokeObjectURL since jsdom doesn't support them
-  const createObjectURL = jest.fn(() => "blob:http://localhost/fake");
+  const createObjectURL = jest.fn(() => 'blob:http://localhost/fake');
   const revokeObjectURL = jest.fn();
   window.URL.createObjectURL = createObjectURL;
   window.URL.revokeObjectURL = revokeObjectURL;
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export as Example"));
+  await userEvent.click(screen.getByText('Export as Example'));
 
   await waitFor(() => {
     expect(mockSupersetClient.get).toHaveBeenCalledWith({
-      endpoint: "/api/v1/dashboard/123/export_as_example/",
-      headers: { Accept: "application/zip" },
-      parseMethod: "raw",
+      endpoint: '/api/v1/dashboard/123/export_as_example/',
+      headers: { Accept: 'application/zip' },
+      parseMethod: 'raw',
     });
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
-      "Dashboard exported as example successfully",
+      'Dashboard exported as example successfully',
     );
   });
 });
 
-test("Export as Example shows error toast on failure", async () => {
-  mockSupersetClient.get.mockRejectedValue(new Error("Network error"));
+test('Export as Example shows error toast on failure', async () => {
+  mockSupersetClient.get.mockRejectedValue(new Error('Network error'));
 
   render(<MenuWrapper />, { useRedux: true });
 
-  await userEvent.click(screen.getByText("Export as Example"));
+  await userEvent.click(screen.getByText('Export as Example'));
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
-      "Sorry, something went wrong. Try again later.",
+      'Sorry, something went wrong. Try again later.',
     );
   });
 });
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-test("Screenshot menu items should be disabled when GranularExportControls is ON and canExportImage is false", () => {
+test('Screenshot menu items should be disabled when GranularExportControls is ON and canExportImage is false', () => {
   mockIsFeatureEnabled.mockImplementation(
     (flag: string) => flag === FeatureFlag.GranularExportControls,
   );
@@ -401,18 +414,18 @@ test("Screenshot menu items should be disabled when GranularExportControls is ON
   });
 
   const pdfItem = screen
-    .getByText("Export to PDF")
+    .getByText('Export to PDF')
     .closest('[role="menuitem"]');
   const imageItem = screen
-    .getByText("Download as Image")
+    .getByText('Download as Image')
     .closest('[role="menuitem"]');
-  expect(pdfItem).toHaveAttribute("aria-disabled", "true");
-  expect(imageItem).toHaveAttribute("aria-disabled", "true");
+  expect(pdfItem).toHaveAttribute('aria-disabled', 'true');
+  expect(imageItem).toHaveAttribute('aria-disabled', 'true');
 
   mockIsFeatureEnabled.mockReset();
 });
 
-test("Screenshot menu items should be enabled when GranularExportControls is ON and canExportImage is true", () => {
+test('Screenshot menu items should be enabled when GranularExportControls is ON and canExportImage is true', () => {
   mockIsFeatureEnabled.mockImplementation(
     (flag: string) => flag === FeatureFlag.GranularExportControls,
   );
@@ -422,18 +435,18 @@ test("Screenshot menu items should be enabled when GranularExportControls is ON 
   });
 
   const pdfItem = screen
-    .getByText("Export to PDF")
+    .getByText('Export to PDF')
     .closest('[role="menuitem"]');
   const imageItem = screen
-    .getByText("Download as Image")
+    .getByText('Download as Image')
     .closest('[role="menuitem"]');
-  expect(pdfItem).not.toHaveAttribute("aria-disabled", "true");
-  expect(imageItem).not.toHaveAttribute("aria-disabled", "true");
+  expect(pdfItem).not.toHaveAttribute('aria-disabled', 'true');
+  expect(imageItem).not.toHaveAttribute('aria-disabled', 'true');
 
   mockIsFeatureEnabled.mockReset();
 });
 
-test("Screenshot menu items should not be disabled when canExportImage is not provided", () => {
+test('Screenshot menu items should not be disabled when canExportImage is not provided', () => {
   mockIsFeatureEnabled.mockReturnValue(false);
 
   render(<MenuWrapperWithProps />, {
@@ -441,18 +454,18 @@ test("Screenshot menu items should not be disabled when canExportImage is not pr
   });
 
   const pdfItem = screen
-    .getByText("Export to PDF")
+    .getByText('Export to PDF')
     .closest('[role="menuitem"]');
   const imageItem = screen
-    .getByText("Download as Image")
+    .getByText('Download as Image')
     .closest('[role="menuitem"]');
-  expect(pdfItem).not.toHaveAttribute("aria-disabled", "true");
-  expect(imageItem).not.toHaveAttribute("aria-disabled", "true");
+  expect(pdfItem).not.toHaveAttribute('aria-disabled', 'true');
+  expect(imageItem).not.toHaveAttribute('aria-disabled', 'true');
 
   mockIsFeatureEnabled.mockReset();
 });
 
-test("Disabled screenshot items should show tooltip icon when GranularExportControls is ON", () => {
+test('Disabled screenshot items should show tooltip icon when GranularExportControls is ON', () => {
   mockIsFeatureEnabled.mockImplementation(
     (flag: string) => flag === FeatureFlag.GranularExportControls,
   );
@@ -461,13 +474,13 @@ test("Disabled screenshot items should show tooltip icon when GranularExportCont
     useRedux: true,
   });
 
-  const tooltipTriggers = screen.getAllByTestId("tooltip-trigger");
+  const tooltipTriggers = screen.getAllByTestId('tooltip-trigger');
   expect(tooltipTriggers.length).toBeGreaterThanOrEqual(2);
 
   mockIsFeatureEnabled.mockReset();
 });
 
-test("Enabled screenshot items should not show tooltip icon", () => {
+test('Enabled screenshot items should not show tooltip icon', () => {
   mockIsFeatureEnabled.mockImplementation(
     (flag: string) => flag === FeatureFlag.GranularExportControls,
   );
@@ -476,7 +489,41 @@ test("Enabled screenshot items should not show tooltip icon", () => {
     useRedux: true,
   });
 
-  expect(screen.queryByTestId("tooltip-trigger")).not.toBeInTheDocument();
+  expect(screen.queryByTestId('tooltip-trigger')).not.toBeInTheDocument();
 
   mockIsFeatureEnabled.mockReset();
+});
+
+// ---------------------------------------------------------------------------
+// Embedded (guest) behavior: no email channel exists, so the toast must not
+// promise one, and the image export (webdriver-rendered, guest cannot open
+// Explore) is hidden.
+// ---------------------------------------------------------------------------
+
+test('embedded: export toast promises auto-download, not an email', async () => {
+  mockIsEmbedded = true;
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() =>
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      'Your export is being generated. Please, do not leave the page.',
+      { noDuplicate: true },
+    ),
+  );
+});
+
+test('embedded: Export Images to Excel is hidden even with the webdriver enabled', () => {
+  mockIsEmbedded = true;
+  enableWebDriverScreenshot();
+
+  render(<MenuWrapper />, { useRedux: true });
+
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
 });
