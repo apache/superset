@@ -90,7 +90,7 @@ test('clicking the thumbnail navigates to the chart exactly once', () => {
   renderCard(history);
   const navigations = recordNavigations(history);
 
-  fireEvent.click(document.querySelector('.gradient-container') as Element);
+  fireEvent.click(screen.getByRole('link'));
 
   expect(navigations).toEqual(['PUSH /explore/?slice_id=1']);
 });

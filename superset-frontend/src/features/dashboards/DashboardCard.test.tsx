@@ -21,7 +21,12 @@ import { createMemoryHistory, type Update } from 'history';
 import { MemoryRouter, Router } from 'react-router-dom';
 import { isFeatureEnabled } from '@superset-ui/core';
 
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import { SubjectType } from 'src/types/Subject';
 
 import DashboardCard from './DashboardCard';
@@ -62,6 +67,10 @@ beforeAll(() => {
 
 afterAll(() => {
   mockedIsFeatureEnabled.mockClear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 beforeEach(() => {
@@ -134,7 +143,7 @@ test('clicking the thumbnail navigates to the dashboard exactly once', () => {
     navigations.push(`${action} ${location.pathname}`),
   );
 
-  fireEvent.click(container.querySelector('.gradient-container') as Element);
+  fireEvent.click(within(container).getByRole('link'));
 
   expect(navigations).toEqual(['PUSH /dashboard/1']);
 });
