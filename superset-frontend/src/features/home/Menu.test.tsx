@@ -1052,6 +1052,59 @@ describe('active tab highlighting (regression #36403)', () => {
     expect(getMenuItemByText('Дашборды')).toHaveClass('ant-menu-item-selected');
   });
 
+  test.each([
+    ['/tablemodelview/list/', 'the legacy FAB dataset list route'],
+    ['/dataset/add/', 'the modern React dataset create route'],
+    ['/dataset/42', 'a dataset detail route'],
+  ])(
+    'highlights the Datasets tab on %s (%s) — regression #42467',
+    async (route, _label) => {
+      // ``/tablemodelview/list/`` is the pre-existing legacy path (kept as
+      // a coverage anchor so future prefix-matching changes cannot silently
+      // regress it); the ``/dataset/*`` routes are the modern React ones
+      // added by #42467.
+      useSelectorMock.mockReturnValue({ roles: user.roles });
+      window.history.pushState({}, '', route);
+
+      render(<Menu {...mockedProps} />, {
+        useRedux: true,
+        useQueryParams: true,
+        useRouter: true,
+        useTheme: true,
+      });
+
+      // Datasets is a child under the Sources submenu — expand it first so
+      // the item is in the DOM (same pattern as the existing "render the top
+      // navbar child menu items" test).
+      const sources = await screen.findByText('Sources');
+      userEvent.hover(sources);
+
+      const datasets = await screen.findByText('Datasets');
+      expect(datasets.closest('li')).toHaveClass('ant-menu-item-selected');
+    },
+  );
+
+  test('does not highlight the Datasets tab on lookalike prefixes (e.g. /datasetXyz)', async () => {
+    // The active-tab matcher must use a boundary-aware startsWith so that
+    // an unrelated future route beginning with ``/dataset`` (e.g. a
+    // hypothetical ``/datasetXyz``) does not falsely trigger the highlight.
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    window.history.pushState({}, '', '/datasetXyz');
+
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    const sources = await screen.findByText('Sources');
+    userEvent.hover(sources);
+
+    const datasets = await screen.findByText('Datasets');
+    expect(datasets.closest('li')).not.toHaveClass('ant-menu-item-selected');
+  });
+
   test('highlights the active SQL tab when the label is localized', async () => {
     // The SQL Lab top-level entry is a FAB category: its stable `name` is
     // "SQL Lab" while its label ("SQL") is localized.

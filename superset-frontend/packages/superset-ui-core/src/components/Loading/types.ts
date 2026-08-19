@@ -17,7 +17,10 @@
  * under the License.
  */
 export type PositionOption =
-  'floating' | 'inline' | 'inline-centered' | 'normal';
+  | 'floating'
+  | 'inline'
+  | 'inline-centered'
+  | 'normal';
 
 export type SizeOption = 's' | 'm' | 'l';
 

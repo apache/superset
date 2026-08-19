@@ -275,6 +275,36 @@ class CompatibleDatabase(TypedDict, total=False):
     notes: str
     docs_url: str
     categories: list[str]  # Override parent categories (e.g., for HOSTED_OPEN_SOURCE)
+    known_incompatibilities: list[KnownIncompatibility]
+
+
+class KnownIncompatibility(TypedDict, total=False):
+    """A known, currently-unresolved incompatibility with a Superset dependency."""
+
+    dependency: str  # e.g. "SQLAlchemy 2.0"
+    reason: str
+    tracking_url: str  # upstream issue/PR tracking a fix, if one exists
+    since: str  # ISO date this was last confirmed still broken
+
+
+# Shared `known_incompatibilities` entry for the Aurora Data API driver
+# (`sqlalchemy-aurora-data-api`), used by both the MySQL and PostgreSQL
+# `compatible_databases` metadata for their respective Aurora entries.
+AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
+    {
+        "dependency": "SQLAlchemy 2.0",
+        "reason": (
+            "Neither our fork (preset-io/sqlalchemy-aurora-data-api, "
+            "dormant since 2021) nor the more active community fork "
+            "(cloud-utils/sqlalchemy-aurora-data-api) has resolved "
+            "SQLAlchemy 2.0 compatibility."
+        ),
+        "tracking_url": (
+            "https://github.com/cloud-utils/sqlalchemy-aurora-data-api/issues/43"
+        ),
+        "since": "2026-07-28",
+    }
+]
 
 
 class DBEngineSpecMetadata(TypedDict, total=False):
@@ -316,6 +346,11 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     tutorials: list[str]
     install_instructions: str
     version_requirements: str
+
+    # Known, currently-unresolved incompatibilities with a Superset
+    # dependency (e.g. a driver that doesn't yet support SQLAlchemy 2.0).
+    # Hopefully temporary; remove the entry once resolved upstream.
+    known_incompatibilities: list[KnownIncompatibility]
 
     # Related databases (e.g., PostgreSQL-compatible databases)
     compatible_databases: list[CompatibleDatabase]
@@ -539,6 +574,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length: int | None = None
+
+    # Characters used to quote identifiers (table/column names) that aren't simple.
+    # Defaults to ANSI double quotes; dialects that differ override these — e.g.
+    # MySQL/MariaDB use backticks and SQL Server uses square brackets. These are
+    # surfaced to the client (see `get_public_information`) so identifier quoting
+    # stays owned by the engine spec rather than duplicated per client.
+    identifier_quote_start: str = '"'
+    identifier_quote_end: str = '"'
+    # How an embedded closing-quote character is escaped within a quoted
+    # identifier. Most dialects (ANSI, MySQL/MariaDB backticks, SQL Server
+    # brackets) escape by doubling the closing character. BigQuery's GoogleSQL
+    # backtick identifiers are the exception, escaping with a backslash instead,
+    # so it overrides this to False.
+    identifier_quote_escape_by_doubling: bool = True
 
     # Some databases (e.g. Druid, Pinot) build cursor.description by inspecting
     # the values in the first returned row rather than from query-plan metadata.
@@ -888,7 +937,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else requests.post(uri, json=req_body, timeout=timeout)
         )
         if response.status_code in (400, 401, 403):
-            raise OAuth2TokenRefreshError(response.text)
+            raise OAuth2TokenRefreshError()
         response.raise_for_status()
         return response.json()
 
@@ -2726,6 +2775,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            "identifier_quote": {
+                "start": cls.identifier_quote_start,
+                "end": cls.identifier_quote_end,
+                "escape_by_doubling": cls.identifier_quote_escape_by_doubling,
+            },
         }
 
     @classmethod
@@ -2841,6 +2895,11 @@ class BasicParametersMixin:
     # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
     encryption_parameters: dict[str, str] = {}
 
+    # query parameter to explicitly disable encryption, for drivers that do not
+    # treat the absence of `encryption_parameters` as an unencrypted connection
+    # for Databend this would be `{"sslmode": "disable"}`, eg.
+    encryption_disable_parameters: dict[str, str] = {}
+
     @classmethod
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
@@ -2856,28 +2915,36 @@ class BasicParametersMixin:
                     "Unable to build a URL with encryption enabled"
                 )
             query.update(cls.encryption_parameters)
+        else:
+            query.update(cls.encryption_disable_parameters)
 
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
-                username=parameters.get("username"),
-                password=parameters.get("password"),
-                host=parameters["host"],
-                port=parameters["port"],
-                database=parameters["database"],
-                query=query,
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=parameters["database"],
+            query=query,
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: dict[str, Any] | None = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
+        encryption_items = [
+            *cls.encryption_parameters.items(),
+            *cls.encryption_disable_parameters.items(),
+        ]
         query = {
             key: value
             for (key, value) in url.query.items()
-            if (key, value) not in cls.encryption_parameters.items()
+            if (key, value) not in encryption_items
         }
         encryption = all(
             item in url.query.items() for item in cls.encryption_parameters.items()

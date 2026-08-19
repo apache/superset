@@ -19,7 +19,7 @@
 /* eslint-env browser */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { FixedSizeList as List } from 'react-window';
+import { List, type RowComponentProps } from 'react-window';
 // @ts-expect-error
 import { createFilter } from 'react-search-input';
 import { t } from '@apache-superset/core/translation';
@@ -165,6 +165,71 @@ function getFilteredSortedSlices(
     )
     .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
     .sort(sortByComparator(sortBy));
+}
+
+export interface SliceListRowProps {
+  filteredSlices: Slice[];
+  selectedSliceIdsSet: Set<number>;
+  editMode: boolean;
+}
+
+// Rendered via `rowComponent`, so it must be a stable reference (module
+// scope) rather than defined inline on every render of SliceAdder -
+// otherwise react-window would treat it as a new component type each
+// render and remount every row (losing in-flight drag state). All the
+// data it needs is threaded through `rowProps` instead of being closed
+// over.
+export function SliceListRow({
+  index,
+  style,
+  filteredSlices,
+  selectedSliceIdsSet,
+  editMode,
+}: RowComponentProps<SliceListRowProps>) {
+  const cellData = filteredSlices[index];
+
+  const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
+  const type = CHART_TYPE;
+  const id = NEW_CHART_ID;
+
+  const meta = {
+    chartId: cellData.slice_id,
+    sliceName: cellData.slice_name,
+  };
+  return (
+    <DragDroppable
+      key={cellData.slice_id}
+      component={{ type, id, meta }}
+      parentComponent={{
+        id: NEW_COMPONENTS_SOURCE_ID,
+        type: NEW_COMPONENT_SOURCE_TYPE,
+      }}
+      index={index}
+      depth={0}
+      disableDragDrop={isSelected}
+      editMode={editMode}
+      // we must use a custom drag preview within the List because
+      // it does not seem to work within a fixed-position container
+      useEmptyDragPreview
+      // List library expect style props here
+      // actual style should be applied to nested AddSliceCard component
+      style={{}}
+    >
+      {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
+        <AddSliceCard
+          innerRef={dragSourceRef}
+          style={style}
+          sliceName={cellData.slice_name}
+          lastModified={cellData.changed_on_humanized}
+          visType={cellData.viz_type}
+          datasourceUrl={cellData.datasource_url}
+          datasourceName={cellData.datasource_name}
+          thumbnailUrl={cellData.thumbnail_url}
+          isSelected={isSelected}
+        />
+      )}
+    </DragDroppable>
+  );
 }
 
 function SliceAdder({
@@ -321,53 +386,8 @@ function SliceAdder({
     [fetchSlices, searchTerm, sortBy],
   );
 
-  const rowRenderer = useCallback(
-    ({ index, style }: { index: number; style: React.CSSProperties }) => {
-      const cellData = filteredSlices[index];
-
-      const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
-      const type = CHART_TYPE;
-      const id = NEW_CHART_ID;
-
-      const meta = {
-        chartId: cellData.slice_id,
-        sliceName: cellData.slice_name,
-      };
-      return (
-        <DragDroppable
-          key={cellData.slice_id}
-          component={{ type, id, meta }}
-          parentComponent={{
-            id: NEW_COMPONENTS_SOURCE_ID,
-            type: NEW_COMPONENT_SOURCE_TYPE,
-          }}
-          index={index}
-          depth={0}
-          disableDragDrop={isSelected}
-          editMode={editMode}
-          // we must use a custom drag preview within the List because
-          // it does not seem to work within a fixed-position container
-          useEmptyDragPreview
-          // List library expect style props here
-          // actual style should be applied to nested AddSliceCard component
-          style={{}}
-        >
-          {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
-            <AddSliceCard
-              innerRef={dragSourceRef}
-              style={style}
-              sliceName={cellData.slice_name}
-              lastModified={cellData.changed_on_humanized}
-              visType={cellData.viz_type}
-              datasourceUrl={cellData.datasource_url}
-              datasourceName={cellData.datasource_name}
-              thumbnailUrl={cellData.thumbnail_url}
-              isSelected={isSelected}
-            />
-          )}
-        </DragDroppable>
-      );
-    },
+  const listRowProps = useMemo<SliceListRowProps>(
+    () => ({ filteredSlices, selectedSliceIdsSet, editMode }),
     [filteredSlices, selectedSliceIdsSet, editMode],
   );
 
@@ -448,14 +468,13 @@ function SliceAdder({
           <AutoSizer>
             {({ height, width }: { height: number; width: number }) => (
               <List
-                width={width}
-                height={height}
-                itemCount={filteredSlices.length}
-                itemSize={DEFAULT_CELL_HEIGHT}
-                itemKey={index => filteredSlices[index].slice_id}
-              >
-                {rowRenderer}
-              </List>
+                style={{ width, height }}
+                rowCount={filteredSlices.length}
+                rowHeight={DEFAULT_CELL_HEIGHT}
+                rowProps={listRowProps}
+                rowComponent={SliceListRow}
+                rowKey={(index, data) => data.filteredSlices[index].slice_id}
+              />
             )}
           </AutoSizer>
         </ChartList>

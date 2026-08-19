@@ -19,9 +19,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   lint-check:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       pull-requests: write
