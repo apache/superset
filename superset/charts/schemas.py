@@ -17,7 +17,6 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
@@ -980,10 +979,7 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
-    _builtin_ops = [
-        name
-        for name, value in inspect.getmembers(pandas_postprocessing, inspect.isfunction)
-    ]
+    _builtin_ops = pandas_postprocessing.__all__
 
     operation = fields.String(
         metadata={
