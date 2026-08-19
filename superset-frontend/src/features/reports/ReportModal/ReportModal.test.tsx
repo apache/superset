@@ -332,6 +332,51 @@ test('renders edit mode when report exists in store', () => {
   expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
 });
 
+test('resolves the chart-scoped report, not the dashboard-scoped one, in a dashboard context', () => {
+  // Regression: opening a chart in Explore *from a dashboard* passes the modal
+  // both a `dashboardId` context prop and a chart-scoped `creationMethod`.
+  // Edit-mode resolution must follow the same scope as the save payload
+  // (`creationMethod`); keying off `dashboardId` first loads the unrelated
+  // dashboard-scoped report, so a save then targets the wrong report id.
+  const dashboardReport = {
+    id: 42,
+    name: 'Existing Dashboard Report',
+    creation_method: 'dashboards',
+    dashboard: 7,
+  };
+  const chartReport = {
+    id: 77,
+    name: 'Existing Chart Report',
+    creation_method: 'charts',
+    chart: 119,
+  };
+  const store = createStore(
+    {
+      reports: {
+        dashboards: { 7: dashboardReport },
+        charts: { 119: chartReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  const chartFromDashboardProps = {
+    ...defaultProps,
+    creationMethod: 'charts' as const,
+    dashboardId: 7,
+    chart: { id: 119, sliceFormData: { viz_type: VizType.Line } },
+  };
+  render(<ReportModal {...chartFromDashboardProps} />, {
+    useRedux: true,
+    store,
+  });
+
+  // The modal must load the chart's own report, not the dashboard's.
+  const reportNameTextbox = screen.getByTestId('report-name-test');
+  expect(reportNameTextbox).toHaveDisplayValue('Existing Chart Report');
+  expect(reportNameTextbox).not.toHaveDisplayValue('Existing Dashboard Report');
+});
+
 test('edit mode dispatches editReport via PUT on save', async () => {
   const existingReport = {
     id: 42,

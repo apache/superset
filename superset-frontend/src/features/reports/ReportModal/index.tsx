@@ -165,13 +165,16 @@ function ReportModal({
   const dispatch = useDispatch();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.Dashboards
-      : CreationMethod.Charts;
-    return (
-      reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
-    );
+    // Resolve the existing report with the same scope the save payload uses
+    // (`creationMethod`). Explore can carry a `dashboardId` context prop even for
+    // a chart-scoped report, so keying off `dashboardId` first would load an
+    // unrelated dashboard report and a later save would target the wrong id.
+    const isChartReport = creationMethod === CreationMethod.Charts;
+    const resourceType = isChartReport
+      ? CreationMethod.Charts
+      : CreationMethod.Dashboards;
+    const resourceId = isChartReport ? chart?.id : dashboardId;
+    return reportSelector(state, resourceType, resourceId) || EMPTY_OBJECT;
   });
   const isEditMode = report && Object.keys(report).length;
 
