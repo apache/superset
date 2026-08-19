@@ -359,6 +359,8 @@ async def get_chart_data(  # noqa: C901
             request.cache_timeout,
         )
     )
+    # use_cache=False must also bypass the cache, not just force_refresh=True.
+    effective_force = request.force_refresh or not request.use_cache
 
     try:
         await ctx.report_progress(1, 4, "Looking up chart")
@@ -570,7 +572,8 @@ async def get_chart_data(  # noqa: C901
                     extra_form_data=request.extra_form_data,
                     row_limit=row_limit,
                     order_desc=cached_form_data_dict.get("order_desc", True),
-                    force=request.force_refresh,
+                    force=effective_force,
+                    custom_cache_timeout=request.cache_timeout,
                 )
                 await ctx.debug(
                     "Built query_context from cached form_data (unsaved state)"
@@ -666,11 +669,14 @@ async def get_chart_data(  # noqa: C901
                     },
                     queries=fallback_queries,
                     form_data=form_data,
-                    force=request.force_refresh,
+                    force=effective_force,
+                    custom_cache_timeout=request.cache_timeout,
                 )
             elif query_context_json is not None:
                 # Apply request overrides to the saved query_context
-                query_context_json["force"] = request.force_refresh
+                query_context_json["force"] = effective_force
+                if request.cache_timeout is not None:
+                    query_context_json["custom_cache_timeout"] = request.cache_timeout
 
                 # Ignore a non-positive limit so it can't emit LIMIT -1 downstream.
                 if request.limit and request.limit > 0:
@@ -798,7 +804,7 @@ async def get_chart_data(  # noqa: C901
 
             # Cache status information using utility function
             cache_status = get_cache_status_from_result(
-                query_result, force_refresh=request.force_refresh
+                query_result, force_refresh=effective_force
             )
 
             # Generate insights and recommendations
@@ -1054,6 +1060,8 @@ async def _query_from_form_data(
         current_app.config["ROW_LIMIT"],
     )
     viz_type = form_data.get("viz_type", "unknown")
+    # use_cache=False must also bypass the cache, not just force_refresh=True.
+    effective_force = request.force_refresh or not request.use_cache
 
     try:
         query_context = build_query_context_from_form_data(
@@ -1061,7 +1069,8 @@ async def _query_from_form_data(
             extra_form_data=request.extra_form_data,
             row_limit=row_limit,
             order_desc=form_data.get("order_desc", True),
-            force=request.force_refresh,
+            force=effective_force,
+            custom_cache_timeout=request.cache_timeout,
         )
 
         await ctx.report_progress(3, 4, "Executing data query")
@@ -1117,7 +1126,7 @@ async def _query_from_form_data(
             )
 
         cache_status = get_cache_status_from_result(
-            query_result, force_refresh=request.force_refresh
+            query_result, force_refresh=effective_force
         )
 
         chart_name = form_data.get("slice_name", "Unsaved chart")
