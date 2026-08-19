@@ -18,11 +18,15 @@ from unittest.mock import Mock, patch
 
 import pytest
 from marshmallow import ValidationError
+from pytest_mock import MockerFixture
 
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.exceptions import DatasetInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetParseError
+from superset.exceptions import (
+    SupersetGenericDBErrorException,
+    SupersetParseError,
+)
 from superset.models.core import Database
 
 
@@ -250,3 +254,83 @@ def test_create_dataset_generic_exists_error_when_no_twin() -> None:
                             )
                             with pytest.raises(DatasetInvalidError):
                                 command.validate()
+
+
+def test_create_dataset_metadata_fetch_error_is_structured(
+    mocker: MockerFixture,
+) -> None:
+    """A metadata-fetch failure must surface the engine's own message.
+
+    ``run()`` executes the SQL to introspect columns; the resulting
+    ``SupersetGenericDBErrorException`` used to escape as a 500 "Fatal error".
+    """
+    mocker.patch.object(CreateDatasetCommand, "validate")
+    dataset = Mock()
+    dataset.fetch_metadata.side_effect = SupersetGenericDBErrorException(
+        message="Invalid SQL: Unable to parse: SELECT ...",
+    )
+    mocker.patch(
+        "superset.commands.dataset.create.DatasetDAO.create",
+        return_value=dataset,
+    )
+
+    command = CreateDatasetCommand(
+        {
+            "database": 1,
+            "table_name": "dataset wrong",
+            "sql": "SELECT ...",
+        }
+    )
+
+    with pytest.raises(DatasetInvalidError) as exc_info:
+        command.run()
+
+    validation_errors = exc_info.value._exceptions
+    assert len(validation_errors) == 1
+    assert validation_errors[0].field_name == "sql"
+    assert "Invalid SQL: Unable to parse: SELECT ..." in str(
+        validation_errors[0].messages[0]
+    )
+
+
+def test_create_dataset_metadata_fetch_error_physical_table(
+    mocker: MockerFixture,
+) -> None:
+    """The same conversion applies to physical datasets, keyed on ``table``."""
+    mocker.patch.object(CreateDatasetCommand, "validate")
+    dataset = Mock()
+    dataset.fetch_metadata.side_effect = SupersetGenericDBErrorException(
+        message="(psycopg2.OperationalError) could not connect to server",
+    )
+    mocker.patch(
+        "superset.commands.dataset.create.DatasetDAO.create",
+        return_value=dataset,
+    )
+
+    command = CreateDatasetCommand({"database": 1, "table_name": "physical_table"})
+
+    with pytest.raises(DatasetInvalidError) as exc_info:
+        command.run()
+
+    validation_errors = exc_info.value._exceptions
+    assert validation_errors[0].field_name == "table"
+    assert "could not connect to server" in str(validation_errors[0].messages[0])
+
+
+def test_create_dataset_run_succeeds_when_metadata_fetch_works(
+    mocker: MockerFixture,
+) -> None:
+    """Control: the happy path still returns the created dataset."""
+    mocker.patch.object(CreateDatasetCommand, "validate")
+    dataset = Mock()
+    mocker.patch(
+        "superset.commands.dataset.create.DatasetDAO.create",
+        return_value=dataset,
+    )
+
+    command = CreateDatasetCommand(
+        {"database": 1, "table_name": "good_dataset", "sql": "SELECT 1 AS a"}
+    )
+
+    assert command.run() is dataset
+    dataset.fetch_metadata.assert_called_once()

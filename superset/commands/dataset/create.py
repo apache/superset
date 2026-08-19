@@ -33,7 +33,11 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.exceptions import (
+    SupersetException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 from superset.extensions import security_manager
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
@@ -50,7 +54,21 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self.validate()
 
         dataset = DatasetDAO.create(attributes=self._properties)
-        dataset.fetch_metadata()
+        try:
+            dataset.fetch_metadata()
+        except SupersetException as ex:
+            # Not a SQLAlchemyError, so ``on_error`` re-raises it untouched and
+            # it escapes to FAB's ``@safe`` as an opaque 500 "Fatal error".
+            raise DatasetInvalidError(
+                exceptions=[
+                    ValidationError(
+                        # ``lazy_gettext`` messages aren't ``str``, so
+                        # marshmallow won't wrap them into a list on its own.
+                        [str(ex.message)],
+                        field_name="sql" if self._properties.get("sql") else "table",
+                    )
+                ]
+            ) from ex
         return dataset
 
     def validate(self) -> None:  # noqa: C901

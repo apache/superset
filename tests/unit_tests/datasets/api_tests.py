@@ -214,3 +214,45 @@ def test_handle_filters_args_returns_request_scoped_filters(
     fresh_filters = api.datamodel.get_filters.return_value
     assert fresh_filters.rest_add_filters.call_count == 2
     assert fresh_filters.get_joined_filters.call_count == 2
+
+
+def test_post_dataset_with_invalid_sql_returns_actionable_422(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Saving a dataset over unrunnable SQL must explain what is wrong.
+
+    With blanket database access ``validate()`` never parses the SQL, so
+    ``run()``'s column introspection is the first thing to reject it. That
+    used to surface as a bare 500 ``{"message": "Fatal error"}``.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(database_name="invalid_sql_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    response = client.post(
+        "/api/v1/dataset/",
+        json={
+            "database": database.id,
+            "schema": "main",
+            "table_name": "dataset wrong",
+            "sql": "SELECT ...",
+        },
+    )
+
+    assert response.status_code == 422
+    message = response.json["message"]
+    assert "Fatal error" not in str(message)
+    assert message["sql"] == ["Invalid SQL: Error parsing near '.' at line 1:8"]
+
+    # The failed create must not leave a half-built dataset behind.
+    assert (
+        db.session.query(SqlaTable).filter_by(table_name="dataset wrong").one_or_none()
+        is None
+    )

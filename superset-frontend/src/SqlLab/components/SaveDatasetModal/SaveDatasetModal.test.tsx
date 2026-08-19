@@ -19,12 +19,14 @@
 import { act, type ComponentProps } from 'react';
 import {
   cleanup,
+  createStore,
   fireEvent,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
@@ -516,6 +518,41 @@ describe('SaveDatasetModal', () => {
     await waitFor(() => {
       expect(clearDatasetCache).toHaveBeenCalledWith(123);
     });
+  });
+
+  test('surfaces the error and keeps the modal open when saving fails', async () => {
+    // The chart-payload step's toast was built but never dispatched, so a
+    // failure there was silent.
+    const postFormData = jest.spyOn(
+      require('src/explore/exploreUtils/formData'),
+      'postFormData',
+    );
+    postFormData.mockRejectedValue(new Error('Boom'));
+    const onHide = jest.fn();
+    const store = createStore({ user }, reducerIndex);
+
+    render(<SaveDatasetModal {...mockedProps} onHide={onHide} />, { store });
+
+    fireEvent.change(screen.getByDisplayValue(/unimportant/i), {
+      target: { value: 'my dataset' },
+    });
+    userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    // `createStore` builds its reducer map at runtime, so state isn't typed.
+    const toasts = () =>
+      (
+        store.getState() as unknown as {
+          messageToasts: { toastType: string }[];
+        }
+      ).messageToasts;
+
+    await waitFor(() => {
+      expect(toasts()).toHaveLength(1);
+    });
+    expect(toasts()[0].toastType).toBe('DANGER_TOAST');
+    expect(onHide).not.toHaveBeenCalled();
+
+    postFormData.mockReset();
   });
 
   test('clearDatasetCache is imported and available', () => {
