@@ -22,7 +22,7 @@ import re
 from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING
 
-from flask import current_app as app, g, make_response, request, Response
+from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -37,6 +37,7 @@ from superset.charts.data.dashboard_filter_context import (
     DashboardFilterContext,
     get_dashboard_filter_context,
 )
+from superset.charts.data.form_data import set_form_data
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.create_async_job_command import (
@@ -214,7 +215,7 @@ class ChartDataRestApi(ChartRestApi):
         # templating pulls form data from the request globally, so this
         # fallback ensures it has the filters and extra_form_data applied
         # when used in get_sqla_query which constructs the final query.
-        g.form_data = json_body
+        set_form_data(json_body)
 
         try:
             query_context = self._create_query_context_from_form(json_body)
@@ -410,7 +411,7 @@ class ChartDataRestApi(ChartRestApi):
             cached_data = self._load_query_context_form_from_cache(cache_key)
             # Set form_data in Flask Global as it is used as a fallback
             # for async queries with jinja context
-            g.form_data = cached_data
+            set_form_data(cached_data)
             query_context = self._create_query_context_from_form(cached_data)
             command = ChartDataCommand(query_context)
             command.validate()

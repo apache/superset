@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  NumberFormats,
+  TRUNCATION_MAX_CHARS,
+} from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
   extractForecastSeriesContext,
@@ -410,4 +414,53 @@ test('formatForecastTooltipSeries should skip non-finite forecast values', () =>
       formatter,
     }),
   ).toEqual(['<img>qwerty', '10']);
+});
+
+describe('formatForecastTooltipSeries truncation', () => {
+  const marker =
+    '<span style="display:inline-block;width:10px;height:10px;background-color:#1f77b4;"></span>';
+  const longName = 'prod-us-east-1-service-checkout-latency-p99'; // 43 chars
+  const intFormatter = getNumberFormatter(NumberFormats.INTEGER);
+
+  const format = (truncation?: 'off' | 'end' | 'start' | 'middle') =>
+    formatForecastTooltipSeries({
+      seriesName: longName,
+      observation: 1,
+      marker,
+      formatter: intFormatter,
+      ...(truncation ? { truncation } : {}),
+    })[0];
+
+  test('leaves the name intact by default and for off/end', () => {
+    expect(format()).toContain(longName);
+    expect(format('off')).toContain(longName);
+    expect(format('end')).toContain(longName);
+  });
+
+  test('slices the start of the name without harming the marker', () => {
+    const cell = format('start');
+    expect(cell).toContain(marker);
+    expect(cell).toContain('…-us-east-1-service-checkout-latency-p99');
+    expect(cell).not.toContain('prod-us-east');
+  });
+
+  test('slices the middle of the name without harming the marker', () => {
+    const cell = format('middle');
+    expect(cell).toContain(marker);
+    expect(cell).toContain('prod-us-east-1-servi…heckout-latency-p99');
+  });
+
+  test('measures the budget against the name, not the marker markup', () => {
+    // The marker alone is far longer than the budget. If truncation were
+    // applied to the concatenated cell, a short name would be mangled.
+    expect(marker.length).toBeGreaterThan(TRUNCATION_MAX_CHARS);
+    const [cell] = formatForecastTooltipSeries({
+      seriesName: 'cpu',
+      observation: 1,
+      marker,
+      formatter: intFormatter,
+      truncation: 'start',
+    });
+    expect(cell).toBe(`${marker}cpu`);
+  });
 });

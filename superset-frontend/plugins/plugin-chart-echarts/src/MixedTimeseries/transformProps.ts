@@ -40,6 +40,7 @@ import {
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   tooltipHtml,
+  truncateLabel,
   ValueFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -207,6 +208,7 @@ export default function transformProps(
     zoomable,
     richTooltip,
     tooltipSortByMetric,
+    tooltipTruncation,
     xAxisBounds,
     xAxisLabelRotation,
     xAxisLabelInterval,
@@ -690,11 +692,11 @@ export default function transformProps(
       })()
     : xAxisFormatter;
 
+  const yAxisTitleMarginPx = convertInteger(yAxisTitleMargin);
+  const xAxisTitleMarginPx = convertInteger(xAxisTitleMargin);
   const addYAxisTitleOffset =
-    !!(yAxisTitle || yAxisTitleSecondary) &&
-    convertInteger(yAxisTitleMargin) !== 0;
-  const addXAxisTitleOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+    !!(yAxisTitle || yAxisTitleSecondary) && yAxisTitleMarginPx !== 0;
+  const addXAxisTitleOffset = !!xAxisTitle && xAxisTitleMarginPx !== 0;
   const baseChartPadding = getPadding(
     showLegend,
     legendOrientation,
@@ -703,8 +705,8 @@ export default function transformProps(
     legendMargin,
     addXAxisTitleOffset,
     yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
+    yAxisTitleMarginPx,
+    xAxisTitleMarginPx,
   );
   const legendData = series
     .filter(
@@ -748,8 +750,8 @@ export default function transformProps(
     effectiveLegendMargin,
     addXAxisTitleOffset,
     yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
+    yAxisTitleMarginPx,
+    xAxisTitleMarginPx,
   );
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -764,7 +766,7 @@ export default function transformProps(
     xAxis: {
       type: xAxisType,
       name: xAxisTitle,
-      nameGap: convertInteger(xAxisTitleMargin),
+      nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
       axisLabel: {
         hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
@@ -821,7 +823,7 @@ export default function transformProps(
         },
         scale: truncateYAxis,
         name: yAxisTitle,
-        nameGap: convertInteger(yAxisTitleMargin),
+        nameGap: yAxisTitleMarginPx,
         nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
       },
@@ -844,6 +846,8 @@ export default function transformProps(
         },
         scale: truncateYAxis,
         name: yAxisTitleSecondary,
+        nameGap: yAxisTitleMarginPx,
+        nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
       },
     ],
@@ -905,13 +909,19 @@ export default function transformProps(
               formatter: primarySeries.has(key)
                 ? tooltipFormatter
                 : tooltipFormatterSecondary,
+              truncation: tooltipTruncation,
             });
             rows.push(row);
             if (key === focusedSeries) {
               focusedRow = rows.length - 1;
             }
           });
-        return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);
+        return tooltipHtml(
+          rows,
+          truncateLabel(tooltipFormatter(xValue), tooltipTruncation),
+          focusedRow,
+          tooltipTruncation,
+        );
       },
     },
     legend: {

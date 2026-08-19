@@ -27,6 +27,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_context_processor import QueryContextProcessor
+from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
 
@@ -96,6 +97,25 @@ def processor(mock_query_context):
     )
 
     return processor
+
+
+def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
+    """The cache key for annotated queries must differ per requesting user."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with (
+        patch(
+            "superset.common.query_context_processor.get_user_id",
+            side_effect=[1, 2],
+        ),
+        patch("superset.common.query_context_processor.security_manager"),
+    ):
+        processor.query_cache_key(query_obj)
+        processor.query_cache_key(query_obj)
+    contexts = [
+        call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
+    ]
+    assert contexts[0] != contexts[1]
 
 
 def test_get_data_table_like(processor, mock_query_context):
@@ -2377,3 +2397,26 @@ def test_relative_offset_preserves_inner_bounds(
     # for #40501. Without the fix, inner_from/to_dttm == shifted dates.
     assert captured[0]["inner_from_dttm"] == pd.Timestamp("2026-05-01")
     assert captured[0]["inner_to_dttm"] == pd.Timestamp("2026-05-28")
+
+
+def test_get_native_annotation_data_requires_annotation_read_access():
+    """Native annotation layers are only served to users who can read them."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [{"sourceType": "NATIVE", "name": "a", "value": 1}]
+    with (
+        patch(
+            "superset.common.query_context_processor.security_manager"
+        ) as security_manager_mock,
+        patch(
+            "superset.common.query_context_processor.AnnotationLayerDAO.find_by_ids",
+            return_value=[],
+        ) as find_by_ids_mock,
+    ):
+        # ``can_access`` is synchronous; force a plain Mock so the patched
+        # manager doesn't hand back a truthy coroutine that slips past the
+        # ``not can_access(...)`` guard.
+        security_manager_mock.can_access = MagicMock(return_value=False)
+        with pytest.raises(QueryObjectValidationError):
+            QueryContextProcessor.get_native_annotation_data(query_obj)
+    security_manager_mock.can_access.assert_called_once_with("can_read", "Annotation")
+    find_by_ids_mock.assert_not_called()
