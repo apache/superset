@@ -957,7 +957,13 @@ class AnnotationDatasource(BaseDatasource):
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         raise NotImplementedError()
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
+    def values_for_column(
+        self,
+        column_name: str,
+        limit: int = 10000,
+        denormalize_column: bool = False,
+        array_elements: bool = False,
+    ) -> list[Any]:
         raise NotImplementedError()
 
 
