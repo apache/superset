@@ -1981,6 +1981,23 @@ def test_create_virtual_dataset_request_optional_fields() -> None:
     assert req.description == "A virtual dataset"
 
 
+def test_create_virtual_dataset_rejects_non_aggregate_saved_metric() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="saved metrics must aggregate rows"):
+        CreateVirtualDatasetRequest(
+            database_id=1,
+            sql="SELECT needed_operators FROM staffing",
+            dataset_name="Staffing",
+            metrics=[
+                {
+                    "metric_name": "needed_operators",
+                    "expression": "needed_operators",
+                }
+            ],
+        )
+
+
 # --- Tool logic tests ---
 
 
@@ -2117,6 +2134,39 @@ async def test_create_virtual_dataset_create_failed(mcp_server: object) -> None:
     assert data["columns"] == []
     assert data["error"] is not None
     assert "Failed to create dataset" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_sql_error_is_actionable(
+    mcp_server: object,
+) -> None:
+    """Warehouse SQL errors are recoverable tool results, not adapter crashes."""
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = SupersetGenericDBErrorException(
+        "Invalid column name 'missing_value'"
+    )
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT missing_value FROM sample_events",
+                dataset_name="Test",
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+    assert "Invalid column name" in data["error"]
 
 
 @pytest.mark.asyncio
@@ -2289,7 +2339,13 @@ async def test_create_virtual_dataset_update_failure_rollback(
     if exception_to_raise == "DatasetUpdateFailedError":
         mock_update_instance.run.side_effect = DatasetUpdateFailedError()
     else:
-        mock_update_instance.run.side_effect = DatasetInvalidError()
+        from superset.commands.dataset.exceptions import (
+            DatasetColumnsExistsValidationError,
+        )
+
+        invalid_error = DatasetInvalidError()
+        invalid_error.append(DatasetColumnsExistsValidationError())
+        mock_update_instance.run.side_effect = invalid_error
     mock_update_cls = MagicMock(return_value=mock_update_instance)
 
     mock_delete_instance = MagicMock()
@@ -2336,7 +2392,11 @@ async def test_create_virtual_dataset_update_failure_rollback(
     # Verify the error response
     data = json.loads(result.content[0].text)
     assert data["id"] is None
-    assert "creation rolled back" in data["error"]
+    if exception_to_raise == "DatasetInvalidError":
+        assert "columns" in data["error"]
+        assert "already exist" in data["error"]
+    else:
+        assert "creation rolled back" in data["error"]
 
 
 @pytest.mark.asyncio

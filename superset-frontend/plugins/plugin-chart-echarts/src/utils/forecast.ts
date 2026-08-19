@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
+import {
+  DataRecord,
+  DTTM_ALIAS,
+  truncateLabel,
+  TooltipTruncationMode,
+  ValueFormatter,
+} from '@superset-ui/core';
 import type { OptionName, SeriesOption } from 'echarts/types/src/util/types';
 import type { TooltipMarker } from 'echarts/types/src/util/format';
 import {
@@ -91,12 +97,16 @@ export const formatForecastTooltipSeries = ({
   forecastUpper,
   marker,
   formatter,
+  truncation = 'end',
 }: ForecastValue & {
   seriesName: string;
   marker: TooltipMarker;
   formatter: ValueFormatter;
+  truncation?: TooltipTruncationMode;
 }): string[] => {
-  const name = `${marker}${sanitizeHtml(seriesName)}`;
+  // Truncate before sanitizing and before the marker is prepended: slicing a
+  // string that already contains markup would cut into the marker's tag.
+  const name = `${marker}${sanitizeHtml(truncateLabel(seriesName, truncation))}`;
   let value = typeof observation === 'number' ? formatter(observation) : '';
   // Use finite-number checks rather than truthiness so that legitimate
   // zero values (e.g. a forecast that crosses zero, or a confidence bound of
