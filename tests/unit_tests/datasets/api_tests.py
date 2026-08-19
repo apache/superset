@@ -249,7 +249,8 @@ def test_post_dataset_with_invalid_sql_returns_actionable_422(
     assert response.status_code == 422
     message = response.json["message"]
     assert "Fatal error" not in str(message)
-    assert message["sql"] == ["Invalid SQL: Error parsing near '.' at line 1:8"]
+    # Not the parser's exact wording -- that would break on a sqlglot bump.
+    assert message["sql"][0].startswith("Invalid SQL")
 
     # The failed create must not leave a half-built dataset behind.
     assert (

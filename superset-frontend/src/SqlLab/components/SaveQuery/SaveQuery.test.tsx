@@ -61,12 +61,16 @@ const splitSaveBtnProps = {
   },
 };
 
+const EDITOR_SQL = 'SELECT * FROM t';
+
 const stateWithLatestQuery = ({
   id,
   state,
+  sql = EDITOR_SQL,
 }: {
   id: string;
   state: string;
+  sql?: string;
 }) => ({
   ...mockState,
   sqlLab: {
@@ -75,7 +79,7 @@ const stateWithLatestQuery = ({
       ...qe,
       latestQueryId: id,
     })),
-    queries: { [id]: { id, state } },
+    queries: { [id]: { id, state, sql } },
   },
 });
 
@@ -132,6 +136,25 @@ describe('SavedQuery', () => {
     render(<SaveQuery {...splitSaveBtnProps} />, {
       useRedux: true,
       store: mockStore(mockState),
+    });
+
+    expect(
+      screen.getByRole('button', { name: /save dataset/i }),
+    ).toBeDisabled();
+  });
+
+  test('blocks "Save dataset" when the SQL changed after a successful run', () => {
+    // The run succeeded, but not for what is in the editor now -- and it is
+    // the editor's SQL that gets saved.
+    render(<SaveQuery {...splitSaveBtnProps} />, {
+      useRedux: true,
+      store: mockStore(
+        stateWithLatestQuery({
+          id: 'qid-1',
+          state: 'success',
+          sql: 'SELECT 1 AS ran_earlier',
+        }),
+      ),
     });
 
     expect(

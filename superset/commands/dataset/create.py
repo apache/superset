@@ -59,6 +59,10 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         except SupersetException as ex:
             # Not a SQLAlchemyError, so ``on_error`` re-raises it untouched and
             # it escapes to FAB's ``@safe`` as an opaque 500 "Fatal error".
+            # Deliberately covers the 403 ``SupersetSecurityException`` raised
+            # for mutation/multi-statement SQL too: ``validate()`` already
+            # reports that class of rejection as a 422 on ``sql`` via
+            # ``DatasetDataAccessIsNotAllowed``.
             raise DatasetInvalidError(
                 exceptions=[
                     ValidationError(

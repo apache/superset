@@ -65,6 +65,12 @@ beforeEach(() => {
   cleanup();
 });
 
+afterEach(() => {
+  // In-body restores are skipped when an assertion throws, leaking a
+  // configured spy into later tests.
+  jest.restoreAllMocks();
+});
+
 // Mock createDatasource to return a thunk that resolves with the dataset's
 // new id. The test's mock store includes redux-thunk middleware (from RTK's
 // getDefaultMiddleware), so dispatch(createDatasource(...)) properly unwraps
@@ -551,8 +557,6 @@ describe('SaveDatasetModal', () => {
     });
     expect(toasts()[0].toastType).toBe('DANGER_TOAST');
     expect(onHide).not.toHaveBeenCalled();
-
-    postFormData.mockReset();
   });
 
   test('clearDatasetCache is imported and available', () => {

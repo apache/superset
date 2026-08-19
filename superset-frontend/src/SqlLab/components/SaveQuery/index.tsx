@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import { useSelector } from 'react-redux';
-import { QueryState } from '@superset-ui/core';
+import { Query, QueryState } from '@superset-ui/core';
 import type { DatabaseObject } from 'src/features/databases/types';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -114,12 +114,14 @@ const SaveQuery = ({
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   // Saving a dataset runs the SQL to introspect columns, so it needs a
-  // successful run first -- same check that gates "Schedule query".
-  const latestQueryState = useSelector<SqlLabRootState, string>(
-    ({ sqlLab }) =>
-      sqlLab.queries[queryEditor.latestQueryId || '']?.state || '',
+  // successful run of the SQL being saved -- editing after a run invalidates
+  // it, and running a selection only validates that selection.
+  const latestQuery = useSelector<SqlLabRootState, Query | undefined>(
+    ({ sqlLab }) => sqlLab.queries[queryEditor.latestQueryId || ''],
   );
-  const hasSuccessfulQuery = latestQueryState === QueryState.Success;
+  const hasSuccessfulQuery =
+    latestQuery?.state === QueryState.Success &&
+    latestQuery.sql === queryEditor.sql;
   const isSaved = !!query.remoteId;
   const isLabelEmpty = label.trim().length === 0;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
