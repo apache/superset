@@ -22,32 +22,30 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { ColorPicker } from 'antd';
 
-// Strict typing to satisfy the tsc compiler
-interface ThemeProps {
-  theme: {
-    gridUnit?: number;
-    borderRadius?: number;
-    colors?: {
-      grayscale?: {
-        light4?: string;
-        light2?: string;
-        light1?: string;
-        dark1?: string;
-        base?: string;
-      };
-      primary?: {
-        base?: string;
-        dark1?: string;
-      };
-      error?: {
-        base?: string;
-      };
+// Strict typing to satisfy the tsc compiler without enforcing it as a required component prop
+interface CustomTheme {
+  gridUnit?: number;
+  borderRadius?: number;
+  colors?: {
+    grayscale?: {
+      light4?: string;
+      light2?: string;
+      light1?: string;
+      dark1?: string;
+      base?: string;
+    };
+    primary?: {
+      base?: string;
+      dark1?: string;
+    };
+    error?: {
+      base?: string;
     };
   };
 }
 
 const Container = styled.div`
-  ${({ theme }: ThemeProps) => `
+  ${({ theme }: { theme?: CustomTheme }) => `
     margin-bottom: ${(theme?.gridUnit || 4) * 4}px;
     padding: ${(theme?.gridUnit || 4) * 4}px;
     background-color: ${theme?.colors?.grayscale?.light4};
@@ -56,7 +54,7 @@ const Container = styled.div`
 `;
 
 const HeaderRow = styled.div`
-  ${({ theme }: ThemeProps) => `
+  ${({ theme }: { theme?: CustomTheme }) => `
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -65,7 +63,7 @@ const HeaderRow = styled.div`
 `;
 
 const Row = styled.div`
-  ${({ theme }: ThemeProps) => `
+  ${({ theme }: { theme?: CustomTheme }) => `
     display: flex;
     align-items: center;
     margin-bottom: ${(theme?.gridUnit || 4) * 2}px;
@@ -80,7 +78,7 @@ const InputGroup = styled.div`
 `;
 
 const StyledInput = styled.input`
-  ${({ theme }: ThemeProps) => `
+  ${({ theme }: { theme?: CustomTheme }) => `
     flex: 1;
     width: 100%;
     height: 32px;
@@ -97,7 +95,7 @@ const StyledInput = styled.input`
 `;
 
 const ColorPickerWrapper = styled.div`
-  ${({ theme }: ThemeProps) => `
+  ${({ theme }: { theme?: CustomTheme }) => `
     display: flex;
     align-items: center;
 
@@ -115,7 +113,7 @@ const ColorPickerWrapper = styled.div`
 `;
 
 const ActionButton = styled.button`
-  ${({ theme }: ThemeProps) => `
+  ${({ theme }: { theme?: CustomTheme }) => `
     background: transparent;
     border: none;
     color: ${theme?.colors?.grayscale?.base};
@@ -131,7 +129,7 @@ const ActionButton = styled.button`
 `;
 
 const AddMoreLink = styled.div`
-  ${({ theme }: ThemeProps) => `
+  ${({ theme }: { theme?: CustomTheme }) => `
     color: ${theme?.colors?.primary?.dark1};
     font-size: 14px;
     font-weight: bold;
@@ -260,7 +258,7 @@ const LabelColorMapping = ({
       <HeaderRow>
         <div>
           <h4
-            css={(theme: ThemeProps['theme']) => ({
+            css={(theme: CustomTheme) => ({
               marginBottom: theme?.gridUnit || 4,
               marginTop: 0,
             })}
@@ -268,7 +266,7 @@ const LabelColorMapping = ({
             {t('Label Colors')}
           </h4>
           <p
-            css={(theme: ThemeProps['theme']) => ({
+            css={(theme: CustomTheme) => ({
               margin: 0,
               fontSize: 12,
               color: theme?.colors?.grayscale?.base,
@@ -283,7 +281,7 @@ const LabelColorMapping = ({
 
       {rows.length === 0 && (
         <p
-          css={(theme: ThemeProps['theme']) => ({
+          css={(theme: CustomTheme) => ({
             fontStyle: 'italic',
             color: theme?.colors?.grayscale?.light1,
           })}
