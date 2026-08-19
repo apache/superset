@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   SupersetClient,
   buildQueryContext,
@@ -33,6 +33,11 @@ import { SlotConfig, SlotResult } from './types';
 type Props = {
   /** Dashboard ID, used to fetch config from the dedicated config table. */
   dashboardId?: number;
+  /** Dashboard-level data including native filters and data mask. */
+  dashboardData?: {
+    nativeFilters?: Record<string, any>;
+    dataMask?: Record<string, any>;
+  };
 };
 
 async function extractErrorMessage(error: unknown): Promise<string> {
@@ -55,8 +60,15 @@ async function extractErrorMessage(error: unknown): Promise<string> {
   return String(error);
 }
 
-async function fetchSlot(slot: SlotConfig): Promise<SlotResult> {
-  const payload = buildQueryContext(slot.formData, baseQueryObject => [
+async function fetchSlot(
+  slot: SlotConfig,
+  extraFormData?: Record<string, any>,
+): Promise<SlotResult> {
+  const mergedFormData = extraFormData
+    ? { ...slot.formData, extra_form_data: extraFormData }
+    : slot.formData;
+
+  const payload = buildQueryContext(mergedFormData, baseQueryObject => [
     {
       ...baseQueryObject,
       orderby: normalizeOrderBy(baseQueryObject).orderby,
@@ -89,7 +101,7 @@ const ErrorPre = styled.pre`
   white-space: pre-wrap;
 `;
 
-const HandlebarsDashboard = ({ dashboardId }: Props) => {
+const HandlebarsDashboard = ({ dashboardId, dashboardData }: Props) => {
   const theme = useTheme();
   const [apiConfig, setApiConfig] = useState<DynamicDashboardApiConfig | null>(
     null,
@@ -140,48 +152,74 @@ const HandlebarsDashboard = ({ dashboardId }: Props) => {
   useEffect(() => {
     const handler = () => setConfigVersion(v => v + 1);
     window.addEventListener('dynamic-dashboard-updated', handler);
-    return () => window.removeEventListener('dynamic-dashboard-updated', handler);
+    return () =>
+      window.removeEventListener('dynamic-dashboard-updated', handler);
   }, []);
 
-  // Fetch slot data once config is loaded.
+  // Extract active filter values from dashboard dataMask.
+  // When filters change, dataMask updates and this triggers a re-fetch.
+  const extraFormData = useMemo(() => {
+    const dataMask = dashboardData?.dataMask;
+    if (!dataMask || typeof dataMask !== 'object') return undefined;
+
+    // Merge all active filter extraFormData into one object
+    const merged: Record<string, any> = {};
+    Object.values(dataMask).forEach((mask: any) => {
+      const extra = mask?.extraFormData;
+      if (extra) {
+        if (extra.filters) {
+          merged.filters = [...(merged.filters || []), ...extra.filters];
+        }
+        if (extra.time_range) {
+          merged.time_range = extra.time_range;
+        }
+      }
+    });
+
+    return Object.keys(merged).length > 0 ? merged : undefined;
+  }, [dashboardData?.dataMask]);
+
+  // Fetch slot data once config is loaded, re-fetch when filters change.
   useEffect(() => {
     if (!apiConfig) return;
     let cancelled = false;
 
     const { slots } = apiConfig;
 
-    Promise.allSettled(slots.map(fetchSlot)).then(results => {
-      if (cancelled) return;
-      const ctx: Record<string, SlotResult> = {};
-      const errors: string[] = [];
-      slots.forEach((slot, i) => {
-        const outcome = results[i];
-        if (outcome.status === 'fulfilled') {
-          ctx[slot.name] = outcome.value;
+    Promise.allSettled(slots.map(slot => fetchSlot(slot, extraFormData))).then(
+      results => {
+        if (cancelled) return;
+        const ctx: Record<string, SlotResult> = {};
+        const errors: string[] = [];
+        slots.forEach((slot, i) => {
+          const outcome = results[i];
+          if (outcome.status === 'fulfilled') {
+            ctx[slot.name] = outcome.value;
+          } else {
+            ctx[slot.name] = { data: [], columns: [] };
+            errors.push(
+              outcome.reason instanceof Error
+                ? outcome.reason.message
+                : String(outcome.reason),
+            );
+          }
+        });
+        if (errors.length > 0 && errors.length === slots.length) {
+          setFetchError(errors.join('\n'));
         } else {
-          ctx[slot.name] = { data: [], columns: [] };
-          errors.push(
-            outcome.reason instanceof Error
-              ? outcome.reason.message
-              : String(outcome.reason),
-          );
+          if (errors.length > 0) {
+            // eslint-disable-next-line no-console
+            console.error('Some Handlebars dashboard slots failed:', errors);
+          }
+          setContext(ctx);
         }
-      });
-      if (errors.length > 0 && errors.length === slots.length) {
-        setFetchError(errors.join('\n'));
-      } else {
-        if (errors.length > 0) {
-          // eslint-disable-next-line no-console
-          console.error('Some Handlebars dashboard slots failed:', errors);
-        }
-        setContext(ctx);
-      }
-    });
+      },
+    );
 
     return () => {
       cancelled = true;
     };
-  }, [apiConfig]);
+  }, [apiConfig, extraFormData]);
 
   const appContainer = document.getElementById('app');
   const { common } = JSON.parse(
