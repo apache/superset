@@ -262,9 +262,10 @@ def test_parse_channel_id_from_request_as_guest_user_differs_per_scope(
     assert with_datasets != with_rev
 
 
+@mock.patch("superset.coordination.CoordinationService.get_backend", return_value=None)
 @mock.patch("superset.is_feature_enabled")
 def test_submit_chart_data_job_as_guest_user(
-    is_feature_enabled_mock, async_query_manager
+    is_feature_enabled_mock, get_backend_mock, async_query_manager
 ):
     is_feature_enabled_mock.return_value = True
     set_current_as_guest_user()

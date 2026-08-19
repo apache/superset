@@ -74,6 +74,7 @@ def test_get_backend_falls_back_to_legacy_gaq_backend_with_warning(
     app_context: None, mocker: MockerFixture
 ) -> None:
     _patch_distributed_coordination(mocker, None)
+    mocker.patch("superset.is_feature_enabled", return_value=True)
     mocker.patch.dict(
         "flask.current_app.config",
         {"GLOBAL_ASYNC_QUERIES_CACHE_BACKEND": {"CACHE_TYPE": "RedisCache"}},

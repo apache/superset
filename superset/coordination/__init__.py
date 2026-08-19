@@ -145,6 +145,17 @@ class CoordinationService:
 
         from flask import current_app
 
+        from superset import is_feature_enabled
+
+        # GLOBAL_ASYNC_QUERIES_CACHE_BACKEND ships a populated default, so its mere
+        # presence is not operator intent — it only signals a coordination backend
+        # when Global Async Queries is actually enabled. Without this gate every
+        # deployment (and all lock/GTF callers) would treat the default as a live
+        # Redis backend and try to connect. The legacy bridge exists solely to keep
+        # GAQ working during the deprecation window.
+        if not is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            return None
+
         if not current_app.config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {}).get(
             "CACHE_TYPE"
         ):
