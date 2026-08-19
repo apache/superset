@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
+
 ### OAuth2 database callback metrics include their outcome
 
 The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with
