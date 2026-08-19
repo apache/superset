@@ -1207,15 +1207,28 @@ def _collect_allowed_sql(
     if params.get("where"):
         allowed.add(params["where"])
 
-    for key in _STORED_COLUMN_PARAMS:
-        for col in params.get(key) or []:
-            if isinstance(col, dict) and col.get("sqlExpression"):
-                allowed.add(col["sqlExpression"])
+    _add_column_sql_expressions(allowed, params)
 
     if stored_query_context:
         _add_allowed_sql_from_query_context(allowed, stored_query_context)
 
     return allowed
+
+
+def _add_column_sql_expressions(target: set[str], params: dict[str, Any]) -> None:
+    """Add ``sqlExpression`` values from column params to *target*.
+
+    Handles both list-valued controls (``columns``, ``groupby``) and
+    scalar-valued ones (``x_axis``, ``entity``, etc.).
+    """
+    for key in _STORED_COLUMN_PARAMS:
+        value = params.get(key)
+        if value is None:
+            continue
+        items = value if isinstance(value, (list, tuple)) else [value]
+        for col in items:
+            if isinstance(col, dict) and col.get("sqlExpression"):
+                target.add(col["sqlExpression"])
 
 
 def _query_has_novel_sql(query: Any, allowed: set[str]) -> bool:
@@ -1246,6 +1259,37 @@ def _query_has_novel_sql(query: Any, allowed: set[str]) -> bool:
     return False
 
 
+def _query_has_novel_extras(query: Any, allowed: set[str]) -> bool:
+    """Whether a query has novel ``extras.where``/``extras.having`` SQL."""
+    extras = getattr(query, "extras", None) or {}
+    for param in ("where", "having"):
+        composed = extras.get(param, "")
+        if composed and composed not in allowed:
+            for expr in _split_extras_clauses(composed):
+                if expr not in allowed:
+                    return True
+    return False
+
+
+def _query_has_novel_filter_col(query: Any, allowed: set[str]) -> bool:
+    """Whether a query has a structured filter ``col`` not in the allowed set.
+
+    Unlike ``_query_has_novel_sql`` this only checks the ``filter[].col``
+    vector — the cross-filter path — and intentionally ignores
+    ``extras.where``/``extras.having``.  Used for the scoped re-check after
+    expanding ``allowed`` with sibling dashboard chart expressions: those
+    borrowed expressions must only legitimize filter columns, not become
+    injectable as arbitrary WHERE/HAVING predicates.
+    """
+    for flt in getattr(query, "filter", None) or []:
+        if isinstance(flt, dict):
+            col = flt.get("col")
+            if isinstance(col, dict) and col.get("sqlExpression"):
+                if col["sqlExpression"] not in allowed:
+                    return True
+    return False
+
+
 def _add_dashboard_column_expressions(
     allowed: set[str], dashboard_id: Any, target_chart_id: int
 ) -> None:
@@ -1257,9 +1301,12 @@ def _add_dashboard_column_expressions(
     source chart's custom SQL dimension to pass validation.  Called lazily
     (only when an unrecognized adhoc SQL col is found) to avoid a DB query
     on the common path.
+
+    The dashboard is authorized via ``has_guest_access`` and the target chart
+    must belong to the dashboard; otherwise no expressions are added.
     """
     # pylint: disable=import-outside-toplevel
-    from superset import db
+    from superset import db, security_manager
     from superset.models.dashboard import Dashboard
 
     if not isinstance(dashboard_id, int):
@@ -1269,14 +1316,18 @@ def _add_dashboard_column_expressions(
     )
     if dashboard is None:
         return
+
+    if not security_manager.has_guest_access(dashboard):
+        return
+
+    slice_ids = {s.id for s in dashboard.slices}
+    if target_chart_id not in slice_ids:
+        return
+
     for slc in dashboard.slices:
         if slc.id == target_chart_id:
             continue
-        params = slc.params_dict
-        for key in _STORED_COLUMN_PARAMS:
-            for col in params.get(key) or []:
-                if isinstance(col, dict) and col.get("sqlExpression"):
-                    allowed.add(col["sqlExpression"])
+        _add_column_sql_expressions(allowed, slc.params_dict)
 
 
 def _sql_filters_modified(
@@ -1307,10 +1358,20 @@ def _sql_filters_modified(
         # it comes from a sibling chart's custom SQL dimension (cross-filter).
         # The dashboard lookup is deferred to here so that the common case
         # (no cross-filter adhoc cols) pays no DB cost.
+
+        # Novel extras.where/having is always rejected — sibling chart
+        # expressions must never legitimize arbitrary WHERE/HAVING predicates.
+        if any(_query_has_novel_extras(q, allowed) for q in query_context.queries):
+            return True
+
+        # The only remaining novel SQL is in filter[].col.  Expand the
+        # allowed set with sibling chart column expressions (authorized
+        # dashboard only) and re-check just the filter col vector.
         if dashboard_id := (form_data or {}).get("dashboardId"):
             _add_dashboard_column_expressions(allowed, dashboard_id, stored_chart.id)
-            # Re-check with the expanded allowed set.
-            if not any(_query_has_novel_sql(q, allowed) for q in query_context.queries):
+            if not any(
+                _query_has_novel_filter_col(q, allowed) for q in query_context.queries
+            ):
                 return False
         return True
 

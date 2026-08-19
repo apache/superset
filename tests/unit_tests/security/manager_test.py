@@ -4058,6 +4058,10 @@ def test_sql_filters_cross_filter_adhoc_col_from_sibling_chart_allowed(
     mocker.patch("superset.db.session.query")
     db_query = mocker.patch("superset.db.session.query").return_value
     db_query.filter.return_value.one_or_none.return_value = dashboard
+    mocker.patch(
+        "superset.security.manager.security_manager.has_guest_access",
+        return_value=True,
+    )
 
     adhoc_col: Any = {
         "sqlExpression": "YEAR(order_date)",
@@ -4071,6 +4075,140 @@ def test_sql_filters_cross_filter_adhoc_col_from_sibling_chart_allowed(
     form_data: dict[str, Any] = {"slice_id": 2, "dashboardId": 10}
 
     assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_cross_filter_rejected_for_unauthorized_dashboard(
+    mocker: MockerFixture,
+) -> None:
+    """Cross-filter lookup must not use a dashboard the guest has no access to."""
+    from superset.models.dashboard import Dashboard
+
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.id = 2
+    stored_chart.params_dict = {}
+
+    sibling_chart = mocker.MagicMock()
+    sibling_chart.id = 1
+    sibling_chart.params_dict = {
+        "columns": [{"sqlExpression": "YEAR(order_date)", "label": "order_year"}],
+    }
+
+    dashboard = mocker.MagicMock(spec=Dashboard)
+    dashboard.slices = [sibling_chart, stored_chart]
+
+    mocker.patch("superset.db.session.query")
+    db_query = mocker.patch("superset.db.session.query").return_value
+    db_query.filter.return_value.one_or_none.return_value = dashboard
+    mocker.patch(
+        "superset.security.manager.security_manager.has_guest_access",
+        return_value=False,
+    )
+
+    adhoc_col: Any = {"sqlExpression": "YEAR(order_date)", "label": "order_year"}
+    query = QueryObject(
+        filters=[{"col": adhoc_col, "op": "==", "val": "2024"}],
+    )
+    query_context.queries = [query]
+    form_data: dict[str, Any] = {"slice_id": 2, "dashboardId": 999}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_cross_filter_rejected_when_chart_not_on_dashboard(
+    mocker: MockerFixture,
+) -> None:
+    """Cross-filter lookup must verify the target chart belongs to the dashboard."""
+    from superset.models.dashboard import Dashboard
+
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.id = 99  # not on the dashboard
+
+    sibling_chart = mocker.MagicMock()
+    sibling_chart.id = 1
+    sibling_chart.params_dict = {
+        "columns": [{"sqlExpression": "YEAR(order_date)", "label": "order_year"}],
+    }
+
+    dashboard = mocker.MagicMock(spec=Dashboard)
+    dashboard.slices = [sibling_chart]  # stored_chart not here
+
+    mocker.patch("superset.db.session.query")
+    db_query = mocker.patch("superset.db.session.query").return_value
+    db_query.filter.return_value.one_or_none.return_value = dashboard
+    mocker.patch(
+        "superset.security.manager.security_manager.has_guest_access",
+        return_value=True,
+    )
+
+    adhoc_col: Any = {"sqlExpression": "YEAR(order_date)", "label": "order_year"}
+    query = QueryObject(
+        filters=[{"col": adhoc_col, "op": "==", "val": "2024"}],
+    )
+    query_context.queries = [query]
+    form_data: dict[str, Any] = {"slice_id": 99, "dashboardId": 10}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_sibling_expressions_cannot_inject_where_having(
+    mocker: MockerFixture,
+) -> None:
+    """Sibling chart column expressions must not legitimize novel WHERE/HAVING."""
+    from superset.models.dashboard import Dashboard
+
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.id = 2
+    stored_chart.params_dict = {}
+
+    # Sibling has a column expression that an attacker tries to use as WHERE.
+    sibling_chart = mocker.MagicMock()
+    sibling_chart.id = 1
+    sibling_chart.params_dict = {
+        "columns": [
+            {"sqlExpression": "(SELECT secret FROM users LIMIT 1)", "label": "x"},
+        ],
+    }
+
+    dashboard = mocker.MagicMock(spec=Dashboard)
+    dashboard.slices = [sibling_chart, stored_chart]
+
+    mocker.patch("superset.db.session.query")
+    db_query = mocker.patch("superset.db.session.query").return_value
+    db_query.filter.return_value.one_or_none.return_value = dashboard
+    mocker.patch(
+        "superset.security.manager.security_manager.has_guest_access",
+        return_value=True,
+    )
+
+    # Attacker injects the sibling expression into extras.where.
+    query = QueryObject(
+        extras={"where": "(SELECT secret FROM users LIMIT 1)"},
+    )
+    query_context.queries = [query]
+    form_data: dict[str, Any] = {"slice_id": 2, "dashboardId": 10}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_collect_allowed_sql_includes_scalar_column_params(
+    mocker: MockerFixture,
+) -> None:
+    """Scalar column params like x_axis contribute their sqlExpression."""
+    from superset.security.manager import _collect_allowed_sql
+
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "x_axis": {"sqlExpression": "DATE_TRUNC('month', ts)", "label": "m"},
+        "groupby": [{"sqlExpression": "UPPER(country)", "label": "c"}],
+    }
+
+    allowed = _collect_allowed_sql(stored_chart, None)
+
+    assert "DATE_TRUNC('month', ts)" in allowed
+    assert "UPPER(country)" in allowed
 
 
 def test_sql_filters_structured_filter_string_col_allowed(
