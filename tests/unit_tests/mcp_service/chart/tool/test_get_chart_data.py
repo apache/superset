@@ -1349,6 +1349,161 @@ class TestChartLookupEagerLoading:
             assert _extract_metrics_load_path(query_options[0]) == ["table", "metrics"]
 
 
+class TestSavedChartExtraFormDataFilters:
+    """Regression tests: extra_form_data filters passed alongside a saved
+    chart identifier must reach the executed query, not just the cached
+    form_data / unsaved-chart path already covered elsewhere.
+
+    A chart with a saved query_context is the common case (any chart that
+    has been opened and saved through Explore), so this is the primary path
+    exercised when a caller passes extra_form_data with a chart identifier.
+    """
+
+    def _chart(self) -> SimpleNamespace:
+        from superset.utils import json as utils_json
+
+        return SimpleNamespace(
+            id=9,
+            slice_name="Sales",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=utils_json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "queries": [
+                        {
+                            "columns": ["country"],
+                            "metrics": ["count"],
+                            "filters": [],
+                            "row_limit": 100,
+                        }
+                    ],
+                    "result_format": "json",
+                    "result_type": "full",
+                }
+            ),
+            params=None,
+        )
+
+    async def _run(self, extra_form_data: dict[str, Any], mcp_server: Any) -> Any:
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+
+        captured: dict[str, Any] = {}
+
+        def fake_load(self: Any, data: dict[str, Any]) -> Any:
+            captured["loaded_query_context_json"] = data
+            return SimpleNamespace(queries=[SimpleNamespace(filter=[])])
+
+        class _Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"country": "USA"}],
+                            "colnames": ["country"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        with (
+            patch.object(
+                module, "find_chart_by_identifier", return_value=self._chart()
+            ),
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            ),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                _Command,
+            ),
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                fake_load,
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data",
+                    {
+                        "request": {
+                            "identifier": "9",
+                            "extra_form_data": extra_form_data,
+                        }
+                    },
+                )
+
+        return captured["loaded_query_context_json"]
+
+    @pytest.mark.asyncio
+    async def test_filters_key_reaches_executed_query(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        """extra_form_data using the native 'filters' format is applied."""
+        loaded = await self._run(
+            {"filters": [{"col": "country", "op": "==", "val": "USA"}]}, mcp_server
+        )
+        filters = loaded["queries"][0].get("filters", [])
+        assert {"col": "country", "op": "==", "val": "USA"} in filters
+
+    @pytest.mark.asyncio
+    async def test_adhoc_filters_key_reaches_executed_query(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        """extra_form_data using the 'adhoc_filters' format is also applied."""
+        loaded = await self._run(
+            {
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "expressionType": "SIMPLE",
+                        "subject": "country",
+                        "operator": "==",
+                        "comparator": "USA",
+                    }
+                ]
+            },
+            mcp_server,
+        )
+        filters = loaded["queries"][0].get("filters", [])
+        assert {"col": "country", "op": "==", "val": "USA"} in filters
+
+    @pytest.mark.asyncio
+    async def test_temporal_range_filter_reaches_executed_query(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        """A TEMPORAL_RANGE filter narrows the query, not just simple filters."""
+        loaded = await self._run(
+            {
+                "filters": [
+                    {
+                        "col": "order_date",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2024-01-01 : 2024-02-01",
+                    }
+                ]
+            },
+            mcp_server,
+        )
+        filters = loaded["queries"][0].get("filters", [])
+        assert {
+            "col": "order_date",
+            "op": "TEMPORAL_RANGE",
+            "val": "2024-01-01 : 2024-02-01",
+        } in filters
+
+
 class TestOAuthErrorRouting:
     """Query-time OAuth errors must reach the dedicated OAuth handlers.
 

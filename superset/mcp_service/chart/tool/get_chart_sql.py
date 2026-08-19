@@ -35,6 +35,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     extract_x_axis_col,
+    merge_extra_form_data_filters_into_query,
     resolve_groupby,
     resolve_metrics,
     resolve_metrics_and_groupby,
@@ -90,6 +91,7 @@ def _extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
 def _build_query_context_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None" = None,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> Any:
     """Build a QueryContext from form_data with result_type=QUERY.
 
@@ -101,6 +103,7 @@ def _build_query_context_from_form_data(
     return build_query_context_from_form_data(
         form_data,
         chart=chart,
+        extra_form_data=extra_form_data,
         result_type=ChartDataResultType.QUERY,
         force=False,
     )
@@ -150,6 +153,7 @@ def _resolve_effective_form_data(
 
 def _sql_from_saved_query_context(
     chart: "Slice",
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError | None:
     """Try to extract SQL from a chart's saved query_context.
 
@@ -167,6 +171,15 @@ def _sql_from_saved_query_context(
         qc_json = utils_json.loads(chart.query_context)
         qc_json["result_type"] = ChartDataResultType.QUERY
         qc_json["force"] = False
+
+        if extra_form_data:
+            for query in qc_json.get("queries", []):
+                merge_extra_form_data_filters_into_query(
+                    query,
+                    extra_form_data,
+                    qc_json["datasource"]["id"],
+                    qc_json["datasource"]["type"],
+                )
 
         query_context = ChartDataQueryContextSchema().load(qc_json)
         query_context.result_type = ChartDataResultType.QUERY
@@ -235,11 +248,14 @@ def _resolve_datasource_name(
 def _sql_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None",
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Build SQL from form_data (fallback path)."""
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    query_context = _build_query_context_from_form_data(form_data, chart)
+    query_context = _build_query_context_from_form_data(
+        form_data, chart, extra_form_data
+    )
     command = ChartDataCommand(query_context)
     command.validate()
     result = command.run()
@@ -335,6 +351,8 @@ async def get_chart_sql(
     Supports:
     - Numeric ID or UUID lookup
     - form_data_key: get SQL for unsaved chart state from Explore view
+    - extra_form_data: preview SQL with dashboard-filter-style predicates merged
+      in, same format accepted by get_chart_data
 
     Example usage:
     ```json
@@ -382,7 +400,9 @@ async def _handle_chart_sql_request(
 
     # Handle unsaved chart (form_data_key only, no identifier)
     if not request.identifier and request.form_data_key:
-        return await _handle_unsaved_chart_sql(request.form_data_key, ctx)
+        return await _handle_unsaved_chart_sql(
+            request.form_data_key, ctx, request.extra_form_data
+        )
 
     # Find the chart by identifier
     if request.identifier is None:
@@ -425,7 +445,7 @@ async def _handle_chart_sql_request(
     # Try saved query_context first (faster, more accurate)
     with event_logger.log_context(action="mcp.get_chart_sql.build_query"):
         if not using_unsaved_state:
-            saved_result = _sql_from_saved_query_context(chart)
+            saved_result = _sql_from_saved_query_context(chart, request.extra_form_data)
             if saved_result is not None:
                 return saved_result
             await ctx.warning(
@@ -435,7 +455,9 @@ async def _handle_chart_sql_request(
 
         # Fallback: build query context from form_data
         try:
-            return _sql_from_form_data(effective_form_data, chart)
+            return _sql_from_form_data(
+                effective_form_data, chart, request.extra_form_data
+            )
         except (SupersetException, CommandException, ValueError) as e:
             await ctx.warning("Failed to build SQL from form_data: %s" % str(e))
             return ChartError(
@@ -445,7 +467,9 @@ async def _handle_chart_sql_request(
 
 
 async def _handle_unsaved_chart_sql(
-    form_data_key: str, ctx: Context
+    form_data_key: str,
+    ctx: Context,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Handle SQL retrieval for unsaved charts (form_data_key only)."""
     from superset.utils import json as utils_json
@@ -476,7 +500,9 @@ async def _handle_unsaved_chart_sql(
             )
 
         try:
-            return _sql_from_form_data(form_data, chart=None)
+            return _sql_from_form_data(
+                form_data, chart=None, extra_form_data=extra_form_data
+            )
         except (SupersetException, CommandException, ValueError) as e:
             await ctx.warning("Failed to generate SQL from form_data: %s" % str(e))
             return ChartError(

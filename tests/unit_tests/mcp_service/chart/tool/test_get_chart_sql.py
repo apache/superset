@@ -86,6 +86,26 @@ class TestGetChartSqlRequestSchema:
         with pytest.raises(ValueError, match="At least one of"):
             GetChartSqlRequest()
 
+    def test_extra_form_data_defaults_to_none(self):
+        """extra_form_data is optional and defaults to None."""
+        request = GetChartSqlRequest(identifier=123)
+        assert request.extra_form_data is None
+
+    def test_extra_form_data_is_accepted(self):
+        """extra_form_data is a real field, not silently dropped.
+
+        Regression test: previously GetChartSqlRequest had no extra_form_data
+        field at all, so callers passing filters got no error and no effect —
+        get_chart_sql always rendered the chart's unfiltered baseline SQL.
+        """
+        request = GetChartSqlRequest(
+            identifier=123,
+            extra_form_data={"filters": [{"col": "country", "op": "==", "val": "USA"}]},
+        )
+        assert request.extra_form_data == {
+            "filters": [{"col": "country", "op": "==", "val": "USA"}]
+        }
+
 
 class TestExtractSqlFromResult:
     """Tests for the _extract_sql_from_result helper."""
@@ -462,6 +482,46 @@ class TestBuildQueryContextFromFormData:
         assert len(queries) == 1
         assert queries[0]["metrics"] == ["sum_revenue"]
         assert queries[0]["columns"] == ["product"]
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_extra_form_data_merged_into_query(self, mock_get_ds, mock_factory_cls):
+        """extra_form_data (e.g. dashboard-style filters) reaches the rendered
+        query, not just chart.params.
+
+        Regression test: _build_query_context_from_form_data previously never
+        forwarded its caller's extra_form_data to build_query_context_from_form_data,
+        so get_chart_sql could not preview SQL with request-supplied filters applied.
+        """
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "metrics": ["count"],
+            "groupby": ["country"],
+        }
+        extra_form_data = {"filters": [{"col": "country", "op": "==", "val": "USA"}]}
+
+        with patch(
+            "superset.common.chart_data.ChartDataResultType"
+        ) as mock_result_type:
+            mock_result_type.QUERY = "QUERY"
+            _build_query_context_from_form_data(
+                form_data, chart=None, extra_form_data=extra_form_data
+            )
+
+        call_kwargs = mock_factory.create.call_args[1]
+        queries = call_kwargs["queries"]
+        assert len(queries) == 1
+        filters = queries[0].get("filters", [])
+        assert {"col": "country", "op": "==", "val": "USA"} in filters
 
 
 class TestExtractXAxisCol:
@@ -990,6 +1050,127 @@ class TestResolveDatasourceName:
         assert result == "combined_dataset"
 
 
+class TestSqlFromSavedQueryContextExtraFormData:
+    """Regression tests: extra_form_data must reach the query built from a
+    chart's saved query_context, not just the request-supplied form_data."""
+
+    def test_real_column_filter_merged_before_schema_load(self):
+        """A filter on a real column ends up in the query handed to
+        ChartDataQueryContextSchema.load, for both the 'filters' and
+        'adhoc_filters' extra_form_data formats."""
+        from superset.mcp_service.chart.tool.get_chart_sql import (
+            _sql_from_saved_query_context,
+        )
+        from superset.utils import json as _json
+
+        chart = Mock()
+        chart.id = 10
+        chart.slice_name = "Sales"
+        chart.datasource_name = "sales"
+        chart.query_context = _json.dumps(
+            {
+                "datasource": {"id": 1, "type": "table"},
+                "queries": [
+                    {"columns": ["country"], "metrics": ["count"], "filters": []}
+                ],
+            }
+        )
+
+        captured = {}
+
+        def fake_load(self, data):
+            captured["query_context_json"] = data
+            fake_qc = Mock()
+            fake_qc.result_type = None
+            return fake_qc
+
+        class _Command:
+            def __init__(self, query_context):
+                pass
+
+            def validate(self):
+                pass
+
+            def run(self):
+                return {
+                    "queries": [{"query": "SELECT * FROM sales", "language": "sql"}]
+                }
+
+        with (
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                fake_load,
+            ),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                _Command,
+            ),
+        ):
+            _sql_from_saved_query_context(
+                chart,
+                extra_form_data={
+                    "filters": [{"col": "country", "op": "==", "val": "USA"}]
+                },
+            )
+
+        filters = captured["query_context_json"]["queries"][0].get("filters", [])
+        assert {"col": "country", "op": "==", "val": "USA"} in filters
+
+    def test_no_extra_form_data_leaves_query_unchanged(self):
+        """Without extra_form_data, the saved query_context is used as-is."""
+        from superset.mcp_service.chart.tool.get_chart_sql import (
+            _sql_from_saved_query_context,
+        )
+        from superset.utils import json as _json
+
+        chart = Mock()
+        chart.id = 10
+        chart.slice_name = "Sales"
+        chart.datasource_name = "sales"
+        chart.query_context = _json.dumps(
+            {
+                "datasource": {"id": 1, "type": "table"},
+                "queries": [
+                    {"columns": ["country"], "metrics": ["count"], "filters": []}
+                ],
+            }
+        )
+
+        captured = {}
+
+        def fake_load(self, data):
+            captured["query_context_json"] = data
+            fake_qc = Mock()
+            fake_qc.result_type = None
+            return fake_qc
+
+        class _Command:
+            def __init__(self, query_context):
+                pass
+
+            def validate(self):
+                pass
+
+            def run(self):
+                return {
+                    "queries": [{"query": "SELECT * FROM sales", "language": "sql"}]
+                }
+
+        with (
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                fake_load,
+            ),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                _Command,
+            ),
+        ):
+            _sql_from_saved_query_context(chart, extra_form_data=None)
+
+        assert captured["query_context_json"]["queries"][0]["filters"] == []
+
+
 class TestGetChartSqlTool:
     """Integration-style tests for the get_chart_sql MCP tool via Client."""
 
@@ -1093,6 +1274,61 @@ class TestGetChartSqlTool:
             data = result.structured_content.get("result", result.structured_content)
             assert "SELECT COUNT(*) FROM sales" in data["sql"]
             assert data["chart_id"] == 10
+
+    @patch.object(_get_chart_sql_mod, "_sql_from_form_data")
+    @patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context")
+    @patch.object(_get_chart_sql_mod, "_resolve_effective_form_data")
+    @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
+    @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
+    @pytest.mark.asyncio
+    async def test_extra_form_data_reaches_saved_query_context_builder(
+        self,
+        mock_find,
+        mock_validate,
+        mock_resolve,
+        mock_saved_qc,
+        mock_form_data_sql,
+        mcp_server,
+    ):
+        """Regression test: request.extra_form_data must be forwarded to the
+        saved-query_context SQL builder, not silently dropped by the request
+        schema or ignored on the way to the builder call."""
+        from fastmcp import Client
+
+        from superset.mcp_service.chart.chart_utils import (
+            DatasetValidationResult,
+        )
+
+        mock_chart = Mock()
+        mock_chart.id = 11
+        mock_chart.slice_name = "Sales Chart"
+        mock_chart.viz_type = "table"
+        mock_find.return_value = mock_chart
+
+        mock_validate.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=1, dataset_name="ds", warnings=[]
+        )
+        mock_resolve.return_value = ({"metrics": ["count"]}, False)
+        mock_saved_qc.return_value = ChartSql(
+            chart_id=11,
+            chart_name="Sales Chart",
+            sql="SELECT COUNT(*) FROM sales WHERE country = 'USA'",
+            language="sql",
+            datasource_name="sales",
+        )
+
+        extra_form_data = {"filters": [{"col": "country", "op": "==", "val": "USA"}]}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_sql",
+                {"request": {"identifier": 11, "extra_form_data": extra_form_data}},
+            )
+
+            data = result.structured_content.get("result", result.structured_content)
+            assert "WHERE country = 'USA'" in data["sql"]
+
+        mock_saved_qc.assert_called_once_with(mock_chart, extra_form_data)
 
     @patch.object(_get_chart_sql_mod, "_sql_from_form_data")
     @patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context")
