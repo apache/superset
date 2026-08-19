@@ -430,6 +430,46 @@ def test_validate_parameters_falls_back_to_domain_wide_delegation(
     assert GSheetsEngineSpec.validate_parameters(properties) == []
 
 
+def test_validate_parameters_without_a_logged_in_user(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that validation works when there's no logged in user to impersonate.
+
+    Outside of a request (eg, a CLI invocation) there is no user to fall back to, so
+    the service account is the only identity available.
+    """
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = None
+
+    create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    create_engine.return_value.connect.return_value.execute.return_value.fetchall.return_value = [  # noqa: E501
+        (1,)
+    ]
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {"service_account_info": "", "catalog": None},
+        "catalog": {"private_sheet": "https://docs.google.com/spreadsheets/d/1/edit"},
+    }
+
+    assert GSheetsEngineSpec.validate_parameters(properties) == []
+
+    create_engine.assert_called_once_with(
+        "gsheets://",
+        connect_args={
+            "adapter_kwargs": {
+                "gsheetsapi": {"service_account_info": {}, "subject": None}
+            }
+        },
+        future=True,
+    )
+
+
 def test_mask_encrypted_extra() -> None:
     """
     Test that the private key is masked when the database is edited.
