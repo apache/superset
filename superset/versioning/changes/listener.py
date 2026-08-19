@@ -60,10 +60,12 @@ from superset.versioning.changes.state import (
     compute_records_from_state,
 )
 from superset.versioning.changes.table import ENTITY_KIND_BY_CLASS_NAME
+from superset.versioning.db_errors import is_missing_table_error
 from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
 )
+from superset.versioning.metrics import incr_capture_error
 
 logger = logging.getLogger(__name__)
 
@@ -258,6 +260,7 @@ def _append_child_records_to_buffer(
                     del buffer[key]
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_changes: child-diff failed for tx %s", tx_id)
+        incr_capture_error("child_diff")
 
 
 def _current_transaction_id(session: Session) -> int | None:
@@ -299,6 +302,17 @@ def _inject_action_meta_record(
         logger.exception("version_changes: malformed ACTION_META_KEY payload")
 
 
+def _write_action_kind(
+    session: Session, tx_table: sa.Table, tx_id: int, action_kind: str
+) -> None:
+    """Write action metadata through the transaction's existing connection."""
+    session.connection().execute(
+        sa.update(tx_table)
+        .where(tx_table.c.id == tx_id)
+        .values(action_kind=action_kind)
+    )
+
+
 def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
     """Pop the per-tx action_kind from ``session.info`` and stamp it
     onto the ``version_transaction`` row identified by *tx_id*.
@@ -312,10 +326,11 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
 
     The action_kind is popped (not just read) so a long-lived session
     can't accidentally carry the value into the next transaction. A
-    failed stamp is logged and swallowed — action_kind is a
-    descriptive enrichment, not a correctness invariant; refusing to
-    write change records because an UPDATE on a single column failed
-    would punish the user save for an audit-log nicety.
+    failed stamp is rolled back to a SAVEPOINT, logged, and swallowed:
+    action_kind is descriptive enrichment, not a correctness invariant.
+    The SAVEPOINT is opened after the final flush, so a failed metadata
+    statement cannot poison the user transaction or disturb Continuum's
+    canonical shadows.
     """
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
@@ -325,17 +340,15 @@ def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
         return
     tx_tbl = versioning_manager.transaction_cls.__table__
     try:
-        session.connection().execute(
-            sa.update(tx_tbl)
-            .where(tx_tbl.c.id == tx_id)
-            .values(action_kind=action_kind)
-        )
+        with session.connection().begin_nested():
+            _write_action_kind(session, tx_tbl, tx_id, action_kind)
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "version_changes: failed to stamp action_kind=%s on tx %s",
             action_kind,
             tx_id,
         )
+        incr_capture_error("action_kind_stamp")
 
 
 def _persist_buffered_records(
@@ -345,11 +358,12 @@ def _persist_buffered_records(
 ) -> None:
     """Bulk-insert *buffer*'s records under *tx_id* and reset the buffer.
 
-    Catches ``OperationalError`` / ``ProgrammingError`` to handle the
-    pre-migration startup race (version_changes table missing — the
-    former on SQLite/MySQL, the latter on PostgreSQL), and ``Exception``
-    as the listener-boundary safety net so a malformed record can't
-    crash the user's save.
+    Swallows the pre-migration startup race silently (version_changes
+    table missing — verified via :func:`is_missing_table_error`, not
+    inferred from the exception class, because ``OperationalError`` also
+    covers deadlocks and dropped connections that must be logged and
+    counted). ``Exception`` is the listener-boundary safety net so a
+    malformed record can't crash the user's save.
 
     The insert runs under a SAVEPOINT (``begin_nested`` on the
     connection): on PostgreSQL a failed statement aborts the enclosing
@@ -361,15 +375,22 @@ def _persist_buffered_records(
     try:
         with session.connection().begin_nested():
             bulk_insert_records(session, tx_id, buffer)
-    except (OperationalError, ProgrammingError):
-        # version_changes table missing (migration not yet applied).
-        pass
-    except Exception:  # pylint: disable=broad-except
+    except Exception as ex:  # pylint: disable=broad-except
+        if isinstance(
+            ex, (OperationalError, ProgrammingError)
+        ) and is_missing_table_error(ex):
+            # version_changes table missing (migration not yet applied) —
+            # the one genuinely benign case; stay quiet.
+            return
+        # Everything else — a deadlock or dropped connection as much as a
+        # malformed record — is a real capture loss. Swallowing it silently
+        # made "the save succeeded but its history doesn't exist" invisible.
         logger.exception(
             "version_changes: bulk insert failed for tx %s (%d entities)",
             tx_id,
             len(buffer),
         )
+        incr_capture_error("bulk_insert")
 
 
 def register_change_record_listener() -> None:  # noqa: C901

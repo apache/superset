@@ -426,15 +426,19 @@ test('can drag metrics (reorder dispatches through the reorder + drop path)', ()
     { useDndKit: true, useRedux: true },
   );
 
-  // DndMetricSelect reorders via moveLabel (internal state) finalized by
-  // onDropLabel. Verify both callbacks were registered on the sortable items
-  // and the drag-end path invokes them (which commits the change via onChange).
+  // DndMetricSelect reorders via moveLabel, which arrayMoves the metrics and
+  // commits the new order itself through onChange (onDropLabel no longer
+  // persists anything). Verify the reorder callback is registered and that a
+  // non-adjacent drag (0 -> 2) commits the fully moved order, not a swap.
   expect(sortables.items.length).toBeGreaterThanOrEqual(3);
   expect(typeof sortables.items[0].onMoveLabel).toBe('function');
-  expect(typeof sortables.items[0].onDropLabel).toBe('function');
 
   simulateReorder(sortables, 0, 2);
-  expect(onChange).toHaveBeenCalled();
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  // arrayMove(['metric_a','metric_b',adhoc], 0, 2) => ['metric_b',adhoc,'metric_a']
+  expect(committed[0]).toBe('metric_b');
+  expect(committed[committed.length - 1]).toBe('metric_a');
 });
 
 test('cannot drop a duplicated item', () => {

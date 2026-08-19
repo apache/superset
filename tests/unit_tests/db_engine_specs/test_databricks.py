@@ -236,6 +236,80 @@ def test_extract_errors_with_context() -> None:
 
 
 @pytest.mark.parametrize(
+    "msg",
+    [
+        # tag only
+        "[INSUFFICIENT_PERMISSIONS] Insufficient privileges: User does not "
+        "have USE CATALOG on Catalog 'platform_production'.",
+        # SQLSTATE only
+        "Insufficient privileges: User does not have USE CATALOG on Catalog "
+        "'platform_production'. SQLSTATE: 42501.",
+        # SQLSTATE with irregular spacing
+        "Insufficient privileges on Catalog 'platform_production'. SQLSTATE:42501",
+        # both, as seen in real Databricks responses
+        "[INSUFFICIENT_PERMISSIONS] Insufficient privileges: User does not "
+        "have USE CATALOG on Catalog 'platform_production'. SQLSTATE: 42501.",
+    ],
+)
+def test_extract_errors_insufficient_permissions(msg: str) -> None:
+    """
+    Test that Databricks catalog/schema permission errors are classified as
+    a client-side, warning-level error instead of a generic server error,
+    regardless of which half of the pattern is present in the raw message.
+    """
+    result = DatabricksNativeEngineSpec.extract_errors(Exception(msg))
+
+    assert result == [
+        SupersetError(
+            message=msg,
+            error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "engine_name": "Databricks (legacy)",
+                "issue_codes": [
+                    {
+                        "code": 1017,
+                        "message": "Issue 1017 - User doesn't have the proper permissions.",  # noqa: E501
+                    }
+                ],
+            },
+        )
+    ]
+
+
+def test_extract_errors_insufficient_permissions_covers_odbc() -> None:
+    """
+    The insufficient-permissions classification lives on the shared
+    ``DatabricksBaseEngineSpec`` so that the ODBC ("SQL Endpoint") connector
+    benefits too, not just the native/Python-connector engines.
+    """
+    from superset.db_engine_specs.databricks import DatabricksODBCEngineSpec
+
+    msg = (
+        "[INSUFFICIENT_PERMISSIONS] Insufficient privileges: User does not "
+        "have USE CATALOG on Catalog 'platform_production'. SQLSTATE: 42501."
+    )
+    result = DatabricksODBCEngineSpec.extract_errors(Exception(msg))
+
+    assert result == [
+        SupersetError(
+            message=msg,
+            error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "engine_name": "Databricks SQL Endpoint",
+                "issue_codes": [
+                    {
+                        "code": 1017,
+                        "message": "Issue 1017 - User doesn't have the proper permissions.",  # noqa: E501
+                    }
+                ],
+            },
+        )
+    ]
+
+
+@pytest.mark.parametrize(
     "target_type,expected_result",
     [
         ("Date", "CAST('2019-01-02' AS DATE)"),
@@ -1018,3 +1092,20 @@ def test_get_oauth2_fresh_token_python(
         },
         timeout=30.0,
     )
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """Databricks SQL is Spark SQL under the hood, so identifiers are quoted
+    with backticks, not the inherited ANSI double quotes."""
+    assert DatabricksNativeEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+    assert DatabricksPythonConnectorEngineSpec.get_public_information()[
+        "identifier_quote"
+    ] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }

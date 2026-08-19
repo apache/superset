@@ -16,6 +16,8 @@
 # under the License.
 """Transaction-level correctness tests for entity version history."""
 
+from unittest.mock import patch
+
 import pytest
 import sqlalchemy as sa
 
@@ -23,6 +25,8 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.versioning.changes import listener
+from superset.versioning.changes.listener import ACTION_KIND_KEY
 from superset.versioning.changes.table import version_changes_table
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
@@ -222,3 +226,83 @@ class TestVersionHistoryTransactionCorrectness(SupersetTestCase):
     def test_nested_rollback_preserves_outer_initial_state(self) -> None:
         """Rolling back a SAVEPOINT keeps the outer transaction registry."""
         self._assert_nested_transaction_preserves_outer_initial_state("rollback")
+
+    def test_action_kind_sql_failure_is_isolated_and_consumed(self) -> None:
+        """Failed descriptive metadata cannot poison or leak from the save."""
+        chart = self._chart("Girls")
+        chart_id = chart.id
+        boundary = db.session.scalar(
+            sa.text("SELECT coalesce(max(id), 0) FROM version_transaction")
+        )
+
+        def fail_action_kind(*_args: object, **_kwargs: object) -> None:
+            db.session.connection().execute(
+                sa.text("UPDATE __missing_action_kind_target__ SET value = 1")
+            )
+
+        try:
+            db.session.info[ACTION_KIND_KEY] = "restore"
+            chart.slice_name = "Girls survives action metadata failure"
+            with patch.object(listener, "_write_action_kind", fail_action_kind):
+                db.session.commit()
+
+            db.session.expire_all()
+            saved = db.session.get(Slice, chart_id)
+            assert saved is not None
+            assert saved.slice_name == "Girls survives action metadata failure"
+            assert ACTION_KIND_KEY not in db.session.info
+
+            first_rows = db.session.execute(
+                sa.text(
+                    "SELECT sv.transaction_id, vt.action_kind "
+                    "FROM slices_version sv "
+                    "JOIN version_transaction vt ON vt.id = sv.transaction_id "
+                    "WHERE sv.id = :id AND sv.operation_type = 1 "
+                    "AND sv.slice_name = :name "
+                    "AND sv.transaction_id > :boundary"
+                ),
+                {
+                    "id": chart_id,
+                    "name": "Girls survives action metadata failure",
+                    "boundary": boundary,
+                },
+            ).all()
+            assert len(first_rows) == 1
+            assert first_rows[0].action_kind is None
+            failed_metadata_tx_id = first_rows[0].transaction_id
+
+            semantic_changes = _changes_for_chart(
+                chart_id, after_transaction_id=boundary
+            )
+            name_changes = [
+                row
+                for row in semantic_changes
+                if row["path"] == ["slice_name"]
+                and row["to_value"] == "Girls survives action metadata failure"
+            ]
+            assert len(name_changes) == 1
+            assert name_changes[0]["transaction_id"] == failed_metadata_tx_id
+
+            saved.slice_name = "Girls next transaction"
+            db.session.commit()
+            next_rows = db.session.execute(
+                sa.text(
+                    "SELECT vt.action_kind FROM slices_version sv "
+                    "JOIN version_transaction vt ON vt.id = sv.transaction_id "
+                    "WHERE sv.id = :id AND sv.operation_type = 1 "
+                    "AND sv.slice_name = :name "
+                    "AND sv.transaction_id > :boundary"
+                ),
+                {
+                    "id": chart_id,
+                    "name": "Girls next transaction",
+                    "boundary": failed_metadata_tx_id,
+                },
+            ).all()
+            assert len(next_rows) == 1
+            assert next_rows[0].action_kind is None
+        finally:
+            chart = db.session.get(Slice, chart_id)
+            assert chart is not None
+            chart.slice_name = "Girls"
+            db.session.commit()

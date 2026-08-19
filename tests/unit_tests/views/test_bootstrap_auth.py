@@ -23,6 +23,7 @@ from flask_appbuilder.const import (
     AUTH_DB,
     AUTH_LDAP,
     AUTH_OAUTH,
+    AUTH_REMOTE_USER,
     AUTH_SAML,
 )
 
@@ -95,19 +96,19 @@ def test_bootstrap_oauth_providers(app_context: None) -> None:
 
 @pytest.mark.parametrize(
     "auth_type",
-    [AUTH_OAUTH, AUTH_SAML],
+    [AUTH_LDAP, AUTH_OAUTH, AUTH_SAML],
 )
-def test_recaptcha_not_shown_for_federated_auth(
+def test_recaptcha_not_shown_for_external_auth(
     app_context: None,
     auth_type: int,
 ) -> None:
-    """Recaptcha should not be shown for OAuth or SAML auth types."""
+    """Recaptcha should not be shown for LDAP, OAuth, or SAML auth types."""
     from flask import current_app
 
     current_app.config["AUTH_TYPE"] = auth_type
     current_app.config["AUTH_USER_REGISTRATION"] = True
     current_app.config["AUTH_USER_REGISTRATION_ROLE"] = "Public"
-    current_app.config.pop("RECAPTCHA_PUBLIC_KEY", None)
+    current_app.config["RECAPTCHA_PUBLIC_KEY"] = "test-key"
 
     payload = _get_bootstrap()
 
@@ -116,13 +117,13 @@ def test_recaptcha_not_shown_for_federated_auth(
 
 @pytest.mark.parametrize(
     "auth_type",
-    [AUTH_DB, AUTH_LDAP],
+    [AUTH_DB, AUTH_REMOTE_USER],
 )
-def test_recaptcha_shown_for_non_federated_auth(
+def test_recaptcha_shown_for_non_external_auth(
     app_context: None,
     auth_type: int,
 ) -> None:
-    """Recaptcha should be shown for DB and LDAP auth types when registration is on."""
+    """Recaptcha should be shown for DB and remote-user auth when registration is on."""
     from flask import current_app
 
     current_app.config["AUTH_TYPE"] = auth_type
@@ -133,6 +134,40 @@ def test_recaptcha_shown_for_non_federated_auth(
     payload = _get_bootstrap()
 
     assert payload["conf"]["RECAPTCHA_PUBLIC_KEY"] == "test-key"
+
+
+def test_recaptcha_not_shown_without_user_registration(
+    app_context: None,
+) -> None:
+    """Recaptcha should not be shown when user registration is disabled."""
+    from flask import current_app
+
+    current_app.config["AUTH_TYPE"] = AUTH_DB
+    current_app.config["AUTH_USER_REGISTRATION"] = False
+    current_app.config["RECAPTCHA_PUBLIC_KEY"] = "test-key"
+
+    payload = _get_bootstrap()
+
+    assert payload["conf"]["AUTH_USER_REGISTRATION"] is False
+    assert "RECAPTCHA_PUBLIC_KEY" not in payload["conf"]
+
+
+def test_ldap_auth_with_registration_role_still_set(
+    app_context: None,
+) -> None:
+    """AUTH_USER_REGISTRATION_ROLE is still set for LDAP even without recaptcha."""
+    from flask import current_app
+
+    current_app.config["AUTH_TYPE"] = AUTH_LDAP
+    current_app.config["AUTH_USER_REGISTRATION"] = True
+    current_app.config["AUTH_USER_REGISTRATION_ROLE"] = "Gamma"
+    current_app.config["RECAPTCHA_PUBLIC_KEY"] = "test-key"
+
+    payload = _get_bootstrap()
+
+    assert payload["conf"]["AUTH_USER_REGISTRATION"] is True
+    assert payload["conf"]["AUTH_USER_REGISTRATION_ROLE"] == "Gamma"
+    assert "RECAPTCHA_PUBLIC_KEY" not in payload["conf"]
 
 
 @pytest.mark.parametrize(
@@ -156,71 +191,108 @@ def test_bootstrap_does_not_crash_without_recaptcha_key(
     assert "RECAPTCHA_PUBLIC_KEY" not in payload["conf"]
 
 
-# --- language_pack injection --------------------------------------------
+# --- language pack delivery ----------------------------------------------
 #
-# The Jed pack is injected by `common_bootstrap_payload` (outside the
-# memoized `cached_common_bootstrap_data`) using the shared
-# `superset.translations.utils.get_language_pack`. Tests here cover the
-# wrapper to confirm the pack lands on the payload for non-English
-# locales and is None for English.
+# The pack is NOT embedded in the bootstrap payload; spa.html loads it via a
+# content-addressed script tag whose URL comes from
+# `get_language_pack_template_context`. A pack supplied through
+# COMMON_BOOTSTRAP_OVERRIDES_FUNC still rides the payload and suppresses the
+# script tag.
 
 
-def test_common_bootstrap_payload_includes_language_pack_for_non_english(
+def test_common_bootstrap_payload_does_not_embed_language_pack(
     app_context: None,
 ) -> None:
-    """common.language_pack carries the shared utility's pack for non-en."""
-    fake_pack = {"domain": "superset", "locale_data": {"superset": {}}}
+    """The payload stays small: no full pack even for non-English locales."""
     with (
         patch(
             "superset.views.base.cached_common_bootstrap_data",
             return_value={"locale": "fr"},
         ),
-        patch(
-            "superset.views.base.get_language_pack",
-            return_value=fake_pack,
-        ) as mock_get,
         patch("superset.views.base.utils.get_user_id", return_value=1),
         patch("superset.views.base.get_locale", return_value="fr"),
     ):
-        payload = common_bootstrap_payload()
+        payload: dict[str, Any] = common_bootstrap_payload()
 
-    assert payload["language_pack"] == fake_pack
-    mock_get.assert_called_once_with("fr")
+    assert payload["language_pack"] is None
 
 
-def test_common_bootstrap_payload_skips_pack_for_english(
+def test_common_bootstrap_payload_preserves_override_pack(
     app_context: None,
 ) -> None:
-    """English short-circuits: pack is None and the utility is not called."""
+    """A pack from COMMON_BOOTSTRAP_OVERRIDES_FUNC is passed through."""
+    fake_pack: dict[str, Any] = {"domain": "superset", "locale_data": {"superset": {}}}
     with (
         patch(
             "superset.views.base.cached_common_bootstrap_data",
-            return_value={"locale": "en"},
+            return_value={"locale": "fr", "language_pack": fake_pack},
         ),
-        patch("superset.views.base.get_language_pack") as mock_get,
         patch("superset.views.base.utils.get_user_id", return_value=1),
-        patch("superset.views.base.get_locale", return_value="en"),
+        patch("superset.views.base.get_locale", return_value="fr"),
     ):
-        payload = common_bootstrap_payload()
+        payload: dict[str, Any] = common_bootstrap_payload()
 
-    assert payload["language_pack"] is None
-    mock_get.assert_not_called()
+    assert payload["language_pack"] == fake_pack
 
 
 def test_common_bootstrap_payload_does_not_mutate_memoized_dict(
     app_context: None,
 ) -> None:
-    """Injecting language_pack must not write back into the memoize cache."""
+    """Defaulting language_pack must not write back into the memoize cache."""
     cached: dict[str, Any] = {"locale": "fr"}
     with (
         patch(
             "superset.views.base.cached_common_bootstrap_data",
             return_value=cached,
         ),
-        patch("superset.views.base.get_language_pack", return_value={"x": 1}),
         patch("superset.views.base.utils.get_user_id", return_value=1),
         patch("superset.views.base.get_locale", return_value="fr"),
     ):
         common_bootstrap_payload()
 
     assert "language_pack" not in cached
+
+
+def _language_pack_context(
+    locale: str, payload_extra: dict[str, Any]
+) -> dict[str, Any]:
+    from superset.views.base import get_language_pack_template_context
+
+    with (
+        patch(
+            "superset.views.base.get_language_pack_version",
+            return_value="abc123def456",
+        ),
+        patch(
+            "superset.views.base.url_for",
+            return_value="/language_pack/fr/abc123def456/script.js",
+        ),
+    ):
+        return get_language_pack_template_context({"locale": locale, **payload_extra})
+
+
+def test_language_pack_template_context_versioned_src_for_non_english(
+    app_context: None,
+) -> None:
+    context: dict[str, Any] = _language_pack_context("fr", {})
+    assert context == {
+        "language_pack_src": "/language_pack/fr/abc123def456/script.js",
+        "language_pack_inline": False,
+    }
+
+
+def test_language_pack_template_context_none_for_english(
+    app_context: None,
+) -> None:
+    context: dict[str, Any] = _language_pack_context("en", {})
+    assert context == {"language_pack_src": None, "language_pack_inline": False}
+
+
+def test_language_pack_template_context_inline_for_override_pack(
+    app_context: None,
+) -> None:
+    """An operator-supplied pack suppresses the script tag; spa.html inlines."""
+    context: dict[str, Any] = _language_pack_context(
+        "fr", {"language_pack": {"domain": "superset"}}
+    )
+    assert context == {"language_pack_src": None, "language_pack_inline": True}

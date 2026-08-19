@@ -90,6 +90,7 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -156,6 +157,7 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -251,6 +253,7 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -518,6 +521,7 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -746,6 +750,7 @@ async def test_get_dashboard_info_does_not_expose_access_list(mock_info, mcp_ser
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.position_json = None
     dashboard.published = True
@@ -802,6 +807,7 @@ async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = json.dumps(
         {
             "native_filter_configuration": [
@@ -868,6 +874,7 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.position_json = None
     dashboard.published = True
@@ -969,6 +976,7 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.position_json = None
     dashboard.is_managed_externally = False
@@ -1019,6 +1027,7 @@ async def test_get_dashboard_info_includes_embedded_uuid(mock_find_object, mcp_s
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -1062,6 +1071,7 @@ async def test_get_dashboard_info_embedded_uuid_none_when_not_embedded(
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -1100,6 +1110,7 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     dashboard.css = ""
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -1139,6 +1150,7 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     dashboard.css = ""
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
@@ -1190,6 +1202,7 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     dashboard.css = None
     dashboard.certified_by = None
     dashboard.certification_details = None
+    dashboard.deleted_at = None
     dashboard.json_metadata = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -1245,6 +1258,7 @@ async def test_list_dashboards_sanitizes_dashboard_descriptions_and_filter_text(
     dashboard.dashboard_title = "Quarterly Dashboard"
     dashboard.slug = "quarterly-dashboard"
     dashboard.uuid = "uuid-quarterly-3"
+    dashboard.deleted_at = None
     dashboard.url = "/dashboard/3"
     dashboard.published = True
     dashboard.changed_by_name = "admin"
@@ -1410,6 +1424,7 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.css = None
         dashboard.certified_by = None
         dashboard.certification_details = None
+        dashboard.deleted_at = None
         dashboard.json_metadata = None
         dashboard.is_managed_externally = False
         dashboard.external_url = None
@@ -1442,22 +1457,22 @@ class TestDashboardSortableColumns:
 
     def test_dashboard_sortable_columns_definition(self):
         """Test that dashboard sortable columns are properly defined."""
-        from superset.mcp_service.dashboard.tool.list_dashboards import (
-            SORTABLE_DASHBOARD_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DASHBOARD_SORTABLE_COLUMNS,
         )
 
-        assert SORTABLE_DASHBOARD_COLUMNS == [
+        assert DASHBOARD_SORTABLE_COLUMNS == [
             "id",
             "dashboard_title",
             "slug",
             "published",
             "changed_on",
+            "changed_on_delta_humanized",
             "created_on",
         ]
-        # Ensure no computed properties are included
-        assert "changed_on_delta_humanized" not in SORTABLE_DASHBOARD_COLUMNS
-        assert "changed_by_name" not in SORTABLE_DASHBOARD_COLUMNS
-        assert "uuid" not in SORTABLE_DASHBOARD_COLUMNS
+        # Ensure unsupported computed properties are excluded
+        assert "changed_by_name" not in DASHBOARD_SORTABLE_COLUMNS
+        assert "uuid" not in DASHBOARD_SORTABLE_COLUMNS
 
     @patch("superset.daos.dashboard.DashboardDAO.list")
     @pytest.mark.asyncio
@@ -1486,17 +1501,58 @@ class TestDashboardSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
-        from superset.mcp_service.dashboard.tool.list_dashboards import (
-            list_dashboards,
-            SORTABLE_DASHBOARD_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DASHBOARD_SORTABLE_COLUMNS,
         )
+        from superset.mcp_service.dashboard.tool.list_dashboards import list_dashboards
 
         # Check list_dashboards docstring for sortable columns documentation
         assert list_dashboards.__doc__ is not None
         assert "Sortable columns for" in list_dashboards.__doc__
         assert "order_column" in list_dashboards.__doc__
-        for col in SORTABLE_DASHBOARD_COLUMNS:
+        for col in DASHBOARD_SORTABLE_COLUMNS:
             assert col in list_dashboards.__doc__
+
+    @patch("superset.daos.dashboard.DashboardDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_dashboards_changed_on_delta_humanized_order_column(
+        self, mock_list, mcp_server
+    ):
+        """Regression test: order_column='changed_on_delta_humanized' is the
+        "Last modified" column name used by Superset's own REST API and list
+        views. Production chatbot calls pass it when asked to sort dashboards
+        by "most recently modified" and must not be rejected. It resolves to
+        'changed_on' for the DAO, matching REST API sort behaviour (see
+        dashboards/api.py's order_columns and
+        models/helpers.py:changed_on_delta_humanized)."""
+        mock_list.return_value = ([], 0)
+
+        async with Client(mcp_server) as client:
+            request = ListDashboardsRequest(order_column="changed_on_delta_humanized")
+            result = await client.call_tool(
+                "list_dashboards", {"request": request.model_dump()}
+            )
+
+            mock_list.assert_called_once()
+            call_args = mock_list.call_args[1]
+            assert call_args["order_column"] == "changed_on"
+
+            data = json.loads(result.content[0].text)
+            assert data["dashboards"] == []
+
+    @patch("superset.daos.dashboard.DashboardDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_dashboards_invalid_order_column_raises_tool_error(
+        self, mock_list, mcp_server
+    ):
+        """A genuinely unknown order_column must still be rejected."""
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+                await client.call_tool(
+                    "list_dashboards", {"request": {"order_column": "random"}}
+                )
+            assert "Invalid order_column" in str(excinfo.value)
+        mock_list.assert_not_called()
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")

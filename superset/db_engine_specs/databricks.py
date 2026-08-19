@@ -17,7 +17,9 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime
+from re import Pattern
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
@@ -55,6 +57,10 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+INSUFFICIENT_PERMISSIONS_REGEX: Pattern[str] = re.compile(
+    r"\[INSUFFICIENT_PERMISSIONS\]|\bSQLSTATE:\s*42501\b"
+)
 
 
 try:
@@ -253,6 +259,11 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
 class DatabricksBaseEngineSpec(BaseEngineSpec):
     _time_grain_expressions = time_grain_expressions
 
+    # Databricks SQL is Spark SQL under the hood: identifiers are quoted with
+    # backticks, not the inherited ANSI double quotes.
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
+
     @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
@@ -262,6 +273,25 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return HiveEngineSpec.epoch_to_dttm()
+
+    @classmethod
+    def extract_errors(
+        cls,
+        ex: Exception,
+        context: dict[str, Any] | None = None,
+        database_name: str | None = None,
+    ) -> list[SupersetError]:
+        raw_message = cls._extract_error_message(ex)
+        if INSUFFICIENT_PERMISSIONS_REGEX.search(raw_message):
+            return [
+                SupersetError(
+                    error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+                    message=raw_message,
+                    level=ErrorLevel.WARNING,
+                    extra={"engine_name": cls.engine_name},
+                )
+            ]
+        return super().extract_errors(ex, context, database_name)
 
 
 class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
@@ -490,46 +520,15 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         context: dict[str, Any] | None = None,
         database_name: str | None = None,
     ) -> list[SupersetError]:
-        raw_message = cls._extract_error_message(ex)
-
         context = context or {}
 
         # access_token isn't currently parseable from the
         # databricks error response, but adding it in here
         # for reference if their error message changes
-
         for key, value in cls.context_key_mapping.items():
             context[key] = context.get(value)
 
-        db_engine_custom_errors = cls.get_database_custom_errors(database_name)
-        if not isinstance(db_engine_custom_errors, dict):
-            db_engine_custom_errors = {}
-
-        for regex, (message, error_type, extra) in [
-            *db_engine_custom_errors.items(),
-            *cls.custom_errors.items(),
-        ]:
-            match = regex.search(raw_message)
-            if match:
-                params = {**context, **match.groupdict()}
-                extra["engine_name"] = cls.engine_name
-                return [
-                    SupersetError(
-                        error_type=error_type,
-                        message=message % params,
-                        level=ErrorLevel.ERROR,
-                        extra=extra,
-                    )
-                ]
-
-        return [
-            SupersetError(
-                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                message=cls._extract_error_message(ex),
-                level=ErrorLevel.ERROR,
-                extra={"engine_name": cls.engine_name},
-            )
-        ]
+        return super().extract_errors(ex, context, database_name)
 
     @classmethod
     def validate_parameters(  # type: ignore
@@ -540,6 +539,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         ],
     ) -> list[SupersetError]:
         errors: list[SupersetError] = []
+        connect_args: dict[str, Any] = {}
         if extra := json.loads(properties.get("extra")):  # type: ignore
             engine_params = extra.get("engine_params", {})
             connect_args = engine_params.get("connect_args", {})
@@ -669,17 +669,19 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
                 )
             query.update(cls.encryption_parameters)
 
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}".rstrip("+"),
-                username="token",
-                password=parameters.get("access_token"),
-                host=parameters["host"],
-                port=parameters["port"],
-                database=parameters["database"],
-                query=query,
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}".rstrip("+"),
+            username="token",
+            password=parameters.get("access_token"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=parameters["database"],
+            query=query,
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(  # type: ignore
@@ -896,16 +898,18 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         if parameters.get("encryption"):
             query.update(cls.encryption_parameters)
 
-        return str(
-            URL.create(
-                cls.engine,
-                username="token",
-                password=parameters.get("access_token"),
-                host=parameters["host"],
-                port=parameters["port"],
-                query=query,
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            cls.engine,
+            username="token",
+            password=parameters.get("access_token"),
+            host=parameters["host"],
+            port=parameters["port"],
+            query=query,
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(  # type: ignore

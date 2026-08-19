@@ -40,6 +40,38 @@ class DatabaseNotFoundValidationError(ValidationError):
         super().__init__(_("Database does not exist"), field_name="database")
 
 
+class AlertQueryMultipleStatementsValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL containing multiple statements
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Alert query must be a single statement"),
+            field_name="sql",
+        )
+
+
+class AlertQueryDMLNotAllowedValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL that mutates state on a
+    database that does not allow DML
+    """
+
+    def __init__(self) -> None:
+        super().__init__(_("Alert query must be read-only"), field_name="sql")
+
+
+class AlertQueryDataAccessValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL referencing tables the user
+    is not authorized to query
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, field_name="sql")
+
+
 class ReportScheduleDatabaseNotAllowedValidationError(ValidationError):
     """
     Marshmallow validation error for database reference on a Report type schedule
@@ -133,6 +165,23 @@ class ReportScheduleFrequencyNotAllowed(ValidationError):  # noqa: N818
         )
 
 
+class ReportScheduleCrontabNotValidError(ValidationError):  # noqa: N818
+    """
+    Marshmallow validation error for a crontab that is syntactically valid
+    but never matches a real calendar date (e.g. February 30th)
+    """
+
+    def __init__(self, cron_schedule: str = "") -> None:
+        super().__init__(
+            _(
+                "Invalid crontab schedule: %(cron_schedule)s never matches"
+                " a valid date",
+                cron_schedule=cron_schedule,
+            ),
+            field_name="crontab",
+        )
+
+
 class ChartNotSavedValidationError(ValidationError):
     """
     Marshmallow validation error for charts that haven't been saved yet
@@ -195,6 +244,12 @@ class ReportSchedulePdfFailedError(CommandException):
 
 class ReportScheduleCsvFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a csv.")
+
+
+class ReportScheduleXlsxFailedError(CommandException):
+    """Raised when generating the Excel (xlsx) attachment for a report fails."""
+
+    message = _("Report Schedule execution failed when generating an Excel file.")
 
 
 class ReportScheduleDataFrameFailedError(CommandException):
@@ -308,6 +363,13 @@ class ReportScheduleScreenshotTimeout(CommandException):
 class ReportScheduleCsvTimeout(CommandException):
     status = 408
     message = _("A timeout occurred while generating a csv.")
+
+
+class ReportScheduleXlsxTimeout(CommandException):
+    """Raised when generating the Excel (xlsx) attachment for a report times out."""
+
+    status: int = 408
+    message = _("A timeout occurred while generating an Excel file.")
 
 
 class ReportScheduleDataFrameTimeout(CommandException):

@@ -29,6 +29,7 @@ import {
   canUserSaveAsDashboard,
   isUserAdmin,
   isUserDashboardEditor,
+  isUserEditorOrAdmin,
 } from './permissionUtils';
 
 const editorUser: UserWithPermissionsAndRoles = {
@@ -131,6 +132,44 @@ test('isUserDashboardEditor returns false when editors is empty', () => {
   expect(isUserDashboardEditor(dashNoEditors)).toEqual(false);
 });
 
+test('isUserDashboardEditor counts editorship granted through extra_editors', () => {
+  // The server's is_editor unions EXTRA_EDITORS_RESOLVER output into the
+  // editor set, and the API attaches it after the response schema is dumped
+  // (so it survives the columns projection). extra_editors arrives as bare
+  // ids, not Subjects.
+  const dashExtraEditor = { ...dashboard, editors: [], extra_editors: [10] };
+  expect(isUserDashboardEditor(dashExtraEditor)).toEqual(true);
+  expect(canUserEditDashboard(dashExtraEditor, editorUser)).toEqual(true);
+});
+
+test('isUserDashboardEditor unions the two lists rather than preferring one', () => {
+  // Pins the union semantics: a refactor that consulted extra_editors only
+  // when editors is empty would pass the empty-editors cases above but
+  // fail here — non-matching editors must not mask a matching extra grant.
+  const dashUnion = {
+    ...dashboard,
+    editors: [{ id: 999, label: 'Other', type: 1 }],
+    extra_editors: [10],
+  };
+  expect(isUserDashboardEditor(dashUnion)).toEqual(true);
+});
+
+test('an empty extra_editors grants nothing on its own', () => {
+  // The resolver-configured-but-returns-nothing shape.
+  const dashEmptyExtra = { ...dashboard, editors: [], extra_editors: [] };
+  expect(isUserDashboardEditor(dashEmptyExtra)).toEqual(false);
+});
+
+test('isUserDashboardEditor ignores extra_editors for other subjects', () => {
+  const dashOtherExtraEditor = {
+    ...dashboard,
+    editors: [],
+    extra_editors: [999],
+  };
+  expect(isUserDashboardEditor(dashOtherExtraEditor)).toEqual(false);
+  expect(canUserEditDashboard(dashOtherExtraEditor, editorUser)).toEqual(false);
+});
+
 test('canUserEditDashboard allows editors', () => {
   expect(canUserEditDashboard(dashboard, editorUser)).toEqual(true);
 });
@@ -194,6 +233,86 @@ test('isUserAdmin returns false for undefined user', () => {
 
 test('isUserAdmin returns false for non-admin user', () => {
   expect(isUserAdmin(editorUser)).toEqual(false);
+});
+
+describe('isUserEditorOrAdmin', () => {
+  test('returns true when the user is a subject editor', () => {
+    expect(isUserEditorOrAdmin(editorUser, [editorSubject])).toEqual(true);
+  });
+
+  test('returns true when the user is an admin, regardless of subject membership', () => {
+    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+    expect(isUserEditorOrAdmin(adminUser, [nonMatchingSubject])).toEqual(true);
+  });
+
+  test('returns false when the user is neither a subject editor nor an admin', () => {
+    const nonMatchingSubject: Subject = { id: 999, label: 'Other', type: 1 };
+    expect(isUserEditorOrAdmin(outsiderUser, [nonMatchingSubject])).toEqual(
+      false,
+    );
+  });
+
+  test('returns false when editors is empty', () => {
+    expect(isUserEditorOrAdmin(editorUser, [])).toEqual(false);
+  });
+
+  test('returns false when editors is omitted', () => {
+    expect(isUserEditorOrAdmin(outsiderUser)).toEqual(false);
+  });
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('isUserAdmin with a custom AUTH_ROLE_ADMIN', () => {
+  // The file-level `jest.mock('src/utils/getBootstrapData', ...)` above
+  // permanently stubs out getBootstrapData with fixed data, which would
+  // shadow the DOM-driven bootstrap data these tests set up. Unmock it so
+  // the re-imported permissionUtils picks up the real implementation
+  // (reading document.getElementById('app')), then restore the mock
+  // afterward so later tests in this file keep their expected stub.
+  beforeEach(() => {
+    jest.unmock('src/utils/getBootstrapData');
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    jest.resetModules();
+    jest.mock('src/utils/getBootstrapData', () => ({
+      __esModule: true,
+      default: jest.fn(() => ({
+        common: {
+          user_subjects: [10],
+        },
+      })),
+    }));
+  });
+
+  test('recognizes a user in the configured custom admin role', async () => {
+    document.body.innerHTML =
+      '<div id="app" data-bootstrap=\'{"common":{"conf":{"AUTH_ROLE_ADMIN":"SuperAdmin"}}}\'></div>';
+
+    jest.resetModules();
+    const { isUserAdmin: isUserAdminWithCustomRole } =
+      await import('./permissionUtils');
+
+    expect(
+      isUserAdminWithCustomRole({
+        username: 'super-admin',
+        permissions: {},
+        roles: { SuperAdmin: [['can_write', 'Dashboard']] },
+      }),
+    ).toEqual(true);
+  });
+
+  test('does not throw and falls back to the default role when bootstrap data has no conf', async () => {
+    document.body.innerHTML =
+      '<div id="app" data-bootstrap=\'{"common":{}}\'></div>';
+
+    jest.resetModules();
+    const { isUserAdmin: isUserAdminWithoutConf } =
+      await import('./permissionUtils');
+
+    expect(isUserAdminWithoutConf(adminUser)).toEqual(true);
+  });
 });
 
 test('userHasPermission always returns true for admin user', () => {

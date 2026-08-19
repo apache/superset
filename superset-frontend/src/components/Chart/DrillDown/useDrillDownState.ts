@@ -121,17 +121,6 @@ interface UseDrillDownStateResult {
 }
 
 /**
- * Pending eviction timers keyed by chart id. When a chart unmounts, we start
- * a timer to delete its drill state after a brief grace period. If the chart
- * remounts quickly (e.g. filter-change re-layout), the new mount cancels the
- * timer and reclaims the state from drillStateStore.
- */
-const evictionTimers = new Map<
-  string | number,
-  ReturnType<typeof setTimeout>
->();
-
-/**
  * Hook that manages a chart's drill-down state. Owns the drill stack,
  * computes the effective form_data for the current level, fetches the
  * data for that level, and exposes navigation helpers (drillDown / resetTo).
@@ -146,25 +135,12 @@ export function useDrillDownState({
 }: UseDrillDownStateArgs): UseDrillDownStateResult {
   const chartKey = chartId;
 
-  // On mount: cancel any pending eviction from a previous unmount.
-  // On unmount: schedule eviction after a grace period.
-  useEffect(() => {
-    const pending = evictionTimers.get(chartKey);
-    if (pending) {
-      clearTimeout(pending);
-      evictionTimers.delete(chartKey);
-    }
-    return () => {
-      if (chartKey == null) return;
-      const key = chartKey;
-      const timer = setTimeout(() => {
-        drillStateStore.delete(key);
-        evictionTimers.delete(key);
-      }, 1000);
-      evictionTimers.set(key, timer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartKey]);
+  // Drill state intentionally persists in drillStateStore across unmounts
+  // (dashboard virtualization scroll-out, tab switches, filter re-layouts) so
+  // it stays in sync with the cross-filter the drill emits into Redux. Evicting
+  // it on unmount previously left the emitted cross-filter orphaned — the drill
+  // appeared to reset while the filter lingered. The store is cleared on chart
+  // reconfigure (the layout effect below) and via clearDrillDownState.
 
   const [drillStack, setDrillStack] = useState<DrillDownLevel[]>(
     () =>

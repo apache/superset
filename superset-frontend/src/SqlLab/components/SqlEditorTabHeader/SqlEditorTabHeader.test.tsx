@@ -245,7 +245,7 @@ test('does not dispatch a title change when dismissed with the close button', as
   expect(store.getActions()).toEqual([]);
 });
 
-test('returns focus to the tab header after the modal is cancelled', async () => {
+test('returns focus to the menu-dots trigger after the modal is cancelled', async () => {
   openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
@@ -256,11 +256,11 @@ test('returns focus to the tab header after the modal is cancelled', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
   await waitFor(() =>
-    expect(screen.getByTestId('sql-editor-tab-header')).toHaveFocus(),
+    expect(screen.getByTestId('dropdown-trigger')).toHaveFocus(),
   );
 });
 
-test('returns focus to the tab header after a successful rename', async () => {
+test('returns focus to the menu-dots trigger after a successful rename', async () => {
   openTabDropdown();
   await waitFor(() =>
     expect(screen.getByTestId('rename-tab-menu-option')).toBeInTheDocument(),
@@ -272,7 +272,7 @@ test('returns focus to the tab header after a successful rename', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   await waitFor(() =>
-    expect(screen.getByTestId('sql-editor-tab-header')).toHaveFocus(),
+    expect(screen.getByTestId('dropdown-trigger')).toHaveFocus(),
   );
 });
 
@@ -322,6 +322,8 @@ test('does not leak tab-editing keystrokes from the rename input to the surround
   const onContainerKeyDown = jest.fn();
   const store = mockStore(initialState);
   render(
+    // Test-only harness div asserting keydown doesn't leak past the tab header.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div onKeyDown={onContainerKeyDown}>
       <SqlEditorTabHeader queryEditor={defaultQueryEditor} />
     </div>,

@@ -27,6 +27,8 @@ import {
   LegendState,
   ensureIsArray,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import type {
   ECElementEvent,
   ViewRootGroup,
@@ -35,15 +37,23 @@ import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
+import {
+  rebaseSeriesData,
+  snapToNearestX,
+  SeriesDataPoint,
+} from './percentChange';
 import { OrientationType, TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
-import {
-  buildTimeseriesDrillFilters,
-  getCategoryAxisValue as resolveCategoryAxisValue,
-} from './drillFilters';
+import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
+
+// Percent-change draggable baseline handle geometry, in pixels.
+const BASELINE_HANDLE_WIDTH = 8;
+const BASELINE_HANDLE_HALF_WIDTH = BASELINE_HANDLE_WIDTH / 2;
+const BASELINE_HANDLE_STRIPE_X = 3;
+const BASELINE_HANDLE_STRIPE_WIDTH = 2;
 
 export default function EchartsTimeseries({
   formData,
@@ -68,6 +78,7 @@ export default function EchartsTimeseries({
   onDrillDown,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
+  const theme = useTheme();
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
@@ -78,6 +89,157 @@ export default function EchartsTimeseries({
     },
     [],
   );
+
+  // Draggable percent-change baseline: when the rebase view is active, a
+  // vertical line is drawn on the plot; dragging it re-indexes every series
+  // to the hovered point via the composable rebase, entirely client-side.
+  const rebaseEnabled = Boolean(
+    (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
+  );
+  // Persists the dragged baseline across effect reruns (e.g. resizes or
+  // other option changes) so those don't silently snap it back to the
+  // first point.
+  const baselineXRef = useRef<number | string | null>(null);
+  useEffect(() => {
+    if (!rebaseEnabled) return undefined;
+    const chart = echartRef.current?.getEchartInstance?.();
+    if (!chart) return undefined;
+
+    // Read series data from the echartOptions prop (the source of truth
+    // this effect already depends on) rather than chart.getOption(), which
+    // reflects the live instance's internal state and can still be empty
+    // for a tick after mount or a warm navigation -- reading the prop
+    // removes that race entirely instead of retrying past it.
+    const { series } = echartOptions as { series?: { data?: unknown[] }[] };
+    const baseSeries = (series ?? []).map(s =>
+      Array.isArray(s.data)
+        ? (s.data.filter(Array.isArray) as SeriesDataPoint[])
+        : [],
+    );
+    // Preserve the axis' native x type: numeric for time/value axes,
+    // string for category axes (coercing categories with Number() would
+    // turn them into NaN and break snapping/positioning below).
+    const xs = Array.from(new Set(baseSeries.flat().map(([x]) => x)));
+    if (xs.length === 0) return undefined;
+    if (typeof xs[0] === 'number') {
+      (xs as number[]).sort((a, b) => a - b);
+    }
+    let baselineX =
+      baselineXRef.current !== null && xs.includes(baselineXRef.current)
+        ? baselineXRef.current
+        : xs[0];
+    baselineXRef.current = baselineX;
+    // Coalesces drag updates to at most one setOption per animation
+    // frame; rebasing every series on every raw pointer-move event
+    // can stutter on large charts.
+    let dragFrame: ReturnType<typeof requestAnimationFrame> | null = null;
+
+    const applyBaseline = (newX: number | string) => {
+      baselineX = newX;
+      baselineXRef.current = newX;
+      chart.setOption({
+        series: baseSeries.map(data => ({
+          data: rebaseSeriesData(data, newX),
+        })),
+      });
+    };
+
+    const drawHandle = () => {
+      // Cap the handle to the plot area so it doesn't run through the
+      // legend above or the axis labels below.
+      let gridRect = { top: 0, height: chart.getHeight() };
+      try {
+        const rect = (
+          chart as unknown as {
+            getModel: () => {
+              getComponent: (
+                type: string,
+                index: number,
+              ) => {
+                coordinateSystem: {
+                  getRect: () => { y: number; height: number };
+                };
+              };
+            };
+          }
+        )
+          .getModel()
+          .getComponent('grid', 0)
+          .coordinateSystem.getRect();
+        gridRect = { top: rect.y, height: rect.height };
+      } catch {
+        // fall back to the full chart height
+      }
+      let px: number;
+      try {
+        [px] = [chart.convertToPixel({ xAxisIndex: 0 }, baselineX) as number];
+      } catch {
+        return;
+      }
+      chart.setOption({
+        graphic: [
+          {
+            id: 'percent-change-baseline',
+            // only group elements support children in the graphic API
+            type: 'group',
+            x: px - BASELINE_HANDLE_HALF_WIDTH,
+            y: gridRect.top,
+            cursor: 'ew-resize',
+            draggable: true,
+            z: 100,
+            ondrag(this: { x: number; y: number }) {
+              this.y = gridRect.top;
+              const dataX = chart.convertFromPixel(
+                { xAxisIndex: 0 },
+                this.x + BASELINE_HANDLE_HALF_WIDTH,
+              ) as number | string;
+              if (dragFrame !== null) return;
+              dragFrame = requestAnimationFrame(() => {
+                dragFrame = null;
+                const snapped = snapToNearestX(xs, dataX);
+                if (snapped !== undefined && snapped !== baselineX) {
+                  applyBaseline(snapped);
+                }
+              });
+            },
+            ondragend: () => drawHandle(),
+            children: [
+              {
+                type: 'rect',
+                shape: {
+                  x: 0,
+                  y: 0,
+                  width: BASELINE_HANDLE_WIDTH,
+                  height: gridRect.height,
+                },
+                style: { fill: theme.colorFillSecondary },
+              },
+              {
+                type: 'rect',
+                shape: {
+                  x: BASELINE_HANDLE_STRIPE_X,
+                  y: 0,
+                  width: BASELINE_HANDLE_STRIPE_WIDTH,
+                  height: gridRect.height,
+                },
+                style: { fill: theme.colorTextSecondary },
+              },
+            ],
+          },
+        ],
+      });
+    };
+    drawHandle();
+
+    return () => {
+      if (dragFrame !== null) {
+        cancelAnimationFrame(dragFrame);
+      }
+      chart.setOption({
+        graphic: [{ id: 'percent-change-baseline', $action: 'remove' }],
+      });
+    };
+  }, [rebaseEnabled, echartOptions, width, height, theme]);
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
@@ -232,10 +394,25 @@ export default function EchartsTimeseries({
   // Determine if X-axis can be used for cross-filtering (categorical axis without dimensions)
   const canCrossFilterByXAxis =
     !hasDimensions && xAxis.type === AxisType.Category;
+  const categoryAxisValueIndex =
+    formData.orientation === OrientationType.Horizontal ? 1 : 0;
   const getCategoryAxisValue = useCallback(
-    (data: unknown, name: unknown) =>
-      resolveCategoryAxisValue(data, name, formData.orientation),
-    [formData.orientation],
+    (data: unknown, name: unknown) => {
+      if (Array.isArray(data)) {
+        const categoryAxisValue = data[categoryAxisValueIndex];
+        if (
+          typeof categoryAxisValue === 'string' ||
+          typeof categoryAxisValue === 'number'
+        ) {
+          return categoryAxisValue;
+        }
+      }
+      if (typeof name === 'string' || typeof name === 'number') {
+        return name;
+      }
+      return undefined;
+    },
+    [categoryAxisValueIndex],
   );
 
   const eventHandlers: EventHandlers = {
@@ -249,21 +426,58 @@ export default function EchartsTimeseries({
           clearTimeout(clickTimer.current);
         }
         clickTimer.current = setTimeout(() => {
+          const drillFilters: BinaryQueryObjectFilterClause[] = [];
           // Timeseries-family charts are always x-axis driven: the hierarchy
           // advances along the x-axis column, and any groupby is only a series
-          // breakdown. So drill on the clicked x-axis value, never the series
-          // dimension. Non-series clicks (e.g. axis labels) yield no filters.
-          const drillFilters = buildTimeseriesDrillFilters({
-            componentType: props.componentType,
-            data: props.data,
-            name: props.name,
-            xAxisType: xAxis.type,
-            xAxisLabel: xAxis.label,
-            orientation: formData.orientation,
-            dateFormat: formData.dateFormat,
-            numberFormat: formData.numberFormat,
-            coltype: coltypeMapping?.[xAxis.label],
-          });
+          // breakdown. So drill on the clicked x-axis category value, never on
+          // the series dimension. Guard on componentType === 'series' so clicks
+          // on axis labels don't trigger a drill.
+          if (
+            xAxis.type === AxisType.Category &&
+            props.componentType === 'series'
+          ) {
+            // Orientation-aware category value (horizontal bars hold it at a
+            // different index); also falls back to the event name.
+            const categoryAxisValue = getCategoryAxisValue(
+              props.data,
+              props.name,
+            );
+            if (categoryAxisValue != null) {
+              drillFilters.push({
+                col: xAxis.label,
+                op: '==',
+                val: categoryAxisValue,
+                formattedVal: String(categoryAxisValue),
+              });
+            }
+          } else if (props.componentType === 'series') {
+            // Non-category (e.g. time) x-axis. Mirror the drill-to-detail
+            // temporal filter so the drill scopes correctly on strict engines
+            // (e.g. Trino): use the raw value from the data tuple (never the
+            // formatted axis label), map __timestamp to the real granularity
+            // column, and carry the time grain. Null check so zero-like labels
+            // (e.g. 0) still drill.
+            const rawValue = Array.isArray(props.data)
+              ? props.data[0]
+              : props.name;
+            if (rawValue != null) {
+              const isTimeAxis = xAxis.type === AxisType.Time;
+              drillFilters.push({
+                col:
+                  isTimeAxis && xAxis.label === DTTM_ALIAS
+                    ? formData.granularitySqla
+                    : xAxis.label,
+                ...(isTimeAxis && formData.timeGrainSqla
+                  ? { grain: formData.timeGrainSqla }
+                  : {}),
+                op: '==',
+                val: rawValue,
+                formattedVal: isTimeAxis
+                  ? xValueFormatter(rawValue)
+                  : String(rawValue),
+              });
+            }
+          }
           // Cross-filter is emitted by the DrillDownHost with the full
           // accumulated drill path; here we only report the click upward.
           if (drillFilters.length > 0) {
@@ -375,6 +589,55 @@ export default function EchartsTimeseries({
           });
         });
 
+        // Filters for the clicked x-axis value, so Drill By can subset the
+        // drilled data to the clicked bar/point rather than only the series
+        const xAxisFilters: BinaryQueryObjectFilterClause[] = [];
+        const xAxisCol =
+          // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+          xAxis.label === DTTM_ALIAS ? formData.granularitySqla : xAxis.label;
+        if (data && xAxis.type === AxisType.Time && xAxisCol) {
+          // For horizontal orientation the [x, value] pair is swapped
+          const xValue = Array.isArray(data)
+            ? data[categoryAxisValueIndex]
+            : data;
+          const xAxisFilter = getTemporalXAxisDrillByFilter(
+            xAxisCol,
+            xValue,
+            formData.timeGrainSqla,
+            String(xValueFormatter(xValue as number)),
+          );
+          if (xAxisFilter) {
+            xAxisFilters.push(xAxisFilter);
+          }
+        } else if (xAxis.type === AxisType.Category && xAxisCol) {
+          const categoryAxisValue = getCategoryAxisValue(
+            data,
+            eventParams.name,
+          );
+          if (categoryAxisValue !== undefined) {
+            // A category axis can still sit on a temporal column when the
+            // axis is forced categorical; filter by time bucket in that case
+            const xAxisFilter =
+              coltypeMapping?.[getColumnLabel(xAxis.label)] ===
+              GenericDataType.Temporal
+                ? getTemporalXAxisDrillByFilter(
+                    xAxisCol,
+                    categoryAxisValue,
+                    formData.timeGrainSqla,
+                    String(eventParams.name ?? categoryAxisValue),
+                  )
+                : {
+                    col: xAxisCol,
+                    op: '==' as const,
+                    val: categoryAxisValue,
+                    formattedVal: String(categoryAxisValue),
+                  };
+            if (xAxisFilter) {
+              xAxisFilters.push(xAxisFilter);
+            }
+          }
+        }
+
         // Provide cross-filter for dimensions OR categorical X-axis (issue #25334)
         let crossFilter;
         if (hasDimensions) {
@@ -394,7 +657,11 @@ export default function EchartsTimeseries({
 
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
-          drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
+          drillBy: {
+            filters: drillByFilters,
+            groupbyFieldName: 'groupby',
+            ...(xAxisFilters.length > 0 && { xAxisFilters }),
+          },
           crossFilter,
         });
       }

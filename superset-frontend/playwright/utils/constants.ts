@@ -40,6 +40,11 @@ export const TIMEOUT = {
   PAGE_LOAD: 10000, // 10s for page transitions (login → welcome, dataset → explore)
 
   /**
+   * Dataset-to-Explore navigation on cold CI runners
+   */
+  EXPLORE_PAGE_LOAD: 15000, // 15s for Explore to load its datasource control
+
+  /**
    * Form and UI element load timeouts
    */
   FORM_LOAD: 5000, // 5s for forms to become visible (login form, modals)
@@ -73,6 +78,15 @@ export const TIMEOUT = {
   QUERY_EXECUTION: 30000, // 30s for SQL queries
 
   /**
+   * A chart going from mounted to painted with real data.
+   * Navigating to a dashboard only waits for its header, so the first chart
+   * asserted absorbs the whole uncached query round-trip — more than the global
+   * expect timeout allows on a loaded runner. Charts query in parallel, so a
+   * dashboard full of them pays this roughly once.
+   */
+  CHART_RENDER: 30000, // 30s for a chart to query and paint
+
+  /**
    * Extended test timeout for multi-step tests (page load + query execution + assertions).
    * Use with test.setTimeout() when the default 30s test timeout is insufficient.
    */
@@ -87,7 +101,7 @@ export const EMBEDDED = {
   /** Timeout for iframe to appear in the DOM */
   IFRAME_LOAD: 15000, // 15s
   /** Timeout for dashboard content to render inside the iframe */
-  DASHBOARD_RENDER: 30000, // 30s
+  DASHBOARD_RENDER: 60000, // 60s (embedded dashboards are slow to render on cold CI)
   /** Timeout for individual chart cells to finish rendering */
-  CHART_RENDER: 30000, // 30s
+  CHART_RENDER: TIMEOUT.CHART_RENDER,
 } as const;

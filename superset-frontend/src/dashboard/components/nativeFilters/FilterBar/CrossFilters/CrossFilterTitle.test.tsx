@@ -70,3 +70,12 @@ test('Search icon should highlight emitter', async () => {
     expect(mockedProps.onHighlightFilterSource).toHaveBeenCalled();
   });
 });
+
+test('Search icon should have an accessible name', async () => {
+  setup(mockedProps);
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: 'Locate the chart' }),
+    ).toBeInTheDocument();
+  });
+});

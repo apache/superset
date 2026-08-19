@@ -35,9 +35,17 @@ export function assetUrl(path: string): string {
  * segment boundary is returned unchanged, mirroring the dedupe pattern used by
  * `ensureAppRoot` in pathUtils.ts and `SupersetClient.getUrl`.
  *
+ * If `url_or_path` is null or undefined, `undefined` is returned so callers
+ * (e.g. a partial theme reaching the frontend from a source other than
+ * `superset_config.py`, such as a DB-stored theme created via the API) don't
+ * crash on the unconditional `.startsWith()` call below.
+ *
  * @param url_or_path A url or relative path to a resource
  */
-export function ensureStaticPrefix(url_or_path: string): string {
+export function ensureStaticPrefix(
+  url_or_path: string | null | undefined,
+): string | undefined {
+  if (url_or_path == null) return undefined;
   if (!url_or_path.startsWith('/')) return url_or_path;
   const prefix = staticAssetsPrefix();
   if (

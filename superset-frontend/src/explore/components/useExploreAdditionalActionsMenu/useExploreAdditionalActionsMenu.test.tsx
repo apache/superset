@@ -17,10 +17,17 @@
  * under the License.
  */
 import { ComponentType } from 'react';
+import { FeatureFlag } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { useExploreAdditionalActionsMenu } from './index';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
+import {
+  useExploreAdditionalActionsMenu,
+  getExportScreenshotMenuItems,
+} from './index';
 import * as exploreUtils from 'src/explore/exploreUtils';
+import { Slice } from 'src/types/Chart';
 
 jest.mock('src/explore/exploreUtils', () => ({
   __esModule: true,
@@ -28,6 +35,22 @@ jest.mock('src/explore/exploreUtils', () => ({
   exportChart: jest.fn(),
   getChartKey: jest.fn(() => 'test_chart_key'),
 }));
+
+jest.mock('src/utils/downloadAsImage', () => ({
+  __esModule: true,
+  default: jest.fn(() => jest.fn()),
+}));
+jest.mock('src/utils/downloadAsPdf', () => ({
+  __esModule: true,
+  default: jest.fn(() => jest.fn()),
+}));
+
+const mockDownloadAsImage = downloadAsImage as jest.MockedFunction<
+  typeof downloadAsImage
+>;
+const mockDownloadAsPdf = downloadAsPdf as jest.MockedFunction<
+  typeof downloadAsPdf
+>;
 
 const mockExportChart = exploreUtils.exportChart as jest.Mock;
 
@@ -52,13 +75,22 @@ jest.mock('@superset-ui/core', () => ({
   })),
 }));
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      user_subjects: [1],
+    },
+  })),
+}));
+
 const defaultProps = {
   latestQueryFormData: {
     datasource: '1__table',
     viz_type: 'pivot_table_v2',
   },
   canDownloadCSV: true,
-  slice: { slice_id: 1, slice_name: 'Test Chart' },
+  slice: { slice_id: 1, slice_name: 'Test Chart' } as unknown as Slice,
   ownState: {},
   dashboards: [],
   onOpenInEditor: jest.fn(),
@@ -89,6 +121,63 @@ const TestComponent = (props: TestComponentProps) => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockExportChart.mockResolvedValue(undefined);
+});
+
+test('hides Edit chart properties from a user who is not an owner/editor of the chart (regression #38884)', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [2],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
+});
+
+test('shows Edit chart properties for a chart editor with chart write permission', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [1],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true, initialState: { explore: { can_add: true } } },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.getByText('Edit chart properties')).toBeInTheDocument();
+});
+
+test('hides Edit chart properties from a chart editor lacking chart write permission', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [1],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true, initialState: { explore: { can_add: false } } },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
 });
 
 test('shows 413 error toast when exportCSV fails with 413', async () => {
@@ -147,4 +236,151 @@ test('shows 413 error toast when Export Current View CSV server path fails with 
       expect.stringMatching(/The chart data is too large to download/),
     );
   });
+});
+
+const CHART_SELECTOR = '.panel-body .chart-container';
+const SLICE_NAME = 'My chart';
+const CHART_ID = 42;
+const domEvent = {} as React.MouseEvent;
+
+const buildScreenshotItems = () => {
+  const setIsDropdownVisible = jest.fn();
+  const dispatch = jest.fn();
+  const items = getExportScreenshotMenuItems({
+    chartSelector: CHART_SELECTOR,
+    sliceName: SLICE_NAME,
+    chartId: CHART_ID,
+    theme: {} as any,
+    setIsDropdownVisible,
+    dispatch,
+    submenuKey: 'export_png_submenu',
+    transparentKey: 'export_png_transparent',
+    solidKey: 'export_png_solid',
+    pdfKey: 'export_pdf',
+  }) as any[];
+  return { items, setIsDropdownVisible, dispatch };
+};
+
+test('getExportScreenshotMenuItems builds the PNG submenu and PDF item with the provided keys', () => {
+  const { items } = buildScreenshotItems();
+  const [pngSubmenu, pdfItem] = items;
+
+  expect(pngSubmenu.key).toBe('export_png_submenu');
+  expect(pngSubmenu.children).toHaveLength(2);
+  expect(pngSubmenu.children[0].key).toBe('export_png_transparent');
+  expect(pngSubmenu.children[1].key).toBe('export_png_solid');
+  expect(pdfItem.key).toBe('export_pdf');
+});
+
+test('getExportScreenshotMenuItems transparent option downloads a transparent PNG and dispatches a log event', () => {
+  const { items, setIsDropdownVisible, dispatch } = buildScreenshotItems();
+
+  items[0].children[0].onClick({ domEvent });
+
+  expect(mockDownloadAsImage).toHaveBeenCalledWith(
+    CHART_SELECTOR,
+    SLICE_NAME,
+    true,
+    expect.anything(),
+    { format: 'png', backgroundType: 'transparent' },
+  );
+  expect(setIsDropdownVisible).toHaveBeenCalledWith(false);
+  expect(dispatch).toHaveBeenCalledTimes(1);
+});
+
+test('getExportScreenshotMenuItems solid option downloads a solid PNG and dispatches a log event', () => {
+  const { items, setIsDropdownVisible, dispatch } = buildScreenshotItems();
+
+  items[0].children[1].onClick({ domEvent });
+
+  expect(mockDownloadAsImage).toHaveBeenCalledWith(
+    CHART_SELECTOR,
+    SLICE_NAME,
+    true,
+    expect.anything(),
+    { format: 'png', backgroundType: 'solid' },
+  );
+  expect(setIsDropdownVisible).toHaveBeenCalledWith(false);
+  expect(dispatch).toHaveBeenCalledTimes(1);
+});
+
+test('getExportScreenshotMenuItems PDF option calls downloadAsPdf and dispatches a log event', () => {
+  const { items, setIsDropdownVisible, dispatch } = buildScreenshotItems();
+
+  items[1].onClick({ domEvent });
+
+  expect(mockDownloadAsPdf).toHaveBeenCalledWith(
+    CHART_SELECTOR,
+    SLICE_NAME,
+    true,
+  );
+  expect(setIsDropdownVisible).toHaveBeenCalledWith(false);
+  expect(dispatch).toHaveBeenCalledTimes(1);
+});
+
+/**
+ * The version-history gate, exercised against the state shape hydrateExplore
+ * actually produces rather than a mocked can_overwrite. Every seeded chart
+ * ships with an empty editors list, so a membership-only gate hid the action
+ * from everyone on a fresh install.
+ */
+const renderMenuFor = (
+  slice: Record<string, unknown>,
+  user: Record<string, unknown>,
+) =>
+  render(<TestComponent {...defaultProps} slice={slice as never} />, {
+    useRedux: true,
+    initialState: {
+      user,
+      explore: { can_overwrite: false, slice },
+    },
+  });
+
+const adminUser = {
+  userId: 1,
+  username: 'admin',
+  permissions: {},
+  roles: { Admin: [] },
+};
+
+const gammaUser = {
+  userId: 2,
+  username: 'gamma',
+  permissions: {},
+  roles: { Gamma: [] },
+};
+
+test('an admin sees version history on a chart that has no editors', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+
+  renderMenuFor(
+    { slice_id: 1, slice_name: 'Test Chart', editors: [] },
+    adminUser,
+  );
+
+  expect(await screen.findByText('View version history')).toBeInTheDocument();
+});
+
+test('a non-editor without the admin role does not', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+
+  renderMenuFor(
+    { slice_id: 1, slice_name: 'Test Chart', editors: [] },
+    gammaUser,
+  );
+
+  await screen.findByText('View query');
+  expect(screen.queryByText('View version history')).not.toBeInTheDocument();
+});
+
+test('the item stays hidden while the feature flag is off', async () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: false };
+
+  renderMenuFor(
+    { slice_id: 1, slice_name: 'Test Chart', editors: [] },
+    adminUser,
+  );
+
+  await screen.findByText('View query');
+  expect(screen.queryByText('View version history')).not.toBeInTheDocument();
 });

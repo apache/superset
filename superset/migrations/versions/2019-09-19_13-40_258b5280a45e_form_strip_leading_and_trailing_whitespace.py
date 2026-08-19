@@ -26,7 +26,7 @@ import re
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils.core import MediumText
@@ -161,7 +161,7 @@ down_revision = "11c737c17cc6"
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     tables = [
         Annotation,

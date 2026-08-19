@@ -867,7 +867,7 @@ function DatasourceEditor({
       return {
         ...metric,
         certification_details: certificationDetails || details,
-        warning_markdown: warningMarkdown || '',
+        warning_markdown: warningMarkdown || metric.warning_markdown || '',
         certified_by: certifiedBy || certifiedByMetric,
       };
     }),
@@ -1753,12 +1753,16 @@ function DatasourceEditor({
     () => (
       <div>
         <EditLockContainer>
-          <span
+          <button
+            type="button"
             css={themeParam => css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
               color: ${themeParam.colorTextTertiary};
             `}
-            role="button"
-            tabIndex={0}
             onClick={onChangeEditMode}
           >
             {isEditMode ? (
@@ -1776,7 +1780,7 @@ function DatasourceEditor({
                 })}
               />
             )}
-          </span>
+          </button>
           {!isEditMode && <div>{t('Click the lock to make changes.')}</div>}
           {isEditMode && (
             <div>{t('Click the lock to prevent further changes.')}</div>

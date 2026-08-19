@@ -200,6 +200,12 @@ class SemanticView(AuditMixinNullable, Model):
 
     __tablename__ = "semantic_views"
 
+    # Semantic views expose pre-defined metrics and dimensions, not raw rows,
+    # so neither the "Samples" tab in Explore nor the "Drill to detail"
+    # affordance from the chart 3-dots menu can return anything meaningful.
+    supports_samples: bool = False
+    supports_drill_to_detail: bool = False
+
     # Use integer as the primary key for cross-database auto-increment
     # compatibility (sa.Identity() is not supported in MySQL or SQLite).
     # The uuid column is a secondary unique identifier used in URLs and perms.
@@ -318,13 +324,34 @@ class SemanticView(AuditMixinNullable, Model):
             MetricMetadata(
                 metric_name=metric.name,
                 expression=metric.definition,
+                verbose_name=metric.verbose_name,
                 description=metric.description,
+                d3format=metric.d3format,
             )
             for metric in self.implementation.get_metrics()
         ]
 
     @property
+    def _unique_dimensions(self) -> list[Any]:
+        # A semantic view may expose multiple ``Dimension`` objects sharing the
+        # same ``name`` but different grains (one variant per supported time
+        # grain). For column-list purposes we collapse these into a single
+        # entry; the available grains are surfaced separately via
+        # ``get_time_grains`` and ``data["time_grain_sqla"]``.
+        seen: dict[str, Any] = {}
+        for dimension in self.implementation.get_dimensions():
+            seen.setdefault(dimension.name, dimension)
+        return list(seen.values())
+
+    @property
     def columns(self) -> list[ColumnMetadata]:
+        # ``expression`` is intentionally left unset: the explore UI uses a
+        # non-empty ``expression`` to mean "this column is a SQL-style adhoc
+        # expression" and renders it with the fx icon and no time-grain
+        # affordance. Semantic-view dimensions are physical from the UI's
+        # perspective; the backend is responsible for any underlying
+        # expression. ``dimension.definition`` is not surfaced to the UI —
+        # only ``dimension.description`` is passed through.
         return [
             ColumnMetadata(
                 column_name=dimension.name,
@@ -332,21 +359,35 @@ class SemanticView(AuditMixinNullable, Model):
                 is_dttm=pa.types.is_date(dimension.type)
                 or pa.types.is_time(dimension.type)
                 or pa.types.is_timestamp(dimension.type),
+                verbose_name=dimension.verbose_name,
                 description=dimension.description,
-                expression=dimension.definition,
+                expression=None,
                 extra=json.dumps(
                     {"grain": dimension.grain.name if dimension.grain else None}
                 ),
             )
-            for dimension in self.implementation.get_dimensions()
+            for dimension in self._unique_dimensions
         ]
 
     @property
     def column_names(self) -> list[str]:
-        return [dimension.name for dimension in self.implementation.get_dimensions()]
+        return [dimension.name for dimension in self._unique_dimensions]
 
     @property
     def data(self) -> ExplorableData:
+        dimensions = self._unique_dimensions
+        metrics = list(self.implementation.get_metrics())
+        verbose_map = {
+            **{metric.name: metric.verbose_name or metric.name for metric in metrics},
+            **{
+                dimension.name: dimension.verbose_name or dimension.name
+                for dimension in dimensions
+            },
+        }
+        column_formats = {
+            metric.name: metric.d3format for metric in metrics if metric.d3format
+        }
+
         return {
             # core
             "id": self.id,
@@ -360,7 +401,9 @@ class SemanticView(AuditMixinNullable, Model):
                     "certified_by": None,
                     "column_name": dimension.name,
                     "description": dimension.description,
-                    "expression": dimension.definition,
+                    # See ``columns`` property: leaving ``expression`` empty
+                    # avoids the fx-icon / adhoc treatment in the explore UI.
+                    "expression": None,
                     "filterable": True,
                     "groupby": True,
                     "id": None,
@@ -372,16 +415,16 @@ class SemanticView(AuditMixinNullable, Model):
                     "python_date_format": None,
                     "type": str(dimension.type),
                     "type_generic": get_column_type(dimension.type),
-                    "verbose_name": None,
+                    "verbose_name": dimension.verbose_name,
                     "warning_markdown": None,
                 }
-                for dimension in self.implementation.get_dimensions()
+                for dimension in dimensions
             ],
             "metrics": [
                 {
                     "certification_details": None,
                     "certified_by": None,
-                    "d3format": None,
+                    "d3format": metric.d3format,
                     "description": metric.description,
                     "expression": metric.definition,
                     "id": None,
@@ -390,31 +433,30 @@ class SemanticView(AuditMixinNullable, Model):
                     "metric_name": metric.name,
                     "warning_markdown": None,
                     "warning_text": None,
-                    "verbose_name": None,
+                    "verbose_name": metric.verbose_name,
                 }
-                for metric in self.implementation.get_metrics()
+                for metric in metrics
             ],
             "database": {},
             "parent": {"name": self.semantic_layer.name},
             # UI features
-            "verbose_map": {},
+            "verbose_map": verbose_map,
             "order_by_choices": [],
             "filter_select": True,
             "filter_select_enabled": True,
             "sql": None,
             "select_star": None,
             "editors": [],
+            "supports_samples": self.supports_samples,
+            "supports_drill_to_detail": self.supports_drill_to_detail,
             "description": self.description,
             "table_name": self.name,
             "column_types": [
-                get_column_type(dimension.type)
-                for dimension in self.implementation.get_dimensions()
+                get_column_type(dimension.type) for dimension in dimensions
             ],
-            "column_names": [
-                dimension.name for dimension in self.implementation.get_dimensions()
-            ],
+            "column_names": [dimension.name for dimension in dimensions],
             # rare
-            "column_formats": {},
+            "column_formats": column_formats,
             "datasource_name": self.name,
             "perm": self.perm,
             "offset": self.offset,
@@ -424,7 +466,12 @@ class SemanticView(AuditMixinNullable, Model):
             "schema": None,
             "catalog": None,
             "main_dttm_col": None,
-            "time_grain_sqla": [],
+            # ``time_grain_sqla`` in ``ExplorableData`` is the ``(duration,
+            # name)`` tuple shape the explore UI consumes; the dict shape
+            # lives on ``get_time_grains``.
+            "time_grain_sqla": [
+                (grain["duration"], grain["name"]) for grain in self.get_time_grains()
+            ],
             "granularity_sqla": [],
             "fetch_values_predicate": None,
             "template_params": None,
@@ -470,15 +517,22 @@ class SemanticView(AuditMixinNullable, Model):
         return 0
 
     def get_time_grains(self) -> list[TimeGrainDict]:
-        return [
-            {
-                "name": dimension.grain.name,
-                "function": "",
-                "duration": dimension.grain.representation,
-            }
-            for dimension in self.implementation.get_dimensions()
-            if dimension.grain
-        ]
+        # Return the union of grains across all time dimensions, deduped by
+        # ISO duration so the explore-time-grain dropdown shows each grain
+        # once even when multiple time columns expose the same set.
+        seen: dict[str, TimeGrainDict] = {}
+        for dimension in self.implementation.get_dimensions():
+            if not dimension.grain:
+                continue
+            seen.setdefault(
+                dimension.grain.representation,
+                {
+                    "name": dimension.grain.name,
+                    "function": "",
+                    "duration": dimension.grain.representation,
+                },
+            )
+        return list(seen.values())
 
     def has_drill_by_columns(self, column_names: list[str]) -> bool:
         dimension_names = {

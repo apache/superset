@@ -59,7 +59,7 @@ def load_yaml(file_name: str, content: str) -> dict[str, Any]:
     """Try to load a YAML file"""
     try:
         return yaml.safe_load(content)
-    except yaml.parser.ParserError as ex:
+    except yaml.YAMLError as ex:
         logger.exception("Invalid YAML in %s", file_name)
         raise ValidationError({file_name: "Not a valid YAML file"}) from ex
 
@@ -230,7 +230,21 @@ def load_configs(
                     prefix,
                     exc.messages,
                 )
-                logger.debug("Config content that failed validation: %s", config)
+                # Log field names only; full values can be huge (e.g. inline
+                # example data) and drown out the validation error above. Guard
+                # the diagnostic so it can never raise and mask the validation
+                # error: config may be a non-mapping or have unsortable keys.
+                if isinstance(config, dict):
+                    field_names = ", ".join(sorted(map(str, config)))
+                    logger.debug(
+                        "Config fields present in %s: %s", file_name, field_names
+                    )
+                else:
+                    logger.debug(
+                        "Config in %s is not a mapping (type: %s)",
+                        file_name,
+                        type(config).__name__,
+                    )
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
 
@@ -304,27 +318,39 @@ def import_tag(
 
     for tag_name in target_tag_names:
         try:
-            tag = existing_tags.get(tag_name)
+            # Isolate each tag operation in a SAVEPOINT so a failure (e.g. a
+            # concurrent unique-constraint violation) rolls back only the failed
+            # tag and leaves the session usable for the remaining tags, instead
+            # of poisoning the session with a pending-rollback state.
+            with db_session.begin_nested():
+                tag = existing_tags.get(tag_name)
 
-            # If tag does not exist, create it
-            if tag is None:
-                description = tag_descriptions.get(tag_name, None)
-                tag = Tag(name=tag_name, description=description, type="custom")
-                db_session.add(tag)
-                existing_tags[tag_name] = tag  # Update the existing_tags dictionary
+                # If tag does not exist, create it
+                if tag is None:
+                    description = tag_descriptions.get(tag_name, None)
+                    tag = Tag(name=tag_name, description=description, type="custom")
+                    db_session.add(tag)
+                    existing_tags[tag_name] = tag  # Update the existing_tags dictionary
 
-            # Ensure the association with the object
-            tagged_object = (
-                db_session.query(TaggedObject)
-                .filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id)
-                .first()
-            )
-            if not tagged_object:
-                new_tagged_object = TaggedObject(
-                    tag_id=tag.id, object_id=object_id, object_type=object_type
+                # Ensure the association with the object
+                tagged_object = (
+                    db_session.query(TaggedObject)
+                    .filter_by(
+                        object_id=object_id, object_type=object_type, tag_id=tag.id
+                    )
+                    .first()
                 )
-                db_session.add(new_tagged_object)
+                if not tagged_object:
+                    new_tagged_object = TaggedObject(
+                        tag_id=tag.id, object_id=object_id, object_type=object_type
+                    )
+                    db_session.add(new_tagged_object)
 
+            # Only record the tag as imported once the SAVEPOINT has been
+            # released (and its pending inserts flushed) without error; the
+            # nested block's own flush can still fail on a concurrent
+            # unique-constraint violation, in which case this line must not
+            # run.
             new_tag_ids.append(tag.id)
 
         except SQLAlchemyError as err:
@@ -335,7 +361,9 @@ def import_tag(
                 object_id,
                 err,
             )
-            continue  # No need for manual rollback, handled by transaction decorator
+            # The SAVEPOINT was rolled back by begin_nested(); the session is
+            # still usable for the remaining tags.
+            continue
 
     # Remove old tags not in the new config
     for tag in existing_assocs:

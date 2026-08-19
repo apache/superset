@@ -80,6 +80,8 @@ test('stops propagation of navigation keys to parent elements', async () => {
   const handleParentKeyDown = jest.fn();
 
   render(
+    // Test-only harness div asserting keydown doesn't bubble past the modal.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div onKeyDown={handleParentKeyDown}>
       <ModalTrigger
         triggerNode={<span>Trigger</span>}

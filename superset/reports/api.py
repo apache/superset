@@ -27,7 +27,7 @@ from flask_appbuilder.api import (
 )
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
@@ -127,6 +127,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_screenshot",
         "grace_period",
+        "include_cta",
         "last_eval_dttm",
         "last_state",
         "last_value",
@@ -147,6 +148,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_type",
         "working_timeout",
         "email_subject",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     show_select_columns = show_columns + [
         "chart.datasource_id",
@@ -179,6 +185,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.type",
         "timezone",
         "type",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     add_columns = [
         "active",
@@ -194,6 +205,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_screenshot",
         "grace_period",
+        "include_cta",
         "log_retention",
         "name",
         "recipients",
@@ -204,6 +216,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_config_json",
         "validator_type",
         "working_timeout",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     edit_columns = add_columns
     add_model_schema = ReportSchedulePostSchema()
@@ -683,13 +700,22 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             types = params.get("types", [])
             exact_match = params.get("exact_match", False)
             force = params.get("force", False)
+            page = params.get("page")
+            page_size = params.get("page_size")
             channels = get_channels_with_search(
                 search_string=search_string,
                 types=types,
                 exact_match=exact_match,
                 force=force,
             )
-            return self.response(200, result=channels)
+            # Paginate at the API layer so large workspaces (tens of thousands of
+            # channels) never ship the full list to the browser at once. The
+            # filtered set is served from the warm cache, so slicing is cheap.
+            count = len(channels)
+            if page is not None and page_size is not None:
+                start = page * page_size
+                channels = channels[start : start + page_size]
+            return self.response(200, count=count, result=channels)
         except SupersetException as ex:
             logger.error("Error fetching slack channels %s", str(ex))
             return self.response_422(message=str(ex))
@@ -747,7 +773,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 **response_schema.dump(
                     {
                         "execution_id": execution_id,
-                        "message": "Report schedule execution started successfully",
+                        "message": gettext(
+                            "Report schedule execution started successfully"
+                        ),
                     }
                 ),
             )

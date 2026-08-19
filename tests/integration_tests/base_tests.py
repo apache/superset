@@ -32,8 +32,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.dialects.mysql import dialect
 from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Session  # noqa: F401
+from sqlalchemy.orm import DeclarativeMeta, Session  # noqa: F401
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
@@ -334,6 +333,17 @@ class SupersetTestCase(TestCase):
 
     def login(self, username, password=DEFAULT_PASSWORD):
         return login(self.client, username, password)
+
+    def get_bearer_auth_header(
+        self, username: str = ADMIN_USERNAME, password: str = DEFAULT_PASSWORD
+    ) -> dict[str, str]:
+        """Return an Authorization header with a login access token."""
+        response = self.client.post(
+            "/api/v1/security/login",
+            json={"username": username, "password": password, "provider": "db"},
+        )
+        assert response.status_code == 200
+        return {"Authorization": f"Bearer {response.json['access_token']}"}
 
     def get_slice(self, slice_name: str) -> Slice:
         return db.session.query(Slice).filter_by(slice_name=slice_name).one()

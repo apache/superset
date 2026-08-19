@@ -25,7 +25,7 @@ Create Date: 2018-11-12 13:31:07.578090
 # revision identifiers, used by Alembic.
 from alembic import op
 from sqlalchemy import Column, Integer, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -46,7 +46,7 @@ class Dashboard(Base):
 
 def upgrade():  # noqa: C901
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):

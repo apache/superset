@@ -81,8 +81,14 @@ spec:
         {{- if .Values.supersetWorker.podSecurityContext }}
           {{- toYaml .Values.supersetWorker.podSecurityContext | nindent 8 }}
         {{- end }}
+      {{- if or .Values.supersetWorker.initContainers .Values.supersetWorker.extraInitContainers }}
+      initContainers:
       {{- if .Values.supersetWorker.initContainers }}
-      initContainers: {{- tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
+      {{- tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- if .Values.supersetWorker.extraInitContainers }}
+      {{- tpl (toYaml .Values.supersetWorker.extraInitContainers) . | nindent 6 }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}

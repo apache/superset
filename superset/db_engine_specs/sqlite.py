@@ -127,6 +127,20 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
+    def year_to_dttm(cls) -> str:
+        # SQLite's date functions parse a 'YYYY-01-01' string just fine, but won't
+        # accept a bare integer/real year (it's read as a Julian day number instead).
+        # The CASE guard is needed because printf() treats a NULL argument as 0,
+        # which would otherwise turn a missing year into '0000-01-01' rather than
+        # propagating the NULL. The outer datetime() call ensures a full datetime
+        # value comes back even when this expression isn't wrapped by a time-grain
+        # function (e.g. no time grain is applied).
+        return (
+            "datetime(CASE WHEN {col} IS NULL THEN NULL "
+            "ELSE printf('%04d-01-01', CAST({col} AS INTEGER)) END)"
+        )
+
+    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:

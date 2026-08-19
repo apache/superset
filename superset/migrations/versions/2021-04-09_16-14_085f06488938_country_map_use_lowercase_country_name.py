@@ -24,7 +24,7 @@ Create Date: 2021-04-09 16:14:19.040884
 
 from alembic import op
 from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from superset import db
 from superset.utils import json
@@ -49,7 +49,7 @@ def upgrade():
     Convert all country names to lowercase
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(Slice.viz_type == "country_map").all():
         try:
@@ -69,7 +69,7 @@ def downgrade():
     Convert all country names to sentence case
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind)
+    session = db.Session(bind=bind, future=True)
 
     for slc in session.query(Slice).filter(Slice.viz_type == "country_map").all():
         try:
