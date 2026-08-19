@@ -254,7 +254,7 @@ def _sql_from_form_data(
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
     query_context = _build_query_context_from_form_data(
-        form_data, chart, extra_form_data
+        form_data, chart, extra_form_data=extra_form_data
     )
     command = ChartDataCommand(query_context)
     command.validate()
@@ -381,6 +381,14 @@ async def get_chart_sql(
         return ChartError(
             error=f"Failed to generate chart SQL: {e}",
             error_type="QueryGenerationFailed",
+        )
+    except KeyError as e:
+        # extra_form_data filter entries missing a required key (e.g. "col"
+        # or "op") raise KeyError while being normalized into adhoc filters.
+        logger.exception("Malformed extra_form_data filter in get_chart_sql")
+        return ChartError(
+            error=f"Invalid extra_form_data filter: missing required key {e}",
+            error_type="ValidationError",
         )
 
 
