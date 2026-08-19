@@ -4262,10 +4262,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if time_filter_column is not None:
                     time_filters.append(time_filter_column)
 
-        # NOTE: aggregate validation for Custom SQL metrics removed to preserve
-        # pre-6.0 behavior — the database will surface its own error if the SQL
-        # is invalid in context.
-        if False and groupby_all_columns:
+        # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
+        # real GROUP BY signal and also captures the timeseries time bucket. A
+        # non-aggregate Custom SQL metric under a GROUP BY is invalid SQL, so
+        # raise a clear error instead of a raw database one (#38913). Templated
+        # expressions may render to an aggregate at runtime, so leave them alone.
+        if groupby_all_columns:
             for metric in metrics:
                 if (
                     utils.is_adhoc_metric(metric)
