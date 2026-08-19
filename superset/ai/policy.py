@@ -117,10 +117,11 @@ class ReadOnlySqlPolicy(ToolPolicy):
     read_only_commands = frozenset({"EXPLAIN", "SHOW", "DESCRIBE", "DESC"})
 
     def check(self, tool_name: str, arguments: dict[str, Any]) -> Denial | None:
-        if tool_name not in self.sql_tools:
+        sql_arguments = self._arguments_for_sql_tool(tool_name, arguments)
+        if sql_arguments is None:
             return None
 
-        sql = self._extract_sql(arguments)
+        sql = self._extract_sql(sql_arguments)
         if sql is None:
             return Denial(
                 f"{tool_name} requires a 'sql' argument containing the statement "
@@ -129,7 +130,7 @@ class ReadOnlySqlPolicy(ToolPolicy):
         if not sql.strip():
             return Denial("The 'sql' argument is empty.")
 
-        engine = self._engine(arguments)
+        engine = self._engine(sql_arguments)
 
         try:
             from superset.sql.parse import SQLScript
@@ -165,6 +166,22 @@ class ReadOnlySqlPolicy(ToolPolicy):
                 "read-only. Send a plain SELECT."
             )
         return None
+
+    def _arguments_for_sql_tool(
+        self,
+        tool_name: str,
+        arguments: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Resolve built-in and namespaced MCP SQL payloads."""
+        from superset.ai.mcp.config import split_foreign_tool_name
+
+        parts = split_foreign_tool_name(tool_name)
+        effective_name = parts[1] if parts is not None else tool_name
+        if effective_name not in self.sql_tools:
+            return None
+
+        request = arguments.get("request")
+        return request if isinstance(request, dict) else arguments
 
     def _engine(self, arguments: dict[str, Any]) -> str:
         """Resolve the parser dialect from the selected Superset database."""

@@ -101,12 +101,17 @@ def test_read_only_policy_uses_the_selected_database_dialect(
     find.assert_called_once_with(7)
 
 
-def test_read_only_policy_protects_virtual_dataset_sql() -> None:
+def test_read_only_policy_protects_namespaced_virtual_dataset_sql() -> None:
     from superset.ai.policy import ReadOnlySqlPolicy
 
     denial = ReadOnlySqlPolicy().check(
-        "create_virtual_dataset",
-        {"database_id": 7, "sql": "DELETE FROM dbo.sample_events"},
+        "mcp__superset__create_virtual_dataset",
+        {
+            "request": {
+                "database_id": 7,
+                "sql": "DELETE FROM dbo.sample_events",
+            }
+        },
     )
 
     assert denial is not None

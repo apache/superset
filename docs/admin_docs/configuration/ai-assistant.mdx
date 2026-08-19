@@ -205,6 +205,8 @@ class CeleryConfig:
 
 Streams need Redis commands the general-purpose cache client does not expose,
 which is why the bus is configured separately rather than reusing `CACHE_CONFIG`.
+Worker cancellation flags use this same connection, so no second cache setting
+is required.
 
 Selecting `"worker"` with the in-memory event bus raises rather than leaving
 every stream silently empty, and so does selecting the Redis bus without a

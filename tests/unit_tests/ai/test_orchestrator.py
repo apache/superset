@@ -235,6 +235,32 @@ def test_cancellation_works_without_a_usable_cache(
     assert orchestrator.is_cancelled(run_id) is False
 
 
+def test_worker_cancellation_uses_the_event_bus_redis(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """The web request and Celery worker observe the same cancellation flag."""
+    from flask import current_app
+
+    from superset.ai import orchestrator
+
+    mocker.patch.dict(current_app.config, {"AI_ASSISTANT_EXECUTION_MODE": "worker"})
+    backend = mocker.Mock()
+    mocker.patch("superset.ai.eventbus.get_event_bus_backend", return_value=backend)
+
+    run_id = "run-worker-cancel"
+    orchestrator.request_cancel(run_id)
+
+    backend.set.assert_called_once_with("ai-cancel-run-worker-cancel", True, ex=900)
+    assert run_id not in orchestrator._CANCELLED_LOCALLY
+
+    backend.get.return_value = b"1"
+    assert orchestrator.is_cancelled(run_id) is True
+
+    orchestrator.clear_cancel(run_id)
+    backend.delete.assert_called_once_with("ai-cancel-run-worker-cancel")
+
+
 def test_unreadable_cache_reports_not_cancelled(
     app_context: None,
     mocker: MockerFixture,

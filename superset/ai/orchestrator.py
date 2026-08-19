@@ -126,6 +126,28 @@ def new_run_id() -> str:
 _CANCELLED_LOCALLY: set[str] = set()
 
 
+def _uses_worker_cancel_store() -> bool:
+    """Whether cancellation must cross from a web process to a worker."""
+    from flask import current_app, has_app_context
+
+    return bool(
+        has_app_context()
+        and current_app.config.get("AI_ASSISTANT_EXECUTION_MODE") == "worker"
+    )
+
+
+def _cancel_store(worker_mode: bool) -> Any:
+    """Use the required event-bus Redis connection in worker mode."""
+    if worker_mode:
+        from superset.ai.eventbus import get_event_bus_backend
+
+        return get_event_bus_backend()
+
+    from superset.extensions import cache_manager
+
+    return cache_manager.cache
+
+
 def request_cancel(run_id: str) -> None:
     """
     Ask a run to stop.
@@ -135,25 +157,27 @@ def request_cancel(run_id: str) -> None:
     not notice until that call returns, which is a real limit worth documenting
     rather than hiding.
     """
-    from superset.extensions import cache_manager
-
-    _CANCELLED_LOCALLY.add(run_id)
+    worker_mode = _uses_worker_cancel_store()
+    if not worker_mode:
+        _CANCELLED_LOCALLY.add(run_id)
     try:
-        cache_manager.cache.set(
-            f"{_CANCEL_PREFIX}{run_id}", True, timeout=_CANCEL_TTL_SECONDS
-        )
+        store = _cancel_store(worker_mode)
+        if worker_mode:
+            store.set(f"{_CANCEL_PREFIX}{run_id}", True, ex=_CANCEL_TTL_SECONDS)
+        else:
+            store.set(f"{_CANCEL_PREFIX}{run_id}", True, timeout=_CANCEL_TTL_SECONDS)
     except Exception:  # pylint: disable=broad-except
         logger.warning("Could not record cancellation for AI run %s", run_id)
 
 
 def is_cancelled(run_id: str) -> bool:
     """Whether a stop has been requested for this run."""
-    from superset.extensions import cache_manager
-
     if run_id in _CANCELLED_LOCALLY:
         return True
     try:
-        return bool(cache_manager.cache.get(f"{_CANCEL_PREFIX}{run_id}"))
+        return bool(
+            _cancel_store(_uses_worker_cancel_store()).get(f"{_CANCEL_PREFIX}{run_id}")
+        )
     except Exception:  # pylint: disable=broad-except
         # A cache that cannot be read must not make every run appear cancelled;
         # that would stop all inference the moment the cache went away.
@@ -162,11 +186,9 @@ def is_cancelled(run_id: str) -> bool:
 
 def clear_cancel(run_id: str) -> None:
     """Drop a run's cancellation flag."""
-    from superset.extensions import cache_manager
-
     _CANCELLED_LOCALLY.discard(run_id)
     try:
-        cache_manager.cache.delete(f"{_CANCEL_PREFIX}{run_id}")
+        _cancel_store(_uses_worker_cancel_store()).delete(f"{_CANCEL_PREFIX}{run_id}")
     except Exception:  # pylint: disable=broad-except
         logger.debug("Could not clear cancellation flag for AI run %s", run_id)
 

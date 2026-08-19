@@ -265,13 +265,13 @@ def get_event_bus() -> BaseEventBus:
         return _memory_bus()
 
     return RedisStreamEventBus(
-        cache=_stream_backend(),
+        cache=get_event_bus_backend(),
         prefix=current_app.config.get("AI_ASSISTANT_EVENT_STREAM_PREFIX", "ai-events-"),
         ttl_seconds=current_app.config.get("AI_ASSISTANT_EVENT_TTL_SECONDS", 900),
     )
 
 
-def _stream_backend() -> Any:
+def get_event_bus_backend() -> Any:
     """
     Build a cache client that can speak Redis streams.
 
