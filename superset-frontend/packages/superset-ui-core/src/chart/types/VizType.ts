@@ -61,7 +61,6 @@ export enum VizType {
   TimePivot = 'time_pivot',
   TimeTable = 'time_table',
   Timeseries = 'echarts_timeseries',
-  Tornado = 'tornado',
   Tree = 'tree_chart',
   Treemap = 'treemap_v2',
   Waterfall = 'waterfall',
