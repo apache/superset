@@ -278,11 +278,24 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
           // dashboard, it *is* the dashboard — the surface everything else is
           // arranged on, not a card among them — so it gets none of a card's
           // trappings: no fill, no border, no rounded corners of its own.
-          backgroundColor: isRoot ? undefined : theme.colorBgContainer,
+          //
+          // The values are v1's dashboard tile, including its three
+          // `dashboardTile*` theme override points (see
+          // `.dashboard-component-chart-holder` in `DashboardBuilder.tsx`).
+          // That matters more than the specific pixels: a deployment that
+          // themes its dashboard tiles was having no effect whatsoever here,
+          // so a v2 dashboard in a customised deployment looked like a
+          // different product. Reading the same tokens means v2 inherits that
+          // customisation for free.
+          backgroundColor: isRoot
+            ? undefined
+            : (theme.dashboardTileBg ?? theme.colorBgContainer),
           border: isRoot
             ? undefined
-            : `1px solid ${theme.colorBorderSecondary}`,
-          borderRadius: isRoot ? undefined : theme.borderRadiusLG,
+            : (theme.dashboardTileBorder ?? `1px solid ${theme.colorBorder}`),
+          borderRadius: isRoot
+            ? undefined
+            : (theme.dashboardTileBorderRadius ?? theme.borderRadius),
           // Nothing reaches past the corners this rounds — a widget's content
           // is square and would otherwise fill them back in. Moot on the
           // root, which rounds nothing.

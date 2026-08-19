@@ -240,3 +240,85 @@ export interface QueryDataResult {
 export declare function fetchQueryData(
   binding: DataBindingSpec,
 ): Promise<QueryDataResult>;
+
+/**
+ * The categorical series colors of the active color scheme, in order.
+ *
+ * A widget that draws its own chart has to colour its series itself,
+ * and an extension can't reach `CategoricalColorNamespace` — it isn't part of
+ * this API. Without this, every renderer falls back to its own library's stock
+ * palette (ECharts' blues, Vega-Lite's `category10`), so two widgets on one
+ * dashboard disagree about what "the first series" looks like.
+ */
+export declare function getCategoricalColors(): string[];
+
+/**
+ * What the active theme means for a chart, stated without reference to any
+ * charting library.
+ *
+ * A widget draws with whatever renderer it likes, and every charting library
+ * ships its own palette and its own near-black text — so without this, a widget
+ * looks like its library rather than like Superset, and two widgets on one
+ * dashboard disagree about what "the first series" is. Map these few fields onto
+ * your renderer's own config and merge your spec *over* the result, so a widget
+ * that genuinely wants different colours can still say so while theme
+ * compatibility is what it gets for free.
+ *
+ * `getColor` is how a series gets its colour: by what it is called, not by
+ * where it sits. See the field's own note for why that matters across widgets.
+ *
+ * `sequentialColors` is for a continuous measure — heatmap cells, a colour ramp
+ * — where a categorical palette is the wrong answer. It may be empty if the
+ * deployment registers no sequential scheme, in which case keep your renderer's
+ * own default rather than inventing one.
+ */
+export interface ChartTheme {
+  /** Transparent, so a chart sits on the widget surface rather than over it. */
+  background: string;
+  text: {
+    color: string;
+    /** Text that labels rather than states — axis ticks, legend entries. */
+    mutedColor: string;
+    /** Present but inactive — a toggled-off legend entry. */
+    disabledColor: string;
+    fontFamily: string;
+    fontSize: number;
+  };
+  axis: {
+    lineColor: string;
+    labelColor: string;
+    gridColor: string;
+    /** Minor gridlines, where a renderer draws them. */
+    minorGridColor: string;
+  };
+  tooltip: {
+    background: string;
+    color: string;
+  };
+  /** Accent for hover markers, crosshairs, selection. */
+  accent: string;
+  /** The active categorical scheme, in order. One colour per series. */
+  categoricalColors: string[];
+  /**
+   * The colour for a named series or category — "EMEA", "Direct", a product
+   * name.
+   *
+   * Prefer this to indexing {@link categoricalColors} yourself. A dashboard is
+   * read across its widgets, and by position "EMEA" is the second colour in a
+   * chart that happens to list it second and the fifth in one that does not —
+   * so the same thing is a different colour in every widget it appears in.
+   * Asked for by name it is one colour everywhere, including in the v1 charts
+   * beside it, which resolve their colours the same way.
+   */
+  getColor: (label: string) => string;
+  /** The active sequential scheme, light to dark. Possibly empty. */
+  sequentialColors: string[];
+}
+
+/**
+ * The active theme, as a chart cares about it. See {@link ChartTheme}.
+ *
+ * Read it per render rather than once at module load: both the colour scheme and
+ * the light/dark theme can change while a widget is mounted.
+ */
+export declare function getChartTheme(): ChartTheme;

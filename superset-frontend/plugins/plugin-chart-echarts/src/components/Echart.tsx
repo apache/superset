@@ -72,6 +72,7 @@ import {
 } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
 import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
+import { getEchartsTheme } from '../utils/echartsTheme';
 import { loadLocale } from './echartsLocale';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
@@ -228,58 +229,7 @@ function Echart(
         chartRef.current?.getZr().on(name, handler);
       });
 
-      const getEchartsTheme = (options: any) => {
-        const antdTheme = theme;
-        const echartsTheme = {
-          textStyle: {
-            color: antdTheme.colorText,
-            fontFamily: antdTheme.fontFamily,
-          },
-          title: {
-            textStyle: { color: antdTheme.colorText },
-          },
-          legend: {
-            textStyle: { color: antdTheme.colorTextSecondary },
-            pageTextStyle: {
-              color: antdTheme.colorTextSecondary,
-            },
-            pageIconColor: antdTheme.colorTextSecondary,
-            pageIconInactiveColor: antdTheme.colorTextDisabled,
-            inactiveColor: antdTheme.colorTextDisabled,
-          },
-          tooltip: {
-            backgroundColor: antdTheme.colorBgContainer,
-            textStyle: { color: antdTheme.colorText },
-          },
-          axisPointer: {
-            lineStyle: { color: antdTheme.colorPrimary },
-            label: { color: antdTheme.colorText },
-          },
-        } as any;
-        if (options?.xAxis) {
-          echartsTheme.xAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
-            axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
-            minorSplitLine: {
-              lineStyle: { color: antdTheme.colorBorderSecondary },
-            },
-          };
-        }
-        if (options?.yAxis) {
-          echartsTheme.yAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
-            axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
-            minorSplitLine: {
-              lineStyle: { color: antdTheme.colorBorderSecondary },
-            },
-          };
-        }
-        return echartsTheme;
-      };
-
-      const baseTheme = getEchartsTheme(echartOptions);
+      const baseTheme = getEchartsTheme(theme, echartOptions);
       const globalOverrides = theme.echartsOptionsOverrides || {};
       const chartOverrides = vizType
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}

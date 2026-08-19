@@ -280,8 +280,10 @@ class EchartsControls(BaseModel):
             '"single": true to unwrap a single-row value); {"$bind": {"source": '
             '"records", "fields": {"name": "<col>", "value": "<col>"}}} yields '
             "an array of {name, value} objects (e.g. for pie series data); and "
-            '{"$bind": {"source": "theme", "token": "<token>"}} yields a Superset '
-            "theme value. The $bind wrapper is required."
+            '{"$bind": {"source": "theme", "token": "<field>"}} yields a chart '
+            'theme value, addressed by dotted path (e.g. "accent", '
+            '"text.mutedColor", "axis.gridColor"); a raw theme token name also '
+            "resolves. The $bind wrapper is required."
         ),
         json_schema_extra={
             "x-control": "code",
