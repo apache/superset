@@ -52,7 +52,7 @@ THEME_EDITORS = migration.THEME_EDITORS  # "theme_editors"
 def test_revision_chain() -> None:
     """The migration must sit directly on top of the current single head."""
     assert migration.revision == "f7e8d9c0b1a2"
-    assert migration.down_revision == "e5f6a7b8c9d0"
+    assert migration.down_revision == "1072de5ed955"
 
 
 @pytest.fixture
