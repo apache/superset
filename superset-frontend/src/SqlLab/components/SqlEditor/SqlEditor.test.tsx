@@ -21,6 +21,7 @@ import {
   isFeatureEnabled,
   getExtensionsRegistry,
   FeatureFlag,
+  QueryState,
 } from '@superset-ui/core';
 import {
   act,
@@ -332,6 +333,36 @@ describe('SqlEditor', () => {
     const { findByText } = setup(updatedProps, store);
     fireEvent.click(await findByText('Limit'));
     expect(await findByText('10 000')).toBeInTheDocument();
+  });
+
+  const setupWithQueryState = (state: QueryState) =>
+    setup(
+      mockedProps,
+      createStore({
+        ...mockInitialState,
+        sqlLab: {
+          ...mockInitialState.sqlLab,
+          queries: {
+            [latestQuery.id]: { ...latestQuery, state },
+          },
+          databases: {
+            1991: {
+              ...mockInitialState.sqlLab.databases[1991],
+              allows_virtual_table_explore: true,
+            },
+          },
+        },
+      }),
+    );
+
+  test('enables the save dataset button when the latest query succeeded', async () => {
+    const { findByRole } = setupWithQueryState(QueryState.Success);
+    expect(await findByRole('button', { name: 'Save dataset' })).toBeEnabled();
+  });
+
+  test('disables the save dataset button when the latest query failed', async () => {
+    const { findByRole } = setupWithQueryState(QueryState.Failed);
+    expect(await findByRole('button', { name: 'Save dataset' })).toBeDisabled();
   });
 
   test('renders an Extension if provided', async () => {
