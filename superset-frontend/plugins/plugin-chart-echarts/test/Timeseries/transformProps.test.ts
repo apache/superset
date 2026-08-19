@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  AnnotationData,
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
@@ -2541,8 +2542,10 @@ describe('weekly x-axis tick alignment', () => {
 
   const weeklyChartProps = (
     formDataOverrides: Partial<EchartsTimeseriesFormData> = {},
+    annotationData?: AnnotationData,
   ) =>
     createTestChartProps({
+      annotationData,
       formData: {
         granularity_sqla: 'ds',
         timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
@@ -2555,6 +2558,8 @@ describe('weekly x-axis tick alignment', () => {
           {
             colnames: ['__timestamp', 'sales'],
             coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            // transformProps reads annotations off the query, not chartProps.
+            ...(annotationData && { annotation_data: annotationData }),
           },
         ),
       ],
@@ -2565,8 +2570,78 @@ describe('weekly x-axis tick alignment', () => {
 
     expect(xAxis.type).toBe(AxisType.Time);
     expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    // Gridlines follow axisTick.customValues, so splitLine needs no own copy.
     expect(xAxis.axisTick.customValues).toEqual(MONDAYS);
-    expect(xAxis.splitLine.customValues).toEqual(MONDAYS);
+    expect(xAxis.splitLine).toBeUndefined();
+  });
+
+  test('keeps label thinning on when the labels are rotated', () => {
+    // Rotation normally turns hideOverlap off, but pinned ticks put a label on
+    // every bucket, so without thinning a multi-year range draws hundreds.
+    const { xAxis } = transformProps(
+      weeklyChartProps({ xAxisLabelRotation: 45 }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    expect(xAxis.axisLabel.hideOverlap).toBe(true);
+  });
+
+  test('leaves rotation thinning alone when the ticks are not pinned', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps({
+        timeGrainSqla: TimeGranularity.MONTH,
+        xAxisLabelRotation: 45,
+      }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
+    expect(xAxis.axisLabel.hideOverlap).toBe(false);
+  });
+
+  const timeseriesLayer = (show: boolean) =>
+    ({
+      name: 'my annotation',
+      annotationType: AnnotationType.Timeseries,
+      sourceType: AnnotationSourceType.Line,
+      style: AnnotationStyle.Solid,
+      show,
+      value: 1,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+  // The annotation's own timestamps run a year past the last bucket.
+  const annotationRecords = {
+    'my annotation': {
+      records: [
+        { ds: MONDAYS[0], y: 1 },
+        { ds: MONDAYS[12] + 52 * WEEK_MS, y: 2 },
+      ],
+    },
+  };
+
+  test('does not pin ticks when a timeseries annotation widens the axis', () => {
+    // A Time axis takes no min/max, so it stretches to cover the annotation
+    // while ECharts clips pinned ticks to the extent — that span would be bare.
+    const { xAxis } = transformProps(
+      weeklyChartProps(
+        { annotationLayers: [timeseriesLayer(true)] },
+        annotationRecords,
+      ),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
+    expect(xAxis.axisTick?.customValues).toBeUndefined();
+  });
+
+  test('still pins ticks for a hidden timeseries annotation', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps(
+        { annotationLayers: [timeseriesLayer(false)] },
+        annotationRecords,
+      ),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
   });
 
   test.each([

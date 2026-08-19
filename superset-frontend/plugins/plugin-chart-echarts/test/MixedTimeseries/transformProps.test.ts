@@ -1398,8 +1398,18 @@ describe('weekly x-axis tick alignment', () => {
 
     expect(xAxis.type).toBe(AxisType.Time);
     expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    // Gridlines follow axisTick.customValues, so splitLine needs no own copy.
     expect(xAxis.axisTick.customValues).toEqual(MONDAYS);
-    expect(xAxis.splitLine.customValues).toEqual(MONDAYS);
+    expect(xAxis.splitLine).toBeUndefined();
+  });
+
+  test('keeps label thinning on when the labels are rotated', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps(MONDAYS, MONDAYS, { xAxisLabelRotation: 45 }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    expect(xAxis.axisLabel.hideOverlap).toBe(true);
   });
 
   test('covers buckets contributed by either query', () => {
