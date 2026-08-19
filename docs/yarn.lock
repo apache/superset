@@ -8014,10 +8014,10 @@ doctrine@^2.1.0:
   dependencies:
     esutils "^2.0.2"
 
-docusaurus-plugin-openapi-docs@^5.1.3:
-  version "5.1.3"
-  resolved "https://registry.yarnpkg.com/docusaurus-plugin-openapi-docs/-/docusaurus-plugin-openapi-docs-5.1.3.tgz#b8cd5f8451aaf881deb1a744a8295685f1681865"
-  integrity sha512-HnpblSBdXoR39VNTIW9zWERUsMJxXOpvdQoBKyaTkUBPwCM48Z76+ndo2yO2vADq+EhWjJlfxL1DUzCrgNjThQ==
+docusaurus-plugin-openapi-docs@^5.2.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/docusaurus-plugin-openapi-docs/-/docusaurus-plugin-openapi-docs-5.2.0.tgz#8318ec90cd21fed023be57696211af7d72fd81db"
+  integrity sha512-MjrfRAMB64uvdxRVz6L9AXWe4QFjCdoBAzYs306yyI3nnXHsFj2lv2FnLA90JV9CAUZaGiYMvvkzBo2Nrkq/9w==
   dependencies:
     "@apidevtools/json-schema-ref-parser" "^15.3.3"
     "@redocly/openapi-core" "^2.25.2"
@@ -8035,10 +8035,10 @@ docusaurus-plugin-openapi-docs@^5.1.3:
     swagger2openapi "^7.0.8"
     xml-formatter "^3.6.6"
 
-docusaurus-theme-openapi-docs@^5.1.3:
-  version "5.1.3"
-  resolved "https://registry.yarnpkg.com/docusaurus-theme-openapi-docs/-/docusaurus-theme-openapi-docs-5.1.3.tgz#e23644a63785352abbc76e42760c0dfdff3669e1"
-  integrity sha512-npbD1QahtjAEmrOet/86i5fTmcJX4/rPhVT+c0qKjm7StUNbyqjwchSVBQuU1rB69T51JOA9TpT/y6QcB9Xjvw==
+docusaurus-theme-openapi-docs@^5.2.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/docusaurus-theme-openapi-docs/-/docusaurus-theme-openapi-docs-5.2.0.tgz#6d93a74e2e3cf0ae77d24e1c4144bd2e74a52115"
+  integrity sha512-L0b80LzaMUfr76a9EQXRPCf8nxkEz8Xo6Aknnke1UeE2oXsgoiVki6U+RTE7GmJRjO8zSNKXyckGmGmqqWuHeA==
   dependencies:
     "@hookform/error-message" "^2.0.1"
     "@reduxjs/toolkit" "^2.8.2"
