@@ -19,7 +19,11 @@
 import type { Middleware } from 'redux';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import { appendVersionSessionLog, clearVersionSessionLog } from './reducer';
+import {
+  appendVersionSessionLog,
+  clearVersionSessionLog,
+  invalidateChartNormalizationControls,
+} from './reducer';
 
 // Action types are inlined (rather than imported from the explore
 // module) so this middleware does not pull explore code into every
@@ -47,8 +51,17 @@ interface SessionLogState {
   user?: { firstName?: string; lastName?: string };
   explore?: {
     controls?: Record<string, { label?: unknown } | undefined>;
+    form_data?: Record<string, unknown>;
   };
 }
+
+const changedFormDataKeys = (
+  before: Record<string, unknown> = {},
+  after: Record<string, unknown> = {},
+) =>
+  [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(
+    key => before[key] !== after[key],
+  );
 
 function controlLabel(state: SessionLogState, controlName: string): string {
   const label = state.explore?.controls?.[controlName]?.label;
@@ -71,6 +84,7 @@ function userName(state: SessionLogState): string | null {
  */
 export const versionSessionLogMiddleware: Middleware =
   store => next => action => {
+    const before = (store.getState() as SessionLogState).explore?.form_data;
     const result = next(action);
     if (!isFeatureEnabled(FeatureFlag.VersionHistory)) {
       return result;
@@ -150,6 +164,24 @@ export const versionSessionLogMiddleware: Middleware =
           user: userName(state),
         }),
       );
+    }
+    if (action.type !== HYDRATE_EXPLORE) {
+      const state = store.getState() as SessionLogState;
+      const controls = changedFormDataKeys(before, state.explore?.form_data);
+      if (
+        action.type === SET_FIELD_VALUE &&
+        typeof action.controlName === 'string'
+      ) {
+        controls.push(action.controlName);
+      } else if (action.type === SET_EXPLORE_CONTROLS && action.formData) {
+        controls.push(...Object.keys(action.formData));
+      } else if (action.type === UPDATE_FORM_DATA_BY_DATASOURCE) {
+        controls.push(DATASOURCE_CONTROL_NAME);
+      }
+      const uniqueControls = [...new Set(controls)];
+      if (uniqueControls.length) {
+        store.dispatch(invalidateChartNormalizationControls(uniqueControls));
+      }
     }
     return result;
   };

@@ -21,6 +21,8 @@ import { Dispatch } from 'redux';
 import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
+  FeatureFlag,
+  isFeatureEnabled,
   type QueryFormData,
   SimpleAdhocFilter,
   SupersetClient,
@@ -30,11 +32,21 @@ import { isEmpty } from 'lodash-es';
 import { Slice } from 'src/dashboard/types';
 import { Operators } from '../constants';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { nanoid } from 'nanoid';
+import {
+  beginChartNormalizationSave,
+  completeChartNormalizationSave,
+} from 'src/features/versionHistory/reducer';
+import type {
+  AutomaticNormalizationExclusions,
+  ChartNormalizationTrackingState,
+} from 'src/features/versionHistory/types';
 
 export interface PayloadSlice extends Slice {
   params: string;
   dashboards: number[];
   query_context: string;
+  normalization_changes?: AutomaticNormalizationExclusions[string][];
 }
 const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
@@ -233,21 +245,69 @@ export const updateSlice =
       new?: boolean;
     },
   ) =>
-  async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
+  async (
+    dispatch: Dispatch,
+    getState: () => Partial<QueryFormData> & {
+      versionHistory?: {
+        chartNormalization?: ChartNormalizationTrackingState | null;
+      };
+    },
+  ) => {
     const { slice_id: sliceId, editors, form_data: formDataFromSlice } = slice;
-    const formData = getState().explore?.form_data;
+    const initialState = getState();
+    const formData = JSON.parse(
+      JSON.stringify(initialState.explore?.form_data ?? {}),
+    ) as QueryFormData;
+    const tracking = initialState.versionHistory?.chartNormalization;
+    const saveAttemptId = nanoid();
+    const matchingExclusions = Object.fromEntries(
+      Object.entries(tracking?.exclusions ?? {}).filter(
+        ([control, transition]) =>
+          !tracking?.invalidatedControls[control] &&
+          Object.hasOwn(formData, control) === transition.to_present &&
+          (!transition.to_present ||
+            JSON.stringify(formData[control]) ===
+              JSON.stringify(transition.to_value)),
+      ),
+    ) as AutomaticNormalizationExclusions;
+    const shouldAttachNormalization =
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      tracking?.chartId === sliceId;
+    if (shouldAttachNormalization) {
+      dispatch(
+        beginChartNormalizationSave(
+          sliceId,
+          tracking.hydrationSessionId,
+          saveAttemptId,
+        ),
+      );
+    }
     try {
+      const payload = await getSlicePayload(
+        sliceName,
+        formData,
+        dashboards,
+        editors as [],
+        formDataFromSlice,
+      );
+      if (shouldAttachNormalization && Object.keys(matchingExclusions).length) {
+        payload.normalization_changes = Object.values(matchingExclusions);
+      }
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        jsonPayload: await getSlicePayload(
-          sliceName,
-          formData,
-          dashboards,
-          editors as [],
-          formDataFromSlice,
-        ),
+        jsonPayload: payload,
       });
 
+      if (shouldAttachNormalization) {
+        dispatch(
+          completeChartNormalizationSave(
+            sliceId,
+            tracking.hydrationSessionId,
+            saveAttemptId,
+            {},
+          ),
+        );
+      }
       dispatch(saveSliceSuccess(response.json));
       addToasts(false, sliceName, addedToDashboard).map(dispatch);
       return response.json;

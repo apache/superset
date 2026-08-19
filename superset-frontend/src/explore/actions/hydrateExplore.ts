@@ -49,11 +49,75 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { nanoid } from 'nanoid';
+import isEqual from 'lodash-es/isEqual';
+import cloneDeep from 'lodash-es/cloneDeep';
+import { hydrateChartNormalization } from 'src/features/versionHistory/reducer';
+import type {
+  AutomaticNormalizationExclusions,
+  JsonValue,
+} from 'src/features/versionHistory/types';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
   SEQUENTIAL = 'SEQUENTIAL',
 }
+
+const isJsonValue = (value: unknown): value is JsonValue => {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.every(isJsonValue);
+  }
+  return (
+    typeof value === 'object' &&
+    Object.values(value as Record<string, unknown>).every(isJsonValue)
+  );
+};
+
+const normalizationTransitions = (
+  persisted: Record<string, unknown>,
+  input: Record<string, unknown>,
+  hydrated: Record<string, unknown>,
+): AutomaticNormalizationExclusions => {
+  const transitions: AutomaticNormalizationExclusions = {};
+  [...new Set([...Object.keys(input), ...Object.keys(hydrated)])].forEach(
+    control => {
+      const fromPresent = Object.hasOwn(persisted, control);
+      const inputPresent = Object.hasOwn(input, control);
+      const toPresent = Object.hasOwn(hydrated, control);
+      const fromValue = persisted[control];
+      const inputValue = input[control];
+      const toValue = hydrated[control];
+      if (
+        fromPresent === inputPresent &&
+        isEqual(fromValue, inputValue) &&
+        // A missing projected key may only mean that the control is not part
+        // of the active visualization. Treating it as normalization could
+        // suppress a real removal.
+        toPresent &&
+        (fromPresent !== toPresent || !isEqual(fromValue, toValue)) &&
+        (!fromPresent || isJsonValue(fromValue)) &&
+        (!toPresent || isJsonValue(toValue))
+      ) {
+        transitions[control] = {
+          control,
+          from_present: fromPresent,
+          ...(fromPresent && { from_value: fromValue as JsonValue }),
+          to_present: toPresent,
+          ...(toPresent && { to_value: toValue as JsonValue }),
+        } as AutomaticNormalizationExclusions[string];
+      }
+    },
+  );
+  return transitions;
+};
 
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
@@ -78,6 +142,8 @@ export const hydrateExplore =
     const fallbackSlice = sliceId ? sliceEntities?.slices?.[sliceId] : null;
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
+    const persistedFormData = cloneDeep(initialSlice?.form_data ?? {});
+    const preHydrationFormData = cloneDeep(initialFormData ?? {});
     const isCachedFormData = getUrlParam(URL_PARAMS.formDataKey) !== null;
     const [primarySliceNameSource, fallbackSliceNameSource] = isCachedFormData
       ? [initialFormData, initialSlice]
@@ -213,6 +279,10 @@ export const hydrateExplore =
         exploreState,
       );
     });
+    const hydratedFormData = {
+      ...initialFormData,
+      ...getFormDataFromControls(exploreState.controls),
+    };
     const sliceFormData = initialSlice
       ? getFormDataFromControls(initialControls)
       : null;
@@ -233,7 +303,7 @@ export const hydrateExplore =
       lastRendered: 0,
     };
 
-    return dispatch({
+    const result = dispatch({
       type: HYDRATE_EXPLORE,
       data: {
         charts: {
@@ -253,6 +323,28 @@ export const hydrateExplore =
         dataMask,
       },
     });
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      initialSlice?.slice_id &&
+      !isCachedFormData &&
+      !dashboardId &&
+      getUrlParam(URL_PARAMS.vizType) === null
+    ) {
+      dispatch(
+        hydrateChartNormalization({
+          chartId: initialSlice.slice_id,
+          hydrationSessionId: nanoid(),
+          exclusions: normalizationTransitions(
+            persistedFormData,
+            preHydrationFormData,
+            hydratedFormData,
+          ),
+          invalidatedControls: {},
+          saveAttemptId: null,
+        }),
+      );
+    }
+    return result;
   };
 
 export type HydrateExplore = {

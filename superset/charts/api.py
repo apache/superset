@@ -679,13 +679,17 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        normalization_changes: object = item.pop("normalization_changes", None)
+
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off, so this stays inert under the
         # kill-switch).
         old_info = current_entity_version_info(Slice, pk)
 
         try:
-            changed_model = UpdateChartCommand(pk, item).run()
+            changed_model = UpdateChartCommand(
+                pk, item, normalization_changes=normalization_changes
+            ).run()
             new_info = current_entity_version_info(
                 Slice, changed_model.id, changed_model.uuid
             )

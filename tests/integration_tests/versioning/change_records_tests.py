@@ -51,6 +51,11 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json as _json
+from superset.versioning.changes.normalization import (
+    matching_normalization_context,
+    NormalizationContext,
+    store_normalization_context,
+)
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
@@ -162,6 +167,77 @@ class TestChartChangeRecords(SupersetTestCase):
         )
         assert path == ["slice_name"]
         assert rows[0]["sequence"] == 0
+
+    def test_matching_hydration_metadata_omits_only_normalization_noise(
+        self,
+    ) -> None:
+        """Readable history omits exact null/default and missing/default changes."""
+        _persist_fixture_state()
+        chart: Slice | None = db.session.query(Slice).first()
+        assert chart is not None
+        before_params: dict[str, Any] = {
+            "viz_type": "table",
+            "granularity_sqla": "ds",
+            "row_limit": None,
+        }
+        after_params: dict[str, Any] = {
+            "viz_type": "table",
+            "granularity_sqla": None,
+            "row_limit": 10000,
+            "show_legend": True,
+        }
+        chart.params = _json.dumps(before_params)
+        db.session.commit()
+
+        metadata: list[dict[str, Any]] = [
+            {
+                "control": "granularity_sqla",
+                "from_present": True,
+                "from_value": "ds",
+                "to_present": True,
+                "to_value": None,
+            },
+            {
+                "control": "row_limit",
+                "from_present": True,
+                "from_value": None,
+                "to_present": True,
+                "to_value": 10000,
+            },
+            {
+                "control": "show_legend",
+                "from_present": False,
+                "to_present": True,
+                "to_value": True,
+            },
+        ]
+        context: NormalizationContext | None = matching_normalization_context(
+            chart.id, metadata, before_params, after_params
+        )
+        assert context is not None
+        store_normalization_context(db.session, context)
+        chart.params = _json.dumps(after_params)
+        chart.slice_name = f"{chart.slice_name[:64]}_intentional"
+        db.session.commit()
+
+        ver_cls: Any = version_class(Slice)
+        update_tx_id: int = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart.id)
+            .filter(ver_cls.operation_type == 1)
+            .order_by(ver_cls.transaction_id.desc())
+            .first()
+            .transaction_id
+        )
+        rows: list[dict[str, Any]] = _change_rows_for(
+            update_tx_id, entity_kind="chart", entity_id=chart.id
+        )
+        paths: list[list[str]] = [
+            _json.loads(row["path"]) if isinstance(row["path"], str) else row["path"]
+            for row in rows
+        ]
+        assert paths == [["slice_name"]]
+        assert _json.loads(chart.params) == after_params
 
     def test_last_saved_at_is_excluded_as_audit_noise(self) -> None:
         """``last_saved_at`` / ``last_saved_by_fk`` are save-side-effect
