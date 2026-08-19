@@ -83,7 +83,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Databricks (legacy) | 70 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | StarRocks | 69 | Supported | Partial | Supported | Partial | Partial | Partial |
 | SingleStore | 68 | Supported | Partial | Supported | Not supported | Partial | Not supported |
-| ClickHouse Connect (Superset) | 61 | Supported | Partial | Partial | Partial | Partial | Not supported |
+| ClickHouse Connect (Superset) | 62 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Google Sheets | 61 | Supported | Partial | Supported | Supported | Partial | Partial |
 | Aurora MySQL (Data API) | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | MariaDB | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
@@ -91,7 +91,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | OceanBase | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | MotherDuck | 58 | Supported | Partial | Supported | Not supported | Partial | Not supported |
 | KustoSQL | 54 | Supported | Partial | Supported | Partial | Partial | Not supported |
-| ClickHouse | 51 | Supported | Partial | Partial | Partial | Partial | Not supported |
+| ClickHouse | 52 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Databend | 51 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Apache Drill | 50 | Supported | Partial | Supported | Partial | Partial | Partial |
 | Apache Druid | 47 | Partial | Partial | Supported | Partial | Partial | Not supported |
@@ -293,8 +293,8 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Aurora MySQL (Data API) | True | True | True | True | True | True | True | True |
 | Aurora PostgreSQL (Data API) | True | True | True | True | True | True | True | True |
 | Azure Synapse | True | True | True | True | True | True | True | True |
-| ClickHouse | False | True | True | True | True | True | True | True |
-| ClickHouse Connect (Superset) | False | True | True | True | True | True | True | True |
+| ClickHouse | True | True | True | True | True | True | True | True |
+| ClickHouse Connect (Superset) | True | True | True | True | True | True | True | True |
 | CockroachDB | True | True | True | True | True | True | True | True |
 | Couchbase | True | True | True | True | False | True | True | True |
 | CrateDB | True | True | True | True | True | True | True | True |

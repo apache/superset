@@ -22,12 +22,20 @@ import { getSequentialSchemeRegistry } from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import CalHeatMapImport from './vendor/cal-heatmap';
-import { convertUTCTimestampToLocal } from './utils';
+import { convertUTCTimestampToLocal, getFormattedUTCTime } from './utils';
 
 // The vendor file is @ts-nocheck, so its export lacks type info.
 // Define a minimal constructor interface for use in this file.
 interface CalHeatMapInstance {
   init(config: Record<string, unknown>): void;
+  destroy(): null;
+}
+
+const calendarInstances = new WeakMap<HTMLElement, CalHeatMapInstance[]>();
+
+export function destroyCalendarInstances(element: HTMLElement) {
+  calendarInstances.get(element)?.forEach(calendar => calendar.destroy());
+  calendarInstances.delete(element);
 }
 const CalHeatMap = CalHeatMapImport as unknown as new () => CalHeatMapInstance;
 
@@ -82,6 +90,10 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     colorRangeStart,
   } = props;
 
+  destroyCalendarInstances(element);
+  const instances: CalHeatMapInstance[] = [];
+  calendarInstances.set(element, instances);
+
   const container = d3Select(element)
     .classed('superset-legacy-chart-calendar', true)
     .style('height', height);
@@ -91,6 +103,8 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
   const subDomainTextFormat = showValues
     ? (_date: Date, value: number) => valueFormatter(value)
     : null;
+  const dateFormatter = (date: Date, format: string) =>
+    getFormattedUTCTime(date.getTime(), format);
 
   const metricsData = data.data;
 
@@ -120,12 +134,13 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     const colorScheme = getSequentialSchemeRegistry().get(linearColorScheme);
     const colorScale = colorScheme
       ? colorScheme.createLinearScale(extents)
-      : (_v: number) => '#ccc'; // fallback if scheme not found
+      : () => '#ccc'; // fallback if scheme not found
 
     const legend = d3Range(steps).map(i => extents[0] + step * i);
     const legendColors = legend.map(x => colorScale(x));
 
     const cal = new CalHeatMap();
+    instances.push(cal);
     cal.init({
       start: convertUTCTimestampToLocal(data.start),
       data: timestamps,
@@ -153,6 +168,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       itemName: '',
       valueFormatter,
       timeFormatter,
+      dateFormatter,
       subDomainTextFormat,
     });
   });

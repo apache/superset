@@ -3407,21 +3407,25 @@
             "nullable": true,
             "type": "string"
           },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardRestApi.get_list.Subject"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "integer"
           },
           "is_managed_externally": {
             "type": "boolean"
           },
-          "owners": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
-          },
           "published": {
             "nullable": true,
             "type": "boolean"
-          },
-          "roles": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.Role"
           },
           "slug": {
             "maxLength": 255,
@@ -3432,10 +3436,10 @@
             "readOnly": true
           },
           "tags": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.Tag"
-          },
-          "thumbnail_url": {
-            "readOnly": true
+            "items": {
+              "$ref": "#/components/schemas/DashboardRestApi.get_list.Tag"
+            },
+            "type": "array"
           },
           "url": {
             "readOnly": true
@@ -3444,21 +3448,46 @@
             "format": "uuid",
             "nullable": true,
             "type": "string"
+          },
+          "viewers": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardRestApi.get_list.Subject1"
+            },
+            "type": "array"
           }
         },
         "type": "object"
       },
-      "DashboardRestApi.get_list.Role": {
+      "DashboardRestApi.get_list.Subject": {
         "properties": {
           "id": {
             "type": "integer"
           },
-          "name": {
-            "maxLength": 64,
+          "label": {
+            "maxLength": 255,
             "type": "string"
+          },
+          "type": {
+            "type": "integer"
           }
         },
-        "required": ["name"],
+        "required": ["label", "type"],
+        "type": "object"
+      },
+      "DashboardRestApi.get_list.Subject1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": ["label", "type"],
         "type": "object"
       },
       "DashboardRestApi.get_list.Tag": {
@@ -3495,23 +3524,6 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": ["first_name", "last_name"],
-        "type": "object"
-      },
-      "DashboardRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -16506,7 +16518,7 @@
                     },
                     "result": {
                       "items": {
-                        "type": "object"
+                        "$ref": "#/components/schemas/DashboardRestApi.get_list"
                       },
                       "type": "array"
                     }

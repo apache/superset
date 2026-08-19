@@ -30,6 +30,7 @@ import {
   AsyncSelect,
   EmptyState,
   ColorPicker,
+  Typography,
 } from '@superset-ui/core/components';
 import {
   SupersetClient,
@@ -105,6 +106,7 @@ interface AnnotationLayerProps {
   vizType?: string;
   error?: string;
   colorScheme?: string;
+  canReadAnnotation: boolean;
   addAnnotationLayer?: (annotation: Record<string, unknown>) => void;
   removeAnnotationLayer?: () => void;
   close?: () => void;
@@ -165,6 +167,10 @@ const getSliceFormData = (
 
 const reportChartFailure = (id: string | number) => (error: unknown) =>
   logging.error(`Failed to load annotation source chart ${id}`, error);
+
+const reportAnnotationLayerFailure =
+  (id: string | number) => (error: unknown) =>
+    logging.error(`Failed to load annotation layer ${id}`, error);
 
 const toSliceData = (formData: Record<string, unknown>): SliceData => ({
   data: {
@@ -232,6 +238,7 @@ function AnnotationLayer({
   vizType,
   error,
   colorScheme = 'd3Category10',
+  canReadAnnotation,
   addAnnotationLayer = () => {},
   removeAnnotationLayer = () => {},
   close = () => {},
@@ -307,17 +314,24 @@ function AnnotationLayer({
           value: key === VizType.Line ? 'line' : key,
           label: chartMetadata?.name || key,
         }));
-      // Prepend native source if applicable
+      // Prepend native source if applicable. Listing native annotation layers
+      // requires can_read on Annotation; without it the option is offered only
+      // while it is the layer's current selection, so a saved native layer
+      // stays intact instead of being silently invalidated.
       const annotationMeta =
         ANNOTATION_TYPES_METADATA[
           annoType as keyof typeof ANNOTATION_TYPES_METADATA
         ];
-      if (annotationMeta && 'supportNativeSource' in annotationMeta) {
+      if (
+        annotationMeta &&
+        'supportNativeSource' in annotationMeta &&
+        (canReadAnnotation || sourceType === ANNOTATION_SOURCE_TYPES.NATIVE)
+      ) {
         sources.unshift(ANNOTATION_SOURCE_TYPES_METADATA.NATIVE);
       }
       return sources;
     },
-    [],
+    [canReadAnnotation, sourceType],
   );
 
   const shouldFetchAppliedAnnotation = useCallback(
@@ -488,14 +502,16 @@ function AnnotationLayer({
     (id: string | number): void => {
       SupersetClient.get({
         endpoint: `/api/v1/annotation_layer/${id}`,
-      }).then(({ json }) => {
-        const { result } = json;
-        const layer = result;
-        setValue({
-          value: layer.id,
-          label: layer.name,
-        });
-      });
+      })
+        .then(({ json }) => {
+          const { result } = json;
+          const layer = result;
+          setValue({
+            value: layer.id,
+            label: layer.name,
+          });
+        })
+        .catch(reportAnnotationLayerFailure(id));
     },
     [],
   );
@@ -503,12 +519,21 @@ function AnnotationLayer({
   const fetchAppliedAnnotation = useCallback(
     (id: string | number): void => {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-        fetchAppliedNativeAnnotation(id);
+        // Without can_read on Annotation the request is known to 403; keep the
+        // raw id as the value so the saved layer remains valid and untouched.
+        if (canReadAnnotation) {
+          fetchAppliedNativeAnnotation(id);
+        }
       } else {
         fetchAppliedChart(id);
       }
     },
-    [sourceType, fetchAppliedNativeAnnotation, fetchAppliedChart],
+    [
+      sourceType,
+      canReadAnnotation,
+      fetchAppliedNativeAnnotation,
+      fetchAppliedChart,
+    ],
   );
 
   // componentDidMount - fetch applied annotation if needed
@@ -754,18 +779,34 @@ function AnnotationLayer({
         Example: '2x+5'`);
     }
     if (requiresQuery(sourceType ?? undefined)) {
+      // Listing native annotation layers requires can_read on Annotation.
+      // Keep the select visible but inert so the saved reference can still be
+      // removed, restyled, or switched to a permitted source; the select stays
+      // lazy, so no forbidden request is ever fired.
+      const isBlockedNativeSource =
+        sourceType === ANNOTATION_SOURCE_TYPES.NATIVE && !canReadAnnotation;
       return (
-        <AsyncSelect
-          /* key to force re-render on sourceType change */
-          key={sourceType}
-          ariaLabel={t('Annotation layer value')}
-          name="annotation-layer-value"
-          header={buildChartHeader(label, description, value)}
-          options={fetchOptions}
-          value={value || null}
-          onChange={handleSelectValue}
-          notFoundContent={<NotFoundContent />}
-        />
+        <>
+          <AsyncSelect
+            /* key to force re-render on sourceType change */
+            key={sourceType}
+            ariaLabel={t('Annotation layer value')}
+            name="annotation-layer-value"
+            header={buildChartHeader(label, description, value)}
+            options={fetchOptions}
+            value={value || null}
+            onChange={handleSelectValue}
+            notFoundContent={<NotFoundContent />}
+            disabled={isBlockedNativeSource}
+          />
+          {isBlockedNativeSource && (
+            <div>
+              <Typography.Text type="secondary">
+                {t("You don't have permission to view annotation layers.")}
+              </Typography.Text>
+            </div>
+          )}
+        </>
       );
     }
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
@@ -794,6 +835,7 @@ function AnnotationLayer({
     sourceType,
     annotationType,
     value,
+    canReadAnnotation,
     getSupportedSourceTypes,
     fetchOptions,
     handleSelectValue,

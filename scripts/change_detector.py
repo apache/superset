@@ -42,6 +42,7 @@ RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({429})
 PATTERNS = {
     "python": [
         r"^\.github/workflows/.*python",
+        r"^\.github/workflows/scheduled-docker-image-refresh\.yml$",
         r"^docker-compose-image-tag\.yml$",
         r"^tests/",
         r"^superset/",
