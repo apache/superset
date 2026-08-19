@@ -359,9 +359,11 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
 
 # Extra pandas post-processing operations to register alongside the built-in ones.
-# Each entry is a callable with the signature:
+# Each entry must be a named callable (i.e. have a __name__ attribute) with the
+# signature:
 #   def my_op(df: pandas.DataFrame, **options: Any) -> pandas.DataFrame
-# and will be available under its __name__ as an operation name.
+# The function is registered under its __name__ as the operation name. Callables
+# without __name__ (e.g. functools.partial, lambda) are silently ignored.
 # Example:
 #   from mypackage.ops import my_custom_op
 #   EXTRA_PANDAS_POSTPROCESSING_OPS = [my_custom_op]
