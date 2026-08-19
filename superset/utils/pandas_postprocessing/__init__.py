@@ -63,3 +63,12 @@ __all__ = [
     "escape_separator",
     "unescape_separator",
 ]
+
+# Operations that can be requested via a chart's `post_processing` spec.
+# Excludes `escape_separator`/`unescape_separator`: those are internal
+# str -> str helpers used by `flatten`, not DataFrame post-processing
+# operations, so dispatching one against a DataFrame raises a confusing
+# TypeError instead of the intended clean validation error.
+OPERATIONS = [
+    name for name in __all__ if name not in ("escape_separator", "unescape_separator")
+]

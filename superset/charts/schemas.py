@@ -17,7 +17,6 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
@@ -978,14 +977,7 @@ class ChartDataPostProcessingOperationSchema(Schema):
             "example": "aggregate",
         },
         required=True,
-        validate=validate.OneOf(
-            choices=[
-                name
-                for name, value in inspect.getmembers(
-                    pandas_postprocessing, inspect.isfunction
-                )
-            ]
-        ),
+        validate=validate.OneOf(choices=pandas_postprocessing.OPERATIONS),
     )
     options = fields.Dict(
         metadata={

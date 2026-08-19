@@ -623,11 +623,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _("`operation` property of post processing object undefined")
                     )
-                if not hasattr(pandas_postprocessing, operation):
+                if operation not in pandas_postprocessing.OPERATIONS:
                     raise InvalidPostProcessingError(
                         _(
                             "Unsupported post processing operation: %(operation)s",
-                            type=operation,
+                            operation=operation,
                         )
                     )
                 options = post_process.get("options", {})
