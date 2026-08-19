@@ -60,8 +60,6 @@ const DEFAULT_LEGEND_ICON_WIDTH = 25;
 const LEGEND_ICON_LABEL_GAP = 5;
 const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
 const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
-// Smallest plot height that still preserves the chart's visible structure.
-const MIN_HORIZONTAL_LEGEND_PLOT_SPACE = 80;
 const MAX_LEGEND_MARGIN_RATIO = 0.4;
 const LEGEND_VERTICAL_SIDE_GUTTER = 16;
 const LEGEND_SELECTOR_GAP = 10;
@@ -272,23 +270,10 @@ function getHorizontalPlainLegendLayout({
   const requiredMargin =
     defaultLegendPadding[orientation] +
     Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
-  let boundedMargin: number;
-  if (nonLegendReservedHeight === undefined) {
-    boundedMargin =
-      availableHeight > 0
-        ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
-        : requiredMargin;
-  } else {
-    boundedMargin = Math.min(
-      requiredMargin,
-      Math.max(
-        availableHeight -
-          nonLegendReservedHeight -
-          MIN_HORIZONTAL_LEGEND_PLOT_SPACE,
-        0,
-      ),
-    );
-  }
+  const boundedMargin =
+    nonLegendReservedHeight === undefined && availableHeight > 0
+      ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
+      : requiredMargin;
 
   return {
     effectiveMargin: Math.max(currentMargin, boundedMargin),
@@ -358,8 +343,8 @@ export function getLegendLayoutResult({
   chartWidth: number;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
-  // The floor-based layout is opt-in while only Timeseries supplies accurate
-  // fixed padding; callers that omit it retain the legacy ratio cap.
+  // Full required-margin layout is opt-in for Timeseries; sibling callers that
+  // omit their fixed padding retain the legacy ratio cap.
   nonLegendReservedHeight?: number;
   orientation: LegendOrientation;
   show: boolean;

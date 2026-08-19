@@ -1272,10 +1272,9 @@ test('getLegendLayoutResult reserves every row when fixed padding is supplied', 
   expect(layout.effectiveMargin).toBe(260);
 });
 
-test('getLegendLayoutResult bounds reserved margin for overflowing horizontal legends so the plot is not collapsed', () => {
-  const chartHeight = 200;
+test('getLegendLayoutResult reserves the full required margin for opted-in overflowing horizontal legends', () => {
   const layout = getLegendLayoutResult({
-    chartHeight,
+    chartHeight: 200,
     chartWidth: 100,
     legendItems: Array.from({ length: 100 }, (_, index) => `Series ${index}`),
     legendMargin: null,
@@ -1288,8 +1287,9 @@ test('getLegendLayoutResult bounds reserved margin for overflowing horizontal le
 
   expect(layout.effectiveType).toBe(LegendType.Plain);
   expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-  // Reserve all but the 80px minimum plot space.
-  expect(layout.effectiveMargin).toBe(120);
+  // Every item is wider than the available row, so the estimator falls back
+  // to 100 rows: 20px base padding + 99 additional 24px rows.
+  expect(layout.effectiveMargin).toBe(2396);
 });
 
 test('getLegendLayoutResult bounds reserved margin for long vertical legend labels so the plot is not collapsed', () => {

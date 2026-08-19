@@ -1036,8 +1036,8 @@ test('honors an explicit List selection for zoomable top legends even when toolb
   expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
 });
 
-test('preserves plot space for a small zoomable chart with a many-item Plain legend', () => {
-  const chartHeight = 200;
+test('reserves every Plain legend row before applying zoomable chart padding', () => {
+  const chartHeight = 300;
   const manyLegendValues = Object.fromEntries(
     Array.from({ length: 40 }, (_, index) => [
       `Country ${index + 1}, Product`,
@@ -1045,6 +1045,7 @@ test('preserves plot space for a small zoomable chart with a many-item Plain leg
     ]),
   );
   const chartProps = createTestChartProps({
+    width: 1200,
     height: chartHeight,
     formData: {
       ...formData,
@@ -1070,13 +1071,15 @@ test('preserves plot space for a small zoomable chart with a many-item Plain leg
   );
   expect(typeof grid.top).toBe('number');
   expect(typeof grid.bottom).toBe('number');
-  expect(
-    chartHeight - (Number(grid.top) + Number(grid.bottom)),
-  ).toBeGreaterThanOrEqual(80);
+  // Six items fit per row, producing seven rows: 20px base legend margin plus
+  // six 24px rows, followed by the fixed 20px top grid offset.
+  expect(grid.top).toBe(184);
+  expect(grid.bottom).toBe(80);
+  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(36);
 });
 
-test('uses post-swap padding to preserve plot space for horizontal zoomable charts', () => {
-  const chartHeight = 200;
+test('uses post-swap padding while reserving every horizontal Plain legend row', () => {
+  const chartHeight = 300;
   const manyLegendValues = Object.fromEntries(
     Array.from({ length: 40 }, (_, index) => [
       `Country ${index + 1}, Product`,
@@ -1084,6 +1087,7 @@ test('uses post-swap padding to preserve plot space for horizontal zoomable char
     ]),
   );
   const chartProps = createTestChartProps({
+    width: 1200,
     height: chartHeight,
     formData: {
       ...formData,
@@ -1111,9 +1115,88 @@ test('uses post-swap padding to preserve plot space for horizontal zoomable char
   );
   expect(typeof grid.top).toBe('number');
   expect(typeof grid.bottom).toBe('number');
-  expect(
-    chartHeight - (Number(grid.top) + Number(grid.bottom)),
-  ).toBeGreaterThanOrEqual(80);
+  // The axis-title padding reduces the legend's usable width, so five items
+  // fit per row and eight rows reserve a 188px legend margin.
+  expect(grid.top).toBe(208);
+  // The final bottom is the pre-swap left padding, including the axis title.
+  expect(grid.bottom).toBe(70);
+  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(22);
+});
+
+test('reserves the complete dense Plain legend at a realistic Explore chart size', () => {
+  const chartHeight = 600;
+  const denseLegendValues = Object.fromEntries(
+    Array.from({ length: 65 }, (_, index) => [
+      `Country Region ${index + 1}, Product Line ${(index % 7) + 1}`,
+      index + 1,
+    ]),
+  );
+  const chartProps = createTestChartProps({
+    // Approximate the chart panel inside a default 1280x720 Explore viewport.
+    width: 1000,
+    height: chartHeight,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      yAxisTitleMargin: 0,
+      yAxisTitlePosition: 'Left',
+    },
+    queriesData: [
+      createTestQueryData(
+        createTestData([denseLegendValues], { intervalMs: 300000000 }),
+      ),
+    ],
+  });
+
+  const transformed = transformProps(chartProps);
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect((transformed.echartOptions.legend as { type?: LegendType }).type).toBe(
+    LegendType.Plain,
+  );
+  // Three labels fit per row, producing 22 rows: 20px base legend margin plus
+  // twenty-one 24px rows, followed by the fixed 20px top grid offset.
+  expect(grid.top).toBe(544);
+  expect(grid.bottom).toBe(20);
+  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(36);
+});
+
+test('keeps a minimal grid height when a pathological Plain legend exceeds the chart', () => {
+  const chartHeight = 200;
+  const pathologicalLegendValues = Object.fromEntries(
+    Array.from({ length: 100 }, (_, index) => [
+      `Country ${index + 1}, Product Line`,
+      index + 1,
+    ]),
+  );
+  const chartProps = createTestChartProps({
+    height: chartHeight,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      zoomable: true,
+      yAxisTitleMargin: 0,
+      yAxisTitlePosition: 'Left',
+    },
+    queriesData: [
+      createTestQueryData(
+        createTestData([pathologicalLegendValues], { intervalMs: 300000000 }),
+      ),
+    ],
+  });
+
+  const transformed = transformProps(chartProps);
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  // Keep the complete legend reservation even when it extends beyond the
+  // canvas; only the opposite side moves to preserve a one-pixel grid.
+  expect(Number(grid.top)).toBeGreaterThan(chartHeight);
+  expect(Number(grid.bottom)).toBeLessThan(0);
+  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(1);
 });
 
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {

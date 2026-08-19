@@ -80,8 +80,8 @@ export function resolveLegendLayout(args: {
   chartWidth: number;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
-  // Only Timeseries opts into floor-based layout until sibling callers can
-  // provide their own accurate fixed-height reservations.
+  // Only Timeseries opts into full required-margin layout until sibling callers
+  // can provide their own accurate fixed-height reservations.
   nonLegendReservedHeight?: number;
   orientation: LegendOrientation;
   show: boolean;
