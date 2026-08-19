@@ -653,10 +653,9 @@ def _build_composite_verifier(
     if api_key_enabled:
         if required_scopes := app.config.get("MCP_REQUIRED_SCOPES", []):
             logger.warning(
-                "MCP_REQUIRED_SCOPES is configured but API key tokens bypass "
-                "scope enforcement. API key holders gain access regardless of "
-                "MCP_REQUIRED_SCOPES=%r. Enforce per-key authorization via FAB "
-                "roles/RBAC instead.",
+                "MCP_REQUIRED_SCOPES=%r is configured, but API key tokens use "
+                "the scopes stored on each key instead. Unscoped API keys "
+                "retain legacy RBAC-only behavior.",
                 required_scopes,
             )
         raw_prefixes: str | Sequence[str] = app.config.get(

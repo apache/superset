@@ -144,6 +144,21 @@ TERMINAL_MARKER_SELECTOR = (
 )
 CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 
+# ECharts paint marker. The frontend
+# (plugins/plugin-chart-echarts/src/components/Echart.tsx) tags the canvas host
+# ``.echarts-host`` and adds ``.echarts-render-finished`` only in the ECharts
+# ``finished`` event -- the sole signal that the canvas is fully painted.
+# ``.slice_container`` alone is a pre-paint signal (it mounts when data arrives,
+# before the canvas is drawn; chartStatus/onRenderSuccess fire pre-paint too), so
+# a holder that still contains an unpainted host is treated as not-yet-rendered and
+# the report screenshot waits for it instead of capturing a blank chart. Only
+# ECharts hosts are gated; DOM/SVG vizzes paint on commit and non-ECharts canvas
+# vizzes (deck.gl/mapbox/etc.) have no ``.echarts-host`` so they are unaffected.
+ECHARTS_UNPAINTED_HOST_SELECTOR = r".echarts-host:not(.echarts-render-finished)"
+CHART_ERROR_OR_EMPTY_SELECTOR = (
+    f"{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}"
+)
+
 # Shared body for holder readiness and timeout diagnostics. A holder is ready
 # only after a terminal marker appears and its loading marker disappears.
 UNREADY_CHART_HOLDERS_JS_BODY = f"""
@@ -158,8 +173,19 @@ UNREADY_CHART_HOLDERS_JS_BODY = f"""
             '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
         const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
-        const isReady = holder.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
-        if (stillLoading || !isReady) {{
+        const hasErrorOrEmpty = holder.querySelector(
+            '{CHART_ERROR_OR_EMPTY_SELECTOR}'
+        ) !== null;
+        const hasUnpaintedEchart = holder.querySelector(
+            '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        // Ready = a settled error/empty/missing state, or a slice container
+        // whose ECharts canvas has finished painting. An unpainted ECharts host
+        // keeps the holder unready so a blank chart is never captured.
+        const isReady = !stillLoading && (
+            hasErrorOrEmpty || (hasSliceContainer && !hasUnpaintedEchart)
+        );
+        if (!isReady) {{
             const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
             const chartId = chartIdMatch ? chartIdMatch[1] : null;
             let state;
@@ -167,6 +193,8 @@ UNREADY_CHART_HOLDERS_JS_BODY = f"""
                 state = 'spinner_mounted';
             }} else if (stillLoading) {{
                 state = 'waiting_on_database';
+            }} else if (hasSliceContainer && hasUnpaintedEchart) {{
+                state = 'mounted_unpainted';
             }} else {{
                 state = 'nothing_mounted';
             }}
@@ -208,6 +236,11 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         ) !== null) {{
             return {{ chartId, state: 'empty' }};
         }}
+        if (hasSliceContainer && holder.querySelector(
+            '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
+        ) !== null) {{
+            return {{ chartId, state: 'mounted_unpainted' }};
+        }}
         if (hasSliceContainer) {{
             return {{ chartId, state: 'rendered' }};
         }}
@@ -237,7 +270,8 @@ CHART_CONTAINER_READY_JS = f"""
     const chart = document.querySelector('.chart-container');
     return chart !== null
         && chart.querySelector('{LOADING_SELECTOR}') === null
-        && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+        && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null
+        && chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null;
 }}
 """
 
@@ -249,6 +283,9 @@ CHART_CONTAINER_STATE_JS = f"""
     const chart = document.querySelector('.chart-container');
     if (chart === null) {{ return 'missing'; }}
     if (chart.querySelector('{LOADING_SELECTOR}') !== null) {{ return 'loading'; }}
+    if (chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') !== null) {{
+        return 'mounted_unpainted';
+    }}
     if (chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null) {{
         return 'terminal';
     }}
