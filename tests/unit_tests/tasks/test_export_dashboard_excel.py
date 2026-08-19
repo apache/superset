@@ -27,6 +27,7 @@ from unittest import mock
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 
+from superset.security.guest_token import GuestToken
 from superset.utils import json
 
 MODULE = "superset.tasks.export_dashboard_excel"
@@ -832,6 +833,77 @@ def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
         "excel_export", {"user_id": 2, "dashboard_id": 1}
     )
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
+
+
+def test_guest_export_reconstructs_guest_user_and_shares_lock_slot_zero(
+    mocks: dict[str, Any],
+) -> None:
+    """A guest export (user_id=None) rebuilds the user from the token payload —
+    so the token's RLS rules apply in the worker — and releases lock slot 0,
+    mirroring the key the API acquired for guests."""
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    # Like a real GuestUser: no ``email`` (and no ``id``) attribute at all.
+    guest = mock.MagicMock(spec=["username"])
+    mocks["security_manager"].get_guest_user_from_token.return_value = guest
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+    token: GuestToken = {
+        "iat": 0.0,
+        "exp": 0.0,
+        "user": {},
+        "resources": [],
+        "rls_rules": [],
+    }
+
+    export_dashboard_excel(
+        dashboard_id=1,
+        user_id=None,
+        active_data_mask={},
+        job_id=JOB_ID,
+        guest_token=token,
+    )
+
+    mocks["security_manager"].get_guest_user_from_token.assert_called_once_with(token)
+    mocks["security_manager"].get_user_by_id.assert_not_called()
+    # Guests have no email address, so no notification is attempted.
+    mocks["email"].send_export_email.assert_not_called()
+    # The file still lands in S3 for the status-poll download path.
+    mocks["s3"].upload_file_to_s3.assert_called_once()
+    mocks["ReleaseDistributedLock"].assert_called_once_with(
+        "excel_export", {"user_id": 0, "dashboard_id": 1}
+    )
+
+
+def test_lock_released_and_failure_recorded_when_user_resolution_fails(
+    mocks: dict[str, Any],
+) -> None:
+    """If reconstructing the requester fails (e.g. the guest role lookup
+    raises), the lock the API acquired is still released and the failure is
+    still recorded for pollers."""
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    mocks["security_manager"].get_guest_user_from_token.side_effect = RuntimeError(
+        "role lookup failed"
+    )
+
+    with pytest.raises(RuntimeError):
+        export_dashboard_excel(
+            dashboard_id=1,
+            user_id=None,
+            active_data_mask={},
+            job_id=JOB_ID_FAIL,
+            guest_token=GuestToken(
+                iat=0.0, exp=0.0, user={}, resources=[], rls_rules=[]
+            ),
+        )
+
+    mocks["ReleaseDistributedLock"].assert_called_once_with(
+        "excel_export", {"user_id": 0, "dashboard_id": 1}
+    )
+    mocks["mark_export_failed"].assert_called_once()
 
 
 def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
