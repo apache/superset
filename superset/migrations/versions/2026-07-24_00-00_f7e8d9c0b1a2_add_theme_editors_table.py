@@ -125,9 +125,7 @@ def _backfill_theme_creators_as_editors() -> None:
         .distinct()
     )
     conn.execute(
-        theme_editors.insert().from_select(
-            ["theme_id", "subject_id"], creator_editors
-        )
+        theme_editors.insert().from_select(["theme_id", "subject_id"], creator_editors)
     )
 
 
