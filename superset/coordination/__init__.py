@@ -31,14 +31,9 @@ architecture modular, gives other components (e.g. the extensions framework) a s
 reusable coordination surface, and reduces the number of moving parts. The legacy
 ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` is still honored as a fallback (with a
 deprecation warning) so existing deployments keep working during the transition.
+
+Import concrete classes directly from their modules:
+:class:`~superset.coordination.base.CoordinationService`,
+:class:`~superset.coordination.types.SignalListener`, and
+:class:`~superset.coordination.exceptions.CoordinationBackendUnavailableError`.
 """
-
-from superset.coordination.base import CoordinationService
-from superset.coordination.exceptions import CoordinationBackendUnavailableError
-from superset.coordination.types import SignalListener
-
-__all__ = [
-    "CoordinationBackendUnavailableError",
-    "CoordinationService",
-    "SignalListener",
-]

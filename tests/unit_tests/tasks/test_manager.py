@@ -29,7 +29,7 @@ import redis
 
 from superset.tasks.manager import TaskManager
 
-GET_BACKEND = "superset.coordination.CoordinationService.get_backend"
+GET_BACKEND = "superset.coordination.base.CoordinationService.get_backend"
 
 
 def _reset_prefixes() -> None:
@@ -160,7 +160,7 @@ class TestTaskManagerListenForAbort:
         _reset_prefixes()
 
     @patch("superset.tasks.manager.TaskManager._check_abort_status")
-    @patch("superset.coordination.CoordinationService.listen_for_signal")
+    @patch("superset.coordination.base.CoordinationService.listen_for_signal")
     def test_listen_for_abort_delegates_channel_and_predicate(
         self, mock_listen, mock_check
     ):

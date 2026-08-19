@@ -22,11 +22,9 @@ from collections.abc import Iterator
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.coordination import (
-    CoordinationBackendUnavailableError,
-    CoordinationService,
-    SignalListener,
-)
+from superset.coordination.base import CoordinationService
+from superset.coordination.exceptions import CoordinationBackendUnavailableError
+from superset.coordination.types import SignalListener
 
 
 @pytest.fixture(autouse=True)
@@ -84,7 +82,7 @@ def test_get_backend_falls_back_to_legacy_gaq_backend_with_warning(
         "superset.async_events.async_query_manager.get_cache_backend",
         return_value=legacy_backend,
     )
-    warning = mocker.patch("superset.coordination.logger.warning")
+    warning = mocker.patch("superset.coordination.base.logger.warning")
 
     assert CoordinationService.get_backend() is legacy_backend
     # The legacy backend is memoized and the deprecation warning emitted once.

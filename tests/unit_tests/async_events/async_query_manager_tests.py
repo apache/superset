@@ -262,7 +262,9 @@ def test_parse_channel_id_from_request_as_guest_user_differs_per_scope(
     assert with_datasets != with_rev
 
 
-@mock.patch("superset.coordination.CoordinationService.get_backend", return_value=None)
+@mock.patch(
+    "superset.coordination.base.CoordinationService.get_backend", return_value=None
+)
 @mock.patch("superset.is_feature_enabled")
 def test_submit_chart_data_job_as_guest_user(
     is_feature_enabled_mock, get_backend_mock, async_query_manager
@@ -364,7 +366,7 @@ def coordination_backend():
     """Patch the coordination service to a mock Redis backend and expose it."""
     backend = mock.Mock(spec=RedisCacheBackend)
     with mock.patch(
-        "superset.coordination.CoordinationService.get_backend",
+        "superset.coordination.base.CoordinationService.get_backend",
         return_value=backend,
     ):
         yield backend

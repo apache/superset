@@ -32,7 +32,7 @@ from superset.tasks.utils import generate_random_task_key
 if TYPE_CHECKING:
     from flask import Flask
 
-    from superset.coordination import SignalListener
+    from superset.coordination.types import SignalListener
     from superset.models.tasks import Task
 
 logger = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ class TaskManager:
         :param task_uuid: UUID of the task to abort
         :returns: True if message was published, False if Redis unavailable
         """
-        from superset.coordination import CoordinationService
+        from superset.coordination.base import CoordinationService
 
         if not CoordinationService.is_backend_defined():
             return False
@@ -134,7 +134,7 @@ class TaskManager:
         :param status: Final status of the task
         :returns: True if message was published, False if Redis unavailable
         """
-        from superset.coordination import CoordinationService
+        from superset.coordination.base import CoordinationService
 
         if not CoordinationService.is_backend_defined():
             return False
@@ -177,7 +177,7 @@ class TaskManager:
         :raises TimeoutError: If timeout expires before task completes
         :raises ValueError: If task not found
         """
-        from superset.coordination import CoordinationService
+        from superset.coordination.base import CoordinationService
         from superset.daos.tasks import TaskDAO
 
         def get_task() -> "Task | None":
@@ -227,7 +227,7 @@ class TaskManager:
         :param app: Flask app for database access in background thread
         :returns: SignalListener handle to stop listening
         """
-        from superset.coordination import CoordinationService
+        from superset.coordination.base import CoordinationService
 
         def in_context(fn: Callable[[], Any]) -> Callable[[], Any]:
             # The listener runs in a background thread; DB access needs app context.

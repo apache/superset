@@ -38,9 +38,9 @@ OTHER_KEY = get_key("ns2", a=1, b=2)
 
 # Distributed locking is plumbed through the coordination service: acquire/release
 # call CoordinationService.set_value/delete_value when a backend is defined, else KV.
-BACKEND_DEFINED = "superset.coordination.CoordinationService.is_backend_defined"
-COORD_SET = "superset.coordination.CoordinationService.set_value"
-COORD_DELETE = "superset.coordination.CoordinationService.delete_value"
+BACKEND_DEFINED = "superset.coordination.base.CoordinationService.is_backend_defined"
+COORD_SET = "superset.coordination.base.CoordinationService.set_value"
+COORD_DELETE = "superset.coordination.base.CoordinationService.delete_value"
 
 
 def _get_lock(key: UUID, session: Session) -> Any:

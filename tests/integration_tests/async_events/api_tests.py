@@ -54,7 +54,7 @@ class TestAsyncEventApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         with mock.patch(
-            "superset.coordination.CoordinationService.get_backend",
+            "superset.coordination.base.CoordinationService.get_backend",
             return_value=mock_cache,
         ):
             test_func(mock_cache)

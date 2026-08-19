@@ -3239,7 +3239,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # - Global Async Queries event streams (the async-events / firehose transport)
 #
 # This backend powers the higher-level coordination service
-# (``superset.coordination.CoordinationService``) exposing standardized interfaces
+# (``superset.coordination.base.CoordinationService``) exposing standardized interfaces
 # for distributed locks, pub/sub, and streams under a single connection. Global
 # Async Queries use this when configured; the former
 # ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` is deprecated and, if set, used only as a

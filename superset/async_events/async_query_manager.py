@@ -30,7 +30,7 @@ from superset.async_events.cache_backend import (
     RedisCacheBackend,
     RedisSentinelCacheBackend,
 )
-from superset.coordination import CoordinationService
+from superset.coordination.base import CoordinationService
 from superset.utils import json
 from superset.utils.core import get_user_id
 

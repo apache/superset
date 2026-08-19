@@ -26,6 +26,6 @@ class CoordinationBackendUnavailableError(Exception):
     calling them without a configured coordination backend is a programming or
     configuration error rather than a silently-ignored no-op. Callers that have
     their own fallback (e.g. database polling) should gate on
-    :meth:`superset.coordination.CoordinationService.is_backend_defined` instead of
+    :meth:`superset.coordination.base.CoordinationService.is_backend_defined` instead of
     catching this.
     """

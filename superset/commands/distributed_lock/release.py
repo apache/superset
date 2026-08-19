@@ -24,7 +24,7 @@ import redis
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.distributed_lock.base import BaseDistributedLockCommand
-from superset.coordination import CoordinationService
+from superset.coordination.base import CoordinationService
 from superset.daos.key_value import KeyValueDAO
 from superset.exceptions import ReleaseDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueDeleteFailedError

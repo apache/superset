@@ -35,7 +35,7 @@ from superset.tasks.constants import ABORT_STATES
 from superset.tasks.utils import progress_update
 
 if TYPE_CHECKING:
-    from superset.coordination import SignalListener
+    from superset.coordination.types import SignalListener
     from superset.models.tasks import Task
 
 logger = logging.getLogger(__name__)

@@ -28,7 +28,7 @@ from superset.commands.distributed_lock.base import (
     BaseDistributedLockCommand,
     get_default_lock_ttl,
 )
-from superset.coordination import CoordinationService
+from superset.coordination.base import CoordinationService
 from superset.daos.key_value import KeyValueDAO
 from superset.exceptions import (
     AcquireDistributedLockFailedException,

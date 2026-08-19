@@ -81,7 +81,8 @@ def task_context(mock_task, mock_task_dao, mock_update_command, mock_flask_app):
     with (
         patch("superset.tasks.context.current_app") as mock_current_app,
         patch(
-            "superset.coordination.CoordinationService.get_backend", return_value=None
+            "superset.coordination.base.CoordinationService.get_backend",
+            return_value=None,
         ),
     ):
         # Configure current_app mock

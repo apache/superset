@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 class SignalListener:
     """Handle for a background listener started by
-    :meth:`~superset.coordination.CoordinationService.listen_for_signal`.
+    :meth:`~superset.coordination.base.CoordinationService.listen_for_signal`.
 
     Wraps the daemon thread, its stop flag, and (in pub/sub mode) the subscription.
     :meth:`stop` sets the flag and closes the subscription so a thread blocked in

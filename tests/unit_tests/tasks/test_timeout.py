@@ -88,7 +88,8 @@ def task_context_for_timeout(mock_flask_app, mock_task_abortable):
         patch("superset.tasks.context.current_app") as mock_current_app,
         patch("superset.daos.tasks.TaskDAO") as mock_dao,
         patch(
-            "superset.coordination.CoordinationService.get_backend", return_value=None
+            "superset.coordination.base.CoordinationService.get_backend",
+            return_value=None,
         ),
     ):
         # Configure current_app mock
@@ -275,7 +276,7 @@ class TestTimeoutTrigger:
                 "superset.commands.tasks.update.UpdateTaskCommand"
             ) as mock_update_cmd,
             patch(
-                "superset.coordination.CoordinationService.get_backend",
+                "superset.coordination.base.CoordinationService.get_backend",
                 return_value=None,
             ),
         ):
@@ -321,7 +322,7 @@ class TestTimeoutTrigger:
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.tasks.context.logger") as mock_logger,
             patch(
-                "superset.coordination.CoordinationService.get_backend",
+                "superset.coordination.base.CoordinationService.get_backend",
                 return_value=None,
             ),
         ):
@@ -361,7 +362,7 @@ class TestTimeoutTrigger:
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch(
-                "superset.coordination.CoordinationService.get_backend",
+                "superset.coordination.base.CoordinationService.get_backend",
                 return_value=None,
             ),
         ):
@@ -467,7 +468,7 @@ class TestTimeoutTerminalState:
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch(
-                "superset.coordination.CoordinationService.get_backend",
+                "superset.coordination.base.CoordinationService.get_backend",
                 return_value=None,
             ),
         ):
@@ -508,7 +509,7 @@ class TestTimeoutTerminalState:
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch(
-                "superset.coordination.CoordinationService.get_backend",
+                "superset.coordination.base.CoordinationService.get_backend",
                 return_value=None,
             ),
         ):
@@ -545,7 +546,7 @@ class TestTimeoutTerminalState:
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch(
-                "superset.coordination.CoordinationService.get_backend",
+                "superset.coordination.base.CoordinationService.get_backend",
                 return_value=None,
             ),
         ):
@@ -582,7 +583,7 @@ class TestTimeoutTerminalState:
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch(
-                "superset.coordination.CoordinationService.get_backend",
+                "superset.coordination.base.CoordinationService.get_backend",
                 return_value=None,
             ),
         ):
