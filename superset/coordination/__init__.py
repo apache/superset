@@ -41,14 +41,11 @@ import time
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from superset.coordination.exceptions import CoordinationBackendUnavailableError
+from superset.coordination.types import SignalListener
+from superset.coordination.utils import close_pubsub
 
 if TYPE_CHECKING:
-    from superset.async_events.cache_backend import (
-        RedisCacheBackend,
-        RedisSentinelCacheBackend,
-    )
-
-    CoordinationBackend = RedisCacheBackend | RedisSentinelCacheBackend
+    from superset.coordination.types import CoordinationBackend
 
 logger = logging.getLogger(__name__)
 
@@ -58,42 +55,6 @@ T = TypeVar("T")
 # before the loop re-checks the predicate, the timeout, and the stop flag. Keeps
 # stop latency and missed-message recovery bounded to ~1s.
 _PUBSUB_TICK_SECONDS = 1.0
-
-
-class SignalListener:
-    """Handle for a background listener started by
-    :meth:`CoordinationService.listen_for_signal`.
-
-    Wraps the daemon thread, its stop flag, and (in pub/sub mode) the subscription.
-    :meth:`stop` sets the flag and closes the subscription so a thread blocked in
-    ``get_message`` wakes immediately, then joins.
-    """
-
-    def __init__(
-        self,
-        thread: threading.Thread,
-        stop_event: threading.Event,
-        pubsub: Any = None,
-    ) -> None:
-        self._thread = thread
-        self._stop_event = stop_event
-        self._pubsub = pubsub
-
-    def stop(self) -> None:
-        """Signal the listener to stop and wait briefly for the thread to finish."""
-        self._stop_event.set()
-        # Closing the subscription unblocks a thread parked in get_message so
-        # teardown is near-immediate rather than waiting a full poll tick.
-        if self._pubsub is not None:
-            _close_pubsub(self._pubsub)
-        if self._thread.is_alive():
-            self._thread.join(timeout=2.0)
-            if self._thread.is_alive():
-                # Daemon thread: it will be reaped at process exit. Don't block.
-                logger.warning(
-                    "Signal listener thread %s did not terminate within 2s.",
-                    self._thread.name,
-                )
 
 
 class CoordinationService:
@@ -335,7 +296,7 @@ class CoordinationService:
                 cls._wait_tick(pubsub, poll_interval, remaining)
         finally:
             if pubsub is not None:
-                _close_pubsub(pubsub)
+                close_pubsub(pubsub)
 
     @staticmethod
     def _wait_tick(pubsub: Any, poll_interval: float, remaining: float | None) -> None:
@@ -384,7 +345,7 @@ class CoordinationService:
             try:
                 pubsub.subscribe(channel)
             except Exception:
-                _close_pubsub(pubsub)
+                close_pubsub(pubsub)
                 raise
         thread = threading.Thread(
             target=cls._run_listen_loop,
@@ -405,7 +366,7 @@ class CoordinationService:
         poll_interval: float,
         pubsub: Any,
     ) -> None:
-        """Body of the background listener thread (see :meth:`listen`)."""
+        """Body of the background listener thread (see :meth:`listen_for_signal`)."""
         try:
             while not stop_event.is_set():
                 try:
@@ -436,13 +397,4 @@ class CoordinationService:
                 logger.exception("Signal listener on %s crashed", channel)
         finally:
             if pubsub is not None:
-                _close_pubsub(pubsub)
-
-
-def _close_pubsub(pubsub: Any) -> None:
-    """Best-effort unsubscribe + close of a pub/sub subscription."""
-    try:
-        pubsub.unsubscribe()
-        pubsub.close()
-    except Exception as ex:  # pylint: disable=broad-except
-        logger.debug("Error closing pub/sub subscription: %s", ex)
+                close_pubsub(pubsub)
