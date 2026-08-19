@@ -1363,9 +1363,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         )
 
         # --- RED anchor: equivalent row data to the saved baseline (FR-002) ---
-        assert (
-            imported["result"][0]["data"] == baseline["result"][0]["data"]
-        )
+        assert imported["result"][0]["data"] == baseline["result"][0]["data"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_synthesized_context_datasource_fidelity(self):

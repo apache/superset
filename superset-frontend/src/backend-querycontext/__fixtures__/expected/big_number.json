@@ -24,14 +24,10 @@
           "expressionType": "SQL"
         }
       ],
-      "metrics": [
-        "count"
-      ],
+      "metrics": ["count"],
       "annotation_layers": [],
       "row_limit": 100,
-      "series_columns": [
-        "gender"
-      ],
+      "series_columns": ["gender"],
       "series_limit": 0,
       "order_desc": true,
       "url_params": {},
@@ -41,12 +37,8 @@
         {
           "operation": "pivot",
           "options": {
-            "index": [
-              "ds"
-            ],
-            "columns": [
-              "gender"
-            ],
+            "index": ["ds"],
+            "columns": ["gender"],
             "aggregates": {
               "count": {
                 "operator": "mean"
@@ -79,14 +71,10 @@
           "expressionType": "SQL"
         }
       ],
-      "metrics": [
-        "count"
-      ],
+      "metrics": ["count"],
       "annotation_layers": [],
       "row_limit": 100,
-      "series_columns": [
-        "gender"
-      ],
+      "series_columns": ["gender"],
       "series_limit": 0,
       "order_desc": true,
       "url_params": {},
@@ -96,12 +84,8 @@
         {
           "operation": "pivot",
           "options": {
-            "index": [
-              "ds"
-            ],
-            "columns": [
-              "gender"
-            ],
+            "index": ["ds"],
+            "columns": ["gender"],
             "aggregates": {
               "count": {
                 "operator": "mean"
@@ -117,24 +101,13 @@
     "datasource": "1__table",
     "viz_type": "big_number",
     "metric": "count",
-    "metrics": [
-      "count"
-    ],
-    "groupby": [
-      "gender"
-    ],
-    "columns": [
-      "gender"
-    ],
-    "all_columns": [
-      "gender",
-      "name"
-    ],
+    "metrics": ["count"],
+    "groupby": ["gender"],
+    "columns": ["gender"],
+    "all_columns": ["gender", "name"],
     "entity": "gender",
     "series": "gender",
-    "series_columns": [
-      "gender"
-    ],
+    "series_columns": ["gender"],
     "x_axis": "ds",
     "granularity_sqla": "ds",
     "time_grain_sqla": "P1D",
@@ -151,12 +124,8 @@
     "y": "count",
     "size": "count",
     "column": "num",
-    "metrics_b": [
-      "count"
-    ],
-    "groupby_b": [
-      "gender"
-    ],
+    "metrics_b": ["count"],
+    "groupby_b": ["gender"],
     "adhoc_filters_b": []
   },
   "result_format": "json",

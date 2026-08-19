@@ -1,9 +1,28 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 // Generates a minimal-but-valid form_data fixture + frontend golden for every viz
 // type in the generated REGISTRY, by actually running each plugin's buildQuery under
 // Node's V8. A viz is COVERED if its builder returns a real query_context on the base
 // form_data; otherwise it's honestly SKIPPED (reason recorded) — never faked.
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -30,7 +49,14 @@ shim('window', globalThis);
 shim('navigator', { userAgent: 'superset-fixtures-node' });
 shim('document', {});
 const mod = { exports: {} };
-new Function('module', 'exports', 'require', res.outputFiles[0].text)(mod, mod.exports, require);
+// eslint-disable-next-line no-new-func -- evaluating our own freshly built bundle
+const load = new Function(
+  'module',
+  'exports',
+  'require',
+  res.outputFiles[0].text,
+);
+load(mod, mod.exports, require);
 const gen = mod.exports.generateQueryContext;
 const VIZ_TYPES = mod.exports.VIZ_TYPES || globalThis.SUPERSET_QC_VIZ_TYPES;
 
@@ -96,13 +122,13 @@ for (const viz of VIZ_TYPES) {
     skipped.push([viz, 'no queries produced']);
     continue;
   }
-  writeFileSync(`${FEX}/formdata/${viz}.json`, JSON.stringify(fd, null, 2) + '\n');
-  writeFileSync(`${FEX}/expected/${viz}.json`, JSON.stringify(out, null, 2) + '\n');
+  writeFileSync(`${FEX}/formdata/${viz}.json`, `${JSON.stringify(fd, null, 2)}\n`);
+  writeFileSync(`${FEX}/expected/${viz}.json`, `${JSON.stringify(out, null, 2)}\n`);
   covered.push(viz);
 }
 
 console.log(`REGISTRY viz types: ${VIZ_TYPES.length}`);
 console.log(`COVERED (fixture+golden written): ${covered.length}`);
-console.log('  ' + covered.join(', '));
+console.log(`  ${covered.join(', ')}`);
 console.log(`SKIPPED (base form_data insufficient): ${skipped.length}`);
 for (const [v, r] of skipped) console.log(`  - ${v}: ${r}`);

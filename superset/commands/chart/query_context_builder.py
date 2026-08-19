@@ -111,9 +111,7 @@ def _derive_orderby(params: dict[str, Any]) -> list[list[Any]]:
                 normalized.append([entry, order_asc])
         return normalized
 
-    sort_metric = params.get("timeseries_limit_metric") or params.get(
-        "sort_by_metric"
-    )
+    sort_metric = params.get("timeseries_limit_metric") or params.get("sort_by_metric")
     if sort_metric:
         return [[sort_metric, order_asc]]
     return []

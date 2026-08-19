@@ -15,19 +15,12 @@
         "where": ""
       },
       "applied_time_extras": {},
-      "columns": [
-        "gender",
-        "name"
-      ],
-      "metrics": [
-        "count"
-      ],
+      "columns": ["gender", "name"],
+      "metrics": ["count"],
       "orderby": [],
       "annotation_layers": [],
       "row_limit": 100,
-      "series_columns": [
-        "gender"
-      ],
+      "series_columns": ["gender"],
       "series_limit": 0,
       "order_desc": true,
       "url_params": {},
@@ -41,24 +34,13 @@
     "datasource": "1__table",
     "viz_type": "table",
     "metric": "count",
-    "metrics": [
-      "count"
-    ],
-    "groupby": [
-      "gender"
-    ],
-    "columns": [
-      "gender"
-    ],
-    "all_columns": [
-      "gender",
-      "name"
-    ],
+    "metrics": ["count"],
+    "groupby": ["gender"],
+    "columns": ["gender"],
+    "all_columns": ["gender", "name"],
     "entity": "gender",
     "series": "gender",
-    "series_columns": [
-      "gender"
-    ],
+    "series_columns": ["gender"],
     "x_axis": "ds",
     "granularity_sqla": "ds",
     "time_grain_sqla": "P1D",
@@ -75,12 +57,8 @@
     "y": "count",
     "size": "count",
     "column": "num",
-    "metrics_b": [
-      "count"
-    ],
-    "groupby_b": [
-      "gender"
-    ],
+    "metrics_b": ["count"],
+    "groupby_b": ["gender"],
     "adhoc_filters_b": [],
     "include_time": false
   },

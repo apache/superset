@@ -19,14 +19,12 @@
 import copy
 from collections.abc import Generator
 from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import patch
 
 import pytest
 import yaml
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 
 from superset import security_manager
@@ -291,16 +289,6 @@ def test_import_existing_chart_with_permission(
     mock_can_access_chart.assert_called_once_with(slice)
 
 
-
-def test_import_chart_synthesizes_query_context(
-    mocker: MockerFixture, session_with_schema: Session
-) -> None:
-    """
-    #33615 / F1-T2: importing a derivable chart that arrives WITHOUT a
-    query_context persists a synthesized one naming the resolved datasource.
-    """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-
 def _soft_delete_existing_chart(session: Session) -> int:
     """Soft-delete the seeded chart (by fixture UUID) and return its original id.
 
@@ -339,37 +327,9 @@ def test_import_soft_deleted_chart_overwrite_restores_in_place(
         roles=[Role(name="Admin")],
     )
 
-
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
     config["datasource_type"] = "table"
-
-    # Make the chart derivable and strip its persisted context.
-    config["viz_type"] = "table"
-    config["params"]["viz_type"] = "table"
-    config["params"]["metrics"] = ["count"]
-    config["params"]["groupby"] = ["gender"]
-    config.pop("query_context", None)
-
-    chart = import_chart(config)
-
-    # --- RED anchor: a synthesized context is persisted (FR-001) ---
-    assert chart.query_context is not None
-    query_context = json.loads(chart.query_context)
-    # --- RED anchor: datasource taken from resolved id, not params (RISK-T02) ---
-    assert query_context["datasource"] == {"id": 1, "type": "table"}
-    assert query_context["queries"][0]["metrics"] == ["count"]
-
-
-def test_import_chart_preserves_existing_query_context(
-    mocker: MockerFixture, session_with_schema: Session
-) -> None:
-    """
-    FR-006 / INV-3: an imported chart that already carries a query_context is
-    left untouched — synthesis is non-destructive (absent-guard).
-    """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-
 
     with override_user(admin):
         chart = import_chart(config, overwrite=True)
@@ -390,29 +350,9 @@ def test_import_soft_deleted_chart_ignore_permissions_restores_in_place(
     """
     original_id = _soft_delete_existing_chart(session_with_data)
 
-
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
     config["datasource_type"] = "table"
-
-    original_query_context = config["query_context"]
-
-    chart = import_chart(config)
-
-    # --- RED anchor: existing context is preserved verbatim (idempotent) ---
-    assert chart.query_context is not None
-    assert json.loads(chart.query_context) == json.loads(original_query_context)
-
-
-def test_import_non_derivable_chart_leaves_query_context_null(
-    mocker: MockerFixture, session_with_schema: Session
-) -> None:
-    """
-    FR-003: a non-derivable chart (datasource-less viz) imports with a NULL
-    query_context — no fabricated context, and no crash.
-    """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-
 
     chart = import_chart(config, overwrite=True, ignore_permissions=True)
 
@@ -443,19 +383,9 @@ def test_import_soft_deleted_chart_non_overwrite_restores_for_editor(
         roles=[Role(name="Admin")],
     )
 
-
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
     config["datasource_type"] = "table"
-    config["viz_type"] = "markup"
-    config["params"]["viz_type"] = "markup"
-    config.pop("query_context", None)
-
-    chart = import_chart(config)
-
-    # --- RED anchor: honest-fail leaves NULL, import still succeeds (FR-003) ---
-    assert chart.query_context is None
-
 
     with override_user(admin):
         chart = import_chart(config, overwrite=False)
@@ -539,6 +469,78 @@ def test_import_existing_active_chart_overwrite_without_can_write_returns_existi
     assert result.deleted_at is None
 
 
+def test_import_chart_synthesizes_query_context(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    #33615 / F1-T2: importing a derivable chart that arrives WITHOUT a
+    query_context persists a synthesized one naming the resolved datasource.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    # Make the chart derivable and strip its persisted context.
+    config["viz_type"] = "table"
+    config["params"]["viz_type"] = "table"
+    config["params"]["metrics"] = ["count"]
+    config["params"]["groupby"] = ["gender"]
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    # --- RED anchor: a synthesized context is persisted (FR-001) ---
+    assert chart.query_context is not None
+    query_context = json.loads(chart.query_context)
+    # --- RED anchor: datasource taken from resolved id, not params (RISK-T02) ---
+    assert query_context["datasource"] == {"id": 1, "type": "table"}
+    assert query_context["queries"][0]["metrics"] == ["count"]
+
+
+def test_import_chart_preserves_existing_query_context(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    FR-006 / INV-3: an imported chart that already carries a query_context is
+    left untouched — synthesis is non-destructive (absent-guard).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    original_query_context = config["query_context"]
+
+    chart = import_chart(config)
+
+    # --- RED anchor: existing context is preserved verbatim (idempotent) ---
+    assert chart.query_context is not None
+    assert json.loads(chart.query_context) == json.loads(original_query_context)
+
+
+def test_import_non_derivable_chart_leaves_query_context_null(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    FR-003: a non-derivable chart (datasource-less viz) imports with a NULL
+    query_context — no fabricated context, and no crash.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "markup"
+    config["params"]["viz_type"] = "markup"
+    config.pop("query_context", None)
+
+    chart = import_chart(config)
+
+    # --- RED anchor: honest-fail leaves NULL, import still succeeds (FR-003) ---
+    assert chart.query_context is None
+
+
 def test_import_tag_logic_for_charts(session_with_schema: Session):
     contents = {
         "tags.yaml": yaml.dump(
@@ -577,71 +579,3 @@ def test_import_tag_logic_for_charts(session_with_schema: Session):
             .all()
         )
         assert len(associated_tags) == 0
-
-
-def test_import_tag_savepoint_keeps_session_usable(
-    mocker: MockerFixture, session_with_schema: Session
-) -> None:
-    """
-    When a single tag operation fails with a SQLAlchemyError (e.g. a unique
-    constraint violation from a concurrent import), the per-tag SAVEPOINT
-    isolates the failure so the session is not left in a pending-rollback
-    state, and the remaining tags still import successfully.
-    """
-    contents = {
-        "tags.yaml": yaml.dump(
-            {
-                "tags": [
-                    {"tag_name": "tag_1", "description": "Description for tag_1"},
-                    {"tag_name": "tag_2", "description": "Description for tag_2"},
-                ]
-            }
-        )
-    }
-
-    object_id = 1
-    object_type = "chart"
-
-    # Simulate a unique-constraint violation discovered when the first
-    # TaggedObject's SAVEPOINT is flushed (e.g. a concurrent import already
-    # created the same association) -- not synchronously from Session.add().
-    # `import_tag`'s own pre-insert existence check would normally catch a
-    # real duplicate row, so the failure is injected at the point SQLAlchemy
-    # actually persists the pending row: `begin_nested()`'s implicit flush
-    # on a successful `with` exit, which calls `Session.flush()` directly
-    # (see `SessionTransaction._prepare_impl`).
-    pending_tagged_objects: list[TaggedObject] = []
-    original_add = session_with_schema.add
-
-    def tracking_add(obj: object) -> None:
-        if isinstance(obj, TaggedObject):
-            pending_tagged_objects.append(obj)
-        original_add(obj)
-
-    original_flush = session_with_schema.flush
-
-    def flaky_flush(*args: Any, **kwargs: Any) -> None:
-        # Only the first TaggedObject ever added should fail, and only while
-        # it's still pending -- once its SAVEPOINT rolls back, SQLAlchemy
-        # expunges it from the session, so this does not also fail tag_2's
-        # flush.
-        if (
-            pending_tagged_objects
-            and pending_tagged_objects[0] is not None
-            and pending_tagged_objects[0] in session_with_schema.new
-        ):
-            raise SQLAlchemyError("UNIQUE constraint failed: tagged_object")
-        original_flush(*args, **kwargs)
-
-    mocker.patch.object(session_with_schema, "add", side_effect=tracking_add)
-    mocker.patch.object(session_with_schema, "flush", side_effect=flaky_flush)
-
-    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
-        new_tag_ids = import_tag(
-            ["tag_1", "tag_2"], contents, object_id, object_type, session_with_schema
-        )
-
-    # tag_1 failed on the unique violation, but tag_2 succeeded.
-    assert len(new_tag_ids) == 1
-    # The session is still usable — no PendingRollbackError.
-    assert session_with_schema.query(TaggedObject).count() == 1

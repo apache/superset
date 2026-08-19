@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, Optional
 
 import click
 from flask.cli import with_appcontext
@@ -29,6 +30,39 @@ logger = logging.getLogger(__name__)
 @click.group()
 def charts() -> None:
     """Chart-related maintenance commands."""
+
+
+def _derive_query_context(chart: Any, generator: Any) -> Optional[dict[str, Any]]:
+    """
+    Derive a ``query_context`` config for ``chart``, or ``None`` if non-derivable.
+
+    Prefers the authoritative frontend ``buildQuery`` (V8) and falls back to the
+    pure-Python generic derivation; the datasource is taken from the chart's own
+    resolved id/type, never from ``params`` (authz-preserving).
+    """
+    from superset.commands.chart.query_context_builder import (
+        build_query_context_config,
+    )
+    from superset.utils import json
+
+    params = json.loads(chart.params) if chart.params else {}
+    if not isinstance(params, dict):
+        params = {}
+    datasource_id = chart.datasource_id
+    datasource_type = chart.datasource_type or "table"
+
+    context = None
+    if datasource_id:
+        js_params = {
+            **params,
+            "datasource": f"{datasource_id}__{datasource_type}",
+        }
+        context = generator.generate(chart.viz_type, js_params)
+    if context is None:
+        context = build_query_context_config(
+            params, chart.viz_type, datasource_id, datasource_type
+        )
+    return context
 
 
 @charts.command("backfill-query-context")
@@ -65,9 +99,6 @@ def backfill_query_context(
     Non-derivable charts are left untouched (never a fabricated context).
     """
     # Imported lazily so the module imports cleanly without an app context.
-    from superset.commands.chart.query_context_builder import (
-        build_query_context_config,
-    )
     from superset.commands.chart.query_context_generator import (
         get_query_context_generator,
     )
@@ -95,45 +126,30 @@ def backfill_query_context(
 
     for chart in query.yield_per(batch_size):
         try:
-            params = json.loads(chart.params) if chart.params else {}
-            if not isinstance(params, dict):
-                params = {}
-            datasource_id = chart.datasource_id
-            datasource_type = chart.datasource_type or "table"
-
-            context = None
-            if datasource_id:
-                js_params = {
-                    **params,
-                    "datasource": f"{datasource_id}__{datasource_type}",
-                }
-                context = generator.generate(chart.viz_type, js_params)
-            if context is None:
-                context = build_query_context_config(
-                    params, chart.viz_type, datasource_id, datasource_type
-                )
-
-            if context is None:
-                non_derivable += 1
-                continue
-
-            updated += 1
-            if dry_run:
-                continue
-
-            chart.query_context = json.dumps(context)
-            pending += 1
-            if pending >= batch_size:
-                db.session.commit()
-                pending = 0
+            context = _derive_query_context(chart, generator)
         except Exception as ex:  # pylint: disable=broad-except
             errors += 1
             logger.warning(
                 "backfill-query-context: chart id=%s failed: %s", chart.id, ex
             )
+            continue
+
+        if context is None:
+            non_derivable += 1
+            continue
+
+        updated += 1
+        if dry_run:
+            continue
+
+        chart.query_context = json.dumps(context)
+        pending += 1
+        if pending >= batch_size:
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            pending = 0
 
     if not dry_run and pending:
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
     prefix = "[dry-run] would update" if dry_run else "updated"
     click.echo(

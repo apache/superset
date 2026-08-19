@@ -49,7 +49,7 @@ describe('backend query-context parity goldens', () => {
     .filter(f => f.endsWith('.json'))
     .map(f => f.replace(/\.json$/, ''));
 
-  it.each(fixtures)('records + validates query_context for %s', vizType => {
+  test.each(fixtures)('records + validates query_context for %s', vizType => {
     const formData = JSON.parse(
       fs.readFileSync(path.join(FORMDATA_DIR, `${vizType}.json`), 'utf8'),
     );

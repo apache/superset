@@ -25,14 +25,10 @@
         },
         "gender"
       ],
-      "metrics": [
-        "count"
-      ],
+      "metrics": ["count"],
       "annotation_layers": [],
       "row_limit": 100,
-      "series_columns": [
-        "gender"
-      ],
+      "series_columns": ["gender"],
       "series_limit": 0,
       "url_params": {},
       "custom_params": {},
@@ -42,12 +38,8 @@
         {
           "operation": "pivot",
           "options": {
-            "index": [
-              "ds"
-            ],
-            "columns": [
-              "gender"
-            ],
+            "index": ["ds"],
+            "columns": ["gender"],
             "aggregates": {
               "count": {
                 "operator": "mean"
@@ -60,12 +52,7 @@
           "operation": "flatten"
         }
       ],
-      "orderby": [
-        [
-          "count",
-          false
-        ]
-      ]
+      "orderby": [["count", false]]
     },
     {
       "time_range": "No filter",
@@ -87,14 +74,10 @@
         },
         "gender"
       ],
-      "metrics": [
-        "count"
-      ],
+      "metrics": ["count"],
       "annotation_layers": [],
       "row_limit": 100,
-      "series_columns": [
-        "gender"
-      ],
+      "series_columns": ["gender"],
       "series_limit": 0,
       "url_params": {},
       "custom_params": {},
@@ -104,12 +87,8 @@
         {
           "operation": "pivot",
           "options": {
-            "index": [
-              "ds"
-            ],
-            "columns": [
-              "gender"
-            ],
+            "index": ["ds"],
+            "columns": ["gender"],
             "aggregates": {
               "count": {
                 "operator": "mean"
@@ -122,36 +101,20 @@
           "operation": "flatten"
         }
       ],
-      "orderby": [
-        [
-          "count",
-          false
-        ]
-      ]
+      "orderby": [["count", false]]
     }
   ],
   "form_data": {
     "datasource": "1__table",
     "viz_type": "mixed_timeseries",
     "metric": "count",
-    "metrics": [
-      "count"
-    ],
-    "groupby": [
-      "gender"
-    ],
-    "columns": [
-      "gender"
-    ],
-    "all_columns": [
-      "gender",
-      "name"
-    ],
+    "metrics": ["count"],
+    "groupby": ["gender"],
+    "columns": ["gender"],
+    "all_columns": ["gender", "name"],
     "entity": "gender",
     "series": "gender",
-    "series_columns": [
-      "gender"
-    ],
+    "series_columns": ["gender"],
     "x_axis": "ds",
     "granularity_sqla": "ds",
     "time_grain_sqla": "P1D",

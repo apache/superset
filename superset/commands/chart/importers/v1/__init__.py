@@ -133,7 +133,6 @@ class ImportChartsCommand(ImportModelsCommand):
                     config, overwrite=overwrite, default_viewers=default_viewers
                 )
 
-
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                     if "tags" in config:

@@ -64,7 +64,9 @@ export function generateQueryContext(
     const queryContext = fn(formData);
     return JSON.stringify(queryContext);
   } catch (e) {
-    return JSON.stringify({ __error__: String((e && (e as Error).stack) || e) });
+    return JSON.stringify({
+      __error__: String((e && (e as Error).stack) || e),
+    });
   }
 }
 

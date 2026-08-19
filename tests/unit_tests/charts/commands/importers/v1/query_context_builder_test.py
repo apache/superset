@@ -146,7 +146,11 @@ def test_adhoc_sql_filter_routed_to_extras_and_no_crash() -> None:
         "metrics": ["sum__num"],
         "adhoc_filters": [
             {"expressionType": "SQL", "sqlExpression": "num > 0", "clause": "WHERE"},
-            {"expressionType": "SQL", "sqlExpression": "sum(num) > 1", "clause": "HAVING"},
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "sum(num) > 1",
+                "clause": "HAVING",
+            },
             {"expressionType": "SIMPLE"},  # unmappable → dropped, no crash
             "not-a-dict",  # junk → skipped, no crash
         ],

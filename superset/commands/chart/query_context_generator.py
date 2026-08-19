@@ -36,11 +36,12 @@ Build the bundle with ``npm run build:backend-querycontext`` (from
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import threading
 from typing import Any, Optional
+
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,9 @@ class QueryContextGenerator:
         if self._available is not None:
             return self._available
         try:
-            from py_mini_racer import MiniRacer  # pylint: disable=import-outside-toplevel
+            from py_mini_racer import (
+                MiniRacer,  # pylint: disable=import-outside-toplevel
+            )
         except Exception as ex:  # pylint: disable=broad-except
             self._available = False
             logger.info(
@@ -117,7 +120,9 @@ class QueryContextGenerator:
             )
             return False
 
-    def generate(self, viz_type: str, params: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def generate(
+        self, viz_type: str, params: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
         """
         Run the real frontend ``buildQuery`` for ``viz_type`` over ``params``.
 
