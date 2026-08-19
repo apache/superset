@@ -188,6 +188,10 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
 
     email_subject = Column(String(255))
 
+    # (Alerts/Reports) Include the call-to-action link back to Superset in
+    # notifications? NULL is treated as True.
+    include_cta = Column(Boolean, default=True, nullable=True)
+
     def __repr__(self) -> str:
         return str(self.name)
 
@@ -388,7 +392,15 @@ class ReportRecipients(Model, AuditMixinNullable):
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("recipients", cascade="all,delete,delete-orphan"),
+        backref=backref(
+            "recipients",
+            cascade="all,delete,delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `recipient.report_schedule`
+            # no longer cascades the ReportRecipients into the
+            # ReportSchedule's session; callers must add objects to a
+            # session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[report_schedule_id],
     )
 
@@ -424,7 +436,15 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("logs", cascade="all,delete,delete-orphan"),
+        backref=backref(
+            "logs",
+            cascade="all,delete,delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `log.report_schedule` no
+            # longer cascades the ReportExecutionLog into the
+            # ReportSchedule's session; callers must add objects to a
+            # session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[report_schedule_id],
     )
 

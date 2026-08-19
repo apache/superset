@@ -32,6 +32,7 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -47,6 +48,7 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
+from superset.mcp_service.common.time_range_validation import validate_time_range
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
@@ -244,6 +246,19 @@ class ListDatasetsRequest(
     validation instead. Preserved intentionally; see
     test_list_datasets_with_string_filters.
     """
+
+    certified: Annotated[
+        StrictBool | None,
+        Field(
+            default=None,
+            description=(
+                "Filter by governance certification status. Use true to return "
+                "only certified datasets (preferred when selecting governed "
+                "semantic-layer assets), false to return only uncertified "
+                "datasets, or omit to return both (default)."
+            ),
+        ),
+    ]
 
     @field_validator("filters", mode="before")
     @classmethod
@@ -736,28 +751,19 @@ class QueryDatasetFilter(BaseModel):
         description="Filter value (omit for IS NULL/IS NOT NULL)",
     )
 
+    @model_validator(mode="after")
+    def _validate_temporal_range_val(self) -> "QueryDatasetFilter":
+        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
 
-# Bracket shorthands (e.g. "[year]", "[quarter]") are not a Superset
-# time-range grammar — they appear when an LLM copies a grain token from a
-# dashboard filter context.  Map them to an equivalent form that
-# get_since_until() resolves correctly.
-#
-# "Last second"/"Last minute"/"Last hour" are excluded: get_since_until()
-# pairs a "Last <unit>" since-expression (resolved against "now" for
-# sub-day units) with a default until-expression resolved against "today"
-# (midnight), so since ends up after until and raises "From date cannot
-# be larger than to date". Explicit DATEADD/DATETIME expressions sidestep
-# that mismatch by resolving both ends against "now".
-_BRACKET_SHORTHAND_TO_TIME_RANGE: dict[str, str] = {
-    "[second]": "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')",
-    "[minute]": "DATEADD(DATETIME('now'), -1, MINUTE) : DATETIME('now')",
-    "[hour]": "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')",
-    "[day]": "Last day",
-    "[week]": "Last week",
-    "[month]": "Last month",
-    "[quarter]": "Last quarter",
-    "[year]": "Last year",
-}
+        This operator resolves through ``get_since_until()`` exactly like the
+        dedicated ``time_range`` field does, so an unparseable value here
+        produces the same silent full-table match. Validating only
+        ``time_range`` would leave that gap open to any caller that spells
+        the same filter out longhand.
+        """
+        if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
+            self.val = validate_time_range(self.val)
+        return self
 
 
 class QueryDatasetRequest(QueryCacheControl):
@@ -795,8 +801,9 @@ class QueryDatasetRequest(QueryCacheControl):
             "'Last 7 days', 'Last month', 'Last year', 'Last quarter', "
             "'Current week', 'previous calendar year', or an ISO-8601 range "
             "like '2024-01-01 : 2024-12-31'. Requires a temporal column "
-            "on the dataset. Do NOT use bracket shorthands like '[year]' "
-            "or '[quarter]' — use 'Last year' / 'Last quarter' instead."
+            "on the dataset. Bracket shorthands like '[year]' or "
+            "'[quarter]' are also accepted and normalized to the "
+            "equivalent 'Last <unit>' form."
         ),
     )
     time_column: str | None = Field(
@@ -823,12 +830,8 @@ class QueryDatasetRequest(QueryCacheControl):
 
     @field_validator("time_range")
     @classmethod
-    def normalize_time_range(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        stripped = v.strip()
-        canonical = _BRACKET_SHORTHAND_TO_TIME_RANGE.get(stripped.lower())
-        return canonical if canonical is not None else stripped
+    def _validate_time_range(cls, v: str | None) -> str | None:
+        return validate_time_range(v)
 
     @model_validator(mode="after")
     def validate_metrics_or_columns(self) -> "QueryDatasetRequest":

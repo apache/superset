@@ -112,6 +112,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
+        "PT1S": "toStartOfSecond(toDateTime64({col}, 3))",
         "PT1M": "toStartOfMinute(toDateTime({col}))",
         "PT5M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)",
         "PT10M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)",
@@ -487,17 +488,19 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
 
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}",
-                username=url_params.get("username"),
-                password=url_params.get("password"),
-                host=url_params.get("host"),
-                port=url_params.get("port"),
-                database=url_params.get("database"),
-                query=url_params.get("query"),
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}",
+            username=url_params.get("username"),
+            password=url_params.get("password"),
+            host=url_params.get("host"),
+            port=url_params.get("port"),
+            database=url_params.get("database"),
+            query=url_params.get("query"),
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(
