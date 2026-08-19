@@ -51,9 +51,7 @@ from superset.tags.models import ObjectType
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 from superset.versioning.changes.normalization import (
-    matching_normalization_context,
-    NormalizationContext,
-    store_normalization_context,
+    register_matching_normalization_context,
 )
 
 logger = logging.getLogger(__name__)
@@ -90,26 +88,14 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             self._properties["last_saved_at"] = datetime.now()
             self._properties["last_saved_by"] = g.user
 
-        if self._normalization_changes is not None and "params" in self._properties:
-            try:
-                before_params: object = json.loads(self._model.params or "{}")
-                after_params: object = json.loads(self._properties["params"] or "{}")
-                if isinstance(before_params, dict) and isinstance(after_params, dict):
-                    context: NormalizationContext | None = (
-                        matching_normalization_context(
-                            self._model.id,
-                            self._normalization_changes,
-                            before_params,
-                            after_params,
-                        )
-                    )
-                    if context is not None:
-                        store_normalization_context(db.session, context)
-            except Exception:  # pylint: disable=broad-except
-                logger.exception(
-                    "Ignoring chart normalization metadata for chart id=%s",
-                    self._model.id,
-                )
+        if "params" in self._properties:
+            register_matching_normalization_context(
+                db.session,
+                self._model.id,
+                self._normalization_changes,
+                self._model.params,
+                self._properties["params"],
+            )
 
         return ChartDAO.update(self._model, self._properties)
 

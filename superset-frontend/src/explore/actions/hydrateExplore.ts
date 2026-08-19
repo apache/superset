@@ -50,11 +50,14 @@ import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { nanoid } from 'nanoid';
-import isEqual from 'lodash-es/isEqual';
 import cloneDeep from 'lodash-es/cloneDeep';
 import { hydrateChartNormalization } from 'src/features/versionHistory/reducer';
+import {
+  isJsonValue,
+  jsonValuesEqual,
+} from 'src/features/versionHistory/normalization';
 import type {
-  AutomaticNormalizationExclusions,
+  AutomaticNormalizationTransitions,
   JsonValue,
 } from 'src/features/versionHistory/types';
 
@@ -63,30 +66,12 @@ enum ColorSchemeType {
   SEQUENTIAL = 'SEQUENTIAL',
 }
 
-const isJsonValue = (value: unknown): value is JsonValue => {
-  if (
-    value === null ||
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean'
-  ) {
-    return true;
-  }
-  if (Array.isArray(value)) {
-    return value.every(isJsonValue);
-  }
-  return (
-    typeof value === 'object' &&
-    Object.values(value as Record<string, unknown>).every(isJsonValue)
-  );
-};
-
 const normalizationTransitions = (
   persisted: Record<string, unknown>,
   input: Record<string, unknown>,
   hydrated: Record<string, unknown>,
-): AutomaticNormalizationExclusions => {
-  const transitions: AutomaticNormalizationExclusions = {};
+): AutomaticNormalizationTransitions => {
+  const transitions: AutomaticNormalizationTransitions = {};
   [...new Set([...Object.keys(input), ...Object.keys(hydrated)])].forEach(
     control => {
       const fromPresent = Object.hasOwn(persisted, control);
@@ -97,12 +82,12 @@ const normalizationTransitions = (
       const toValue = hydrated[control];
       if (
         fromPresent === inputPresent &&
-        isEqual(fromValue, inputValue) &&
+        jsonValuesEqual(fromValue, inputValue) &&
         // A missing projected key may only mean that the control is not part
         // of the active visualization. Treating it as normalization could
         // suppress a real removal.
         toPresent &&
-        (fromPresent !== toPresent || !isEqual(fromValue, toValue)) &&
+        (fromPresent !== toPresent || !jsonValuesEqual(fromValue, toValue)) &&
         (!fromPresent || isJsonValue(fromValue)) &&
         (!toPresent || isJsonValue(toValue))
       ) {
@@ -112,7 +97,7 @@ const normalizationTransitions = (
           ...(fromPresent && { from_value: fromValue as JsonValue }),
           to_present: toPresent,
           ...(toPresent && { to_value: toValue as JsonValue }),
-        } as AutomaticNormalizationExclusions[string];
+        } as AutomaticNormalizationTransitions[string];
       }
     },
   );
@@ -334,7 +319,7 @@ export const hydrateExplore =
         hydrateChartNormalization({
           chartId: initialSlice.slice_id,
           hydrationSessionId: nanoid(),
-          exclusions: normalizationTransitions(
+          transitions: normalizationTransitions(
             persistedFormData,
             preHydrationFormData,
             hydratedFormData,

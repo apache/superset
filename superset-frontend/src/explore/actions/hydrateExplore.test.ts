@@ -385,7 +385,7 @@ test('seeds only guarded matching-input hydration transitions', () => {
       type: HYDRATE_CHART_NORMALIZATION,
       tracking: expect.objectContaining({
         chartId: 371,
-        exclusions: expect.objectContaining({
+        transitions: expect.objectContaining({
           time_range: {
             control: 'time_range',
             from_present: false,

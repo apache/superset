@@ -18,7 +18,7 @@
  */
 import type {
   ActivityInclude,
-  AutomaticNormalizationExclusions,
+  AutomaticNormalizationTransitions,
   ChartNormalizationTrackingState,
   SessionLogEntry,
   VersionedEntityType,
@@ -116,7 +116,7 @@ interface CompleteChartNormalizationSaveAction {
   chartId: number;
   hydrationSessionId: string;
   saveAttemptId: string;
-  exclusions: AutomaticNormalizationExclusions;
+  transitions: AutomaticNormalizationTransitions;
 }
 
 export type VersionHistoryAction =
@@ -227,13 +227,13 @@ export const completeChartNormalizationSave = (
   chartId: number,
   hydrationSessionId: string,
   saveAttemptId: string,
-  exclusions: AutomaticNormalizationExclusions,
+  transitions: AutomaticNormalizationTransitions,
 ): CompleteChartNormalizationSaveAction => ({
   type: COMPLETE_CHART_NORMALIZATION_SAVE,
   chartId,
   hydrationSessionId,
   saveAttemptId,
-  exclusions,
+  transitions,
 });
 
 const initialState: VersionHistoryState = {
@@ -364,7 +364,7 @@ export default function versionHistoryReducer(
         ...state,
         chartNormalization: {
           ...state.chartNormalization,
-          exclusions: action.exclusions,
+          transitions: action.transitions,
           saveAttemptId: null,
         },
       };

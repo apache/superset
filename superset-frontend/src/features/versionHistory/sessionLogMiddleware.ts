@@ -55,6 +55,12 @@ interface SessionLogState {
   };
 }
 
+interface ExploreBoundaryAction {
+  type: unknown;
+  controlName?: unknown;
+  formData?: Record<string, unknown>;
+}
+
 const changedFormDataKeys = (
   before: Record<string, unknown> = {},
   after: Record<string, unknown> = {},
@@ -62,6 +68,32 @@ const changedFormDataKeys = (
   [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(
     key => before[key] !== after[key],
   );
+
+/**
+ * Anti-corruption adapter from Explore's action vocabulary to the stable
+ * versioning concept of controls whose user-intent evidence is no longer valid.
+ */
+export const normalizationControlsChangedByExplore = (
+  action: ExploreBoundaryAction,
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown> | undefined,
+) => {
+  if (action.type === HYDRATE_EXPLORE) {
+    return [];
+  }
+  const controls = changedFormDataKeys(before, after);
+  if (
+    action.type === SET_FIELD_VALUE &&
+    typeof action.controlName === 'string'
+  ) {
+    controls.push(action.controlName);
+  } else if (action.type === SET_EXPLORE_CONTROLS && action.formData) {
+    controls.push(...Object.keys(action.formData));
+  } else if (action.type === UPDATE_FORM_DATA_BY_DATASOURCE) {
+    controls.push(DATASOURCE_CONTROL_NAME);
+  }
+  return [...new Set(controls)];
+};
 
 function controlLabel(state: SessionLogState, controlName: string): string {
   const label = state.explore?.controls?.[controlName]?.label;
@@ -165,23 +197,14 @@ export const versionSessionLogMiddleware: Middleware =
         }),
       );
     }
-    if (action.type !== HYDRATE_EXPLORE) {
-      const state = store.getState() as SessionLogState;
-      const controls = changedFormDataKeys(before, state.explore?.form_data);
-      if (
-        action.type === SET_FIELD_VALUE &&
-        typeof action.controlName === 'string'
-      ) {
-        controls.push(action.controlName);
-      } else if (action.type === SET_EXPLORE_CONTROLS && action.formData) {
-        controls.push(...Object.keys(action.formData));
-      } else if (action.type === UPDATE_FORM_DATA_BY_DATASOURCE) {
-        controls.push(DATASOURCE_CONTROL_NAME);
-      }
-      const uniqueControls = [...new Set(controls)];
-      if (uniqueControls.length) {
-        store.dispatch(invalidateChartNormalizationControls(uniqueControls));
-      }
+    const state = store.getState() as SessionLogState;
+    const changedControls = normalizationControlsChangedByExplore(
+      action,
+      before,
+      state.explore?.form_data,
+    );
+    if (changedControls.length) {
+      store.dispatch(invalidateChartNormalizationControls(changedControls));
     }
     return result;
   };

@@ -38,15 +38,16 @@ import {
   completeChartNormalizationSave,
 } from 'src/features/versionHistory/reducer';
 import type {
-  AutomaticNormalizationExclusions,
+  AutomaticNormalizationTransitions,
   ChartNormalizationTrackingState,
 } from 'src/features/versionHistory/types';
+import { jsonValuesEqual } from 'src/features/versionHistory/normalization';
 
 export interface PayloadSlice extends Slice {
   params: string;
   dashboards: number[];
   query_context: string;
-  normalization_changes?: AutomaticNormalizationExclusions[string][];
+  normalization_changes?: AutomaticNormalizationTransitions[string][];
 }
 const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
@@ -260,16 +261,15 @@ export const updateSlice =
     ) as QueryFormData;
     const tracking = initialState.versionHistory?.chartNormalization;
     const saveAttemptId = nanoid();
-    const matchingExclusions = Object.fromEntries(
-      Object.entries(tracking?.exclusions ?? {}).filter(
+    const matchingTransitions = Object.fromEntries(
+      Object.entries(tracking?.transitions ?? {}).filter(
         ([control, transition]) =>
           !tracking?.invalidatedControls[control] &&
           Object.hasOwn(formData, control) === transition.to_present &&
           (!transition.to_present ||
-            JSON.stringify(formData[control]) ===
-              JSON.stringify(transition.to_value)),
+            jsonValuesEqual(formData[control], transition.to_value)),
       ),
-    ) as AutomaticNormalizationExclusions;
+    ) as AutomaticNormalizationTransitions;
     const shouldAttachNormalization =
       isFeatureEnabled(FeatureFlag.VersionHistory) &&
       tracking?.chartId === sliceId;
@@ -290,8 +290,11 @@ export const updateSlice =
         editors as [],
         formDataFromSlice,
       );
-      if (shouldAttachNormalization && Object.keys(matchingExclusions).length) {
-        payload.normalization_changes = Object.values(matchingExclusions);
+      if (
+        shouldAttachNormalization &&
+        Object.keys(matchingTransitions).length
+      ) {
+        payload.normalization_changes = Object.values(matchingTransitions);
       }
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,

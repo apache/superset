@@ -234,7 +234,7 @@ export type AutomaticNormalizationTransition = { control: string } & (
 ) &
   (PresentNormalizationValue<'to'> | MissingNormalizationValue<'to'>);
 
-export type AutomaticNormalizationExclusions = Record<
+export type AutomaticNormalizationTransitions = Record<
   string,
   AutomaticNormalizationTransition
 >;
@@ -243,7 +243,7 @@ export type AutomaticNormalizationExclusions = Record<
 export interface ChartNormalizationTrackingState {
   chartId: number;
   hydrationSessionId: string;
-  exclusions: AutomaticNormalizationExclusions;
+  transitions: AutomaticNormalizationTransitions;
   invalidatedControls: Record<string, true>;
   saveAttemptId: string | null;
 }
@@ -267,6 +267,6 @@ export interface VersionHistoryState {
    * the one their page shows.
    */
   lastRestoredEntityUuid: string | null;
-  /** Advisory exclusions for the active Explore chart hydration. */
+  /** Advisory transitions for the active Explore chart hydration. */
   chartNormalization?: ChartNormalizationTrackingState | null;
 }

@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Final, NotRequired, TypeAlias, TypedDict, TypeGuard
 from uuid import uuid4
@@ -36,6 +37,8 @@ MAX_NORMALIZATION_METADATA_BYTES: Final[int] = 256 * 1024
 MAX_NORMALIZATION_VALUE_DEPTH: Final[int] = 20
 
 NORMALIZATION_CONTEXT_KEY: Final[str] = "_versioning_chart_normalization_context"
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class NormalizationTransitionPayload(TypedDict):
@@ -76,6 +79,10 @@ class NormalizationContextRegistry:
     active_tokens: dict[int, str | None]
 
 
+class _InvalidNormalizationEnvelopeError(ValueError):
+    """Advisory metadata whose ambiguity requires rejecting all transitions."""
+
+
 def _json_depth(value: JsonValue) -> int:
     if isinstance(value, list):
         return 1 + max((_json_depth(item) for item in value), default=0)
@@ -111,6 +118,43 @@ def _json_equal(left: JsonValue, right: JsonValue) -> bool:
     return left == right
 
 
+def _parse_normalization_transition(
+    item: object,
+) -> NormalizationTransition | None:
+    """Parse one transition, skipping malformed entries without ambiguity."""
+    if not isinstance(item, dict):
+        return None
+    control: object = item.get("control")
+    from_present: object = item.get("from_present")
+    to_present: object = item.get("to_present")
+    if (
+        not isinstance(control, str)
+        or not control
+        or len(control.encode()) > MAX_CONTROL_NAME_BYTES
+        or not isinstance(from_present, bool)
+        or not isinstance(to_present, bool)
+    ):
+        return None
+    if (from_present != ("from_value" in item)) or (to_present != ("to_value" in item)):
+        return None
+    from_value: object = item.get("from_value")
+    to_value: object = item.get("to_value")
+    if not _is_json_value(from_value) or not _is_json_value(to_value):
+        return None
+    if (
+        _json_depth(from_value) > MAX_NORMALIZATION_VALUE_DEPTH
+        or _json_depth(to_value) > MAX_NORMALIZATION_VALUE_DEPTH
+    ):
+        raise _InvalidNormalizationEnvelopeError
+    return NormalizationTransition(
+        control=control,
+        from_present=from_present,
+        from_value=from_value,
+        to_present=to_present,
+        to_value=to_value,
+    )
+
+
 def sanitize_normalization_changes(
     raw: object,
 ) -> tuple[NormalizationTransition, ...]:
@@ -128,46 +172,23 @@ def sanitize_normalization_changes(
         transitions: list[NormalizationTransition] = []
         controls: set[str] = set()
         for item in raw:
-            if not isinstance(item, dict):
-                continue
-            control: object = item.get("control")
-            from_present: object = item.get("from_present")
-            to_present: object = item.get("to_present")
-            if (
-                not isinstance(control, str)
-                or not control
-                or len(control.encode()) > MAX_CONTROL_NAME_BYTES
-                or not isinstance(from_present, bool)
-                or not isinstance(to_present, bool)
-            ):
-                continue
-            if (from_present != ("from_value" in item)) or (
-                to_present != ("to_value" in item)
-            ):
-                continue
-            from_value: object = item.get("from_value")
-            to_value: object = item.get("to_value")
-            if not _is_json_value(from_value) or not _is_json_value(to_value):
-                continue
-            if (
-                _json_depth(from_value) > MAX_NORMALIZATION_VALUE_DEPTH
-                or _json_depth(to_value) > MAX_NORMALIZATION_VALUE_DEPTH
-            ):
-                return ()
-            if control in controls:
-                return ()
-            controls.add(control)
-            transitions.append(
-                NormalizationTransition(
-                    control=control,
-                    from_present=from_present,
-                    from_value=from_value,
-                    to_present=to_present,
-                    to_value=to_value,
-                )
+            transition: NormalizationTransition | None = (
+                _parse_normalization_transition(item)
             )
+            if transition is None:
+                continue
+            if transition.control in controls:
+                return ()
+            controls.add(transition.control)
+            transitions.append(transition)
         return tuple(transitions)
-    except (TypeError, ValueError, UnicodeError, RecursionError):
+    except (
+        _InvalidNormalizationEnvelopeError,
+        TypeError,
+        ValueError,
+        UnicodeError,
+        RecursionError,
+    ):
         return ()
 
 
@@ -199,6 +220,32 @@ def matching_normalization_context(
     if not matching:
         return None
     return NormalizationContext(chart_id, str(uuid4()), tuple(matching))
+
+
+def register_matching_normalization_context(
+    session: Session,
+    chart_id: int,
+    raw: object,
+    before_params_json: str | bytes | bytearray | None,
+    after_params_json: str | bytes | bytearray | None,
+) -> None:
+    """Validate and register advisory evidence for one chart update."""
+    if raw is None:
+        return
+    try:
+        before_params: object = json.loads(before_params_json or "{}")
+        after_params: object = json.loads(after_params_json or "{}")
+        if not isinstance(before_params, dict) or not isinstance(after_params, dict):
+            return
+        context: NormalizationContext | None = matching_normalization_context(
+            chart_id, raw, before_params, after_params
+        )
+        if context is not None:
+            store_normalization_context(session, context)
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "Ignoring chart normalization metadata for chart id=%s", chart_id
+        )
 
 
 def store_normalization_context(

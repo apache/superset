@@ -124,6 +124,7 @@ test('existing-chart overwrite sends only still-matching normalization metadata'
         viz_type: vizType,
         row_limit: 10000,
         show_legend: true,
+        object_control: { a: 1, b: 2 },
       },
     },
     versionHistory: {
@@ -132,7 +133,7 @@ test('existing-chart overwrite sends only still-matching normalization metadata'
         hydrationSessionId: 'hydration-a',
         saveAttemptId: null,
         invalidatedControls: { show_legend: true as const },
-        exclusions: {
+        transitions: {
           row_limit: {
             control: 'row_limit',
             from_present: true as const,
@@ -145,6 +146,12 @@ test('existing-chart overwrite sends only still-matching normalization metadata'
             from_present: false as const,
             to_present: true as const,
             to_value: true,
+          },
+          object_control: {
+            control: 'object_control',
+            from_present: false as const,
+            to_present: true as const,
+            to_value: { b: 2, a: 1 },
           },
         },
       },
@@ -166,6 +173,12 @@ test('existing-chart overwrite sends only still-matching normalization metadata'
       from_value: null,
       to_present: true,
       to_value: 10000,
+    },
+    {
+      control: 'object_control',
+      from_present: false,
+      to_present: true,
+      to_value: { b: 2, a: 1 },
     },
   ]);
   expect(dispatch).toHaveBeenCalledWith(

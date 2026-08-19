@@ -150,13 +150,13 @@ test('per-entity preview selectors only match their own entity type', () => {
   expect(selectIsDashboardVersionPreviewActive(state)).toBe(false);
 });
 
-test('normalization tracking invalidates controls without re-adding exclusions', () => {
+test('normalization tracking invalidates controls without re-adding transitions', () => {
   let state = versionHistoryReducer(
     initial,
     hydrateChartNormalization({
       chartId: 7,
       hydrationSessionId: 'session-a',
-      exclusions: {
+      transitions: {
         row_limit: {
           control: 'row_limit',
           from_present: true,
@@ -176,7 +176,7 @@ test('normalization tracking invalidates controls without re-adding exclusions',
   expect(state.chartNormalization?.invalidatedControls).toEqual({
     row_limit: true,
   });
-  expect(state.chartNormalization?.exclusions.row_limit).toBeDefined();
+  expect(state.chartNormalization?.transitions.row_limit).toBeDefined();
 });
 
 test('late save completion cannot rebase another hydration session', () => {
@@ -185,7 +185,7 @@ test('late save completion cannot rebase another hydration session', () => {
     hydrateChartNormalization({
       chartId: 7,
       hydrationSessionId: 'session-b',
-      exclusions: {},
+      transitions: {},
       invalidatedControls: {},
       saveAttemptId: null,
     }),
