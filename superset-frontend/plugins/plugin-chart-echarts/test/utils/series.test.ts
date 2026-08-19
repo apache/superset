@@ -76,8 +76,8 @@ const {
       | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
-    nonLegendReservedHeight?: number;
     orientation: LegendOrientation;
+    reserveFullHorizontalPlainLegendMargin?: boolean;
     show: boolean;
     showSelectors?: boolean;
     theme: typeof theme;
@@ -104,8 +104,8 @@ const {
       | { name?: string | number | null }
     )[];
     legendMargin?: string | number | null;
-    nonLegendReservedHeight?: number;
     orientation: LegendOrientation;
+    reserveFullHorizontalPlainLegendMargin?: boolean;
     show: boolean;
     showSelectors?: boolean;
     theme: typeof theme;
@@ -1250,7 +1250,7 @@ test('getLegendLayoutResult keeps plain when horizontal plain legends exceed two
   expect(layout.effectiveMargin).toBe(68);
 });
 
-test('getLegendLayoutResult reserves every row when fixed padding is supplied', () => {
+test('getLegendLayoutResult reserves every row when full-margin layout is requested', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 800,
@@ -1259,8 +1259,8 @@ test('getLegendLayoutResult reserves every row when fixed padding is supplied', 
       (_, index) => `Country ${index + 1}, Product`,
     ),
     legendMargin: null,
-    nonLegendReservedHeight: 0,
     orientation: LegendOrientation.Top,
+    reserveFullHorizontalPlainLegendMargin: true,
     show: true,
     theme,
     type: LegendType.Plain,
@@ -1278,8 +1278,8 @@ test('getLegendLayoutResult reserves the full required margin for opted-in overf
     chartWidth: 100,
     legendItems: Array.from({ length: 100 }, (_, index) => `Series ${index}`),
     legendMargin: null,
-    nonLegendReservedHeight: 0,
     orientation: LegendOrientation.Top,
+    reserveFullHorizontalPlainLegendMargin: true,
     show: true,
     theme,
     type: LegendType.Plain,

@@ -1199,6 +1199,40 @@ test('keeps a minimal grid height when a pathological Plain legend exceeds the c
   expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(1);
 });
 
+test('does not reserve dense Plain legend space when compact charts hide the legend', () => {
+  const chartHeight = 80;
+  const denseLegendValues = Object.fromEntries(
+    Array.from({ length: 40 }, (_, index) => [
+      `Country ${index + 1}, Product Line`,
+      index + 1,
+    ]),
+  );
+  const chartProps = createTestChartProps({
+    height: chartHeight,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        createTestData([denseLegendValues], { intervalMs: 300000000 }),
+      ),
+    ],
+  });
+
+  const transformed = transformProps(chartProps);
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
+    false,
+  );
+  expect(grid.top).toBe(12);
+  expect(grid.bottom).toBe(5);
+  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(63);
+});
+
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {
   // Regression test for issue #39540: switching the legend type control from
   // scroll to plain must reach the rendered ECharts config. Horizontal legends

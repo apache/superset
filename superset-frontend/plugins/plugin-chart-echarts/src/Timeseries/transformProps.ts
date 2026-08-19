@@ -1125,24 +1125,11 @@ export default function transformProps(
     name,
     icon: 'roundRect',
   }));
-  const nonLegendPadding = getPadding(
-    false,
-    legendOrientation,
-    addYAxisLabelOffset,
-    zoomable,
-    undefined,
-    addXAxisLabelOffset,
-    yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
-    isHorizontal,
-  );
-  const nonLegendReservedHeight =
-    nonLegendPadding.top +
-    (isHorizontal ? nonLegendPadding.left : nonLegendPadding.bottom);
+  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
+  const isLegendVisible = showLegend && !isSmallChart;
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
-      showLegend,
+      isLegendVisible,
       legendOrientation,
       addYAxisLabelOffset,
       zoomable,
@@ -1172,9 +1159,9 @@ export default function transformProps(
           ? colorByPrimaryAxisLegendData
           : sortedLegendData,
       legendMargin: candidateLegendMargin,
-      nonLegendReservedHeight,
       orientation: legendOrientation,
-      show: showLegend,
+      reserveFullHorizontalPlainLegendMargin: true,
+      show: isLegendVisible,
       showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
       theme,
       type: legendType,
@@ -1189,7 +1176,7 @@ export default function transformProps(
       : initialLegendLayout;
   const { effectiveLegendType } = legendLayout;
   const hasHorizontalPlainLegend =
-    showLegend &&
+    isLegendVisible &&
     effectiveLegendType === LegendType.Plain &&
     (legendOrientation === LegendOrientation.Top ||
       legendOrientation === LegendOrientation.Bottom);
@@ -1200,7 +1187,7 @@ export default function transformProps(
       ? legendMargin
       : legendLayout.effectiveLegendMargin;
   const padding = getPadding(
-    showLegend,
+    isLegendVisible,
     legendOrientation,
     addYAxisLabelOffset,
     zoomable,
@@ -1334,7 +1321,6 @@ export default function transformProps(
   // >= 100px: full axis with proportional tick count
   // 60-99px: show only min/max boundary labels (splitNumber=1), hide lines/ticks
   // < 60px: hide all axis decorations, show line only
-  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
   const isMicroChart = height < TIMESERIES_CONSTANTS.microChartHeight;
   const yAxisSplitNumber = isMicroChart
     ? undefined
@@ -1545,7 +1531,7 @@ export default function transformProps(
         effectiveLegendType,
         legendOrientation,
         // Hide legend on compact charts — not enough vertical space
-        isSmallChart ? false : showLegend,
+        isLegendVisible,
         theme,
         zoomable,
         legendState,

@@ -244,8 +244,8 @@ function getHorizontalPlainLegendLayout({
   availableWidth,
   currentMargin,
   legendLabels,
-  nonLegendReservedHeight,
   orientation,
+  reserveFullHorizontalPlainLegendMargin,
   showSelectors,
   theme,
 }: {
@@ -253,8 +253,8 @@ function getHorizontalPlainLegendLayout({
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
-  nonLegendReservedHeight?: number;
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  reserveFullHorizontalPlainLegendMargin?: boolean;
   showSelectors: boolean;
   theme: SupersetTheme;
 }): LegendLayoutResult {
@@ -271,7 +271,7 @@ function getHorizontalPlainLegendLayout({
     defaultLegendPadding[orientation] +
     Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
   const boundedMargin =
-    nonLegendReservedHeight === undefined && availableHeight > 0
+    !reserveFullHorizontalPlainLegendMargin && availableHeight > 0
       ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
       : requiredMargin;
 
@@ -328,8 +328,8 @@ export function getLegendLayoutResult({
   chartWidth,
   legendItems = [],
   legendMargin,
-  nonLegendReservedHeight,
   orientation,
+  reserveFullHorizontalPlainLegendMargin,
   show,
   showSelectors = true,
   theme,
@@ -343,10 +343,10 @@ export function getLegendLayoutResult({
   chartWidth: number;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
-  // Full required-margin layout is opt-in for Timeseries; sibling callers that
-  // omit their fixed padding retain the legacy ratio cap.
-  nonLegendReservedHeight?: number;
   orientation: LegendOrientation;
+  // Full required-margin layout is opt-in for Timeseries; sibling callers that
+  // leave it false retain the legacy ratio cap.
+  reserveFullHorizontalPlainLegendMargin?: boolean;
   show: boolean;
   showSelectors?: boolean;
   theme: SupersetTheme;
@@ -370,8 +370,8 @@ export function getLegendLayoutResult({
       availableWidth: resolvedAvailableWidth,
       currentMargin: resolvedLegendMargin,
       legendLabels,
-      nonLegendReservedHeight,
       orientation,
+      reserveFullHorizontalPlainLegendMargin,
       showSelectors,
       theme,
     });
