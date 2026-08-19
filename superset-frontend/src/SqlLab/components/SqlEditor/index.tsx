@@ -40,6 +40,7 @@ import {
   getExtensionsRegistry,
   QueryResponse,
   Query,
+  QueryState,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -712,7 +713,7 @@ const SqlEditor: FC<Props> = ({
 
   const getSecondaryMenuItems = () => {
     const qe = queryEditor;
-    const successful = latestQuery?.state === 'success';
+    const successful = latestQuery?.state === QueryState.Success;
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
@@ -865,7 +866,7 @@ const SqlEditor: FC<Props> = ({
           }
           saveQueryWarning={saveQueryWarning}
           database={database}
-          canSaveDataset={latestQuery?.state === 'success'}
+          canSaveDataset={latestQuery?.state === QueryState.Success}
         />
         <ShareSqlLabQuery queryEditorId={queryEditor.id} />
       </>
