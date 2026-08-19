@@ -102,23 +102,6 @@ dialect; each package's constraint in `pyproject.toml` documents why.
 No application-level configuration changes are required for deployments
 that don't touch SQLAlchemy directly.
 
-### Playwright is now the default for reports and thumbnails
-
-`PLAYWRIGHT_REPORTS_AND_THUMBNAILS` now defaults to `True`. Playwright replaces
-Selenium for capturing dashboard and chart screenshots used in reports and
-thumbnails. Playwright supports both `amd64` and `arm64` platforms and correctly
-renders deck.gl visualizations (see SIP-98).
-
-**What operators must do before upgrading:**
-
-- Ensure the `playwright` Python package is installed and browsers are available.
-  The default Docker image includes Playwright; custom images may need
-  `playwright install chromium`.
-- To revert to Selenium, add the following to your `superset_config.py`:
-  ```python
-  FEATURE_FLAGS = {"PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False}
-  ```
-
 ### Soft delete is on by default, and purging is live
 
 `SOFT_DELETE` now ships **on** (`DEFAULT_FEATURE_FLAGS`), so deleting a
