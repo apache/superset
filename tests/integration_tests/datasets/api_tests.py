@@ -3025,9 +3025,7 @@ class TestDatasetApi(SupersetTestCase):
         assert new_dataset is not None
         assert new_dataset.id != dataset.id
         assert new_dataset.table_name == "Dupe1"
-        assert len(new_dataset.columns) == 2
-        assert new_dataset.columns[0].column_name == "id"
-        assert new_dataset.columns[1].column_name == "name"
+        assert {c.column_name for c in new_dataset.columns} == {"id", "name"}
         self.items_to_delete = [new_dataset]
 
     @pytest.mark.usefixtures("create_datasets")
