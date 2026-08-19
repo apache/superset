@@ -67,6 +67,20 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+@pytest.mark.parametrize(
+    "time_grain,expected",
+    [
+        (None, "{col}"),
+        ("PT1S", "toStartOfSecond(toDateTime64({col}, 3))"),
+        ("PT1M", "toStartOfMinute(toDateTime({col}))"),
+    ],
+)
+def test_time_grain_expressions(time_grain: Optional[str], expected: str) -> None:
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+
+    assert ClickHouseBaseEngineSpec._time_grain_expressions[time_grain] == expected
+
+
 def test_convert_dttm_normalizes_aware_datetime_to_utc() -> None:
     from superset.db_engine_specs.clickhouse import (
         ClickHouseEngineSpec as spec,  # noqa: N813
