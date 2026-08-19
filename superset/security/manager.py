@@ -1116,21 +1116,37 @@ def _orderby_modified(
 # filter value.
 _EMPTY_FILTER_SENTINEL = "1 = 0"
 
+#: Chart params keys that hold columns/group-bys a chart renders.  Defined
+#: here (above ``_collect_allowed_sql`` which is the first consumer) and
+#: reused by ``_columns_metrics_modified`` and ``_add_dashboard_column_expressions``.
+_STORED_COLUMN_PARAMS = (
+    "columns",
+    "groupby",
+    "all_columns",
+    "entity",
+    "series",
+    "series_columns",
+    "x_axis",
+    "granularity_sqla",
+)
+
 
 def _split_extras_clauses(composed: str) -> list[str]:
     """
     Extract raw SQL expressions from a composed ``extras.where`` /
     ``extras.having`` string.
 
-    ``_sanitize_clause`` / ``processFilters.ts`` wraps each expression in
-    one layer of parentheses and joins them with ``' AND '``, producing
-    strings like ``(expr1) AND (expr2)``.  This reverses that: split on
-    the ``)\\s+AND\\s+(`` boundary (tolerating whitespace variations),
-    strip the outer parens, and return the raw expressions.
+    ``_sanitize_clause`` (``form_data_query_context.py:92``) /
+    ``processFilters.ts`` (``superset-ui-core/src/query/processFilters.ts``)
+    wraps each expression in one layer of parentheses and joins them with
+    ``' AND '``, producing strings like ``(expr1) AND (expr2)``.  This
+    reverses that: split on the ``)\\s+AND\\s+(`` boundary (case-insensitive,
+    tolerating whitespace variations), strip the outer parens, and return the
+    raw expressions.
     """
     if not composed:
         return []
-    raw = re.split(r"\)\s+AND\s+\(", composed)
+    raw = re.split(r"\)\s+AND\s+\(", composed, flags=re.IGNORECASE)
     # Strip exactly one outer paren added by _sanitize_clause.
     if raw[0].startswith("("):
         raw[0] = raw[0][1:]
@@ -1238,7 +1254,9 @@ def _add_dashboard_column_expressions(
     given dashboard (except the target chart, which is already covered).
 
     This allows cross-filter structured filters whose ``col`` carries the
-    source chart's custom SQL dimension to pass validation.
+    source chart's custom SQL dimension to pass validation.  Called lazily
+    (only when an unrecognized adhoc SQL col is found) to avoid a DB query
+    on the common path.
     """
     # pylint: disable=import-outside-toplevel
     from superset import db
@@ -1284,12 +1302,16 @@ def _sql_filters_modified(
     """
     allowed = _collect_allowed_sql(stored_chart, stored_query_context)
 
-    # For structured filter col validation, also allow SQL expressions from
-    # sibling charts on the same dashboard (cross-filter support).
-    if dashboard_id := (form_data or {}).get("dashboardId"):
-        _add_dashboard_column_expressions(allowed, dashboard_id, stored_chart.id)
-
     if any(_query_has_novel_sql(q, allowed) for q in query_context.queries):
+        # A novel SQL expression was found.  Before rejecting, check whether
+        # it comes from a sibling chart's custom SQL dimension (cross-filter).
+        # The dashboard lookup is deferred to here so that the common case
+        # (no cross-filter adhoc cols) pays no DB cost.
+        if dashboard_id := (form_data or {}).get("dashboardId"):
+            _add_dashboard_column_expressions(allowed, dashboard_id, stored_chart.id)
+            # Re-check with the expanded allowed set.
+            if not any(_query_has_novel_sql(q, allowed) for q in query_context.queries):
+                return False
         return True
 
     stored_sql_filters: set[str] = {
@@ -1322,20 +1344,6 @@ _STORED_METRIC_PARAMS = (
     "x",
     "y",
     "size",
-)
-
-#: Chart params keys that hold the columns/group-bys a chart renders, across
-#: the control names chart types use for them (``entity``/``series`` for
-#: bubble and world map, ``granularity_sqla`` for the temporal axis, etc.).
-_STORED_COLUMN_PARAMS = (
-    "columns",
-    "groupby",
-    "all_columns",
-    "entity",
-    "series",
-    "series_columns",
-    "x_axis",
-    "granularity_sqla",
 )
 
 
