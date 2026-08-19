@@ -73,6 +73,7 @@ import {
   getLegendProps,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
+  getTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -757,6 +758,14 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
+  // Weekly grains: pin the ticks to the buckets. Both queries share the axis.
+  const temporalTickValues = getTemporalTickValues(
+    [...rebasedDataA, ...rebasedDataB],
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+  );
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
@@ -779,7 +788,12 @@ export default function transformProps(
           showMinLabel: true,
           alignMinLabel: 'left',
         }),
+        ...(temporalTickValues && { customValues: temporalTickValues }),
       },
+      ...(temporalTickValues && {
+        axisTick: { customValues: temporalTickValues },
+        splitLine: { customValues: temporalTickValues },
+      }),
       minorTick: { show: minorTicks },
       minInterval:
         xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval

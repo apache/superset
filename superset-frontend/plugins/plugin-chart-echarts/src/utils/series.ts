@@ -42,6 +42,7 @@ import {
   NULL_STRING,
   StackControlsValue,
   TIMESERIES_CONSTANTS,
+  WEEKLY_TIME_GRAINS,
 } from '../constants';
 import {
   EchartsTimeseriesSeriesType,
@@ -984,6 +985,40 @@ export function getAxisType(
     return AxisType.Value;
   }
   return AxisType.Category;
+}
+
+/**
+ * Bucket timestamps a temporal axis should tick on, or undefined to let ECharts
+ * choose.
+ *
+ * ECharts generates time ticks from a calendar ladder with no week unit, so for
+ * weekly data it steps days from the 1st of each month instead: labels drift
+ * across weekdays and snap to month starts (#17226). Coarser grains already land
+ * on their data and keep ECharts' calendar-nice labels.
+ */
+export function getTemporalTickValues(
+  data: DataRecord[],
+  xAxisLabel: string,
+  xAxisType: AxisType,
+  timeGrain?: string,
+): number[] | undefined {
+  if (
+    xAxisType !== AxisType.Time ||
+    !timeGrain ||
+    !WEEKLY_TIME_GRAINS.has(timeGrain)
+  ) {
+    return undefined;
+  }
+  const values = new Set<number>();
+  data.forEach(row => {
+    const value = row[xAxisLabel];
+    const timestamp =
+      value instanceof Date ? value.getTime() : Number(value ?? NaN);
+    if (Number.isFinite(timestamp)) {
+      values.add(timestamp);
+    }
+  });
+  return values.size ? [...values].sort((a, b) => a - b) : undefined;
 }
 
 export function getOverMaxHiddenFormatter(

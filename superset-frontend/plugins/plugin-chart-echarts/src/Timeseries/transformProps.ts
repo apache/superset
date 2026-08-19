@@ -88,6 +88,7 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
+  getTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -1242,6 +1243,14 @@ export default function transformProps(
       })()
     : xAxisFormatter;
 
+  // Weekly grains: pin the ticks to the buckets ECharts would otherwise miss.
+  const temporalTickValues = getTemporalTickValues(
+    rebasedData,
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+  );
+
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
@@ -1273,7 +1282,12 @@ export default function transformProps(
         showMinLabel: true,
         alignMinLabel: 'left',
       }),
+      ...(temporalTickValues && { customValues: temporalTickValues }),
     },
+    ...(temporalTickValues && {
+      axisTick: { customValues: temporalTickValues },
+      splitLine: { customValues: temporalTickValues },
+    }),
     minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval

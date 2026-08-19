@@ -2529,3 +2529,128 @@ describe('EchartsTimeseries tooltip truncation', () => {
     expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
   });
 });
+
+describe('weekly x-axis tick alignment', () => {
+  // 13 Monday-aligned weekly buckets, the shape produced by a dataset that is
+  // pre-aggregated to weeks.
+  const WEEK_MS = 7 * 24 * 3600 * 1000;
+  const MONDAYS = Array.from(
+    { length: 13 },
+    (_, i) => Date.UTC(2026, 3, 6) + i * WEEK_MS,
+  );
+
+  const weeklyChartProps = (
+    formDataOverrides: Partial<EchartsTimeseriesFormData> = {},
+  ) =>
+    createTestChartProps({
+      formData: {
+        granularity_sqla: 'ds',
+        timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+        xAxisTimeFormat: '%m-%d',
+        ...formDataOverrides,
+      },
+      queriesData: [
+        createTestQueryData(
+          MONDAYS.map((__timestamp, i) => ({ __timestamp, sales: 100 + i })),
+          {
+            colnames: ['__timestamp', 'sales'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          },
+        ),
+      ],
+    });
+
+  test('pins ticks, labels and gridlines to the weekly buckets', () => {
+    const { xAxis } = transformProps(weeklyChartProps()).echartOptions as any;
+
+    expect(xAxis.type).toBe(AxisType.Time);
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    expect(xAxis.axisTick.customValues).toEqual(MONDAYS);
+    expect(xAxis.splitLine.customValues).toEqual(MONDAYS);
+  });
+
+  test.each([
+    TimeGranularity.WEEK,
+    TimeGranularity.WEEK_STARTING_SUNDAY,
+    TimeGranularity.WEEK_STARTING_MONDAY,
+    TimeGranularity.WEEK_ENDING_SATURDAY,
+    TimeGranularity.WEEK_ENDING_SUNDAY,
+  ])('applies to the %s grain', grain => {
+    const { xAxis } = transformProps(weeklyChartProps({ timeGrainSqla: grain }))
+      .echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+  });
+
+  test('a dashboard time-grain override drives the alignment', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps({
+        timeGrainSqla: TimeGranularity.DAY,
+        extraFormData: { time_grain_sqla: TimeGranularity.WEEK },
+      }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+  });
+
+  test('deduplicates and sorts the bucket timestamps', () => {
+    // A grouped query repeats each bucket once per series, and the rows are
+    // not necessarily ordered.
+    const chartProps = createTestChartProps({
+      formData: {
+        granularity_sqla: 'ds',
+        timeGrainSqla: TimeGranularity.WEEK,
+        groupby: ['region'],
+      },
+      queriesData: [
+        createTestQueryData(
+          [
+            { __timestamp: MONDAYS[1], region: 'b', sales: 2 },
+            { __timestamp: MONDAYS[0], region: 'a', sales: 1 },
+            { __timestamp: MONDAYS[1], region: 'a', sales: 3 },
+            { __timestamp: MONDAYS[0], region: 'b', sales: 4 },
+          ],
+          {
+            colnames: ['__timestamp', 'region', 'sales'],
+            coltypes: [
+              GenericDataType.Temporal,
+              GenericDataType.String,
+              GenericDataType.Numeric,
+            ],
+          },
+        ),
+      ],
+    });
+    const { xAxis } = transformProps(chartProps).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual([MONDAYS[0], MONDAYS[1]]);
+  });
+
+  test('leaves grains ECharts places correctly untouched', () => {
+    (
+      [
+        TimeGranularity.DAY,
+        TimeGranularity.MONTH,
+        TimeGranularity.QUARTER,
+        TimeGranularity.YEAR,
+        undefined,
+      ] as const
+    ).forEach(grain => {
+      const { xAxis } = transformProps(
+        weeklyChartProps({ timeGrainSqla: grain }),
+      ).echartOptions as any;
+
+      expect(xAxis.axisLabel.customValues).toBeUndefined();
+      expect(xAxis.axisTick?.customValues).toBeUndefined();
+    });
+  });
+
+  test('leaves a categorical x-axis untouched', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps({ xAxisForceCategorical: true }),
+    ).echartOptions as any;
+
+    expect(xAxis.type).toBe(AxisType.Category);
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
+  });
+});

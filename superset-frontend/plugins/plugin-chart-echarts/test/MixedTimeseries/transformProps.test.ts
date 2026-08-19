@@ -1352,3 +1352,74 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
     expect(html).not.toContain(longSeriesName);
   });
 });
+
+describe('weekly x-axis tick alignment', () => {
+  const WEEK_MS = 7 * 24 * 3600 * 1000;
+  const MONDAYS = Array.from(
+    { length: 6 },
+    (_, i) => Date.UTC(2026, 3, 6) + i * WEEK_MS,
+  );
+  const weeklyLabelMap = { ds: ['ds'], sum__num: ['sum__num'] };
+
+  const weeklyQuery = (timestamps: number[]) =>
+    createTestQueryData(
+      timestamps.map((ds, i) => ({ ds, sum__num: 10 + i })),
+      {
+        label_map: weeklyLabelMap,
+        colnames: ['ds', 'sum__num'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      },
+    );
+
+  const weeklyChartProps = (
+    queryA: number[],
+    queryB: number[],
+    overrides: Partial<EchartsMixedTimeseriesFormData> = {},
+  ) =>
+    createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: [weeklyQuery(queryA), weeklyQuery(queryB)],
+      formData: {
+        ...formData,
+        groupby: [],
+        groupbyB: [],
+        timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+        ...overrides,
+      },
+      queriesData: [weeklyQuery(queryA), weeklyQuery(queryB)],
+    });
+
+  test('pins ticks, labels and gridlines to the weekly buckets', () => {
+    const { xAxis } = transformProps(weeklyChartProps(MONDAYS, MONDAYS))
+      .echartOptions as any;
+
+    expect(xAxis.type).toBe(AxisType.Time);
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    expect(xAxis.axisTick.customValues).toEqual(MONDAYS);
+    expect(xAxis.splitLine.customValues).toEqual(MONDAYS);
+  });
+
+  test('covers buckets contributed by either query', () => {
+    // The two queries share one axis, so a bucket present in only one of them
+    // still needs a tick.
+    const { xAxis } = transformProps(
+      weeklyChartProps(MONDAYS.slice(0, 3), MONDAYS.slice(2)),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+  });
+
+  test('leaves grains ECharts places correctly untouched', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps(MONDAYS, MONDAYS, {
+        timeGrainSqla: TimeGranularity.MONTH,
+      }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
+    expect(xAxis.axisTick?.customValues).toBeUndefined();
+  });
+});
