@@ -23,13 +23,13 @@ import { Button } from '@superset-ui/core/components';
 interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;
   onSaveAsExplore?: () => void;
-  canSaveDataset?: boolean;
+  canSaveDataset: boolean;
 }
 
 const SaveDatasetActionButton = ({
   setShowSave,
   onSaveAsExplore,
-  canSaveDataset = true,
+  canSaveDataset,
 }: SaveDatasetActionButtonProps) => (
   <>
     <Button

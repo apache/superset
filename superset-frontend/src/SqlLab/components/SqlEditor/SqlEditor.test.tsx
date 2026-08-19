@@ -335,7 +335,7 @@ describe('SqlEditor', () => {
     expect(await findByText('10 000')).toBeInTheDocument();
   });
 
-  const setupWithQueryState = (state: QueryState) =>
+  const setupWithLatestQuery = (overrides: Partial<typeof latestQuery>) =>
     setup(
       mockedProps,
       createStore({
@@ -343,7 +343,7 @@ describe('SqlEditor', () => {
         sqlLab: {
           ...mockInitialState.sqlLab,
           queries: {
-            [latestQuery.id]: { ...latestQuery, state },
+            [latestQuery.id]: { ...latestQuery, ...overrides },
           },
           databases: {
             1991: {
@@ -356,12 +356,20 @@ describe('SqlEditor', () => {
     );
 
   test('enables the save dataset button when the latest query succeeded', async () => {
-    const { findByRole } = setupWithQueryState(QueryState.Success);
+    const { findByRole } = setupWithLatestQuery({ state: QueryState.Success });
     expect(await findByRole('button', { name: 'Save dataset' })).toBeEnabled();
   });
 
   test('disables the save dataset button when the latest query failed', async () => {
-    const { findByRole } = setupWithQueryState(QueryState.Failed);
+    const { findByRole } = setupWithLatestQuery({ state: QueryState.Failed });
+    expect(await findByRole('button', { name: 'Save dataset' })).toBeDisabled();
+  });
+
+  test('disables the save dataset button when the results are not loaded', async () => {
+    const { findByRole } = setupWithLatestQuery({
+      state: QueryState.Success,
+      results: undefined,
+    });
     expect(await findByRole('button', { name: 'Save dataset' })).toBeDisabled();
   });
 

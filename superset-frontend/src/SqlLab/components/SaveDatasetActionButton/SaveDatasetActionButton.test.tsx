@@ -27,6 +27,7 @@ describe('SaveDatasetActionButton', () => {
       <SaveDatasetActionButton
         setShowSave={() => true}
         onSaveAsExplore={onSaveAsExplore}
+        canSaveDataset
       />,
     );
 

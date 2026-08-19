@@ -52,7 +52,7 @@ interface SaveQueryProps {
   onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Partial<DatabaseObject> | undefined;
-  canSaveDataset?: boolean;
+  canSaveDataset: boolean;
 }
 
 export type QueryPayload = {
@@ -82,7 +82,7 @@ const SaveQuery = ({
   saveQueryWarning,
   database,
   columns,
-  canSaveDataset = true,
+  canSaveDataset,
 }: SaveQueryProps) => {
   const queryEditor = useQueryEditor(queryEditorId, [
     'autorun',
