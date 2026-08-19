@@ -8123,7 +8123,7 @@ domhandler@^5.0.2, domhandler@^5.0.3:
   dependencies:
     domelementtype "^2.3.0"
 
-dompurify@^3.3.3, dompurify@^3.4.12:
+dompurify@^3.3.3, dompurify@^3.4.13:
   version "3.4.13"
   resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-3.4.13.tgz#fc28949d59f92d62e28a3a764bcbeee35897a1be"
   integrity sha512-2vmYIoqjze2d+kakP8S/nS5shfsl587kzwEjcGlTdiksUVgFHnFCsLYDVj/JNqJVOQZGSYBTmuycv0PodwmnMQ==
@@ -10284,10 +10284,10 @@ js-levenshtein@^1.1.6:
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
   integrity sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==
 
-js-yaml@4.1.0, js-yaml@=4.3.0, js-yaml@^4.1.0, js-yaml@^4.1.1, js-yaml@^4.2.0, js-yaml@^4.3.0:
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-4.3.0.tgz#d1900572a7f7cf0b5f540c83673e60bad3436592"
-  integrity sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==
+js-yaml@4.1.0, js-yaml@=4.3.1, js-yaml@^4.1.0, js-yaml@^4.1.1, js-yaml@^4.2.0, js-yaml@^4.3.0:
+  version "4.3.1"
+  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-4.3.1.tgz#01216c001d67f48e2cd560d708c7af21090a3848"
+  integrity sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==
   dependencies:
     argparse "^2.0.1"
 
@@ -15103,10 +15103,10 @@ swagger-client@^3.37.8:
     "@swagger-api/apidom-parser-adapter-openapi-yaml-3-2" "^1.12.0"
     "@swagger-api/apidom-parser-adapter-yaml-1-2" "^1.12.0"
 
-swagger-ui-react@^5.32.12:
-  version "5.32.12"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.12.tgz#47525a26774eb02db0e6203af72f5b32fa6205cc"
-  integrity sha512-WCdkNOQyMTZDu+z356FpwVWHf1dwZgQPUjdQPh1L4r7jULaJTKKlIItXq6WsZdYeXvsHndMdxxccEQXOAroUHQ==
+swagger-ui-react@^5.32.13:
+  version "5.32.13"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.32.13.tgz#04c96140b0a2d4ea01ebec4d4cfc655d5ed9a500"
+  integrity sha512-XIDl+Ny6kE1N8wpSPiOFrjPfAevs4GR4XmV6BT6NLMikkMFIbIVocWbA8pnKYyYXQe8Rccfli5o2zDfySw0FnQ==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"
@@ -15115,11 +15115,11 @@ swagger-ui-react@^5.32.12:
     classnames "^2.5.1"
     css.escape "1.5.1"
     deep-extend "0.6.0"
-    dompurify "^3.4.12"
+    dompurify "^3.4.13"
     ieee754 "^1.2.1"
     immutable "^4.3.9"
     js-file-download "^0.4.12"
-    js-yaml "=4.3.0"
+    js-yaml "=4.3.1"
     lodash "^4.18.1"
     prop-types "^15.8.1"
     randexp "^0.5.3"
