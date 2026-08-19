@@ -22,7 +22,15 @@ from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    Schema,
+    validate,
+    validates,
+    ValidationError,
+)
 from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
@@ -972,21 +980,33 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
+    _builtin_ops = [
+        name
+        for name, value in inspect.getmembers(pandas_postprocessing, inspect.isfunction)
+    ]
+
     operation = fields.String(
         metadata={
             "description": "Post processing operation type",
             "example": "aggregate",
         },
         required=True,
-        validate=validate.OneOf(
-            choices=[
-                name
-                for name, value in inspect.getmembers(
-                    pandas_postprocessing, inspect.isfunction
-                )
-            ]
-        ),
     )
+
+    @validates("operation")
+    def validate_operation(self, value: str, **kwargs: object) -> None:
+        from flask import current_app
+
+        extra_op_names = [
+            fn.__name__
+            for fn in current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        ]
+        allowed = set(self._builtin_ops) | set(extra_op_names)
+        if value not in allowed:
+            raise ValidationError(
+                f"Must be one of: {sorted(allowed)!r}.",
+            )
+
     options = fields.Dict(
         metadata={
             "description": "Options specifying how to perform the operation. Please "

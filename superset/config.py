@@ -358,6 +358,15 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
 
+# Extra pandas post-processing operations to register alongside the built-in ones.
+# Each entry is a callable with the signature:
+#   def my_op(df: pandas.DataFrame, **options: Any) -> pandas.DataFrame
+# and will be available under its __name__ as an operation name.
+# Example:
+#   from mypackage.ops import my_custom_op
+#   EXTRA_PANDAS_POSTPROCESSING_OPS = [my_custom_op]
+EXTRA_PANDAS_POSTPROCESSING_OPS: list[Callable[..., Any]] = []
+
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 

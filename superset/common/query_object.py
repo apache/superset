@@ -22,6 +22,7 @@ from datetime import datetime
 from pprint import pformat
 from typing import Any, NamedTuple, TYPE_CHECKING
 
+from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
@@ -545,12 +546,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                         _("`operation` property of post processing object undefined")
                     )
                 if not hasattr(pandas_postprocessing, operation):
-                    raise InvalidPostProcessingError(
-                        _(
-                            "Unsupported post processing operation: %(operation)s",
-                            type=operation,
+                    extra_ops = {
+                        fn.__name__: fn
+                        for fn in current_app.config.get(
+                            "EXTRA_PANDAS_POSTPROCESSING_OPS", []
                         )
-                    )
+                    }
+                    if operation not in extra_ops:
+                        raise InvalidPostProcessingError(
+                            _(
+                                "Unsupported post processing operation: %(operation)s",
+                                type=operation,
+                            )
+                        )
+                    options = post_process.get("options", {})
+                    df = extra_ops[operation](df, **options)
+                    continue
                 options = post_process.get("options", {})
                 df = getattr(pandas_postprocessing, operation)(df, **options)
             return df
