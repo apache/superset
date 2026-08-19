@@ -993,11 +993,11 @@ class ChartDataPostProcessingOperationSchema(Schema):
     def validate_operation(self, value: str, **kwargs: object) -> None:
         from flask import current_app
 
-        extra_op_names = [
-            name
-            for fn in current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
-            if (name := getattr(fn, "__name__", None))
-        ]
+        extra_op_names = list(
+            pandas_postprocessing.build_extra_ops_map(
+                current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+            )
+        )
         allowed = set(self._builtin_ops) | set(extra_op_names)
         if value not in allowed:
             raise ValidationError(
