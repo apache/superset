@@ -2214,7 +2214,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # Update result with processed data
         result.df = df
-        result.sql_rowcount = len(df.index)
         result.query = query
         result.from_dttm = query_object.from_dttm
         result.to_dttm = query_object.to_dttm
