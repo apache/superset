@@ -547,10 +547,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     )
                 if not hasattr(pandas_postprocessing, operation):
                     extra_ops = {
-                        fn.__name__: fn
+                        name: fn
                         for fn in current_app.config.get(
                             "EXTRA_PANDAS_POSTPROCESSING_OPS", []
                         )
+                        if (name := getattr(fn, "__name__", None))
                     }
                     if operation not in extra_ops:
                         raise InvalidPostProcessingError(
