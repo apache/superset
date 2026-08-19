@@ -1136,7 +1136,10 @@ def _split_extras_clauses(composed: str) -> list[str]:
         raw[0] = raw[0][1:]
     if raw[-1].endswith(")"):
         raw[-1] = raw[-1][:-1]
-    return raw
+    # _sanitize_clause appends ``\n`` inside the parens when the expression
+    # contains ``--`` (to terminate a trailing line comment).  Strip it so
+    # the result matches the stored raw expression.
+    return [expr.rstrip("\n") for expr in raw]
 
 
 def _add_allowed_sql_from_query_context(
@@ -1178,7 +1181,11 @@ def _collect_allowed_sql(
     params = stored_chart.params_dict
 
     for flt in params.get("adhoc_filters") or []:
-        if flt.get("expressionType") == "SQL" and flt.get("sqlExpression"):
+        if (
+            isinstance(flt, dict)
+            and flt.get("expressionType") == "SQL"
+            and flt.get("sqlExpression")
+        ):
             allowed.add(flt["sqlExpression"])
 
     if params.get("where"):
@@ -1392,16 +1399,15 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # than accepting any payload, constrain them to the column(s) the dashboard's
     # native filter is allowed to target; other chartless paths keep prior
     # behavior (see _native_filter_request_modified).
+    #
+    # SQL extras (extras.where/having) are NOT validated on chartless paths:
+    # without a stored chart there is nothing to validate against, and
+    # tightening this would break legitimate chartless flows (native-filter
+    # pre-filtering, drill-to-detail) that carry SQL extras.  These paths
+    # are still protected by datasource-access checks in raise_for_access.
+    # The _sql_filters_modified check below covers chart payloads only.
     if stored_chart is None:
-        if _native_filter_request_modified(query_context):
-            return True
-        # Chartless non-native-filter requests (drill-to-detail, drill-by,
-        # samples) must not carry SQL extras; there is no stored chart to
-        # validate them against.  Only the empty-filter sentinel is allowed.
-        sentinel_only: set[str] = {_EMPTY_FILTER_SENTINEL}
-        return any(
-            _query_has_novel_sql(q, sentinel_only) for q in query_context.queries
-        )
+        return _native_filter_request_modified(query_context)
 
     if form_data is None:
         return False

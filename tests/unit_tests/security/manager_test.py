@@ -4121,34 +4121,6 @@ def test_sql_filters_non_dict_adhoc_filter_skipped(
     assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
 
 
-def test_query_context_modified_chartless_sql_extras_blocked(
-    mocker: MockerFixture,
-) -> None:
-    """Chartless request (no slice_id) with SQL extras is blocked."""
-    query_context = mocker.MagicMock()
-    query_context.slice_ = None
-    query_context.form_data = {}
-    query_context.queries = [
-        QueryObject(extras={"where": "(1=1 UNION SELECT x FROM y)"}),
-    ]
-
-    assert query_context_modified(query_context)
-
-
-def test_query_context_modified_chartless_sentinel_only_allowed(
-    mocker: MockerFixture,
-) -> None:
-    """Chartless request with only the empty-filter sentinel is allowed."""
-    query_context = mocker.MagicMock()
-    query_context.slice_ = None
-    query_context.form_data = {}
-    query_context.queries = [
-        QueryObject(extras={"where": "(1 = 0)"}),
-    ]
-
-    assert not query_context_modified(query_context)
-
-
 def test_raise_for_access_guest_user_sql_filter_injection_blocked(
     mocker: MockerFixture,
     app_context: None,
