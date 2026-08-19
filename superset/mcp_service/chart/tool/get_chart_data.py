@@ -804,7 +804,7 @@ async def get_chart_data(  # noqa: C901
 
             # Cache status information using utility function
             cache_status = get_cache_status_from_result(
-                query_result, force_refresh=effective_force
+                query_result, force_refresh=request.force_refresh
             )
 
             # Generate insights and recommendations
@@ -1126,7 +1126,7 @@ async def _query_from_form_data(
             )
 
         cache_status = get_cache_status_from_result(
-            query_result, force_refresh=effective_force
+            query_result, force_refresh=request.force_refresh
         )
 
         chart_name = form_data.get("slice_name", "Unsaved chart")
