@@ -1125,12 +1125,12 @@ def _split_extras_clauses(composed: str) -> list[str]:
     ``_sanitize_clause`` / ``processFilters.ts`` wraps each expression in
     one layer of parentheses and joins them with ``' AND '``, producing
     strings like ``(expr1) AND (expr2)``.  This reverses that: split on
-    ``) AND (``, strip the single outer parens, and return the raw
-    expressions.
+    the ``)\\s+AND\\s+(`` boundary (tolerating whitespace variations),
+    strip the outer parens, and return the raw expressions.
     """
     if not composed:
         return []
-    raw = composed.split(") AND (")
+    raw = re.split(r"\)\s+AND\s+\(", composed)
     # Strip exactly one outer paren added by _sanitize_clause.
     if raw[0].startswith("("):
         raw[0] = raw[0][1:]
