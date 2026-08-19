@@ -2115,6 +2115,36 @@ describe('async actions', () => {
           },
         ]);
       });
+
+      test('does not migrate when database validation fails', async () => {
+        const oldQueryEditor = {
+          ...queryEditor,
+          dbId: 99,
+          inLocalStorage: true,
+        };
+        const store = mockStore({
+          sqlLab: {
+            queries: [],
+            tables: [],
+            databases: { 99: {} },
+          },
+        });
+        fetchMock.modifyRoute('getDatabase', {
+          response: { throws: new Error('database lookup failed') },
+        });
+
+        await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+
+        expect(
+          fetchMock.callHistory.calls(updateTabStateEndpoint),
+        ).toHaveLength(0);
+        expect(store.getActions()).toEqual([
+          expect.objectContaining({
+            type: ADD_TOAST,
+            payload: expect.objectContaining({ toastType: ToastType.Warning }),
+          }),
+        ]);
+      });
     });
   });
 
