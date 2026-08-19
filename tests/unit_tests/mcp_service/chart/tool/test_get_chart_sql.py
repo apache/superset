@@ -1413,3 +1413,46 @@ class TestGetChartSqlTool:
             data = result.structured_content.get("result", result.structured_content)
             assert data["error_type"] == "DatasetNotAccessible"
             assert "Access denied" in data["error"]
+
+    @patch.object(_get_chart_sql_mod, "_sql_from_form_data")
+    @patch.object(_get_chart_sql_mod, "_get_cached_form_data")
+    @pytest.mark.asyncio
+    async def test_unsaved_chart_extra_form_data_reaches_sql_builder(
+        self, mock_cached, mock_form_data_sql, mcp_server
+    ):
+        """Regression test: extra_form_data must reach the SQL builder on the
+        form_data_key-only (unsaved chart) path too, not just the saved-chart
+        paths."""
+        from fastmcp import Client
+
+        from superset.utils import json as _json
+
+        cached_form_data = {"datasource_id": 1, "datasource_type": "table"}
+        mock_cached.return_value = _json.dumps(cached_form_data)
+        mock_form_data_sql.return_value = ChartSql(
+            chart_id=0,
+            chart_name=None,
+            sql="SELECT * FROM sales WHERE country = 'USA'",
+            language="sql",
+            datasource_name="sales",
+        )
+
+        extra_form_data = {"filters": [{"col": "country", "op": "==", "val": "USA"}]}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_sql",
+                {
+                    "request": {
+                        "form_data_key": "cached-key",
+                        "extra_form_data": extra_form_data,
+                    }
+                },
+            )
+
+            data = result.structured_content.get("result", result.structured_content)
+            assert "WHERE country = 'USA'" in data["sql"]
+
+        mock_form_data_sql.assert_called_once_with(
+            cached_form_data, chart=None, extra_form_data=extra_form_data
+        )
