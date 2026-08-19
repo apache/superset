@@ -124,8 +124,8 @@ def test_distributed_lock_uses_redis_when_configured() -> None:
             # Verify SET NX EX was called
             mock_set.assert_called_once()
             call_args = mock_set.call_args
-            assert call_args.kwargs["nx"] is True
-            assert "ex" in call_args.kwargs
+            assert call_args.kwargs["if_absent"] is True
+            assert "ttl" in call_args.kwargs
 
         # Verify DELETE was called on exit
         mock_delete.assert_called_once()
@@ -164,7 +164,7 @@ def test_distributed_lock_custom_ttl() -> None:
     ):
         with DistributedLock("test", ttl_seconds=60, key="value"):
             call_args = mock_set.call_args
-            assert call_args.kwargs["ex"] == 60  # Custom TTL
+            assert call_args.kwargs["ttl"] == 60  # Custom TTL
 
 
 def test_distributed_lock_default_ttl(app_context: None) -> None:
@@ -178,7 +178,7 @@ def test_distributed_lock_default_ttl(app_context: None) -> None:
     ):
         with DistributedLock("test", key="value"):
             call_args = mock_set.call_args
-            assert call_args.kwargs["ex"] == get_default_lock_ttl()
+            assert call_args.kwargs["ttl"] == get_default_lock_ttl()
 
 
 def test_distributed_lock_fallback_to_kv_when_redis_not_configured() -> None:

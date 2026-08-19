@@ -87,11 +87,10 @@ def task_context_for_timeout(mock_flask_app, mock_task_abortable):
     with (
         patch("superset.tasks.context.current_app") as mock_current_app,
         patch("superset.daos.tasks.TaskDAO") as mock_dao,
-        patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+        patch(
+            "superset.coordination.CoordinationService.get_backend", return_value=None
+        ),
     ):
-        # Disable Redis by making distributed_coordination return None
-        mock_cache_manager.distributed_coordination = None
-
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config
         mock_current_app._get_current_object.return_value = mock_flask_app
@@ -275,11 +274,11 @@ class TestTimeoutTrigger:
             patch(
                 "superset.commands.tasks.update.UpdateTaskCommand"
             ) as mock_update_cmd,
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -321,11 +320,11 @@ class TestTimeoutTrigger:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.tasks.context.logger") as mock_logger,
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_not_abortable
@@ -361,11 +360,11 @@ class TestTimeoutTrigger:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -467,11 +466,11 @@ class TestTimeoutTerminalState:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -508,11 +507,11 @@ class TestTimeoutTerminalState:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -545,11 +544,11 @@ class TestTimeoutTerminalState:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -582,11 +581,11 @@ class TestTimeoutTerminalState:
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
-            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+            patch(
+                "superset.coordination.CoordinationService.get_backend",
+                return_value=None,
+            ),
         ):
-            # Disable Redis by making distributed_coordination return None
-            mock_cache_manager.distributed_coordination = None
-
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable

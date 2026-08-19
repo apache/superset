@@ -310,6 +310,10 @@ class AsyncQueryManager:
         owner without trusting the client-supplied id. Expires with the JWT so
         it never outlives the job it guards.
         """
+        # Best-effort: the cancel registry is an optimization. Skip when no
+        # coordination backend is configured rather than failing job submission.
+        if not CoordinationService.is_backend_defined():
+            return
         CoordinationService.set_value(
             self._job_registry_key(job_id),
             json.dumps({"channel_id": channel_id, "user_id": user_id}),
