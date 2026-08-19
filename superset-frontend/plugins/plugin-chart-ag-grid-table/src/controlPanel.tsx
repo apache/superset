@@ -490,8 +490,33 @@ const config: ControlPanelConfig = {
               default: false,
               renderTrigger: true,
               description: t(
-                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or the sum of numeric columns in raw records mode. Note that row limit does not apply to the result.',
+                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or an aggregation of numeric columns in raw records mode. Note that row limit does not apply to the result.',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'totals_aggregate',
+            config: {
+              type: 'SelectControl',
+              label: t('Summary aggregation'),
+              renderTrigger: true,
+              description: t(
+                'Aggregation used for the summary row, independent of each ' +
+                  "metric's own aggregation. Only applies to simple metrics " +
+                  '(a metric built from custom SQL keeps its own aggregation ' +
+                  'in the summary row).',
+              ),
+              default: 'SUM',
+              clearable: false,
+              choices: [
+                ['SUM', t('Sum')],
+                ['AVG', t('Average')],
+              ],
+              visibility: ({ controls }) =>
+                Boolean(controls?.show_totals?.value),
+              resetOnHide: false,
             },
           },
         ],

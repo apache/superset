@@ -156,7 +156,13 @@ const Legend = ({
   }
 
   const categories = Object.entries(categoriesObject).map(([k, v]) => {
-    const color = `rgba(${v.color?.join(', ')})`;
+    const [r, g, b, a] = v.color ?? [];
+    // deck.gl colour arrays express alpha as 0-255, but CSS rgba() expects
+    // an alpha channel of 0-1, so it must be normalized before use.
+    const color =
+      a === undefined
+        ? `rgba(${r}, ${g}, ${b})`
+        : `rgba(${r}, ${g}, ${b}, ${a / 255})`;
     // Render the swatch as a real coloured box rather than a colour-tinted
     // text glyph. U+25FC/U+25FB are in Unicode's Emoji set but lack
     // Emoji_Presentation, so Chromium resolves them to a colour-emoji font

@@ -17,13 +17,16 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json  # noqa: TID251
-from unittest.mock import MagicMock
+from typing import Any
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
@@ -493,7 +496,17 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         "OAuth2 required"
     )
 
-    query = mocker.MagicMock(select_as_cta=False, database=database)
+    # `limit` and `select_as_cta_used` must match the real `Query` model's
+    # defaults (nullable Integer -> None, Boolean default=False) so that
+    # `apply_limit` -- called unconditionally before the mocked OAuth2 error
+    # is ever reached -- doesn't try to compare an unconfigured MagicMock
+    # against an int.
+    query = mocker.MagicMock(
+        select_as_cta=False,
+        select_as_cta_used=False,
+        limit=None,
+        database=database,
+    )
     mocker.patch("superset.sql_lab.get_query", return_value=query)
 
     payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
@@ -506,7 +519,9 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     assert error["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
     assert error["level"] == ErrorLevel.WARNING
     assert error["extra"]["tab_id"] == "fb11f528-6eba-4a8a-837e-6b0d39ee9187"
-    assert error["extra"]["redirect_uri"] == "http://localhost/api/v1/database/oauth2/"
+    assert (
+        error["extra"]["redirect_uri"] == "http://example.com/api/v1/database/oauth2/"
+    )
 
     # Parse the OAuth2 authorization URL and verify components individually,
     # since the JWT state and PKCE code_challenge are computed deterministically
@@ -519,7 +534,7 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
     params = parse_qs(url.query)
     assert params["scope"] == ["refresh_token session:role:USERADMIN"]
     assert params["response_type"] == ["code"]
-    assert params["redirect_uri"] == ["http://localhost/api/v1/database/oauth2/"]
+    assert params["redirect_uri"] == ["http://example.com/api/v1/database/oauth2/"]
     assert params["client_id"] == ["my_client_id"]
     assert params["code_challenge_method"] == ["S256"]
 
@@ -606,6 +621,81 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     dataset.get_sqla_row_level_filters.assert_called_once_with(
         include_global_guest_rls=False
     )
+
+
+def test_get_predicates_for_table_null_schema_dataset(session: Session) -> None:
+    """
+    A dataset stored with a NULL schema is scoped to the database's default
+    schema, mirroring the existing null-catalog fallback.
+
+    A query resolving to that default schema must find the dataset, so its RLS
+    predicates are applied instead of being silently dropped. A query against a
+    different schema must not, since the null-schema dataset doesn't describe it.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="rls_db", sqlalchemy_uri="sqlite://")
+    # registered without an explicit schema, e.g. via the dataset API
+    dataset = SqlaTable(table_name="t1", schema=None, catalog=None, database=database)
+    session.add_all([database, dataset])
+    session.flush()
+
+    with (
+        patch.object(
+            SqlaTable, "get_sqla_row_level_filters", return_value=[text("c1 = 1")]
+        ),
+        patch.object(Database, "get_default_schema", return_value="public"),
+    ):
+        assert get_predicates_for_table(
+            Table("t1", "public", None), database, None
+        ) == ["c1 = 1"]
+
+        assert (
+            get_predicates_for_table(Table("t1", "sales", None), database, None) == []
+        )
+
+
+def test_get_predicates_for_table_prefers_exact_schema_match(session: Session) -> None:
+    """
+    A dataset stored without a schema and one stored with the default schema can
+    coexist for the same table. The exact match must win, and the lookup must stay
+    unambiguous rather than treating both rows as candidates for a single dataset.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="rls_db_exact", sqlalchemy_uri="sqlite://")
+    session.add_all(
+        [
+            database,
+            SqlaTable(table_name="t1", schema=None, catalog=None, database=database),
+            SqlaTable(
+                table_name="t1", schema="public", catalog=None, database=database
+            ),
+        ]
+    )
+    session.flush()
+
+    def row_level_filters(
+        self: Any, include_global_guest_rls: bool = True
+    ) -> list[Any]:
+        return [text(f"c1 = '{self.schema}'")]
+
+    with (
+        patch.object(
+            SqlaTable,
+            "get_sqla_row_level_filters",
+            autospec=True,
+            side_effect=row_level_filters,
+        ),
+        patch.object(Database, "get_default_schema", return_value="public"),
+    ):
+        assert get_predicates_for_table(
+            Table("t1", "public", None), database, None
+        ) == ["c1 = 'public'"]
 
 
 def test_get_predicates_for_table_excludes_self(mocker: MockerFixture) -> None:
