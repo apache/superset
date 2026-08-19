@@ -16,48 +16,70 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import buildQuery from "../../src/Butterfly/buildQuery";
-describe("Butterfly buildQuery", () => {
-  const formData = {
-    datasource: "1__table",
-    viz_type: "butterfly",
-    groupby: ["category"],
-    left_metric: "left_sum",
-    right_metric: "right_sum",
+import buildQuery from '../../src/Butterfly/buildQuery';
+
+const formData = {
+  datasource: '1__table',
+  viz_type: 'butterfly',
+  groupby: ['category'],
+  left_metric: 'left_sum',
+  right_metric: 'right_sum',
+};
+
+test('defaults to ordering by the category column', () => {
+  const [query] = buildQuery(formData).queries;
+  expect(query.columns).toEqual(['category']);
+  expect(query.metrics).toEqual(['left_sum', 'right_sum']);
+  expect(query.orderby).toEqual([['category', true]]);
+});
+
+test('wraps the sort metric in a valid orderby tuple', () => {
+  const sortMetric = {
+    expressionType: 'SIMPLE',
+    column: { column_name: 'left_sum' },
+    aggregate: 'SUM',
+    label: 'SUM(left_sum)',
   };
-  test("defaults to ordering by the category column", () => {
-    const [query] = buildQuery(formData).queries;
-    expect(query.columns).toEqual(["category"]);
-    expect(query.metrics).toEqual(["left_sum", "right_sum"]);
-    expect(query.orderby).toEqual([["category", true]]);
-  });
-  test("wraps the sort metric in a valid orderby tuple", () => {
-    const sortMetric = {
-      expressionType: "SIMPLE",
-      column: { column_name: "left_sum" },
-      aggregate: "SUM",
-      label: "SUM(left_sum)",
-    };
-    const [query] = buildQuery({
-      ...formData,
-      orderby: sortMetric,
-      order_desc: true,
-    }).queries;
-    expect(query.orderby).toEqual([[sortMetric, false]]);
-  });
-  test("appends the sort metric when it is not already selected", () => {
-    const sortMetric = {
-      expressionType: "SIMPLE",
-      column: { column_name: "count" },
-      aggregate: "SUM",
-      label: "SUM(count)",
-    };
-    const [query] = buildQuery({
-      ...formData,
-      orderby: sortMetric,
-      order_desc: false,
-    }).queries;
-    expect(query.metrics).toEqual(["left_sum", "right_sum", sortMetric]);
-    expect(query.orderby).toEqual([[sortMetric, true]]);
-  });
+  const [query] = buildQuery({
+    ...formData,
+    orderby: sortMetric,
+    order_desc: true,
+  }).queries;
+  expect(query.metrics).toEqual(['left_sum', 'right_sum', sortMetric]);
+  expect(query.orderby).toEqual([[sortMetric, false]]);
+});
+
+test('appends the sort metric when it is not already selected', () => {
+  const sortMetric = {
+    expressionType: 'SIMPLE',
+    column: { column_name: 'count' },
+    aggregate: 'SUM',
+    label: 'SUM(count)',
+  };
+  const [query] = buildQuery({
+    ...formData,
+    orderby: sortMetric,
+    order_desc: false,
+  }).queries;
+  expect(query.metrics).toEqual(['left_sum', 'right_sum', sortMetric]);
+  expect(query.orderby).toEqual([[sortMetric, true]]);
+});
+
+test('leaves orderby unset when no category column is selected', () => {
+  const [query] = buildQuery({
+    ...formData,
+    groupby: [],
+  }).queries;
+  expect(query.columns).toEqual([]);
+  expect(query.metrics).toEqual(['left_sum', 'right_sum']);
+  expect(query.orderby).toBeUndefined();
+});
+
+test('issues no metrics when none are selected', () => {
+  const [query] = buildQuery({
+    datasource: '1__table',
+    viz_type: 'butterfly',
+    groupby: ['category'],
+  }).queries;
+  expect(query.metrics).toEqual([]);
 });

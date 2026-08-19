@@ -31,7 +31,7 @@ export default function buildQuery(formData: QueryFormData) {
     ...ensureIsArray(formData.right_metric),
   ];
 
-  const { orderby } = buildSortMetricOrderby({
+  const { orderby, metrics } = buildSortMetricOrderby({
     metrics: baseMetrics,
     timeseriesLimitMetric: ensureIsArray(formData.orderby)[0],
     order_desc: formData.order_desc,
@@ -45,6 +45,7 @@ export default function buildQuery(formData: QueryFormData) {
     {
       ...baseQueryObject,
       columns,
+      metrics,
       orderby: resolvedOrderby,
     },
   ]);
