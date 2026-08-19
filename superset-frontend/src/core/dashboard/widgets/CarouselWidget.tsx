@@ -27,22 +27,22 @@ import { FlowContent } from './flowContent';
 
 /**
  * A slide's own child type — the vertical-navigation counterpart to
- * `TabsBlock`'s `TAB_TYPE`, and not registered as a building block for the
+ * `TabsWidget`'s `TAB_TYPE`, and not registered as a widget for the
  * identical reason: nothing ever resolves one through
- * `resolveBuildingBlockView`, since `CarouselBlock` renders a slide's
+ * `resolveWidgetView`, since `CarouselWidget` renders a slide's
  * children directly. It only needs to be a recognized container type so
- * `addBuildingBlock` gives it a `children` array (see `registerContainerType`
+ * `addWidget` gives it a `children` array (see `registerContainerType`
  * in `DashboardProvider`).
  */
 export const SLIDE_TYPE = 'slide';
 
 /**
  * The negative margin is what keeps the nav column full-height — see
- * `TabsBlock`'s own `Root`, which this mirrors for the identical reason: the
- * card's own padding (`BuildingBlockView`) is right for a single thing
+ * `TabsWidget`'s own `Root`, which this mirrors for the identical reason: the
+ * card's own padding (`WidgetView`) is right for a single thing
  * filling the card, but wrong for chrome that has to reach the card's own
  * edges to read as one. The top is left alone: `carousel` has no *title* in
- * its header (see `blockLabel`'s `UNNAMED` set), but the header itself —
+ * its header (see `widgetLabel`'s `UNNAMED` set), but the header itself —
  * carrying at least the remove control — is still there for every non-root
  * node, so this box starts below it rather than at the card's true top edge
  * regardless.
@@ -59,11 +59,11 @@ const Root = styled.div`
 
 /**
  * The dot strip itself — shown only once there is something to navigate
- * between (see `CarouselBlock`'s own render). A dot rather than a labelled
+ * between (see `CarouselWidget`'s own render). A dot rather than a labelled
  * button: this is the one built-in container whose own switching control is
  * meant to read as a lightweight indicator of position among slides, the
  * way a carousel's dots do elsewhere, rather than as a row of named
- * destinations the way `TabsBlock`'s tab bar is.
+ * destinations the way `TabsWidget`'s tab bar is.
  */
 const NavColumn = styled.div`
   ${({ theme }) => css`
@@ -123,11 +123,11 @@ export const untitledSlideLabel = (index: number): string =>
   t('Slide %s', index + 1);
 
 /**
- * The built-in `carousel` building block — a container whose own children
+ * The built-in `carousel` widget — a container whose own children
  * (each a `slide`, itself a container) are switchable one at a time through
- * a vertical strip of dots, rather than the horizontal tab bar `TabsBlock`
- * uses for the same idea. Registered like any other block (see
- * `registerBuiltInBuildingBlocks`), and like `tabs`, it has no grid of its
+ * a vertical strip of dots, rather than the horizontal tab bar `TabsWidget`
+ * uses for the same idea. Registered like any other widget (see
+ * `registerBuiltInWidgets`), and like `tabs`, it has no grid of its
  * own: which slide is showing is this component's own concern, not a
  * `layout` fact the document carries (composition/layout design doc).
  *
@@ -138,11 +138,11 @@ export const untitledSlideLabel = (index: number): string =>
  * slide actually exists.
  *
  * Which slide is *active* is intentionally not persisted, for the identical
- * reason `TabsBlock`'s active pane is not: it is a fact about who is looking
+ * reason `TabsWidget`'s active pane is not: it is a fact about who is looking
  * at the dashboard right now, not about the dashboard itself. It resets to
  * the first slide whenever the previously active one no longer exists.
  */
-export default function CarouselBlock({
+export default function CarouselWidget({
   nodeId,
 }: {
   nodeId: string;
@@ -160,14 +160,14 @@ export default function CarouselBlock({
     setActiveSlideId(slides[0]);
   }
 
-  // A slide added since the last render — whether from `blockHeaderControl`'s
+  // A slide added since the last render — whether from `widgetHeaderControl`'s
   // "+" (see its own comment) or a palette drop into an empty carousel above
   // — is one nobody has seen yet, so it becomes the one shown rather than
   // landing silently behind whichever slide was already active. Both of
   // those additions always append, so the newest slide is always the last
   // one; a ref rather than a prop is what lets this component notice the
   // growth at all, since the button that causes it renders as this one's
-  // sibling in `BuildingBlockView`'s header, not as anything that could pass
+  // sibling in `WidgetView`'s header, not as anything that could pass
   // it a callback.
   const previousSlideCount = useRef(slides.length);
   if (slides.length > previousSlideCount.current) {
@@ -225,7 +225,7 @@ export default function CarouselBlock({
             if (type !== '') {
               event.preventDefault();
               event.stopPropagation();
-              const slideId = provider.addBuildingBlock(nodeId, 0, {
+              const slideId = provider.addWidget(nodeId, 0, {
                 type: SLIDE_TYPE,
                 props: { label: untitledSlideLabel(0) },
               });

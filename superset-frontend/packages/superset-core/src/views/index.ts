@@ -60,7 +60,7 @@ export interface View {
  * @param location The location where this view should appear (e.g. "sqllab.panels").
  * @param component The React component to render at that location. Most
  *   locations render it with no props; check the target location's own docs
- *   for whether it passes any (e.g. "dashboard.buildingBlocks" passes
+ *   for whether it passes any (e.g. "dashboard.widgets" passes
  *   `{ nodeId }`).
  * @returns A Disposable that unregisters the view when disposed.
  *

@@ -23,9 +23,9 @@ import { ActionButton, Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ErrorBoundary } from 'src/components';
 import { provider, useDashboardRevision } from './store';
-import { resolveBuildingBlockView } from './resolveBuildingBlockView';
-import { blockLabel } from './blockLabel';
-import { blockHeaderControl } from './blockHeaderControl';
+import { resolveWidgetView } from './resolveWidgetView';
+import { widgetLabel } from './widgetLabel';
+import { widgetHeaderControl } from './widgetHeaderControl';
 import RootGrid from './RootGrid';
 
 function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
@@ -48,18 +48,18 @@ function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
       }}
     >
       <Typography.Text type="secondary">
-        {t('Unsupported block type:')} {node.type}
+        {t('Unsupported widget type:')} {node.type}
       </Typography.Text>
     </Flex>
   );
 }
 
 /**
- * A block's name, and what can be done to the block.
+ * A widget's name, and what can be done to the widget.
  *
  * Carries no surface of its own and no rule under it. The card behind this is
  * opaque and unbroken, so a second background here would only draw a seam
- * across it a hand's width below the top edge — the block would read as a
+ * across it a hand's width below the top edge — the widget would read as a
  * strip and a box rather than as one card with a name on it.
  */
 const BlockHeader = styled.div`
@@ -74,7 +74,7 @@ const BlockHeader = styled.div`
 
 /**
  * What the remove control (and a type's own extra header control, if it has
- * one — see `blockHeaderControl`) sit inside together, pushed to the end of
+ * one — see `widgetHeaderControl`) sit inside together, pushed to the end of
  * the header as one group.
  *
  * Grouped rather than each carrying its own `margin-left: auto`: the two
@@ -83,7 +83,7 @@ const BlockHeader = styled.div`
  * independently-pushed elements would not (each would land flush against
  * the header's own right edge, stacking on top of one another instead of
  * sitting side by side). Pushed to the end whether or not a name is there
- * to share the row with — an unnamed type (see blockLabel's UNNAMED set)
+ * to share the row with — an unnamed type (see widgetLabel's UNNAMED set)
  * leaves nothing on the other side to grow and do this instead.
  */
 const HeaderTrailingControls = styled.span`
@@ -97,15 +97,15 @@ const HeaderTrailingControls = styled.span`
 `;
 
 /**
- * What a type's own extra header control (see `blockHeaderControl`) is
+ * What a type's own extra header control (see `widgetHeaderControl`) is
  * wrapped in, and why — the identical reasoning `RemoveSlot`, below, is
  * wrapped for: the control itself is an `ActionButton` (or built from one)
  * whose `onClick` carries no event, so the two gestures this sits inside are
  * stopped here instead — a press on it must act rather than select the
- * block it is drawn on, and a pointer down on it must not start a grid
+ * widget it is drawn on, and a pointer down on it must not start a grid
  * drag.
  *
- * `data-block-header-control` is the other half of that second one —
+ * `data-widget-header-control` is the other half of that second one —
  * `RootGrid` names it in the grid's own drag-cancel selector, which matches
  * it up the ancestors, so carrying it here covers the control inside.
  */
@@ -121,10 +121,10 @@ const HeaderControlSlot = styled.span`
  * action carried on a surface that is already something else, and the one the
  * dashboard list uses for its own Delete. It takes an `onClick` with no event,
  * so the two gestures this sits inside are stopped here instead: a click on
- * the bin must remove rather than select the block it is drawn on, and a
+ * the bin must remove rather than select the widget it is drawn on, and a
  * pointer down on it must not start a grid drag.
  *
- * `data-block-remove` is the other half of that second one — `RootGrid`
+ * `data-widget-remove` is the other half of that second one — `RootGrid`
  * names it in the grid's own drag-cancel selector, which matches it up the
  * ancestors, so carrying it here covers the button inside.
  */
@@ -133,46 +133,46 @@ const RemoveSlot = styled.span`
   flex: 0 0 auto;
 `;
 
-interface BuildingBlockViewProps extends HTMLAttributes<HTMLDivElement> {
+interface WidgetViewProps extends HTMLAttributes<HTMLDivElement> {
   nodeId: string;
 }
 
 /**
  * The single entry point for rendering a dashboard node. A node's `type` is
- * resolved against `dashboard.buildingBlocks` views — built-in types
+ * resolved against `dashboard.widgets` views — built-in types
  * (markdown/echarts/...) and extension-contributed ones are registered
- * identically (see `registerBuiltInBuildingBlocks`), so nothing here knows
+ * identically (see `registerBuiltInWidgets`), so nothing here knows
  * or cares which kind it's rendering. Falls back to a placeholder if the
  * node doesn't exist, or nothing is registered for its `type`.
  *
- * The root is the one exception: it is not a Building Block (see the
+ * The root is the one exception: it is not a Widget (see the
  * composition/layout design doc), so there is nothing to look up for it in
  * that registry — its renderer, `RootGrid`, is resolved directly instead.
  * `RootGrid` positions/sizes each child by wrapping it in a grid item element
  * of its own and passing this component an explicit `style={{width:'100%',
  * height:'100%'}}` to fill it — the same convention `flowContent.tsx`'s
- * `FlowItem` already used for a flowed block, which is why this accepts
+ * `FlowItem` already used for a flowed widget, which is why this accepts
  * `...rest` (covering that `style` prop, among others) and forwards a `ref`
- * rather than each block doing that itself. That's deliberate: a block,
+ * rather than each widget doing that itself. That's deliberate: a widget,
  * built-in or extension-contributed, should only ever need to fill 100% of
  * whatever box it's given, not know it's sitting in a grid at all, let alone
- * that the grid is draggable/resizable. Before this existed, every block
+ * that the grid is draggable/resizable. Before this existed, every widget
  * (and every third-party extension) had to resolve its own placement, which
  * meant reimplementing (and risking drifting from) the same parent-lookup
  * logic — see `dashboard-insights`'s own `getParentDirection` for what that
  * duplication looked like from outside the host bundle, where
  * `DashboardProvider` isn't importable at all.
- * `children` (when present) is a block's own extra content layered on top of
+ * `children` (when present) is a widget's own extra content layered on top of
  * it rather than replacing it — see `flowContent.tsx`'s `ResizeGrip` for the
  * one built-in use of this.
  *
- * Wrapped per-node in an ErrorBoundary: a block's content (e.g. an
+ * Wrapped per-node in an ErrorBoundary: a widget's content (e.g. an
  * AI-authored `echartsOptions` that turns out malformed at render/effect
  * time) is untrusted input the same way a dataset value is, and one bad
- * block must not unmount the rest of the dashboard along with it.
+ * widget must not unmount the rest of the dashboard along with it.
  */
-const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
-  function BuildingBlockView({ nodeId, children, ...rest }, ref) {
+const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
+  function WidgetView({ nodeId, children, ...rest }, ref) {
     useDashboardRevision();
     const theme = useTheme();
     const node = provider.getNode(nodeId);
@@ -185,13 +185,13 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
     // ever raises an error.
     const chrome = nodeId !== provider.getRoot().id;
     const isRoot = !chrome;
-    // The root's renderer is not looked up in the building-block registry —
+    // The root's renderer is not looked up in the widget registry —
     // see this component's own doc comment — since the root was never
     // registered there in the first place.
     const resolved = isRoot ? (
       <RootGrid nodeId={nodeId} />
     ) : (
-      resolveBuildingBlockView(node.type, nodeId)
+      resolveWidgetView(node.type, nodeId)
     );
     // The same token `BlockHeader` is drawn at: the content box below is this
     // element's height minus the band, so the two have to be one number.
@@ -202,26 +202,26 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
         ref={ref}
         {...rest}
         // Where a node is on screen, for the panels that reach into the
-        // canvas from outside it — the Outline scrolls to the block it just
+        // canvas from outside it — the Outline scrolls to the widget it just
         // selected by finding it here. Set after the spread so a parent
         // renderer cannot displace a node's own identity.
         data-node-id={nodeId}
-        // Every block is a thing an author selects, so every block is a
+        // Every widget is a thing an author selects, so every widget is a
         // control — announced as one, reachable by Tab, and answering the
         // keys a control answers. The outline offers the same selection in a
-        // tree, but a block you can point at and not reach from the keyboard
-        // is still a block half the people using this cannot select.
+        // tree, but a widget you can point at and not reach from the keyboard
+        // is still a widget half the people using this cannot select.
         // A real `button` is not available: this element carries its own
         // ref and an injected `style` (see this component's own doc
-        // comment), and a block's content is interactive in its own right —
+        // comment), and a widget's content is interactive in its own right —
         // a chart, a table — which a `button` may not contain.
         // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
         role="button"
         tabIndex={0}
         aria-pressed={selected}
         aria-label={node.type}
-        // The propagation stop is what makes a click on a block inside a
-        // container select the block rather than the container holding it —
+        // The propagation stop is what makes a click on a widget inside a
+        // container select the widget rather than the container holding it —
         // both are nodes and both render through here, so the innermost one
         // has to claim the gesture.
         onClick={event => {
@@ -229,6 +229,11 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           provider.setSelection(nodeId);
         }}
         onKeyDown={event => {
+          // Only act on Enter/Space that originated on this wrapper itself —
+          // not on a bubbled keypress from an interactive descendant (a tab, a
+          // header ActionButton). Hijacking those with preventDefault would
+          // select the widget instead of switching the tab / firing the button.
+          if (event.target !== event.currentTarget) return;
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             event.stopPropagation();
@@ -237,28 +242,28 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
         }}
         style={{
           ...rest.style,
-          // A block's contents are positioned against this element.
+          // A widget's contents are positioned against this element.
           // A caller that already set its own `position` (nothing does
           // today) is kept; `relative` only fills the gap when it did not.
           position: rest.style?.position ?? 'relative',
-          // Sized the same way every other block already is — everything
+          // Sized the same way every other widget already is — everything
           // that is not the root gets its width/height from whatever
           // rendered it (`RootGrid`'s grid item wrapper, or `flowContent.tsx`'s
           // `FlowItem`), passed in through `style` and captured above via
           // `...rest.style`. The root gets no such caller — it is rendered
           // directly, with no props — so without this it has no width or
           // height at all and shrinks to whatever its own content happens to
-          // be — which is exactly one block tall, with nothing below it to
+          // be — which is exactly one widget tall, with nothing below it to
           // drop onto and a scrollbar that flickers in and out as that one
-          // block resizes against it.
+          // widget resizes against it.
           width: isRoot ? '100%' : rest.style?.width,
           height: isRoot ? '100%' : rest.style?.height,
-          // The card, drawn around the whole of a block rather than around
+          // The card, drawn around the whole of a widget rather than around
           // part of it.
           //
-          // This used to be each leaf block's own — every one of them opened
+          // This used to be each leaf widget's own — every one of them opened
           // with the same background, border and radius — and a leaf begins
-          // below the header, so the card's top edge ran between a block's
+          // below the header, so the card's top edge ran between a widget's
           // name and its contents. The name sat outside the box it names,
           // reading as a caption dropped over a separate card. Drawn here it
           // encloses both, which is also the only place it can be drawn from:
@@ -266,10 +271,10 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           // not the leaf's.
           //
           // Opaque for the same reason it is one card: on a free canvas
-          // blocks overlap, and anything a block does not paint is a window
+          // widgets overlap, and anything a widget does not paint is a window
           // onto whatever is behind it.
           //
-          // None of this is true of the root. The root is not a block on the
+          // None of this is true of the root. The root is not a widget on the
           // dashboard, it *is* the dashboard — the surface everything else is
           // arranged on, not a card among them — so it gets none of a card's
           // trappings: no fill, no border, no rounded corners of its own.
@@ -278,7 +283,7 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
             ? undefined
             : `1px solid ${theme.colorBorderSecondary}`,
           borderRadius: isRoot ? undefined : theme.borderRadiusLG,
-          // Nothing reaches past the corners this rounds — a block's content
+          // Nothing reaches past the corners this rounds — a widget's content
           // is square and would otherwise fill them back in. Moot on the
           // root, which rounds nothing.
           overflow: isRoot ? undefined : 'hidden',
@@ -290,12 +295,12 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           // not a card, and RootGrid already fills it exactly.
           padding: isRoot ? undefined : theme.padding,
           boxSizing: 'border-box',
-          // Drawn over the block rather than around it: an outline takes no
+          // Drawn over the widget rather than around it: an outline takes no
           // space, so nothing on screen shifts when a selection moves.
           //
           // Never on the root: it can still be selected (see `EditorPanel`'s
           // own Properties for it), but the root is the canvas itself, not a
-          // block sitting on it, and an outline meant to mark one block out
+          // widget sitting on it, and an outline meant to mark one widget out
           // from its neighbors instead reads as a frame around the entire
           // dashboard when it is the root wearing it.
           outline:
@@ -303,14 +308,14 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
           outlineOffset: selected && !isRoot ? -2 : undefined,
         }}
       >
-        {/* What this block is, and how to be rid of it.
-            The name comes from `blockLabel`, the same call the Outline names
-            a row by, so a block is not "Sales by Territory" in one place and
+        {/* What this widget is, and how to be rid of it.
+            The name comes from `widgetLabel`, the same call the Outline names
+            a row by, so a widget is not "Sales by Territory" in one place and
             "ECharts" in the other. A chart's name is authored in its ECharts
-            option and ChartBlock stops ECharts drawing it, so it appears here
+            option and ChartWidget stops ECharts drawing it, so it appears here
             once instead of twice.
 
-            `data-block-remove` is what keeps a press on the button from
+            `data-widget-remove` is what keeps a press on the button from
             starting a grid drag; see RootGrid's own drag-cancel selector.
             The propagation stops are the same idea for the two gestures it
             sits inside: a click here removes rather than selects, and a
@@ -318,72 +323,72 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
 
             The button is nested inside a control, which is not ideal and is
             the price of the wrapper itself being selectable — the alternative
-            was a block you can delete only from the panel. The keyboard path
-            is not this button: the Outline selects any block with proper tree
+            was a widget you can delete only from the panel. The keyboard path
+            is not this button: the Outline selects any widget with proper tree
             semantics and Properties carries the same Delete. */}
         {chrome && (
-          <BlockHeader data-test={`block-header-${nodeId}`}>
-            {/* Skipped entirely for a type `blockLabel` leaves unnamed
+          <BlockHeader data-test={`widget-header-${nodeId}`}>
+            {/* Skipped entirely for a type `widgetLabel` leaves unnamed
                 (markdown, whose rendered body is right below this and needs
                 no caption repeating it) — an empty `Typography.Text` would
                 still be a blank strip claiming the header's whole left
                 side, not nothing. */}
-            {blockLabel(node.type, node.props) && (
+            {widgetLabel(node.type, node.props) && (
               <Typography.Text
                 ellipsis
-                data-test={`block-title-${nodeId}`}
+                data-test={`widget-title-${nodeId}`}
                 style={{
                   flex: '1 1 auto',
                   // The name of the thing below it, not a note about it. At the
                   // small size in the secondary colour it read as a caption
-                  // hanging over the block — and this is the first thing anyone
-                  // scanning a canvas uses to tell one block from the next, so
+                  // hanging over the widget — and this is the first thing anyone
+                  // scanning a canvas uses to tell one widget from the next, so
                   // it is drawn at the weight that job deserves.
                   fontSize: theme.fontSize,
                   fontWeight: theme.fontWeightStrong,
                   color: theme.colorText,
                 }}
               >
-                {blockLabel(node.type, node.props)}
+                {widgetLabel(node.type, node.props)}
               </Typography.Text>
             )}
             <HeaderTrailingControls>
               {/* A type's own extra header control — e.g. `collapsible`'s
                   expand/collapse toggle — sits beside Remove rather than
-                  below the header, so a block with one of these is still
+                  below the header, so a widget with one of these is still
                   just a title and its content, not a title, a second bar,
-                  and its content. See `blockHeaderControl`. */}
-              {blockHeaderControl(node.type, nodeId) && (
+                  and its content. See `widgetHeaderControl`. */}
+              {widgetHeaderControl(node.type, nodeId) && (
                 <HeaderControlSlot
-                  data-block-header-control
+                  data-widget-header-control
                   onMouseDown={event => event.stopPropagation()}
                   onPointerDown={event => event.stopPropagation()}
                   onClick={event => event.stopPropagation()}
                 >
-                  {blockHeaderControl(node.type, nodeId)}
+                  {widgetHeaderControl(node.type, nodeId)}
                 </HeaderControlSlot>
               )}
               <RemoveSlot
-                data-block-remove
+                data-widget-remove
                 onMouseDown={event => event.stopPropagation()}
                 onPointerDown={event => event.stopPropagation()}
                 onClick={event => event.stopPropagation()}
               >
                 <ActionButton
-                  label={t('Remove block')}
-                  tooltip={t('Remove block')}
+                  label={t('Remove widget')}
+                  tooltip={t('Remove widget')}
                   placement="bottom"
-                  dataTest={`block-remove-${nodeId}`}
-                  onClick={() => provider.removeBuildingBlock(nodeId)}
+                  dataTest={`widget-remove-${nodeId}`}
+                  onClick={() => provider.removeWidget(nodeId)}
                   // A bin rather than a cross. A cross on a card is the gesture
                   // for dismissing the card — closing it, putting it away — and
-                  // this does not put the block away, it takes it off the
+                  // this does not put the widget away, it takes it off the
                   // dashboard. The bin is what the rest of the app uses to say
                   // so, and it is the same act the panel offers as Delete.
                   //
                   // Quiet at rest and primary under the pointer, which is
                   // `ActionButton`'s own behaviour and the same answer the
-                  // dashboard list gives for its Delete: a bin on every block,
+                  // dashboard list gives for its Delete: a bin on every widget,
                   // all of them lit red, would make a canvas read as a row of
                   // things about to be deleted.
                   icon={<Icons.DeleteOutlined iconSize="s" />}
@@ -392,14 +397,14 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
             </HeaderTrailingControls>
           </BlockHeader>
         )}
-        {/* The block's own box, which is the whole of this element's minus
+        {/* The widget's own box, which is the whole of this element's minus
             the band above it. Subtracted in pixels off a percentage rather
-            than left to a flex column, because what a leaf block does with
+            than left to a flex column, because what a leaf widget does with
             the box is resolve `height: 100%` against it — a chart measures
             the result to size its canvas — and that wants a height there is
             no question about. */}
         <div
-          data-test={`block-content-${nodeId}`}
+          data-test={`widget-content-${nodeId}`}
           style={{
             width: '100%',
             height: chrome ? `calc(100% - ${headerHeight}px)` : '100%',
@@ -415,4 +420,4 @@ const BuildingBlockView = forwardRef<HTMLDivElement, BuildingBlockViewProps>(
   },
 );
 
-export default BuildingBlockView;
+export default WidgetView;

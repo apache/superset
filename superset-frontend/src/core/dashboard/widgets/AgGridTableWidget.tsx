@@ -31,7 +31,7 @@ import { fetchQueryData } from '../chartData';
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type DataRow = dashboardApi.DataRow;
 
-// No module registration needed here, unlike `ChartBlock`'s own
+// No module registration needed here, unlike `ChartWidget`'s own
 // `echarts.use([...])` call — `setupAGGridModules()` already runs
 // unconditionally at app bootstrap (see `src/views/App.tsx`), well before
 // this (or any other) AG Grid consumer ever renders.
@@ -41,9 +41,9 @@ function deriveColumnDefs(columns: string[]): ColDef[] {
 }
 
 /**
- * The built-in `ag-grid-table` building block — registered like any other
- * block (see `registerBuiltInBuildingBlocks`). Fetches its `dataBinding`
- * (generic, viz_type-less — see `chartData.ts`) the same way `ChartBlock`
+ * The built-in `ag-grid-table` widget — registered like any other
+ * widget (see `registerBuiltInWidgets`). Fetches its `dataBinding`
+ * (generic, viz_type-less — see `chartData.ts`) the same way `ChartWidget`
  * does, then hands the rows straight to AG Grid via the already-themed
  * `ThemedAgGridReact` wrapper. Unlike `echarts`, a table's `rowData`/
  * `columnDefs` map directly onto query results with no `$bind`-style
@@ -51,7 +51,7 @@ function deriveColumnDefs(columns: string[]): ColDef[] {
  * (e.g. for custom headers, formatting, or widths), but when omitted,
  * columns are derived one-to-one from the query's own result columns.
  */
-export default function AgGridTableBlock({ nodeId }: { nodeId: string }) {
+export default function AgGridTableWidget({ nodeId }: { nodeId: string }) {
   useDashboardRevision();
   const [rows, setRows] = useState<DataRow[] | null>(null);
   const [columns, setColumns] = useState<string[] | null>(null);
@@ -63,7 +63,7 @@ export default function AgGridTableBlock({ nodeId }: { nodeId: string }) {
 
   useEffect(() => {
     if (!dataBinding) {
-      setError('This table block has no dataBinding.');
+      setError('This table widget has no dataBinding.');
       setRows(null);
       setColumns(null);
       return undefined;
@@ -99,12 +99,12 @@ export default function AgGridTableBlock({ nodeId }: { nodeId: string }) {
   return (
     <div
       style={{
-        // Fills the box `BuildingBlockView`'s placement wrapper gives this
-        // block — always a definite pixel box, same as `ChartBlock`.
+        // Fills the box `WidgetView`'s placement wrapper gives this
+        // widget — always a definite pixel box, same as `ChartWidget`.
         width: '100%',
         height: '100%',
-        // Surface, border and corners belong to the card `BuildingBlockView`
-        // draws around this block and the name above it, so that the name is
+        // Surface, border and corners belong to the card `WidgetView`
+        // draws around this widget and the name above it, so that the name is
         // inside the frame rather than over it.
         overflow: 'hidden',
       }}

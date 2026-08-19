@@ -51,16 +51,16 @@ function describe(value: unknown): JsonSchema7 | undefined {
 }
 
 /**
- * A block's properties, described as a JSON Schema so they can be edited in a
+ * A widget's properties, described as a JSON Schema so they can be edited in a
  * form instead of in a string of JSON.
  *
- * Read off the values rather than declared per block type, and deliberately
- * so: `BuildingBlockView` resolves a renderer through a registry an extension
+ * Read off the values rather than declared per widget type, and deliberately
+ * so: `WidgetView` resolves a renderer through a registry an extension
  * writes into, and a schema per type would make this panel the one place that
  * has to learn every type there is — the exact knowledge the render path is
  * built not to have. A schema shipped alongside each registration would be
  * better still, and this is what stands in until there is one: it describes
- * whatever the block is holding, built-in or contributed, with no list to
+ * whatever the widget is holding, built-in or contributed, with no list to
  * keep current.
  *
  * What it cannot do is invent a key that is not there. A property nothing has

@@ -102,7 +102,7 @@ const sectionLabel = (
  * The panel, and the one thing `size="small"` cannot reach on its own.
  *
  * A global rule sets `padding: 4px 8px` on every `input[type="text"]` in the
- * app. antd sizes a small input by zeroing its own block padding, so that
+ * app. antd sizes a small input by zeroing its own widget padding, so that
  * rule wins on specificity and a field marked `ant-input-sm` still renders at
  * the middle height — eight pixels taller than every other input in this
  * rail. The sections below write `type="text"` explicitly, which is what puts
@@ -126,7 +126,7 @@ const Panel = styled.div`
   `}
 `;
 
-/** How many blocks are on the dashboard, at any depth. */
+/** How many widgets are on the dashboard, at any depth. */
 const countBlocks = (id: string): number =>
   (provider.getNode(id)?.children ?? []).reduce(
     (total, childId) => total + 1 + countBlocks(childId),
@@ -292,7 +292,7 @@ export default function DashboardProperties(): ReactElement {
     };
   }, []);
 
-  const blocks = countBlocks(root.id);
+  const widgets = countBlocks(root.id);
 
   return (
     // One handler for every field that is typed into: each bubbles its blur
@@ -320,7 +320,7 @@ export default function DashboardProperties(): ReactElement {
         {/* Filters are a literal nothing rather than a number that moves:
             this builder has no concept of one yet, and a count that could
             only ever read zero is still the honest answer to what is here. */}
-        {`${tn('%s block', '%s blocks', blocks, blocks)}, ${tn(
+        {`${tn('%s widget', '%s widgets', widgets, widgets)}, ${tn(
           '%s filter',
           '%s filters',
           0,

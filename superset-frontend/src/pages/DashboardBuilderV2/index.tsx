@@ -38,7 +38,7 @@ import {
 } from 'src/core/dashboard/layoutStyle';
 import { availableDropSpan } from 'src/core/dashboard/gridPacking';
 import type { PackedRect } from 'src/core/dashboard/gridPacking';
-import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
+import WidgetView from 'src/core/dashboard/WidgetView';
 import DashboardHeader from './DashboardHeader';
 import EditorPanel from './EditorPanel';
 
@@ -94,7 +94,7 @@ const EmptyCanvasWrapper = styled.div`
  * The dashboard with nothing on it, as something to aim at.
  *
  * No border and no hover fill of its own — the root draws directly onto the
- * grid, same as every block on it (see `BuildingBlockView`) — but it is
+ * grid, same as every widget on it (see `WidgetView`) — but it is
  * still the only way to select the root on a blank canvas and the palette's
  * own drop target, so a Tab still lands on it and takes a visible outline,
  * rather than the control being unreachable from the keyboard entirely.
@@ -138,7 +138,7 @@ const CanvasPlaceholder = styled.div`
  * `RootGrid`'s own ghost uses. A cursor-following, capped-size preview
  * (`FALLBACK_COL_SPAN`/`FALLBACK_ROW_SPAN`, the same cap `availableDropSpan`
  * itself now applies to any open-space drop) rather than a full-placeholder
- * or fixed-centered box: a block dropped near the left edge belongs at the
+ * or fixed-centered box: a widget dropped near the left edge belongs at the
  * left edge, and one dropped low belongs low, exactly as it would on a grid
  * that already has something on it — a blank canvas earns no exception to
  * that just because there is nothing yet to be beside.
@@ -156,7 +156,7 @@ const DropPreview = styled.div`
 /**
  * Prototype entry point for SIP item 7.1 (AI-Native Dashboards, section 7.1
  * of the design doc): a canvas paired with the chat panel, so the
- * building-block schema/renderer/platform-API work can be iterated on with a
+ * widget schema/renderer/platform-API work can be iterated on with a
  * real natural-language chat loop rather than a mock. Does not persist
  * anything yet — layout/style state lives only in memory for this demo.
  *
@@ -165,10 +165,10 @@ const DropPreview = styled.div`
  * user already has), via the same global ChatPanelHost/ChatFloatingHost
  * mounted in App.tsx.
  *
- * Rendering the tree itself is entirely delegated to `BuildingBlockView` —
+ * Rendering the tree itself is entirely delegated to `WidgetView` —
  * this page owns only its own chrome (the empty state) and knows nothing
  * about node types, built-in or extension-contributed alike. There's no
- * page-level title chrome: a title is just a `markdown` building block like
+ * page-level title chrome: a title is just a `markdown` widget like
  * any other, placed at the top of the canvas the same way the rest of the
  * dashboard's content is.
  */
@@ -182,7 +182,7 @@ export default function DashboardBuilderV2() {
   // No `layout` to read yet — a blank root has never had one set — so this
   // resolves to the exact same defaults `RootGrid` itself falls back to,
   // which is what makes `DropPreview`'s own size below provably the same
-  // size the first real block will open at, not a separately-tuned guess.
+  // size the first real widget will open at, not a separately-tuned guess.
   const emptyCanvasMetrics = resolveGridMetrics(undefined, theme);
 
   // A counter, not a plain boolean: the placeholder isn't a single element,
@@ -257,7 +257,7 @@ export default function DashboardBuilderV2() {
   };
 
   /**
-   * Places a block from the palette.
+   * Places a widget from the palette.
    *
    * Into whatever is selected when that can hold children, and into the root
    * otherwise. An author who has just selected a section and reaches for a
@@ -267,7 +267,7 @@ export default function DashboardBuilderV2() {
    * A drag from the palette says where for itself — the container it was
    * dropped on takes it — so only the click needs a target chosen for it.
    * Both then go through the same `placeBlock`, because two copies of what a
-   * freshly placed block looks like is how the two paths quietly diverge.
+   * freshly placed widget looks like is how the two paths quietly diverge.
    */
   const addBlock = (type: string): void => {
     const selected = provider.getSelection();
@@ -287,9 +287,9 @@ export default function DashboardBuilderV2() {
         <Canvas
           data-test="canvas"
           onClick={event => {
-            // A click that reached the canvas itself passed every block on
+            // A click that reached the canvas itself passed every widget on
             // the way, so it is the one gesture that unambiguously means
-            // "nothing". A click on a block stops before here.
+            // "nothing". A click on a widget stops before here.
             if (event.target === event.currentTarget) {
               provider.setSelection(undefined);
             }
@@ -324,7 +324,7 @@ export default function DashboardBuilderV2() {
                 // since a dashboard with nothing on it yet is exactly when
                 // this placeholder (rather than `RootGrid`) is what's on
                 // screen to drop onto. Without this, the empty state's own
-                // "Drag a building block from the panel" is an instruction
+                // "Drag a widget from the panel" is an instruction
                 // this element cannot actually answer.
                 onDragEnter={event => {
                   if (event.dataTransfer.types.includes(PALETTE_MIME)) {
@@ -389,14 +389,14 @@ export default function DashboardBuilderV2() {
                     image="empty-dashboard.svg"
                     title={t('Start building')}
                     description={t(
-                      'Drag a building block from the panel, or ask the assistant for one.',
+                      'Drag a widget from the panel, or ask the assistant for one.',
                     )}
                   />
                 )}
               </CanvasPlaceholder>
             </EmptyCanvasWrapper>
           ) : (
-            <BuildingBlockView nodeId={root.id} />
+            <WidgetView nodeId={root.id} />
           )}
         </Canvas>
       </Workspace>

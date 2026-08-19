@@ -20,10 +20,10 @@
 /**
  * @fileoverview Leaf module wrapping the `DashboardProvider` singleton.
  *
- * Building block components (built-in or extension-contributed) read from
+ * Widget components (built-in or extension-contributed) read from
  * `provider` and subscribe via `useDashboardRevision` directly — importing
  * from here rather than from `./index` avoids a cycle, since `./index` is
- * what registers the built-in blocks (which import the provider) in the
+ * what registers the built-in widgets (which import the provider) in the
  * first place.
  */
 

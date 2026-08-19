@@ -17,32 +17,33 @@
  * under the License.
  */
 import { views } from 'src/core/views';
-import { DASHBOARD_BUILDING_BLOCKS_LOCATION } from './resolveBuildingBlockView';
+import { DASHBOARD_WIDGETS_LOCATION } from './resolveWidgetView';
 import { registerContainerType } from './DashboardProvider';
-import MarkdownBlock from './blocks/MarkdownBlock';
-import ChartBlock from './blocks/ChartBlock';
-import AgGridTableBlock from './blocks/AgGridTableBlock';
-import MetricTileBlock from './blocks/MetricTileBlock';
-import TabsBlock, { TAB_TYPE } from './blocks/TabsBlock';
-import CollapsibleBlock from './blocks/CollapsibleBlock';
-import CarouselBlock, { SLIDE_TYPE } from './blocks/CarouselBlock';
+import MarkdownWidget from './widgets/MarkdownWidget';
+import ChartWidget from './widgets/ChartWidget';
+import AgGridTableWidget from './widgets/AgGridTableWidget';
+import MetricTileWidget from './widgets/MetricTileWidget';
+import BalloonsWidget from './widgets/BalloonsWidget';
+import TabsWidget, { TAB_TYPE } from './widgets/TabsWidget';
+import CollapsibleWidget from './widgets/CollapsibleWidget';
+import CarouselWidget, { SLIDE_TYPE } from './widgets/CarouselWidget';
 
 let registered = false;
 
 /**
- * Registers the built-in block types through the exact same `views` call an
+ * Registers the built-in widget types through the exact same `views` call an
  * extension uses to contribute one of its own — markdown/echarts/
  * ag-grid-table/metric-tile/tabs have no special status in the render path
- * (see `BuildingBlockView`), they're just pre-registered here before
+ * (see `WidgetView`), they're just pre-registered here before
  * anything else has a chance to render a dashboard node.
  *
  * `grid` — the root's own type — is deliberately not among them. The root
- * is not a Building Block (see the composition/layout design doc): nothing
- * ever places one, and `BuildingBlockView` resolves the root's renderer
+ * is not a Widget (see the composition/layout design doc): nothing
+ * ever places one, and `WidgetView` resolves the root's renderer
  * directly rather than through this registry (the same reason `tab`, below,
- * isn't registered either — see `TabsBlock`).
+ * isn't registered either — see `TabsWidget`).
  */
-export function registerBuiltInBuildingBlocks(): void {
+export function registerBuiltInWidgets(): void {
   if (registered) return;
   registered = true;
 
@@ -52,8 +53,8 @@ export function registerBuiltInBuildingBlocks(): void {
       name: 'Markdown',
       description: 'Renders Markdown content.',
     },
-    DASHBOARD_BUILDING_BLOCKS_LOCATION,
-    MarkdownBlock,
+    DASHBOARD_WIDGETS_LOCATION,
+    MarkdownWidget,
   );
   views.registerView(
     {
@@ -61,8 +62,8 @@ export function registerBuiltInBuildingBlocks(): void {
       name: 'ECharts',
       description: 'Renders a chart from an ECharts option object.',
     },
-    DASHBOARD_BUILDING_BLOCKS_LOCATION,
-    ChartBlock,
+    DASHBOARD_WIDGETS_LOCATION,
+    ChartWidget,
   );
   views.registerView(
     {
@@ -70,8 +71,8 @@ export function registerBuiltInBuildingBlocks(): void {
       name: 'Table',
       description: 'Renders query results as an AG Grid table.',
     },
-    DASHBOARD_BUILDING_BLOCKS_LOCATION,
-    AgGridTableBlock,
+    DASHBOARD_WIDGETS_LOCATION,
+    AgGridTableWidget,
   );
   views.registerView(
     {
@@ -79,46 +80,57 @@ export function registerBuiltInBuildingBlocks(): void {
       name: 'Metric Tile',
       description: 'Renders a single live metric value as a "big number".',
     },
-    DASHBOARD_BUILDING_BLOCKS_LOCATION,
-    MetricTileBlock,
+    DASHBOARD_WIDGETS_LOCATION,
+    MetricTileWidget,
+  );
+  views.registerView(
+    {
+      id: 'balloons',
+      name: 'Balloons',
+      description:
+        'Bouncing colored balls, one per query row (Chart Framework v2 POC). ' +
+        'Schema-driven controls served from the backend.',
+    },
+    DASHBOARD_WIDGETS_LOCATION,
+    BalloonsWidget,
   );
   views.registerView(
     {
       id: 'tabs',
       name: 'Tabs',
-      description: 'Groups building blocks into switchable tabs.',
+      description: 'Groups widgets into switchable tabs.',
     },
-    DASHBOARD_BUILDING_BLOCKS_LOCATION,
-    TabsBlock,
+    DASHBOARD_WIDGETS_LOCATION,
+    TabsWidget,
   );
   views.registerView(
     {
       id: 'collapsible',
       name: 'Collapsible',
-      description: 'Holds a single building block behind a show/hide toggle.',
+      description: 'Holds a single widget behind a show/hide toggle.',
     },
-    DASHBOARD_BUILDING_BLOCKS_LOCATION,
-    CollapsibleBlock,
+    DASHBOARD_WIDGETS_LOCATION,
+    CollapsibleWidget,
   );
   views.registerView(
     {
       id: 'carousel',
       name: 'Carousel',
       description:
-        'Groups building blocks into slides, navigated vertically one at a time.',
+        'Groups widgets into slides, navigated vertically one at a time.',
     },
-    DASHBOARD_BUILDING_BLOCKS_LOCATION,
-    CarouselBlock,
+    DASHBOARD_WIDGETS_LOCATION,
+    CarouselWidget,
   );
 
   // A tab pane / carousel slide holds its own children (in flow — see
-  // `TabsBlock`/`CarouselBlock`), but neither is registered as a view:
-  // nothing ever resolves one through `resolveBuildingBlockView` — each
+  // `TabsWidget`/`CarouselWidget`), but neither is registered as a view:
+  // nothing ever resolves one through `resolveWidgetView` — each
   // renders its pane's/slide's children directly rather than rendering the
   // node itself. They only need to be recognized container types so
-  // `addBuildingBlock` gives them a `children` array. `collapsible` needs no
+  // `addWidget` gives them a `children` array. `collapsible` needs no
   // such private type: its one child is held directly, with no intermediate
-  // pane (see `CollapsibleBlock`).
+  // pane (see `CollapsibleWidget`).
   registerContainerType('tabs');
   registerContainerType(TAB_TYPE);
   registerContainerType('collapsible');

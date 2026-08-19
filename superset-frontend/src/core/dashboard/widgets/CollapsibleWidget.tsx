@@ -25,7 +25,7 @@ import { FlowContent } from './flowContent';
 /**
  * The negative margin is what lets `FlowContent`'s own inset (see its own
  * comment) reach the card's true edges instead of sitting inside it twice —
- * see `TabsBlock`'s identical `Root`, which this mirrors for the identical
+ * see `TabsWidget`'s identical `Root`, which this mirrors for the identical
  * reason. The top is left alone, since this box already starts below the
  * card's header rather than at its true top edge.
  */
@@ -40,28 +40,28 @@ const Root = styled.div`
 `;
 
 /**
- * The built-in `collapsible` building block — a container that holds a
+ * The built-in `collapsible` widget — a container that holds a
  * single child, shown or hidden behind one toggle. Registered like any
- * other block (see `registerBuiltInBuildingBlocks`), and like `tabs`, it has
+ * other widget (see `registerBuiltInWidgets`), and like `tabs`, it has
  * no grid of its own.
  *
- * The toggle itself is not drawn here: `BuildingBlockView`'s own header
- * already carries this block's name and its remove control for every block
+ * The toggle itself is not drawn here: `WidgetView`'s own header
+ * already carries this widget's name and its remove control for every widget
  * type, and a second bar in the content below repeating the same idea would
- * make this the only block type with two header-shaped rows stacked on top
- * of each other. `blockHeaderControl` puts the toggle in that same header,
- * beside the remove control, so a collapsible block is — per its own name —
+ * make this the only widget type with two header-shaped rows stacked on top
+ * of each other. `widgetHeaderControl` puts the toggle in that same header,
+ * beside the remove control, so a collapsible widget is — per its own name —
  * a title and its content, nothing else. This component's whole job is
  * therefore just the content half: nothing at all while collapsed (the
  * header above still reads fine on its own), the flowed child once
  * expanded.
  *
- * `props.collapsed` is what `blockHeaderControl`'s toggle flips, and it also
+ * `props.collapsed` is what `widgetHeaderControl`'s toggle flips, and it also
  * resizes this node's own `layout.rowSpan` down to a header-only height
  * while collapsed (see its own comment) — a fact about the dashboard's own
  * state an author sets deliberately, not a transient fact about who is
  * looking at it right now, so it is persisted rather than kept the way
- * `TabsBlock`'s active pane is.
+ * `TabsWidget`'s active pane is.
  *
  * There is no intermediate pane node the way `tabs` has one per tab — one
  * child is already the simplest container `FlowContent` can hold, so
@@ -69,7 +69,7 @@ const Root = styled.div`
  * the drop target the moment that one child exists, which is what makes
  * "single child" an actual constraint rather than a suggestion.
  */
-export default function CollapsibleBlock({
+export default function CollapsibleWidget({
   nodeId,
 }: {
   nodeId: string;

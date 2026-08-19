@@ -36,7 +36,7 @@ test('a blank dashboard can still be reached', async () => {
   // empty state names both ways in.
   expect(
     screen.getByText(
-      'Drag a building block from the panel, or ask the assistant for one.',
+      'Drag a widget from the panel, or ask the assistant for one.',
     ),
   ).toBeInTheDocument();
 
@@ -61,7 +61,7 @@ test('the page is a header, an editor panel and a canvas', () => {
   expect(screen.getByTestId('canvas')).toBeInTheDocument();
 });
 
-test('placing a block from the palette puts it on the dashboard and selects it', async () => {
+test('placing a widget from the palette puts it on the dashboard and selects it', async () => {
   renderPage();
 
   await userEvent.click(screen.getByTestId('palette-markdown'));
@@ -75,7 +75,7 @@ test('placing a block from the palette puts it on the dashboard and selects it',
 
 /** A drag payload jsdom's synthetic events do not carry on their own. */
 const paletteTransfer = (type: string) => {
-  const data = new Map([['application/x-dashboard-building-block', type]]);
+  const data = new Map([['application/x-dashboard-widget', type]]);
   return {
     types: [...data.keys()],
     getData: (key: string) => data.get(key) ?? '',
@@ -136,7 +136,7 @@ function dragOverAt(
   fireEvent(el, event);
 }
 
-test('the empty-canvas drop preview is sized like the first block, not the whole canvas', () => {
+test('the empty-canvas drop preview is sized like the first widget, not the whole canvas', () => {
   renderPage();
 
   const canvas = screen.getByTestId('empty-canvas');
@@ -172,13 +172,13 @@ test('a drag that ends without ever dropping (cancelled, or released off-canvas)
   ).not.toBeInTheDocument();
 });
 
-test('dropping a palette block on a blank dashboard places it there', () => {
+test('dropping a palette widget on a blank dashboard places it there', () => {
   renderPage();
 
   // `RootGrid`'s own drop target does not exist yet on a blank dashboard —
   // this is the one that is actually on screen at that point, and it needs
   // the identical handling or the empty state's own instruction to "drag a
-  // building block from the panel" is one this element cannot answer.
+  // widget from the panel" is one this element cannot answer.
   fireEvent.drop(screen.getByTestId('empty-canvas'), {
     dataTransfer: paletteTransfer('markdown'),
   });
@@ -188,16 +188,16 @@ test('dropping a palette block on a blank dashboard places it there', () => {
   expect(provider.getNode(children[0])?.type).toBe('markdown');
 });
 
-test('a block placed while a container is selected goes inside it', async () => {
+test('a widget placed while a container is selected goes inside it', async () => {
   renderPage();
-  // A 'tabs' block itself is not the container to select for this — its own
+  // A 'tabs' widget itself is not the container to select for this — its own
   // children are always 'tab' panes, never a leaf placed directly — so this
   // selects the pane, which is exactly where a leaf placed from the palette
   // belongs.
-  const tabsId = provider.addBuildingBlock(provider.getRoot().id, 0, {
+  const tabsId = provider.addWidget(provider.getRoot().id, 0, {
     type: 'tabs',
   });
-  const paneId = provider.addBuildingBlock(tabsId, 0, {
+  const paneId = provider.addWidget(tabsId, 0, {
     type: 'tab',
     props: { label: 'Overview' },
   });
@@ -205,13 +205,13 @@ test('a block placed while a container is selected goes inside it', async () => 
 
   await userEvent.click(screen.getByTestId('palette-markdown'));
 
-  // An author who has just selected a pane and reaches for a block means to
+  // An author who has just selected a pane and reaches for a widget means to
   // put it in that pane.
   expect(provider.getNode(paneId)?.children).toEqual([provider.getSelection()]);
   expect(provider.getNode(tabsId)?.children).toEqual([paneId]);
 });
 
-test('a block placed while a leaf is selected goes beside it, not inside it', async () => {
+test('a widget placed while a leaf is selected goes beside it, not inside it', async () => {
   renderPage();
   await userEvent.click(screen.getByTestId('palette-markdown'));
   const firstId = provider.getSelection()!;
@@ -231,7 +231,7 @@ test('clicking the canvas itself clears the selection', async () => {
 
   await userEvent.click(screen.getByTestId('canvas'));
 
-  // A click that reached the canvas passed every block on the way, so it is
+  // A click that reached the canvas passed every widget on the way, so it is
   // the one gesture that unambiguously means "nothing".
   expect(provider.getSelection()).toBeUndefined();
 });

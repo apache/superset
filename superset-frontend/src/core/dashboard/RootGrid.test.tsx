@@ -19,14 +19,14 @@
 import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from './DashboardProvider';
 import RootGrid from './RootGrid';
-import { registerBuiltInBuildingBlocks } from './registerBuiltInBuildingBlocks';
+import { registerBuiltInWidgets } from './registerBuiltInWidgets';
 import {
   __getLastGridStackInstance,
   __resetGridStackMock,
 } from '../../../spec/__mocks__/gridstackMock';
 
 beforeAll(() => {
-  registerBuiltInBuildingBlocks();
+  registerBuiltInWidgets();
 });
 
 /**
@@ -68,15 +68,15 @@ afterEach(() => {
 
 const mount = () => {
   const rootId = provider.getRoot().id;
-  const first = provider.addBuildingBlock(rootId, 0, { type: 'markdown' });
-  const second = provider.addBuildingBlock(rootId, 1, { type: 'markdown' });
+  const first = provider.addWidget(rootId, 0, { type: 'markdown' });
+  const second = provider.addWidget(rootId, 1, { type: 'markdown' });
   render(<RootGrid nodeId={rootId} />);
   return { rootId, first, second };
 };
 
 /** A drag payload jsdom's synthetic events do not carry on their own. */
 const paletteTransfer = (type: string) => {
-  const data = new Map([['application/x-dashboard-building-block', type]]);
+  const data = new Map([['application/x-dashboard-widget', type]]);
   return {
     types: [...data.keys()],
     getData: (key: string) => data.get(key) ?? '',
@@ -93,7 +93,7 @@ test('the grid initializes with the root layout mapped onto GridStack options', 
   expect(grid?.options).toMatchObject({
     column: 24,
     // 48/8: rowUnitPx(32) + gap(16), and gap(16)/2 — pinned explicitly since
-    // getting either wrong silently regresses every block's own height.
+    // getting either wrong silently regresses every widget's own height.
     cellHeight: 48,
     margin: 8,
     // Collision avoidance is always on regardless of this; `float: true`
@@ -114,7 +114,7 @@ test('the grid initializes with the root layout mapped onto GridStack options', 
   });
 });
 
-test('a block resizes from all four corners', () => {
+test('a widget resizes from all four corners', () => {
   mount();
 
   const grid = __getLastGridStackInstance();
@@ -126,14 +126,14 @@ test('the grid is told not to start a drag from the remove control, a nested con
 
   // GridStack's own draggable engine matches this selector up the ancestors
   // of whatever was pressed — aiming at the bin would otherwise drag the
-  // block it is attached to, and dragging a chart out of a `tabs` block
-  // would instead drag the whole `tabs` block on the root grid.
+  // widget it is attached to, and dragging a chart out of a `tabs` widget
+  // would instead drag the whole `tabs` widget on the root grid.
   const grid = __getLastGridStackInstance()!;
   const { cancel } = grid.options.draggable as { cancel: string };
-  expect(cancel).toContain('[data-block-remove]');
+  expect(cancel).toContain('[data-widget-remove]');
   expect(cancel).toContain('[data-container-id]');
-  expect(cancel).toContain('[data-block-resize]');
-  expect(cancel).toContain('[data-block-header-control]');
+  expect(cancel).toContain('[data-widget-resize]');
+  expect(cancel).toContain('[data-widget-header-control]');
 });
 
 test('every child is registered with GridStack at its packed position', () => {
@@ -194,7 +194,7 @@ test('ending a drag over a nested container reparents instead of committing a la
   const { rootId, first } = mount();
   let collapsibleId = '';
   act(() => {
-    collapsibleId = provider.addBuildingBlock(rootId, 1, {
+    collapsibleId = provider.addWidget(rootId, 1, {
       type: 'collapsible',
     });
   });
@@ -227,7 +227,7 @@ test('ending a drag over its own container commits a layout instead of reparenti
   el.gridstackNode = { id: first, x: 3, y: 1, w: 4, h: 2 };
 
   // The root grid's own surface also carries `data-container-id` — landing
-  // back on the container the block already belongs to must not be read as
+  // back on the container the widget already belongs to must not be read as
   // a reparent onto itself.
   (document.elementFromPoint as jest.Mock).mockReturnValue(
     screen.getByTestId('grid-container'),
@@ -244,7 +244,7 @@ test('ending a drag over its own container commits a layout instead of reparenti
   });
 });
 
-test('dropping a palette block on the grid places it at the resolved cell', () => {
+test('dropping a palette widget on the grid places it at the resolved cell', () => {
   const { rootId } = mount();
 
   fireEvent.dragOver(
@@ -270,7 +270,7 @@ test('dropping a palette block on the grid places it at the resolved cell', () =
   expect(provider.getNode(children[2])?.type).toBe('markdown');
 });
 
-test('dropping a palette block past the grid’s own rendered rows appends it at the end', () => {
+test('dropping a palette widget past the grid’s own rendered rows appends it at the end', () => {
   const { rootId } = mount();
 
   fireEvent.drop(screen.getByTestId('grid-container'), {
@@ -282,7 +282,7 @@ test('dropping a palette block past the grid’s own rendered rows appends it at
   expect(provider.getNode(children[2])?.type).toBe('markdown');
 });
 
-test('a drop carrying something else is not read as a block', () => {
+test('a drop carrying something else is not read as a widget', () => {
   const { rootId } = mount();
   const before = provider.getNode(rootId)?.children?.length;
 
@@ -296,25 +296,25 @@ test('a drop carrying something else is not read as a block', () => {
   });
 
   // A private type rather than text/plain is what keeps a dragged file, or a
-  // selection of text from another window, from placing a block.
+  // selection of text from another window, from placing a widget.
   expect(provider.getNode(rootId)?.children?.length).toBe(before);
 });
 
-test('a placed block offers a way to remove it, and the root does not', () => {
+test('a placed widget offers a way to remove it, and the root does not', () => {
   const { rootId, first } = mount();
 
-  expect(screen.getByTestId(`block-remove-${first}`)).toBeInTheDocument();
+  expect(screen.getByTestId(`widget-remove-${first}`)).toBeInTheDocument();
   // Removing the root is refused by the provider, so offering the button
   // would be offering an error.
   expect(
-    screen.queryByTestId(`block-remove-${rootId}`),
+    screen.queryByTestId(`widget-remove-${rootId}`),
   ).not.toBeInTheDocument();
 });
 
-test('the remove control removes that block and nothing else', () => {
+test('the remove control removes that widget and nothing else', () => {
   const { rootId, first, second } = mount();
 
-  fireEvent.click(screen.getByTestId(`block-remove-${first}`));
+  fireEvent.click(screen.getByTestId(`widget-remove-${first}`));
 
   expect(provider.getNode(rootId)?.children).toEqual([second]);
 });
@@ -322,19 +322,19 @@ test('the remove control removes that block and nothing else', () => {
 test('clicking the remove control removes rather than selects', () => {
   const { first, second } = mount();
 
-  fireEvent.click(screen.getByTestId(`block-remove-${second}`));
+  fireEvent.click(screen.getByTestId(`widget-remove-${second}`));
 
   // The wrapper selects on click and the button sits inside it. Without the
-  // stop, removing a block would also try to select the thing just removed.
+  // stop, removing a widget would also try to select the thing just removed.
   expect(provider.getSelection()).toBeUndefined();
   expect(provider.getNode(second)).toBeUndefined();
   expect(provider.getNode(first)).toBeDefined();
 });
 
-test('unmounting a block removes its widget from GridStack without touching the DOM', () => {
+test('unmounting a widget removes its widget from GridStack without touching the DOM', () => {
   const { rootId, first } = mount();
 
-  act(() => provider.removeBuildingBlock(first));
+  act(() => provider.removeWidget(first));
 
   const grid = __getLastGridStackInstance();
   expect(grid?.removeWidget).toHaveBeenCalled();

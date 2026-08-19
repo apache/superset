@@ -90,9 +90,9 @@ function looksLikeUnwrappedBind(
  * much later, inside ECharts' own `setOption`, as a generic
  * "series.data ... must be an array" console error with no indication that
  * the actual cause was an incomplete `$bind` several layers up. Throwing
- * here instead — during `resolveBindings`, called from `ChartBlock`'s
- * render — gets caught by the `ErrorBoundary` already wrapping every block
- * (see `BuildingBlockView`) and reported as this specific block's error,
+ * here instead — during `resolveBindings`, called from `ChartWidget`'s
+ * render — gets caught by the `ErrorBoundary` already wrapping every widget
+ * (see `WidgetView`) and reported as this specific widget's error,
  * naming the exact marker that was incomplete.
  */
 function resolveBind(bind: BindMarker['$bind'], ctx: BindContext): unknown {

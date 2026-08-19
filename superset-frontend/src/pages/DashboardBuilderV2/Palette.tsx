@@ -24,24 +24,24 @@ import { css, styled } from '@apache-superset/core/theme';
 import { EmptyState, Input } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useViews } from 'src/core/views';
-import { DASHBOARD_BUILDING_BLOCKS_LOCATION } from 'src/core/dashboard/resolveBuildingBlockView';
+import { DASHBOARD_WIDGETS_LOCATION } from 'src/core/dashboard/resolveWidgetView';
 import { isContainerType } from 'src/core/dashboard/DashboardProvider';
 import { PALETTE_MIME } from 'src/core/dashboard/placement';
 
 type View = viewsApi.View;
 
 /**
- * Which shelf a block sits on.
+ * Which shelf a widget sits on.
  *
  * Derived from the one distinction this fork actually records: whether
- * placing the type produces something other blocks can go inside. That is a
+ * placing the type produces something other widgets can go inside. That is a
  * checkable property of the node the provider builds, not a category anybody
- * maintains, so a block registered by an extension tomorrow is shelved
+ * maintains, so a widget registered by an extension tomorrow is shelved
  * correctly without this file learning its name.
  *
  * There is deliberately no Extensions shelf. A registered `View` carries an
  * id, a name and a description and nothing that says who contributed it, so
- * built-in and extension-contributed blocks are genuinely indistinguishable
+ * built-in and extension-contributed widgets are genuinely indistinguishable
  * here. Splitting them on a dotted-id naming convention would be a guess
  * dressed as a fact; the shelf can be added the day provenance is.
  */
@@ -61,11 +61,11 @@ export interface PaletteEntry {
 }
 
 /**
- * Everything registered as a building block, in the order it was registered.
+ * Everything registered as a widget, in the order it was registered.
  *
  * No filtering needed for the root's own type: `grid` is not registered
- * here at all (see `registerBuiltInBuildingBlocks`), since the root is not a
- * Building Block — nothing to exclude by name, because it was never in this
+ * here at all (see `registerBuiltInWidgets`), since the root is not a
+ * Widget — nothing to exclude by name, because it was never in this
  * list to begin with.
  */
 export const paletteEntries = (
@@ -172,7 +172,7 @@ const ShelfButton = styled.button`
 `;
 
 /**
- * What ties a shelf to the blocks on it.
+ * What ties a shelf to the widgets on it.
  *
  * The tiles are indented under their shelf, and indentation alone leaves the
  * eye to infer the grouping from an edge that is not drawn. The guide down the
@@ -196,7 +196,7 @@ const Branch = styled.div`
 `;
 
 /**
- * A block, as a tile to pick up.
+ * A widget, as a tile to pick up.
  *
  * A bordered tile rather than a bare row: what these are is a set of things
  * that get dragged onto a canvas and become boxes there, and a tile with an
@@ -330,20 +330,20 @@ const Disclosure = ({
 );
 
 /**
- * The building blocks, as things to place.
+ * The widgets, as things to place.
  *
- * The list is the registry's — `useViews('dashboard.buildingBlocks')`, the
- * same location `BuildingBlockView` resolves a renderer through for anything
- * other than the root. Registering a block makes it placeable and
+ * The list is the registry's — `useViews('dashboard.widgets')`, the
+ * same location `WidgetView` resolves a renderer through for anything
+ * other than the root. Registering a widget makes it placeable and
  * unregistering one removes it, with no list here to keep in agreement.
  *
- * `useViews` rather than a one-time read: an extension's own building block
+ * `useViews` rather than a one-time read: an extension's own widget
  * registers itself only once its remote module has actually loaded, which
  * is asynchronous (a network fetch for its bundle, then Module Federation's
  * own init) and near-certain to still be in flight on this component's first
  * render. A snapshot taken then would permanently miss every
- * extension-contributed block that hadn't finished loading yet — built-ins
- * never hit this because `registerBuiltInBuildingBlocks` runs synchronously
+ * extension-contributed widget that hadn't finished loading yet — built-ins
+ * never hit this because `registerBuiltInWidgets` runs synchronously
  * at import time, well before anything here renders.
  */
 export default function Palette({
@@ -354,7 +354,7 @@ export default function Palette({
   const [query, setQuery] = useState('');
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
 
-  const registered = useViews(DASHBOARD_BUILDING_BLOCKS_LOCATION);
+  const registered = useViews(DASHBOARD_WIDGETS_LOCATION);
   const entries = useMemo(() => paletteEntries(registered), [registered]);
   const found = entries.filter(entry => matches(entry, query));
   const searching = query.trim() !== '';
@@ -388,7 +388,7 @@ export default function Palette({
           <EmptyState
             size="small"
             image="filter-results.svg"
-            title={t('No matching blocks')}
+            title={t('No matching widgets')}
             description={t('Nothing here is called “%s”.', query)}
           />
         </div>

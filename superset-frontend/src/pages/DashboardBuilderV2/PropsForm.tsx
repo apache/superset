@@ -166,13 +166,13 @@ const FormShell = styled.div`
 `;
 
 /**
- * A block's properties as fields, generated from the values it holds.
+ * A widget's properties as fields, generated from the values it holds.
  *
  * The other half of this panel edits the same properties as JSON, and the two
  * divide cleanly: JSON is where the *shape* is decided — a key added, a key
  * dropped — and this is where the values in that shape are filled in. That is
  * not a limitation to work around but what a generated form is: with no schema
- * shipped alongside a block's registration (see `inferPropsSchema`), a field
+ * shipped alongside a widget's registration (see `inferPropsSchema`), a field
  * can only exist where a value already does.
  *
  * Edits are written as they are made rather than held until focus leaves.
@@ -233,7 +233,7 @@ export default function PropsForm({
       {empty
         ? note(
             t(
-              'This block has no properties yet. Add them on the JSON tab, and they become fields here.',
+              'This widget has no properties yet. Add them on the JSON tab, and they become fields here.',
             ),
           )
         : /* No `uischema`: JsonForms lays out whatever the schema describes,
@@ -246,7 +246,7 @@ export default function PropsForm({
           renderers={renderers}
           cells={cellRegistryEntries}
           // Nothing here is required and nothing is constrained, because the
-          // schema was read off values a block already renders from — so a
+          // schema was read off values a widget already renders from — so a
           // validation message could only ever be about a type this form
           // itself assigned.
           validationMode="NoValidation"

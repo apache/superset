@@ -21,7 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
 import { views } from 'src/core/views';
-import { DASHBOARD_BUILDING_BLOCKS_LOCATION } from 'src/core/dashboard/resolveBuildingBlockView';
+import { DASHBOARD_WIDGETS_LOCATION } from 'src/core/dashboard/resolveWidgetView';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 
 /** How long a label may run before it is cut. */
@@ -30,7 +30,7 @@ const LABEL_LIMIT = 40;
 /**
  * What a node is called in the outline.
  *
- * A registered block's own name first, because that is what the author chose
+ * A registered widget's own name first, because that is what the author chose
  * it by in the palette. Markdown gets its opening words instead — a list of
  * five rows all reading "Markdown" identifies nothing, and the content is the
  * only thing that tells them apart.
@@ -42,7 +42,7 @@ const labelOf = (type: string, props: Record<string, unknown> | undefined) => {
     return text.length > LABEL_LIMIT ? `${text.slice(0, LABEL_LIMIT)}…` : text;
   }
   const registered = views
-    .getViews(DASHBOARD_BUILDING_BLOCKS_LOCATION)
+    .getViews(DASHBOARD_WIDGETS_LOCATION)
     ?.find(view => view.id === type);
   return registered?.name ?? type;
 };
@@ -50,15 +50,15 @@ const labelOf = (type: string, props: Record<string, unknown> | undefined) => {
 /**
  * Selects a node and shows it where it lives.
  *
- * Marking a block as selected is only half of reaching it: the rows this
- * panel exists for are the ones for blocks the canvas is currently not
+ * Marking a widget as selected is only half of reaching it: the rows this
+ * panel exists for are the ones for widgets the canvas is currently not
  * offering, and an outline that selected something off screen would leave an
- * author looking at a canvas that appears not to have answered. The block's
- * own element carries `data-node-id` (see `BuildingBlockView`), so the canvas
+ * author looking at a canvas that appears not to have answered. The widget's
+ * own element carries `data-node-id` (see `WidgetView`), so the canvas
  * needs no wiring back to here.
  *
  * `nearest` rather than `center`: this fires on every row, and reading down a
- * list of blocks that are already in view should not move the canvas under
+ * list of widgets that are already in view should not move the canvas under
  * them. Nothing happens at all when the element is absent — a node can be in
  * the tree without being rendered — and selection has already been set by
  * then either way.
@@ -74,9 +74,9 @@ const select = (nodeId: string): void => {
  * A node, as a tile to read and to reach through.
  *
  * The same tile the palette is built from, because the two panels are the same
- * kind of thing seen twice: a tree of blocks, one of blocks you could place
- * and one of blocks you did. A block that is a bordered tile with a name in
- * the Building blocks tab and a bare line of text in the Outline reads as two
+ * kind of thing seen twice: a tree of widgets, one of widgets you could place
+ * and one of widgets you did. A widget that is a bordered tile with a name in
+ * the Widgets tab and a bare line of text in the Outline reads as two
  * different kinds of object.
  *
  * What it does not borrow is the grip: these do not drag. What it adds is
@@ -259,7 +259,7 @@ const Row = ({
  * The dashboard's structure, as something to read and to reach into.
  *
  * The canvas shows what a dashboard looks like; this shows what it is made
- * of. That matters most for exactly the blocks the canvas is worst at
+ * of. That matters most for exactly the widgets the canvas is worst at
  * offering — one nested inside a container, one scrolled out of view, one
  * sized so small there is nothing to click.
  *
@@ -280,7 +280,7 @@ export default function Outline(): ReactElement {
           image="empty-dashboard.svg"
           title={t('Nothing on the dashboard yet')}
           description={t(
-            'Blocks you place show up here, in the order they sit on the canvas.',
+            'Widgets you place show up here, in the order they sit on the canvas.',
           )}
         />
       </Panel>

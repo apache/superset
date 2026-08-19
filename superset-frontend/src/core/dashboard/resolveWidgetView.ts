@@ -21,30 +21,30 @@ import { resolveView, views } from 'src/core/views';
 
 /**
  * The `views` location a dashboard node's `type` must be registered at to
- * be renderable as a building block — built-in types (markdown/echarts/...,
- * see `registerBuiltInBuildingBlocks`) and extension-contributed ones
+ * be renderable as a widget — built-in types (markdown/echarts/...,
+ * see `registerBuiltInWidgets`) and extension-contributed ones
  * register here identically, through the same `views.registerView` call.
  * The root's own type (`grid`) is deliberately not among them — it is not
- * a Building Block, and `BuildingBlockView` resolves its renderer directly
+ * a Widget, and `WidgetView` resolves its renderer directly
  * rather than through this location.
  */
-export const DASHBOARD_BUILDING_BLOCKS_LOCATION = 'dashboard.buildingBlocks';
+export const DASHBOARD_WIDGETS_LOCATION = 'dashboard.widgets';
 
 /**
  * Resolves a node's registered view, scoped to
- * `DASHBOARD_BUILDING_BLOCKS_LOCATION` — `resolveView` alone resolves by id
+ * `DASHBOARD_WIDGETS_LOCATION` — `resolveView` alone resolves by id
  * only, ignoring location, so without this check a node whose `type`
  * happened to collide with some unrelated view id registered elsewhere in
  * the app could render the wrong thing. Returns undefined if no building
- * block is registered for `type`, so the caller can fall back to an
+ * widget is registered for `type`, so the caller can fall back to an
  * "unsupported" placeholder.
  */
-export function resolveBuildingBlockView(
+export function resolveWidgetView(
   type: string,
   nodeId: string,
 ): ReactElement | undefined {
   const isRegistered = views
-    .getViews(DASHBOARD_BUILDING_BLOCKS_LOCATION)
+    .getViews(DASHBOARD_WIDGETS_LOCATION)
     ?.some(view => view.id === type);
   if (!isRegistered) return undefined;
   return resolveView(type, { nodeId });

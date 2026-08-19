@@ -281,6 +281,69 @@ def inject_semantic_layer_implementations() -> None:
     core_sl_module.semantic_layer = semantic_layer_impl  # type: ignore[assignment]
 
 
+def inject_widget_implementations() -> None:
+    """
+    Replace the abstract widget decorator in ``superset_core.widgets.decorators``
+    with a concrete implementation that registers widget control sets in the
+    host registry, then register the built-in widgets.
+
+    Registration raises on a genuine ``widget_type`` collision (naming both the
+    existing and the new class) so a careless or malicious extension cannot
+    silently replace another widget's schema; extension registrations are
+    namespaced by publisher/name, mirroring semantic layers.
+
+    Built-ins are imported here — *after* the decorator is concrete — because
+    ``superset.widgets.api`` is imported during ``init_views()``, which runs
+    before this injection. This mirrors how the MCP layer imports its host tool
+    modules only after injecting ``@tool``.
+    """
+    import superset_core.widgets as core_widgets_pkg
+    import superset_core.widgets.decorators as core_widgets_decorators
+
+    from superset.widgets.registry import registry
+
+    def widget_impl(
+        widget_type: str,
+        name: str,
+        description: str | None = None,
+    ) -> Callable[[Any], Any]:
+        def decorator(cls: Any) -> Any:
+            if context := get_current_extension_context():
+                key = (
+                    f"extensions.{context.extension.publisher}."
+                    f"{context.extension.name}.{widget_type}"
+                )
+            else:
+                key = widget_type
+
+            existing = registry.get(key)
+            if existing is not None and existing is not cls:
+                raise ValueError(
+                    f"Widget type {key!r} is already registered by "
+                    f"{existing.__module__}.{existing.__qualname__}; "
+                    f"{cls.__module__}.{cls.__qualname__} cannot replace it."
+                )
+
+            cls.widget_type = key
+            cls.name = name
+            cls.description = description or ""
+            registry[key] = cls
+            return cls
+
+        return decorator
+
+    # Rebind on both the decorators module and the package re-export, so a
+    # consumer using either `from superset_core.widgets import widget` or
+    # `from superset_core.widgets.decorators import widget` resolves to the
+    # concrete implementation after injection.
+    core_widgets_decorators.widget = widget_impl  # type: ignore[assignment]
+    core_widgets_pkg.widget = widget_impl  # type: ignore[assignment]
+
+    # Register the built-in widgets now that the decorator is concrete (their
+    # module applies @widget at import time).
+    import superset.widgets.builtin  # noqa: F401  pylint: disable=unused-import
+
+
 def inject_storage_implementations() -> None:
     """
     Replace abstract storage classes in superset_core.extensions.storage with concrete
@@ -329,5 +392,6 @@ def initialize_core_api_dependencies() -> None:
     inject_task_implementations()
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
+    inject_widget_implementations()
     inject_storage_implementations()
     inject_extension_context()

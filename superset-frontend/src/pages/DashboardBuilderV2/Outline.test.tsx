@@ -19,7 +19,7 @@
 import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
-import BuildingBlockView from 'src/core/dashboard/BuildingBlockView';
+import WidgetView from 'src/core/dashboard/WidgetView';
 import 'src/core/dashboard';
 import Outline from './Outline';
 
@@ -28,7 +28,7 @@ const provider = DashboardProvider.getInstance();
 /**
  * Which elements were scrolled to, in order. jsdom has no layout, so the call
  * is the only observable part of scrolling — what it was called on is what
- * says the right block was reached for.
+ * says the right widget was reached for.
  */
 const scrolled: Element[] = [];
 
@@ -45,12 +45,12 @@ const mount = () =>
   render(
     <>
       <Outline />
-      <BuildingBlockView nodeId={provider.getRoot().id} />
+      <WidgetView nodeId={provider.getRoot().id} />
     </>,
   );
 
 const addMarkdown = (content: string): string =>
-  provider.addBuildingBlock(provider.getRoot().id, 0, {
+  provider.addWidget(provider.getRoot().id, 0, {
     type: 'markdown',
     props: { content },
   });
@@ -61,11 +61,11 @@ test('an empty dashboard says so instead of showing an empty tree', () => {
   expect(screen.getByTestId('outline-empty')).toBeInTheDocument();
 });
 
-test('a row is listed for every block, labelled by its content', () => {
+test('a row is listed for every widget, labelled by its content', () => {
   const id = addMarkdown('Revenue by region');
   mount();
 
-  // Scoped to the row rather than looked for on the page: the block's own
+  // Scoped to the row rather than looked for on the page: the widget's own
   // header on the canvas carries the same name, by design, so a bare text
   // query would match twice and prove neither.
   expect(screen.getByRole('tree')).toBeInTheDocument();
@@ -74,7 +74,7 @@ test('a row is listed for every block, labelled by its content', () => {
   );
 });
 
-test('choosing a row selects that block', async () => {
+test('choosing a row selects that widget', async () => {
   const id = addMarkdown('Revenue by region');
   mount();
 
@@ -83,22 +83,22 @@ test('choosing a row selects that block', async () => {
   expect(provider.getSelection()).toBe(id);
 });
 
-test('choosing a row brings its block into view on the canvas', async () => {
+test('choosing a row brings its widget into view on the canvas', async () => {
   const below = addMarkdown('Down the page');
   addMarkdown('Up the top');
   const { container } = mount();
 
   await userEvent.click(screen.getByTestId(`outline-row-${below}`));
 
-  // The point of the outline is reaching blocks the canvas is worst at
+  // The point of the outline is reaching widgets the canvas is worst at
   // offering — including one scrolled out of sight. Selecting it and leaving
-  // it off screen marks a block the author cannot see.
+  // it off screen marks a widget the author cannot see.
   expect(scrolled).toEqual([
     container.querySelector(`[data-node-id="${below}"]`),
   ]);
 });
 
-test('the keyboard reaches a block the same way the pointer does', () => {
+test('the keyboard reaches a widget the same way the pointer does', () => {
   const id = addMarkdown('Revenue by region');
   const { container } = mount();
 
@@ -108,9 +108,9 @@ test('the keyboard reaches a block the same way the pointer does', () => {
   expect(scrolled).toEqual([container.querySelector(`[data-node-id="${id}"]`)]);
 });
 
-test('a row whose block is not on screen still selects', async () => {
+test('a row whose widget is not on screen still selects', async () => {
   // The outline can outlive the canvas it describes — rendered on its own
-  // here, but equally a block behind a collapsed container. Selection is the
+  // here, but equally a widget behind a collapsed container. Selection is the
   // part that must not depend on finding an element to scroll.
   const id = addMarkdown('Revenue by region');
   render(<Outline />);

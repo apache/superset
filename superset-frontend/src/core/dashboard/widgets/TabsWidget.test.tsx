@@ -18,13 +18,13 @@
  */
 import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from '../DashboardProvider';
-import { registerBuiltInBuildingBlocks } from '../registerBuiltInBuildingBlocks';
-import TabsBlock from './TabsBlock';
+import { registerBuiltInWidgets } from '../registerBuiltInWidgets';
+import TabsWidget from './TabsWidget';
 
 const provider = DashboardProvider.getInstance();
 
 beforeAll(() => {
-  registerBuiltInBuildingBlocks();
+  registerBuiltInWidgets();
 });
 
 beforeEach(() => {
@@ -34,16 +34,16 @@ beforeEach(() => {
 /** Creates a bare `tabs` node under the root — rendering is each test's own call, made once its setup (if any) is done. */
 const createTabs = (): string => {
   const rootId = provider.getRoot().id;
-  return provider.addBuildingBlock(rootId, 0, { type: 'tabs' });
+  return provider.addWidget(rootId, 0, { type: 'tabs' });
 };
 
-test('a freshly placed tabs block already has one tab, selected', () => {
+test('a freshly placed tabs widget already has one tab, selected', () => {
   const tabsId = createTabs();
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
 
-  // A tabs block with nothing to switch between is not a useful starting
+  // A tabs widget with nothing to switch between is not a useful starting
   // point, so this fills it in rather than leaving it for the "+" — see
-  // TabsBlock's own layout effect.
+  // TabsWidget's own layout effect.
   const tab = screen.getByRole('tab', { name: 'Tab 1' });
   expect(tab).toHaveAttribute('aria-selected', 'true');
   expect(screen.getByText('Nothing in this tab yet')).toBeVisible();
@@ -55,7 +55,7 @@ test('a freshly placed tabs block already has one tab, selected', () => {
 
 test('adding a tab is named after its own position, not the count at click time', () => {
   const tabsId = createTabs();
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
 
   // Tab 1 already exists (see the test above) — each click adds the next.
   fireEvent.click(screen.getByTestId(`tabs-add-${tabsId}`));
@@ -68,11 +68,11 @@ test('adding a tab is named after its own position, not the count at click time'
 
 test('the only tab offers no way to remove itself', () => {
   const tabsId = createTabs();
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
 
   const paneId = provider.getNode(tabsId)?.children?.[0] as string;
 
-  // Removing it would leave a blank tabs block the layout effect would
+  // Removing it would leave a blank tabs widget the layout effect would
   // immediately refill anyway, which reads as the control having silently
   // done nothing.
   expect(screen.queryByTestId(`tab-remove-${paneId}`)).not.toBeInTheDocument();
@@ -80,7 +80,7 @@ test('the only tab offers no way to remove itself', () => {
 
 test('a second tab can be removed, falling back to the remaining one', () => {
   const tabsId = createTabs();
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
   const firstPaneId = provider.getNode(tabsId)?.children?.[0] as string;
 
   fireEvent.click(screen.getByTestId(`tabs-add-${tabsId}`));
@@ -98,17 +98,15 @@ test('a second tab can be removed, falling back to the remaining one', () => {
   );
 });
 
-test('dropping a palette block onto the active pane places it there', () => {
+test('dropping a palette widget onto the active pane places it there', () => {
   const tabsId = createTabs();
-  const paneId = provider.addBuildingBlock(tabsId, 0, {
+  const paneId = provider.addWidget(tabsId, 0, {
     type: 'tab',
     props: { label: 'Overview' },
   });
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
 
-  const data = new Map([
-    ['application/x-dashboard-building-block', 'markdown'],
-  ]);
+  const data = new Map([['application/x-dashboard-widget', 'markdown']]);
   fireEvent.drop(screen.getByTestId(`tabs-panes-${tabsId}`), {
     dataTransfer: {
       types: [...data.keys()],
@@ -125,23 +123,23 @@ test('dropping a palette block onto the active pane places it there', () => {
 
 test('clicking a tab shows its own content and hides the other panes', async () => {
   const tabsId = createTabs();
-  const firstPane = provider.addBuildingBlock(tabsId, 0, {
+  const firstPane = provider.addWidget(tabsId, 0, {
     type: 'tab',
     props: { label: 'Overview' },
   });
-  const secondPane = provider.addBuildingBlock(tabsId, 1, {
+  const secondPane = provider.addWidget(tabsId, 1, {
     type: 'tab',
     props: { label: 'Detail' },
   });
-  provider.addBuildingBlock(firstPane, 0, {
+  provider.addWidget(firstPane, 0, {
     type: 'markdown',
     props: { content: 'Overview content' },
   });
-  provider.addBuildingBlock(secondPane, 0, {
+  provider.addWidget(secondPane, 0, {
     type: 'markdown',
     props: { content: 'Detail content' },
   });
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
 
   // The first pane is active by default. `findByText` rather than
   // `getByText`: `SafeMarkdown` lazy-loads `react-markdown` itself and
@@ -156,21 +154,21 @@ test('clicking a tab shows its own content and hides the other panes', async () 
   expect(await screen.findByText('Detail content')).toBeVisible();
 });
 
-test('a flowed block with no height of its own flexes to fill the area, and fixes to a number once grown from the keyboard', () => {
+test('a flowed widget with no height of its own flexes to fill the area, and fixes to a number once grown from the keyboard', () => {
   const tabsId = createTabs();
-  const pane = provider.addBuildingBlock(tabsId, 0, {
+  const pane = provider.addWidget(tabsId, 0, {
     type: 'tab',
     props: { label: 'Overview' },
   });
-  const chartId = provider.addBuildingBlock(pane, 0, {
+  const chartId = provider.addWidget(pane, 0, {
     type: 'markdown',
     props: { content: 'Chart stand-in' },
   });
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
 
   const handle = screen.getByTestId(`flow-resize-${chartId}`);
   // No `rowSpan` of its own yet, so there is no number to report — the
-  // block is flexing to fill the area rather than sitting at a fixed size.
+  // widget is flexing to fill the area rather than sitting at a fixed size.
   expect(handle).not.toHaveAttribute('aria-valuenow');
 
   handle.focus();
@@ -183,18 +181,18 @@ test('a flowed block with no height of its own flexes to fill the area, and fixe
   expect(provider.getNode(chartId)?.layout?.rowSpan).toBe(376);
 });
 
-test('a flowed block cannot be shrunk past the minimum height', () => {
+test('a flowed widget cannot be shrunk past the minimum height', () => {
   const tabsId = createTabs();
-  const pane = provider.addBuildingBlock(tabsId, 0, {
+  const pane = provider.addWidget(tabsId, 0, {
     type: 'tab',
     props: { label: 'Overview' },
   });
-  const chartId = provider.addBuildingBlock(pane, 0, {
+  const chartId = provider.addWidget(pane, 0, {
     type: 'markdown',
     layout: { rowSpan: 124 },
     props: { content: 'Chart stand-in' },
   });
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
 
   const handle = screen.getByTestId(`flow-resize-${chartId}`);
   handle.focus();
@@ -206,18 +204,18 @@ test('a flowed block cannot be shrunk past the minimum height', () => {
 
 test('removing the active pane falls back to the first remaining tab', () => {
   const tabsId = createTabs();
-  provider.addBuildingBlock(tabsId, 0, {
+  provider.addWidget(tabsId, 0, {
     type: 'tab',
     props: { label: 'Overview' },
   });
-  const detailPane = provider.addBuildingBlock(tabsId, 1, {
+  const detailPane = provider.addWidget(tabsId, 1, {
     type: 'tab',
     props: { label: 'Detail' },
   });
-  render(<TabsBlock nodeId={tabsId} />);
+  render(<TabsWidget nodeId={tabsId} />);
 
   fireEvent.click(screen.getByRole('tab', { name: 'Detail' }));
-  act(() => provider.removeBuildingBlock(detailPane));
+  act(() => provider.removeWidget(detailPane));
 
   expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
     'aria-selected',

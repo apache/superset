@@ -23,7 +23,7 @@ import { DEFAULT_COLUMNS } from './layoutStyle';
 import { resolveExplicitCollisions } from './gridPacking';
 
 type DashboardNode = dashboardApi.DashboardNode;
-type BuildingBlockSpec = dashboardApi.BuildingBlockSpec;
+type WidgetSpec = dashboardApi.WidgetSpec;
 type LayoutProps = dashboardApi.LayoutProps;
 
 /** Node data as stored internally — same as the public `DashboardNode`, minus `id` (the map key already is the id). */
@@ -38,14 +38,14 @@ const ROOT_ID = 'root';
  * comparison of its own: this provider, deciding whether a new node gets a
  * `children` array at all, and the palette, deciding that placing this
  * specific type is not an authored feature (it's reserved for the root).
- * Rendered by `Grid` — see `BuildingBlockView`, which resolves the root's
- * renderer to it directly rather than through the building-block registry.
+ * Rendered by `Grid` — see `WidgetView`, which resolves the root's
+ * renderer to it directly rather than through the widget registry.
  */
 export const GRID_TYPE = 'grid';
 
 /**
  * Container types beyond the root's own — each registered by whatever adds
- * that building block (see `registerBuiltInBuildingBlocks`), the same way a
+ * that widget (see `registerBuiltInWidgets`), the same way a
  * type registers its renderer. A container's own arrangement of its
  * children is that type's business, not this provider's (see the
  * composition/layout design doc) — this set only ever answers the one
@@ -112,7 +112,7 @@ class DashboardProvider {
    * It lives here rather than in page state because the canvas draws it and
    * the editor panel reads it, and those sit in different layers — putting it
    * in the one place both already subscribe to beats threading it through the
-   * render tree that `BuildingBlockView` deliberately keeps ignorant.
+   * render tree that `WidgetView` deliberately keeps ignorant.
    */
   private selection: string | undefined;
 
@@ -178,7 +178,7 @@ class DashboardProvider {
    * The container a node sits in, or `undefined` for the root and for a
    * node that is not in the tree.
    *
-   * {@link moveBuildingBlock} takes the destination parent as an argument, so
+   * {@link moveWidget} takes the destination parent as an argument, so
    * every caller that moves a node already has to know which parent it is in
    * — a caller reordering a node within its own container most of all. The
    * walk itself is one line, and leaving it out meant each caller wrote that
@@ -209,7 +209,7 @@ class DashboardProvider {
   /**
    * Displaces any of `parentId`'s explicitly placed children that now
    * collide with one another (see {@link resolveExplicitCollisions}) and
-   * folds the result into `nodes`. `addBuildingBlock`/`updateLayout` are the
+   * folds the result into `nodes`. `addWidget`/`updateLayout` are the
    * two ways an extension's AI tools place a node without going through
    * `RootGrid`'s interactive drag/resize at all — this gives that
    * programmatic path the same "nothing ends up stuck overlapping"
@@ -245,14 +245,10 @@ class DashboardProvider {
     return result;
   }
 
-  public addBuildingBlock(
-    parentId: string,
-    index: number,
-    spec: BuildingBlockSpec,
-  ): string {
+  public addWidget(parentId: string, index: number, spec: WidgetSpec): string {
     if (spec.type === GRID_TYPE) {
       throw new Error(
-        `[dashboard] Cannot add a "${GRID_TYPE}" node — it is reserved for the dashboard root, not a Building Block`,
+        `[dashboard] Cannot add a "${GRID_TYPE}" node — it is reserved for the dashboard root, not a Widget`,
       );
     }
 
@@ -290,7 +286,7 @@ class DashboardProvider {
     return id;
   }
 
-  public removeBuildingBlock(id: string): void {
+  public removeWidget(id: string): void {
     if (id === ROOT_ID) {
       throw new Error('[dashboard] Cannot remove the root node');
     }
@@ -315,11 +311,7 @@ class DashboardProvider {
     this.commit(nodes);
   }
 
-  public moveBuildingBlock(
-    id: string,
-    newParentId: string,
-    newIndex: number,
-  ): void {
+  public moveWidget(id: string, newParentId: string, newIndex: number): void {
     if (id === ROOT_ID) {
       throw new Error('[dashboard] Cannot move the root node');
     }
@@ -366,7 +358,7 @@ class DashboardProvider {
     // None of which is true when the parent has not changed. A move within
     // one container is a reorder of reading/DOM/tab order alone, and the
     // position it keeps is the one the author placed it at. Resetting it
-    // would teleport the block to auto-placement as the price of a reorder.
+    // would teleport the widget to auto-placement as the price of a reorder.
     if (oldParentId !== newParentId) {
       const node = nodes[id];
       const destColumns = targetParent.layout?.columns ?? DEFAULT_COLUMNS;
@@ -380,6 +372,12 @@ class DashboardProvider {
             node.layout?.colSpan != null
               ? Math.min(node.layout.colSpan, destColumns)
               : undefined,
+          // `rowSpan` is unit-dependent on the container type — row tracks in
+          // the root grid, pixels in a flow container (see `flowContent`). A
+          // value meaningful in the old parent would be misread in the new one
+          // (e.g. `8` tracks becoming 8px), so drop it and let the destination
+          // apply its own default.
+          rowSpan: undefined,
         },
       };
     }
@@ -426,7 +424,7 @@ class DashboardProvider {
   /**
    * Shallow-merges `props` into a node's existing props — the content-side
    * counterpart to {@link updateLayout}. Lets a chart's `echartsOptions`
-   * (or a markdown block's `content`) be edited in place, instead of the
+   * (or a markdown widget's `content`) be edited in place, instead of the
    * only alternative being remove + re-add, which loses the node's
    * position, layout, and identity just to change what it renders.
    */

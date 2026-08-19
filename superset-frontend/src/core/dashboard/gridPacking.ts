@@ -37,7 +37,7 @@ export function cellKey(x: number, y: number): string {
 /**
  * Which node, if any, occupies each cell of `packed` — a lookup `availableDropSpan`
  * needs only as a yes/no test, but `resolveDropPlacement` needs to know *which*
- * block a drop point falls inside, to find that block's own edges. Built fresh
+ * widget a drop point falls inside, to find that widget's own edges. Built fresh
  * from `packed` rather than threaded through as its own parameter, since every
  * caller already has `packed` to build it from.
  */
@@ -137,20 +137,20 @@ export function packChildLayout(
 }
 
 /**
- * How big a block being dropped in at `(cursorCol, cursorRow)` has room for
+ * How big a widget being dropped in at `(cursorCol, cursorRow)` has room for
  * — up to `maxRowSpan` tall — given `packed`'s existing occupancy: the pure
  * geometry half of `RootGrid`'s own live drop preview, split out here so it
  * can be exercised without a real drag gesture, the same reason
  * `packChildLayout`'s own placement math lives here rather than inside a
  * component. The one entry point that actually decides between this ("land
- * in whatever's already free") and a left/right split of an existing block
+ * in whatever's already free") and a left/right split of an existing widget
  * is `resolveDropPlacement`, below, which calls this for its own "open
  * space" case.
  *
  * Open space returns exactly as wide a span as that row has free, capped at
  * `columns` and at `maxColSpan` — a wholly empty grid included, since
  * nothing anywhere is occupied there either, and without the second cap an
- * empty (or otherwise wide-open) grid would offer a full-width block as the
+ * empty (or otherwise wide-open) grid would offer a full-width widget as the
  * *only* size a drop could ever produce there, regardless of where the
  * cursor actually is. Growth is left-first, same as it was before
  * `maxColSpan` existed, with the cap folded into each step rather than
@@ -160,7 +160,7 @@ export function packChildLayout(
  * it, within that same width, stay just as free, capped at `maxRowSpan`. A
  * gap that turns out to be as tall as it is wide is not pushing anything
  * out of the way at all: it was already free on every side. No minimum
- * width of its own beyond that: every block's own minimum width is 1
+ * width of its own beyond that: every widget's own minimum width is 1
  * column, so a single free column is already as legitimate a place to drop
  * one as a whole free row is — narrower than that and there is no width
  * left to report at all. The returned rect's own `x` is the free run's own
@@ -168,11 +168,11 @@ export function packChildLayout(
  * free run would otherwise get a preview wider than the space actually to
  * its right.
  *
- * Directly over another block there is no *beside* to speak of here, only
+ * Directly over another widget there is no *beside* to speak of here, only
  * *above* or *below* it (resolved by vertical collision-avoidance the same
- * way repositioning an existing block already is), so that returns the full
+ * way repositioning an existing widget already is), so that returns the full
  * row at `maxRowSpan` instead — deliberately not capped by `maxColSpan`:
- * that band means "insert a full-width row here", not "drop a block here".
+ * that band means "insert a full-width row here", not "drop a widget here".
  */
 export function availableDropSpan(
   packed: Record<string, PackedRect>,
@@ -224,29 +224,29 @@ export function availableDropSpan(
 }
 
 /**
- * How far in from each edge of an occupied block's own height a drop still
+ * How far in from each edge of an occupied widget's own height a drop still
  * reads as "insert a full-width row above/below it" rather than "split it
  * left/right" — the band `resolveDropPlacement` checks before considering a
  * split at all, so that inserting a full-width row between two existing
- * blocks stays reachable once splitting exists (without it, *any* drop onto
- * a block would try to split it, and there would be no way left to ask for
+ * widgets stays reachable once splitting exists (without it, *any* drop onto
+ * a widget would try to split it, and there would be no way left to ask for
  * a plain row above or below one).
  */
 const EDGE_BAND_FRACTION = 0.25;
 
 /**
- * How many columns a block must span before splitting it is worth
+ * How many columns a widget must span before splitting it is worth
  * offering. `resolveDropPlacement` halves a target's width with
  * `Math.floor(w / 2)`; below this, one of the two resulting halves would be
- * a sliver too thin to be its own block — narrower than this and the drop
+ * a sliver too thin to be its own widget — narrower than this and the drop
  * falls back to the same nearer-edge full-row behavior a top/bottom-band
  * drop already gets.
  */
 const MIN_SPLIT_COLUMNS = 4;
 
 /**
- * What a drop resolves to: the new block's own rect, and — only when it
- * lands as a left/right split of an existing block — that block's own
+ * What a drop resolves to: the new widget's own rect, and — only when it
+ * lands as a left/right split of an existing widget — that widget's own
  * shrunk rect. `RootGrid`'s own live preview and its actual drop handler
  * both call `resolveDropPlacement` with the same inputs, so what an author
  * sees while hovering is provably what they get on release.
@@ -259,21 +259,21 @@ export interface DropPlacement {
 /**
  * Resolves a drop at the cursor's own fractional position — `exactCol`/
  * `exactRow`, not yet floored to a cell, since a left/right split needs the
- * fraction to tell which half of the target block the cursor is actually
+ * fraction to tell which half of the target widget the cursor is actually
  * nearer to, not just which cell it's over.
  *
  * Landing in open space delegates entirely to `availableDropSpan`, above —
  * unchanged from before this function existed. Landing on an existing
- * block is otherwise a plain insert (`compactType`-style push, the same
+ * widget is otherwise a plain insert (`compactType`-style push, the same
  * "displace, never overlap" rule `resolveExplicitCollisions` already
  * enforces) within `EDGE_BAND_FRACTION` of its top or bottom edge, or a
- * split — new block takes whichever half of the *block's own* width
+ * split — new widget takes whichever half of the *widget's own* width
  * (`target.x + target.w / 2`, not the cell the cursor happens to be over)
  * it's nearer to, spanning the target's exact row range; the target shrinks
  * to the other half, keeping whichever side has the odd leftover column —
  * everywhere in between.
  *
- * A split result is collision-free by construction: the new block only
+ * A split result is collision-free by construction: the new widget only
  * ever occupies columns strictly inside the target's own rectangle, which
  * `packChildLayout` already guarantees nothing else in `packed` overlaps.
  * That's also why `resolveExplicitCollisions` never needs to run again
@@ -360,7 +360,7 @@ function rectsOverlap(
  * one row at a time, until it no longer overlaps an earlier one — the same
  * "displace, never shrink" rule interactive resize/drag already gets on the
  * root's own grid (see `RootGrid`), applied here for the programmatic
- * placement path (`DashboardProvider.addBuildingBlock`/`updateLayout`, which
+ * placement path (`DashboardProvider.addWidget`/`updateLayout`, which
  * an extension's AI tools call directly) so both give the same "nothing ends
  * up stuck overlapping" guarantee, not just the one driven by a mouse. The
  * one place anything *does* get shrunk instead of displaced is a left/right

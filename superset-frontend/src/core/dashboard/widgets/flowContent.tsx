@@ -26,7 +26,7 @@
  * `collapsible`, one of several panes for `tabs`/`carousel`) — that part is
  * genuinely each container's own business (composition/layout design doc).
  * What they do not each reimplement is what a *single* flow area is once
- * you have picked one: a resizable stack of blocks, droppable from the
+ * you have picked one: a resizable stack of widgets, droppable from the
  * palette, exactly like `RootGrid`'s own drop target for the reason given
  * on `FlowContent` below.
  */
@@ -37,35 +37,35 @@ import { css, styled } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
 import { provider } from '../store';
 import { PALETTE_MIME, placeBlock } from '../placement';
-import BuildingBlockView from '../BuildingBlockView';
+import WidgetView from '../WidgetView';
 
 /**
  * The height `FlowItem` falls back to only when it has to measure *something*
  * and nothing has rendered yet to measure (see `currentHeight` there) — not
- * a block's actual starting height any more. A block with no `layout.rowSpan`
+ * a widget's actual starting height any more. A widget with no `layout.rowSpan`
  * of its own (nothing has resized it yet) flexes to fill whatever room the
  * flow area actually has instead, which is a real available-height number,
  * not a guess at one.
  */
 export const DEFAULT_FLOW_ITEM_HEIGHT = 360;
 
-/** How short a resize may make a flowed block — short of this and there is nothing left to grab the handle off of. */
+/** How short a resize may make a flowed widget — short of this and there is nothing left to grab the handle off of. */
 export const MIN_FLOW_ITEM_HEIGHT = 120;
 
-/** How far one arrow press resizes a block. */
+/** How far one arrow press resizes a widget. */
 const RESIZE_STEP = 16;
 
 /**
- * A flowed block's own resize handle.
+ * A flowed widget's own resize handle.
  *
- * `BuildingBlockView` renders whatever it is given as `children` last, after
- * its own header and content — this needs to sit inside the block's own box,
- * on top of it, without becoming part of what the block itself renders, and
- * that slot is the one place that's true for any block, built-in or
+ * `WidgetView` renders whatever it is given as `children` last, after
+ * its own header and content — this needs to sit inside the widget's own box,
+ * on top of it, without becoming part of what the widget itself renders, and
+ * that slot is the one place that's true for any widget, built-in or
  * extension-contributed.
  *
  * A strip along the whole bottom edge rather than a corner square: this
- * resizes one axis, not two (a flow's blocks are already full width, so
+ * resizes one axis, not two (a flow's widgets are already full width, so
  * there is no second dimension to change), and a full-width strip is a
  * wider target than a handful of pixels in a corner would be.
  */
@@ -104,7 +104,7 @@ const ResizeGrip = styled.div`
 `;
 
 /**
- * One block, flowed into an area, with its own height and a way to change
+ * One widget, flowed into an area, with its own height and a way to change
  * it.
  *
  * The height rendered is `layout.rowSpan` once an author has set one —
@@ -115,10 +115,10 @@ const ResizeGrip = styled.div`
  * way a grid container reads it in row tracks (see the composition/layout
  * design doc — a container's own arrangement is its own business).
  *
- * `height` (and `liveHeight`, its local draft) is `undefined` for a block
+ * `height` (and `liveHeight`, its local draft) is `undefined` for a widget
  * nobody has resized yet — rather than defaulting it to some fixed number,
  * this flexes (`flex: 1 1 auto`) to fill whatever the flow area actually has
- * available, the same way the very first block dropped into an empty area
+ * available, the same way the very first widget dropped into an empty area
  * should read as filling it rather than sitting in a corner of it. The
  * moment an author (or the resize handle below) sets an explicit height,
  * that becomes authoritative and this switches to a fixed one instead
@@ -146,10 +146,10 @@ export function FlowItem({
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // A resize gesture always needs a starting height to measure a delta
-  // against — for a block that flexed to fill its space rather than being
+  // against — for a widget that flexed to fill its space rather than being
   // given one, that is only ever knowable by measuring what got rendered,
   // never by reading `liveHeight` (which is `undefined` for exactly this
-  // block). `|| DEFAULT_FLOW_ITEM_HEIGHT` rather than `??`: a measured `0`
+  // widget). `|| DEFAULT_FLOW_ITEM_HEIGHT` rather than `??`: a measured `0`
   // (nothing painted yet to measure, or a collapsed flex box) is exactly as
   // unusable a starting point for a resize as no measurement at all.
   const currentHeight = (): number => {
@@ -161,13 +161,13 @@ export function FlowItem({
   };
 
   const startDrag = (event: PointerEvent<HTMLDivElement>): void => {
-    // This block sits inside the root's own grid (the flow's own container
+    // This widget sits inside the root's own grid (the flow's own container
     // is a grid item like any other), which otherwise reads this same
     // pointer-down as the start of a drag on that item — the whole
-    // container moving on the root grid instead of this one block resizing
-    // inside it. `data-block-resize` is `RootGrid`'s own drag-cancel
-    // selector's half of the same guard (see `BuildingBlockView`'s
-    // `data-block-remove`, which exists for the identical reason).
+    // container moving on the root grid instead of this one widget resizing
+    // inside it. `data-widget-resize` is `RootGrid`'s own drag-cancel
+    // selector's half of the same guard (see `WidgetView`'s
+    // `data-widget-remove`, which exists for the identical reason).
     event.stopPropagation();
     from.current = { y: event.clientY, height: currentHeight() };
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -187,7 +187,7 @@ export function FlowItem({
   const endDrag = (event: PointerEvent<HTMLDivElement>): void => {
     // `liveHeight` only turns into a real number once `drag` has actually
     // fired at least once — a press and release with no movement in between
-    // is not a resize, and must not fix a block that was flexing in place
+    // is not a resize, and must not fix a widget that was flexing in place
     // to whatever `currentHeight` happened to measure at that instant.
     if (from.current !== null && liveHeight !== undefined) {
       provider.updateLayout(nodeId, { rowSpan: liveHeight });
@@ -229,26 +229,23 @@ export function FlowItem({
             }
       }
     >
-      <BuildingBlockView
-        nodeId={nodeId}
-        style={{ width: '100%', height: '100%' }}
-      >
+      <WidgetView nodeId={nodeId} style={{ width: '100%', height: '100%' }}>
         <ResizeGrip
           // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
           role="separator"
           aria-orientation="horizontal"
-          aria-label={t('Resize block')}
+          aria-label={t('Resize widget')}
           aria-valuenow={liveHeight}
           aria-valuemin={MIN_FLOW_ITEM_HEIGHT}
           tabIndex={0}
           data-test={`flow-resize-${nodeId}`}
-          data-block-resize
+          data-widget-resize
           onPointerDown={startDrag}
           onPointerMove={drag}
           onPointerUp={endDrag}
           onKeyDown={resize}
         />
-      </BuildingBlockView>
+      </WidgetView>
     </div>
   );
 }
@@ -262,7 +259,7 @@ const FlowArea = styled.div`
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
     /* The area's own inset — the same gutter the root gives its own
-       children (see BuildingBlockView), so a block flowed in here reads as
+       children (see WidgetView), so a widget flowed in here reads as
        sitting a comfortable distance inside the container rather than
        pressed against its edges. */
     padding: ${theme.sizeUnit * 4}px;
@@ -270,23 +267,23 @@ const FlowArea = styled.div`
 `;
 
 /**
- * One flow area's worth of content: a resizable stack of blocks, a drop
+ * One flow area's worth of content: a resizable stack of widgets, a drop
  * target for the palette, and an empty state when there is nothing in it
  * yet.
  *
  * `accepts` gates the drop rather than the caller doing it before ever
- * rendering this — `collapsible`'s one area holds a single block, and
- * disabling the drop once that block exists (rather than never offering a
+ * rendering this — `collapsible`'s one area holds a single widget, and
+ * disabling the drop once that widget exists (rather than never offering a
  * drop target at all) is what lets the empty state's own instruction stay
  * honest right up until the moment it stops applying.
  *
  * `data-container-id` is what makes this a valid reparent target for an
- * *existing* block being dragged on the root's own grid, not just new ones
+ * *existing* widget being dragged on the root's own grid, not just new ones
  * from the palette — `RootGrid`'s hit-testing looks for this attribute at
  * any nesting depth (see its own doc comment), and a flow area answers it
  * the same way `RootGrid`'s own grid does. Stopping propagation on drop is
  * what keeps the same event from also reaching `RootGrid`'s handler on its
- * way up the tree — without it, a block dropped here would be placed twice,
+ * way up the tree — without it, a widget dropped here would be placed twice,
  * once in this area and once on the root.
  */
 export function FlowContent({
