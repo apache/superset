@@ -515,6 +515,28 @@ test('will not display boolean operators when column type is string', () => {
   });
 });
 
+test.each(['STRING', 'DATE'])(
+  'will not display boolean operators when an expression column declares type %s',
+  type => {
+    const props = setup({
+      datasource: {
+        type: 'table' as const,
+        datasource_name: 'table1',
+        schema: 'schema',
+        columns: [{ column_name: 'value', type, expression: '"value"' }],
+      },
+      adhocFilter: simpleAdhocFilter,
+    });
+    const { isOperatorRelevant } = useSimpleTabFilterProps(
+      props as unknown as Props,
+    );
+    const booleanOnlyOperators = [Operators.IsTrue, Operators.IsFalse];
+    booleanOnlyOperators.forEach(operator => {
+      expect(isOperatorRelevant(operator, 'value')).toBe(false);
+    });
+  },
+);
+
 test('will display boolean operators when column is an expression', () => {
   const props = setup({
     datasource: {
