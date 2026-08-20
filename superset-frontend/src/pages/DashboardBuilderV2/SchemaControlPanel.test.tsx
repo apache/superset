@@ -306,3 +306,62 @@ test('falls back to the raw JSON editor when an existing metric entry is an ad-h
   // confirms the fallback fired instead of the picker.
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
+
+test('the real balloons schema shape (dataBinding nested under $defs) renders pickers for dimensions, metrics, and colorDimension', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          dataBinding: { $ref: '#/$defs/DataBinding' },
+          colorDimension: {
+            type: 'string',
+            title: 'Color dimension',
+            'x-control': 'column',
+          },
+        },
+        $defs: {
+          DataBinding: {
+            type: 'object',
+            properties: {
+              datasetId: { type: 'integer', title: 'Dataset ID' },
+              metrics: {
+                type: 'array',
+                title: 'Metrics',
+                'x-control': 'metric-multi',
+              },
+              dimensions: {
+                type: 'array',
+                title: 'Dimensions',
+                'x-control': 'column-multi',
+              },
+            },
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [{ column_name: 'gender', type_generic: 1 }],
+        metrics: [{ metric_name: 'count', verbose_name: 'Count' }],
+      },
+    },
+  } as never);
+
+  // `metrics`/`dimensions` are pre-filled with the only known metric/column
+  // so neither's "Add field" select renders — otherwise `selectOption`
+  // would find three comboboxes (dimensions' add-select, metrics'
+  // add-select, and colorDimension's) instead of the one it expects.
+  const id = mount('balloons', {
+    dataBinding: { datasetId: 1, metrics: ['count'], dimensions: ['gender'] },
+  });
+
+  await screen.findByText('Color dimension');
+  await selectOption('gender');
+
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.colorDimension).toBe('gender'),
+  );
+});
