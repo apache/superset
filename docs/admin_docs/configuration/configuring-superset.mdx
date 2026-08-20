@@ -97,6 +97,54 @@ for more information on how to configure it.
 
 At the very least, you'll want to change `SECRET_KEY` and `SQLALCHEMY_DATABASE_URI`. Continue reading for more about each of these.
 
+## Localizing D3 date and time labels
+
+`BABEL_DEFAULT_LOCALE` controls Superset's application translations, while
+`D3_TIME_FORMAT` provides localized date and time names to visualizations that
+use the D3 formatter registry, including Calendar Heatmap. Configure both when
+you want the application and chart labels to use the same locale.
+
+`D3_TIME_FORMAT` accepts partial overrides. For example, Russian month names
+can be configured in `superset_config.py` as follows:
+
+```python
+BABEL_DEFAULT_LOCALE = "ru"
+
+D3_TIME_FORMAT = {
+    "months": [
+        "Январь",
+        "Февраль",
+        "Март",
+        "Апрель",
+        "Май",
+        "Июнь",
+        "Июль",
+        "Август",
+        "Сентябрь",
+        "Октябрь",
+        "Ноябрь",
+        "Декабрь",
+    ],
+    "shortMonths": [
+        "Янв",
+        "Фев",
+        "Мар",
+        "Апр",
+        "Май",
+        "Июн",
+        "Июл",
+        "Авг",
+        "Сен",
+        "Окт",
+        "Ноя",
+        "Дек",
+    ],
+}
+```
+
+Restart Superset after changing `superset_config.py` so the frontend receives
+the updated formatter configuration.
+
 ## Chart-data query timing
 
 Set `CHART_DATA_INCLUDE_TIMING = True` to add an optional versioned timing object

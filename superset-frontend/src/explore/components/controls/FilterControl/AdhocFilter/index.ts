@@ -30,6 +30,15 @@ const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
   op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
 );
 
+// Charts saved before #32701 store `==` for IS_TRUE/IS_FALSE with the boolean
+// in the comparator; blanking it makes them query `col IS NULL`. Restoring it
+// leaves the emitted SQL untouched -- reconciling `operator` to `IS TRUE`
+// would not, and Druid rejects that predicate on VARCHAR columns.
+const LEGACY_BOOLEAN_COMPARATORS = new Map<string, boolean>([
+  [Operators.IsTrue, true],
+  [Operators.IsFalse, false],
+]);
+
 interface AdhocFilterInput {
   expressionType?: string;
   subject?: string | { column_name?: string; [key: string]: unknown } | null;
@@ -76,6 +85,16 @@ export default class AdhocFilter {
           0
       ) {
         this.comparator = undefined;
+      }
+      if (
+        this.operator ===
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation &&
+        adhocFilter.operatorId &&
+        LEGACY_BOOLEAN_COMPARATORS.has(adhocFilter.operatorId)
+      ) {
+        this.comparator = LEGACY_BOOLEAN_COMPARATORS.get(
+          adhocFilter.operatorId,
+        );
       }
       this.clause = adhocFilter.clause || Clauses.Where;
       this.sqlExpression = null;
