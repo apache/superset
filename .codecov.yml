@@ -6,6 +6,7 @@ ignore:
   - "superset-frontend/packages/superset-ui-demo/**/*"
   - "**/*.stories.tsx"
   - "**/*.stories.jsx"
+  - "examples/**/*"
 coverage:
   status:
     project:
