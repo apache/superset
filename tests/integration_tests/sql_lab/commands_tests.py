@@ -22,6 +22,8 @@ import pytest
 from flask import current_app
 from flask_babel import gettext as __
 from jinja2.exceptions import TemplateError, TemplateSyntaxError
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm import object_session
 
 from superset import db, sql_lab
 from superset.commands.sql_lab import estimate, export, results
@@ -428,6 +430,69 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
                 == SupersetErrorType.GENERIC_COMMAND_ERROR
             )
             assert ex_info.value.status == 400
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    def test_validation_closes_db_session_before_fetching_from_results_backend(
+        self,
+    ) -> None:
+        # The DB session/connection must be released back to the pool
+        # before the (potentially slow) results-backend fetch, so a large
+        # download doesn't hold a connection out of the pool for its
+        # duration.
+        call_order: list[str] = []
+        original_close = db.session.close
+
+        def tracked_close() -> None:
+            call_order.append("session_closed")
+            original_close()
+
+        def tracked_get(key: str) -> None:
+            call_order.append("results_backend_get")
+            return None
+
+        results.results_backend = mock.Mock()
+        results.results_backend.get.side_effect = tracked_get
+
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
+
+        with mock.patch.object(db.session, "close", side_effect=tracked_close):
+            with pytest.raises(SupersetErrorException):
+                # ``get`` returns ``None`` above, so validation goes on to
+                # raise the "results missing" (410) error -- irrelevant
+                # here, we only care about the call order leading up to it.
+                command.validate()
+
+        assert call_order == ["session_closed", "results_backend_get"]
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    def test_validation_warms_database_relationship_before_closing_session(
+        self,
+    ) -> None:
+        # ``run`` needs ``self._query.database.db_engine_spec`` after the
+        # session has been closed by ``validate``. The relationship must
+        # therefore already be loaded by the time the session closes, or
+        # accessing it later would either raise (detached instance with an
+        # unloaded attribute) or silently open a fresh, unwanted session.
+        data = [{"col_0": i} for i in range(104)]
+        payload = {
+            "status": QueryStatus.SUCCESS,
+            "query": {"rows": 104},
+            "data": data,
+        }
+        serialized_payload = sql_lab._serialize_payload(payload, False)
+        compressed = utils.zlib_compress(serialized_payload)
+
+        results.results_backend = mock.Mock()
+        results.results_backend.get.return_value = compressed
+
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
+        command.validate()
+
+        assert object_session(command._query) is None
+        assert "database" not in sa_inspect(command._query).unloaded
+        assert command._query.database is not None
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
