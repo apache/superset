@@ -1713,13 +1713,6 @@ def redact_filter_state_data_model_metadata(
     }
 
 
-def _sanitize_dashboard_info_for_llm_context(
-    dashboard_info: DashboardInfo,
-) -> DashboardInfo:
-    """Return validated dashboard data without copying or changing it."""
-    return dashboard_info
-
-
 def _safe_user_label(value: Any) -> str | None:
     """Coerce a `*_by_name` model attribute to a display string or None.
 
@@ -1741,64 +1734,59 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     json_metadata_str = getattr(dashboard, "json_metadata", None)
     position_json_str = getattr(dashboard, "position_json", None)
 
-    return _sanitize_dashboard_info_for_llm_context(
-        DashboardInfo(
-            id=dashboard.id,
-            dashboard_title=dashboard.dashboard_title or "Untitled",
-            slug=dashboard.slug or "",
-            description=dashboard.description,
-            css=dashboard.css,
-            certified_by=dashboard.certified_by,
-            certification_details=dashboard.certification_details,
-            published=dashboard.published,
-            is_managed_externally=dashboard.is_managed_externally,
-            external_url=dashboard.external_url,
-            created_on=dashboard.created_on,
-            changed_on=dashboard.changed_on,
-            uuid=str(dashboard.uuid) if dashboard.uuid else None,
-            embedded_uuid=str(dashboard.embedded[0].uuid)
-            if dashboard.embedded
-            else None,
-            url=absolute_url,
-            created_on_humanized=dashboard.created_on_humanized,
-            changed_on_humanized=dashboard.changed_on_humanized,
-            chart_count=len(dashboard.slices) if dashboard.slices else 0,
-            native_filters=_extract_native_filters(
-                json_metadata_str,
-                include_data_model_metadata=include_data_model_metadata,
-            ),
-            cross_filters_enabled=_extract_cross_filters_enabled(json_metadata_str),
-            omitted_fields=_build_omitted_fields(
-                json_metadata_str,
-                position_json_str,
-            ),
-            editors=[
-                info
-                for editor in dashboard.editors
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if dashboard.editors
-            else [],
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in dashboard.tags
-            ]
-            if dashboard.tags
-            else [],
-            charts=[
-                summary
-                for chart in dashboard.slices
-                if (
-                    summary := serialize_chart_summary(
-                        chart,
-                        include_data_model_metadata=include_data_model_metadata,
-                    )
+    return DashboardInfo(
+        id=dashboard.id,
+        dashboard_title=dashboard.dashboard_title or "Untitled",
+        slug=dashboard.slug or "",
+        description=dashboard.description,
+        css=dashboard.css,
+        certified_by=dashboard.certified_by,
+        certification_details=dashboard.certification_details,
+        published=dashboard.published,
+        is_managed_externally=dashboard.is_managed_externally,
+        external_url=dashboard.external_url,
+        created_on=dashboard.created_on,
+        changed_on=dashboard.changed_on,
+        uuid=str(dashboard.uuid) if dashboard.uuid else None,
+        embedded_uuid=str(dashboard.embedded[0].uuid) if dashboard.embedded else None,
+        url=absolute_url,
+        created_on_humanized=dashboard.created_on_humanized,
+        changed_on_humanized=dashboard.changed_on_humanized,
+        chart_count=len(dashboard.slices) if dashboard.slices else 0,
+        native_filters=_extract_native_filters(
+            json_metadata_str,
+            include_data_model_metadata=include_data_model_metadata,
+        ),
+        cross_filters_enabled=_extract_cross_filters_enabled(json_metadata_str),
+        omitted_fields=_build_omitted_fields(
+            json_metadata_str,
+            position_json_str,
+        ),
+        editors=[
+            info
+            for editor in dashboard.editors
+            if (info := serialize_subject_object(editor)) is not None
+        ]
+        if dashboard.editors
+        else [],
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags
+        ]
+        if dashboard.tags
+        else [],
+        charts=[
+            summary
+            for chart in dashboard.slices
+            if (
+                summary := serialize_chart_summary(
+                    chart,
+                    include_data_model_metadata=include_data_model_metadata,
                 )
-                is not None
-            ]
-            if dashboard.slices
-            else [],
-        )
+            )
+            is not None
+        ]
+        if dashboard.slices
+        else [],
     )
 
 
@@ -1817,88 +1805,73 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     position_json_str = getattr(dashboard, "position_json", None)
     include_data_model_metadata = user_can_view_data_model_metadata()
 
-    return _sanitize_dashboard_info_for_llm_context(
-        DashboardInfo(
-            id=dashboard_id,
-            dashboard_title=getattr(dashboard, "dashboard_title", None),
-            slug=slug or "",
-            url=dashboard_url,
-            published=getattr(dashboard, "published", None),
-            changed_on=getattr(dashboard, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(
-                getattr(dashboard, "changed_on", None)
-            ),
-            created_on=getattr(dashboard, "created_on", None),
-            created_on_humanized=humanize_timestamp(
-                getattr(dashboard, "created_on", None)
-            ),
-            description=getattr(dashboard, "description", None),
-            css=getattr(dashboard, "css", None),
-            certified_by=getattr(dashboard, "certified_by", None),
-            certification_details=getattr(dashboard, "certification_details", None),
-            deleted_at=getattr(dashboard, "deleted_at", None),
-            native_filters=_extract_native_filters(
-                json_metadata_str,
-                include_data_model_metadata=include_data_model_metadata,
-            ),
-            cross_filters_enabled=_extract_cross_filters_enabled(json_metadata_str),
-            omitted_fields=_build_omitted_fields(json_metadata_str, position_json_str),
-            is_managed_externally=getattr(dashboard, "is_managed_externally", None),
-            external_url=getattr(dashboard, "external_url", None),
-            uuid=str(getattr(dashboard, "uuid", ""))
-            if getattr(dashboard, "uuid", None)
-            else None,
-            chart_count=len(getattr(dashboard, "slices", [])),
-            editors=[
-                info
-                for editor in getattr(dashboard, "editors", [])
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if getattr(dashboard, "editors", None)
-            else [],
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in getattr(dashboard, "tags", [])
-            ]
-            if getattr(dashboard, "tags", None)
-            else [],
-            charts=[
-                summary
-                for chart in getattr(dashboard, "slices", [])
-                if (
-                    summary := serialize_chart_summary(
-                        chart,
-                        include_data_model_metadata=include_data_model_metadata,
-                    )
+    return DashboardInfo(
+        id=dashboard_id,
+        dashboard_title=getattr(dashboard, "dashboard_title", None),
+        slug=slug or "",
+        url=dashboard_url,
+        published=getattr(dashboard, "published", None),
+        changed_on=getattr(dashboard, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(dashboard, "changed_on", None)),
+        created_on=getattr(dashboard, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(dashboard, "created_on", None)),
+        description=getattr(dashboard, "description", None),
+        css=getattr(dashboard, "css", None),
+        certified_by=getattr(dashboard, "certified_by", None),
+        certification_details=getattr(dashboard, "certification_details", None),
+        deleted_at=getattr(dashboard, "deleted_at", None),
+        native_filters=_extract_native_filters(
+            json_metadata_str,
+            include_data_model_metadata=include_data_model_metadata,
+        ),
+        cross_filters_enabled=_extract_cross_filters_enabled(json_metadata_str),
+        omitted_fields=_build_omitted_fields(json_metadata_str, position_json_str),
+        is_managed_externally=getattr(dashboard, "is_managed_externally", None),
+        external_url=getattr(dashboard, "external_url", None),
+        uuid=str(getattr(dashboard, "uuid", ""))
+        if getattr(dashboard, "uuid", None)
+        else None,
+        chart_count=len(getattr(dashboard, "slices", [])),
+        editors=[
+            info
+            for editor in getattr(dashboard, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
+        ]
+        if getattr(dashboard, "editors", None)
+        else [],
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(dashboard, "tags", [])
+        ]
+        if getattr(dashboard, "tags", None)
+        else [],
+        charts=[
+            summary
+            for chart in getattr(dashboard, "slices", [])
+            if (
+                summary := serialize_chart_summary(
+                    chart,
+                    include_data_model_metadata=include_data_model_metadata,
                 )
-                is not None
-            ]
-            if getattr(dashboard, "slices", None)
-            else [],
-        )
+            )
+            is not None
+        ]
+        if getattr(dashboard, "slices", None)
+        else [],
     )
-
-
-def _sanitize_dashboard_layout_for_llm_context(
-    layout: DashboardLayout,
-) -> DashboardLayout:
-    """Return validated layout data without copying or changing it."""
-    return layout
 
 
 def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
     """Serialize a Dashboard model to a parsed DashboardLayout."""
     position_json_str = getattr(dashboard, "position_json", None)
     tabs, charts = _extract_layout_from_position(position_json_str)
-    return _sanitize_dashboard_layout_for_llm_context(
-        DashboardLayout(
-            id=dashboard.id,
-            dashboard_title=dashboard.dashboard_title or "Untitled",
-            uuid=str(dashboard.uuid) if dashboard.uuid else None,
-            tabs=tabs,
-            charts=charts,
-            has_layout=bool(position_json_str),
-        )
+    return DashboardLayout(
+        id=dashboard.id,
+        dashboard_title=dashboard.dashboard_title or "Untitled",
+        uuid=str(dashboard.uuid) if dashboard.uuid else None,
+        tabs=tabs,
+        charts=charts,
+        has_layout=bool(position_json_str),
     )
 
 

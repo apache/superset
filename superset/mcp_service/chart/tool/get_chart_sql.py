@@ -49,11 +49,6 @@ from superset.mcp_service.chart.schemas import (
 logger = logging.getLogger(__name__)
 
 
-def _sanitize_chart_sql_for_llm_context(chart_sql: ChartSql) -> ChartSql:
-    """Return validated chart SQL without copying or changing it."""
-    return chart_sql
-
-
 def _get_cached_form_data(form_data_key: str) -> str | None:
     """Retrieve form_data from cache using form_data_key.
 
@@ -303,15 +298,13 @@ def _extract_sql_from_result(
             error_type="QueryGenerationFailed",
         )
 
-    return _sanitize_chart_sql_for_llm_context(
-        ChartSql(
-            chart_id=chart_id,
-            chart_name=chart_name,
-            sql="\n\n".join(sql_parts),
-            language=language,
-            datasource_name=datasource_name,
-            error="; ".join(errors) if errors else None,
-        )
+    return ChartSql(
+        chart_id=chart_id,
+        chart_name=chart_name,
+        sql="\n\n".join(sql_parts),
+        language=language,
+        datasource_name=datasource_name,
+        error="; ".join(errors) if errors else None,
     )
 
 

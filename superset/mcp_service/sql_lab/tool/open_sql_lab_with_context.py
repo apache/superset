@@ -37,18 +37,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 logger = logging.getLogger(__name__)
 
 
-def _sanitize_sql_lab_url_for_llm_context(url: str) -> str:
-    """Retain the former helper without reparsing the navigation URL."""
-    return url
-
-
-def _sanitize_sql_lab_response_for_llm_context(
-    response: SqlLabResponse,
-) -> SqlLabResponse:
-    """Return validated SQL Lab data without copying or changing it."""
-    return response
-
-
 @tool(
     tags=["explore"],
     class_permission_name="SQLLab",
@@ -79,14 +67,12 @@ def open_sql_lab_with_context(
                 f"Database with ID {request.database_connection_id} not found."
                 " Use list_databases to get valid database IDs."
             )
-            return _sanitize_sql_lab_response_for_llm_context(
-                SqlLabResponse(
-                    url="",
-                    database_id=request.database_connection_id,
-                    schema_name=request.schema_name,
-                    title=request.title,
-                    error=error_message,
-                )
+            return SqlLabResponse(
+                url="",
+                database_id=request.database_connection_id,
+                schema_name=request.schema_name,
+                title=request.title,
+                error=error_message,
             )
 
         # Build query parameters for SQL Lab URL
@@ -132,14 +118,12 @@ def open_sql_lab_with_context(
             "Generated SQL Lab URL for database %s", request.database_connection_id
         )
 
-        return _sanitize_sql_lab_response_for_llm_context(
-            SqlLabResponse(
-                url=url,
-                database_id=request.database_connection_id,
-                schema_name=request.schema_name,
-                title=request.title,
-                error=None,
-            )
+        return SqlLabResponse(
+            url=url,
+            database_id=request.database_connection_id,
+            schema_name=request.schema_name,
+            title=request.title,
+            error=None,
         )
 
     except Exception as e:
@@ -153,12 +137,10 @@ def open_sql_lab_with_context(
                 "Database rollback failed during error handling", exc_info=True
             )
         logger.error("Error generating SQL Lab URL: %s", e)
-        return _sanitize_sql_lab_response_for_llm_context(
-            SqlLabResponse(
-                url="",
-                database_id=request.database_connection_id,
-                schema_name=request.schema_name,
-                title=request.title,
-                error=f"Failed to generate SQL Lab URL: {str(e)}",
-            )
+        return SqlLabResponse(
+            url="",
+            database_id=request.database_connection_id,
+            schema_name=request.schema_name,
+            title=request.title,
+            error=f"Failed to generate SQL Lab URL: {str(e)}",
         )

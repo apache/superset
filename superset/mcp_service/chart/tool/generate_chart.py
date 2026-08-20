@@ -20,7 +20,6 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
-from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -60,13 +59,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_generate_chart_form_data_for_llm_context(
-    form_data: dict[str, Any],
-) -> dict[str, Any]:
-    """Return generated chart form data without copying or changing it."""
-    return form_data
 
 
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
@@ -433,11 +425,7 @@ async def generate_chart(  # noqa: C901
                     {
                         "chart": None,
                         "error": error.model_dump(),
-                        "form_data": (
-                            _sanitize_generate_chart_form_data_for_llm_context(
-                                form_data
-                            )
-                        ),
+                        "form_data": (form_data),
                         "performance": {
                             "query_duration_ms": execution_time,
                             "cache_status": "error",
@@ -649,11 +637,7 @@ async def generate_chart(  # noqa: C901
                         {
                             "chart": None,
                             "error": error.model_dump(),
-                            "form_data": (
-                                _sanitize_generate_chart_form_data_for_llm_context(
-                                    form_data
-                                )
-                            ),
+                            "form_data": (form_data),
                             "performance": {
                                 "query_duration_ms": execution_time,
                                 "cache_status": "error",
@@ -843,7 +827,7 @@ async def generate_chart(  # noqa: C901
             "explore_url": explore_url,
             "chart_type_label": get_table_chart_type_label(form_data.get("viz_type")),
             # Form data fields - REQUIRED for chatbot/external client rendering
-            "form_data": _sanitize_generate_chart_form_data_for_llm_context(form_data),
+            "form_data": (form_data),
             "form_data_key": form_data_key,
             "api_endpoints": {
                 "data": f"{get_superset_base_url()}/api/v1/chart/{chart_id}/data/",

@@ -31,37 +31,8 @@ Key features:
 
 import html
 import re
-from typing import Any
 
 import nh3
-
-
-def escape_llm_context_delimiters(value: Any) -> Any:
-    """Return an MCP result value without changing application data.
-
-    This compatibility helper is retained while callers migrate away from the
-    former in-band delimiter convention. Trust classification belongs in
-    protocol metadata or in a client-owned presentation layer; changing a
-    domain value makes read-modify-write flows persist presentation markup.
-    """
-    return value
-
-
-def sanitize_for_llm_context(
-    value: Any,
-    *,
-    field_path: tuple[str, ...] = (),
-    excluded_field_names: frozenset[str] | None = None,
-) -> Any:
-    """Return an MCP result value without changing application data.
-
-    ``field_path`` and ``excluded_field_names`` remain keyword-compatible with
-    existing callers while the obsolete presentation helpers are removed.
-    They intentionally have no effect: fixed in-band delimiters are forgeable,
-    and any escaping or wrapping breaks the MCP domain-value contract.
-    """
-    del field_path, excluded_field_names
-    return value
 
 
 def _strip_html_tags(value: str) -> str:

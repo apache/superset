@@ -61,18 +61,6 @@ from superset.superset_typing import Column, Metric
 logger = logging.getLogger(__name__)
 
 
-def _sanitize_preview_content_for_llm_context(content: dict[str, Any]) -> None:
-    """Retain the former helper without traversing preview content."""
-    return None
-
-
-def _sanitize_chart_preview_for_llm_context(
-    chart_preview: ChartPreview,
-) -> ChartPreview:
-    """Return validated preview data without copying or changing it."""
-    return chart_preview
-
-
 class ChartLike(Protocol):
     """Protocol for chart-like objects with required attributes for preview."""
 
@@ -1364,7 +1352,7 @@ async def _get_chart_preview_internal(  # noqa: C901
             performance=performance,
         )
 
-        return _sanitize_chart_preview_for_llm_context(result)
+        return result
 
     except SQLAlchemyError as e:
         # Catch DetachedInstanceError and other SQLAlchemy errors that can

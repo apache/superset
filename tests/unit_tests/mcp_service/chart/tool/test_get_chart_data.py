@@ -41,9 +41,7 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
     _recommend_visualizations,
-    _sanitize_chart_data_for_llm_context,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils.core import GenericDataType
 
 
@@ -309,25 +307,19 @@ class TestChartDataValuePreservation:
             format="csv",
         )
 
-        result = _sanitize_chart_data_for_llm_context(chart_data)
+        result = chart_data
 
-        assert result.chart_name == sanitize_for_llm_context("Revenue by Region")
-        assert result.summary == sanitize_for_llm_context("Two rows returned")
+        assert result.chart_name == ("Revenue by Region")
+        assert result.summary == ("Two rows returned")
         assert result.insights == [
-            sanitize_for_llm_context("EMEA leads"),
-            sanitize_for_llm_context("LATAM is second"),
+            ("EMEA leads"),
+            ("LATAM is second"),
         ]
-        assert result.data[0]["region"] == sanitize_for_llm_context("EMEA")
+        assert result.data[0]["region"] == ("EMEA")
         assert result.data[0]["amount"] == 120
-        assert result.data[0]["url"] == sanitize_for_llm_context(
-            "https://example.com/in-row-data"
-        )
-        assert result.data[0]["schema"] == sanitize_for_llm_context(
-            "customer-provided schema text"
-        )
-        assert result.csv_data == sanitize_for_llm_context(
-            "region,amount\nEMEA,120\nLATAM,95\n"
-        )
+        assert result.data[0]["url"] == ("https://example.com/in-row-data")
+        assert result.data[0]["schema"] == ("customer-provided schema text")
+        assert result.csv_data == ("region,amount\nEMEA,120\nLATAM,95\n")
 
     def test_chart_data_preserves_column_sample_values(self) -> None:
         """Column sample values remain exact even when they look operational."""
@@ -358,14 +350,14 @@ class TestChartDataValuePreservation:
             format="json",
         )
 
-        result = _sanitize_chart_data_for_llm_context(chart_data)
+        result = chart_data
 
         assert result.columns[0].name == "country"
         assert result.columns[0].display_name == "Country"
         assert result.columns[0].sample_values == [
-            sanitize_for_llm_context("Brazil"),
-            sanitize_for_llm_context("Japan"),
-            sanitize_for_llm_context("https://example.com"),
+            ("Brazil"),
+            ("Japan"),
+            ("https://example.com"),
             None,
         ]
         assert result.recommended_visualizations == ["table"]
@@ -390,7 +382,7 @@ class TestChartDataValuePreservation:
             format="json",
         )
 
-        result = _sanitize_chart_data_for_llm_context(chart_data)
+        result = chart_data
 
         assert malicious_key in result.data[0]
         assert result.data[0][malicious_key] == "value"

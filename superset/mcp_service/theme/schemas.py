@@ -168,27 +168,20 @@ class CreateThemeResponse(BaseModel):
     error_type: str | None = Field(None, description="Type of error if creation failed")
 
 
-def _sanitize_theme_info_for_llm_context(theme_info: ThemeInfo) -> ThemeInfo:
-    """Return validated theme data without copying or changing it."""
-    return theme_info
-
-
 def serialize_theme_object(theme: Any) -> ThemeInfo | None:
     if not theme:
         return None
 
-    return _sanitize_theme_info_for_llm_context(
-        ThemeInfo(
-            id=getattr(theme, "id", None),
-            theme_name=getattr(theme, "theme_name", None),
-            json_data=getattr(theme, "json_data", None),
-            uuid=str(uuid) if (uuid := getattr(theme, "uuid", None)) else None,
-            is_system=getattr(theme, "is_system", None),
-            is_system_default=getattr(theme, "is_system_default", None),
-            is_system_dark=getattr(theme, "is_system_dark", None),
-            changed_on=getattr(theme, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(getattr(theme, "changed_on", None)),
-            created_on=getattr(theme, "created_on", None),
-            created_on_humanized=humanize_timestamp(getattr(theme, "created_on", None)),
-        )
+    return ThemeInfo(
+        id=getattr(theme, "id", None),
+        theme_name=getattr(theme, "theme_name", None),
+        json_data=getattr(theme, "json_data", None),
+        uuid=str(uuid) if (uuid := getattr(theme, "uuid", None)) else None,
+        is_system=getattr(theme, "is_system", None),
+        is_system_default=getattr(theme, "is_system_default", None),
+        is_system_dark=getattr(theme, "is_system_dark", None),
+        changed_on=getattr(theme, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(theme, "changed_on", None)),
+        created_on=getattr(theme, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(theme, "created_on", None)),
     )

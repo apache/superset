@@ -41,7 +41,6 @@ from superset.mcp_service.chart.schemas import (
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
-    sanitize_chart_info_for_llm_context,
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
@@ -76,16 +75,14 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
             error="Cached form_data is not a valid JSON object.",
             error_type="ParseError",
         )
-    return sanitize_chart_info_for_llm_context(
-        ChartInfo(
-            viz_type=form_data.get("viz_type"),
-            datasource_name=form_data.get("datasource_name"),
-            datasource_type=form_data.get("datasource_type"),
-            filters=extract_filters_from_form_data(form_data),
-            form_data=form_data,
-            form_data_key=form_data_key,
-            is_unsaved_state=True,
-        )
+    return ChartInfo(
+        viz_type=form_data.get("viz_type"),
+        datasource_name=form_data.get("datasource_name"),
+        datasource_type=form_data.get("datasource_type"),
+        filters=extract_filters_from_form_data(form_data),
+        form_data=form_data,
+        form_data_key=form_data_key,
+        is_unsaved_state=True,
     )
 
 

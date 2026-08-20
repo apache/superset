@@ -50,7 +50,6 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
-    wrap_sql_adhoc_metrics,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -111,7 +110,6 @@ def _wrapped_form_data_for_response(
 ) -> dict[str, Any]:
     """Return form data without changing SQL metric strings."""
     payload = dict(new_form_data) if new_form_data is not None else {}
-    wrap_sql_adhoc_metrics(payload)
     return payload
 
 

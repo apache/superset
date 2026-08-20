@@ -126,11 +126,6 @@ class GetTagInfoRequest(BaseModel):
     ]
 
 
-def _sanitize_tag_info_for_llm_context(tag_info: TagInfo) -> TagInfo:
-    """Return validated tag data without copying or changing it."""
-    return tag_info
-
-
 def serialize_tag_object(tag: Any) -> TagInfo | None:
     if not tag:
         return None
@@ -139,15 +134,13 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
     if (raw_type := getattr(tag, "type", None)) is not None:
         type_str = raw_type.name if hasattr(raw_type, "name") else str(raw_type)
 
-    return _sanitize_tag_info_for_llm_context(
-        TagInfo(
-            id=getattr(tag, "id", None),
-            name=getattr(tag, "name", None),
-            type=type_str,
-            description=getattr(tag, "description", None),
-            changed_on=getattr(tag, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(getattr(tag, "changed_on", None)),
-            created_on=getattr(tag, "created_on", None),
-            created_on_humanized=humanize_timestamp(getattr(tag, "created_on", None)),
-        )
+    return TagInfo(
+        id=getattr(tag, "id", None),
+        name=getattr(tag, "name", None),
+        type=type_str,
+        description=getattr(tag, "description", None),
+        changed_on=getattr(tag, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(tag, "changed_on", None)),
+        created_on=getattr(tag, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(tag, "created_on", None)),
     )

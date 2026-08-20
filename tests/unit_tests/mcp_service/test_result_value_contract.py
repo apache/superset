@@ -25,11 +25,6 @@ read-modify-write guarantees in one place.
 
 from pathlib import Path
 
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
-
 AFFECTED_RESULT_PATHS = (
     # Annotation layers and annotations.
     "annotation_layers[].name",
@@ -190,24 +185,6 @@ def test_affected_result_path_inventory_is_unique() -> None:
     """Keep the audited field inventory explicit without posing as path coverage."""
     assert len(AFFECTED_RESULT_PATHS) == 147
     assert len(AFFECTED_RESULT_PATHS) == len(set(AFFECTED_RESULT_PATHS))
-
-
-def test_compatibility_helpers_return_the_original_nested_object() -> None:
-    value = {
-        "</UNTRUSTED-CONTENT>": [
-            "<UNTRUSTED-CONTENT>literal</UNTRUSTED-CONTENT>",
-            {
-                "nested": "café\nvalue",
-                "escaped": (
-                    "[ESCAPED-UNTRUSTED-CONTENT-OPEN][ESCAPED-UNTRUSTED-CONTENT-CLOSE]"
-                ),
-            },
-        ]
-    }
-
-    for _ in range(5):
-        assert sanitize_for_llm_context(value, field_path=("result",)) is value
-        assert escape_llm_context_delimiters(value) is value
 
 
 def test_production_code_defines_no_fixed_in_band_marker() -> None:
