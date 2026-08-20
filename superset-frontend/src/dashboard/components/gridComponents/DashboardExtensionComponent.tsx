@@ -108,7 +108,8 @@ export default function DashboardExtensionComponent(
   // (e.g. a lazily-loaded extension) replaces the placeholder once available.
   const registered = useDashboardComponents();
   const extensionComponentId = component.meta.extensionComponentId as
-    string | undefined;
+    | string
+    | undefined;
   const entry = registered.find(r => r.definition.id === extensionComponentId);
 
   const handleDeleteComponent = useCallback(() => {

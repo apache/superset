@@ -198,7 +198,10 @@ export default function IframeContent({
           className="dashboard-iframe-frame"
           src={url}
           title={t('Embedded content')}
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          // No `allow-same-origin`: combined with `allow-scripts` it would let an
+          // allowlisted-then-compromised origin script its way out of its own
+          // sandbox (same-origin DOM/storage access) for third-party embeds.
+          sandbox="allow-scripts allow-popups allow-forms"
         />
       ) : (
         <div className="dashboard-iframe-empty">
