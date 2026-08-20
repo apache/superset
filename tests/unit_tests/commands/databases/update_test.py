@@ -122,11 +122,11 @@ def test_update_sync_perms_in_async_mode(
         "superset.commands.database.sync_permissions.sync_database_permissions_task.delay"
     )
     mocker.patch("superset.commands.database.update.get_username", return_value="admin")
-    mocker.patch("superset.security_manager.get_user_by_username")
+    mock_user = mocker.patch("superset.security_manager.get_user_by_username")
 
     UpdateDatabaseCommand(1, {}).run()
 
-    sync_task.assert_called_once_with(1, "admin", "my_db")
+    sync_task.assert_called_once_with(1, mock_user.return_value.id, "my_db")
 
 
 def test_update_without_catalog(

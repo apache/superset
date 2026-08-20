@@ -3545,6 +3545,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3575,6 +3580,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": False,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3635,6 +3645,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3682,6 +3697,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": True,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": True,
                 },
@@ -3742,6 +3762,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3758,6 +3783,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3794,6 +3824,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3810,6 +3845,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -4608,8 +4648,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 202
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"message": "Async task created to sync permissions"}
+        admin_user = security_manager.find_user(username=ADMIN_USERNAME)
         mock_task.assert_called_once_with(
-            test_database.id, ADMIN_USERNAME, test_database.database_name
+            test_database.id, admin_user.id, test_database.database_name
         )
 
         # Cleanup
