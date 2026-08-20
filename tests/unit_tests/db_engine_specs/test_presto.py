@@ -412,6 +412,282 @@ def test_extract_errors_maps_401_to_access_denied() -> None:
     assert result[0].error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
 
 
+@pytest.mark.parametrize(
+    "raw_message,context,expected_error_type,expected_message",
+    [
+        pytest.param(
+            "line 1:8: Column 'bar' cannot be resolved",
+            {},
+            "COLUMN_DOES_NOT_EXIST_ERROR",
+            'We can\'t seem to resolve the column "bar" at line 1:8.',
+            id="column_does_not_exist",
+        ),
+        pytest.param(
+            "Table 'default.foo' does not exist",
+            {},
+            "TABLE_DOES_NOT_EXIST_ERROR",
+            # The regex captures the surrounding single quotes, so the rendered
+            # message doubles up the quoting. Pinned as-is: this is what a user
+            # sees today, and changing it is a product decision, not a test fix.
+            "The table \"'default.foo'\" does not exist. "
+            "A valid table must be used to run this query.",
+            id="table_does_not_exist",
+        ),
+        pytest.param(
+            "line 1:15: Schema 'bar' does not exist",
+            {},
+            "SCHEMA_DOES_NOT_EXIST_ERROR",
+            'The schema "bar" does not exist. '
+            "A valid schema must be used to run this query.",
+            id="schema_does_not_exist",
+        ),
+        pytest.param(
+            "Access Denied: Invalid credentials",
+            {"username": "bob"},
+            "CONNECTION_ACCESS_DENIED_ERROR",
+            'Either the username "bob" or the password is incorrect.',
+            id="access_denied_invalid_credentials",
+        ),
+        pytest.param(
+            "presto error: Unexpected status code 401 b'Unauthorized'",
+            {},
+            "CONNECTION_ACCESS_DENIED_ERROR",
+            "Unexpected HTTP 401 response. Check your credentials.",
+            id="access_denied_http_401",
+        ),
+        pytest.param(
+            "Failed to establish a new connection: [Errno 8] nodename nor "
+            "servname provided, or not known",
+            {"hostname": "badhost"},
+            "CONNECTION_INVALID_HOSTNAME_ERROR",
+            'The hostname "badhost" cannot be resolved.',
+            id="invalid_hostname",
+        ),
+        pytest.param(
+            "Failed to establish a new connection: [Errno 60] Operation timed out",
+            {"hostname": "myhost", "port": 8080},
+            "CONNECTION_HOST_DOWN_ERROR",
+            'The host "myhost" might be down, and can\'t be reached on port 8080.',
+            id="host_down_operation_timed_out",
+        ),
+        pytest.param(
+            "Failed to establish a new connection: [Errno 61] Connection refused",
+            {"hostname": "myhost", "port": 8080},
+            "CONNECTION_PORT_CLOSED_ERROR",
+            'Port 8080 on hostname "myhost" refused the connection.',
+            id="port_closed",
+        ),
+        pytest.param(
+            "line 1:8: Catalog 'foo' does not exist",
+            {},
+            "CONNECTION_UNKNOWN_DATABASE_ERROR",
+            'Unable to connect to catalog named "foo".',
+            id="unknown_catalog",
+        ),
+    ],
+)
+def test_extract_errors_matches_all_custom_error_patterns(
+    raw_message: str,
+    context: dict[str, Any],
+    expected_error_type: str,
+    expected_message: str,
+) -> None:
+    """Story 105825: every pattern in ``PrestoEngineSpec.custom_errors`` maps a raw
+    driver message to a typed, user-readable error.
+
+    These nine regexes are the difference between an actionable message and a raw
+    pyhive string in a red toast. Before this test only the HTTP 401 pattern was
+    covered, so a typo in any of the other eight shipped silently — invisible until
+    a user hit that exact error.
+
+    ``context`` is not optional for the four patterns whose message templates
+    reference placeholders their regex never captures; see
+    ``test_extract_errors_raises_key_error_without_context``.
+
+    Asserts ``error_type`` and the rendered message only — never whole-``extra``
+    equality, because ``extract_errors`` mutates the class-level ``custom_errors``
+    dicts in place (``base.py`` writes ``extra["engine_name"]``, and
+    ``SupersetError.__post_init__`` adds ``issue_codes``), which makes any
+    whole-dict assertion order-dependent.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.errors import ErrorLevel, SupersetErrorType
+
+    result = PrestoEngineSpec.extract_errors(Exception(raw_message), context=context)
+
+    assert len(result) == 1
+    assert result[0].error_type == getattr(SupersetErrorType, expected_error_type)
+    assert result[0].message == expected_message
+    assert result[0].level == ErrorLevel.ERROR
+    assert result[0].extra is not None
+    assert result[0].extra["engine_name"] == "Presto"
+
+
+@pytest.mark.parametrize(
+    "raw_message,missing_placeholder",
+    [
+        pytest.param(
+            "Access Denied: Invalid credentials", "username", id="access_denied"
+        ),
+        pytest.param(
+            "Failed to establish a new connection: [Errno 8] nodename nor "
+            "servname provided, or not known",
+            "hostname",
+            id="invalid_hostname",
+        ),
+        pytest.param(
+            "Failed to establish a new connection: [Errno 60] Operation timed out",
+            "hostname",
+            id="host_down",
+        ),
+        pytest.param(
+            "Failed to establish a new connection: [Errno 61] Connection refused",
+            "port",
+            id="port_closed",
+        ),
+    ],
+)
+def test_extract_errors_raises_key_error_without_context(
+    raw_message: str,
+    missing_placeholder: str,
+) -> None:
+    """Story 105825 — CHARACTERIZATION test, not an endorsement of this behaviour.
+
+    Four of the nine patterns declare message placeholders their own regex never
+    captures, so ``base.extract_errors`` builds ``params`` without them and the
+    eager-``gettext`` ``str % dict`` raises ``KeyError``. Callers that omit
+    ``context`` therefore get a ``KeyError`` instead of a typed Superset error.
+
+    This is pinned as current behaviour so a future fix is a deliberate, visible
+    change rather than an accident. If these connection errors should degrade
+    gracefully instead — returning a typed error rather than raising — then
+    this test inverts and the four patterns move into the matrix above with an
+    empty context.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    with pytest.raises(KeyError, match=missing_placeholder):
+        PrestoEngineSpec.extract_errors(Exception(raw_message))
+
+
+def test_extract_errors_returns_first_matching_pattern() -> None:
+    """Story 105825: ``extract_errors`` returns on the first matching regex.
+
+    ``custom_errors`` is iterated in insertion order, after any
+    ``CUSTOM_DATABASE_ERRORS`` config entries, and the loop returns as soon as one
+    regex matches. A message satisfying two patterns therefore resolves to
+    whichever is declared first — ``COLUMN_DOES_NOT_EXIST_REGEX`` here, not
+    ``TABLE_DOES_NOT_EXIST_REGEX``. Pinning this makes reordering the dict a
+    visible behaviour change rather than a silent one.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.errors import SupersetErrorType
+
+    msg = "line 1:8: Table 'x' does not exist and Column 'bar' cannot be resolved"
+    result = PrestoEngineSpec.extract_errors(Exception(msg))
+
+    assert len(result) == 1
+    assert result[0].error_type == SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR
+
+
+def test_extract_errors_falls_back_to_generic_error() -> None:
+    """Unit-suite mirror of presto_tests.py::test_extract_errors (L1020).
+
+    A message matching none of the nine patterns falls through to
+    ``GENERIC_DB_ENGINE_ERROR`` carrying the raw text. The integration original is
+    intentionally retained; this mirror only removes the app/DB fixture requirement.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.errors import ErrorLevel, SupersetErrorType
+
+    result = PrestoEngineSpec.extract_errors(Exception("Generic Error"))
+
+    assert len(result) == 1
+    assert result[0].error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+    assert result[0].message == "Generic Error"
+    assert result[0].level == ErrorLevel.ERROR
+    assert result[0].extra is not None
+    assert result[0].extra["engine_name"] == "Presto"
+    assert result[0].extra["issue_codes"] == [
+        {
+            "code": 1002,
+            "message": "Issue 1002 - The database returned an unexpected error.",
+        }
+    ]
+
+
+def test_extract_error_message_from_orig_database_error() -> None:
+    """Unit-suite mirror of presto_tests.py::test_extract_error_message_orig (L998).
+
+    Branch 1 of three: a SQLAlchemy wrapper exposing the driver error via ``.orig``,
+    whose first element is Presto's error dict. Without this the user would see
+    ``<object at 0x...>`` instead of the server's own diagnosis.
+    """
+    from collections import namedtuple
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    DatabaseError = namedtuple("DatabaseError", ["error_dict"])  # noqa: N806
+    db_err = DatabaseError(
+        {"errorName": "name", "errorLocation": "location", "message": "msg"}
+    )
+    exception = Exception()
+    exception.orig = db_err  # type: ignore[attr-defined]
+
+    assert PrestoEngineSpec._extract_error_message(exception) == "name at location: msg"
+
+
+def test_extract_error_message_from_database_error_args() -> None:
+    """Unit-suite mirror of
+    presto_tests.py::test_extract_error_message_db_error (L1008).
+
+    Branch 2 of three: pyhive raises ``DatabaseError`` with the error dict as its
+    first arg.
+    """
+    from pyhive.exc import DatabaseError
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    exception = DatabaseError({"message": "Err message"})
+
+    assert PrestoEngineSpec._extract_error_message(exception) == "Err message"
+
+
+def test_extract_error_message_from_database_error_without_message() -> None:
+    """Story 105825: a ``DatabaseError`` whose dict carries no ``message`` key
+    degrades to a fixed string rather than raising.
+
+    This is the "malformed error responses are handled gracefully" criterion — the
+    one branch of ``_extract_error_message`` with no coverage in either suite.
+    ``_`` is ``lazy_gettext``, so the return value is a ``LazyString`` and must be
+    coerced before comparison.
+    """
+    from pyhive.exc import DatabaseError
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    exception = DatabaseError({"errorName": "SYNTAX_ERROR"})
+
+    assert str(PrestoEngineSpec._extract_error_message(exception)) == (
+        "Unknown Presto Error"
+    )
+
+
+def test_extract_error_message_from_general_exception() -> None:
+    """Unit-suite mirror of
+    presto_tests.py::test_extract_error_message_general_exception (L1015).
+
+    Branch 3 of three: anything else falls back to
+    ``utils.error_msg_from_exception``.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert (
+        PrestoEngineSpec._extract_error_message(Exception("Err message"))
+        == "Err message"
+    )
+
+
 def test_latest_sub_partition_rejects_unknown_field(
     mocker: MockerFixture,
 ) -> None:
