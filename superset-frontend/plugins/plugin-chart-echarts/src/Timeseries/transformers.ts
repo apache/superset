@@ -467,6 +467,13 @@ export function transformSeries(
           return formatter(numericValue);
         }
         if (!onlyTotal) {
+          // A stacked segment with a value of zero has no height, so its label
+          // is anchored to the same pixel as the neighboring segment's label
+          // and the two render on top of each other. There is nothing visible
+          // to label, so skip it.
+          if (numericValue === 0) {
+            return '';
+          }
           if (
             numericValue >=
             (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)

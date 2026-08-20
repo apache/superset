@@ -20,13 +20,14 @@ import {
   CategoricalColorScale,
   ChartProps,
   TimeGranularity,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import type { ScatterSeriesOption } from 'echarts/charts';
 import { EchartsTimeseriesSeriesType } from '../../src';
-import { TIMESERIES_CONSTANTS } from '../../src/constants';
+import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
   LegendOrientation,
   EchartsTimeseriesChartProps,
@@ -158,6 +159,50 @@ describe('transformSeries', () => {
 
     expect((result as ScatterSeriesOption).symbolSize).toBe(7);
   });
+});
+
+test('transformSeries suppresses stacked value labels for zero values to avoid overlapping the adjacent segment label (issue #42702)', () => {
+  type StackedLabelParams = {
+    value: [string, number];
+    dataIndex: number;
+    seriesIndex: number;
+    seriesName: string;
+  };
+
+  const result = transformSeries({ name: 'B', id: 'B' }, mockColorScale, 'B', {
+    seriesType: EchartsTimeseriesSeriesType.Bar,
+    stack: StackControlsValue.Stack,
+    showValue: true,
+    onlyTotal: false,
+    formatter: getNumberFormatter(),
+    // default `percentage_threshold` of 0 yields a zero threshold per row
+    thresholdValues: [0, 0],
+    totalStackedValues: [32, 40],
+    timeShiftColor: false,
+  });
+
+  const { formatter } = (
+    result as unknown as {
+      label: { formatter: (params: StackedLabelParams) => string };
+    }
+  ).label;
+
+  expect(
+    formatter({
+      value: ['1-3g', 0],
+      dataIndex: 0,
+      seriesIndex: 1,
+      seriesName: 'B',
+    }),
+  ).toBe('');
+  expect(
+    formatter({
+      value: ['4g', 8],
+      dataIndex: 1,
+      seriesIndex: 1,
+      seriesName: 'B',
+    }),
+  ).toBe('8');
 });
 
 describe('transformNegativeLabelsPosition', () => {
