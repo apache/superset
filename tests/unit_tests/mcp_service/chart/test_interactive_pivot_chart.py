@@ -28,7 +28,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
-    merge_interactive_pivot_state,
+    merge_interactive_pivot_ui_config,
 )
 from superset.mcp_service.chart.plugins.interactive_pivot import (
     AG_GRID_PIVOT_FEATURE_FLAG,
@@ -239,6 +239,10 @@ def test_update_preserves_viz_type_and_ui_grid_state(
         params=json.dumps(
             {
                 "viz_type": "ag-grid-pivot-table",
+                "column_config": {"Revenue": {"d3NumberFormat": "$,.2f"}},
+                "conditional_formatting": [
+                    {"column": "Revenue", "operator": ">", "targetValue": 1000}
+                ],
                 "pivot_table_state": {
                     "columnSizing": {
                         "columnSizingModel": [{"colId": "region", "width": 180}]
@@ -257,6 +261,10 @@ def test_update_preserves_viz_type_and_ui_grid_state(
     assert isinstance(payload, dict)
     assert payload["viz_type"] == "ag-grid-pivot-table"
     params = json.loads(payload["params"])
+    assert params["column_config"] == {"Revenue": {"d3NumberFormat": "$,.2f"}}
+    assert params["conditional_formatting"] == [
+        {"column": "Revenue", "operator": ">", "targetValue": 1000}
+    ]
     state = params["pivot_table_state"]
     assert state["columnSizing"]["columnSizingModel"][0]["width"] == 180
     assert state["filter"]["filterModel"]["region"]["values"] == ["EMEA"]
@@ -274,6 +282,7 @@ def test_preview_update_preserves_viz_type_and_ui_grid_state(
         params=json.dumps(
             {
                 "viz_type": "ag-grid-pivot-table",
+                "column_config": {"Revenue": {"columnWidth": 160}},
                 "pivot_table_state": {"sort": {"sortModel": []}},
             }
         ),
@@ -285,6 +294,7 @@ def test_preview_update_preserves_viz_type_and_ui_grid_state(
 
     assert isinstance(form_data, dict)
     assert form_data["viz_type"] == "ag-grid-pivot-table"
+    assert form_data["column_config"] == {"Revenue": {"columnWidth": 160}}
     assert form_data["pivot_table_state"]["sort"] == {"sortModel": []}
 
 
@@ -293,7 +303,7 @@ def test_merge_state_does_not_cross_visualization_types() -> None:
         "viz_type": "pivot_table_v2",
         "pivot_table_state": {"rowGroup": {"groupColIds": ["new"]}},
     }
-    merge_interactive_pivot_state(
+    merge_interactive_pivot_ui_config(
         {
             "viz_type": "ag-grid-pivot-table",
             "pivot_table_state": {"filter": {"filterModel": {}}},

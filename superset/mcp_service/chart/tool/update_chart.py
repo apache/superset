@@ -40,7 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
-    merge_interactive_pivot_state,
+    merge_interactive_pivot_ui_config,
     merge_table_column_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -238,7 +238,7 @@ def _build_update_payload(
         )
         new_form_data.pop("_mcp_warnings", None)
         merge_table_column_config(_get_existing_form_data(chart), new_form_data)
-        merge_interactive_pivot_state(_get_existing_form_data(chart), new_form_data)
+        merge_interactive_pivot_ui_config(_get_existing_form_data(chart), new_form_data)
 
         chart_name = (
             request.chart_name
@@ -320,7 +320,7 @@ def _build_preview_form_data(
         )
         new_form_data.pop("_mcp_warnings", None)
         merge_table_column_config(existing_form_data, new_form_data)
-        merge_interactive_pivot_state(existing_form_data, new_form_data)
+        merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
         # In the preview, an explicit filters list, including [], replaces saved
         # filters. An omitted filters field preserves them through the shallow merge.
         merged = _merge_replacement_config(

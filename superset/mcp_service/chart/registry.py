@@ -139,8 +139,9 @@ def _is_plugin_enabled(chart_type: str) -> bool:
     plugin = _REGISTRY.get(chart_type)
     if plugin is None:
         return False
+    availability_check = getattr(plugin, "is_available", None)
     try:
-        if not plugin.is_available():
+        if availability_check is not None and not availability_check():
             return False
     except Exception:  # noqa: BLE001 — host availability checks fail closed
         logger.warning(

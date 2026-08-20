@@ -571,15 +571,16 @@ def merge_table_column_config(
     new_form_data["column_config"] = merged_column_config
 
 
-def merge_interactive_pivot_state(
+def merge_interactive_pivot_ui_config(
     existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
 ) -> None:
-    """Preserve UI-managed AG Grid state during an MCP config replacement.
+    """Preserve UI-managed Interactive Pivot config during MCP replacement.
 
     Rows, columns, and metric aggregation are declarative MCP fields, so their
     three state sections come from ``new_form_data``. Other state sections
     (column sizing/order, filters, sorting, and pagination) are managed by the
-    grid UI and survive an update.
+    grid UI and survive an update. Formatting controls that MCP cannot express
+    also survive rather than being erased by an unrelated config change.
     """
     viz_type = "ag-grid-pivot-table"
     if (
@@ -587,11 +588,14 @@ def merge_interactive_pivot_state(
         or new_form_data.get("viz_type") != viz_type
     ):
         return
+    for key in ("column_config", "conditional_formatting"):
+        if key in existing_form_data and key not in new_form_data:
+            new_form_data[key] = existing_form_data[key]
+
     existing_state = existing_form_data.get("pivot_table_state")
     new_state = new_form_data.get("pivot_table_state")
-    if not isinstance(existing_state, dict) or not isinstance(new_state, dict):
-        return
-    new_form_data["pivot_table_state"] = {**existing_state, **new_state}
+    if isinstance(existing_state, dict) and isinstance(new_state, dict):
+        new_form_data["pivot_table_state"] = {**existing_state, **new_state}
 
 
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
