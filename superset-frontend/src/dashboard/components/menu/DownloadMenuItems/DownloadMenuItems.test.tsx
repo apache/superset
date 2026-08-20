@@ -33,6 +33,12 @@ import {
 } from '@superset-ui/core';
 import { useDownloadMenuItems } from '.';
 
+const mockRedirect = jest.fn();
+jest.mock('src/utils/navigationUtils', () => ({
+  ...jest.requireActual('src/utils/navigationUtils'),
+  redirect: (url: string) => mockRedirect(url),
+}));
+
 const mockAddSuccessToast = jest.fn();
 const mockAddDangerToast = jest.fn();
 const mockAddInfoToast = jest.fn();
@@ -233,7 +239,7 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
     expect(mockSupersetClient.get).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/export_xlsx/status/abc/',
     });
-    expect(window.location.href).toBe(
+    expect(mockRedirect).toHaveBeenCalledWith(
       '/api/v1/dashboard/export_xlsx/download/abc/',
     );
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
@@ -273,7 +279,7 @@ test('Export Data to Excel keeps polling while status is pending', async () => {
 
   // Still pending -- no terminal toast, and the browser never navigated.
   expect(mockAddDangerToast).not.toHaveBeenCalled();
-  expect(window.location.href).toBe('');
+  expect(mockRedirect).not.toHaveBeenCalled();
 });
 
 test('Export Data to Excel shows an error toast when the export job fails', async () => {
@@ -304,7 +310,7 @@ test('Export Data to Excel shows an error toast when the export job fails', asyn
       'The export could not be built.',
     );
   });
-  expect(window.location.href).toBe('');
+  expect(mockRedirect).not.toHaveBeenCalled();
 });
 
 test('Export Data to Excel shows an "already in progress" toast when throttled', async () => {
