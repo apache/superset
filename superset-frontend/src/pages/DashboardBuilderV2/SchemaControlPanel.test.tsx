@@ -17,10 +17,16 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  selectOption,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import 'src/core/dashboard';
 import { fetchQueryData } from 'src/core/dashboard/chartData';
+import { resetDatasetMetadataCacheForTests } from 'src/core/dashboard/datasetMetadata';
 import SchemaControlPanel from './SchemaControlPanel';
 
 jest.mock('src/core/dashboard/chartData', () => ({
@@ -42,13 +48,19 @@ const SCHEMA = {
 };
 
 const postSpy = jest.spyOn(SupersetClient, 'post');
+const getSpy = jest.spyOn(SupersetClient, 'get');
 
 beforeEach(() => {
   provider.reset();
   postSpy.mockReset();
   postSpy.mockResolvedValue({ json: { result: SCHEMA } } as never);
+  getSpy.mockReset();
   fetchQueryDataMock.mockReset();
   fetchQueryDataMock.mockResolvedValue({ columns: [], rows: [] });
+  // `useDatasetMetadata` caches by dataset id for the lifetime of the page,
+  // which would otherwise leak one test's mocked columns/metrics into the
+  // next test that binds the same `datasetId`.
+  resetDatasetMetadataCacheForTests();
 });
 
 const mount = (type: string, props?: Record<string, unknown>) => {
@@ -142,5 +154,80 @@ test('discovers series from an explicit colorDimension when set', async () => {
         jsonPayload: expect.objectContaining({ series: ['Aaron', 'Abigail'] }),
       }),
     ),
+  );
+});
+
+test('renders a column picker for an x-control: "column" field and writes the pick back into props', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          colorDimension: {
+            type: 'string',
+            title: 'Color dimension',
+            'x-control': 'column',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [{ column_name: 'gender', type_generic: 1 }],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  const id = mount('balloons', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+  });
+
+  await screen.findByText('Color dimension');
+  await selectOption('gender');
+
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.colorDimension).toBe('gender'),
+  );
+});
+
+test('renders an ordered column-multi list for an x-control: "column-multi" field, and picking one writes the array back', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          dimensions: {
+            type: 'array',
+            title: 'Dimensions',
+            'x-control': 'column-multi',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [
+          { column_name: 'name', type_generic: 1 },
+          { column_name: 'gender', type_generic: 1 },
+        ],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  const id = mount('balloons', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+  });
+
+  await screen.findByText('Dimensions');
+  await selectOption('name');
+
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.dimensions).toEqual(['name']),
   );
 });

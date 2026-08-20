@@ -240,6 +240,11 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
             renderers={schemaControlRenderers}
             cells={cellRegistryEntries}
             validationMode="ValidateAndHide"
+            // Column/metric-reference controls need the widget's
+            // `dataBinding.datasetId`, which lives outside their own field —
+            // `config.formData` is how a JsonForms control reaches sibling
+            // data (mirrors `SemanticLayerModal`'s `config={{ formData }}`).
+            config={{ formData: props }}
             onChange={({ data }) => {
               if (JSON.stringify(data) !== propsKey) {
                 // Our own edit — don't let the resync effect remount the form
