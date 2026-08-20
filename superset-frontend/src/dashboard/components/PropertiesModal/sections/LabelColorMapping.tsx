@@ -20,7 +20,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import { ColorPicker } from 'antd';
+import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 
 // Strict typing to satisfy the tsc compiler without enforcing it as a required component prop
 interface CustomTheme {
@@ -98,17 +98,7 @@ const ColorPickerWrapper = styled.div`
   ${({ theme }: { theme?: CustomTheme }) => `
     display: flex;
     align-items: center;
-
-    .ant-color-picker-trigger {
-      height: 32px;
-      min-width: 40px;
-      border-radius: 0 ${theme?.borderRadius || 4}px ${theme?.borderRadius || 4}px 0;
-      border: 1px solid ${theme?.colors?.grayscale?.light2};
-      border-left: none;
-      box-shadow: none;
-      padding: 0 4px;
-      justify-content: center;
-    }
+    padding-left: ${(theme?.gridUnit || 4) * 2}px;
   `}
 `;
 
@@ -320,10 +310,15 @@ const LabelColorMapping = ({
                 ))}
               </datalist>
               <ColorPickerWrapper>
-                <ColorPicker
+                <ColorPickerControl
                   value={row.color}
-                  onChange={(_, hexString) =>
-                    handleUpdateRow(row.id, row.label, hexString)
+                  onChange={(color: any) =>
+                    handleUpdateRow(
+                      row.id,
+                      row.label,
+                      color?.hex ||
+                        (typeof color === 'string' ? color : row.color),
+                    )
                   }
                 />
               </ColorPickerWrapper>
