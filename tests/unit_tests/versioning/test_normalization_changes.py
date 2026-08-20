@@ -141,3 +141,46 @@ def test_context_is_consumed_once_and_same_chart_ambiguity_fails_open() -> None:
     store_normalization_context(session, context)
     store_normalization_context(session, context)
     assert consume_normalization_context(session, 7) is None
+
+
+def test_drop_transition_matches_and_filters_a_remove_record() -> None:
+    """A stash-time drop (present -> absent) suppresses its remove record."""
+    raw: list[dict[str, object]] = [
+        {
+            "control": "order_desc",
+            "from_present": True,
+            "from_value": True,
+            "to_present": False,
+        },
+    ]
+
+    context: NormalizationContext | None = matching_normalization_context(
+        7, raw, {"order_desc": True, "row_limit": 100}, {"row_limit": 100}
+    )
+
+    assert context is not None
+    assert [item.control for item in context.transitions] == ["order_desc"]
+
+    records: list[ChangeRecord] = [
+        ChangeRecord("field", "remove", ["params", "order_desc"], True, None),
+        ChangeRecord("field", "edit", ["params", "row_limit"], 100, 50),
+    ]
+    assert filter_normalization_records(records, context) == [records[1]]
+
+
+def test_drop_transition_requires_the_key_to_be_absent_after() -> None:
+    """A drop advisory does not match when the key survived the save."""
+    raw: list[dict[str, object]] = [
+        {
+            "control": "order_desc",
+            "from_present": True,
+            "from_value": True,
+            "to_present": False,
+        },
+    ]
+    assert (
+        matching_normalization_context(
+            7, raw, {"order_desc": True}, {"order_desc": False}
+        )
+        is None
+    )

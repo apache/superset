@@ -884,3 +884,97 @@ describe('getSlicePayload', () => {
     });
   });
 });
+
+test('existing-chart overwrite covers stash-removed keys as drop transitions', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      // The stash removed order_desc from active form data...
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+        row_limit: 10000,
+      },
+      // ...and holds it with the value it had when hidden.
+      hiddenFormData: { order_desc: true },
+    },
+    versionHistory: {
+      chartNormalization: {
+        chartId: sliceId,
+        hydrationSessionId: 'hydration-drop',
+        saveAttemptId: null,
+        invalidatedControls: {},
+        transitions: {},
+      },
+    },
+  });
+
+  await updateSlice(
+    {
+      ...sliceResponsePayload,
+      slice_id: sliceId,
+      // Persisted params carry the key the stash removed, same value.
+      form_data: { ...formData, order_desc: true },
+    } as never,
+    sliceName,
+    [],
+  )(dispatch, getState);
+
+  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  expect(body.normalization_changes).toEqual([
+    {
+      control: 'order_desc',
+      from_present: true,
+      from_value: true,
+      to_present: false,
+    },
+  ]);
+});
+
+test('a stashed value the user changed before hiding is not covered', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+        row_limit: 10000,
+      },
+      // Stash holds a USER-edited value; persisted differs, so the removal
+      // stays recorded.
+      hiddenFormData: { order_desc: false },
+    },
+    versionHistory: {
+      chartNormalization: {
+        chartId: sliceId,
+        hydrationSessionId: 'hydration-drop-2',
+        saveAttemptId: null,
+        invalidatedControls: {},
+        transitions: {},
+      },
+    },
+  });
+
+  await updateSlice(
+    {
+      ...sliceResponsePayload,
+      slice_id: sliceId,
+      form_data: { ...formData, order_desc: true },
+    } as never,
+    sliceName,
+    [],
+  )(dispatch, getState);
+
+  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  expect(body.normalization_changes).toBeUndefined();
+});
