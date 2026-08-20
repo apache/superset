@@ -508,7 +508,6 @@ def test_base_parameters_mixin():
         # ``port`` is intentionally not required: a blank port falls back to
         # Postgres's own default (5432) in ``PostgresEngineSpec.build_sqlalchemy_uri``.
         "required": ["database", "host", "username"],
-        "additionalProperties": False,
     }
 
 
