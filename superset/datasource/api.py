@@ -133,6 +133,9 @@ class DatasourceRestApi(BaseSupersetApi):
 
         row_limit = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
         denormalize_column = not datasource.normalize_columns
+        # Element-level operators (Contains any / Contains all) request the
+        # distinct array *elements* rather than distinct whole arrays.
+        array_elements = parse_boolean_string(request.args.get("array_elements"))
 
         # Cache distinct column-value results so a dashboard with many filters
         # backed by the same (often heavy) virtual dataset doesn't re-execute
@@ -165,6 +168,7 @@ class DatasourceRestApi(BaseSupersetApi):
                         "col": column_name,
                         "limit": row_limit,
                         "denorm": denormalize_column,
+                        "elements": array_elements,
                         "rls": security_manager.get_rls_cache_key(datasource),
                         "changed_on": str(getattr(datasource, "changed_on", "")),
                     },
@@ -189,6 +193,7 @@ class DatasourceRestApi(BaseSupersetApi):
                 column_name=column_name,
                 limit=row_limit,
                 denormalize_column=denormalize_column,
+                array_elements=array_elements,
             )
         except KeyError:
             return self.response(

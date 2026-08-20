@@ -68,6 +68,11 @@ from superset.mcp_service.session_scope import _mcp_session_token
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
 )
+from superset.security.api_key_scopes import (
+    get_resource_scope,
+    METHOD_PERMISSION_SCOPE_ACTION,
+    RESOURCE_SCOPE_NAME as RESOURCE_SCOPE_NAME,
+)
 from superset.security.guest_token import GuestUser
 
 if TYPE_CHECKING:
@@ -126,17 +131,22 @@ class MCPNoAuthSourceError(ValueError):
 # is a privileged, write-class operation and therefore requires the write
 # scope. When introducing a new method permission, add it here.
 _METHOD_TO_REQUIRED_SCOPE = {
-    "read": "superset:read",
-    # "get" is the read-class permission FAB registers on its security API
-    # views (User/Role) — those views have no can_read, so tools targeting
-    # them declare method_permission_name="get".
-    "get": "superset:read",
-    "write": "superset:write",
-    "delete": "superset:write",
-    # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
-    # treated as a write-class privileged operation for scope purposes.
-    "execute_sql_query": "superset:write",
+    method: f"superset:{action}"
+    for method, action in METHOD_PERMISSION_SCOPE_ACTION.items()
 }
+
+
+def _required_resource_scope(
+    class_permission_name: str, method_permission_name: str
+) -> str | None:
+    """Compute the ``superset:<resource>:<action>`` scope string for a tool.
+
+    Returns None if either the resource or the action isn't mapped — callers
+    must treat that as "no per-resource scope available," not as a grant;
+    the flat ``_METHOD_TO_REQUIRED_SCOPE`` fallback still applies in that case
+    (see ``_token_scope_allows``).
+    """
+    return get_resource_scope(class_permission_name, method_permission_name)
 
 
 def _get_token_scopes() -> set[str] | None:
@@ -154,8 +164,13 @@ def _get_token_scopes() -> set[str] | None:
 
     try:
         access_token = get_access_token()
-    except Exception:  # noqa: BLE001 - no JWT context for this request
-        return None
+    except Exception:  # noqa: BLE001 - fail closed on token-context errors
+        logger.exception("Unable to resolve MCP access-token scopes")
+        # ``None`` means that no scoped credential was presented and enables
+        # legacy RBAC-only behavior. An empty set instead makes every scope
+        # check fail, so an unexpected context error cannot erase restrictions
+        # carried by a credential.
+        return set()
 
     if access_token is None:
         return None
@@ -167,12 +182,21 @@ def _get_token_scopes() -> set[str] | None:
     return {str(s) for s in scopes}
 
 
-def _token_scope_allows(method_permission_name: str) -> bool:
+def _token_scope_allows(
+    method_permission_name: str, class_permission_name: str | None = None
+) -> bool:
     """Return whether the current token's scopes permit the given method.
 
     Back-compat: returns True (allow) when the token carries no scopes or there
     is no JWT context, so deployments not using scopes keep RBAC-only behavior.
     Only when the token advertises scopes is the mapped required scope enforced.
+
+    The per-resource scope (``superset:<resource>:<action>``, derived via
+    ``_required_resource_scope``) is an ALTERNATIVE grant path alongside the
+    flat method scope: a token carrying either the flat scope
+    (e.g. ``superset:read``) or the matching per-resource scope
+    (e.g. ``superset:dashboard:read``) is allowed, so already-issued
+    flat-scoped tokens keep working unchanged.
     """
     token_scopes = _get_token_scopes()
     if token_scopes is None:
@@ -190,7 +214,15 @@ def _token_scope_allows(method_permission_name: str) -> bool:
             method_permission_name,
         )
         return False
-    return required_scope in token_scopes
+    if required_scope in token_scopes:
+        return True
+    if class_permission_name is not None:
+        resource_scope = _required_resource_scope(
+            class_permission_name, method_permission_name
+        )
+        if resource_scope is not None and resource_scope in token_scopes:
+            return True
+    return False
 
 
 class MCPPermissionDeniedError(PermissionError):
@@ -234,12 +266,20 @@ def _log_scope_denial(
     cyclomatic complexity in check.
     """
     required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    resource_scope = _required_resource_scope(
+        class_permission_name, method_permission_name
+    )
+    scope_desc = (
+        resource_scope
+        or required_scope
+        or f"unmapped method permission '{method_permission_name}'"
+    )
     if log_denial:
         logger.warning(
             "Scope denied for user %s: token lacks required scope "
             "'%s' for %s on %s (tool: %s)",
             _sanitize_for_log(g.user.username),
-            required_scope,
+            scope_desc,
             permission_str,
             class_permission_name,
             func.__name__,
@@ -248,7 +288,7 @@ def _log_scope_denial(
         logger.debug(
             "Tool hidden for user %s: token lacks required scope '%s' (tool: %s)",
             _sanitize_for_log(g.user.username),
-            required_scope,
+            scope_desc,
             func.__name__,
         )
 
@@ -354,8 +394,13 @@ def check_tool_permission(  # noqa: C901
                 )
             return False
 
+        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
+        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
+
+        # Token capabilities and user RBAC are independent restrictions.
+        # Disabling RBAC must not discard scopes explicitly carried by a key.
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
+            return _token_scope_allows(method_permission_name, class_permission_name)
 
         if not hasattr(g, "user") or not g.user:
             if log_denial:
@@ -368,7 +413,6 @@ def check_tool_permission(  # noqa: C901
                 )
             return False
 
-        class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
         if not class_permission_name:
             # No RBAC configured for this tool; allow by default. This is a
             # supported configuration (a protected tool may intentionally
@@ -382,9 +426,17 @@ def check_tool_permission(  # noqa: C901
                     "class_permission_name; allowing access without an RBAC check",
                     func.__name__,
                 )
+            if not _token_scope_allows(method_permission_name):
+                if log_denial:
+                    logger.warning(
+                        "Scope denied for permission-less tool %s: token lacks "
+                        "flat scope for method %s",
+                        func.__name__,
+                        method_permission_name,
+                    )
+                return False
             return True
 
-        method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
         permission_str = f"{PERMISSION_PREFIX}{method_permission_name}"
 
         has_permission = security_manager.can_access(
@@ -399,7 +451,9 @@ def check_tool_permission(  # noqa: C901
         # advertises scopes. Tokens/deployments that don't use scopes (API keys,
         # scope-less JWTs, dev-mode) fall through to RBAC-only behavior — see
         # ``_token_scope_allows``.
-        if has_permission and not _token_scope_allows(method_permission_name):
+        if has_permission and not _token_scope_allows(
+            method_permission_name, class_permission_name
+        ):
             _log_scope_denial(
                 func,
                 method_permission_name,
@@ -462,7 +516,7 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
             return False
 
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
+            return check_tool_permission(tool_func, log_denial=False)
 
         from superset.mcp_service.privacy import (
             tool_requires_data_model_metadata_access,
@@ -474,10 +528,6 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
             and not user_can_view_data_model_metadata()
         ):
             return False
-
-        class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
-        if not class_permission_name:
-            return True
 
         return check_tool_permission(tool_func, log_denial=False)
 
