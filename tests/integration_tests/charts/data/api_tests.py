@@ -614,6 +614,43 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert result["rowcount"] == 103
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_anomaly_detection(self):
+        """
+        Chart data API: Ensure anomaly detection post transformation works
+        """
+        if backend() == "hive":
+            return
+
+        time_grain = "P1Y"
+        self.query_context_payload["queries"][0]["is_timeseries"] = True
+        self.query_context_payload["queries"][0]["groupby"] = []
+        self.query_context_payload["queries"][0]["extras"] = {
+            "time_grain_sqla": time_grain
+        }
+        self.query_context_payload["queries"][0]["granularity"] = "ds"
+        self.query_context_payload["queries"][0]["post_processing"] = [
+            {
+                "operation": "anomaly_detection",
+                "options": {
+                    "method": "zscore",
+                    "rolling_window": 7,
+                    "sensitivity": 3.0,
+                },
+            }
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        row = result["data"][0]
+        assert "__timestamp" in row
+        assert "sum__num" in row
+        # Anomaly columns should be present
+        assert "sum__num__anomaly" in row
+        # unlike prophet, anomaly detection adds no forecast periods
+        assert result["rowcount"] == 100
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_invalid_post_processing(self):
         """
         Chart data API: Ensure incorrect post processing returns correct response

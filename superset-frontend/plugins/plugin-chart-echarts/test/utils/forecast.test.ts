@@ -49,6 +49,18 @@ describe('extractForecastSeriesContext', () => {
       name: '1 2 3',
       type: ForecastSeriesEnum.ForecastLower,
     });
+    expect(extractForecastSeriesContext('metric__anomaly')).toEqual({
+      name: 'metric',
+      type: ForecastSeriesEnum.Anomaly,
+    });
+    expect(extractForecastSeriesContext('X Y Z___anomaly')).toEqual({
+      name: 'X Y Z_',
+      type: ForecastSeriesEnum.Anomaly,
+    });
+    expect(extractForecastSeriesContext('metric__yhat__anomaly')).toEqual({
+      name: 'metric',
+      type: ForecastSeriesEnum.Anomaly,
+    });
   });
 });
 
@@ -59,12 +71,14 @@ describe('reorderForecastSeries', () => {
       { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
       { id: `series${ForecastSeriesEnum.ForecastLower}`, data: [5, 15, 25] },
       { id: `series${ForecastSeriesEnum.ForecastUpper}`, data: [25, 35, 45] },
+      { id: `series${ForecastSeriesEnum.Anomaly}`, data: [null, null, 99] },
     ];
     const expectedOutput: SeriesOption[] = [
       { id: `series${ForecastSeriesEnum.ForecastLower}`, data: [5, 15, 25] },
       { id: `series${ForecastSeriesEnum.ForecastUpper}`, data: [25, 35, 45] },
       { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
       { id: `series${ForecastSeriesEnum.Observation}`, data: [10, 20, 30] },
+      { id: `series${ForecastSeriesEnum.Anomaly}`, data: [null, null, 99] },
     ];
     expect(reorderForecastSeries(input)).toEqual(expectedOutput);
   });
@@ -271,6 +285,70 @@ test('extractForecastValuesFromTooltipParams should extract valid values', () =>
   });
 });
 
+test('extractForecastValuesFromTooltipParams should extract anomaly values', () => {
+  expect(
+    extractForecastValuesFromTooltipParams([
+      {
+        marker: '<img>',
+        seriesId: 'abc',
+        value: [new Date(0), 10],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__anomaly',
+        value: [new Date(0), 10],
+      },
+    ]),
+  ).toEqual({
+    abc: {
+      marker: '<img>',
+      observation: 10,
+      anomaly: 10,
+    },
+  });
+});
+
+test('extractForecastValuesFromTooltipParams should merge anomaly-on-forecast-trend into the base series row', () => {
+  expect(
+    extractForecastValuesFromTooltipParams([
+      {
+        marker: '<img>',
+        seriesId: 'abc',
+        value: [new Date(0), 114],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat',
+        value: [new Date(0), 111.68],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat_lower',
+        value: [new Date(0), 106.49],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat_upper',
+        value: [new Date(0), 10.88],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat__anomaly',
+        value: [new Date(0), 111.68],
+      },
+    ]),
+  ).toEqual({
+    abc: {
+      marker: '<img>',
+      observation: 114,
+      forecastTrend: 111.68,
+      forecastLower: 106.49,
+      forecastUpper: 10.88,
+      anomaly: 111.68,
+    },
+  });
+});
+
 const formatter = getNumberFormatter(NumberFormats.INTEGER);
 
 test('formatForecastTooltipSeries should apply format to value', () => {
@@ -463,4 +541,54 @@ describe('formatForecastTooltipSeries truncation', () => {
     });
     expect(cell).toBe(`${marker}cpu`);
   });
+});
+
+test('formatForecastTooltipSeries should append anomaly marker when anomaly is on the forecast trend', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      observation: 114,
+      forecastTrend: 111.68,
+      forecastLower: 106.49,
+      forecastUpper: 10.88,
+      anomaly: 111.68,
+      formatter,
+    }),
+  ).toEqual(['<img>abc', '114, ŷ = 112 (106, 117) ⚠ anomaly']);
+});
+
+test('formatForecastTooltipSeries should append anomaly marker when anomaly is set', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      observation: 10,
+      anomaly: 10,
+      formatter,
+    }),
+  ).toEqual(['<img>abc', '10 ⚠ anomaly']);
+});
+
+test('formatForecastTooltipSeries should show anomaly marker without observation', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      anomaly: 10,
+      formatter,
+    }),
+  ).toEqual(['<img>abc', '⚠ anomaly']);
+});
+
+test('formatForecastTooltipSeries should not show anomaly marker for a non-finite anomaly value', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      observation: 10,
+      anomaly: NaN,
+      formatter,
+    }),
+  ).toEqual(['<img>abc', '10']);
 });
