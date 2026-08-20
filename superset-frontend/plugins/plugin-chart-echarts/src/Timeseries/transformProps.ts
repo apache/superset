@@ -88,6 +88,7 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
+  getTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -1242,6 +1243,23 @@ export default function transformProps(
       })()
     : xAxisFormatter;
 
+  // Weekly grains: pin the ticks to the buckets ECharts would otherwise miss.
+  // A timeseries annotation contributes its own timestamps and widens the axis
+  // past the buckets, and ECharts clips pinned ticks to the extent, so that
+  // span would render bare — leave those charts on ECharts' own ticks.
+  const hasTimeseriesAnnotation = annotationLayers.some(
+    (layer: AnnotationLayer) =>
+      layer.show && isTimeseriesAnnotationLayer(layer),
+  );
+  const temporalTickValues = hasTimeseriesAnnotation
+    ? undefined
+    : getTemporalTickValues(
+        rebasedData,
+        xAxisLabel,
+        xAxisType,
+        resolvedTimeGrain,
+      );
+
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
@@ -1258,7 +1276,10 @@ export default function transformProps(
       // At 0° rotation, keep hideOverlap to prevent long labels
       // from overlapping each other, with showMaxLabel to ensure
       // the last data point label stays visible (#37181).
-      hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
+      // Pinned ticks label every bucket, which does crowd, so thinning stays on.
+      hideOverlap:
+        !!temporalTickValues ||
+        !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
       formatter: deduplicatedFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
@@ -1273,7 +1294,12 @@ export default function transformProps(
         showMinLabel: true,
         alignMinLabel: 'left',
       }),
+      ...(temporalTickValues && { customValues: temporalTickValues }),
     },
+    // Gridlines, when shown, follow axisTick.customValues too.
+    ...(temporalTickValues && {
+      axisTick: { customValues: temporalTickValues },
+    }),
     minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
