@@ -1832,12 +1832,13 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
 
     match = re.match(
         r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST"
-        r"|MEDIAN|STDDEV_SAMP|VAR_SAMP)\((.*)\)",
+        r"|MEDIAN|STDDEV_SAMP|VAR_SAMP)\s*\((.*)\)",
         expression,
+        re.IGNORECASE,
     )
 
     if match:
-        operation = match.group(1)
+        operation = match.group(1).upper()
         return METRIC_MAP_TYPE.get(operation, "")
 
     logger.debug("Unexpected metric expression type: %s", expression)

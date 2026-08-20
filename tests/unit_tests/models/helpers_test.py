@@ -2130,7 +2130,18 @@ def test_adhoc_metric_to_sqla_invalid_simple_aggregate_raises_validation_error(
         table.adhoc_metric_to_sqla(metric, {})
 
 
-def test_adhoc_metric_to_sqla_extended_aggregate_on_supported_engine() -> None:
+@pytest.mark.parametrize(
+    "aggregate,expected_substring",
+    [
+        ("MEDIAN", "percentile_cont"),
+        ("STDDEV_SAMP", "stddev_samp"),
+        ("VAR_SAMP", "var_samp"),
+    ],
+)
+def test_adhoc_metric_to_sqla_extended_aggregate_on_supported_engine(
+    aggregate: str,
+    expected_substring: str,
+) -> None:
     """
     MEDIAN/STDDEV_SAMP/VAR_SAMP compile correctly end-to-end on an engine that
     supports them (Postgres), via the same `adhoc_metric_to_sqla` path every
@@ -2149,13 +2160,13 @@ def test_adhoc_metric_to_sqla_extended_aggregate_on_supported_engine() -> None:
     metric: AdhocMetric = {
         "expressionType": "SIMPLE",
         "column": {"column_name": "sales"},
-        "aggregate": "MEDIAN",
-        "label": "Median sales",
+        "aggregate": aggregate,
+        "label": f"{aggregate} sales",
     }
 
     sqla_metric = table.adhoc_metric_to_sqla(metric, {})
 
-    assert "percentile_cont" in str(sqla_metric).lower()
+    assert expected_substring in str(sqla_metric).lower()
 
 
 def test_adhoc_metric_to_sqla_extended_aggregate_on_unsupported_engine_raises_specific_error(  # noqa: E501

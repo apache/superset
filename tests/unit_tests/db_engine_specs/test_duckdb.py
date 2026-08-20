@@ -193,11 +193,11 @@ def test_fetch_data_preserves_cursor_description(mocker: MockerFixture) -> None:
         raw_conn.close()
 
 
-def test_extended_aggregation_func_median_stddev_var() -> None:
+def test_extended_aggregation_func_median_stddev_var_compiles() -> None:
     """
-    Verified against a live in-process duckdb instance, including under
-    GROUPING SETS: values match the same-input results from postgres/mysql
-    exactly.
+    MEDIAN/STDDEV_SAMP/VAR_SAMP compile to the expected DuckDB SQL function
+    calls. See `test_extended_aggregation_func_median_stddev_var_executes`
+    for verification against a live in-process DuckDB instance.
     """
     from sqlalchemy import column
 
@@ -214,3 +214,39 @@ def test_extended_aggregation_func_median_stddev_var() -> None:
         assert func is not None
         compiled = str(func(col).compile(compile_kwargs={"literal_binds": True}))
         assert compiled == expected_sql
+
+
+def test_extended_aggregation_func_median_stddev_var_executes() -> None:
+    """
+    MEDIAN/STDDEV_SAMP/VAR_SAMP execute against a live in-process DuckDB
+    instance and return values matching Python's `statistics` module
+    (sample standard deviation/variance) for the same input.
+    """
+    import statistics
+
+    from sqlalchemy import create_engine, literal_column, select, text
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    values = [1.0, 2.0, 4.0, 8.0, 16.0]
+
+    engine = create_engine("duckdb:///:memory:")
+    with engine.connect() as conn:
+        conn.execute(text("CREATE TABLE t (sales DOUBLE)"))
+        conn.execute(
+            text("INSERT INTO t VALUES (:sales)"),
+            [{"sales": v} for v in values],
+        )
+
+        expected = {
+            "MEDIAN": statistics.median(values),
+            "STDDEV_SAMP": statistics.stdev(values),
+            "VAR_SAMP": statistics.variance(values),
+        }
+
+        for aggregate, expected_value in expected.items():
+            func = DuckDBEngineSpec.get_extended_aggregation_func(aggregate)
+            assert func is not None
+            query = select(func(literal_column("sales"))).select_from(text("t"))
+            result = conn.execute(query).scalar()
+            assert result == pytest.approx(expected_value)
