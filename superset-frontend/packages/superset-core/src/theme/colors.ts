@@ -31,7 +31,7 @@ export enum ColorSchemeGroup {
 }
 
 /** Plain configuration object for a categorical color scheme. */
-export interface ColorSchemeConfig {
+export interface CategoricalScheme {
   id: string;
   label?: string;
   colors: string[];
@@ -40,8 +40,11 @@ export interface ColorSchemeConfig {
   group?: ColorSchemeGroup;
 }
 
-/** Extension of ColorSchemeConfig for sequential / diverging schemes. */
-export interface SequentialSchemeConfig extends ColorSchemeConfig {
+/**
+ * A sequential / diverging color scheme. The only difference from a
+ * categorical scheme is the optional `isDiverging` flag.
+ */
+export interface SequentialScheme extends CategoricalScheme {
   isDiverging?: boolean;
 }
 
@@ -49,12 +52,6 @@ export interface SequentialSchemeConfig extends ColorSchemeConfig {
  * Minimal interface for the categorical color scheme registry.
  * Mirrors the public surface of @superset-ui/core's ColorSchemeRegistry.
  */
-export interface CategoricalScheme {
-  id: string;
-  label?: string;
-  colors: string[];
-}
-
 export interface CategoricalSchemeRegistryLike {
   keys(): string[];
   get(name: string): CategoricalScheme | null | undefined;
@@ -66,6 +63,16 @@ export interface CategoricalSchemeRegistryLike {
  * window.superset.theme.
  */
 export declare function getCategoricalSchemeNames(): string[];
+
+/**
+ * Returns the full list of registered categorical color schemes (id, colors,
+ * and any other available metadata), sorted alphabetically by id. Prefer
+ * this over `getCategoricalSchemeNames` when scheme metadata (label,
+ * description, etc.) is needed, since extracting just the names would
+ * require a second round-trip through `getSchemeColors` per scheme.
+ * The host app provides the implementation via window.superset.theme.
+ */
+export declare function getCategoricalSchemes(): CategoricalScheme[];
 
 /**
  * Returns the color array for a named scheme, or null if not found.

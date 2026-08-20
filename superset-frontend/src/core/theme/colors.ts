@@ -18,20 +18,26 @@
  */
 import { theme as themeApi } from '@apache-superset/core';
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-import type { CategoricalSchemeRegistryLike } from '@apache-superset/core/theme';
+import type {
+  CategoricalScheme,
+  CategoricalSchemeRegistryLike,
+} from '@apache-superset/core/theme';
+
+const getRegistry = () =>
+  getCategoricalSchemeRegistry() as CategoricalSchemeRegistryLike | null;
 
 const getCategoricalSchemeNames: typeof themeApi.getCategoricalSchemeNames =
-  () => {
-    const registry =
-      getCategoricalSchemeRegistry() as CategoricalSchemeRegistryLike | null;
-    return (registry?.keys() ?? []).sort();
-  };
+  () => (getRegistry()?.keys() ?? []).sort();
 
-const getSchemeColors: typeof themeApi.getSchemeColors = schemeName => {
-  const registry =
-    getCategoricalSchemeRegistry() as CategoricalSchemeRegistryLike | null;
-  return registry?.get(schemeName)?.colors ?? null;
+const getCategoricalSchemes: typeof themeApi.getCategoricalSchemes = () => {
+  const registry = getRegistry();
+  return getCategoricalSchemeNames()
+    .map(name => registry?.get(name))
+    .filter((scheme): scheme is CategoricalScheme => scheme != null);
 };
+
+const getSchemeColors: typeof themeApi.getSchemeColors = schemeName =>
+  getRegistry()?.get(schemeName)?.colors ?? null;
 
 /**
  * Host implementation of the @apache-superset/core/theme color API.
@@ -41,5 +47,6 @@ const getSchemeColors: typeof themeApi.getSchemeColors = schemeName => {
 export const theme: typeof themeApi = {
   ...themeApi,
   getCategoricalSchemeNames,
+  getCategoricalSchemes,
   getSchemeColors,
 };
