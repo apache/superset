@@ -107,6 +107,71 @@ interface TableSize {
   height: number;
 }
 
+type ConditionalFormattingColors = {
+  backgroundColor?: string;
+  color?: string;
+  backgroundColorCellBar?: string;
+  skipValueRange?: boolean;
+};
+
+function getConditionalFormattingColors(
+  columnColorFormatters: ColorFormatters,
+  record: DataRecord,
+  columnKey: string,
+  value: DataRecordValue,
+  applyCellBars = false,
+): ConditionalFormattingColors {
+  const colors: ConditionalFormattingColors = {};
+  const applyFormatter = (
+    formatter: ColorFormatters[number],
+    valueToFormat: DataRecordValue,
+  ) => {
+    const formatterResult = formatter.getColorFromValue(
+      valueToFormat as number | string | boolean | null,
+    );
+    if (!formatterResult) return;
+
+    if (
+      formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
+      formatter.toTextColor
+    ) {
+      colors.color = formatterResult;
+    } else if (formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR) {
+      if (applyCellBars) {
+        colors.backgroundColorCellBar = forceHexAlpha(formatterResult);
+      }
+    } else {
+      colors.backgroundColor = formatterResult;
+      colors.skipValueRange = true;
+    }
+  };
+
+  columnColorFormatters
+    .filter(formatter => {
+      if (formatter.columnFormatting) {
+        return formatter.columnFormatting === columnKey;
+      }
+      return formatter.column === columnKey;
+    })
+    .forEach(formatter => {
+      const valueToFormat = formatter.columnFormatting
+        ? record[formatter.column as string]
+        : value;
+      applyFormatter(formatter, valueToFormat);
+    });
+
+  columnColorFormatters
+    .filter(
+      formatter =>
+        formatter.columnFormatting === ObjectFormattingEnum.ENTIRE_ROW,
+    )
+    .forEach(formatter =>
+      applyFormatter(formatter, record[formatter.column as string]),
+    );
+
+  return colors;
+}
+
 const getCrossFilterValue = (
   value: DataRecordValue,
   column: DataColumnMeta | undefined,
@@ -409,6 +474,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
+    applyConditionalFormattingToTotals = false,
     allowRearrangeColumns = false,
     allowRenderHtml = true,
     onContextMenu,
@@ -1049,6 +1115,71 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Cache sanitized header ID to avoid recomputing it multiple times
       const headerId = sanitizeHeaderId(column.originalLabel ?? column.key);
 
+      const renderTotalsFooter = () => {
+        if (!displayedTotals) {
+          return undefined;
+        }
+        if (i === 0) {
+          return (
+            <th key={`footer-summary-${i}`}>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  & svg {
+                    margin-left: ${theme.sizeUnit}px;
+                    color: ${theme.colorBorder} !important;
+                  }
+                `}
+              >
+                {t('Summary')}
+                <Tooltip
+                  overlay={t(
+                    'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
+                  )}
+                >
+                  <InfoCircleOutlined />
+                </Tooltip>
+              </div>
+            </th>
+          );
+        }
+        const totalValue = displayedTotals[key];
+        let backgroundColor;
+        let color;
+        if (applyConditionalFormattingToTotals && hasColumnColorFormatters) {
+          const formatting = getConditionalFormattingColors(
+            columnColorFormatters!,
+            displayedTotals,
+            key,
+            totalValue,
+          );
+          backgroundColor = formatting.backgroundColor;
+          color = formatting.color;
+        }
+        const resolvedTextColor = getTextColorForBackground(
+          { backgroundColor, color },
+          theme.colorBgBase,
+        );
+        return (
+          <td
+            key={`footer-total-${i}`}
+            className="dt-totals"
+            style={{
+              ...sharedStyle,
+              background: backgroundColor || undefined,
+              color: resolvedTextColor || undefined,
+              fontWeight: color ? theme.fontWeightBold : theme.fontWeightStrong,
+            }}
+            title={
+              typeof totalValue === 'number' ? String(totalValue) : undefined
+            }
+          >
+            <strong>{formatColumnValue(column, totalValue)[1]}</strong>
+          </td>
+        );
+      };
+
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
@@ -1077,56 +1208,25 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           }
 
           if (hasColumnColorFormatters) {
-            const applyFormatter = (
-              formatter: ColorFormatters[number],
-              valueToFormat: any,
-            ) => {
-              const formatterResult =
-                formatter.getColorFromValue(valueToFormat);
-              if (!formatterResult) return;
-
-              if (
-                formatter.objectFormatting ===
-                  ObjectFormattingEnum.TEXT_COLOR ||
-                formatter.toTextColor
-              ) {
-                color = formatterResult;
-              } else if (
-                formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
-              ) {
-                if (generalShowCellBars)
-                  backgroundColorCellBar = forceHexAlpha(formatterResult);
-              } else {
-                backgroundColor = formatterResult;
-                valueRangeFlag = false;
-              }
-            };
-            columnColorFormatters
-              .filter(formatter => {
-                if (formatter.columnFormatting) {
-                  return formatter.columnFormatting === column.key;
-                }
-                return formatter.column === column.key;
-              })
-              .forEach(formatter => {
-                let valueToFormat;
-                if (formatter.columnFormatting) {
-                  valueToFormat = row.original[formatter.column];
-                } else {
-                  valueToFormat = value;
-                }
-                applyFormatter(formatter, valueToFormat);
-              });
-
-            columnColorFormatters
-              .filter(
-                formatter =>
-                  formatter.columnFormatting ===
-                  ObjectFormattingEnum.ENTIRE_ROW,
-              )
-              .forEach(formatter =>
-                applyFormatter(formatter, row.original[formatter.column]),
-              );
+            const formatting = getConditionalFormattingColors(
+              columnColorFormatters!,
+              row.original,
+              column.key,
+              value,
+              generalShowCellBars,
+            );
+            if (formatting.color) {
+              color = formatting.color;
+            }
+            if (formatting.backgroundColor) {
+              backgroundColor = formatting.backgroundColor;
+            }
+            if (formatting.backgroundColorCellBar) {
+              backgroundColorCellBar = formatting.backgroundColorCellBar;
+            }
+            if (formatting.skipValueRange) {
+              valueRangeFlag = false;
+            }
           }
 
           if (
@@ -1365,37 +1465,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           </th>
         ),
 
-        Footer: displayedTotals ? (
-          i === 0 ? (
-            <th key={`footer-summary-${i}`}>
-              <div
-                css={css`
-                  display: flex;
-                  align-items: center;
-                  & svg {
-                    margin-left: ${theme.sizeUnit}px;
-                    color: ${theme.colorBorder} !important;
-                  }
-                `}
-              >
-                {t('Summary')}
-                <Tooltip
-                  overlay={t(
-                    'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
-                  )}
-                >
-                  <InfoCircleOutlined />
-                </Tooltip>
-              </div>
-            </th>
-          ) : (
-            <td key={`footer-total-${i}`} style={sharedStyle}>
-              <strong>
-                {formatColumnValue(column, displayedTotals[key])[1]}
-              </strong>
-            </td>
-          )
-        ) : undefined,
+        Footer: renderTotalsFooter(),
         sortDescFirst: sortDesc,
         // Metrics and percent metrics always have numeric values; use numeric sort
         // even if the backend reports the column type as String.
@@ -1410,6 +1480,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       defaultAlignPN,
       defaultColorPN,
       columnColorFormatters,
+      applyConditionalFormattingToTotals,
       isUsingTimeComparison,
       basicColorFormatters,
       showCellBars,

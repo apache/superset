@@ -82,6 +82,7 @@ export type TableChartFormData = QueryFormData & {
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
   show_numbered_column?: boolean;
+  conditional_formatting_totals?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -125,6 +126,7 @@ export interface AgGridTableChartTransformedProps<
   colorPositiveNegative: boolean;
   totals: DataRecord | undefined;
   showTotals: boolean;
+  applyConditionalFormattingToTotals: boolean;
   columnColorFormatters: ColorFormatters;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];

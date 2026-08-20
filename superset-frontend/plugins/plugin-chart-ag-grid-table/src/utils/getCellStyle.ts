@@ -36,6 +36,7 @@ type CellStyleParams = CellClassParams & {
   col: InputColumn;
   cellSurfaceColor: string;
   hoverCellSurfaceColor: string;
+  applyConditionalFormattingToTotals?: boolean;
 };
 
 const getCellStyle = (params: CellStyleParams) => {
@@ -51,10 +52,15 @@ const getCellStyle = (params: CellStyleParams) => {
     node,
     cellSurfaceColor,
     hoverCellSurfaceColor,
+    applyConditionalFormattingToTotals = false,
   } = params;
   let backgroundColor;
   let color;
-  if (hasColumnColorFormatters) {
+  const isTotalsRow = node?.rowPinned === 'bottom';
+  if (
+    hasColumnColorFormatters &&
+    (!isTotalsRow || applyConditionalFormattingToTotals)
+  ) {
     columnColorFormatters!
       .filter(formatter => {
         const colTitle = formatter?.column?.includes('Main')

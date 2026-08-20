@@ -638,6 +638,66 @@ describe('plugin-chart-table', () => {
         );
       });
 
+      test('applies conditional formatting to the totals row when enabled', () => {
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            metrics: ['sum__num'],
+            conditional_formatting: [
+              {
+                colorScheme: '#ACE1C4',
+                column: 'sum__num',
+                operator: '>',
+                targetValue: 100000,
+              },
+            ],
+            conditional_formatting_totals: true,
+          },
+        });
+        props.totals = { sum__num: 2481872 };
+
+        render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2481872')).background).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('does not apply conditional formatting to the totals row when disabled', () => {
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            metrics: ['sum__num'],
+            conditional_formatting: [
+              {
+                colorScheme: '#ACE1C4',
+                column: 'sum__num',
+                operator: '>',
+                targetValue: 100000,
+              },
+            ],
+            conditional_formatting_totals: false,
+          },
+        });
+        props.totals = { sum__num: 2481872 };
+
+        render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2481872')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
+      });
+
       test('render cell without color', () => {
         const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
         dataWithEmptyCell.data.push({

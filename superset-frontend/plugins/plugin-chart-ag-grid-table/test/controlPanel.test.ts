@@ -94,6 +94,18 @@ test('show_totals renders in the customize tab atop visual formatting', () => {
   expect(firstControl.config.visibility).toBeUndefined();
 });
 
+test('conditional_formatting_totals is visible only when show_totals is on', () => {
+  const vis = getVisibility(config, 'conditional_formatting_totals');
+  const controlState = {} as ControlState;
+
+  expect(
+    vis({ controls: { show_totals: { value: false } } } as never, controlState),
+  ).toBe(false);
+  expect(
+    vis({ controls: { show_totals: { value: true } } } as never, controlState),
+  ).toBe(true);
+});
+
 test('every Visual formatting control is a renderTrigger', () => {
   // A non-renderTrigger control in this section would silently drag the
   // whole section's classification from the customize tab to the data tab.

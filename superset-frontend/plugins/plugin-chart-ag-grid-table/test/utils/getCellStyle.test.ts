@@ -106,3 +106,26 @@ test('does not apply basic formatting to the pinned summary row', () => {
   );
   expect(style.backgroundColor).toBe('');
 });
+
+test('does not apply column formatting to the pinned summary row by default', () => {
+  const style = getCellStyle(
+    buildParams({
+      node: { rowPinned: 'bottom', data: {} },
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [standardCfFormatter],
+    }),
+  );
+  expect(style.backgroundColor).toBe('');
+});
+
+test('applies column formatting to the pinned summary row when enabled', () => {
+  const style = getCellStyle(
+    buildParams({
+      node: { rowPinned: 'bottom', data: {} },
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [standardCfFormatter],
+      applyConditionalFormattingToTotals: true,
+    }),
+  );
+  expect(style.backgroundColor).toBe('#ff0000');
+});

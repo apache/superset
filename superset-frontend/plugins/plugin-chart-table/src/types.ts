@@ -70,6 +70,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  conditional_formatting_totals?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -108,6 +109,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitCrossFilters?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
+  applyConditionalFormattingToTotals?: boolean;
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
   onContextMenu?: (
