@@ -25,6 +25,7 @@ import {
   QueryFormMetric,
   TimeFormatter,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import {
   BaseChartProps,
@@ -82,6 +83,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   tooltipTimeFormat?: string;
   showTooltipTotal?: boolean;
   showTooltipPercentage?: boolean;
+  tooltipTruncation?: TooltipTruncationMode;
   truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;

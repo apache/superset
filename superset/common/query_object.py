@@ -17,6 +17,7 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import datetime
 from pprint import pformat
@@ -205,8 +206,86 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def _set_post_processing(
         self, post_processing: list[dict[str, Any] | None] | None
     ) -> None:
-        post_processing = post_processing or []
-        self.post_processing = [post_proc for post_proc in post_processing if post_proc]
+        self.post_processing = [
+            self._drop_unsupported_options(post_proc)
+            for post_proc in post_processing or []
+            if post_proc
+        ]
+
+    @staticmethod
+    def _drop_unsupported_options(post_proc: dict[str, Any]) -> dict[str, Any]:
+        """
+        Drop options that the post-processing operation no longer accepts.
+
+        A chart's ``query_context`` is written when the chart is saved and is
+        never rewritten afterwards, while Explore rebuilds the query from
+        ``form_data`` at every render. A chart saved by an older version of
+        Superset can therefore reference an option that has since been removed
+        from the operation. ``exec_post_processing`` passes the stored options
+        as keyword arguments, so that option raises a bare ``TypeError`` on
+        every path that replays the stored ``query_context`` -- the chart data
+        endpoint, alerts and reports, thumbnails, CSV export -- while the same
+        chart still renders correctly in Explore.
+
+        Comparing against the signature avoids a hard-coded list of removed
+        option names, which would need extending at each release.
+        """
+        operation = post_proc.get("operation")
+        function = (
+            getattr(pandas_postprocessing, operation, None)
+            if isinstance(operation, str)
+            else None
+        )
+        if function is None:
+            # A missing or unknown operation is left untouched, so that
+            # exec_post_processing reports it as InvalidPostProcessingError.
+            return post_proc
+
+        parameters = inspect.signature(function).parameters
+        if any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        ):
+            return post_proc
+
+        # `exec_post_processing` calls the operation as `operation(df, **options)`,
+        # so an option can only reach a parameter that a caller may fill by
+        # keyword. That excludes the first parameter, which receives the
+        # DataFrame positionally, and any positional-only or `*args` parameter.
+        keyword_parameters = {
+            name
+            for position, (name, parameter) in enumerate(parameters.items())
+            if position > 0
+            and parameter.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            )
+        }
+
+        options = post_proc.get("options") or {}
+        unsupported = {key for key in options if key not in keyword_parameters}
+        if not unsupported:
+            return post_proc
+
+        # Logged at info: a chart saved before the option was removed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
+        logger.info(
+            "Dropping unsupported option(s) %s of post-processing operation "
+            "`%s`. The chart's stored query_context predates the current "
+            "signature of that operation.",
+            sorted(unsupported),
+            operation,
+        )
+        return {
+            **post_proc,
+            "options": {
+                key: value
+                for key, value in options.items()
+                if key in keyword_parameters
+            },
+        }
 
     def _init_series_columns(
         self,

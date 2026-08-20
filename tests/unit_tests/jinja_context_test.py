@@ -1096,6 +1096,34 @@ def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
+def test_metric_macro_guest_user_dataset_out_of_scope(mocker: MockerFixture) -> None:
+    """
+    Test that ``metric_macro`` denies a guest user a dataset that is not
+    reachable through any dashboard their guest token grants.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    guest_user = mocker.MagicMock()
+    guest_user.guest_token = {}
+    mocker.patch(
+        "superset.security_manager.get_current_guest_user_if_guest",
+        return_value=guest_user,
+    )
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        id=1,
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with pytest.raises(DatasetNotFoundError):
+        metric_macro(env, {}, "count", 1)
+
+
 def test_metric_macro_recursive(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when the definition is recursive.
@@ -1731,6 +1759,13 @@ def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> 
     """
     mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
     mock_is_guest_user.return_value = True
+
+    # Dashboard-level guest scope is asserted separately; here the dataset is
+    # in scope so the test can focus on the base-filter bypass.
+    mocker.patch(
+        "superset.jinja_context.guest_user_can_access_dataset",
+        return_value=True,
+    )
 
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = SqlaTable(

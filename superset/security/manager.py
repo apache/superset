@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
+import datetime
 import logging
 import re
 import time
@@ -36,7 +37,7 @@ from urllib.parse import quote
 
 from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
-from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
@@ -394,8 +395,11 @@ class SupersetUserApi(UserApi):
     """
     Overriding the UserApi to sync Subject rows, filter excluded users,
     handle deletion constraints, and add audit logging.
-    UserApi has custom post/put that bypass hooks, so we override them
-    and sync after the parent method succeeds.
+
+    The Subject sync happens in ``pre_add``/``pre_update``, which FAB calls
+    *before* the commit that ``self.datamodel.add``/``edit`` issues -- so the
+    sync rides that same commit rather than needing one of its own after the
+    fact.
     """
 
     base_filters = [["username", ExcludeUsersFilter, lambda: []]]
@@ -415,6 +419,45 @@ class SupersetUserApi(UserApi):
         "changed_on",
     ]
 
+    def pre_add(self, item: Model) -> None:
+        """Hash the password (FAB's own ``pre_add``), then sync the user's
+        ``Subject`` row before FAB's own commit.
+
+        ``UserApi.post`` calls ``pre_add`` *before* ``self.datamodel.add``,
+        which is what actually issues the commit -- so flushing the new user
+        here (to obtain its id) and syncing its ``Subject`` row alongside it
+        means both writes ride the same transaction and commit together,
+        instead of the subject sync needing a second, separate commit after
+        the fact.
+        """
+        super().pre_add(item)
+        from superset.daos.user import UserDAO
+
+        self.datamodel.session.add(item)
+        self.datamodel.session.flush()
+        UserDAO._sync_subject(item)
+
+    def pre_update(self, item: Model, data: dict[str, Any]) -> None:
+        """Same reasoning as ``pre_add``: ``UserApi.put`` calls ``pre_update``
+        before ``self.datamodel.edit`` commits, so the subject sync lands in
+        that same transaction.
+        """
+        super().pre_update(item, data)
+        from superset.daos.user import UserDAO
+
+        UserDAO._sync_subject(item)
+
+        if data.get("password"):
+            # An admin-initiated password change via this endpoint must
+            # invalidate the target account's other outstanding sessions,
+            # the same as the self-service ``/me/`` path and the two
+            # password-reset views.
+            from superset.security.session_invalidation import (
+                invalidate_sessions_for_user,
+            )
+
+            invalidate_sessions_for_user(item.id)
+
     @expose("/", methods=["POST"])
     @protect()
     @safe
@@ -430,17 +473,7 @@ class SupersetUserApi(UserApi):
             500:
               description: Server error
         """
-        response = super().post()
-        if response.status_code == 201:
-            from superset.daos.user import UserDAO
-
-            user_id = response.json.get("id")
-            if user_id:
-                user = self.datamodel.session.get(self.datamodel.obj, user_id)
-                if user:
-                    UserDAO._sync_subject(user)
-                    self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
-        return response
+        return super().post()
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
@@ -464,15 +497,42 @@ class SupersetUserApi(UserApi):
             500:
               description: Server error
         """
-        response = super().put(pk)
-        if response.status_code == 200:
-            from superset.daos.user import UserDAO
+        return super().put(pk)
 
-            user = self.datamodel.get(pk, self._base_filters)
-            if user:
-                UserDAO._sync_subject(user)
-                self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
-        return response
+    @expose("/<int:pk>/sessions", methods=["DELETE"])
+    @protect()
+    @permission_name("put")
+    @safe
+    def terminate_sessions(self, pk: int) -> Response:
+        """Terminate a user's outstanding sessions without disabling their account.
+        ---
+        delete:
+          parameters:
+            - in: path
+              name: pk
+              schema:
+                type: integer
+          responses:
+            200:
+              description: Sessions terminated
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        from superset.security.session_invalidation import invalidate_sessions_for_user
+
+        user = self.datamodel.get(pk, self._base_filters)
+        if not user:
+            return self.response_404()
+
+        invalidate_sessions_for_user(user.id)
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
+        _log_audit_event(
+            "UserSessionsTerminated",
+            {"target_username": user.username, "target_user_id": user.id},
+        )
+        return self.response(200, message="User sessions terminated.")
 
     def pre_delete(self, item: Model) -> None:
         from superset.daos.user import UserDAO
@@ -754,15 +814,24 @@ def _native_filter_query_modified(
     query: Any, allowed_columns: set[str], allowed_metrics: set[str]
 ) -> bool:
     """Whether a single query in a native-filter request reads beyond its targets."""
-    # Columns and group-by may only reference target column(s); adhoc (free-form
-    # SQL) columns cannot be validated, so reject them.
-    for key in ("columns", "groupby"):
+    # Columns, group-by, and series columns may only reference target column(s);
+    # adhoc (free-form SQL) columns cannot be validated, so reject them.
+    for key in ("columns", "groupby", "series_columns"):
         for col in getattr(query, key, None) or []:
             if not isinstance(col, str) or col not in allowed_columns:
                 return True
     for metric in getattr(query, "metrics", None) or []:
         if not _native_filter_term_allowed(metric, allowed_columns, allowed_metrics):
             return True
+    # A series-limit metric ranks the top-N groups in the inner query, so it is
+    # a value-returning term and is validated like a metric. ``QueryObject``
+    # renames the deprecated ``timeseries_limit_metric`` payload key onto this
+    # attribute, so both spellings are covered.
+    series_limit_metric = getattr(query, "series_limit_metric", None)
+    if series_limit_metric and not _native_filter_term_allowed(
+        series_limit_metric, allowed_columns, allowed_metrics
+    ):
+        return True
     # order-by entries are ``(expression, asc)`` pairs.
     for order in getattr(query, "orderby", None) or []:
         expr = order[0] if isinstance(order, (list, tuple)) and order else order
@@ -784,8 +853,9 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     A native filter may only read the column(s) it targets on the dashboard it
     belongs to. The request is treated as modified (and therefore rejected for
     guest users) when it cannot be tied to a native filter on the requesting
-    dashboard, or when any value-returning term (column, group-by, metric, or
-    order-by) references something other than a target column, a simple
+    dashboard, or when any value-returning term (column, group-by, series
+    column, metric, series-limit metric, or order-by) references something
+    other than a target column, a simple
     aggregate over a target column, or the filter's configured sort metric.
     Free-form SQL terms and saved metrics other than the configured sort metric
     are rejected. Row-restricting clauses (``filter``/``extras``) are not
@@ -1555,8 +1625,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         bypassed. We distinguish the two by comparing the acting user
         (``g.user``) against the target ``userid``: they match for a
         self-service reset and differ for an admin reset.
+
+        Also stamps the session-invalidation epoch for the target user, so
+        any session for the account that predates this reset stops working --
+        regardless of which of the two paths triggered it.
         """
         super().reset_password(userid, password)
+
+        # pylint: disable=import-outside-toplevel
+        from superset import db
+        from superset.security.session_invalidation import invalidate_sessions_for_user
+
+        invalidate_sessions_for_user(int(userid))
+        # ``super().reset_password`` (FAB's ``update_user``) already committed
+        # its own change in a separate transaction, so the epoch stamp above
+        # needs its own commit too, rather than riding an existing one.
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         acting_user = getattr(g, "user", None)
         acting_user_id = getattr(acting_user, "id", None)
@@ -4297,6 +4381,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                                 child_slice_id=slice_id,
                                                 parent_slice=parent_slc,
                                             )
+                                            # Bind the request to the child
+                                            # chart's own datasource, mirroring
+                                            # the direct-chart leg above.
+                                            and (
+                                                child_slc := self.session.query(Slice)
+                                                .filter(Slice.id == slice_id)
+                                                .one_or_none()
+                                            )
+                                            and child_slc.datasource == datasource
                                         )
                                     )
                                 )
@@ -4924,6 +5017,123 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         audience = self._get_guest_token_jwt_audience()
         return self.pyjwt_for_guest_token.decode(
             raw_token, secret, algorithms=[algo], audience=audience
+        )
+
+    def get_api_key_scopes(self, api_key_string: str) -> Optional[str]:
+        """Return the ``scopes`` value for a validated API key.
+
+        FAB's ``validate_api_key`` resolves the matching ``ApiKey`` row
+        internally (by lookup hash) but only returns the associated
+        ``User`` — the row's ``scopes`` column is otherwise unreachable by
+        callers. This repeats the same cheap, indexed lookup so MCP's
+        ``CompositeTokenVerifier`` can propagate per-key scopes instead of
+        silently falling back to verifier-global scopes. Call only after
+        ``validate_api_key`` has already succeeded for this token — this
+        method does not itself verify the key hash or active status.
+        """
+        lookup = self._compute_lookup_hash(api_key_string)  # type: ignore[attr-defined]
+        api_key = (
+            self.session.query(self.api_key_model)  # type: ignore[attr-defined]
+            .filter(self.api_key_model.lookup_hash == lookup)
+            .one_or_none()
+        )
+        return api_key.scopes if api_key else None
+
+    def _validate_requested_api_key_scopes(
+        self, user: Any, scopes: Optional[str]
+    ) -> None:
+        """Raise if ``scopes`` would grant a user more than their own RBAC.
+
+        Enforces the "intersection, never broader" rule confirmed for this
+        feature: a user must never be able to mint a token scoped beyond
+        what their own role already permits, even if they hand-author the
+        scopes string themselves at issuance time.
+
+        Per-resource scopes (``superset:<resource>:<action>``) are checked
+        against the user's actual ``can_<method>`` RBAC grant for that
+        resource. Flat scopes (``superset:read``/``superset:write``, the
+        pre-per-resource form) can only be self-issued by Admins — a flat
+        scope grants a method across every resource, and there's no single
+        RBAC check that soundly proves a non-Admin has that for "every
+        resource," so it's rejected for anyone else rather than guessed at.
+        Unrecognized scope strings are rejected outright (fail closed).
+
+        NOTE: this only prevents the request from being honored; it does
+        not (yet) produce a clean 400 response, since FAB's ``ApiKeyApi``
+        has no validation hook this can plug into without replacing the API
+        registration entirely. Raising here surfaces as a 500 via FAB's
+        ``@safe`` decorator until that's addressed — tracked as a known
+        follow-up, not silently accepted.
+        """
+        if not scopes:
+            return
+        # pylint: disable-next=import-outside-toplevel
+        from superset.security.api_key_scopes import (
+            RESOURCE_SCOPE_ACTIONS,
+            RESOURCE_SCOPE_CLASS,
+            SCOPE_ACTION_METHOD_PERMISSIONS,
+        )
+
+        admin_role_name = get_conf()["AUTH_ROLE_ADMIN"]
+        is_admin = any(
+            role.name == admin_role_name for role in getattr(user, "roles", [])
+        )
+        for raw_scope in scopes.split(","):
+            scope = raw_scope.strip()
+            if not scope:
+                continue
+            parts = scope.split(":")
+            if len(parts) == 3 and parts[0] == "superset":
+                _, resource_slug, action = parts
+                class_permission_name = RESOURCE_SCOPE_CLASS.get(resource_slug)
+                if class_permission_name is None:
+                    raise ValueError(
+                        f"Requested scope '{scope}' names an unrecognized "
+                        f"resource '{resource_slug}'"
+                    )
+                if action not in RESOURCE_SCOPE_ACTIONS:
+                    raise ValueError(
+                        f"Requested scope '{scope}' names an unrecognized "
+                        f"action '{action}'"
+                    )
+                if any(
+                    self._has_view_access(user, f"can_{method}", class_permission_name)
+                    for method in SCOPE_ACTION_METHOD_PERMISSIONS[action]
+                ):
+                    continue
+                raise ValueError(
+                    f"Requested scope '{scope}' exceeds the issuing user's "
+                    "own permissions"
+                )
+            if (
+                len(parts) == 2
+                and parts[0] == "superset"
+                and parts[1] in RESOURCE_SCOPE_ACTIONS
+                and is_admin
+            ):
+                continue
+            raise ValueError(
+                f"Requested scope '{scope}' is not a recognized "
+                "superset:<resource>:<action> scope, or requires Admin to "
+                "self-issue as a flat scope"
+            )
+
+    def create_api_key(
+        self,
+        user: Any,
+        name: str,
+        scopes: Optional[str] = None,
+        expires_on: Optional[datetime.datetime] = None,
+    ) -> Optional[dict[str, Any]]:
+        """Create a new API key, enforcing the scope-intersection rule.
+
+        Thin wrapper around FAB's ``SecurityManager.create_api_key`` — see
+        ``_validate_requested_api_key_scopes`` for the actual check. FAB's
+        base implementation is otherwise unchanged.
+        """
+        self._validate_requested_api_key_scopes(user, scopes)
+        return super().create_api_key(  # type: ignore[misc]
+            user=user, name=name, scopes=scopes, expires_on=expires_on
         )
 
     @staticmethod
