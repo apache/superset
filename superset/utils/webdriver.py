@@ -34,6 +34,7 @@ from superset.utils.screenshot_utils import (
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
+    DASHBOARD_CONTENT_HEIGHT_JS,
     FIND_CHART_HOLDER_STATES_JS,
     REPORT_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
@@ -50,6 +51,13 @@ PLAYWRIGHT_INSTALL_MESSAGE = (
     "and enable WebGL/DeckGL screenshot support, install Playwright with: "
     "pip install playwright && playwright install chromium"
 )
+
+# Upper bound on the viewport height the standalone (non-tiled) capture grows
+# to when mounting off-screen chart holders. A full_page screenshot already
+# rasterizes the whole document, so this is a memory guard for pathologically
+# tall dashboards, not a new capability limit; taller dashboards should enable
+# SCREENSHOT_TILED_ENABLED, which captures tile-by-tile instead.
+MAX_STANDALONE_CAPTURE_VIEWPORT_HEIGHT = 30000
 
 
 if TYPE_CHECKING:
@@ -237,6 +245,93 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot(**timeout_kwargs)
 
     @staticmethod
+    def _mount_offscreen_chart_holders(
+        page: Page,
+        url: str,
+        element_name: str,
+        viewport_width: int,
+        viewport_height: int,
+        log_context: str | None = None,
+    ) -> None:
+        """
+        Grow the viewport to the full dashboard height so every chart holder is
+        pulled into the viewport and DashboardVirtualization mounts it before a
+        standalone (non-tiled) ``full_page`` capture.
+
+        DashboardVirtualization only mounts chart holders whose bounding rect
+        intersects the window viewport; off-screen holders render an empty
+        placeholder. The standalone capture takes a ``full_page`` screenshot
+        that includes below-the-fold content, while its readiness gate
+        deliberately ignores off-screen ("virtualized") holders to avoid
+        deadlocking on lazy charts (#42624). Together those produce a silent
+        failure: a below-the-fold holder that never mounts is declared ready
+        and then captured blank.
+
+        Superset also disables virtualization for automation browsers via
+        ``navigator.webdriver`` (``isCurrentUserBot``), but that heuristic is
+        fragile -- any deployment where ``navigator.webdriver`` is falsy
+        (custom browser args, anti-automation flags) re-enables virtualization
+        and reintroduces blank reports. Expanding the viewport mounts every
+        holder regardless, so the readiness gate then requires them all to
+        reach a terminal state before capture.
+
+        Best-effort: this only mounts charts, so any failure is swallowed and
+        the readiness wait still runs against the configured viewport.
+        """
+        if element_name != "standalone":
+            # Chart captures (`chart-container`) have a single target and no
+            # dashboard grid to virtualize; other elements are not full-page
+            # dashboard captures.
+            return
+        context_suffix = f" [{log_context}]" if log_context else ""
+        try:
+            content_height = page.evaluate(DASHBOARD_CONTENT_HEIGHT_JS)
+            if not isinstance(content_height, (int, float)) or content_height <= 0:
+                return
+            target_height = min(
+                max(int(content_height), int(viewport_height)),
+                MAX_STANDALONE_CAPTURE_VIEWPORT_HEIGHT,
+            )
+            if target_height <= viewport_height:
+                # The whole dashboard already fits in the viewport; nothing is
+                # off-screen, so there is nothing to mount.
+                return
+            page.set_viewport_size({"width": viewport_width, "height": target_height})
+            # Resizing recomputes IntersectionObserver intersections and mounts
+            # the newly in-view holders; scroll back to the top so the
+            # full_page capture starts there against a stable scroll position.
+            page.evaluate("window.scrollTo(0, 0)")
+            logger.info(
+                "report_capture_viewport_expanded url=%s content_height=%s "
+                "viewport_height=%s target_height=%s%s",
+                url,
+                int(content_height),
+                viewport_height,
+                target_height,
+                context_suffix,
+            )
+            if content_height > MAX_STANDALONE_CAPTURE_VIEWPORT_HEIGHT:
+                logger.warning(
+                    "Dashboard content height %spx exceeds the standalone "
+                    "capture viewport cap of %spx at url %s%s; holders below "
+                    "the cap may remain virtualized and render blank. Enable "
+                    "SCREENSHOT_TILED_ENABLED for very tall dashboards.",
+                    int(content_height),
+                    MAX_STANDALONE_CAPTURE_VIEWPORT_HEIGHT,
+                    url,
+                    context_suffix,
+                )
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Failed to expand the viewport to mount off-screen chart "
+                "holders before the standalone capture at url %s%s; proceeding "
+                "with the configured viewport",
+                url,
+                context_suffix,
+                exc_info=True,
+            )
+
+    @staticmethod
     def _wait_for_charts_ready(  # noqa: C901
         page: Page,
         url: str,
@@ -261,10 +356,13 @@ class WebDriverPlaywright(WebDriverProxy):
         timeout, warning, or error anywhere.
 
         Scoped to viewport-intersecting chart holders only, same as the tiled
-        path: this method's caller never resizes the browser viewport to the
-        full dashboard height before capturing, so DashboardVirtualization
-        placeholders below the fold haven't mounted anything real yet by
-        design and must not block this wait.
+        path. For standalone dashboard captures the caller first grows the
+        viewport to span the whole dashboard (see
+        ``_mount_offscreen_chart_holders``) so DashboardVirtualization mounts
+        every holder and they all become viewport-intersecting; a holder that
+        still stays below the fold afterwards (e.g. a dashboard taller than the
+        viewport cap) is treated as an unmounted virtualization placeholder and
+        must not block this wait.
         """
         task_budget: float | None
         remaining_budget: float | None
@@ -815,9 +913,20 @@ class WebDriverPlaywright(WebDriverProxy):
                             url,
                             context_suffix,
                         )
-                        # Standard screenshot captures the full element including
-                        # below-the-fold content, so wait for all viewport-visible
-                        # chart holders to reach a terminal state.
+                        # Standard screenshot captures the full element
+                        # (full_page for dashboards), including below-the-fold
+                        # content. Grow the viewport to the whole dashboard
+                        # first so DashboardVirtualization mounts every
+                        # off-screen chart holder, then wait for all holders to
+                        # reach a terminal state.
+                        WebDriverPlaywright._mount_offscreen_chart_holders(
+                            page,
+                            url,
+                            element_name,
+                            viewport_width,
+                            viewport_height,
+                            log_context=log_context,
+                        )
                         WebDriverPlaywright._wait_for_charts_ready(
                             page,
                             url,
@@ -879,9 +988,20 @@ class WebDriverPlaywright(WebDriverProxy):
                         url,
                         context_suffix,
                     )
-                    # Standard screenshot captures the full element including
-                    # below-the-fold content, so wait for all viewport-visible
-                    # chart holders to reach a terminal state.
+                    # Standard screenshot captures the full element (full_page
+                    # for dashboards), including below-the-fold content. Grow
+                    # the viewport to the whole dashboard first so
+                    # DashboardVirtualization mounts every off-screen chart
+                    # holder, then wait for all holders to reach a terminal
+                    # state.
+                    WebDriverPlaywright._mount_offscreen_chart_holders(
+                        page,
+                        url,
+                        element_name,
+                        viewport_width,
+                        viewport_height,
+                        log_context=log_context,
+                    )
                     WebDriverPlaywright._wait_for_charts_ready(
                         page,
                         url,
