@@ -1150,6 +1150,29 @@ class TestSqlFromSavedQueryContextExtraFormData:
 
         assert query_context_json["queries"][0]["filters"] == []
 
+    def test_schema_validation_failure_uses_form_data_fallback(self):
+        """A stale saved query context must not prevent form_data fallback."""
+        from marshmallow import ValidationError
+
+        from superset.mcp_service.chart.tool.get_chart_sql import (
+            _sql_from_saved_query_context,
+        )
+        from superset.utils import json as _json
+
+        chart = Mock(
+            query_context=_json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "queries": [{}],
+                }
+            )
+        )
+        with patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            side_effect=ValidationError("stale query context"),
+        ):
+            assert _sql_from_saved_query_context(chart) is None
+
 
 class TestGetChartSqlTool:
     """Integration-style tests for the get_chart_sql MCP tool via Client."""
