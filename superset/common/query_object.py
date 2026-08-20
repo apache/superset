@@ -545,7 +545,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _("`operation` property of post processing object undefined")
                     )
-                if not hasattr(pandas_postprocessing, operation):
+                # ``__all__`` is the authoritative list of built-in operations.
+                # ``hasattr`` would also match module internals (helpers, imported
+                # submodules, typing aliases), shadowing a like-named custom op.
+                if operation in pandas_postprocessing.__all__:
+                    func = getattr(pandas_postprocessing, operation)
+                else:
                     extra_ops = pandas_postprocessing.build_extra_ops_map(
                         current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
                     )
@@ -556,9 +561,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                                 operation=operation,
                             )
                         )
-                    options = post_process.get("options", {})
-                    df = extra_ops[operation](df, **options)
-                    continue
-                options = post_process.get("options", {})
-                df = getattr(pandas_postprocessing, operation)(df, **options)
+                    func = extra_ops[operation]
+                df = func(df, **post_process.get("options", {}))
             return df

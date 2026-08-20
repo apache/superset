@@ -24,6 +24,7 @@ from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.superset_typing import Metric
+from superset.utils import pandas_postprocessing
 from superset.utils.core import override_user
 
 
@@ -484,3 +485,66 @@ def test_exec_post_processing_unknown_op_raises(app_context: None) -> None:
     ):
         with pytest.raises(InvalidPostProcessingError):
             query_object.exec_post_processing(df)
+
+
+@pytest.mark.parametrize(
+    "shadow_name",
+    ["build_extra_ops_map", "utils", "geography", "Any", "Callable", "annotations"],
+)
+def test_exec_post_processing_extra_op_not_shadowed_by_module_internal(
+    app_context: None, shadow_name: str
+) -> None:
+    """A custom op named after a module internal still dispatches to the custom op.
+
+    Only the names in ``pandas_postprocessing.__all__`` are built-in operations.
+    The module additionally exposes helpers, imported submodules and typing
+    aliases, none of which are callable as post-processing operations, so
+    dispatch must not treat them as built-ins.
+    """
+
+    def custom_op(df: pd.DataFrame, column: str) -> pd.DataFrame:
+        df = df.copy()
+        df[column] = df[column] * 2
+        return df
+
+    custom_op.__name__ = shadow_name
+
+    # Pin the premise: reachable on the module, but not a real operation.
+    assert hasattr(pandas_postprocessing, shadow_name)
+    assert shadow_name not in pandas_postprocessing.__all__
+
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": shadow_name, "options": {"column": "value"}}],
+    )
+
+    with patch.dict(
+        "superset.common.query_object.current_app.config",
+        {"EXTRA_PANDAS_POSTPROCESSING_OPS": [custom_op]},
+    ):
+        result = query_object.exec_post_processing(df)
+
+    assert list(result["value"]) == [2, 4, 6]
+
+
+def test_exec_post_processing_builtin_wins_over_extra_op(app_context: None) -> None:
+    """A custom op sharing a built-in name never fires; the built-in is used."""
+
+    def sort(df: pd.DataFrame, **options: object) -> pd.DataFrame:
+        raise AssertionError("custom op must not shadow a built-in operation")
+
+    df = pd.DataFrame({"value": [3, 1, 2]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "sort", "options": {"by": ["value"]}}],
+    )
+
+    with patch.dict(
+        "superset.common.query_object.current_app.config",
+        {"EXTRA_PANDAS_POSTPROCESSING_OPS": [sort]},
+    ):
+        result = query_object.exec_post_processing(df)
+
+    # The built-in sort ran, not the raising custom op.
+    assert list(result["value"]) == [1, 2, 3]
