@@ -17,6 +17,7 @@ import {
   ControlState,
   CustomControlItem,
 } from '@superset-ui/chart-controls';
+import { QueryMode } from '@superset-ui/core';
 import config from '../src/controlPanel';
 
 type VisibilityFn = (
@@ -74,4 +75,43 @@ test('time_grain_sqla visibility should be case-insensitive', () => {
   expect(vis(mkProps(['orderdate']), controlState)).toBe(true);
   expect(vis(mkProps(['ORDERDATE']), controlState)).toBe(true);
   expect(vis(mkProps(['some_other_col']), controlState)).toBe(false);
+});
+
+test('conditional_formatting_totals is visible only in aggregate mode when show_totals is on', () => {
+  const vis = getVisibility(config, 'conditional_formatting_totals');
+  const controlState = {} as ControlState;
+
+  expect(
+    vis(
+      {
+        controls: {
+          query_mode: { value: QueryMode.Aggregate },
+          show_totals: { value: false },
+        },
+      } as never,
+      controlState,
+    ),
+  ).toBe(false);
+  expect(
+    vis(
+      {
+        controls: {
+          query_mode: { value: QueryMode.Aggregate },
+          show_totals: { value: true },
+        },
+      } as never,
+      controlState,
+    ),
+  ).toBe(true);
+  expect(
+    vis(
+      {
+        controls: {
+          query_mode: { value: QueryMode.Raw },
+          show_totals: { value: true },
+        },
+      } as never,
+      controlState,
+    ),
+  ).toBe(false);
 });
