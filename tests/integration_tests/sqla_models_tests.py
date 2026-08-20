@@ -1308,3 +1308,152 @@ def test_column_ordering_without_chart_flag(login_as_admin):
     finally:
         db.session.delete(table)
         db.session.commit()
+
+
+def _multivalue_table() -> SqlaTable:
+    """A dataset with an ``Array(String)`` column, for multi-value query tests.
+
+    Built over the example database but never executed — the tests only compile
+    the generated SQL, so the backing table need not physically exist.
+    """
+    columns = [
+        TableColumn(column_name="skills", type="Array(String)"),
+        TableColumn(column_name="city", type="VARCHAR(255)"),
+    ]
+    return SqlaTable(
+        table_name="test_multivalue_jobs",
+        database=get_example_database(),
+        columns=columns,
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+
+
+def _multivalue_query(
+    *,
+    filters: list[dict[str, Any]] | None = None,
+    groupby: list[Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "is_timeseries": False,
+        "groupby": groupby if groupby is not None else ["city"],
+        "metrics": ["count"],
+        "filter": filters or [],
+        "extras": {},
+    }
+
+
+def _compile(table: SqlaTable, query_obj: dict[str, Any]) -> str:
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    with patch.object(
+        SqlaTable, "db_engine_spec", property(lambda self: ClickHouseEngineSpec)
+    ):
+        sqla_query = table.get_sqla_query(**query_obj)
+        return table.database.compile_sqla_query(sqla_query.sqla_query).lower()
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_contains_any_generates_native_sql():
+    """CONTAINS_ANY compiles to ``hasAny(col, array(...))``."""
+    table = _multivalue_table()
+    sql = _compile(
+        table,
+        _multivalue_query(
+            filters=[
+                {
+                    "col": "skills",
+                    "op": FilterOperator.CONTAINS_ANY.value,
+                    "val": ["Driver", "Cook"],
+                }
+            ]
+        ),
+    )
+    assert "hasany(skills" in sql
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_contains_all_generates_native_sql():
+    """CONTAINS_ALL compiles to ``hasAll(col, array(...))``."""
+    table = _multivalue_table()
+    sql = _compile(
+        table,
+        _multivalue_query(
+            filters=[
+                {
+                    "col": "skills",
+                    "op": FilterOperator.CONTAINS_ALL.value,
+                    "val": ["Driver", "Cook"],
+                }
+            ]
+        ),
+    )
+    assert "hasall(skills" in sql
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_is_empty_generates_native_sql():
+    """IS_EMPTY compiles to ``length(col) = 0``."""
+    table = _multivalue_table()
+    sql = _compile(
+        table,
+        _multivalue_query(
+            filters=[{"col": "skills", "op": FilterOperator.IS_EMPTY.value}]
+        ),
+    )
+    assert "length(skills) = 0" in sql
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_length_filter_generates_native_sql():
+    """A LENGTH_GREATER_THAN filter compiles to ``length(col) > N``."""
+    table = _multivalue_table()
+    sql = _compile(
+        table,
+        _multivalue_query(
+            filters=[
+                {
+                    "col": "skills",
+                    "op": FilterOperator.LENGTH_GREATER_THAN.value,
+                    "val": 2,
+                }
+            ]
+        ),
+    )
+    assert "length(skills) > 2" in sql
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_contains_unsupported_engine_raises():
+    """CONTAINS_ANY on an engine without array support is rejected."""
+    table = _multivalue_table()
+    query_obj = _multivalue_query(
+        filters=[
+            {
+                "col": "skills",
+                "op": FilterOperator.CONTAINS_ANY.value,
+                "val": ["Driver"],
+            }
+        ]
+    )
+    with pytest.raises(QueryObjectValidationError):
+        table.get_sqla_query(**query_obj)
+
+
+@pytest.mark.usefixtures("app_context")
+def test_multivalue_length_filter_unsupported_engine_raises():
+    """A Length filter on an engine without array support is rejected."""
+    table = _multivalue_table()
+    query_obj = _multivalue_query(
+        filters=[
+            {
+                "col": "skills",
+                "op": FilterOperator.LENGTH_GREATER_THAN.value,
+                "val": 2,
+            }
+        ]
+    )
+    with pytest.raises(QueryObjectValidationError):
+        table.get_sqla_query(**query_obj)
