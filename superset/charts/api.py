@@ -717,20 +717,27 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             "viz_type": chart.viz_type,
         }
 
-        # Get upstream (dataset and database) information
+        # Get upstream (dataset and database) information. Schema/table/database
+        # details are only exposed to users who can access the underlying
+        # datasource; otherwise they are redacted so lineage never leaks
+        # datasource internals (the dataset id/name are kept so the graph
+        # still renders), mirroring the dashboard lineage endpoint.
         upstream: dict[str, Any] = {}
         if dataset := chart.datasource:
+            can_access = security_manager.can_access_datasource(dataset)
             upstream["dataset"] = {
                 "id": dataset.id,
                 "name": dataset.name,
-                "database_id": dataset.database_id,
-                "database_name": dataset.database.database_name
-                if dataset.database
-                else None,
-                "schema": dataset.schema,
-                "table_name": dataset.table_name,
+                "database_id": dataset.database_id if can_access else None,
+                "database_name": (
+                    dataset.database.database_name
+                    if can_access and dataset.database
+                    else None
+                ),
+                "schema": dataset.schema if can_access else None,
+                "table_name": dataset.table_name if can_access else None,
             }
-            if dataset.database:
+            if can_access and dataset.database:
                 upstream["database"] = {
                     "id": dataset.database.id,
                     "database_name": dataset.database.database_name,
