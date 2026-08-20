@@ -41,7 +41,7 @@ import type {
   AutomaticNormalizationTransitions,
   ChartNormalizationTrackingState,
 } from 'src/features/versionHistory/types';
-import { jsonValuesEqual } from 'src/features/versionHistory/normalization';
+import { matchingAutomaticNormalizationTransitions } from 'src/features/versionHistory/normalization';
 
 export interface PayloadSlice extends Slice {
   params: string;
@@ -261,18 +261,12 @@ export const updateSlice =
     ) as QueryFormData;
     const tracking = initialState.versionHistory?.chartNormalization;
     const saveAttemptId = nanoid();
-    const matchingTransitions = Object.fromEntries(
-      Object.entries(tracking?.transitions ?? {}).filter(
-        ([control, transition]) =>
-          !tracking?.invalidatedControls[control] &&
-          Object.hasOwn(formData, control) === transition.to_present &&
-          (!transition.to_present ||
-            jsonValuesEqual(formData[control], transition.to_value)),
-      ),
-    ) as AutomaticNormalizationTransitions;
     const shouldAttachNormalization =
       isFeatureEnabled(FeatureFlag.VersionHistory) &&
       tracking?.chartId === sliceId;
+    const matchingTransitions = shouldAttachNormalization
+      ? matchingAutomaticNormalizationTransitions(tracking, formData)
+      : {};
     if (shouldAttachNormalization) {
       dispatch(
         beginChartNormalizationSave(

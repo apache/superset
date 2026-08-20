@@ -17,26 +17,137 @@
  * under the License.
  */
 import isEqual from 'lodash-es/isEqual';
-import type { JsonValue } from './types';
+import type {
+  AutomaticNormalizationTransition,
+  AutomaticNormalizationTransitions,
+  ChartNormalizationTrackingState,
+  JsonValue,
+} from './types';
 
-export const isJsonValue = (value: unknown): value is JsonValue => {
+const isJsonValueInternal = (
+  value: unknown,
+  ancestors: WeakSet<object>,
+): value is JsonValue => {
   if (
     value === null ||
     typeof value === 'string' ||
-    typeof value === 'number' ||
     typeof value === 'boolean'
   ) {
     return true;
   }
-  if (Array.isArray(value)) {
-    return value.every(isJsonValue);
+  if (typeof value === 'number') {
+    return Number.isFinite(value);
   }
-  return (
-    typeof value === 'object' &&
-    Object.values(value as Record<string, unknown>).every(isJsonValue)
-  );
+  if (typeof value !== 'object' || ancestors.has(value)) {
+    return false;
+  }
+
+  ancestors.add(value);
+  let isJsonCompatible: boolean;
+  if (Array.isArray(value)) {
+    isJsonCompatible = value.every(item =>
+      isJsonValueInternal(item, ancestors),
+    );
+  } else {
+    const prototype = Object.getPrototypeOf(value);
+    isJsonCompatible =
+      (prototype === Object.prototype || prototype === null) &&
+      Object.values(value).every(item => isJsonValueInternal(item, ancestors));
+  }
+  ancestors.delete(value);
+  return isJsonCompatible;
 };
+
+export const isJsonValue = (value: unknown): value is JsonValue =>
+  isJsonValueInternal(value, new WeakSet());
 
 /** Structural equality for JSON values, independent of object key order. */
 export const jsonValuesEqual = (left: unknown, right: unknown) =>
   isEqual(left, right);
+
+interface NormalizationSnapshots {
+  control: string;
+  persisted: Record<string, unknown>;
+  input: Record<string, unknown>;
+  hydrated: Record<string, unknown>;
+}
+
+const automaticNormalizationTransition = ({
+  control,
+  persisted,
+  input,
+  hydrated,
+}: NormalizationSnapshots): AutomaticNormalizationTransition | undefined => {
+  const fromPresent = Object.hasOwn(persisted, control);
+  const inputPresent = Object.hasOwn(input, control);
+  const toPresent = Object.hasOwn(hydrated, control);
+  const fromValue = persisted[control];
+  const inputValue = input[control];
+  const toValue = hydrated[control];
+
+  const inputMatchesPersisted =
+    fromPresent === inputPresent && jsonValuesEqual(fromValue, inputValue);
+  const hydrationChangedValue =
+    fromPresent !== toPresent || !jsonValuesEqual(fromValue, toValue);
+
+  if (!inputMatchesPersisted || !toPresent || !hydrationChangedValue) {
+    return undefined;
+  }
+  if (!isJsonValue(toValue)) {
+    return undefined;
+  }
+
+  if (!fromPresent) {
+    return {
+      control,
+      from_present: false,
+      to_present: true,
+      to_value: toValue,
+    };
+  }
+  if (!isJsonValue(fromValue)) {
+    return undefined;
+  }
+  return {
+    control,
+    from_present: true,
+    from_value: fromValue,
+    to_present: true,
+    to_value: toValue,
+  };
+};
+
+export const automaticNormalizationTransitions = (
+  persisted: Record<string, unknown>,
+  input: Record<string, unknown>,
+  hydrated: Record<string, unknown>,
+): AutomaticNormalizationTransitions => {
+  const transitions: AutomaticNormalizationTransitions = {};
+  const controls = new Set([...Object.keys(input), ...Object.keys(hydrated)]);
+  controls.forEach(control => {
+    const transition = automaticNormalizationTransition({
+      control,
+      persisted,
+      input,
+      hydrated,
+    });
+    if (transition) {
+      transitions[control] = transition;
+    }
+  });
+  return transitions;
+};
+
+export const matchingAutomaticNormalizationTransitions = (
+  tracking: ChartNormalizationTrackingState | null | undefined,
+  formData: Record<string, unknown>,
+): AutomaticNormalizationTransitions =>
+  Object.fromEntries(
+    Object.entries(tracking?.transitions ?? {}).filter(
+      ([control, transition]) =>
+        !tracking?.invalidatedControls[control] &&
+        Object.hasOwn(formData, control) === transition.to_present &&
+        (!transition.to_present ||
+          jsonValuesEqual(formData[control], transition.to_value)),
+    ),
+  );

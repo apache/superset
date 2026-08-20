@@ -415,7 +415,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (f"{self.__class__.__name__}.deck_layers"),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.deck_layers",
         log_to_statsd=False,
     )
     def deck_layers(self, pk: int) -> Response:

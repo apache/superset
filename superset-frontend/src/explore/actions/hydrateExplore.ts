@@ -52,57 +52,12 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import { nanoid } from 'nanoid';
 import cloneDeep from 'lodash-es/cloneDeep';
 import { hydrateChartNormalization } from 'src/features/versionHistory/reducer';
-import {
-  isJsonValue,
-  jsonValuesEqual,
-} from 'src/features/versionHistory/normalization';
-import type {
-  AutomaticNormalizationTransitions,
-  JsonValue,
-} from 'src/features/versionHistory/types';
+import { automaticNormalizationTransitions } from 'src/features/versionHistory/normalization';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
   SEQUENTIAL = 'SEQUENTIAL',
 }
-
-const normalizationTransitions = (
-  persisted: Record<string, unknown>,
-  input: Record<string, unknown>,
-  hydrated: Record<string, unknown>,
-): AutomaticNormalizationTransitions => {
-  const transitions: AutomaticNormalizationTransitions = {};
-  [...new Set([...Object.keys(input), ...Object.keys(hydrated)])].forEach(
-    control => {
-      const fromPresent = Object.hasOwn(persisted, control);
-      const inputPresent = Object.hasOwn(input, control);
-      const toPresent = Object.hasOwn(hydrated, control);
-      const fromValue = persisted[control];
-      const inputValue = input[control];
-      const toValue = hydrated[control];
-      if (
-        fromPresent === inputPresent &&
-        jsonValuesEqual(fromValue, inputValue) &&
-        // A missing projected key may only mean that the control is not part
-        // of the active visualization. Treating it as normalization could
-        // suppress a real removal.
-        toPresent &&
-        (fromPresent !== toPresent || !jsonValuesEqual(fromValue, toValue)) &&
-        (!fromPresent || isJsonValue(fromValue)) &&
-        (!toPresent || isJsonValue(toValue))
-      ) {
-        transitions[control] = {
-          control,
-          from_present: fromPresent,
-          ...(fromPresent && { from_value: fromValue as JsonValue }),
-          to_present: toPresent,
-          ...(toPresent && { to_value: toValue as JsonValue }),
-        } as AutomaticNormalizationTransitions[string];
-      }
-    },
-  );
-  return transitions;
-};
 
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
@@ -319,7 +274,7 @@ export const hydrateExplore =
         hydrateChartNormalization({
           chartId: initialSlice.slice_id,
           hydrationSessionId: nanoid(),
-          transitions: normalizationTransitions(
+          transitions: automaticNormalizationTransitions(
             persistedFormData,
             preHydrationFormData,
             hydratedFormData,
