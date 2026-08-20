@@ -230,16 +230,23 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
         Comparing against the signature avoids a hard-coded list of removed
         option names, which would need extending at each release.
+
+        Only the built-in operations in ``pandas_postprocessing.__all__`` are
+        inspected. The module also exposes helpers, imported submodules and
+        typing aliases, none of which are operations; and options belonging to a
+        callable registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` are the
+        operator's to manage, so both are passed through untouched.
         """
         operation = post_proc.get("operation")
         function = (
             getattr(pandas_postprocessing, operation, None)
-            if isinstance(operation, str)
+            if isinstance(operation, str) and operation in pandas_postprocessing.__all__
             else None
         )
         if function is None:
-            # A missing or unknown operation is left untouched, so that
-            # exec_post_processing reports it as InvalidPostProcessingError.
+            # A missing, unknown or operator-registered operation is left
+            # untouched, so that exec_post_processing either dispatches it or
+            # reports it as InvalidPostProcessingError.
             return post_proc
 
         parameters = inspect.signature(function).parameters
