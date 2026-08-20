@@ -764,8 +764,9 @@ class UpdateDashboardRequest(BaseModel):
             "Optional replacement layout (Superset's position_json dict). "
             "When set, fully replaces the existing layout and must keep every "
             "dashboard chart reachable from ROOT_ID, with consistent children "
-            "and parents. Get the current layout via ``get_dashboard_layout`` "
-            "first if you want to make incremental changes."
+            "and parents. Do not use this field for incremental edits: MCP does "
+            "not currently expose the complete raw layout tree needed to safely "
+            "round-trip a replacement. Prefer purpose-built dashboard tools."
         ),
     )
     json_metadata_overrides: Dict[str, Any] | None = Field(

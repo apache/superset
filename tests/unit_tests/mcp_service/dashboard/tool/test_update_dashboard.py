@@ -103,6 +103,7 @@ class TestUpdateDashboard:
         mock_get.return_value = dash
 
         position = {
+            "DASHBOARD_VERSION_KEY": "v2",
             "ROOT_ID": {
                 "id": "ROOT_ID",
                 "type": "ROOT",
@@ -157,6 +158,7 @@ class TestUpdateDashboard:
     ) -> None:
         original_position = json.dumps(
             {
+                "DASHBOARD_VERSION_KEY": "v2",
                 "ROOT_ID": {
                     "id": "ROOT_ID",
                     "type": "ROOT",
@@ -180,6 +182,7 @@ class TestUpdateDashboard:
         dash.slices = [Mock(id=10)]
         mock_get.return_value = dash
         unreachable_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
             "ROOT_ID": {
                 "id": "ROOT_ID",
                 "type": "ROOT",
@@ -188,12 +191,14 @@ class TestUpdateDashboard:
             "TABS-1": {
                 "id": "TABS-1",
                 "type": "TABS",
+                "meta": {},
                 "parents": ["ROOT_ID"],
                 "children": ["TAB-1"],
             },
             "TAB-1": {
                 "id": "TAB-1",
                 "type": "TAB",
+                "meta": {"text": "Overview"},
                 "parents": ["ROOT_ID", "TABS-1"],
                 "children": [],
             },
@@ -211,6 +216,8 @@ class TestUpdateDashboard:
                 {
                     "request": {
                         "identifier": 42,
+                        "dashboard_title": "Must not be applied",
+                        "css": ".must-not-be-applied { color: red; }",
                         "position_json": unreachable_layout,
                     }
                 },
@@ -220,6 +227,8 @@ class TestUpdateDashboard:
         assert payload["error_type"] == "InvalidDashboardLayout"
         assert "unreachable" in payload["error"]
         assert dash.position_json == original_position
+        assert dash.dashboard_title == "Test Dashboard"
+        assert dash.css is None
         mock_session.commit.assert_not_called()
 
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")

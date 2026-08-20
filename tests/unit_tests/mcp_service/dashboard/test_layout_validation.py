@@ -18,13 +18,14 @@
 """Tests for MCP dashboard layout validation."""
 
 from copy import deepcopy
+from typing import Any
 
 from superset.mcp_service.dashboard.layout_validation import (
     validate_dashboard_layout,
 )
 
 
-def _grid_layout() -> dict:
+def _grid_layout() -> dict[str, Any]:
     return {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {
@@ -41,6 +42,7 @@ def _grid_layout() -> dict:
         "ROW-1": {
             "children": ["CHART-1"],
             "id": "ROW-1",
+            "meta": {},
             "parents": ["ROOT_ID", "GRID_ID"],
             "type": "ROW",
         },
@@ -56,6 +58,22 @@ def _grid_layout() -> dict:
 
 def test_valid_layout() -> None:
     assert validate_dashboard_layout(_grid_layout(), {1}) is None
+
+
+def test_valid_empty_grid() -> None:
+    layout = _grid_layout()
+    layout["GRID_ID"]["children"] = []
+    del layout["ROW-1"]
+    del layout["CHART-1"]
+
+    assert validate_dashboard_layout(layout, set()) is None
+
+
+def test_accepts_decimal_string_chart_id() -> None:
+    layout = _grid_layout()
+    layout["CHART-1"]["meta"]["chartId"] = "1"
+
+    assert validate_dashboard_layout(layout, {1}) is None
 
 
 def test_valid_top_level_tabs_with_reserved_nodes() -> None:
@@ -80,12 +98,14 @@ def test_valid_top_level_tabs_with_reserved_nodes() -> None:
         "TABS-1": {
             "children": ["TAB-1"],
             "id": "TABS-1",
+            "meta": {},
             "parents": ["ROOT_ID"],
             "type": "TABS",
         },
         "TAB-1": {
             "children": ["CHART-1"],
             "id": "TAB-1",
+            "meta": {"text": "Overview"},
             "parents": ["ROOT_ID", "TABS-1"],
             "type": "TAB",
         },
@@ -120,9 +140,16 @@ def test_rejects_missing_child_reference() -> None:
 
 def test_rejects_cycle() -> None:
     layout = _grid_layout()
-    layout["CHART-1"]["type"] = "COLUMN"
-    layout["CHART-1"].pop("meta")
-    layout["CHART-1"]["children"] = ["ROW-1"]
+    layout["GRID_ID"]["children"] = []
+    layout["ROW-1"]["children"] = ["COLUMN-1"]
+    layout["ROW-1"]["parents"] = ["COLUMN-1"]
+    layout["COLUMN-1"] = {
+        "children": ["ROW-1"],
+        "id": "COLUMN-1",
+        "meta": {},
+        "parents": ["ROW-1"],
+        "type": "COLUMN",
+    }
 
     error = validate_dashboard_layout(layout, {1})
 
@@ -153,7 +180,7 @@ def test_rejects_unsupported_component_type() -> None:
 
     error = validate_dashboard_layout(layout, {1})
 
-    assert error == "Layout component ROW-1 cannot be a child of GRID_ID."
+    assert error == "Layout component ROW-1 has unsupported type."
 
 
 def test_rejects_layout_that_hides_associated_chart() -> None:
@@ -169,3 +196,76 @@ def test_rejects_chart_not_associated_with_dashboard() -> None:
     error = validate_dashboard_layout(_grid_layout(), set())
 
     assert error == "Layout references charts not associated with the dashboard: [1]."
+
+
+def test_rejects_empty_root() -> None:
+    layout = _grid_layout()
+    layout["ROOT_ID"]["children"] = []
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "ROOT_ID must contain exactly one GRID or TABS component."
+    )
+
+
+def test_rejects_empty_tabs() -> None:
+    layout = _grid_layout()
+    layout["ROOT_ID"]["children"] = ["TABS-1"]
+    layout["TABS-1"] = {
+        "children": [],
+        "id": "TABS-1",
+        "meta": {},
+        "parents": ["ROOT_ID"],
+        "type": "TABS",
+    }
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "Tabs component TABS-1 must contain at least one tab."
+    )
+
+
+def test_rejects_non_component_top_level_value() -> None:
+    layout = _grid_layout()
+    layout["BROKEN"] = None
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "Layout value BROKEN must be a component object."
+    )
+
+
+def test_rejects_invalid_version() -> None:
+    layout = _grid_layout()
+    layout["DASHBOARD_VERSION_KEY"] = None
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "DASHBOARD_VERSION_KEY must be the string 'v2'."
+    )
+
+
+def test_rejects_missing_renderer_metadata() -> None:
+    layout = _grid_layout()
+    del layout["ROW-1"]["meta"]
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "Layout component ROW-1.meta must be an object."
+    )
+
+
+def test_rejects_dynamic_component() -> None:
+    layout = _grid_layout()
+    layout["CHART-1"]["type"] = "DYNAMIC"
+    layout["CHART-1"]["meta"] = {"componentKey": "unknown"}
+
+    assert validate_dashboard_layout(layout, set()) == (
+        "Layout component CHART-1 uses DYNAMIC, which cannot be safely "
+        "validated by the server."
+    )
+
+
+def test_rejects_malformed_string_chart_id() -> None:
+    layout = _grid_layout()
+    layout["CHART-1"]["meta"]["chartId"] = "1.0"
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "Chart component CHART-1 must have a positive integer or "
+        "decimal-string chartId."
+    )

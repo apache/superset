@@ -298,9 +298,10 @@ async def update_dashboard(
 ) -> UpdateDashboardResponse | DashboardError:
     """Patch an existing dashboard's layout, theme, styling, or metadata.
 
-    Companion to ``generate_dashboard`` for incremental edits. An LLM can:
+    Companion to ``generate_dashboard`` for incremental metadata and styling
+    edits. An LLM can:
 
-      - Set or replace ``position_json`` after auto-generation
+      - Replace ``position_json`` only when it already has the complete raw tree
       - Apply brand ``label_colors`` and ``color_scheme`` via
         ``json_metadata_overrides``
       - Inject ``css`` to hide chrome on print-ready dashboards
