@@ -687,10 +687,9 @@ export function syncQueryEditor(
 ): SqlLabThunkAction<Promise<unknown>> {
   return async function (dispatch: AppDispatch, getState: GetState) {
     try {
-      const { tables, queries, databases } = getState().sqlLab;
-      let databaseWasRemoved =
-        queryEditor.dbId !== undefined && !databases[queryEditor.dbId];
-      if (!databaseWasRemoved && queryEditor.dbId !== undefined) {
+      const { tables, queries } = getState().sqlLab;
+      let databaseWasRemoved = false;
+      if (queryEditor.dbId != null) {
         const query = rison.encode({
           filters: [{ col: 'id', opr: 'eq', value: queryEditor.dbId }],
           page: 0,

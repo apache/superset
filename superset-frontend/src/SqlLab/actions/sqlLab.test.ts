@@ -2003,7 +2003,6 @@ describe('async actions', () => {
           sqlLab: {
             queries,
             tables,
-            databases: { 1: {} },
           },
         });
         const expectedActions = [
