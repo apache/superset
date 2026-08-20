@@ -991,14 +991,20 @@ class ChartDataPostProcessingOperationSchema(Schema):
 
     @validates("operation")
     def validate_operation(self, value: str, **kwargs: object) -> None:
-        from flask import current_app
+        # Built-in operations validate without reading the config, so schemas can
+        # still be loaded outside of an app context.
+        if value in self._builtin_ops:
+            return
 
-        extra_op_names = list(
-            pandas_postprocessing.build_extra_ops_map(
-                current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
-            )
+        try:
+            extra = current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        except RuntimeError:
+            # Outside app context, only built-in operations are known
+            extra = []
+
+        allowed = set(self._builtin_ops) | set(
+            pandas_postprocessing.build_extra_ops_map(extra)
         )
-        allowed = set(self._builtin_ops) | set(extra_op_names)
         if value not in allowed:
             raise ValidationError(
                 f"Must be one of: {sorted(allowed)!r}.",
