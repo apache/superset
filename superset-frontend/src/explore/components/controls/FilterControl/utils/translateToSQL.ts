@@ -44,6 +44,17 @@ export const OPERATORS_TO_SQL = {
   'IS NULL': 'IS NULL',
   'IS TRUE': 'IS TRUE',
   'IS FALSE': 'IS FALSE',
+  // Element-level array operators (shown as filter labels; not executable SQL —
+  // the Custom SQL tab is hidden for these).
+  CONTAINS_ANY: 'CONTAINS ANY',
+  CONTAINS_ALL: 'CONTAINS ALL',
+  IS_EMPTY: 'IS EMPTY',
+  IS_NOT_EMPTY: 'IS NOT EMPTY',
+  LENGTH_EQUALS: 'LENGTH =',
+  LENGTH_GREATER_THAN: 'LENGTH >',
+  LENGTH_LESS_THAN: 'LENGTH <',
+  LENGTH_GREATER_THAN_OR_EQUALS: 'LENGTH >=',
+  LENGTH_LESS_THAN_OR_EQUALS: 'LENGTH <=',
   'LATEST PARTITION': ({
     datasource,
   }: {

@@ -159,16 +159,49 @@ CHART_ERROR_OR_EMPTY_SELECTOR = (
     f"{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}"
 )
 
-# Shared body for holder readiness and timeout diagnostics. A holder is ready
-# only after a terminal marker appears and its loading marker disappears.
-UNREADY_CHART_HOLDERS_JS_BODY = f"""
+# Runtime contract with the dashboard frontend. Dispatching this window event
+# forces every DashboardVirtualization row to render regardless of whether it
+# intersects the headless viewport, mirroring the client-side "Download as
+# Image/PDF" path (see FORCE_IN_VIEW_EVENT in
+# superset-frontend/src/dashboard/constants.ts and forceLoadAllCharts in
+# superset-frontend/src/utils/downloadUtils.ts). The non-tiled report capture
+# takes a single full-page screenshot that includes below-the-fold holders, so
+# those holders must be forced to render before the readiness wait -- otherwise
+# a virtualized (or still-loading) off-screen holder is captured blank. A plain
+# Event with no `detail.rowIds` means "force every row", matching the frontend's
+# single-pass branch.
+FORCE_ALL_CHART_HOLDERS_IN_VIEW_EVENT = "superset-force-all-in-view"
+FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS = (
+    f"() => window.dispatchEvent(new Event('{FORCE_ALL_CHART_HOLDERS_IN_VIEW_EVENT}'))"
+)
+
+
+def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
+    """Return the shared holder-readiness scan body.
+
+    A holder is ready only after a terminal marker appears and its loading
+    marker disappears. When ``viewport_only`` is True the scan skips holders
+    that do not intersect the current viewport: correct for the tiled path,
+    which scrolls every region into view before capturing it, and for
+    thumbnails, which only ever capture the viewport. The non-tiled *report*
+    capture takes a single full-page screenshot that includes below-the-fold
+    holders, so it must scan every mounted holder (``viewport_only=False``) --
+    otherwise an off-screen holder that never rendered is captured blank and
+    silently delivered as a Success.
+    """
+    viewport_skip = (
+        """
+        const r = holder.getBoundingClientRect();
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+            continue;
+        }"""
+        if viewport_only
+        else ""
+    )
+    return f"""
     const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     const unready = [];
-    for (const holder of holders) {{
-        const r = holder.getBoundingClientRect();
-        if (!(r.top < window.innerHeight && r.bottom > 0)) {{
-            continue;
-        }}
+    for (const holder of holders) {{{viewport_skip}
         const hasSliceContainer = holder.querySelector(
             '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
@@ -205,6 +238,13 @@ UNREADY_CHART_HOLDERS_JS_BODY = f"""
         }}
     }}
 """
+
+
+# Viewport-scoped scan (tiled path + thumbnails).
+UNREADY_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=True)
+# Full-dashboard scan (non-tiled report capture, which screenshots the whole
+# element in one shot and therefore cannot ignore below-the-fold holders).
+UNREADY_ALL_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=False)
 
 # Diagnostic query for every chart holder, including terminal and virtualized
 # states. It interpolates the same selector constants as the predicates.
@@ -256,11 +296,23 @@ REPORT_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
 )
+# Report readiness for the non-tiled full-page capture: every mounted holder --
+# including below-the-fold ones -- must be terminally rendered. Off-screen
+# holders are forced to render first (FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS); if any
+# still fails to render within budget the wait times out and the report fails
+# loudly rather than shipping a blank/partial screenshot as a Success.
+REPORT_ALL_CHART_HOLDERS_READY_JS = (
+    f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
+    "return holders.length > 0 && unready.length === 0; }"
+)
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )
 FIND_UNREADY_CHART_HOLDERS_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
+)
+FIND_ALL_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
 
 # A chart capture has one target rather than dashboard holders, but needs the
