@@ -858,3 +858,111 @@ class TestChartDataCommandValidation:
                 )
 
             mock_command.run.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("use_cache", "force_refresh", "expected_force"),
+    [
+        (True, False, False),
+        (False, False, True),
+        (True, True, True),
+        (False, True, True),
+    ],
+)
+async def test_query_from_form_data_use_cache_false_bypasses_cache(
+    use_cache: bool,
+    force_refresh: bool,
+    expected_force: bool,
+) -> None:
+    """use_cache=False must bypass the cache the same way force_refresh=True
+    does; previously only force_refresh was wired to the QueryContext's
+    ``force`` flag and use_cache was silently ignored."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from superset.mcp_service.chart.schemas import GetChartDataRequest
+    from superset.mcp_service.chart.tool.get_chart_data import _query_from_form_data
+
+    with (
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_class,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory,
+    ):
+        mock_command = MagicMock()
+        mock_command.run.return_value = {
+            "queries": [{"data": [], "colnames": [], "rowcount": 0}]
+        }
+        mock_command_class.return_value = mock_command
+        mock_factory.return_value.create.return_value = MagicMock()
+
+        await _query_from_form_data(
+            {"datasource_id": 1, "datasource_type": "table"},
+            GetChartDataRequest(
+                form_data_key="k",
+                use_cache=use_cache,
+                force_refresh=force_refresh,
+                cache_timeout=90,
+            ),
+            AsyncMock(),
+        )
+
+        _, create_kwargs = mock_factory.return_value.create.call_args
+        assert create_kwargs["force"] is expected_force
+        assert create_kwargs["custom_cache_timeout"] == 90
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("use_cache", "force_refresh", "expected_refreshed"),
+    [
+        (True, False, False),
+        (False, False, False),
+        (True, True, True),
+        (False, True, True),
+    ],
+)
+async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
+    use_cache: bool,
+    force_refresh: bool,
+    expected_refreshed: bool,
+) -> None:
+    """cache_status.refreshed must reflect only the explicit force_refresh
+    request field, not the use_cache-derived effective_force used for query
+    execution; otherwise a use_cache=False, force_refresh=False request would
+    incorrectly report refreshed=True."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from superset.mcp_service.chart.schemas import ChartData, GetChartDataRequest
+    from superset.mcp_service.chart.tool.get_chart_data import _query_from_form_data
+
+    with (
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_class,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory,
+    ):
+        mock_command = MagicMock()
+        mock_command.run.return_value = {
+            "queries": [{"data": [{"col": 1}], "colnames": ["col"], "rowcount": 1}]
+        }
+        mock_command_class.return_value = mock_command
+        mock_factory.return_value.create.return_value = MagicMock()
+
+        result = await _query_from_form_data(
+            {"datasource_id": 1, "datasource_type": "table"},
+            GetChartDataRequest(
+                form_data_key="k",
+                use_cache=use_cache,
+                force_refresh=force_refresh,
+            ),
+            AsyncMock(),
+        )
+
+        assert isinstance(result, ChartData)
+        assert result.cache_status is not None
+        assert result.cache_status.refreshed is expected_refreshed

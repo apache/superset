@@ -62,6 +62,11 @@ def _apply_extra_form_data(
     merge_extra_filters(form_data)
 
 
+def _compute_effective_force(request: GetChartDataRequest) -> bool:
+    """use_cache=False must also bypass the cache, not just force_refresh=True."""
+    return request.force_refresh or not request.use_cache
+
+
 def _get_cached_form_data(form_data_key: str) -> str | None:
     """Retrieve form_data from cache using form_data_key.
 
@@ -124,6 +129,7 @@ async def get_chart_data(  # noqa: C901
             request.cache_timeout,
         )
     )
+    effective_force = _compute_effective_force(request)
 
     try:
         await ctx.report_progress(1, 4, "Looking up chart")
@@ -334,7 +340,8 @@ async def get_chart_data(  # noqa: C901
                     },
                     queries=[cached_query],
                     form_data=cached_form_data_dict,
-                    force=request.force_refresh,
+                    force=effective_force,
+                    custom_cache_timeout=request.cache_timeout,
                 )
                 await ctx.debug(
                     "Built query_context from cached form_data (unsaved state)"
@@ -537,11 +544,14 @@ async def get_chart_data(  # noqa: C901
                     },
                     queries=[fallback_query],
                     form_data=form_data,
-                    force=request.force_refresh,
+                    force=effective_force,
+                    custom_cache_timeout=request.cache_timeout,
                 )
             elif query_context_json is not None:
                 # Apply request overrides to the saved query_context
-                query_context_json["force"] = request.force_refresh
+                query_context_json["force"] = effective_force
+                if request.cache_timeout is not None:
+                    query_context_json["custom_cache_timeout"] = request.cache_timeout
 
                 # Apply row limit if specified (respects chart's configured limits)
                 if request.limit:
@@ -874,6 +884,8 @@ async def _query_from_form_data(
         metrics = form_data.get("metrics", [])
         groupby = list(form_data.get("groupby") or [])
 
+    effective_force = _compute_effective_force(request)
+
     try:
         factory = QueryContextFactory()
         query_context = factory.create(
@@ -888,7 +900,8 @@ async def _query_from_form_data(
                 }
             ],
             form_data=form_data,
-            force=request.force_refresh,
+            force=effective_force,
+            custom_cache_timeout=request.cache_timeout,
         )
 
         await ctx.report_progress(3, 4, "Executing data query")
