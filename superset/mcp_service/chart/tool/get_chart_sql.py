@@ -23,11 +23,13 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from marshmallow import ValidationError as MarshmallowValidationError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -36,6 +38,7 @@ from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     extract_x_axis_col,
     merge_extra_form_data_filters_into_query,
+    resolve_form_data_datasource,
     resolve_groupby,
     resolve_metrics,
     resolve_metrics_and_groupby,
@@ -173,16 +176,30 @@ def _sql_from_saved_query_context(
         qc_json["force"] = False
 
         if extra_form_data:
-            for query in qc_json.get("queries", []):
-                merge_extra_form_data_filters_into_query(
-                    query,
-                    extra_form_data,
-                    qc_json["datasource"]["id"],
-                    qc_json["datasource"]["type"],
+            try:
+                for query in qc_json.get("queries", []):
+                    merge_extra_form_data_filters_into_query(
+                        query,
+                        extra_form_data,
+                        qc_json["datasource"]["id"],
+                        qc_json["datasource"]["type"],
+                    )
+            except (AttributeError, KeyError, TypeError) as ex:
+                return ChartError(
+                    error=f"Invalid extra_form_data filter: {ex}",
+                    error_type="ValidationError",
                 )
 
-        query_context = ChartDataQueryContextSchema().load(qc_json)
+        try:
+            query_context = ChartDataQueryContextSchema().load(qc_json)
+        except MarshmallowValidationError as ex:
+            return ChartError(error=str(ex), error_type="ValidationError")
         query_context.result_type = ChartDataResultType.QUERY
+        set_query_context_form_data(
+            query_context,
+            qc_json["datasource"]["id"],
+            qc_json["datasource"]["type"],
+        )
 
         command = ChartDataCommand(query_context)
         command.validate()
@@ -253,8 +270,20 @@ def _sql_from_form_data(
     """Build SQL from form_data (fallback path)."""
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    query_context = _build_query_context_from_form_data(
-        form_data, chart, extra_form_data=extra_form_data
+    try:
+        _, datasource_type = resolve_form_data_datasource(form_data, chart)
+        query_context = _build_query_context_from_form_data(
+            form_data, chart, extra_form_data=extra_form_data
+        )
+    except (AttributeError, KeyError, TypeError, MarshmallowValidationError) as ex:
+        return ChartError(
+            error=f"Invalid extra_form_data: {ex}",
+            error_type="ValidationError",
+        )
+    set_query_context_form_data(
+        query_context,
+        query_context.datasource.id,
+        datasource_type,
     )
     command = ChartDataCommand(query_context)
     command.validate()
@@ -381,14 +410,6 @@ async def get_chart_sql(
         return ChartError(
             error=f"Failed to generate chart SQL: {e}",
             error_type="QueryGenerationFailed",
-        )
-    except KeyError as e:
-        # extra_form_data filter entries missing a required key (e.g. "col"
-        # or "op") raise KeyError while being normalized into adhoc filters.
-        logger.exception("Malformed extra_form_data filter in get_chart_sql")
-        return ChartError(
-            error=f"Invalid extra_form_data filter: missing required key {e}",
-            error_type="ValidationError",
         )
 
 

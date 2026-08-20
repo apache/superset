@@ -1097,8 +1097,13 @@ def _run_sql_from_saved_query_context(extra_form_data):
             "superset.commands.chart.data.get_data_command.ChartDataCommand",
             _Command,
         ),
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_sql.set_query_context_form_data"
+        ) as mock_set_form_data,
     ):
         _sql_from_saved_query_context(chart, extra_form_data=extra_form_data)
+
+    captured["query_context_json"]["_set_form_data_args"] = mock_set_form_data.call_args
 
     return captured["query_context_json"]
 
@@ -1116,6 +1121,7 @@ class TestSqlFromSavedQueryContextExtraFormData:
 
         filters = query_context_json["queries"][0].get("filters", [])
         assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert query_context_json["_set_form_data_args"].args[1:] == (1, "table")
 
     def test_real_column_filter_via_adhoc_filters_key(self):
         """A filter on a real column, using the Explore 'adhoc_filters'
