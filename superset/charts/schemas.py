@@ -576,10 +576,11 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
             allow_none=False,
             metadata={"description": "Columns by which to group by"},
         ),
-        # `minLength` as metadata neither validates a list nor is the right
-        # OpenAPI keyword for one -- arrays use `minItems`. A validator both
-        # enforces the bound and emits the correct constraint.
-        validate=Length(min=1),
+        # No lower bound: `aggregate()` reads an empty `groupby` as the
+        # global-aggregation case, grouping the frame as a whole, and the
+        # frontend's `aggregateOperator` emits exactly `groupby: []` for it.
+        # A `minItems` constraint here would document that request as invalid.
+        # The parameter has no default, though, so it is still required.
         required=True,
     )
     aggregates = ChartDataAggregateConfigField()
@@ -599,6 +600,9 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "original column `y` unchanged.",
             "example": {"weekly_rolling_sales": "sales"},
         },
+        # `rolling()` takes `columns` positionally with no default, exactly as
+        # it takes `rolling_type`, which this schema already marks required.
+        required=True,
     )
     rolling_type = fields.String(
         metadata={
