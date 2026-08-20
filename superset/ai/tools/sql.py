@@ -60,6 +60,14 @@ DISPLAY_SAMPLE_ROWS = 20
 DISPLAY_SQL_CHARS = 4000
 
 
+def _raise_for_sqllab_access() -> None:
+    """Require the same execution permission as SQL Lab's query endpoint."""
+    from superset import security_manager
+
+    if not security_manager.can_access("can_execute_sql_query", "SQLLab"):
+        raise ToolError("You do not have permission to execute SQL in SQL Lab.")
+
+
 def _database_or_refuse(database_id: Any) -> Any:
     """
     Resolve a database the current user is allowed to query, or refuse.
@@ -423,6 +431,7 @@ class ExecuteSqlTool(AITool):
         limit: Any = None,
         **_ignored: Any,
     ) -> ToolOutput:
+        _raise_for_sqllab_access()
         database = _database_or_refuse(database_id)
         script = _parse_or_refuse(sql, database)
         _assert_read_only(script, database)

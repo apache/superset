@@ -17,14 +17,14 @@
 """add_ai_chat_tables
 
 Revision ID: a1c4f7e29b31
-Revises: e7d93a524ff6
+Revises: 1072de5ed955
 Create Date: 2026-08-04 00:00:00.000000
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "a1c4f7e29b31"
-down_revision = "f3a8c1d2e9b7"
+down_revision = "1072de5ed955"
 
 import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
