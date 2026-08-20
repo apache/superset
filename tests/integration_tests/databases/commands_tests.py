@@ -1063,8 +1063,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         mock_event_logger.assert_called()
 
 
-@patch("superset.db_engine_specs.base.is_hostname_valid")
-@patch("superset.db_engine_specs.base.is_port_open")
+@patch("superset.db_engine_specs.postgres.is_hostname_valid")
+@patch("superset.db_engine_specs.postgres.is_port_open")
 @patch("superset.commands.database.validate.DatabaseDAO")
 def test_validate(
     mock_database_dao,  # noqa: N803
@@ -1093,8 +1093,8 @@ def test_validate(
     command.run()
 
 
-@patch("superset.db_engine_specs.base.is_hostname_valid")
-@patch("superset.db_engine_specs.base.is_port_open")
+@patch("superset.db_engine_specs.postgres.is_hostname_valid")
+@patch("superset.db_engine_specs.postgres.is_port_open")
 def test_validate_partial(is_port_open, is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
@@ -1134,10 +1134,14 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
     ]
 
 
-@patch("superset.db_engine_specs.base.is_hostname_valid")
+@patch("superset.db_engine_specs.postgres.is_hostname_valid")
 def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
+
+    ``port`` is intentionally absent from the payload (and from the expected
+    "missing" list below): it is no longer a required parameter for
+    Postgres, since a blank port falls back to the default (5432).
     """
     is_hostname_valid.return_value = False
 
@@ -1157,11 +1161,11 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
         command.run()
     assert excinfo.value.errors == [
         SupersetError(
-            message="One or more parameters are missing: database, port, username",
+            message="One or more parameters are missing: database, username",
             error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "missing": ["database", "port", "username"],
+                "missing": ["database", "username"],
                 "issue_codes": [
                     {
                         "code": 1018,

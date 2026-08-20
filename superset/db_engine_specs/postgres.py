@@ -24,6 +24,8 @@ from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from marshmallow import fields, pre_load
+from marshmallow.validate import Range
 from sqlalchemy import text, types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
@@ -37,6 +39,9 @@ from superset.db_engine_specs.base import (
     AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
+    BasicParametersSchema,
+    BasicParametersType,
+    BasicPropertiesType,
     DatabaseCategory,
     TimestampExpression,
 )
@@ -46,6 +51,7 @@ from superset.models.sql_lab import Query
 from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
+from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -298,6 +304,34 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         return None
 
 
+class PostgresParametersSchema(BasicParametersSchema):
+    """
+    Same as ``BasicParametersSchema``, except ``port`` is optional: a blank
+    port falls back to Postgres's own default (5432) in
+    ``PostgresEngineSpec.build_sqlalchemy_uri``.
+    """
+
+    port = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={"description": __("Database port")},
+        validate=Range(min=0, max=2**16, max_inclusive=False),
+    )
+
+    @pre_load
+    def blank_port_to_none(self, data: Any, **kwargs: Any) -> Any:
+        """
+        A cleared number input in the Connect Database form submits ``""``
+        for ``port`` (HTML input values are always strings) rather than
+        omitting the key or sending ``null``. Normalize it to ``None`` so it
+        deserializes cleanly instead of failing with "Not a valid integer.",
+        and is treated as blank -- same as an omitted port -- downstream.
+        """
+        if isinstance(data, dict) and data.get("port") == "":
+            data = {**data, "port": None}
+        return data
+
+
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_name = "PostgreSQL"
@@ -309,6 +343,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     supports_grouping_sets = True
 
     default_driver = "psycopg2"
+    parameters_schema = PostgresParametersSchema()
     sqlalchemy_uri_placeholder = (
         "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
@@ -673,6 +708,113 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             uri = uri.set(database=catalog)
 
         return uri, connect_args
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        """
+        Default a missing/blank port to Postgres's own default (5432) so the
+        dynamic form can connect without requiring the port to be filled in.
+
+        Only an absent key, ``None``, or ``""`` (what a cleared number input
+        submits, since this may be called directly with raw, non-schema-
+        loaded parameters -- see ``ValidateDatabaseParametersCommand``) are
+        treated as blank; an explicitly supplied port -- including ``0`` --
+        is preserved as-is rather than overwritten by a truthiness check.
+        """
+        port = parameters.get("port")
+        resolved_port: int = (
+            cls.metadata["default_port"] if port is None or port == "" else port
+        )
+        parameters_with_default_port: BasicParametersType = {
+            **parameters,
+            "port": resolved_port,
+        }
+        return super().build_sqlalchemy_uri(
+            parameters_with_default_port, encrypted_extra
+        )
+
+    @classmethod
+    def validate_parameters(
+        cls, properties: BasicPropertiesType
+    ) -> list[SupersetError]:
+        """
+        Validates any number of parameters, for progressive validation.
+
+        Same as ``BasicParametersMixin.validate_parameters``, except ``port``
+        is not a required parameter: a blank port is valid, since
+        ``build_sqlalchemy_uri`` falls back to Postgres's own default. Port
+        format/range/open checks still run whenever a port is present.
+        """
+        errors: list[SupersetError] = []
+
+        required = {"host", "username", "database"}
+        parameters = properties.get("parameters", {})
+        present = {key for key in parameters if parameters.get(key, ())}
+
+        if missing := sorted(required - present):
+            errors.append(
+                SupersetError(
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"missing": missing},
+                ),
+            )
+
+        host = parameters.get("host", None)
+        if not host:
+            return errors
+        if not is_hostname_valid(host):
+            errors.append(
+                SupersetError(
+                    message="The hostname provided can't be resolved.",
+                    error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["host"]},
+                ),
+            )
+            return errors
+
+        port = parameters.get("port", None)
+        if not port:
+            return errors
+        try:
+            port = int(port)
+        except (ValueError, TypeError):
+            errors.append(
+                SupersetError(
+                    message="Port must be a valid integer.",
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        if not (isinstance(port, int) and 0 <= port < 2**16):
+            errors.append(
+                SupersetError(
+                    message=(
+                        "The port must be an integer between 0 and 65535 (inclusive)."
+                    ),
+                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+        elif not is_port_open(host, port):
+            errors.append(
+                SupersetError(
+                    message="The port is closed.",
+                    error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["port"]},
+                ),
+            )
+
+        return errors
 
     @staticmethod
     def mutate_db_for_connection_test(database: Database) -> None:

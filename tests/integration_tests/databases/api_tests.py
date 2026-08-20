@@ -3968,8 +3968,8 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
-    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
-    @mock.patch("superset.db_engine_specs.base.is_port_open")
+    @mock.patch("superset.db_engine_specs.postgres.is_hostname_valid")
+    @mock.patch("superset.db_engine_specs.postgres.is_port_open")
     @mock.patch("superset.databases.api.ValidateDatabaseParametersCommand")
     def test_validate_parameters_valid_payload(
         self,
@@ -4059,7 +4059,7 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
-    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    @mock.patch("superset.db_engine_specs.postgres.is_hostname_valid")
     def test_validate_parameters_invalid_host(self, is_hostname_valid):
         is_hostname_valid.return_value = False
 
@@ -4119,7 +4119,7 @@ class TestDatabaseApi(SupersetTestCase):
             ]
         }
 
-    @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
+    @mock.patch("superset.db_engine_specs.postgres.is_hostname_valid")
     def test_validate_parameters_invalid_port_range(self, is_hostname_valid):
         is_hostname_valid.return_value = True
 
