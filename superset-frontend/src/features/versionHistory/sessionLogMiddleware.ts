@@ -55,6 +55,7 @@ interface SessionLogState {
   };
 }
 
+/** Untrusted Explore action shape; fields narrow only at this boundary. */
 interface ExploreBoundaryAction {
   type: unknown;
   controlName?: unknown;

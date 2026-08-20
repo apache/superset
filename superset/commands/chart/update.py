@@ -88,7 +88,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             self._properties["last_saved_at"] = datetime.now()
             self._properties["last_saved_by"] = g.user
 
-        if "params" in self._properties:
+        if self._normalization_changes is not None and "params" in self._properties:
             register_matching_normalization_context(
                 db.session,
                 self._model.id,

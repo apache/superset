@@ -264,9 +264,6 @@ export const updateSlice =
     const shouldAttachNormalization =
       isFeatureEnabled(FeatureFlag.VersionHistory) &&
       tracking?.chartId === sliceId;
-    const matchingTransitions = shouldAttachNormalization
-      ? matchingAutomaticNormalizationTransitions(tracking, formData)
-      : {};
     if (shouldAttachNormalization) {
       dispatch(
         beginChartNormalizationSave(
@@ -284,6 +281,10 @@ export const updateSlice =
         editors as [],
         formDataFromSlice,
       );
+      const savedFormData = JSON.parse(payload.params ?? '{}') as QueryFormData;
+      const matchingTransitions = shouldAttachNormalization
+        ? matchingAutomaticNormalizationTransitions(tracking, savedFormData)
+        : {};
       if (
         shouldAttachNormalization &&
         Object.keys(matchingTransitions).length

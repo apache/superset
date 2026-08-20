@@ -189,6 +189,67 @@ test('existing-chart overwrite sends only still-matching normalization metadata'
   );
 });
 
+test('matches normalization metadata against finalized payload filters', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(true);
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const extraTemporalFilter = {
+    expressionType: 'SIMPLE',
+    clause: 'WHERE',
+    subject: 'ds',
+    operator: Operators.TemporalRange,
+    comparator: '',
+    isExtra: true,
+  } as SimpleAdhocFilter;
+  const savedTemporalFilter = {
+    ...extraTemporalFilter,
+    comparator: 'No filter',
+    isExtra: false,
+  };
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+        adhoc_filters: [extraTemporalFilter],
+      },
+    },
+    versionHistory: {
+      chartNormalization: {
+        chartId: sliceId,
+        hydrationSessionId: 'hydration-a',
+        saveAttemptId: null,
+        invalidatedControls: {},
+        transitions: {
+          adhoc_filters: {
+            control: 'adhoc_filters',
+            from_present: false as const,
+            to_present: true as const,
+            to_value: [savedTemporalFilter],
+          },
+        },
+      },
+    },
+  });
+
+  await updateSlice(
+    { ...sliceResponsePayload, slice_id: sliceId } as never,
+    sliceName,
+    [],
+  )(dispatch, getState);
+
+  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  expect(body.normalization_changes).toEqual([
+    expect.objectContaining({
+      control: 'adhoc_filters',
+      to_value: [savedTemporalFilter],
+    }),
+  ]);
+});
+
 /**
  * Tests updateSlice action
  */
