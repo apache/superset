@@ -482,6 +482,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     basicColorFormatters,
     basicColorColumnFormatters,
+    totalsBasicColorFormatters,
+    totalsBasicColorColumnFormatters,
     hasServerPageLengthChanged,
     serverPageLength,
     slice_id,
@@ -1145,17 +1147,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           );
         }
         const totalValue = displayedTotals[key];
+        const originKey = key.substring(label.length).trim();
         let backgroundColor;
         let color;
-        if (applyConditionalFormattingToTotals && hasColumnColorFormatters) {
-          const formatting = getConditionalFormattingColors(
-            columnColorFormatters!,
-            displayedTotals,
-            key,
-            totalValue,
-          );
-          backgroundColor = formatting.backgroundColor;
-          color = formatting.color;
+        if (applyConditionalFormattingToTotals) {
+          if (!hasColumnColorFormatters && totalsBasicColorFormatters) {
+            backgroundColor =
+              totalsBasicColorFormatters[originKey]?.backgroundColor ||
+              totalsBasicColorFormatters[key]?.backgroundColor;
+          }
+          if (hasColumnColorFormatters) {
+            const formatting = getConditionalFormattingColors(
+              columnColorFormatters!,
+              displayedTotals,
+              key,
+              totalValue,
+            );
+            backgroundColor = formatting.backgroundColor;
+            color = formatting.color;
+          }
+          const basicTotalsFormatter =
+            totalsBasicColorColumnFormatters?.[key] ||
+            (originKey
+              ? totalsBasicColorColumnFormatters?.[originKey]
+              : undefined);
+          if (basicTotalsFormatter?.backgroundColor) {
+            backgroundColor = basicTotalsFormatter.backgroundColor;
+          }
         }
         const resolvedTextColor = getTextColorForBackground(
           { backgroundColor, color },
@@ -1494,6 +1512,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       groupHeaderColumns,
       allowRenderHtml,
       basicColorColumnFormatters,
+      totalsBasicColorFormatters,
+      totalsBasicColorColumnFormatters,
       isActiveFilterValue,
       toggleFilter,
       handleContextMenu,

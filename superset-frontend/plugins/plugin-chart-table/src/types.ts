@@ -120,6 +120,12 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   isUsingTimeComparison?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  totalsBasicColorFormatters?: {
+    [Key: string]: BasicColorFormatterType;
+  };
+  totalsBasicColorColumnFormatters?: {
+    [Key: string]: BasicColorFormatterType;
+  };
   startDateOffset?: string;
   // For explore page to reset the server Pagination data
   // if server page length is changed from control panel

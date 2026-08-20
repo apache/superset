@@ -698,6 +698,105 @@ describe('plugin-chart-table', () => {
         );
       });
 
+      test('computes Basic conditional formatting for comparison totals when enabled', () => {
+        const props = transformProps({
+          ...testData.comparison,
+          rawFormData: {
+            ...testData.comparison.rawFormData,
+            percent_metrics: [],
+            conditional_formatting: [],
+            conditional_formatting_totals: true,
+            comparison_color_enabled: true,
+            time_compare: ['P1D'],
+          },
+          queriesData: [
+            {
+              ...testData.comparison.queriesData[0],
+              data: [
+                {
+                  metric_1: 100,
+                  metric_2: 200,
+                  'metric_1__P1D': 80,
+                  'metric_2__P1D': 150,
+                },
+              ],
+              colnames: [
+                'metric_1',
+                'metric_2',
+                'metric_1__P1D',
+                'metric_2__P1D',
+              ],
+              coltypes: [
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+              ],
+            },
+            {
+              ...testData.comparison.queriesData[0],
+              data: [
+                {
+                  metric_1: 250,
+                  metric_2: 400,
+                  'metric_1__P1D': 100,
+                  'metric_2__P1D': 500,
+                },
+              ],
+              colnames: [
+                'metric_1',
+                'metric_2',
+                'metric_1__P1D',
+                'metric_2__P1D',
+              ],
+              coltypes: [
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+              ],
+            },
+          ],
+        });
+
+        expect(props.totalsBasicColorFormatters?.metric_1?.backgroundColor).toBe(
+          'rgba(0,150,0,0.2)',
+        );
+        expect(props.totalsBasicColorFormatters?.metric_2?.backgroundColor).toBe(
+          'rgba(150,0,0,0.2)',
+        );
+      });
+
+      test('applies Basic conditional formatting to the totals row when enabled', () => {
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            metrics: ['sum__num'],
+            conditional_formatting_totals: true,
+          },
+        });
+        props.totals = { sum__num: 2481872 };
+        props.columnColorFormatters = [];
+        props.totalsBasicColorFormatters = {
+          sum__num: {
+            backgroundColor: 'rgba(0,150,0,0.2)',
+            arrowColor: 'Green',
+            mainArrow: '↑',
+          },
+        };
+
+        render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2481872')).background).toBe(
+          'rgba(0, 150, 0, 0.2)',
+        );
+      });
+
       test('render cell without color', () => {
         const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
         dataWithEmptyCell.data.push({

@@ -150,6 +150,27 @@ const processComparisonTotals = (
   return transformedTotals;
 };
 
+const COMPARISON_TOTALS_MAIN_PREFIX = 'Main';
+
+const toOriginalMetricTotals = (
+  totals: DataRecord,
+  originalColumns: DataColumnMeta[],
+  comparisonSuffix: string,
+): DataRecord => {
+  const source: DataRecord = { ...totals };
+  originalColumns.forEach(col => {
+    const mainKey = `${COMPARISON_TOTALS_MAIN_PREFIX} ${col.key}`;
+    const comparisonKey = `# ${col.key}`;
+    if (totals[mainKey] !== undefined) {
+      source[col.key] = totals[mainKey];
+      if (totals[comparisonKey] !== undefined) {
+        source[`${col.key}__${comparisonSuffix}`] = totals[comparisonKey];
+      }
+    }
+  });
+  return source;
+};
+
 const processComparisonDataRecords = memoizeOne(
   function processComparisonDataRecords(
     originalData: DataRecord[] | undefined,
@@ -768,6 +789,25 @@ const transformProps = (
     columns,
     conditionalFormatting,
   );
+  const totalsBasicColorSource =
+    applyConditionalFormattingToTotals && totals
+      ? [
+          isUsingTimeComparison && comparisonSuffix
+            ? toOriginalMetricTotals(totals, columns, comparisonSuffix)
+            : totals,
+        ]
+      : undefined;
+  const totalsBasicColorFormatters =
+    totalsBasicColorSource && comparisonColorEnabled
+      ? getBasicColorFormatter(totalsBasicColorSource, columns)?.[0]
+      : undefined;
+  const totalsBasicColorColumnFormatters = totalsBasicColorSource
+    ? getBasicColorFormatterForColumn(
+        totalsBasicColorSource,
+        columns,
+        conditionalFormatting,
+      )?.[0]
+    : undefined;
 
   // Get cached values for this slice
   const cachedValues = sliceCache.get(slice_id);
@@ -835,6 +875,8 @@ const transformProps = (
     serverPageLength,
     slice_id,
     columnLabelToNameMap,
+    totalsBasicColorFormatters,
+    totalsBasicColorColumnFormatters,
   };
 };
 

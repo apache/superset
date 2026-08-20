@@ -126,6 +126,26 @@ const processComparisonTotals = (
   return transformedTotals;
 };
 
+const toOriginalMetricTotals = (
+  totals: DataRecord,
+  originalColumns: DataColumnMeta[],
+  comparisonSuffix: string,
+): DataRecord => {
+  const source: DataRecord = { ...totals };
+  const mainPrefix = `${t('Main')} `;
+  originalColumns.forEach(col => {
+    const mainKey = `${mainPrefix}${col.key}`;
+    const comparisonKey = `# ${col.key}`;
+    if (totals[mainKey] !== undefined) {
+      source[col.key] = totals[mainKey];
+      if (totals[comparisonKey] !== undefined) {
+        source[`${col.key}__${comparisonSuffix}`] = totals[comparisonKey];
+      }
+    }
+  });
+  return source;
+};
+
 const getComparisonColConfig = (
   label: string,
   parentColKey: string,
@@ -789,6 +809,42 @@ const transformProps = (
       ? processComparisonTotals(comparisonSuffix, totalQuery?.data)
       : totalQuery?.data[0]
     : undefined;
+
+  const totalsBasicColorSource =
+    applyConditionalFormattingToTotals && totals
+      ? [
+          isUsingTimeComparison && comparisonSuffix
+            ? toOriginalMetricTotals(totals, columns, comparisonSuffix)
+            : totals,
+        ]
+      : undefined;
+  const totalsComparisonColorFormatters =
+    totalsBasicColorSource && comparisonColorEnabled
+      ? getBasicColorFormatter(totalsBasicColorSource, columns)?.[0]
+      : undefined;
+  const totalsGreenRedFormatters = totalsBasicColorSource
+    ? getBasicColorFormatterForColumn(
+        totalsBasicColorSource,
+        columns,
+        conditionalFormatting,
+      )?.[0]
+    : undefined;
+  const totalsRowBasicColorFormatters =
+    totalsComparisonColorFormatters || totalsGreenRedFormatters
+      ? {
+          ...totalsComparisonColorFormatters,
+          ...totalsGreenRedFormatters,
+        }
+      : undefined;
+
+  if (totals && totalsRowBasicColorFormatters) {
+    Object.defineProperty(totals, BASIC_COLOR_FORMATTERS_ROW_KEY, {
+      value: totalsRowBasicColorFormatters,
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    });
+  }
 
   // Map saved metric/calculated column labels to their SQL expressions for filter resolution
   const metricSqlExpressions: Record<string, string> = {};

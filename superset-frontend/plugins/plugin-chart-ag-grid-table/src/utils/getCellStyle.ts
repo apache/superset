@@ -87,13 +87,13 @@ const getCellStyle = (params: CellStyleParams) => {
   }
 
   if (
-    hasBasicColorFormatters &&
     col?.metricName &&
-    node?.rowPinned !== 'bottom'
+    (!isTotalsRow || applyConditionalFormattingToTotals) &&
+    (hasBasicColorFormatters || isTotalsRow)
   ) {
     const basicBackgroundColor = getRowBasicColorFormatter(
       node,
-      rowIndex,
+      isTotalsRow ? null : rowIndex,
       basicColorFormatters,
     )?.[col.metricName]?.backgroundColor;
     // Only override when this column actually has an increase/decrease
