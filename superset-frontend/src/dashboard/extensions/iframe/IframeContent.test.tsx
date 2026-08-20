@@ -86,6 +86,13 @@ test('renders an iframe with the configured URL', () => {
   );
 });
 
+test('sandboxes the iframe without allow-same-origin', () => {
+  setup();
+  const sandbox = screen.getByTitle('Embedded content').getAttribute('sandbox');
+  expect(sandbox).toContain('allow-scripts');
+  expect(sandbox).not.toContain('allow-same-origin');
+});
+
 test('renders an empty placeholder when no URL is configured', () => {
   setup({ url: '' });
   expect(screen.queryByTitle('Embedded content')).not.toBeInTheDocument();

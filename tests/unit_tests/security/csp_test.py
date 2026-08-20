@@ -142,6 +142,52 @@ def test_apply_runtime_csp_allowlist_merges_when_enabled() -> None:
         assert "frame-src 'self' https://embed.example" in response.headers[CSP_HEADER]
 
 
+def test_apply_runtime_csp_allowlist_merges_on_a_real_response() -> None:
+    """Regression test for the actual request/response cycle, not just a bare
+    ``Response()`` object: mirrors the ``after_request`` registration order used
+    in ``SupersetAppInitializer`` (superset/initialization/__init__.py), where the
+    runtime-allowlist merge is registered *before* the header-setting extension so
+    Flask (which runs ``after_request`` callbacks in reverse registration order)
+    invokes it *after* the base CSP header has already been set on the response.
+    """
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    @app.after_request
+    def merge_runtime_csp_allowlist(response: Response) -> Response:
+        return apply_runtime_csp_allowlist(response)
+
+    @app.after_request
+    def set_base_csp_header(response: Response) -> Response:
+        # Stands in for flask-talisman setting the deploy-time policy.
+        response.headers[CSP_HEADER] = "default-src 'self'"
+        return response
+
+    @app.route("/ping")
+    def ping() -> str:
+        return "pong"
+
+    with (
+        patch.object(
+            csp_module.feature_flag_manager,
+            "is_feature_enabled",
+            return_value=True,
+        ),
+        patch.object(
+            csp_module.csp_allowlist_cache,
+            "get",
+            return_value={"frame-src": ["https://embed.example"]},
+        ),
+    ):
+        client = app.test_client()
+        resp = client.get("/ping")
+        csp = resp.headers[CSP_HEADER]
+        assert "frame-src 'self' https://embed.example" in csp
+        # the base policy is widened, not clobbered
+        assert "default-src 'self'" in csp
+
+
 def test_apply_runtime_csp_allowlist_skips_response_without_header() -> None:
     with (
         patch.object(
