@@ -21,7 +21,6 @@ import {
   ChartProps,
   getNumberFormatter,
   TimeGranularity,
-  getNumberFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
