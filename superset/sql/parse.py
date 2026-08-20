@@ -275,6 +275,9 @@ class RLSTransformer:
 
         return None
 
+    def __call__(self, node: exp.Table) -> exp.Expression:
+        raise NotImplementedError()
+
 
 class RLSAsPredicateTransformer(RLSTransformer):
     """
@@ -298,17 +301,17 @@ class RLSAsPredicateTransformer(RLSTransformer):
     databases without support for subqueries.
     """
 
-    def __call__(self, node: exp.Expression) -> exp.Expression:
-        if not isinstance(node, exp.Table):
-            return node
-
+    def __call__(self, node: exp.Table) -> exp.Expression:
         predicate = self.get_predicate(node)
         if not predicate:
             return node
 
-        # qualify columns with table name
+        # Qualify with the parsed alias node, not the ``node.alias`` string (which drops
+        # quoting and could inject SQL); use the table when the alias has no name.
+        table_alias = node.args.get("alias")
+        qualifier = (table_alias and table_alias.this) or node.this
         for column in predicate.find_all(exp.Column):
-            column.set("table", node.alias or node.this)
+            column.set("table", qualifier.copy())
 
         if isinstance(node.parent, exp.From):
             select = node.parent.parent
@@ -354,13 +357,12 @@ class RLSAsSubqueryTransformer(RLSTransformer):
     all databases.
     """
 
-    def __call__(self, node: exp.Expression) -> exp.Expression:
-        if not isinstance(node, exp.Table):
-            return node
-
+    def __call__(self, node: exp.Table) -> exp.Expression:
         if predicate := self.get_predicate(node):
-            if node.alias:
-                alias = node.alias
+            if existing_alias := node.args.get("alias"):
+                # Reuse the parsed alias node, not the ``node.alias`` string: that drops
+                # quoting (SQL in an alias re-emits as SQL) and the column-alias list.
+                alias = existing_alias
             else:
                 # Use just the table name (not schema-qualified) so that
                 # column references like ``table.column`` still resolve after
@@ -1406,16 +1408,27 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Modify the `LIMIT` or `TOP` value of the SQL statement inplace.
         """
+        # Only query expressions -- `SELECT`, `UNION`, subqueries -- can carry a
+        # limit. Everything else (`SHOW`, `DESCRIBE`, `SET`, `USE`, `GRANT`, and
+        # anything sqlglot falls back to parsing as an opaque `Command`) has no
+        # `LIMIT` slot, so it is left untouched.
+        #
+        # `apply_limit()` only skips *mutating* statements, so read-only metadata
+        # statements do reach this method. Forcing a limit into one rewrites it
+        # into something the engine never asked for: on MySQL/StarRocks a `SHOW`
+        # renders with two `LIMIT` keywords and is rejected outright ("Getting
+        # syntax error ... Unexpected input 'LIMIT'"), and `WRAP_SQL` buries it
+        # in `SELECT * FROM (SHOW DATABASES)`. Dialects that would render a
+        # valid `SHOW ... LIMIT` are skipped too: `SHOW` returns bounded
+        # metadata, so there is nothing to truncate.
+        #
+        # The guard is on the node category rather than an `exp.Show`
+        # special-case so it holds for every non-query statement, including ones
+        # whose generators may learn to render a `limit` arg in a later sqlglot.
+        if not isinstance(self._parsed, exp.Query):
+            return
+
         if method == LimitMethod.FORCE_LIMIT:
-            # `SHOW` statements (`SHOW TABLES`, `SHOW DATABASES`, `SHOW CREATE
-            # TABLE`, etc.) have no meaningful `LIMIT` slot to force. On
-            # MySQL/StarRocks, writing one renders a malformed statement with
-            # two `LIMIT` keywords that the engine rejects outright; on dialects
-            # like Snowflake it would render a valid `SHOW ... LIMIT`, but SHOW
-            # returns bounded metadata, so we skip it uniformly rather than
-            # special-case per dialect. Leave them untouched.
-            if isinstance(self._parsed, exp.Show):
-                return
             self._parsed.args["limit"] = exp.Limit(
                 expression=exp.Literal(this=str(limit), is_string=False)
             )
@@ -1437,6 +1450,18 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: True if the statement has a CTE at the top level.
         """
         return bool(self._parsed.args.get("with_"))
+
+    def remove_unbounded_top_level_order_by(self) -> bool:
+        """Drop ordering that becomes invalid when this query is embedded."""
+        if (
+            self._parsed.args.get("order")
+            and not self._parsed.args.get("limit")
+            and not self._parsed.args.get("offset")
+            and not self._parsed.args.get("for_")
+        ):
+            self._parsed.set("order", None)
+            return True
+        return False
 
     def as_cte(self, alias: str = "__cte") -> SQLStatement:
         """
@@ -1542,7 +1567,30 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             raise ValueError(f"Invalid RLS method: {method}")
 
         transformer = transformers[method](catalog, schema, predicates)
-        self._parsed = self._parsed.transform(transformer)
+
+        # Rewrite the real table reads -- the same set ``extract_tables_from_statement``
+        # authorizes -- so the filtered set equals the authorized set. (A CTE reference
+        # sharing a rule's table name is not a read here.)
+        seen: set[int] = set()
+        reads: list[exp.Table] = []
+        for scope in traverse_scope(self._parsed):
+            for source in scope.sources.values():
+                # dedupe by identity: a correlated LATERAL reaches one node twice
+                if (
+                    isinstance(source, exp.Table)
+                    and not is_cte(source, scope)
+                    and id(source) not in seen
+                ):
+                    seen.add(id(source))
+                    reads.append(source)
+
+        # Wrap the deepest reads first: a parenthesised-join head carries its join in
+        # its args, so wrapping an ancestor before its descendant would strand the
+        # descendant read's replacement off the live tree.
+        for node in sorted(reads, key=lambda read: read.depth, reverse=True):
+            replacement = transformer(node)
+            if replacement is not node:
+                node.replace(replacement)
 
 
 class KQLSplitState(enum.Enum):
@@ -2184,41 +2232,22 @@ def extract_tables_from_statement(
 
 def is_cte(source: exp.Table, scope: Scope) -> bool:
     """
-    Is the source a CTE?
+    Does this reference resolve to a CTE rather than to a real table?
 
-    CTEs in the parent scope look like tables (and are represented by
-    exp.Table objects), but should not be considered as such;
-    otherwise a user with access to table `foo` could access any table
-    with a query like this:
-
-        WITH foo AS (SELECT * FROM target_table) SELECT * FROM foo
-
-    A CTE name is always a bare identifier: it can never carry a schema or
-    catalog qualifier. A schema/catalog-qualified reference therefore always
-    resolves to a physical table, even when its final name component happens to
-    match a CTE defined in scope. Such a reference must be reported as a real
-    table so it resolves to the correct object; otherwise
-    ``WITH orders AS (...) SELECT * FROM public.orders`` would treat the
-    qualified ``public.orders`` as the CTE and drop the physical table from the
-    extracted set.
-
-    Note: an unqualified reference is always resolved relative to the caller's
-    own schema/catalog before any downstream use, so treating a bare name that
-    matches a CTE as a CTE stays correct and is intentionally left unchanged
-    here.
+    A CTE reference is also an ``exp.Table``, so it must be excluded from a statement's
+    read tables, or a rule on a table could be evaded by wrapping it in a same-named
+    CTE. Resolve the name through ``Scope.cte_sources`` (not ``Scope.sources``, keyed by
+    ``alias_or_name``, which would hide a real table sharing a CTE's alias); a qualified
+    reference (schema or catalog) is always a table. Where sqlglot registers a name
+    differently than SQL scopes it (letter-case, a ``WITH RECURSIVE`` self/forward
+    reference), this errs toward reporting a table -- a spurious check, not a leak.
     """
     if source.db or source.catalog:
         # Qualified references are always physical tables, never CTEs.
         return False
 
-    parent_sources = scope.parent.sources if scope.parent else {}
-    ctes_in_scope = {
-        name
-        for name, parent_scope in parent_sources.items()
-        if isinstance(parent_scope, Scope) and parent_scope.scope_type == ScopeType.CTE
-    }
-
-    return source.name in ctes_in_scope
+    resolved = scope.cte_sources.get(source.name)
+    return isinstance(resolved, Scope) and resolved.scope_type == ScopeType.CTE
 
 
 T = TypeVar("T", str, None)

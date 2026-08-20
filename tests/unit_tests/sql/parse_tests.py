@@ -780,28 +780,121 @@ SELECT c FROM z
 
 
 def test_extract_tables_reusing_aliases() -> None:
+    """Test that the parser follows aliases.
+
+    A non-recursive ``WITH`` item sees only items declared before it, so a forward
+    reference resolves to the table of that name -- a real read that must be extracted.
     """
-    Test that the parser follows aliases.
-    """
+    # `q1` first: the `q2` in its body, and `q2`'s `src`, are both tables.
     assert extract_tables_from_sql(
         """
 with q1 as ( select key from q2 where key = '5'),
 q2 as ( select key from src where key = '5')
 select * from (select key from q1) a
 """
-    ) == {Table("src")}
+    ) == {Table("q2"), Table("src")}
 
-    # weird query with circular dependency
-    assert (
-        extract_tables_from_sql(
-            """
+    # `src` first: its `q2` is a table; `q2`'s `src` and the outer `src` are the CTE.
+    assert extract_tables_from_sql(
+        """
 with src as ( select key from q2 where key = '5'),
 q2 as ( select key from src where key = '5')
 select * from (select key from src) a
 """
+    ) == {Table("q2")}
+
+
+def test_extract_tables_cte_name_shared_with_table() -> None:
+    """Test that a CTE's name does not hide reads of the table it is named after.
+
+    Only a reference resolving to the CTE may be excluded; dropping any other costs it
+    both its row filter and its access check.
+    """
+    # A qualified reference -- in the CTE body or elsewhere -- is the table.
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT * FROM public.orders) SELECT * FROM orders"
+    ) == {Table("orders", "public")}
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1 AS d) "
+        "SELECT * FROM (SELECT * FROM public.orders) AS z"
+    ) == {Table("orders", "public")}
+
+    # A non-recursive CTE cannot see itself, so its own name in its body is the table.
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT * FROM orders) SELECT * FROM orders"
+    ) == {Table("orders")}
+
+    # A catalog disqualifies like a schema; `cat..orders` is checked only when pivoted.
+    assert extract_tables_from_sql(
+        "WITH orders AS (SELECT 1 AS amt, 'a' AS mth) "
+        "SELECT * FROM cat..orders PIVOT(SUM(amt) FOR mth IN ('a'))",
+        engine="snowflake",
+    ) == {Table("orders", None, "cat")}
+
+
+def test_extract_tables_cte_reference_not_table() -> None:
+    """Test the counterpart: a reference that resolves to a CTE is not a table.
+
+    A recursive item's reference to itself is the shape a bare-name compare gets wrong.
+    """
+    assert (
+        extract_tables_from_sql(
+            "WITH RECURSIVE t AS ("
+            "SELECT 1 AS n UNION ALL SELECT n + 1 FROM t WHERE n < 5"
+            ") SELECT * FROM t"
         )
         == set()
     )
+
+
+def test_extract_tables_pivoted_cte_reference_is_not_a_table() -> None:
+    """Test that pivoting a CTE reference does not make it a table read.
+
+    Pivoting yields a new relation, so sqlglot keeps the reference as an ``exp.Table``
+    -- the one shape where a CTE reference reaches ``is_cte()`` unqualified.
+    """
+    assert extract_tables_from_sql(
+        "WITH c AS (SELECT a, b FROM other_table) "
+        "SELECT * FROM c PIVOT(SUM(b) FOR a IN ('p'))",
+        engine="snowflake",
+    ) == {Table("other_table")}
+    # Also when the pivot sits inside a derived table.
+    assert extract_tables_from_sql(
+        "WITH c AS (SELECT a, b FROM other_table) "
+        "SELECT * FROM (SELECT * FROM c PIVOT(SUM(b) FOR a IN ('p'))) AS z",
+        engine="snowflake",
+    ) == {Table("other_table")}
+
+
+def test_extract_tables_aliased_cte_does_not_hide_table() -> None:
+    """Test that aliasing a CTE reference does not erase a table of the same name.
+
+    ``Scope.sources`` is keyed by ``alias_or_name`` and would file the table under the
+    CTE's alias; ``cte_sources`` is keyed by CTE name only.
+    """
+    assert extract_tables_from_sql(
+        "WITH c AS (SELECT 1 AS n) SELECT s2.* FROM c AS other_table, other_table AS s2"
+    ) == {Table("other_table")}
+    assert extract_tables_from_sql(
+        "WITH c AS (SELECT 1 AS n) "
+        "SELECT s2.* FROM c AS other_table LEFT JOIN other_table AS s2 ON TRUE"
+    ) == {Table("other_table")}
+
+
+def test_extract_tables_cte_reference_over_reported() -> None:
+    """Test the two shapes that over-report a CTE reference as a table.
+
+    A spurious access check, not a missing one. Pinned so a change either way is meant.
+    """
+    # PostgreSQL resolves `foo` to the CTE; this reports the table.
+    assert extract_tables_from_sql("WITH Foo AS (SELECT 1 AS d) SELECT * FROM foo") == {
+        Table("foo")
+    }
+    # Legal under RECURSIVE: `q2` is the CTE declared below, not a table.
+    assert extract_tables_from_sql(
+        "WITH RECURSIVE q1 AS (SELECT key FROM q2), q2 AS (SELECT 1 AS key) "
+        "SELECT * FROM q1"
+    ) == {Table("q2")}
 
 
 def test_extract_tables_multistatement() -> None:
@@ -1042,6 +1135,62 @@ Events | take 100""",
         "kustokql",
     )
     assert query.get_settings() == {"querytrace": True}
+
+
+def test_sqlscript_format_preserves_optimizer_hint_block() -> None:
+    """
+    Regression for #38189: an inline `--` comment trailing a query with a
+    `/*+ SET_VAR(...) */` optimizer hint must not get repositioned inside
+    the hint block during `format()` -- that would corrupt the hint syntax
+    (StarRocks and other engines using the `/*+ ... */` convention reject
+    a nested `/* */` inside it). `format()` is what Superset's execution
+    path actually sends to the engine (see `executor.py`/`celery_task.py`).
+    """
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100
+
+-- increase timeout for large scans"""
+    statement = SQLScript(sql, "starrocks").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    # the trailing comment must survive, and land outside (after) the hint
+    # block rather than being dropped or relocated into it
+    hint_end = formatted.index(hint) + len(hint)
+    assert "increase timeout for large scans" in formatted[hint_end:]
+
+
+@pytest.mark.xfail(
+    reason=(
+        "#38189 is not fully fixed: a `;`-terminated statement still hits "
+        "the comment-relocation branch and corrupts the hint block. Only "
+        "the no-semicolon form from the original repro was fixed."
+    ),
+    strict=True,
+)
+def test_sqlscript_format_preserves_optimizer_hint_block_with_semicolon() -> None:
+    """
+    Same as `test_sqlscript_format_preserves_optimizer_hint_block`, but with
+    a terminating `;` on the statement -- this still reproduces #38189: the
+    trailing `--` comment gets injected inside the `/*+ SET_VAR(...) */`
+    hint block, corrupting it for StarRocks/MySQL-style engines.
+    """
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100;
+
+-- increase timeout for large scans"""
+    statement = SQLScript(sql, "starrocks").statements[0]
+    formatted = statement.format()
+
+    hint = "/*+ SET_VAR(query_timeout = 3000) */"
+    assert hint in formatted
+    assert "SET_VAR(query_timeout /*" not in formatted
+    hint_end = formatted.index(hint) + len(hint)
+    assert "increase timeout for large scans" in formatted[hint_end:]
 
 
 @pytest.mark.parametrize(
@@ -2388,6 +2537,10 @@ def test_set_limit_value(
 
 
 @pytest.mark.parametrize(
+    "method",
+    [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL],
+)
+@pytest.mark.parametrize(
     "engine",
     [
         # Engines whose sqlglot dialect parses `SHOW` into a real `exp.Show`
@@ -2407,10 +2560,10 @@ def test_set_limit_value(
     ],
 )
 def test_set_limit_value_leaves_show_statements_unchanged(
-    sql: str, engine: str
+    sql: str, engine: str, method: LimitMethod
 ) -> None:
     """
-    Regression for #36939: FORCE_LIMIT must not touch ``SHOW`` statements.
+    Regression for #36939: no limit method may touch ``SHOW`` statements.
 
     ``SHOW`` statements have no `LIMIT` clause in sqlglot's expression tree,
     so forcing one via ``args["limit"]`` doesn't reject cleanly, it produces
@@ -2421,16 +2574,74 @@ def test_set_limit_value_leaves_show_statements_unchanged(
     left untouched instead, matching how ``SELECT`` statements without a
     scannable row source aren't force-limited either.
 
+    ``WRAP_SQL`` is wrong on a ``SHOW`` for the same reason but fails more
+    quietly, rewriting it as ``SELECT * FROM (SHOW DATABASES)``, so both
+    methods are covered here.
+
     Covers multiple engines, not just StarRocks: the fix guards on the AST
-    node type (``exp.Show``), not the dialect, so any engine whose sqlglot
-    dialect parses ``SHOW`` into a real ``Show`` node (e.g. MySQL, Snowflake)
-    is equally exposed and must be equally protected.
+    node category (``exp.Query``), not the dialect, so any engine whose
+    sqlglot dialect parses ``SHOW`` into a real ``Show`` node (e.g. MySQL,
+    Snowflake) is equally exposed and must be equally protected.
     """
     statement = SQLStatement(sql, engine)
     original = statement.format()
-    statement.set_limit_value(1000, LimitMethod.FORCE_LIMIT)
+    statement.set_limit_value(1000, method)
     assert statement.format() == original
     assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "method",
+    [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL],
+)
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "DESCRIBE test.will_test1",
+        "USE test",
+        "SET time_zone = 'UTC'",
+        "GRANT SELECT ON t1 TO u1",
+    ],
+)
+def test_set_limit_value_leaves_non_query_statements_unchanged(
+    sql: str, method: LimitMethod
+) -> None:
+    """
+    ``SHOW`` is not the only statement with nowhere to put a `LIMIT`.
+
+    `apply_limit()` only skips *mutating* statements, so every read-only
+    non-query statement reaches ``set_limit_value``. These happen to survive
+    a forced limit today only because their sqlglot generators ignore an
+    unexpected ``limit`` arg -- a silent dependency on generator internals.
+    Guarding on ``exp.Query`` makes leaving them alone explicit, so a future
+    sqlglot that starts rendering `limit` for one of these node types can't
+    reintroduce the ``SHOW`` bug under a different keyword.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    original = statement.format()
+    statement.set_limit_value(1000, method)
+    assert statement.format() == original
+    assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # `UNION` parses as `exp.Union` and a parenthesized query as
+        # `exp.Subquery` -- neither is an `exp.Select`, so narrowing the guard
+        # to `is_select()` would silently stop limiting them.
+        "SELECT 1 UNION SELECT 2",
+        "(SELECT 1)",
+        "WITH t AS (SELECT 1) SELECT * FROM t",
+    ],
+)
+def test_set_limit_value_limits_non_select_query_expressions(sql: str) -> None:
+    """
+    Query expressions that aren't `SELECT` must still be limited.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    statement.set_limit_value(1000, LimitMethod.FORCE_LIMIT)
+    assert "LIMIT 1000" in statement.format()
 
 
 @pytest.mark.parametrize(
@@ -2611,6 +2822,22 @@ def test_as_cte_called_twice() -> None:
     stmt.as_cte()
     assert stmt.has_cte() is False
     stmt.as_cte()
+
+
+@pytest.mark.parametrize(
+    ("sql", "removed"),
+    [
+        ("SELECT value FROM source ORDER BY value", True),
+        ("SELECT TOP 1 value FROM source ORDER BY value", False),
+        ("SELECT value FROM source ORDER BY value OFFSET 0 ROWS", False),
+        ("SELECT value FROM source ORDER BY value FOR JSON AUTO", False),
+    ],
+)
+def test_remove_unbounded_top_level_order_by(sql: str, removed: bool) -> None:
+    statement = SQLStatement(sql, "mssql")
+
+    assert statement.remove_unbounded_top_level_order_by() is removed
+    assert ("ORDER BY" not in statement.format()) is removed
 
 
 @pytest.mark.parametrize(
@@ -2913,6 +3140,112 @@ FROM (
 LIMIT 100
         """.strip(),
         ),
+        (
+            'SELECT * FROM tbl_a AS "x AND 1 = 0 OR 1 = 1"',
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM tbl_a
+  WHERE
+    id = 42
+) AS "x AND 1 = 0 OR 1 = 1"
+            """.strip(),
+        ),
+        (
+            "SELECT c1 FROM tbl_a AS x (c1, c2)",
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  c1
+FROM (
+  SELECT
+    *
+  FROM tbl_a
+  WHERE
+    id = 42
+) AS x(c1, c2)
+            """.strip(),
+        ),
+        # A CTE sharing the rule's table name is not a read of it: only the real read
+        # inside the CTE body is wrapped; the CTE reference keeps its own projection.
+        (
+            "WITH some_table AS (SELECT id FROM some_table) SELECT * FROM some_table",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+WITH some_table AS (
+  SELECT
+    id
+  FROM (
+    SELECT
+      *
+    FROM some_table
+    WHERE
+      id = 42
+  ) AS "some_table"
+)
+SELECT
+  *
+FROM some_table
+            """.strip(),
+        ),
+        # A correlated ``LATERAL`` reaches the outer read through two scopes: wrapped
+        # once, not twice. The lateral's own read is a distinct node, wrapped in place.
+        (
+            "SELECT * FROM some_table, LATERAL ("
+            "SELECT * FROM other_table WHERE other_table.x = some_table.x) t",
+            {
+                Table("some_table", "schema1", "catalog1"): "id = 42",
+                Table("other_table", "schema1", "catalog1"): "id = 7",
+            },
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM some_table
+  WHERE
+    id = 42
+) AS "some_table", LATERAL (
+  SELECT
+    *
+  FROM (
+    SELECT
+      *
+    FROM other_table
+    WHERE
+      id = 7
+  ) AS "other_table"
+  WHERE
+    other_table.x = some_table.x
+) AS t
+            """.strip(),
+        ),
+        # A read in a DML statement's subquery is filtered in place, not refused: the
+        # ``UPDATE`` target is not a source, so only the ``SELECT`` read of ``t`` wraps.
+        (
+            "UPDATE dst SET x = 1 WHERE id IN (SELECT id FROM t)",
+            {Table("t", "schema1", "catalog1"): "id = 42"},
+            """
+UPDATE dst SET x = 1
+WHERE
+  id IN (
+    SELECT
+      id
+    FROM (
+      SELECT
+        *
+      FROM t
+      WHERE
+        id = 42
+    ) AS "t"
+  )
+            """.strip(),
+        ),
     ],
 )
 def test_rls_subquery_transformer(
@@ -2931,6 +3264,63 @@ def test_rls_subquery_transformer(
         RLSMethod.AS_SUBQUERY,
     )
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, read_counts",
+    [
+        ("SELECT * FROM t", {"t": 1}),
+        ("SELECT * FROM t JOIN u ON t.id = u.id", {"t": 1, "u": 1}),
+        ("SELECT * FROM t, u", {"t": 1, "u": 1}),
+        ("SELECT * FROM t WHERE id IN (SELECT id FROM u)", {"t": 1, "u": 1}),
+        # A self-join reads the table through two distinct nodes; both are wrapped.
+        ("SELECT * FROM t AS a JOIN t AS b ON a.id = b.id", {"t": 2}),
+        # The CTE body's read of ``t`` and the outer read of ``t`` are both wrapped;
+        # the CTE reference ``c`` is not a read and carries no rule.
+        (
+            "WITH c AS (SELECT id FROM t) SELECT * FROM c JOIN t AS t2 ON c.id = t2.id",
+            {"t": 2},
+        ),
+        ("SELECT * FROM (SELECT * FROM t) AS x", {"t": 1}),
+        # Pins the deepest-first ordering. The parenthesised join head ``t`` carries the
+        # join to ``u`` in its own args, so ``u`` must be wrapped before ``t``; wrapping
+        # ``t`` first would copy ``u`` into ``t``'s subquery and drop ``u``'s filter.
+        # Flipping the sort to ``reverse=False`` makes this case fail.
+        ("SELECT * FROM (t JOIN u ON t.id = u.id)", {"t": 1, "u": 1}),
+        # A correlated ``LATERAL`` reaches the outer read through two scopes; it is
+        # wrapped once, and the lateral's own read is wrapped once.
+        (
+            "SELECT * FROM some_table, LATERAL ("
+            "SELECT * FROM other_table WHERE other_table.x = some_table.x) t",
+            {"some_table": 1, "other_table": 1},
+        ),
+    ],
+)
+def test_rls_subquery_filters_every_authorized_read(
+    sql: str,
+    read_counts: dict[str, int],
+) -> None:
+    """The set the rewrite filters equals the set authorization enforces.
+
+    Each read gets a table-specific sentinel predicate; its count in the output must
+    equal that table's real-read node count, catching a dropped read or a double-wrap.
+    """
+    authorized = {t.table for t in extract_tables_from_statement(parse_one(sql), None)}
+    assert authorized == set(read_counts)
+
+    statement = SQLStatement(sql)
+    statement.apply_rls(
+        "catalog1",
+        "schema1",
+        {
+            Table(table, "schema1", "catalog1"): [parse_one(f"rls_{table} = 1")]
+            for table in read_counts
+        },
+        RLSMethod.AS_SUBQUERY,
+    )
+    output = statement.format()
+    for table, count in read_counts.items():
+        assert output.count(f"rls_{table} = 1") == count
 
 
 def test_rls_invalid_method(mocker: MockerFixture) -> None:
@@ -3255,6 +3645,58 @@ INSERT INTO some_table (
 )
 VALUES
   (1, 2)
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM tbl_a AS "x AND 1 = 0 OR 1 = 1"',
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM tbl_a AS "x AND 1 = 0 OR 1 = 1"
+WHERE
+  "x AND 1 = 0 OR 1 = 1".id = 42
+            """.strip(),
+        ),
+        (
+            'SELECT * FROM tbl_a AS "a.b"',
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM tbl_a AS "a.b"
+WHERE
+  "a.b".id = 42
+            """.strip(),
+        ),
+        # A column-list alias has no name (``this`` is ``None``); qualify with the table
+        # so the predicate does not resolve outward into an enclosing scope.
+        (
+            "SELECT * FROM tbl_a AS (c1, c2)",
+            {Table("tbl_a", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM tbl_a AS _t0(c1, c2)
+WHERE
+  tbl_a.id = 42
+            """.strip(),
+        ),
+        # A table heading a parenthesised join is a read, but its parent is the wrapping
+        # ``Subquery``, not a ``From``/``Join``, so the predicate method leaves it --
+        # fail-closed (the subquery method filters it). Pinned to catch a shape change.
+        (
+            "SELECT * FROM (some_table JOIN other_table "
+            "ON some_table.id = other_table.id)",
+            {Table("some_table", "schema1", "catalog1"): "id = 42"},
+            """
+SELECT
+  *
+FROM (
+  some_table
+    JOIN other_table
+      ON some_table.id = other_table.id
+)
             """.strip(),
         ),
     ],

@@ -711,6 +711,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Matrixify feature for matrix-style chart layouts
     # @lifecycle: development
     "MATRIXIFY": False,
+    # Serve a consumption-only mobile experience (dashboards, dashboard list,
+    # and home page) on small screens; other views show a "not supported on
+    # mobile" screen. Authoring features are hidden on mobile when enabled.
+    # @lifecycle: development
+    "MOBILE_CONSUMPTION_MODE": False,
     # Try to optimize SQL queries — for now only predicate pushdown is supported
     # @lifecycle: development
     "OPTIMIZE_SQL": False,
@@ -2582,11 +2587,20 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+# Cooldown (in seconds) after an on-demand Slack channel-cache refresh.
+SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
+
 # Timeout (in seconds) for outbound Slack API calls. The Slack SDK defaults to 30s;
 # exposing it here lets operators grant more time for large file uploads (multi-MB
 # CSVs, PDFs, screenshot sets) to congested or rate-limited Slack endpoints without
 # patching code, consistent with the SMTP/CSV/screenshot timeouts.
 SLACK_API_TIMEOUT = 30
+
+# Application retry budget (in seconds) shared by all Slack channels, files, and
+# upload phases in one report execution. Increase this for slow or large-file
+# reports. The effective configured value is floored at one second longer than
+# SLACK_API_TIMEOUT, then clamped to the report's remaining working timeout.
+SLACK_SEND_RETRY_MAX_TIME = 150
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {

@@ -30,6 +30,7 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   tooltipHtml,
+  truncateLabel,
   getCustomFormatter,
   getMetricLabel,
   getNumberFormatter,
@@ -303,6 +304,7 @@ export default function transformProps(
     tooltipSortByMetric,
     showTooltipTotal,
     showTooltipPercentage,
+    tooltipTruncation,
     truncateXAxis,
     truncateYAxis,
     xAxis: xAxisOrig,
@@ -827,6 +829,14 @@ export default function transformProps(
 
     series.unshift(baselineSeries);
   }
+
+  // Snapshot the observation-series count before annotation layers are
+  // appended below. Annotation series (formula/interval/event/timeseries)
+  // carry their own configured values, which the Y axis clamp further
+  // below must not rewrite, or an annotation could be moved to a location
+  // that doesn't match its configuration.
+  const observationSeriesCount = series.length;
+
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = series.findIndex(({ name }) => name === selectedValue);
@@ -984,6 +994,60 @@ export default function transformProps(
     if (dataMin !== undefined && yAxisMin === undefined && dataMin < 0) {
       yAxisMin = dataMin;
     }
+  }
+
+  // Whenever a Y axis bound is defined, whether explicitly configured or
+  // derived above from the data, clamp series values to those bounds
+  // instead of leaving raw out-of-range values in place. ECharts axis
+  // clipping can otherwise drop an out-of-bounds point (and the line
+  // segments around it) entirely rather than truncating it at the
+  // boundary (see https://github.com/apache/superset/issues/27449).
+  if (yAxisMin !== undefined || yAxisMax !== undefined) {
+    const valueIndex = isHorizontal ? 0 : 1;
+    type AxisValue = string | number | null | undefined;
+    type AxisPoint = AxisValue[];
+    const clampAxisValue = (value: AxisValue): AxisValue => {
+      if (typeof value !== 'number' || Number.isNaN(value)) return value;
+      let clamped = value;
+      if (yAxisMin !== undefined) clamped = Math.max(clamped, yAxisMin);
+      if (yAxisMax !== undefined) clamped = Math.min(clamped, yAxisMax);
+      return clamped;
+    };
+    const clampPoint = (point: AxisPoint): AxisPoint => {
+      const newPoint = [...point];
+      newPoint[valueIndex] = clampAxisValue(newPoint[valueIndex]);
+      return newPoint;
+    };
+    series.forEach((s, index) => {
+      // Skip annotation series appended above; only clamp the chart's own
+      // observation/legend/baseline series.
+      if (index >= observationSeriesCount) return;
+      if (!Array.isArray(s.data)) return;
+      const clampedData = (
+        s.data as (AxisPoint | Record<string, unknown>)[]
+      ).map(point => {
+        if (Array.isArray(point)) {
+          return clampPoint(point);
+        }
+        // Some series paths (e.g. colorByPrimaryAxis, or negative bar
+        // label positioning) wrap the tuple in an object of the shape
+        // `{ value: [x, y], ... }` instead of passing the tuple
+        // directly; clamp the wrapped tuple in place so those points
+        // aren't skipped and left to be dropped by ECharts axis clipping.
+        if (
+          point &&
+          typeof point === 'object' &&
+          Array.isArray((point as { value?: unknown }).value)
+        ) {
+          return {
+            ...point,
+            value: clampPoint((point as { value: AxisPoint }).value),
+          };
+        }
+        return point;
+      });
+      s.data = clampedData as typeof s.data;
+    });
   }
 
   // A dashboard-level time grain override (e.g. via a filter or the temporal
@@ -1387,6 +1451,7 @@ export default function transformProps(
               seriesName: key,
               formatter,
               marker,
+              truncation: tooltipTruncation,
             });
 
             const annotationRow = annotationLayers.some(
@@ -1420,7 +1485,12 @@ export default function transformProps(
           }
           rows.push(totalRow);
         }
-        return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);
+        return tooltipHtml(
+          rows,
+          truncateLabel(tooltipFormatter(xValue), tooltipTruncation),
+          focusedRow,
+          tooltipTruncation,
+        );
       },
     },
     legend: {

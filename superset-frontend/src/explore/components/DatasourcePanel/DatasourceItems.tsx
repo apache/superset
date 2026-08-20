@@ -148,7 +148,7 @@ export const DatasourceItems = ({
 
   return (
     <List
-      style={{ width: width - BORDER_WIDTH, height }}
+      style={{ width: width - BORDER_WIDTH, height, maxHeight: height }}
       rowHeight={rowHeight}
       rowCount={flattenedItems.length}
       rowProps={rowProps}
