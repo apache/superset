@@ -14,7 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.utils.pandas_postprocessing import escape_separator, unescape_separator
+import inspect
+
+from superset.utils.pandas_postprocessing import (
+    escape_separator,
+    pivot,
+    unescape_separator,
+)
 
 
 def test_escape_separator():
@@ -28,3 +34,19 @@ def test_escape_separator():
     escape_string = escape_separator("hello,world")
     assert escape_string == r"hello\,world"
     assert unescape_separator(escape_string) == "hello,world"
+
+
+def test_validate_column_args_preserves_signature():
+    """
+    The decorator must not hide the signature of the operation it wraps.
+
+    `inspect.signature` follows `__wrapped__`, which `functools.wraps` sets.
+    Without it every decorated operation reports `(df, **options)`, and code
+    that inspects the signature -- see `QueryObject._drop_unsupported_options`
+    -- cannot tell a supported option from an unsupported one.
+    """
+    parameters = inspect.signature(pivot).parameters
+
+    assert pivot.__name__ == "pivot"
+    assert "options" not in parameters
+    assert {"index", "aggregates", "columns"} <= set(parameters)
