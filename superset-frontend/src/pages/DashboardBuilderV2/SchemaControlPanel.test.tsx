@@ -17,6 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
+import type { dashboard as dashboardApi } from '@apache-superset/core';
 import {
   render,
   screen,
@@ -28,6 +29,8 @@ import 'src/core/dashboard';
 import { fetchQueryData } from 'src/core/dashboard/chartData';
 import { resetDatasetMetadataCacheForTests } from 'src/core/dashboard/datasetMetadata';
 import SchemaControlPanel from './SchemaControlPanel';
+
+type DataBindingSpec = dashboardApi.DataBindingSpec;
 
 jest.mock('src/core/dashboard/chartData', () => ({
   fetchQueryData: jest.fn().mockResolvedValue({ columns: [], rows: [] }),
@@ -307,6 +310,130 @@ test('falls back to the raw JSON editor when an existing metric entry is an ad-h
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
 
+test('falls back to the raw JSON editor when a column value is not a string', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          colorDimension: {
+            type: 'string',
+            title: 'Color dimension',
+            'x-control': 'column',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [{ column_name: 'gender', type_generic: 1 }],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  // Hand-authored through the Inspector's JSON tab: not a string, so antd
+  // `Select` can't take it as a `value` — this must fall back to the raw
+  // JSON editor rather than crash the whole builder.
+  mount('balloons', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    colorDimension: { expressionType: 'SIMPLE' },
+  });
+
+  expect(await screen.findByText('Color dimension')).toBeInTheDocument();
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+test('falls back to the raw JSON editor when a column-multi entry is not a string', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          dimensions: {
+            type: 'array',
+            title: 'Dimensions',
+            'x-control': 'column-multi',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [{ column_name: 'gender', type_generic: 1 }],
+        metrics: [],
+      },
+    },
+  } as never);
+
+  mount('balloons', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    dimensions: ['gender', { expressionType: 'SIMPLE' }],
+  });
+
+  expect(await screen.findByText('Dimensions')).toBeInTheDocument();
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});
+
+test('falls back to the raw JSON editor when no dataset is bound yet', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          dimensions: {
+            type: 'array',
+            title: 'Dimensions',
+            'x-control': 'column-multi',
+          },
+        },
+      },
+    },
+  } as never);
+
+  mount('balloons', { dataBinding: {} });
+
+  expect(await screen.findByText('Dimensions')).toBeInTheDocument();
+  // No dataset bound at all: the field must stay editable via the raw JSON
+  // editor rather than render an empty, permanently uneditable picker.
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  expect(getSpy).not.toHaveBeenCalled();
+});
+
+test('falls back to the raw JSON editor when the dataset metadata fetch fails', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          colorDimension: {
+            type: 'string',
+            title: 'Color dimension',
+            'x-control': 'column',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockRejectedValue(new Error('network error'));
+
+  mount('balloons', { dataBinding: { datasetId: 1, metrics: ['count'] } });
+
+  // Both assertions must be checked together on every retry: before the
+  // fetch settles, `ColumnControl` briefly renders the picker instead (whose
+  // `Form.Item` label also reads "Color dimension"), so checking the label
+  // and the missing combobox separately could pass on that transient,
+  // pre-failure render instead of the final, fallen-back one.
+  await waitFor(() => {
+    expect(screen.getByText('Color dimension')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+});
+
 test('the real balloons schema shape (dataBinding nested under $defs) renders pickers for dimensions, metrics, and colorDimension', async () => {
   postSpy.mockResolvedValue({
     json: {
@@ -350,17 +477,28 @@ test('the real balloons schema shape (dataBinding nested under $defs) renders pi
     },
   } as never);
 
-  // `metrics`/`dimensions` are pre-filled with the only known metric/column
-  // so neither's "Add field" select renders — otherwise `selectOption`
-  // would find three comboboxes (dimensions' add-select, metrics'
-  // add-select, and colorDimension's) instead of the one it expects.
-  const id = mount('balloons', {
-    dataBinding: { datasetId: 1, metrics: ['count'], dimensions: ['gender'] },
-  });
+  // Nothing pre-filled: all three picks below drive their real, nested
+  // `dataBinding.*` write-back paths.
+  const id = mount('balloons', { dataBinding: { datasetId: 1 } });
 
-  await screen.findByText('Color dimension');
+  await screen.findByText('Dimensions');
+  // Each multi-list's trailing "add" Select carries an accessible name
+  // derived from its field label (`Add ${label}`), so it can be targeted
+  // directly even with multiple unnamed comboboxes on screen at once.
+  const getBinding = () =>
+    provider.getNode(id)?.props?.dataBinding as DataBindingSpec | undefined;
+
+  await selectOption('gender', 'Add Dimensions');
+  await waitFor(() => expect(getBinding()?.dimensions).toContain('gender'));
+
+  await selectOption('Count', 'Add Metrics');
+  await waitFor(() => expect(getBinding()?.metrics).toContain('count'));
+
+  // The dataset mock has exactly one column and one metric, so both
+  // multi-lists' "add" selects are now gone (nothing left to add) — leaving
+  // `colorDimension`'s plain Select as the only combobox on screen, so the
+  // unnamed pick below still resolves to a single element.
   await selectOption('gender');
-
   await waitFor(() =>
     expect(provider.getNode(id)?.props?.colorDimension).toBe('gender'),
   );

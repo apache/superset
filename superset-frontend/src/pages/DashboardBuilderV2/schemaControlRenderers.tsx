@@ -24,7 +24,6 @@
  *   - `x-control: color`       → a native color swatch (e.g. per-series balloon color).
  *   - `x-control: column`      → a single column-reference picker.
  *   - `x-control: column-multi` → an ordered, reorderable list of column references.
- *   - `x-control: metric`      → a single metric-reference picker.
  *   - `x-control: metric-multi` → an ordered, reorderable list of metric references.
  *
  * `code` and `color` fall back to the field's schema `default`, since
@@ -141,6 +140,21 @@ function useBoundDatasetId(props: ControlProps): number | undefined {
   const dataBinding = formData?.dataBinding as
     { datasetId?: number } | undefined;
   return dataBinding?.datasetId;
+}
+
+/**
+ * True when a column/metric-reference control should fail open to the raw
+ * JSON editor (`CodeControl`) rather than render its picker: no dataset is
+ * bound yet, or the dataset fetch failed. Deliberately does NOT cover the
+ * in-flight loading state (`metadata` still `null`, no `error` yet) — that's
+ * the normal case while a bound dataset's metadata is fetched, and the
+ * picker renders as usual with its own `loading` flag set.
+ */
+function shouldFallBackToCode(
+  datasetId: number | undefined,
+  error: string | null,
+): boolean {
+  return datasetId === undefined || error !== null;
 }
 
 interface ReferenceOption {
@@ -282,6 +296,7 @@ function ReferenceMultiList({
         <Select
           value={undefined}
           placeholder={t('Add field')}
+          ariaLabel={t('Add %s', label)}
           options={available}
           loading={loading}
           disabled={disabled}
@@ -293,13 +308,27 @@ function ReferenceMultiList({
   );
 }
 
-/** `x-control: "column"` — a single column reference. */
+/**
+ * `x-control: "column"` — a single column reference. Falls back to the raw
+ * JSON editor when no dataset is bound (or its fetch failed), or when the
+ * existing value isn't a string — e.g. an object hand-authored into the
+ * field through the Inspector's JSON tab, which `Select` can't render as a
+ * `value` and JsonForms would otherwise crash on.
+ */
 function ColumnControl(props: ControlProps): ReactElement {
   const datasetId = useBoundDatasetId(props);
-  const { metadata, loading } = useDatasetMetadata(datasetId);
+  const { metadata, loading, error } = useDatasetMetadata(datasetId);
   const allowedTypes = (props.schema as Record<string, unknown>)[
     'x-column-types'
   ] as string[] | undefined;
+
+  if (
+    shouldFallBackToCode(datasetId, error) ||
+    (props.data !== undefined && typeof props.data !== 'string')
+  ) {
+    return <CodeControl {...props} />;
+  }
+
   return (
     <ReferenceSelect
       label={props.label}
@@ -312,18 +341,30 @@ function ColumnControl(props: ControlProps): ReactElement {
   );
 }
 
-/** `x-control: "column-multi"` — an ordered list of column references. */
+/**
+ * `x-control: "column-multi"` — an ordered list of column references. Falls
+ * back to the raw JSON editor when no dataset is bound (or its fetch
+ * failed), or when an existing entry isn't a string — e.g. an object
+ * hand-authored into the field through the Inspector's JSON tab, which
+ * `ReferenceMultiList` can't render as a list entry.
+ */
 function ColumnMultiControl(props: ControlProps): ReactElement {
   const datasetId = useBoundDatasetId(props);
-  const { metadata, loading } = useDatasetMetadata(datasetId);
+  const { metadata, loading, error } = useDatasetMetadata(datasetId);
   const allowedTypes = (props.schema as Record<string, unknown>)[
     'x-column-types'
   ] as string[] | undefined;
-  const values = Array.isArray(props.data) ? (props.data as string[]) : [];
+  const values = Array.isArray(props.data) ? (props.data as unknown[]) : [];
+  const hasNonStringEntry = values.some(value => typeof value !== 'string');
+
+  if (shouldFallBackToCode(datasetId, error) || hasNonStringEntry) {
+    return <CodeControl {...props} />;
+  }
+
   return (
     <ReferenceMultiList
       label={props.label}
-      values={values}
+      values={values as string[]}
       options={columnOptions(metadata, allowedTypes)}
       loading={loading}
       disabled={!props.enabled}
@@ -333,8 +374,8 @@ function ColumnMultiControl(props: ControlProps): ReactElement {
 }
 
 /**
- * Metric options for a `metric`/`metric-multi` control: the dataset's saved
- * metrics, shown with the same Sigma icon Explore's metric picker uses.
+ * Metric options for a `metric-multi` control: the dataset's saved metrics,
+ * shown with the same Sigma icon Explore's metric picker uses.
  */
 export function metricOptions(
   metadata: DatasetMetadata | null,
@@ -364,31 +405,16 @@ export function hasAdvancedMetric(
   return values.some(value => typeof value !== 'string' || !known.has(value));
 }
 
-/** `x-control: "metric"` — a single metric reference. */
-function MetricControl(props: ControlProps): ReactElement {
-  const datasetId = useBoundDatasetId(props);
-  const { metadata, loading } = useDatasetMetadata(datasetId);
-  return (
-    <ReferenceSelect
-      label={props.label}
-      value={props.data as string | undefined}
-      options={metricOptions(metadata)}
-      loading={loading}
-      disabled={!props.enabled}
-      onChange={value => props.handleChange(props.path, value)}
-    />
-  );
-}
-
 /**
  * `x-control: "metric-multi"` — an ordered list of metric references. Falls
- * back to the raw JSON editor (`CodeControl`) whenever an existing entry
- * isn't expressible as a saved-metric pick, e.g. an ad-hoc aggregate object
- * authored through the JSON tab.
+ * back to the raw JSON editor (`CodeControl`) whenever no dataset is bound
+ * (or its fetch failed), or an existing entry isn't expressible as a
+ * saved-metric pick, e.g. an ad-hoc aggregate object authored through the
+ * JSON tab.
  */
 function MetricMultiControl(props: ControlProps): ReactElement {
   const datasetId = useBoundDatasetId(props);
-  const { metadata, loading } = useDatasetMetadata(datasetId);
+  const { metadata, loading, error } = useDatasetMetadata(datasetId);
   const values = Array.isArray(props.data) ? (props.data as unknown[]) : [];
 
   // Before `metadata` loads, `hasAdvancedMetric` can't be run (it needs the
@@ -400,7 +426,7 @@ function MetricMultiControl(props: ControlProps): ReactElement {
     ? hasAdvancedMetric(values, metadata)
     : values.some(value => typeof value !== 'string');
 
-  if (isAdvanced) {
+  if (shouldFallBackToCode(datasetId, error) || isAdvanced) {
     return <CodeControl {...props} />;
   }
 
@@ -434,10 +460,6 @@ export const schemaControlRenderers = [
   {
     tester: rankWith(1000, xControlIs('column-multi')),
     renderer: withJsonFormsControlProps(ColumnMultiControl),
-  },
-  {
-    tester: rankWith(1000, xControlIs('metric')),
-    renderer: withJsonFormsControlProps(MetricControl),
   },
   {
     tester: rankWith(1000, xControlIs('metric-multi')),
