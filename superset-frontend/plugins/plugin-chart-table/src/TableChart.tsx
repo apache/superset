@@ -179,8 +179,7 @@ function lookupRowBasicColor(
   originKey: string,
 ) {
   return (
-    formatters?.[columnKey] ||
-    (originKey ? formatters?.[originKey] : undefined)
+    formatters?.[columnKey] || (originKey ? formatters?.[originKey] : undefined)
   );
 }
 
