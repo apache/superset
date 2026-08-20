@@ -607,9 +607,7 @@ def test_validate_parameters_blank_port_is_not_a_missing_parameter(
     ``CONNECTION_MISSING_PARAMETERS_ERROR``, since ``build_sqlalchemy_uri``
     falls back to the default Postgres port.
     """
-    mocker.patch(
-        "superset.db_engine_specs.postgres.is_hostname_valid", return_value=True
-    )
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
 
     properties = {"parameters": _basic_parameters(port=None)}
     errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
@@ -641,9 +639,7 @@ def test_validate_parameters_missing_other_required_field_still_errors(
     DB Eng Specs (postgres): omitting a still-required field (``database``)
     continues to be reported, even though ``port`` is blank too.
     """
-    mocker.patch(
-        "superset.db_engine_specs.postgres.is_hostname_valid", return_value=True
-    )
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
 
     properties = {"parameters": _basic_parameters(database="", port=None)}
     errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
@@ -664,11 +660,9 @@ def test_validate_parameters_explicit_valid_port_checks_open(
     DB Eng Specs (postgres): when a port IS supplied, format/range/open
     validation is preserved unchanged.
     """
-    mocker.patch(
-        "superset.db_engine_specs.postgres.is_hostname_valid", return_value=True
-    )
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
     is_port_open = mocker.patch(
-        "superset.db_engine_specs.postgres.is_port_open", return_value=True
+        "superset.db_engine_specs.base.is_port_open", return_value=True
     )
 
     properties = {"parameters": _basic_parameters(port=5432)}
@@ -685,9 +679,7 @@ def test_validate_parameters_invalid_port_still_errors(
     DB Eng Specs (postgres): an out-of-range port supplied by the user
     still produces ``CONNECTION_INVALID_PORT_ERROR``, exactly as before.
     """
-    mocker.patch(
-        "superset.db_engine_specs.postgres.is_hostname_valid", return_value=True
-    )
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
 
     properties = {"parameters": _basic_parameters(port=70000)}
     errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
@@ -706,12 +698,11 @@ def test_validate_parameters_non_integer_port_matches_base_parity(
     conversion, AND the "must be an integer between 0 and 65535" range
     error, since the base method does not return early after the former
     and falls through to the range check (which is also False for a
-    non-int value). A Postgres-specific override that stops after the
-    first error would silently narrow this API's error-reporting contract.
+    non-int value). ``PostgresEngineSpec`` inherits ``validate_parameters``
+    directly from the base (it only overrides ``required_parameters``), so
+    this guards that the inherited behavior keeps producing both errors.
     """
-    mocker.patch(
-        "superset.db_engine_specs.postgres.is_hostname_valid", return_value=True
-    )
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
 
     properties = {"parameters": _basic_parameters(port="not-a-port")}
     errors = spec.validate_parameters(properties)  # type: ignore[arg-type]

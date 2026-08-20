@@ -1063,8 +1063,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         mock_event_logger.assert_called()
 
 
-@patch("superset.db_engine_specs.postgres.is_hostname_valid")
-@patch("superset.db_engine_specs.postgres.is_port_open")
+@patch("superset.db_engine_specs.base.is_hostname_valid")
+@patch("superset.db_engine_specs.base.is_port_open")
 @patch("superset.commands.database.validate.DatabaseDAO")
 def test_validate(
     mock_database_dao,  # noqa: N803
@@ -1093,8 +1093,8 @@ def test_validate(
     command.run()
 
 
-@patch("superset.db_engine_specs.postgres.is_hostname_valid")
-@patch("superset.db_engine_specs.postgres.is_port_open")
+@patch("superset.db_engine_specs.base.is_hostname_valid")
+@patch("superset.db_engine_specs.base.is_port_open")
 def test_validate_partial(is_port_open, is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
@@ -1134,7 +1134,7 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
     ]
 
 
-@patch("superset.db_engine_specs.postgres.is_hostname_valid")
+@patch("superset.db_engine_specs.base.is_hostname_valid")
 def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.

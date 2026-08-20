@@ -41,7 +41,6 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     BasicParametersSchema,
     BasicParametersType,
-    BasicPropertiesType,
     DatabaseCategory,
     TimestampExpression,
 )
@@ -51,7 +50,6 @@ from superset.models.sql_lab import Query
 from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
-from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -344,6 +342,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
     default_driver = "psycopg2"
     parameters_schema = PostgresParametersSchema()
+    # ``port`` is intentionally not required: a blank port falls back to
+    # Postgres's own default (``metadata["default_port"]``) in
+    # ``BasicParametersMixin.build_sqlalchemy_uri`` (overridden below).
+    required_parameters = {"host", "username", "database"}
     sqlalchemy_uri_placeholder = (
         "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
@@ -736,85 +738,6 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return super().build_sqlalchemy_uri(
             parameters_with_default_port, encrypted_extra
         )
-
-    @classmethod
-    def validate_parameters(
-        cls, properties: BasicPropertiesType
-    ) -> list[SupersetError]:
-        """
-        Validates any number of parameters, for progressive validation.
-
-        Same as ``BasicParametersMixin.validate_parameters``, except ``port``
-        is not a required parameter: a blank port is valid, since
-        ``build_sqlalchemy_uri`` falls back to Postgres's own default. Port
-        format/range/open checks still run whenever a port is present.
-        """
-        errors: list[SupersetError] = []
-
-        required = {"host", "username", "database"}
-        parameters = properties.get("parameters", {})
-        present = {key for key in parameters if parameters.get(key, ())}
-
-        if missing := sorted(required - present):
-            errors.append(
-                SupersetError(
-                    message=f"One or more parameters are missing: {', '.join(missing)}",
-                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-                    level=ErrorLevel.WARNING,
-                    extra={"missing": missing},
-                ),
-            )
-
-        host = parameters.get("host", None)
-        if not host:
-            return errors
-        if not is_hostname_valid(host):
-            errors.append(
-                SupersetError(
-                    message="The hostname provided can't be resolved.",
-                    error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-                    level=ErrorLevel.ERROR,
-                    extra={"invalid": ["host"]},
-                ),
-            )
-            return errors
-
-        port = parameters.get("port", None)
-        if not port:
-            return errors
-        try:
-            port = int(port)
-        except (ValueError, TypeError):
-            errors.append(
-                SupersetError(
-                    message="Port must be a valid integer.",
-                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
-                    level=ErrorLevel.ERROR,
-                    extra={"invalid": ["port"]},
-                ),
-            )
-        if not (isinstance(port, int) and 0 <= port < 2**16):
-            errors.append(
-                SupersetError(
-                    message=(
-                        "The port must be an integer between 0 and 65535 (inclusive)."
-                    ),
-                    error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
-                    level=ErrorLevel.ERROR,
-                    extra={"invalid": ["port"]},
-                ),
-            )
-        elif not is_port_open(host, port):
-            errors.append(
-                SupersetError(
-                    message="The port is closed.",
-                    error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
-                    level=ErrorLevel.ERROR,
-                    extra={"invalid": ["port"]},
-                ),
-            )
-
-        return errors
 
     @staticmethod
     def mutate_db_for_connection_test(database: Database) -> None:
