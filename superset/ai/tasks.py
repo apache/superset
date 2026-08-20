@@ -29,10 +29,14 @@ execution mode and a Redis event bus.
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta
 from typing import Any
+
+from flask import current_app
 
 from superset.ai.orchestrator import execute_turn, TurnRequest
 from superset.extensions import celery_app
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +65,24 @@ def run_turn(self: Any, payload: dict[str, Any]) -> str:  # noqa: ARG001
         outcome = execute_turn(request)
     logger.info("AI turn %s finished with outcome %s", request.run_id, outcome.value)
     return outcome.value
+
+
+@celery_app.task(name="ai.prune_conversations")
+@transaction()
+def prune_conversations() -> int:
+    """Delete conversations outside the configured retention window."""
+    from superset.daos.ai import AIChatThreadDAO
+
+    retention_days = int(
+        current_app.config.get("AI_ASSISTANT_MESSAGE_RETENTION_DAYS", 30)
+    )
+    if retention_days <= 0:
+        return 0
+    deleted = AIChatThreadDAO.delete_older_than(
+        datetime.now() - timedelta(days=retention_days)
+    )
+    logger.info("Pruned %d expired AI conversations", deleted)
+    return deleted
 
 
 def _load_user(user_id: int | None) -> Any:

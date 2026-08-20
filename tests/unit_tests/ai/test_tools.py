@@ -44,6 +44,7 @@ RAISE_FOR_ACCESS = "superset.security_manager.raise_for_access"
 SCHEMAS_FOR_USER = "superset.security_manager.get_schemas_accessible_by_user"
 TABLES_COMMAND = "superset.commands.database.tables.TablesDatabaseCommand.run"
 CURRENT_USER = "superset.ai.tools.base._current_user"
+CAN_ACCESS = "superset.security_manager.can_access"
 
 
 @pytest.fixture(autouse=True)
@@ -55,7 +56,10 @@ def _authenticated_user() -> Any:
     behaviour a separate test covers explicitly. Every other test is about
     something else, so they run as a signed-in user.
     """
-    with patch(CURRENT_USER, return_value=MagicMock(id=1, is_authenticated=True)):
+    with (
+        patch(CURRENT_USER, return_value=MagicMock(id=1, is_authenticated=True)),
+        patch(CAN_ACCESS, return_value=True),
+    ):
         yield
 
 
@@ -571,6 +575,20 @@ def test_every_tool_definition_is_well_formed() -> None:
 # ---------------------------------------------------------------------------
 # execute_sql — read-only enforcement
 # ---------------------------------------------------------------------------
+
+
+def test_execute_sql_requires_sql_lab_execution_permission() -> None:
+    """Dataset access alone does not grant the separate SQL Lab capability."""
+    from superset.ai.tools.base import ToolError
+    from superset.ai.tools.sql import ExecuteSqlTool
+
+    executor = RecordingExecutor()
+    with patch(CAN_ACCESS, return_value=False), patch(FIND_DB) as find_database:
+        with pytest.raises(ToolError, match="permission to execute SQL"):
+            ExecuteSqlTool(executor=executor).run(database_id=1, sql="SELECT 1")
+
+    find_database.assert_not_called()
+    assert executor.calls == []
 
 
 MUTATING_SQL = [

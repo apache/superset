@@ -33,6 +33,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from superset.ai.types import MessageRole, MessageStatus, ThreadStatus
@@ -191,6 +192,25 @@ class AIChatThreadDAO(BaseDAO[AIChatThread]):
             thread.changed_by_fk = user_id
         db.session.add(thread)
 
+    @classmethod
+    def delete_older_than(cls, cutoff: datetime) -> int:
+        """Delete conversations last changed before ``cutoff`` and their rows."""
+        thread_ids = select(AIChatThread.id).where(AIChatThread.changed_on < cutoff)
+        message_ids = select(AIChatMessage.id).where(
+            AIChatMessage.thread_id.in_(thread_ids)
+        )
+        db.session.query(AIChatFeedback).filter(
+            AIChatFeedback.message_id.in_(message_ids)
+        ).delete(synchronize_session=False)
+        db.session.query(AIChatMessage).filter(
+            AIChatMessage.thread_id.in_(thread_ids)
+        ).delete(synchronize_session=False)
+        return (
+            db.session.query(AIChatThread)
+            .filter(AIChatThread.changed_on < cutoff)
+            .delete(synchronize_session=False)
+        )
+
 
 class AIChatMessageDAO(BaseDAO[AIChatMessage]):
     """
@@ -215,6 +235,25 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
             .filter(AIChatMessage.thread_id == thread.id)
             .order_by(AIChatMessage.created_on.asc(), AIChatMessage.id.asc())
             .all()
+        )
+
+    @classmethod
+    def claim_pending(cls, message_uuid: str | UUID) -> bool:
+        """Atomically move one pending assistant message into execution."""
+        parsed = _coerce_uuid(message_uuid)
+        if parsed is None:
+            return False
+        return (
+            db.session.query(AIChatMessage)
+            .filter(
+                AIChatMessage.uuid == parsed,
+                AIChatMessage.status == MessageStatus.PENDING.value,
+            )
+            .update(
+                {AIChatMessage.status: MessageStatus.STREAMING.value},
+                synchronize_session=False,
+            )
+            == 1
         )
 
     @classmethod

@@ -144,6 +144,44 @@ def test_find_all_for_user_filters_by_status(session: Session) -> None:
     ]
 
 
+def test_delete_older_than_removes_the_whole_expired_conversation(
+    session: Session,
+) -> None:
+    """Retention removes messages and feedback but preserves newer threads."""
+    from superset.ai.types import MessageRole
+    from superset.daos.ai import AIChatMessageDAO, AIChatThreadDAO
+    from superset.models.ai import AIChatFeedback, AIChatMessage, AIChatThread
+
+    _create_tables(session)
+    old = AIChatThreadDAO.create_for_user(USER_A)
+    message, _ = AIChatMessageDAO.create_idempotent(
+        old, MessageRole.ASSISTANT, "old answer", user_id=USER_A
+    )
+    session.add(AIChatFeedback(message_id=message.id, liked=True, created_by_fk=USER_A))
+    old.changed_on = datetime(2024, 1, 1)
+    new = AIChatThreadDAO.create_for_user(USER_A)
+    new.changed_on = datetime(2024, 2, 1)
+    session.flush()
+
+    assert AIChatThreadDAO.delete_older_than(datetime(2024, 1, 15)) == 1
+    assert session.query(AIChatThread).count() == 1
+    assert session.query(AIChatThread).one().id == new.id
+    assert session.query(AIChatMessage).count() == 0
+    assert session.query(AIChatFeedback).count() == 0
+
+
+def test_prune_task_is_registered_in_the_default_daily_schedule() -> None:
+    """The documented retention task is runnable without custom wiring."""
+    from superset import config
+    from superset.ai.tasks import prune_conversations
+
+    assert prune_conversations.name == "ai.prune_conversations"
+    entry = config.CeleryConfig.beat_schedule["ai.prune_conversations"]
+    assert entry["task"] == "ai.prune_conversations"
+    assert entry["schedule"].minute == {30}
+    assert entry["schedule"].hour == {3}
+
+
 def test_create_for_user_records_the_owner_and_assigns_an_identifier(
     session: Session,
 ) -> None:
@@ -185,6 +223,27 @@ def test_find_for_thread_returns_messages_in_conversation_order(
         "turn 0",
         "turn 1",
     ]
+
+
+def test_pending_message_can_be_claimed_only_once(session: Session) -> None:
+    """Concurrent stream consumers cannot both start the same inference."""
+    from superset.ai.types import MessageRole, MessageStatus
+    from superset.daos.ai import AIChatMessageDAO, AIChatThreadDAO
+
+    _create_tables(session)
+    thread = AIChatThreadDAO.create_for_user(USER_A)
+    message, _ = AIChatMessageDAO.create_idempotent(
+        thread,
+        MessageRole.ASSISTANT,
+        "",
+        user_id=USER_A,
+        status=MessageStatus.PENDING,
+    )
+
+    assert AIChatMessageDAO.claim_pending(message.uuid) is True
+    assert AIChatMessageDAO.claim_pending(message.uuid) is False
+    session.refresh(message)
+    assert message.status == MessageStatus.STREAMING.value
 
 
 def test_message_find_by_uuid_for_user_hides_another_users_message(

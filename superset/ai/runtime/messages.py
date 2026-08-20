@@ -127,9 +127,12 @@ class MessagesApiRuntime(BaseAgentRuntime):
             async for event in self._turn_loop(request, answer_parts):
                 yield event
 
-            # A run that failed or was abandoned has already said so; emitting an
-            # answer as well would contradict it.
+            # Replace any provisional streamed prose before reporting failure.
+            # Until a turn ends we cannot know whether its text is an answer or
+            # narration accompanying a tool call.
             if self._result.error is not None or self._result.cancelled:
+                if self._streamed_text:
+                    yield final_event(self._result.answer)
                 return
 
             answer = "\n\n".join(part for part in answer_parts if part).strip()

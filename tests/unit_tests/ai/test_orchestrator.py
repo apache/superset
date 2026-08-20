@@ -58,6 +58,31 @@ def test_new_run_id_is_unique() -> None:
     assert new_run_id() != new_run_id()
 
 
+def test_a_second_consumer_does_not_run_the_turn(mocker: MockerFixture) -> None:
+    """A claimed assistant row makes a duplicate stream a no-op."""
+    from superset.ai.orchestrator import _run, TurnRequest
+
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=False)
+    profiles = mocker.patch("superset.ai.factories.get_profiles")
+    state: dict[str, Any] = {}
+
+    events = list(
+        _run(
+            TurnRequest(
+                thread_uuid="t-1",
+                user_id=7,
+                run_id="r-1",
+                assistant_message_uuid="m-1",
+            ),
+            state,
+        )
+    )
+
+    assert events == []
+    assert state["finalised"] is True
+    profiles.assert_not_called()
+
+
 def test_history_excludes_empty_and_system_messages(app_context: None) -> None:
     """
     Only real conversational turns are replayed to the model.

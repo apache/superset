@@ -143,6 +143,25 @@ test('streamRun surfaces an error frame as a ChatStreamEventError', async () => 
   ).rejects.toThrow(ChatStreamEventError);
 });
 
+test('a final frame retracts provisional text before an error is raised', async () => {
+  mockStream([
+    frame('assistant_delta', { delta: 'Let me check another table.' }),
+    frame('error', { error: 'The step limit was reached.' }),
+    frame('final', { content: 'No final answer was produced.' }),
+    frame('done', { ok: false }),
+  ]);
+  const finals: string[] = [];
+
+  await expect(
+    streamRun({
+      threadUuid: 'thread-1',
+      runId: 'run-1',
+      onAssistantFinal: content => finals.push(content),
+    }),
+  ).rejects.toThrow(ChatStreamEventError);
+  expect(finals).toEqual(['No final answer was produced.']);
+});
+
 test('streamRun reports a body that ends without the terminal frame', async () => {
   mockStream([frame('assistant_delta', { delta: 'half an answer' })]);
 

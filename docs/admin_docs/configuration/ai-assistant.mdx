@@ -232,8 +232,10 @@ does.
 
 Result sizes are capped by `AI_AGENT_MAX_RESULT_ROWS` and
 `AI_AGENT_MAX_RESULT_BYTES`, and truncation is reported rather than hidden. Turn
-length is bounded by `AI_AGENT_MAX_TURNS` and `AI_AGENT_TIMEOUT_SECONDS`; a run
-that exhausts either answers with what it has.
+length is bounded by `AI_AGENT_MAX_TURNS` and `AI_AGENT_TIMEOUT_SECONDS`. A
+timeout preserves whatever answer was completed before the deadline. Reaching
+the step limit before a final answer ends the run as incomplete; provisional
+tool-call narration is not presented as an answer.
 
 Content that arrives from your warehouse or asset metadata — table comments,
 chart titles, column labels — is marked as untrusted in the prompt, because a
@@ -413,7 +415,10 @@ latency to every turn that uses it.
 ## Retention
 
 Conversations are kept for `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` (default 30).
-Pruning is not automatic — schedule it if you want it enforced.
+The default Celery configuration registers `ai.prune_conversations` daily at
+03:30. Run Celery beat to enforce it; if you replace `CELERY_CONFIG`, keep both
+the `superset.ai.tasks` import and that beat entry. Set the retention to `0` to
+disable pruning.
 
 ## Trying it locally
 
@@ -452,7 +457,7 @@ production default, includes prompts and SQL in them.
 | `AI_LLM_PROVIDER_CONFIG` | `{}` | Provider constructor arguments. |
 | `AI_AGENT_RUNTIME_CLASS` | `MessagesApiRuntime` | The tool-use loop. |
 | `AI_AGENT_PROFILES` | `{}` | Per-profile overrides, including tool allowlists. |
-| `AI_AGENT_MAX_TURNS` | `20` | Model round trips per turn. |
+| `AI_AGENT_MAX_TURNS` | `20` | Model round trips before an incomplete-run error. |
 | `AI_AGENT_TIMEOUT_SECONDS` | `300` | Wall-clock budget per turn. |
 | `AI_AGENT_TOOL_POLICIES` | read-only + identifier | Pre-tool-use guards. |
 | `AI_AGENT_MAX_RESULT_ROWS` | `500` | Rows a tool may return. |

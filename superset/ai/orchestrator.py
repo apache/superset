@@ -260,6 +260,13 @@ def execute_turn(request: TurnRequest) -> RunOutcome:
 
 def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
     """Assemble and drive the run. See :func:`stream_turn` for error policy."""
+    if not _claim_pending(request.assistant_message_uuid):
+        # A second inline GET or a duplicate queued task must not repeat a turn
+        # that is already running or terminal.
+        state["finalised"] = True
+        logger.info("AI message %s is already claimed", request.assistant_message_uuid)
+        return
+
     from superset.ai.factories import (
         get_profiles,
         get_provider,
@@ -317,8 +324,6 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
         or _config("AI_AGENT_TIMEOUT_SECONDS", 300),
         should_cancel=lambda: is_cancelled(request.run_id),
     )
-
-    _mark_streaming(request.assistant_message_uuid)
 
     # The runtime is async and this is a synchronous generator, so the async
     # events are drained into a list per batch rather than bridged with a
@@ -457,14 +462,11 @@ def _build_system_prompt(tools: Any, rendered_context: str) -> str:
 
 
 @transaction()
-def _mark_streaming(message_uuid: str) -> None:
-    """Move the placeholder assistant message into its in-flight state."""
+def _claim_pending(message_uuid: str) -> bool:
+    """Claim a placeholder once, before any inference can start."""
     from superset.daos.ai import AIChatMessageDAO
 
-    message = AIChatMessageDAO.find_one_or_none(uuid=uuid_module.UUID(message_uuid))
-    if message is None:
-        return
-    message.status = MessageStatus.STREAMING.value
+    return AIChatMessageDAO.claim_pending(message_uuid)
 
 
 def _finalise_message(

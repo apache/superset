@@ -1842,6 +1842,10 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "task": "deletion_retention.purge_soft_deleted",
             "schedule": crontab(minute=0, hour=0),
         },
+        "ai.prune_conversations": {
+            "task": "ai.prune_conversations",
+            "schedule": crontab(minute=30, hour=3),
+        },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
         #     "task": "prune_query",
@@ -3055,8 +3059,9 @@ AI_ASSISTANT_EVENT_TTL_SECONDS = 900
 #   }
 AI_AGENT_PROFILES: dict[str, Any] = {}
 
-# Ceiling on model round trips in a single turn. A turn that needs more than
-# this is answered with what it has rather than looping indefinitely.
+# Ceiling on model round trips in a single turn. Reaching it before the model
+# produces a final answer ends the run as incomplete rather than treating
+# provisional reasoning as an answer.
 AI_AGENT_MAX_TURNS = 20
 
 # Wall-clock budget for one turn, in seconds.
@@ -3153,8 +3158,8 @@ AI_ASSISTANT_MAX_HISTORY_CHARS = 100_000
 # infer today's date or weekday.
 AI_ASSISTANT_TIMEZONE = "UTC"
 
-# Days a conversation is retained. Pruning is performed by the
-# ``ai.prune_conversations`` Celery task, which must be scheduled to run.
+# Days a conversation is retained. The default Celery beat config runs
+# ``ai.prune_conversations`` daily; non-positive values disable pruning.
 AI_ASSISTANT_MESSAGE_RETENTION_DAYS = 30
 
 # Ordered KnowledgeProvider instances or dotted paths contributing

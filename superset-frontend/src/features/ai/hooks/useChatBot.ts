@@ -946,6 +946,11 @@ export const useChatBot = (): UseChatBotReturn => {
             assistantDeltaText += delta;
             publish();
           },
+          onAssistantFinal: content => {
+            if (!isRunCurrent(targetTabId, requestId)) return;
+            assistantDeltaText = content;
+            publish();
+          },
           onCheckpoint: parsed => {
             if (!isRunCurrent(targetTabId, requestId)) {
               return Promise.resolve();

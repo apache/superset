@@ -343,7 +343,12 @@ def test_turn_budget_is_reported_as_an_incomplete_run() -> None:
     out long ago, while the result lets persistence and telemetry record failure.
     """
     call = ToolCall(id="c", name="execute_sql", arguments={"sql": "SELECT 1"})
-    provider = EchoProvider([ScriptedTurn(tool_calls=(call,)) for _ in range(5)])
+    provider = EchoProvider(
+        [
+            ScriptedTurn(text="Let me check another table.", tool_calls=(call,))
+            for _ in range(5)
+        ]
+    )
     runtime = MessagesApiRuntime(provider)
 
     events = _run(runtime, _request(tools=StubTools(), max_turns=2))
@@ -352,7 +357,9 @@ def test_turn_budget_is_reported_as_an_incomplete_run() -> None:
     assert runtime.result.ok is False
     assert runtime.result.error is not None
     assert StreamEventType.ERROR in _types(events)
-    assert StreamEventType.FINAL not in _types(events)
+    final = _payloads(events, StreamEventType.FINAL)[0]["content"]
+    assert final == runtime.result.answer
+    assert "check another table" not in final
     stages = [p["stage"] for p in _payloads(events, StreamEventType.THINKING)]
     assert "fallback" in stages
 

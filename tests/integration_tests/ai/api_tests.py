@@ -24,6 +24,7 @@ trip through storage.
 """
 
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
@@ -327,14 +328,21 @@ class TestAIApi(SupersetTestCase):
         uuid = self._create_thread()["uuid"]
         payload = {"content": "same question", "request_id": "req-abc-1"}
 
-        first = self.client.post(f"{AI_BASE}/thread/{uuid}/message", json=payload)
-        second = self.client.post(f"{AI_BASE}/thread/{uuid}/message", json=payload)
+        with patch("superset.ai.api.AIRestApi._start_run") as start_run:
+            first = self.client.post(f"{AI_BASE}/thread/{uuid}/message", json=payload)
+            second = self.client.post(f"{AI_BASE}/thread/{uuid}/message", json=payload)
         assert first.status_code == 202
         assert second.status_code == 202
         assert (
             first.json["result"]["message_uuid"]
             == second.json["result"]["message_uuid"]
         )
+        assert (
+            first.json["result"]["assistant_message_uuid"]
+            == second.json["result"]["assistant_message_uuid"]
+        )
+        assert first.json["result"]["run_id"] == second.json["result"]["run_id"]
+        start_run.assert_called_once()
 
         fetched = self.client.get(f"{AI_BASE}/thread/{uuid}")
         user_messages = [
