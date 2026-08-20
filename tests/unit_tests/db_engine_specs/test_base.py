@@ -1490,3 +1490,21 @@ def test_get_public_information_exposes_ansi_identifier_quote() -> None:
         "end": '"',
         "escape_by_doubling": True,
     }
+
+
+def test_multivalue_columns_disabled_by_default() -> None:
+    """Engines must opt in to multi-value support; base defaults to off."""
+    assert BaseEngineSpec.supports_multivalue_columns is False
+
+
+@pytest.mark.parametrize(
+    "method", ["array_contains_any", "array_contains_all", "array_length"]
+)
+def test_array_capabilities_raise_when_unsupported(method: str) -> None:
+    """Array capability methods raise NotImplementedError unless overridden."""
+    from sqlalchemy import column
+
+    fn = getattr(BaseEngineSpec, method)
+    args = (column("c"), ["v"]) if "contains" in method else (column("c"),)
+    with pytest.raises(NotImplementedError):
+        fn(*args)
