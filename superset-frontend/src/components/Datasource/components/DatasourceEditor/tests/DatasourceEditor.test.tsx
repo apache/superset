@@ -71,6 +71,17 @@ test('renders Tabs', async () => {
   expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
 });
 
+test('recommends a registered client route for the default URL', async () => {
+  await asyncRender(createProps());
+
+  userEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+
+  expect(await screen.findByText('/dashboard/{id}/')).toBeInTheDocument();
+  expect(
+    screen.queryByText('/superset/dashboard/{id}/'),
+  ).not.toBeInTheDocument();
+});
+
 test('can sync columns from source', async () => {
   const testProps = createProps();
   await asyncRender({
