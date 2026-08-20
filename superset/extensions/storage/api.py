@@ -92,10 +92,16 @@ class ExtensionStorageRestApi(BaseApi):
     route_base = "/api/v1/extensions"
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
-        """Helper method to create JSON responses."""
+        """Helper method to create JSON responses.
+
+        Stored values are scoped to the requesting user, so responses are
+        marked non-cacheable.
+        """
         from flask import jsonify
 
-        return jsonify(kwargs), status_code
+        response = jsonify(kwargs)
+        response.cache_control.no_store = True
+        return response, status_code
 
     def response_404(self, message: str = "Not found") -> Response:
         """Helper method to create 404 responses."""

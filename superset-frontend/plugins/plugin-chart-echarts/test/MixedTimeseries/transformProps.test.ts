@@ -28,6 +28,7 @@ import {
   VizType,
   ChartDataResponseResult,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -1454,4 +1455,61 @@ test('should not apply a dashed lineStyle when timeShiftColor is disabled', () =
 
   expect(derivedSeries).toBeDefined();
   expect(derivedSeries?.lineStyle?.type).toBeUndefined();
+});
+
+describe('EchartsMixedTimeseries tooltip truncation', () => {
+  const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+
+  const buildTooltip = (tooltipTruncation?: TooltipTruncationMode) => {
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queriesData,
+      formData: {
+        ...formData,
+        ...(tooltipTruncation ? { tooltipTruncation } : {}),
+      },
+      queriesData,
+    });
+    const { echartOptions } = transformProps(chartProps);
+    const { formatter } = echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    };
+    // richTooltip is false in this fixture, so the trigger is 'item' and the
+    // formatter receives a single param object rather than an array.
+    return formatter({
+      seriesId: longSeriesName,
+      seriesName: longSeriesName,
+      value: [599616000000, 1],
+      marker,
+    });
+  };
+
+  test('keeps full text with the CSS cap by default', () => {
+    const html = buildTooltip();
+    expect(html.replace(/\s/g, '')).toContain('max-width:300px');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('removes the cap and keeps full text when off', () => {
+    const html = buildTooltip('off');
+    expect(html).not.toContain('max-width');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('drops the shared prefix when truncating from the start', () => {
+    const html = buildTooltip('start');
+    expect(html).not.toContain('prod-us-east');
+    expect(html).toContain('latency-p99');
+    expect(html).toContain('background-color:#1f77b4');
+  });
+
+  test('keeps both ends when truncating the middle', () => {
+    const html = buildTooltip('middle');
+    expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
+    expect(html).not.toContain(longSeriesName);
+  });
 });

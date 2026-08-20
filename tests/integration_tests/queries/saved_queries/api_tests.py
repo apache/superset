@@ -18,7 +18,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-from datetime import datetime
 from io import BytesIO
 from typing import Optional
 from unittest.mock import Mock, patch
@@ -606,7 +605,10 @@ class TestSavedQueryApi(SupersetTestCase):
             db.session.query(SavedQuery).filter(SavedQuery.label == "label1").all()[0]
         )
         self.login(ADMIN_USERNAME)
-        with freeze_time(datetime.now()):
+        # Freeze relative to the persisted timestamp so database-specific
+        # timestamp precision cannot make the humanized value age into the
+        # next bucket while the request is being handled.
+        with freeze_time(saved_query.changed_on):
             uri = f"api/v1/saved_query/{saved_query.id}"
             rv = self.get_assert_metric(uri, "get")
             assert rv.status_code == 200
