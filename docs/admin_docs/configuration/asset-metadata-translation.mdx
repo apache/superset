@@ -52,7 +52,7 @@ LANGUAGES = {
 When enabled, the canonical text is always returned unchanged if:
 
 - the active locale is the default locale (`BABEL_DEFAULT_LOCALE`), or
-- no `TRANSLATION_HOOK` is configured, or
+- neither `TRANSLATION_HOOK` nor `TRANSLATION_BATCH_HOOK` is configured, or
 - the hook returns a falsy value (no translation found), or
 - the hook raises (the error is logged; the original text is preserved).
 
@@ -109,9 +109,10 @@ repeated string costs one lookup no matter how many times it is rendered.
 
 :::note
 Batching applies where Superset holds a whole collection before rendering it —
-dashboard loads and the "Recents" list. On the chart and dashboard **list**
-pages each row is serialized independently, so those still resolve per row;
-back your hook with a cache or an in-process map if that path matters to you.
+the charts on a dashboard and the "Recents" list. On the chart and dashboard
+**list** pages each row is serialized independently, so those still resolve per
+row; back your hook with a cache or an in-process map if that path matters to
+you.
 :::
 
 ## The `i18n` Jinja macro
@@ -124,8 +125,9 @@ into translation explicitly:
 {{ i18n('Sales') }}
 ```
 
-This resolves through the same `TRANSLATION_HOOK` and the same enable gate;
-when the feature is off it simply returns the original text.
+This resolves through the configured translation hook -- batch or single -- and
+the same enable gate; when the feature is off it simply returns the original
+text.
 
 ## Reference hook implementations
 

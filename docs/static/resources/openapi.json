@@ -2249,6 +2249,11 @@
             "description": "The id of the chart.",
             "type": "integer"
           },
+          "localized_name": {
+            "description": "The chart name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "readOnly": true,
+            "type": "string"
+          },
           "slice_name": {
             "description": "The name of the chart.",
             "type": "string"
@@ -2355,6 +2360,10 @@
           },
           "is_managed_externally": {
             "type": "boolean"
+          },
+          "localized_name": {
+            "readOnly": true,
+            "type": "string"
           },
           "owners": {
             "items": {
@@ -3276,6 +3285,11 @@
           },
           "json_metadata": {
             "description": "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter  specific parameters.",
+            "type": "string"
+          },
+          "localized_title": {
+            "description": "The dashboard title resolved for the viewer's locale (read-only). Falls back to dashboard_title when no translation applies.",
+            "readOnly": true,
             "type": "string"
           },
           "owners": {
