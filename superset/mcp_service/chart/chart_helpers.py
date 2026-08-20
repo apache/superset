@@ -199,6 +199,8 @@ def apply_form_data_filters_to_query(
         query["where"] = where
     if having := form_data.get("having"):
         query["having"] = having
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def _join_sql_clause(existing_clause: str, additional_clause: str) -> str:
@@ -255,6 +257,9 @@ def merge_form_data_filters_into_query(
                 query[clause] = _join_sql_clause(existing_clause, additional_clause)
             else:
                 query[clause] = additional_clause
+
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def merge_extra_form_data_filters_into_query(
