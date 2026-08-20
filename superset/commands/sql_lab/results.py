@@ -109,6 +109,19 @@ class SqlExecutionResultsCommand(BaseCommand):
                 status=400,
             ) from ex
 
+        # Warm the `database` relationship now, while the session is still open --
+        # `_deserialize_results_payload` needs `self._query.database.db_engine_spec`
+        # later in `run()`, after the session below has been closed.
+        _ = self._query.database
+
+        # Release the DB connection back to the pool before the S3 fetch and the
+        # CPU-bound decompress/deserialize/expand work below: none of that needs
+        # the DB, and holding a connection for their duration (which can run well
+        # past this endpoint's client-side timeout for large results) is what
+        # exhausts the small per-worker SQLAlchemy pool when several large-result
+        # downloads land concurrently on the same gunicorn worker.
+        db.session.close()
+
         # Now fetch results from backend (query exists, so this is a valid request)
         read_from_results_backend_start = now_as_float()
         self._blob = results_backend.get(self._key)
