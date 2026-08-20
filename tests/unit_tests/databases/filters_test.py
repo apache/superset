@@ -63,8 +63,8 @@ def test_database_filter_full_db_access(mocker: MockerFixture) -> None:
     mocker.patch("flask.current_app.config", {"EXTRA_DYNAMIC_QUERY_FILTERS": False})
     mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 
-    engine = create_engine("sqlite://", future=True)
-    Session = sessionmaker(bind=engine, future=True)  # noqa: N806
+    engine = create_engine("sqlite://")
+    Session = sessionmaker(bind=engine)  # noqa: N806
     session = Session()
     query = session.query(Database)
 
@@ -105,7 +105,7 @@ def test_database_filter(mocker: MockerFixture) -> None:
         ],
     )
 
-    engine = create_engine("sqlite://", future=True)
+    engine = create_engine("sqlite://")
     Session = sessionmaker(bind=engine)  # noqa: N806
     session = Session()
     query = session.query(Database)
