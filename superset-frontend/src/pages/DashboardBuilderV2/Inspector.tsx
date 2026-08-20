@@ -504,10 +504,15 @@ export default function Inspector(): ReactElement {
   const node =
     selection === undefined ? undefined : provider.getNode(selection);
 
-  // Set down from the tab bar above. Whatever comes first here — the
-  // identity of what is selected, or the line saying nothing is — reads as a
-  // caption hanging off the tabs when it starts flush against them.
-  const inset = { paddingTop: theme.sizeUnit * 3 };
+  // Set down from the tab bar above, and in from the rail's right edge —
+  // `EditorPanel`'s tab body scrolls on its own (see the `allowOverflow`
+  // comment there), and its scrollbar sits flush against this panel's
+  // content with no padding of its own to its left, so without this a
+  // field's right edge butts straight up against the scrollbar track.
+  const inset = {
+    paddingTop: theme.sizeUnit * 3,
+    paddingRight: theme.sizeUnit * 3,
+  };
 
   if (!node) {
     return (
@@ -549,7 +554,10 @@ export default function Inspector(): ReactElement {
         // name.
         <div data-test="inspector-identity">
           <IdentityName>{widgetLabel(node.type, node.props)}</IdentityName>
-          <IdentityMeta>
+          <IdentityMeta
+            data-test="inspector-identity-meta"
+            data-node-id={node.id}
+          >
             {node.type} · {node.id}
           </IdentityMeta>
         </div>

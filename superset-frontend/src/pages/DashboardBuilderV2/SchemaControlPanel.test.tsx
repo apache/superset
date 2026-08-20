@@ -17,7 +17,12 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  selectOption,
+} from 'spec/helpers/testing-library';
 import DashboardProvider from 'src/core/dashboard/DashboardProvider';
 import 'src/core/dashboard';
 import { fetchQueryData } from 'src/core/dashboard/chartData';
@@ -115,6 +120,69 @@ test('discovers series from the color dimension (the last dimension by default),
         jsonPayload: expect.objectContaining({ series: ['boy', 'girl'] }),
       }),
     ),
+  );
+});
+
+test('re-enriches a field depending on a plain sibling value, not just series (filter.select: column depends on datasetId)', async () => {
+  const schemaBeforeDataset = {
+    type: 'object',
+    properties: {
+      datasetId: {
+        type: 'integer',
+        title: 'Dataset ID',
+        enum: [1],
+        'x-enumNames': ['Sales'],
+      },
+      column: {
+        type: 'string',
+        title: 'Column',
+        'x-dynamic': true,
+        'x-dependsOn': ['datasetId'],
+        enum: [],
+      },
+    },
+  };
+  const schemaAfterDataset = {
+    ...schemaBeforeDataset,
+    properties: {
+      ...schemaBeforeDataset.properties,
+      column: {
+        ...schemaBeforeDataset.properties.column,
+        enum: ['region', 'product_line'],
+      },
+    },
+  };
+  postSpy.mockImplementation(
+    async (config: { jsonPayload?: unknown }) =>
+      ({
+        json: {
+          result: (
+            config.jsonPayload as { control_values?: { datasetId?: number } }
+          )?.control_values?.datasetId
+            ? schemaAfterDataset
+            : schemaBeforeDataset,
+        },
+      }) as never,
+  );
+
+  mount('filter.select', {});
+
+  // Only `datasetId` is a select before any dataset is picked — `column`'s
+  // enum is still empty, so it renders as the generic text control.
+  await screen.findByText('Dataset ID');
+  expect(await screen.findAllByRole('combobox')).toHaveLength(1);
+
+  await selectOption('Sales');
+
+  // Picking the dataset debounces a schema re-fetch carrying `datasetId`
+  // along, which comes back with `column`'s enum populated — turning it
+  // into a second select, without anything here depending on `series`.
+  await waitFor(() => expect(postSpy).toHaveBeenCalledTimes(2), {
+    timeout: 3000,
+  });
+  await waitFor(
+    async () => expect(await screen.findAllByRole('combobox')).toHaveLength(2),
+    { timeout: 3000 },
   );
 });
 

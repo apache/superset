@@ -51,7 +51,7 @@
  * ```
  */
 
-import type { Event } from '../common';
+import type { Disposable, Event } from '../common';
 
 /**
  * Layout of a single node: a grid it lays out its own children in (only
@@ -193,6 +193,12 @@ export declare function updateLayout(
  * in place (e.g. a chart's `dataBinding`/`echartsOptions`, or a markdown
  * node's `content`) rather than removing and re-adding the node just to
  * change what it renders, which loses its position, layout, and identity.
+ *
+ * Not the right call for a value a *viewer* changes at runtime (e.g. a
+ * filter's current selection) — that's per-session state, not authored
+ * document state, and belongs on {@link emit}/{@link getValue} instead.
+ * Writing it here would mean one viewer's interaction mutates the same
+ * node every other viewer and editor sees.
  */
 export declare function updateProps(
   id: string,
@@ -205,6 +211,68 @@ export declare function updateProps(
  * single mutation (e.g. a move) can touch more than one node.
  */
 export declare const onDidLayoutChange: Event<void>;
+
+/**
+ * How one widget affects another at runtime — a filter changing its
+ * selection, a chart emitting a cross-filter, or anything an extension
+ * invents. Widget types are contributed by extensions and unknown ahead of
+ * time, so this can't assume any specific relationship (e.g. "chart
+ * listens to filter"): {@link emit}/{@link on} take a plain `eventType:
+ * string` rather than a closed enum, precisely so a third-party widget can
+ * define and emit its own event types too. {@link VALUE_CHANGED_EVENT} is
+ * the one built-in convention every value-holding widget is expected to use
+ * for "my value changed" — not an exhaustive list of what's possible.
+ *
+ * Layered on top of plain emit/listen is a retained-value convenience:
+ * {@link getValue} returns the last payload emitted for a given
+ * `(nodeId, eventType)` pair, so a late subscriber — an AI agent asking
+ * "what's this node's current state?" — doesn't need to have been
+ * listening since the beginning.
+ */
+export interface WidgetEvent {
+  nodeId: string;
+  eventType: string;
+  payload: unknown;
+}
+
+/**
+ * The built-in event type for "this node's live value changed" — e.g. a
+ * filter's current selection. A plain string, not a closed enum, so an
+ * extension's own widget can reuse it or define an event type of its own;
+ * what shape the payload takes is between whichever widget types choose to
+ * interoperate, not something this package prescribes (the built-in filter
+ * widgets' payload shape lives with their implementation, not here — see
+ * `filterVocabulary.ts` in the host).
+ */
+export const VALUE_CHANGED_EVENT = 'valueChanged';
+
+/**
+ * Emits `eventType` from `nodeId` with `payload`, notifying every current
+ * listener of `eventType` and updating what {@link getValue} returns for
+ * this node/event pair. Live value changes never touch a node's `props` —
+ * see the design note on {@link updateProps} — so this fires independently
+ * of {@link onDidLayoutChange}.
+ */
+export declare function emit(
+  nodeId: string,
+  eventType: string,
+  payload: unknown,
+): void;
+
+/**
+ * Returns the payload last emitted for `(nodeId, eventType)`, or
+ * `undefined` if there hasn't been one.
+ */
+export declare function getValue(nodeId: string, eventType: string): unknown;
+
+/**
+ * Registers `listener` for every emit of `eventType`, from any node.
+ * Returns a {@link Disposable} that removes it.
+ */
+export declare function on(
+  eventType: string,
+  listener: (e: WidgetEvent) => void,
+): Disposable;
 
 /**
  * What an `echarts`-type widget queries. Deliberately generic (no

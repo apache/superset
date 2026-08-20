@@ -27,6 +27,7 @@ import {
 import type { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { provider, useDashboardRevision } from '../store';
 import { fetchQueryData } from '../chartData';
+import { getActiveFiltersForDataset } from '../collectActiveFilters';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type DataRow = dashboardApi.DataRow;
@@ -52,6 +53,8 @@ function deriveColumnDefs(columns: string[]): ColDef[] {
  * columns are derived one-to-one from the query's own result columns.
  */
 export default function AgGridTableWidget({ nodeId }: { nodeId: string }) {
+  // Covers both structural/layout changes and any filter's emitted value —
+  // `dashboard.emit` ticks the same revision (see `DashboardProvider`).
   useDashboardRevision();
   const [rows, setRows] = useState<DataRow[] | null>(null);
   const [columns, setColumns] = useState<string[] | null>(null);
@@ -59,10 +62,20 @@ export default function AgGridTableWidget({ nodeId }: { nodeId: string }) {
 
   const node = provider.getNode(nodeId);
   const dataBinding = node?.props?.dataBinding as DataBindingSpec | undefined;
-  const bindingKey = JSON.stringify(dataBinding);
+  // See `ChartWidget` — same dataset-scoped filter merge, same reason.
+  const effectiveBinding = dataBinding
+    ? {
+        ...dataBinding,
+        filters: [
+          ...(dataBinding.filters ?? []),
+          ...getActiveFiltersForDataset(dataBinding.datasetId, nodeId),
+        ],
+      }
+    : undefined;
+  const bindingKey = JSON.stringify(effectiveBinding);
 
   useEffect(() => {
-    if (!dataBinding) {
+    if (!effectiveBinding) {
       setError('This table widget has no dataBinding.');
       setRows(null);
       setColumns(null);
@@ -72,7 +85,7 @@ export default function AgGridTableWidget({ nodeId }: { nodeId: string }) {
     setError(null);
     setRows(null);
     setColumns(null);
-    fetchQueryData(dataBinding)
+    fetchQueryData(effectiveBinding)
       .then(result => {
         if (!cancelled) {
           setRows(result.rows);
@@ -85,8 +98,8 @@ export default function AgGridTableWidget({ nodeId }: { nodeId: string }) {
     return () => {
       cancelled = true;
     };
-    // dataBinding is a fresh object every render — bindingKey is its stable,
-    // value-equality-comparable proxy.
+    // effectiveBinding is a fresh object every render — bindingKey is its
+    // stable, value-equality-comparable proxy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 
