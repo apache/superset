@@ -63,6 +63,7 @@ from superset.mcp_service.utils import (
     sanitize_for_llm_context,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.sql.parse import has_aggregate
 from superset.utils import json
 
 
@@ -386,12 +387,26 @@ class CreateDatasetMetric(BaseModel):
     """Metric definition for dataset creation."""
 
     metric_name: str = Field(..., description="Name of the metric")
-    expression: str = Field(..., description="SQL expression for the metric")
+    expression: str = Field(
+        ...,
+        description="Aggregate SQL expression for the metric, e.g. SUM(amount)",
+    )
     verbose_name: str | None = None
     description: str | None = None
     metric_type: str | None = None
     d3format: str | None = None
     warning_text: str | None = None
+
+    @field_validator("expression")
+    @classmethod
+    def expression_must_aggregate(cls, value: str) -> str:
+        if not has_aggregate(value):
+            raise ValueError(
+                "saved metrics must aggregate rows; wrap a row-level column in "
+                "an aggregate such as MAX(column), or omit the saved metric and "
+                "use the dataset column directly"
+            )
+        return value
 
 
 class CreateDatasetCalculatedColumn(BaseModel):
