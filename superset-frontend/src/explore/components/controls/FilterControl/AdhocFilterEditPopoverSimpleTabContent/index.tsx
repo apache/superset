@@ -32,6 +32,7 @@ import {
   isDefined,
   SupersetClient,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   Operators,
@@ -118,6 +119,8 @@ export const useSimpleTabFilterProps = (props: Props) => {
     const isColumnNumber =
       !!column && (column.type === 'INT' || column.type === 'INTEGER');
     const isColumnFunction = !!column && !!column.expression;
+    const isColumnMultiValue =
+      !!column && column.type_generic === GenericDataType.MultiValue;
 
     if (operator && operator === Operators.LatestPartition) {
       const { partitionColumn } = props;
@@ -127,8 +130,41 @@ export const useSimpleTabFilterProps = (props: Props) => {
       // hide the TEMPORAL_RANGE operator
       return false;
     }
+    // Element-level array operators only apply to multi-value columns.
+    const arrayElementOperators = [
+      Operators.ContainsAny,
+      Operators.ContainsAll,
+      Operators.IsEmpty,
+      Operators.IsNotEmpty,
+      Operators.LengthEquals,
+      Operators.LengthGreaterThan,
+      Operators.LengthLessThan,
+      Operators.LengthGreaterThanOrEqual,
+      Operators.LengthLessThanOrEqual,
+    ];
+    if (arrayElementOperators.includes(operator)) {
+      return isColumnMultiValue;
+    }
+    if (isColumnMultiValue) {
+      // Array columns support whole-array operators (=, !=, In, Not in, null
+      // checks) plus the element-level operators above. Scalar-only operators
+      // (Like, <, >, <=, >=) are hidden because they aren't valid on an array.
+      return [
+        Operators.Equals,
+        Operators.NotEquals,
+        Operators.In,
+        Operators.NotIn,
+        Operators.IsNull,
+        Operators.IsNotNull,
+        ...arrayElementOperators,
+      ].includes(operator);
+    }
     if (operator === Operators.IsTrue || operator === Operators.IsFalse) {
-      return isColumnBoolean || isColumnNumber || isColumnFunction;
+      // An expression column may evaluate to a boolean, but that is only a
+      // safe assumption while its type is unknown; a declared type wins.
+      return (
+        isColumnBoolean || isColumnNumber || (isColumnFunction && !column?.type)
+      );
     }
     if (isColumnBoolean) {
       return operator === Operators.IsNull || operator === Operators.IsNotNull;
@@ -167,9 +203,19 @@ export const useSimpleTabFilterProps = (props: Props) => {
           ].operation
         : null;
     if (!isDefined(operator)) {
-      // if operator is `null`, use the `IN` and reset the comparator.
-      operator = Operators.In;
-      operatorId = Operators.In;
+      // The previous operator is not relevant for the new subject; pick a
+      // sensible default and reset the comparator. Multi-value (array) columns
+      // default to "Contains any" (element membership) rather than the
+      // scalar-only IN.
+      const newColumn = props.datasource.columns?.find(
+        col => col.column_name === subject,
+      );
+      const defaultOperator =
+        newColumn?.type_generic === GenericDataType.MultiValue
+          ? Operators.ContainsAny
+          : Operators.In;
+      operator = defaultOperator;
+      operatorId = defaultOperator;
       comparator = undefined;
     }
 
@@ -193,10 +239,38 @@ export const useSimpleTabFilterProps = (props: Props) => {
   };
   const onOperatorChange = (operatorId: Operators) => {
     const currentComparator = props.adhocFilter.comparator;
+    // The value space differs between operator families: element-level array
+    // ops (Contains any/all) take individual elements, whole-array/scalar ops
+    // (=, In, …) take whole arrays or scalars, Length ops take a count, and the
+    // unary ops take nothing. A value from one family is meaningless in another,
+    // so reset the value when the family changes (e.g. Equal to -> Contains all).
+    const comparatorKind = (op?: Operators): string => {
+      if (!op) return 'none';
+      if (op === Operators.ContainsAny || op === Operators.ContainsAll) {
+        return 'element';
+      }
+      if (
+        op === Operators.LengthEquals ||
+        op === Operators.LengthGreaterThan ||
+        op === Operators.LengthLessThan ||
+        op === Operators.LengthGreaterThanOrEqual ||
+        op === Operators.LengthLessThanOrEqual
+      ) {
+        return 'length';
+      }
+      if (DISABLE_INPUT_OPERATORS.includes(op)) return 'none';
+      return 'value';
+    };
+    const valueFamilyChanged =
+      comparatorKind(props.adhocFilter.operatorId as Operators | undefined) !==
+      comparatorKind(operatorId);
+
     let newComparator;
-    // convert between list of comparators and individual comparators
-    // (e.g. `in ('North America', 'Africa')` to `== 'North America'`)
-    if (MULTI_OPERATORS.has(operatorId)) {
+    if (valueFamilyChanged) {
+      newComparator = undefined;
+    } else if (MULTI_OPERATORS.has(operatorId)) {
+      // convert between list of comparators and individual comparators
+      // (e.g. `in ('North America', 'Africa')` to `== 'North America'`)
       newComparator = Array.isArray(currentComparator)
         ? currentComparator
         : [currentComparator].filter(element => element != null);
@@ -433,19 +507,42 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         if (loadingComparatorSuggestions) {
           controller.abort();
         }
+        // Element-level array operators (Contains any / Contains all) search
+        // inside the array, so suggest individual elements; whole-array
+        // operators (=, In, …) keep the default distinct-array suggestions.
+        const { operatorId } = props.adhocFilter;
+        const arrayElements =
+          operatorId === Operators.ContainsAny ||
+          operatorId === Operators.ContainsAll;
         setLoadingComparatorSuggestions(true);
         SupersetClient.get({
           signal,
-          endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/`,
+          endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/${
+            arrayElements ? '?array_elements=true' : ''
+          }`,
         })
           .then(({ json }) => {
             setSuggestions(
-              json.result.map(
-                (suggestion: null | number | boolean | string) => ({
-                  value: suggestion,
-                  label: optionLabel(suggestion),
-                }),
-              ),
+              json.result.map((suggestion: unknown) => {
+                // Complex column values arrive as JS arrays or objects: whole
+                // arrays for MULTI_VALUE columns (e.g. [5, 6, 7]) and Map/Tuple
+                // objects for nested-container columns (e.g. {"a": ["x","y"]}).
+                // A raw array/object is neither a valid single-select value
+                // (antd collapses an array to its first element) nor renderable
+                // as a React child (an object throws). Render it as its literal
+                // string, which is also exactly what the backend's
+                // parse_array_literal expects for the whole-array operators.
+                if (suggestion !== null && typeof suggestion === 'object') {
+                  const literal = JSON.stringify(suggestion);
+                  return { value: literal, label: literal };
+                }
+                return {
+                  value: suggestion as null | number | boolean | string,
+                  label: optionLabel(
+                    suggestion as null | number | boolean | string,
+                  ),
+                };
+              }),
             );
             setLoadingComparatorSuggestions(false);
           })
@@ -464,6 +561,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   }, [
     props.adhocFilter.subject,
     props.adhocFilter.clause,
+    props.adhocFilter.operatorId,
     props.datasource,
     datePicker,
   ]);
