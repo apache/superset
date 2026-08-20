@@ -766,6 +766,222 @@ def test_extract_error_message_from_general_exception() -> None:
     )
 
 
+TRACKING_URL = (
+    "https://presto.example.com:8080/ui/query.html?20220101_120000_00001_abcde"
+)
+
+
+def _presto_cursor() -> mock.MagicMock:
+    """A pyhive-shaped cursor whose tracking-URL attributes are real values.
+
+    A bare ``MagicMock`` auto-creates every attribute, so ``get_tracking_url``
+    would happily interpolate ``<MagicMock ...>`` reprs into the URL and the test
+    would assert nothing useful.
+    """
+    cursor = mock.MagicMock()
+    cursor._protocol = "https"
+    cursor._host = "presto.example.com"
+    cursor._port = 8080
+    cursor.last_query_id = "20220101_120000_00001_abcde"
+    return cursor
+
+
+def _handle_cursor_query(
+    mocker: MockerFixture,
+) -> tuple[mock.MagicMock, mock.MagicMock]:
+    """Wire up the ``(mock_db, query)`` pair ``handle_cursor`` needs.
+
+    Three things bite here and all three are load-bearing:
+
+    - ``handle_cursor`` re-reads the query from the session on every iteration, so
+      the object the assertions inspect is the session's return value, not the one
+      passed in — it has to be wired back.
+    - ``poll_interval`` comes from ``query.database.connect_args.get(...)``, which
+      on a ``MagicMock`` returns a ``MagicMock`` that later explodes inside
+      ``time.sleep``. It must be a real dict, and a real zero.
+    - ``query.progress`` feeds ``max(query.progress, progress)``, so it must be a
+      real number.
+    """
+    from superset.common.db_query_status import QueryStatus
+
+    mock_db = mocker.patch("superset.db_engine_specs.presto.db")
+    query = mock.MagicMock()
+    query.id = 42
+    query.progress = 0
+    query.status = QueryStatus.RUNNING
+    query.database.connect_args = {"poll_interval": 0}
+    mock_db.session.query.return_value.filter_by.return_value.one.return_value = query
+    return mock_db, query
+
+
+def test_get_tracking_url_builds_presto_ui_link() -> None:
+    """Story 105823: the "View in Presto" deep link is assembled from the cursor's
+    protocol, host, port and query id.
+
+    The ticket describes this as reading ``info_uri``; the implementation uses
+    ``last_query_id``, ``_protocol``, ``_host`` and ``_port`` instead, and there is
+    no ``info_uri`` anywhere in the file.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.get_tracking_url(_presto_cursor()) == TRACKING_URL
+
+
+def test_get_tracking_url_returns_none_for_falsy_query_id() -> None:
+    """Story 105823: no query id yet — the cursor exists but has not been assigned
+    a Presto query — yields no link rather than a malformed one.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    cursor = _presto_cursor()
+    cursor.last_query_id = None
+
+    assert PrestoEngineSpec.get_tracking_url(cursor) is None
+
+
+def test_get_tracking_url_returns_none_when_attribute_absent() -> None:
+    """Story 105823: the second, distinct ``None`` path — the attribute is missing
+    entirely, so ``contextlib.suppress(AttributeError)`` swallows the lookup.
+
+    ``spec=[]`` is required to reach it: a plain ``MagicMock`` auto-creates
+    ``last_query_id``, so the ``AttributeError`` never fires and this branch would
+    silently go untested.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.get_tracking_url(mock.Mock(spec=[])) is None
+
+
+def test_handle_cursor_records_tracking_url_and_progress(
+    mocker: MockerFixture,
+) -> None:
+    """Story 105823: the SQL Lab progress bar.
+
+    One poll reporting 5 of 10 splits complete, then ``None`` to end the query.
+    The tracking URL is written once up front, and progress is recorded as a
+    percentage.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    mock_db, query = _handle_cursor_query(mocker)
+    cursor = _presto_cursor()
+    cursor.poll.side_effect = [
+        {"stats": {"state": "RUNNING", "completedSplits": 5, "totalSplits": 10}},
+        None,
+    ]
+
+    PrestoEngineSpec.handle_cursor(cursor, query)
+
+    assert query.tracking_url == TRACKING_URL
+    assert query.progress == 50.0
+    assert cursor.poll.call_count == 2
+    cursor.cancel.assert_not_called()
+    assert mock_db.session.commit.called
+
+
+def test_handle_cursor_stops_polling_when_query_finished(
+    mocker: MockerFixture,
+) -> None:
+    """Story 105823: a ``FINISHED`` state breaks out of the loop *before* the
+    progress arithmetic runs.
+
+    That ordering matters: the final poll of a finished query carries no split
+    counts, so reaching the progress update would raise (see
+    ``test_handle_cursor_raises_type_error_on_missing_split_counts``).
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    _mock_db, query = _handle_cursor_query(mocker)
+    cursor = _presto_cursor()
+    cursor.poll.side_effect = [{"stats": {"state": "FINISHED"}}]
+
+    PrestoEngineSpec.handle_cursor(cursor, query)
+
+    assert query.progress == 0
+    assert cursor.poll.call_count == 1
+    cursor.cancel.assert_not_called()
+
+
+@pytest.mark.parametrize("status", ["STOPPED", "TIMED_OUT"])
+def test_handle_cursor_cancels_when_user_stops_query(
+    mocker: MockerFixture,
+    status: str,
+) -> None:
+    """Story 105823: **the Stop button.**
+
+    While a query runs, the user clicking Stop only sets the query's status in the
+    metadata database — nothing signals the worker directly. This loop is what
+    notices, and the ``cursor.cancel()`` it issues is what actually releases the
+    Presto cluster resources.
+
+    If this branch regressed, Stop would appear to work in the UI while the query
+    kept running on the cluster, and nothing would fail loudly. The re-read of the
+    query from the session on every iteration is precisely how the click crosses
+    process boundaries, which is why the mock wires the session's return value
+    back to the same object.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    _mock_db, query = _handle_cursor_query(mocker)
+    query.status = getattr(QueryStatus, status)
+    cursor = _presto_cursor()
+    cursor.poll.side_effect = [
+        {"stats": {"state": "RUNNING", "completedSplits": 5, "totalSplits": 10}},
+    ]
+
+    PrestoEngineSpec.handle_cursor(cursor, query)
+
+    cursor.cancel.assert_called_once_with()
+    assert query.progress == 0
+    assert cursor.poll.call_count == 1
+
+
+def test_handle_cursor_ignores_empty_stats(mocker: MockerFixture) -> None:
+    """Story 105823: a poll carrying an empty ``stats`` block leaves progress
+    untouched and keeps polling, rather than resetting the bar to zero.
+
+    Note the payload is ``{"stats": {}}`` and not ``{}``: the loop condition tests
+    the poll result itself, so any falsy payload ends polling immediately. Only a
+    truthy payload with empty stats reaches the branch under test.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    _mock_db, query = _handle_cursor_query(mocker)
+    query.progress = 25
+    cursor = _presto_cursor()
+    cursor.poll.side_effect = [{"stats": {}}, None]
+
+    PrestoEngineSpec.handle_cursor(cursor, query)
+
+    assert query.progress == 25
+    assert cursor.poll.call_count == 2
+
+
+def test_handle_cursor_raises_type_error_on_missing_split_counts(
+    mocker: MockerFixture,
+) -> None:
+    """Story 105823 — CHARACTERIZATION test, not an endorsement of this behaviour.
+
+    ``completedSplits``/``totalSplits`` are read with ``stats.get(...)`` and passed
+    straight to ``float()``, so a poll that reports a state but omits the split
+    counts raises ``TypeError`` inside the worker rather than degrading to "no
+    progress information".
+
+    Pinned so a future guard is a deliberate change. Fixing it is out of scope for
+    a test-only change and deserves its own issue: the fix has to decide whether a
+    stats block without split counts means "no progress yet" or is a driver bug.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    _mock_db, query = _handle_cursor_query(mocker)
+    cursor = _presto_cursor()
+    cursor.poll.side_effect = [{"stats": {"state": "RUNNING"}}]
+
+    with pytest.raises(TypeError):
+        PrestoEngineSpec.handle_cursor(cursor, query)
+
+
 def test_latest_sub_partition_rejects_unknown_field(
     mocker: MockerFixture,
 ) -> None:
