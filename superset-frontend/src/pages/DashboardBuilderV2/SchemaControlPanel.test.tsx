@@ -231,3 +231,78 @@ test('renders an ordered column-multi list for an x-control: "column-multi" fiel
     expect(provider.getNode(id)?.props?.dimensions).toEqual(['name']),
   );
 });
+
+test('renders a metric picker for an x-control: "metric-multi" field and writes the pick back', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          metrics: {
+            type: 'array',
+            title: 'Metrics',
+            'x-control': 'metric-multi',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [],
+        metrics: [{ metric_name: 'count', verbose_name: 'Count' }],
+      },
+    },
+  } as never);
+
+  const id = mount('balloons', { dataBinding: { datasetId: 1, metrics: [] } });
+
+  await screen.findByText('Metrics');
+  await selectOption('Count');
+
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.metrics).toEqual(['count']),
+  );
+});
+
+test('falls back to the raw JSON editor when an existing metric entry is an ad-hoc aggregate', async () => {
+  postSpy.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          metrics: {
+            type: 'array',
+            title: 'Metrics',
+            'x-control': 'metric-multi',
+          },
+        },
+      },
+    },
+  } as never);
+  getSpy.mockResolvedValue({
+    json: {
+      result: {
+        columns: [],
+        metrics: [{ metric_name: 'count', verbose_name: 'Count' }],
+      },
+    },
+  } as never);
+
+  mount('balloons', {
+    dataBinding: { datasetId: 1 },
+    metrics: [
+      {
+        expressionType: 'SIMPLE',
+        column: { column_name: 'sales' },
+        aggregate: 'SUM',
+      },
+    ],
+  });
+
+  expect(await screen.findByText('Metrics')).toBeInTheDocument();
+  // The raw JSON editor renders a textarea, not a Select — its absence
+  // confirms the fallback fired instead of the picker.
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+});

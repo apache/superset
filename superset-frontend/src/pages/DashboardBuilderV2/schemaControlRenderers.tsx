@@ -24,6 +24,8 @@
  *   - `x-control: color`       → a native color swatch (e.g. per-series balloon color).
  *   - `x-control: column`      → a single column-reference picker.
  *   - `x-control: column-multi` → an ordered, reorderable list of column references.
+ *   - `x-control: metric`      → a single metric-reference picker.
+ *   - `x-control: metric-multi` → an ordered, reorderable list of metric references.
  *
  * `code` and `color` fall back to the field's schema `default`, since
  * JsonForms does not write defaults into the data until a field is touched.
@@ -330,6 +332,90 @@ function ColumnMultiControl(props: ControlProps): ReactElement {
   );
 }
 
+/**
+ * Metric options for a `metric`/`metric-multi` control: the dataset's saved
+ * metrics, shown with the same Sigma icon Explore's metric picker uses.
+ */
+export function metricOptions(
+  metadata: DatasetMetadata | null,
+): ReferenceOption[] {
+  return (metadata?.metrics ?? []).map(metric => ({
+    value: metric.name,
+    label: (
+      <Flex align="center" gap="small">
+        <ColumnTypeLabel type="metric" />
+        {metric.verboseName}
+      </Flex>
+    ),
+  }));
+}
+
+/**
+ * True when any of `values` isn't a plain saved-metric name known to
+ * `metadata` — i.e. at least one entry is an ad-hoc aggregate object. When
+ * true, `MetricMultiControl` drops to the raw JSON editor for the whole
+ * field rather than a picker that can't represent every entry.
+ */
+export function hasAdvancedMetric(
+  values: unknown[],
+  metadata: DatasetMetadata,
+): boolean {
+  const known = new Set(metadata.metrics.map(metric => metric.name));
+  return values.some(value => typeof value !== 'string' || !known.has(value));
+}
+
+/** `x-control: "metric"` — a single metric reference. */
+function MetricControl(props: ControlProps): ReactElement {
+  const datasetId = useBoundDatasetId(props);
+  const { metadata, loading } = useDatasetMetadata(datasetId);
+  return (
+    <ReferenceSelect
+      label={props.label}
+      value={props.data as string | undefined}
+      options={metricOptions(metadata)}
+      loading={loading}
+      disabled={!props.enabled}
+      onChange={value => props.handleChange(props.path, value)}
+    />
+  );
+}
+
+/**
+ * `x-control: "metric-multi"` — an ordered list of metric references. Falls
+ * back to the raw JSON editor (`CodeControl`) whenever an existing entry
+ * isn't expressible as a saved-metric pick, e.g. an ad-hoc aggregate object
+ * authored through the JSON tab.
+ */
+function MetricMultiControl(props: ControlProps): ReactElement {
+  const datasetId = useBoundDatasetId(props);
+  const { metadata, loading } = useDatasetMetadata(datasetId);
+  const values = Array.isArray(props.data) ? (props.data as unknown[]) : [];
+
+  // Before `metadata` loads, `hasAdvancedMetric` can't be run (it needs the
+  // dataset's saved-metric names), but a non-string entry (an ad-hoc
+  // aggregate object) still can't be handed to `ReferenceMultiList` — it
+  // isn't a string, so it can't be rendered as one. Fall back on the
+  // type check alone until metadata is available, then use the full check.
+  const isAdvanced = metadata
+    ? hasAdvancedMetric(values, metadata)
+    : values.some(value => typeof value !== 'string');
+
+  if (isAdvanced) {
+    return <CodeControl {...props} />;
+  }
+
+  return (
+    <ReferenceMultiList
+      label={props.label}
+      values={values as string[]}
+      options={metricOptions(metadata)}
+      loading={loading}
+      disabled={!props.enabled}
+      onChange={next => props.handleChange(props.path, next)}
+    />
+  );
+}
+
 /** Base Semantic-Layer renderers plus the widget-control ones above. */
 export const schemaControlRenderers = [
   ...baseRenderers,
@@ -348,5 +434,13 @@ export const schemaControlRenderers = [
   {
     tester: rankWith(1000, xControlIs('column-multi')),
     renderer: withJsonFormsControlProps(ColumnMultiControl),
+  },
+  {
+    tester: rankWith(1000, xControlIs('metric')),
+    renderer: withJsonFormsControlProps(MetricControl),
+  },
+  {
+    tester: rankWith(1000, xControlIs('metric-multi')),
+    renderer: withJsonFormsControlProps(MetricMultiControl),
   },
 ];

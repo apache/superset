@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { columnOptions } from './schemaControlRenderers';
+import {
+  columnOptions,
+  hasAdvancedMetric,
+  metricOptions,
+} from './schemaControlRenderers';
 
 test('columnOptions filters by x-column-types when given', () => {
   const metadata = {
@@ -47,4 +51,41 @@ test('columnOptions returns every column when no x-column-types hint is given', 
 
 test('columnOptions returns an empty list when metadata has not loaded yet', () => {
   expect(columnOptions(null, undefined)).toEqual([]);
+});
+
+test("metricOptions lists the dataset's saved metrics by verbose name", () => {
+  const metadata = {
+    columns: [],
+    metrics: [{ name: 'count', verboseName: 'Count' }],
+  };
+  expect(metricOptions(metadata).map(o => o.value)).toEqual(['count']);
+});
+
+test('hasAdvancedMetric is false when every value is a known saved metric', () => {
+  const metadata = {
+    columns: [],
+    metrics: [{ name: 'count', verboseName: 'Count' }],
+  };
+  expect(hasAdvancedMetric(['count'], metadata)).toBe(false);
+});
+
+test('hasAdvancedMetric is true for an ad-hoc aggregate object', () => {
+  const metadata = {
+    columns: [],
+    metrics: [{ name: 'count', verboseName: 'Count' }],
+  };
+  expect(
+    hasAdvancedMetric(
+      [{ expressionType: 'SIMPLE', aggregate: 'SUM' }],
+      metadata,
+    ),
+  ).toBe(true);
+});
+
+test('hasAdvancedMetric is true for a metric name the dataset does not have', () => {
+  const metadata = {
+    columns: [],
+    metrics: [{ name: 'count', verboseName: 'Count' }],
+  };
+  expect(hasAdvancedMetric(['unknown_metric'], metadata)).toBe(true);
 });
