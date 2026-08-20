@@ -93,6 +93,10 @@ def map_interactive_pivot_config(
     }
 
     if config.time_grain:
+        # Preset's hidden temporal_columns_lookup control identifies temporal
+        # dimensions in groupby, and its buildQuery applies this grain to each
+        # one. A single granularity_sqla is neither required nor sufficient for
+        # a pivot that can contain multiple temporal dimensions.
         form_data["time_grain_sqla"] = config.time_grain.value
     if config.series_limit is not None:
         form_data["series_limit"] = config.series_limit
