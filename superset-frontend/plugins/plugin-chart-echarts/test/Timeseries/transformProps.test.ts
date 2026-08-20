@@ -2529,3 +2529,66 @@ describe('EchartsTimeseries tooltip truncation', () => {
     expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
   });
 });
+
+describe('tooltip for metrics whose labels end in forecast suffixes', () => {
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const seriesIds = ['ci__yhat', 'ci__yhat_lower', 'ci__yhat_upper'];
+  const values = [1.5, 0.5, 2.0];
+
+  // Metrics can be labelled `ci__yhat*` with no forecast enabled and no plain
+  // observation series. Every series then collapses onto the same
+  // forecast-stripped tooltip key, so no raw series id matches itself.
+  const buildTooltip = (tooltipSortByMetric = false) => {
+    const chartProps = createTestChartProps({
+      formData: {
+        x_axis: 'dt',
+        metrics: seriesIds,
+        groupby: [],
+        richTooltip: true,
+        tooltipSortByMetric,
+      } as Partial<EchartsTimeseriesFormData>,
+      queriesData: [
+        {
+          data: [
+            {
+              dt: 599616000000,
+              ci__yhat: 1.5,
+              ci__yhat_lower: 0.5,
+              ci__yhat_upper: 2.5,
+            },
+          ],
+        } as ChartDataResponseResult,
+      ],
+    });
+    const tooltipFormatter = (transformProps(chartProps).echartOptions as any)
+      .tooltip.formatter;
+    return tooltipFormatter(
+      seriesIds.map((id, i) => ({
+        seriesId: id,
+        seriesName: id,
+        value: [599616000000, values[i]],
+        data: [599616000000, values[i]],
+        marker,
+      })),
+    );
+  };
+
+  test('renders the collapsed series rather than falling back to "No data"', () => {
+    const html = buildTooltip();
+    expect(html).not.toContain('No data');
+    expect(html).toContain('>ci<');
+    expect(html).toContain('ŷ = 1.5 (0.5, 2.5)');
+  });
+
+  test('renders a single row rather than one per forecast suffix', () => {
+    const html = buildTooltip();
+    expect(html.match(/<tr/g)).toHaveLength(1);
+    expect(html).toContain('>ci<');
+  });
+
+  test('still renders the row when the tooltip is sorted by metric', () => {
+    const html = buildTooltip(true);
+    expect(html).not.toContain('No data');
+    expect(html).toContain('>ci<');
+  });
+});
