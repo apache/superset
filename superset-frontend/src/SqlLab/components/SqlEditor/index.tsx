@@ -866,10 +866,7 @@ const SqlEditor: FC<Props> = ({
           }
           saveQueryWarning={saveQueryWarning}
           database={database}
-          canSaveDataset={
-            latestQuery?.state === QueryState.Success &&
-            !!latestQuery?.results?.columns?.length
-          }
+          canSaveDataset={latestQuery?.state !== QueryState.Failed}
         />
         <ShareSqlLabQuery queryEditorId={queryEditor.id} />
       </>
