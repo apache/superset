@@ -390,8 +390,8 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test get dataset list with invalid JWT authentication
         """
-        client = self.create_app().test_client()
-        rv = client.get(
+        test_client = self.create_app().test_client()
+        rv = test_client.get(
             "api/v1/dataset/",
             headers={"Authorization": "Bearer not-a-token"},
         )
@@ -3988,7 +3988,7 @@ class TestDatasetApi(SupersetTestCase):
             self.login(ADMIN_USERNAME)
             dataset = self.insert_dataset(
                 table_name="test_rbac_dataset",
-                owners=[],
+                editor_user_ids=[],
                 columns=[
                     TableColumn(
                         column_name="restricted_column",
@@ -4045,7 +4045,7 @@ class TestDatasetApi(SupersetTestCase):
 
             dataset = self.insert_dataset(
                 table_name="test_rbac_dataset_denied",
-                owners=[],
+                editor_user_ids=[],
                 columns=[
                     TableColumn(
                         column_name="restricted_column",
@@ -4083,7 +4083,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         dataset = self.insert_dataset(
             table_name="test_rbac_dataset_denied",
-            owners=[],
+            editor_user_ids=[],
             columns=[
                 TableColumn(
                     column_name="restricted_column",
@@ -4129,7 +4129,7 @@ class TestDatasetApi(SupersetTestCase):
 
             dataset = self.insert_dataset(
                 table_name="test_no_dashboard_id",
-                owners=[],
+                editor_user_ids=[],
                 columns=[
                     TableColumn(
                         column_name="restricted_column",
