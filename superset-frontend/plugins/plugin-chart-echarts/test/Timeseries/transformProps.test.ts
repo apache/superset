@@ -2548,16 +2548,14 @@ describe('tooltip for metrics whose labels end in forecast suffixes', () => {
         tooltipSortByMetric,
       } as Partial<EchartsTimeseriesFormData>,
       queriesData: [
-        {
-          data: [
-            {
-              dt: 599616000000,
-              ci__yhat: 1.5,
-              ci__yhat_lower: 0.5,
-              ci__yhat_upper: 2.5,
-            },
-          ],
-        } as ChartDataResponseResult,
+        createTestQueryData([
+          {
+            dt: 599616000000,
+            ci__yhat: 1.5,
+            ci__yhat_lower: 0.5,
+            ci__yhat_upper: 2.5,
+          },
+        ]),
       ],
     });
     const tooltipFormatter = (transformProps(chartProps).echartOptions as any)
