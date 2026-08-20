@@ -20,10 +20,10 @@ import { FC, useMemo, useState, useCallback } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
-import { Empty, Loading } from '@superset-ui/core/components';
-import { Button } from '@superset-ui/core/components';
+import { Button, Empty, Loading } from '@superset-ui/core/components';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import type { Resource } from 'src/hooks/apiResources/apiResources';
+import { redirect } from 'src/utils/navigationUtils';
 import type {
   DatasetLineage,
   ChartLineage,
@@ -646,7 +646,7 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
   const getEntityUrl = (nodeDetails: NodeDetails): string => {
     switch (nodeDetails.type) {
       case 'dashboard':
-        return `/superset/dashboard/${nodeDetails.id}/`;
+        return `/dashboard/${nodeDetails.id}/`;
       case 'chart':
         return `/explore/?slice_id=${nodeDetails.id}`;
       default:
@@ -692,7 +692,7 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
                   buttonStyle="primary"
                   buttonSize="small"
                   onClick={() => {
-                    window.location.href = getEntityUrl(selectedNode);
+                    redirect(getEntityUrl(selectedNode));
                   }}
                 >
                   {t('Open')}{' '}
