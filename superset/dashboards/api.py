@@ -164,6 +164,10 @@ from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, send_export_zip
 from superset.utils.file import get_filename
+from superset.utils.i18n import (
+    is_asset_translation_enabled,
+    translate_many,
+)
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -868,6 +872,16 @@ class DashboardRestApi(
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
+            # This is the payload the dashboard actually renders from, so it is
+            # where batching has to happen: resolve every chart name up front and
+            # the per-chart ``localized_name`` lookups below read from the request
+            # memo instead of calling the translation hook once per chart.
+            if is_asset_translation_enabled():
+                translate_many(
+                    (chart.slice_name for chart in charts),
+                    model_name="Slice",
+                    field_name="slice_name",
+                )
             result = [self._serialize_dashboard_chart(chart) for chart in charts]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
