@@ -456,12 +456,16 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
 
         command = results.SqlExecutionResultsCommand("abc_query", 1000)
 
-        with mock.patch.object(db.session, "close", side_effect=tracked_close):
-            with pytest.raises(SupersetErrorException):
-                # ``get`` returns ``None`` above, so validation goes on to
-                # raise the "results missing" (410) error -- irrelevant
-                # here, we only care about the call order leading up to it.
-                command.validate()
+        admin = self.get_user("admin")
+        with current_app.test_request_context():
+            with override_user(admin):
+                with mock.patch.object(db.session, "close", side_effect=tracked_close):
+                    with pytest.raises(SupersetErrorException):
+                        # ``get`` returns ``None`` above, so validation goes
+                        # on to raise the "results missing" (410) error --
+                        # irrelevant here, we only care about the call order
+                        # leading up to it.
+                        command.validate()
 
         assert call_order == ["session_closed", "results_backend_get"]
 
@@ -488,7 +492,11 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
         results.results_backend.get.return_value = compressed
 
         command = results.SqlExecutionResultsCommand("abc_query", 1000)
-        command.validate()
+
+        admin = self.get_user("admin")
+        with current_app.test_request_context():
+            with override_user(admin):
+                command.validate()
 
         assert object_session(command._query) is None
         assert "database" not in sa_inspect(command._query).unloaded
