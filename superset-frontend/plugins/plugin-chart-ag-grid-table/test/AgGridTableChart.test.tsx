@@ -347,6 +347,57 @@ test('AgGridTableChart renders with totals', async () => {
   expect(dataRows.length).toBe(3);
 });
 
+test('AgGridTableChart applies conditional formatting to totals when enabled', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      show_totals: true,
+      metrics: ['sum__num'],
+      conditional_formatting_totals: true,
+      conditional_formatting: [
+        {
+          colorScheme: '#ACE1C4',
+          column: 'sum__num',
+          operator: '>',
+          targetValue: 100,
+        },
+      ],
+    },
+  });
+  props.showTotals = true;
+  props.totals = { sum__num: 1000 };
+  props.applyConditionalFormattingToTotals = true;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    const pinnedRows = document.querySelectorAll(
+      '.ag-grid-pinned-bottom-rows .ag-row',
+    );
+    expect(pinnedRows.length).toBeGreaterThan(0);
+  });
+
+  const pinnedCells = document.querySelectorAll(
+    '.ag-grid-pinned-bottom-rows .ag-cell',
+  );
+  const coloredCell = Array.from(pinnedCells).find(cell => {
+    const bg = getComputedStyle(cell).backgroundColor;
+    return bg.includes('172, 225, 196');
+  });
+  expect(coloredCell).toBeDefined();
+});
+
 test('AgGridTableChart handles empty data', async () => {
   const props = transformProps(testData.empty);
 

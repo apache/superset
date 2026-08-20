@@ -80,6 +80,7 @@ import {
   getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
+  BasicColorFormatterType,
 } from '@superset-ui/chart-controls';
 import {
   DataColumnMeta,
@@ -168,6 +169,85 @@ function getConditionalFormattingColors(
     .forEach(formatter =>
       applyFormatter(formatter, record[formatter.column as string]),
     );
+
+  return colors;
+}
+
+function lookupRowBasicColor(
+  formatters: { [key: string]: BasicColorFormatterType } | undefined,
+  columnKey: string,
+  originKey: string,
+) {
+  return (
+    formatters?.[columnKey] ||
+    (originKey ? formatters?.[originKey] : undefined)
+  );
+}
+
+function resolveCellColorFormatting({
+  hasColumnColorFormatters,
+  columnColorFormatters,
+  record,
+  columnKey,
+  value,
+  applyCellBars,
+  comparisonColorFormatters,
+  greenRedFormatters,
+  originKey,
+}: {
+  hasColumnColorFormatters: boolean;
+  columnColorFormatters?: ColorFormatters;
+  record: DataRecord;
+  columnKey: string;
+  value: DataRecordValue;
+  applyCellBars: boolean;
+  comparisonColorFormatters?: { [key: string]: BasicColorFormatterType };
+  greenRedFormatters?: { [key: string]: BasicColorFormatterType };
+  originKey: string;
+}): ConditionalFormattingColors {
+  const colors: ConditionalFormattingColors = {};
+
+  if (!hasColumnColorFormatters) {
+    const comparison = lookupRowBasicColor(
+      comparisonColorFormatters,
+      columnKey,
+      originKey,
+    );
+    if (comparison?.backgroundColor) {
+      colors.backgroundColor = comparison.backgroundColor;
+    }
+  }
+
+  if (hasColumnColorFormatters && columnColorFormatters) {
+    const formatting = getConditionalFormattingColors(
+      columnColorFormatters,
+      record,
+      columnKey,
+      value,
+      applyCellBars,
+    );
+    if (formatting.color) {
+      colors.color = formatting.color;
+    }
+    if (formatting.backgroundColor) {
+      colors.backgroundColor = formatting.backgroundColor;
+    }
+    if (formatting.backgroundColorCellBar) {
+      colors.backgroundColorCellBar = formatting.backgroundColorCellBar;
+    }
+    if (formatting.skipValueRange) {
+      colors.skipValueRange = formatting.skipValueRange;
+    }
+  }
+
+  const greenRed = lookupRowBasicColor(
+    greenRedFormatters,
+    columnKey,
+    originKey,
+  );
+  if (greenRed?.backgroundColor) {
+    colors.backgroundColor = greenRed.backgroundColor;
+  }
 
   return colors;
 }
@@ -1150,41 +1230,42 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         const originKey = key.substring(label.length).trim();
         let backgroundColor;
         let color;
+        let backgroundColorCellBar;
+        let valueRangeFlag = true;
         if (applyConditionalFormattingToTotals) {
-          if (!hasColumnColorFormatters && totalsBasicColorFormatters) {
-            backgroundColor =
-              totalsBasicColorFormatters[originKey]?.backgroundColor ||
-              totalsBasicColorFormatters[key]?.backgroundColor;
-          }
-          if (hasColumnColorFormatters) {
-            const formatting = getConditionalFormattingColors(
-              columnColorFormatters!,
-              displayedTotals,
-              key,
-              totalValue,
-            );
-            backgroundColor = formatting.backgroundColor;
-            color = formatting.color;
-          }
-          const basicTotalsFormatter =
-            totalsBasicColorColumnFormatters?.[key] ||
-            (originKey
-              ? totalsBasicColorColumnFormatters?.[originKey]
-              : undefined);
-          if (basicTotalsFormatter?.backgroundColor) {
-            backgroundColor = basicTotalsFormatter.backgroundColor;
+          const formatting = resolveCellColorFormatting({
+            hasColumnColorFormatters,
+            columnColorFormatters,
+            record: displayedTotals,
+            columnKey: key,
+            value: totalValue,
+            applyCellBars: generalShowCellBars,
+            comparisonColorFormatters: totalsBasicColorFormatters,
+            greenRedFormatters: totalsBasicColorColumnFormatters,
+            originKey,
+          });
+          backgroundColor = formatting.backgroundColor;
+          color = formatting.color;
+          backgroundColorCellBar = formatting.backgroundColorCellBar;
+          if (formatting.skipValueRange) {
+            valueRangeFlag = false;
           }
         }
         const resolvedTextColor = getTextColorForBackground(
           { backgroundColor, color },
           theme.colorBgBase,
         );
+        const showTotalsCellBar =
+          Boolean(valueRange) &&
+          typeof totalValue === 'number' &&
+          valueRangeFlag;
         return (
           <td
             key={`footer-total-${i}`}
             className="dt-totals"
             style={{
               ...sharedStyle,
+              position: 'relative',
               background: backgroundColor || undefined,
               color: resolvedTextColor || undefined,
               fontWeight: color ? theme.fontWeightBold : theme.fontWeightStrong,
@@ -1193,6 +1274,38 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               typeof totalValue === 'number' ? String(totalValue) : undefined
             }
           >
+            {showTotalsCellBar && (
+              <div
+                className={cx(
+                  'cell-bar',
+                  totalValue < 0 ? 'negative' : 'positive',
+                )}
+                style={{
+                  position: 'absolute',
+                  height: '100%',
+                  display: 'block',
+                  top: 0,
+                  width: `${cellWidth({
+                    value: totalValue,
+                    valueRange: valueRange as ValueRange,
+                    alignPositiveNegative,
+                  })}%`,
+                  left: `${cellOffset({
+                    value: totalValue,
+                    valueRange: valueRange as ValueRange,
+                    alignPositiveNegative,
+                  })}%`,
+                  backgroundColor:
+                    backgroundColorCellBar ||
+                    cellBackground({
+                      value: totalValue,
+                      colorPositiveNegative,
+                      theme,
+                    }),
+                }}
+                role="presentation"
+              />
+            )}
             <strong>{formatColumnValue(column, totalValue)[1]}</strong>
           </td>
         );
@@ -1216,44 +1329,35 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           let valueRangeFlag = true;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
+          const formatting = resolveCellColorFormatting({
+            hasColumnColorFormatters,
+            columnColorFormatters,
+            record: row.original,
+            columnKey: column.key,
+            value,
+            applyCellBars: generalShowCellBars,
+            comparisonColorFormatters: hasBasicColorFormatters
+              ? basicColorFormatters?.[row.index]
+              : undefined,
+            greenRedFormatters: basicColorColumnFormatters?.[row.index],
+            originKey,
+          });
+          backgroundColor = formatting.backgroundColor;
+          color = formatting.color;
+          backgroundColorCellBar = formatting.backgroundColorCellBar;
+          if (formatting.skipValueRange) {
+            valueRangeFlag = false;
+          }
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
-            backgroundColor =
-              basicColorFormatters[row.index][originKey]?.backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
                 ? basicColorFormatters[row.index][originKey]?.mainArrow
                 : '';
           }
-
-          if (hasColumnColorFormatters) {
-            const formatting = getConditionalFormattingColors(
-              columnColorFormatters!,
-              row.original,
-              column.key,
-              value,
-              generalShowCellBars,
-            );
-            if (formatting.color) {
-              color = formatting.color;
-            }
-            if (formatting.backgroundColor) {
-              backgroundColor = formatting.backgroundColor;
-            }
-            if (formatting.backgroundColorCellBar) {
-              backgroundColorCellBar = formatting.backgroundColorCellBar;
-            }
-            if (formatting.skipValueRange) {
-              valueRangeFlag = false;
-            }
-          }
-
           if (
             basicColorColumnFormatters &&
             basicColorColumnFormatters?.length > 0
           ) {
-            backgroundColor =
-              basicColorColumnFormatters[row.index][column.key]
-                ?.backgroundColor || backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
