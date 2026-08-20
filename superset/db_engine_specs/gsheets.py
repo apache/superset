@@ -411,7 +411,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                     }
                 }
             },
-            future=True,
         )
         conn = engine.connect()
         idx = 0

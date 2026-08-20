@@ -239,6 +239,40 @@ describe('ChartList', () => {
       screen.getByRole('button', { name: 'Bulk select' }),
     ).toBeInTheDocument();
   });
+
+  test('archive (soft-delete) confirmation reflects recoverable semantics, not delete', async () => {
+    // With SOFT_DELETE on, the same delete affordance becomes reversible: the
+    // dialog reads "Archive", not "Delete", and drops the "type DELETE to
+    // confirm" gate -- that friction is reserved for the permanent purge in
+    // the Recently Archived view, not this one.
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockImplementation((feature: string) => feature === 'SOFT_DELETE');
+
+    // isUserEditorOrAdmin requires `username` + `permissions` to recognize an
+    // Admin role (see src/types/bootstrapTypes.ts's isUserWithPermissionsAndRoles);
+    // mockUser lacks both, so row actions would otherwise render disabled.
+    const adminUser = { ...mockUser, username: 'admin', permissions: {} };
+    renderChartList(adminUser);
+    await screen.findByTestId('chart-list-view');
+
+    const deleteButtons = await screen.findAllByTestId('chart-row-delete');
+    fireEvent.click(deleteButtons[0]);
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(`Archive ${mockCharts[0].slice_name}?`),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('button', { name: 'Archive' }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/moved to Recently Archived/i),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/recover it there/i)).toBeInTheDocument();
+
+    expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

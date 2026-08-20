@@ -230,7 +230,6 @@ def test_validate_parameters_catalog(
                 }
             }
         },
-        future=True,
     )
 
 
@@ -304,7 +303,6 @@ def test_validate_parameters_catalog_and_credentials(
                 }
             }
         },
-        future=True,
     )
 
 
