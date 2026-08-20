@@ -499,3 +499,22 @@ SELECT mask(some_column) FROM some_table
     script = SQLScript(sql, "trino")
     assert script.statements[0].check_functions_present({"regexp_replace"})
     assert not script.statements[0].check_functions_present({"not_present"})
+
+
+def test_udf_body_reserved_word_function_call_visible_to_check_functions_present() -> (
+    None
+):
+    """
+    A handful of scalar functions (``current_user``, ``localtime``, etc.) are
+    reserved words with their own dedicated token type rather than the
+    generic ``VAR`` most function names get, so they must still be caught
+    when called with parentheses inside an inline UDF body.
+    """
+    sql = """
+WITH FUNCTION whoami()
+  RETURNS varchar
+  RETURN current_user()
+SELECT whoami()
+    """.strip()
+    script = SQLScript(sql, "trino")
+    assert script.statements[0].check_functions_present({"current_user"})

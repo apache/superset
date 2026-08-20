@@ -126,19 +126,25 @@ def _extract_function_calls(tokens: t.Sequence[Token]) -> list[exp.Anonymous]:
     that ``SQLScript.check_functions_present`` still sees them even though
     the UDF body itself is kept as opaque, verbatim text.
 
-    A call is any unreserved-keyword-or-identifier token (tokenized as
-    ``VAR``, since Trino's tokenizer does not distinguish an unquoted
-    identifier from an unreserved keyword) immediately followed by ``(``.
-    This can also match a routine/parameter type name (e.g. ``varchar(10)``)
-    or the UDF's own name at its declaration site; those false positives are
-    harmless here, since this list is only used to check for the presence of
-    specific denylisted function names, not to validate the call itself.
+    A call is any word-like token immediately followed by ``(``. Most scalar
+    functions tokenize as plain ``VAR`` (Trino's tokenizer does not
+    distinguish an unquoted identifier from an unreserved keyword), but a few
+    (e.g. ``current_user``, ``localtime``) are reserved words with their own
+    dedicated ``TokenType`` and would otherwise slip past a ``VAR``-only
+    check while still being callable with parentheses, so the token text
+    itself (rather than its type) decides whether it looks like a call head.
+    This can also match a routine/parameter type name (e.g. ``varchar(10)``),
+    a keyword used with parenthesized syntax (e.g. ``CAST(...)``, ``IN
+    (...)``), or the UDF's own name at its declaration site; those false
+    positives are harmless here, since this list is only used to check for
+    the presence of specific denylisted function names, not to validate the
+    call itself.
     """
     return [
         exp.Anonymous(this=tokens[i - 1].text)
         for i in range(1, len(tokens))
         if tokens[i].token_type == TokenType.L_PAREN
-        and tokens[i - 1].token_type == TokenType.VAR
+        and tokens[i - 1].text.isidentifier()
     ]
 
 
@@ -276,14 +282,16 @@ class Trino(SqlglotTrino):
             """
             Split tokens into statements, keeping routine bodies intact.
 
-            This is a copy of ``sqlglot.parser.Parser._parse`` (as of
-            sqlglot 30.8.0, the version pinned in ``requirements/base.txt``)
-            with one change: when a statement starts with ``WITH FUNCTION``,
-            ``CREATE FUNCTION``, or ``CREATE OR REPLACE FUNCTION``, semicolons
-            inside ``BEGIN ... END`` blocks do not split the statement. If
-            sqlglot's own ``_parse`` changes on a future upgrade, this copy
-            will silently drift from it and should be re-diffed against the
-            new version.
+            This is a copy of ``sqlglot.parser.Parser._parse`` (verified to
+            match through sqlglot 30.16.0, the version pinned in
+            ``requirements/base.txt`` as of this writing) with one change:
+            when a statement starts with ``WITH FUNCTION``, ``CREATE
+            FUNCTION``, or ``CREATE OR REPLACE FUNCTION``, semicolons inside
+            ``BEGIN ... END`` blocks do not split the statement. Because this
+            is a hand-maintained copy rather than an extension through a
+            public hook, it will silently drift if sqlglot's own ``_parse``
+            changes on a future upgrade; re-diff this method against the new
+            version whenever ``sqlglot`` is bumped in ``requirements/base.txt``.
             """
             self.reset()
             self.sql = sql or ""
