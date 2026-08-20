@@ -26,16 +26,16 @@ import {
   KeyboardEvent as ReactKeyboardEvent,
   useEffect,
   useRef,
-} from "react";
+} from 'react';
 
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,
   DefaultSortTypes,
   Row,
-} from "react-table";
-import { extent as d3Extent, max as d3Max } from "d3-array";
-import cx from "classnames";
+} from 'react-table';
+import { extent as d3Extent, max as d3Max } from 'd3-array';
+import cx from 'classnames';
 import {
   DataRecord,
   DataRecordValue,
@@ -47,22 +47,22 @@ import {
   extractTextFromHTML,
   TimeGranularity,
   forceHexAlpha,
-} from "@superset-ui/core";
+} from '@superset-ui/core';
 import {
   styled,
   css,
   useTheme,
   SupersetTheme,
-} from "@apache-superset/core/theme";
-import { t } from "@apache-superset/core/translation";
-import { GenericDataType } from "@apache-superset/core/common";
+} from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
   Space,
   RawAntdSelect as Select,
   Dropdown,
   Tooltip,
-} from "@superset-ui/core/components";
+} from '@superset-ui/core/components';
 import {
   CaretUpOutlined,
   CaretDownOutlined,
@@ -73,33 +73,33 @@ import {
   MinusCircleOutlined,
   PlusCircleOutlined,
   TableOutlined,
-} from "@ant-design/icons";
-import { isEmpty, debounce, isEqual } from "lodash-es";
+} from '@ant-design/icons';
+import { isEmpty, debounce, isEqual } from 'lodash-es';
 import {
   ColorFormatters,
   getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
   BasicColorFormatterType,
-} from "@superset-ui/chart-controls";
+} from '@superset-ui/chart-controls';
 import {
   DataColumnMeta,
   SearchOption,
   SortByItem,
   TableChartTransformedProps,
-} from "./types";
+} from './types';
 import DataTable, {
   DataTableProps,
   SearchInputProps,
   SelectPageSizeRendererProps,
   SizeOption,
-} from "./DataTable";
-import Styles from "./Styles";
-import { formatColumnValue } from "./utils/formatValue";
-import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from "./consts";
-import { updateTableOwnState } from "./DataTable/utils/externalAPIs";
-import getScrollBarSize from "./DataTable/utils/getScrollBarSize";
-import DateWithFormatter from "./utils/DateWithFormatter";
+} from './DataTable';
+import Styles from './Styles';
+import { formatColumnValue } from './utils/formatValue';
+import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
+import { updateTableOwnState } from './DataTable/utils/externalAPIs';
+import getScrollBarSize from './DataTable/utils/getScrollBarSize';
+import DateWithFormatter from './utils/DateWithFormatter';
 
 type ValueRange = [number, number];
 
@@ -148,13 +148,13 @@ function getConditionalFormattingColors(
   };
 
   columnColorFormatters
-    .filter((formatter) => {
+    .filter(formatter => {
       if (formatter.columnFormatting) {
         return formatter.columnFormatting === columnKey;
       }
       return formatter.column === columnKey;
     })
-    .forEach((formatter) => {
+    .forEach(formatter => {
       const valueToFormat = formatter.columnFormatting
         ? record[formatter.column as string]
         : value;
@@ -163,10 +163,10 @@ function getConditionalFormattingColors(
 
   columnColorFormatters
     .filter(
-      (formatter) =>
+      formatter =>
         formatter.columnFormatting === ObjectFormattingEnum.ENTIRE_ROW,
     )
-    .forEach((formatter) =>
+    .forEach(formatter =>
       applyFormatter(formatter, record[formatter.column as string]),
     );
 
@@ -258,8 +258,8 @@ const getCrossFilterValue = (
   const input = value instanceof DateWithFormatter ? value.input : value;
   if (
     column?.dataType === GenericDataType.Temporal &&
-    typeof input === "string" &&
-    input.trim() !== "" &&
+    typeof input === 'string' &&
+    input.trim() !== '' &&
     Number.isFinite(Number(input))
   ) {
     return Number(input);
@@ -271,9 +271,9 @@ const getCrossFilterValue = (
 };
 
 const ACTION_KEYS = {
-  enter: "Enter",
-  spacebar: "Spacebar",
-  space: " ",
+  enter: 'Enter',
+  spacebar: 'Spacebar',
+  space: ' ',
 };
 
 /**
@@ -281,12 +281,12 @@ const ACTION_KEYS = {
  */
 function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
   if (dataType === GenericDataType.Temporal) {
-    return "datetime";
+    return 'datetime';
   }
   if (dataType === GenericDataType.String) {
-    return "alphanumeric";
+    return 'alphanumeric';
   }
-  return "basic";
+  return 'basic';
 }
 
 /**
@@ -327,14 +327,14 @@ export function sanitizeHeaderId(columnId: string): string {
     columnId
       // Semantic replacements first: preserve meaning in IDs for readability
       // (e.g., '%pct_nice' → 'percentpct_nice' instead of '_pct_nice')
-      .replace(/%/g, "percent")
-      .replace(/#/g, "hash")
-      .replace(/△/g, "delta")
+      .replace(/%/g, 'percent')
+      .replace(/#/g, 'hash')
+      .replace(/△/g, 'delta')
       // Generic sanitization for remaining special characters
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_-]/g, "_")
-      .replace(/_+/g, "_") // Collapse consecutive underscores
-      .replace(/^_+|_+$/g, "") // Trim leading/trailing underscores
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_') // Collapse consecutive underscores
+      .replace(/^_+|_+$/g, '') // Trim leading/trailing underscores
   );
 }
 
@@ -411,10 +411,10 @@ const VisuallyHidden = styled.label`
 function SearchInput({ value, onChange, onBlur, inputRef }: SearchInputProps) {
   return (
     <Space direction="vertical" size={4} className="dt-global-filter">
-      <span aria-hidden="true">{t("Search")}</span>
+      <span aria-hidden="true">{t('Search')}</span>
       <Input
-        aria-label={t("Search records")}
-        placeholder={t("Search records")}
+        aria-label={t('Search records')}
+        placeholder={t('Search records')}
         value={value}
         size="small"
         onChange={onChange}
@@ -435,20 +435,20 @@ function SelectPageSize({
   return (
     <Space direction="vertical" size={4} className="dt-select-page-size">
       <VisuallyHidden htmlFor="pageSizeSelect">
-        {t("Select page size")}
+        {t('Select page size')}
       </VisuallyHidden>
-      {t("Entries per page")}
+      {t('Entries per page')}
       <Select<number>
         id="pageSizeSelect"
         value={current}
-        onChange={(value) => onChange(value)}
+        onChange={value => onChange(value)}
         size="small"
         css={(theme: SupersetTheme) => css`
           width: ${theme.sizeUnit * 30}px;
         `}
-        aria-label={t("Show entries per page")}
+        aria-label={t('Show entries per page')}
       >
-        {options.map((option) => {
+        {options.map(option => {
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
@@ -464,7 +464,7 @@ function SelectPageSize({
 }
 
 const getNoResultsMessage = (filter: string) =>
-  filter ? t("No matching records found") : t("No records found");
+  filter ? t('No matching records found') : t('No records found');
 
 /**
  * Calculates the inclusive/exclusive temporal range for a bucket.
@@ -529,7 +529,7 @@ function getTimeRangeFromGranularity(
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
-    sticky?: DataTableProps<D>["sticky"];
+    sticky?: DataTableProps<D>['sticky'];
   },
 ) {
   const {
@@ -571,10 +571,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const comparisonColumns = useMemo(
     () => [
-      { key: "all", label: t("Display all") },
-      { key: "#", label: "#" },
-      { key: "△", label: "△" },
-      { key: "%", label: "%" },
+      { key: 'all', label: t('Display all') },
+      { key: '#', label: '#' },
+      { key: '△', label: '△' },
+      { key: '%', label: '%' },
     ],
     [],
   );
@@ -582,7 +582,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const timestampFormatter = useCallback(
     (value: DataRecordValue) =>
       isRawRecords
-        ? String(value ?? "")
+        ? String(value ?? '')
         : getTimeFormatterForGranularity(timeGrain)(
             value as number | Date | null | undefined,
           ),
@@ -620,8 +620,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
       const nums = data
-        ?.map((row) => row?.[key])
-        .filter((value) => typeof value === "number") as number[];
+        ?.map(row => row?.[key])
+        .filter(value => typeof value === 'number') as number[];
       if (nums.length > 0) {
         return (
           alignPositiveNegative
@@ -637,7 +637,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const isActiveFilterValue = useCallback(
     function isActiveFilterValue(key: string, val: DataRecordValue) {
       if (!filters || !filters[key]) return false;
-      return filters[key].some((filterVal) => {
+      return filters[key].some(filterVal => {
         if (filterVal === val) return true;
         // DateWithFormatter extends Date — compare by time value
         // since memoization cache misses can create new instances
@@ -670,14 +670,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const groupBy = Object.keys(updatedFilters);
       const groupByValues = Object.values(updatedFilters);
       const labelElements: string[] = [];
-      groupBy.forEach((col) => {
+      groupBy.forEach(col => {
         const isTimestamp = col === DTTM_ALIAS;
         const filterValues = ensureIsArray(updatedFilters?.[col]);
         if (filterValues.length) {
-          const valueLabels = filterValues.map((value) =>
+          const valueLabels = filterValues.map(value =>
             isTimestamp ? timestampFormatter(value) : value,
           );
-          labelElements.push(`${valueLabels.join(", ")}`);
+          labelElements.push(`${valueLabels.join(', ')}`);
         }
       });
 
@@ -687,13 +687,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             filters:
               groupBy.length === 0
                 ? []
-                : groupBy.map((col) => {
+                : groupBy.map(col => {
                     // Resolve adhoc column labels back to original column names
                     // so that cross-filters work on the receiving chart
                     const resolvedCol = columnLabelToNameMap[col] ?? col;
                     const val = ensureIsArray(updatedFilters?.[col]);
                     const column = columnsMeta.find(
-                      (columnMeta) => columnMeta.key === col,
+                      columnMeta => columnMeta.key === col,
                     );
                     if (
                       !val.length ||
@@ -703,18 +703,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     )
                       return {
                         col: resolvedCol,
-                        op: "IS NULL" as const,
+                        op: 'IS NULL' as const,
                       };
                     return {
                       col: resolvedCol,
-                      op: "IN" as const,
-                      val: val.map((el) => getCrossFilterValue(el!, column)),
+                      op: 'IN' as const,
+                      val: val.map(el => getCrossFilterValue(el!, column)),
                       grain: resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
                     };
                   }),
           },
           filterState: {
-            label: labelElements.join(", "),
+            label: labelElements.join(', '),
             value: groupByValues.length ? groupByValues : null,
             filters:
               updatedFilters && Object.keys(updatedFilters).length
@@ -750,7 +750,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const { isNumeric, config = {} } = column;
       const textAlign =
         config.horizontalAlign ||
-        (isNumeric && !isUsingTimeComparison ? "right" : "left");
+        (isNumeric && !isUsingTimeComparison ? 'right' : 'left');
       return {
         textAlign,
       };
@@ -758,7 +758,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [isUsingTimeComparison],
   );
 
-  const comparisonLabels = useMemo(() => [t("Main"), "#", "△", "%"], []);
+  const comparisonLabels = useMemo(() => [t('Main'), '#', '△', '%'], []);
 
   const filteredColumnsMeta = useMemo(() => {
     if (!isUsingTimeComparison) {
@@ -804,7 +804,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         clientY: number,
       ) => {
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-        filteredColumnsMeta.forEach((col) => {
+        filteredColumnsMeta.forEach(col => {
           if (!col.isMetric) {
             const dataRecordValue = value[col.key];
 
@@ -817,7 +817,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             ) {
               drillToDetailFilters.push({
                 col: col.key,
-                op: "IS NULL" as any,
+                op: 'IS NULL' as any,
                 val: null,
               });
             } else if (col.dataType === GenericDataType.Temporal && timeGrain) {
@@ -832,7 +832,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
               drillToDetailFilters.push({
                 col: col.key,
-                op: "TEMPORAL_RANGE",
+                op: 'TEMPORAL_RANGE',
                 val: timeRangeValue,
                 grain: timeGrain,
                 formattedVal: formatColumnValue(col, dataRecordValue)[1],
@@ -842,7 +842,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               const sanitizedValue = extractTextFromHTML(dataRecordValue);
               drillToDetailFilters.push({
                 col: col.key,
-                op: "==",
+                op: '==',
                 val: sanitizedValue as string | number | boolean,
                 formattedVal: formatColumnValue(col, sanitizedValue)[1],
               });
@@ -863,12 +863,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     op: (cellPoint.value == null ||
                     (cellPoint.value instanceof DateWithFormatter &&
                       cellPoint.value.input == null)
-                      ? "IS NULL"
-                      : "==") as any,
+                      ? 'IS NULL'
+                      : '==') as any,
                     val: extractTextFromHTML(cellPoint.value),
                   },
                 ],
-                groupbyFieldName: "groupby",
+                groupbyFieldName: 'groupby',
               },
         });
       };
@@ -924,7 +924,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // Toggle selection for other keys
         setSelectedComparisonColumns(
           selectedComparisonColumns.includes(key)
-            ? selectedComparisonColumns.filter((k) => k !== key) // Deselect if already selected
+            ? selectedComparisonColumns.filter(k => k !== key) // Deselect if already selected
             : [...selectedComparisonColumns, key],
         ); // Select if not already selected
       }
@@ -950,7 +950,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           selectedKeys: selectedComparisonColumns,
           items: [
             {
-              key: "all",
+              key: 'all',
               label: (
                 <div
                   css={css`
@@ -961,11 +961,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   `}
                 >
                   {t(
-                    "Select columns that will be displayed in the table. You can multiselect columns.",
+                    'Select columns that will be displayed in the table. You can multiselect columns.',
                   )}
                 </div>
               ),
-              type: "group",
+              type: 'group',
               children: comparisonColumns.map(
                 (column: { key: string; label: string }) => ({
                   key: column.key,
@@ -995,7 +995,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             },
           ],
         }}
-        trigger={["click"]}
+        trigger={['click']}
       >
         <span>
           <TableOutlined /> <DownOutlined />
@@ -1007,7 +1007,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // Compute visible columns before groupHeaderColumns to ensure index consistency.
   // This filters out columns with config.visible === false.
   const visibleColumnsMeta = useMemo(
-    () => filteredColumnsMeta.filter((col) => col.config?.visible !== false),
+    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
     [filteredColumnsMeta],
   );
 
@@ -1038,7 +1038,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Use visibleColumnsMeta to ensure consistent indexing with the actual table columns.
       const firstColumnInGroup = visibleColumnsMeta[startPosition];
       const originalLabel = firstColumnInGroup
-        ? columnsMeta.find((col) => col.key === firstColumnInGroup.key)
+        ? columnsMeta.find(col => col.key === firstColumnInGroup.key)
             ?.originalLabel || key
         : key;
 
@@ -1069,7 +1069,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               <PlusCircleOutlined
                 onClick={() =>
                   setHideComparisonKeys(
-                    hideComparisonKeys.filter((k) => k !== key),
+                    hideComparisonKeys.filter(k => k !== key),
                   )
                 }
               />
@@ -1127,20 +1127,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const label = config.customColumnName || originalLabel;
       let displayLabel = label;
 
-      const isComparisonColumn = ["#", "△", "%", t("Main")].includes(
+      const isComparisonColumn = ['#', '△', '%', t('Main')].includes(
         column.label,
       );
 
       if (isComparisonColumn) {
-        if (column.label === t("Main")) {
-          displayLabel = config.customColumnName || column.originalLabel || "";
+        if (column.label === t('Main')) {
+          displayLabel = config.customColumnName || column.originalLabel || '';
         } else if (config.customColumnName) {
           displayLabel =
             config.displayTypeIcon !== false
               ? `${column.label} ${config.customColumnName}`
               : config.customColumnName;
         } else if (config.displayTypeIcon === false) {
-          displayLabel = "";
+          displayLabel = '';
         }
       }
 
@@ -1178,18 +1178,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         (isMetric || isRawRecords || isPercentMetric) &&
         getValueRange(key, alignPositiveNegative);
 
-      let className = "";
+      let className = '';
       if (emitCrossFilters && !isMetric) {
-        className += " dt-is-filter";
+        className += ' dt-is-filter';
       }
 
       if (!isMetric && !isPercentMetric) {
-        className += " right-border-only";
+        className += ' right-border-only';
       } else if (comparisonLabels.includes(label)) {
         const groupinHeader = key.substring(label.length);
         const columnsUnderHeader = groupHeaderColumns[groupinHeader] || [];
         if (i === columnsUnderHeader[columnsUnderHeader.length - 1]) {
-          className += " right-border-only";
+          className += ' right-border-only';
         }
       }
 
@@ -1213,10 +1213,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   }
                 `}
               >
-                {t("Summary")}
+                {t('Summary')}
                 <Tooltip
                   overlay={t(
-                    "Show total aggregations of selected metrics. Note that row limit does not apply to the result.",
+                    'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
                   )}
                 >
                   <InfoCircleOutlined />
@@ -1252,7 +1252,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         );
         const showTotalsCellBar =
           Boolean(valueRange) &&
-          typeof totalValue === "number" &&
+          typeof totalValue === 'number' &&
           valueRangeFlag;
         return (
           <td
@@ -1260,25 +1260,25 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             className="dt-totals"
             style={{
               ...sharedStyle,
-              position: "relative",
+              position: 'relative',
               background: backgroundColor || undefined,
               color: resolvedTextColor || undefined,
               fontWeight: color ? theme.fontWeightBold : theme.fontWeightStrong,
             }}
             title={
-              typeof totalValue === "number" ? String(totalValue) : undefined
+              typeof totalValue === 'number' ? String(totalValue) : undefined
             }
           >
             {showTotalsCellBar && (
               <div
                 className={cx(
-                  "cell-bar",
-                  totalValue < 0 ? "negative" : "positive",
+                  'cell-bar',
+                  totalValue < 0 ? 'negative' : 'positive',
                 )}
                 style={{
-                  position: "absolute",
-                  height: "100%",
-                  display: "block",
+                  position: 'absolute',
+                  height: '100%',
+                  display: 'block',
                   top: 0,
                   width: `${cellWidth({
                     value: totalValue,
@@ -1343,7 +1343,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             arrow =
               column.label === comparisonLabels[0]
                 ? basicColorFormatters[row.index][originKey]?.mainArrow
-                : "";
+                : '';
           }
           if (
             basicColorColumnFormatters &&
@@ -1352,7 +1352,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             arrow =
               column.label === comparisonLabels[0]
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
-                : "";
+                : '';
           }
           const rowSurfaceColor =
             row.index % 2 === 0 ? theme.colorBgLayout : theme.colorBgBase;
@@ -1362,15 +1362,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           );
           const StyledCell = styled.td`
             text-align: ${sharedStyle.textAlign};
-            white-space: ${value instanceof Date ? "nowrap" : undefined};
+            white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            font-weight: ${color
-              ? `${theme.fontWeightBold}`
-              : `${theme.fontWeightNormal}`};
+            font-weight: ${
+              color ? `${theme.fontWeightBold}` : `${theme.fontWeightNormal}`
+            };
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn
-              ? `${theme.sizeUnit * 5}px`
-              : `${theme.sizeUnit}px`};
+            padding-left: ${
+              column.isChildColumn
+                ? `${theme.sizeUnit * 5}px`
+                : `${theme.sizeUnit}px`
+            };
           `;
 
           const cellBarStyles = css`
@@ -1378,10 +1380,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             height: 100%;
             display: block;
             top: 0;
-            ${valueRange &&
-            typeof value === "number" &&
-            valueRangeFlag &&
-            `
+            ${
+              valueRange &&
+              typeof value === 'number' &&
+              valueRangeFlag &&
+              `
                 width: ${`${cellWidth({
                   value: value as number,
                   valueRange,
@@ -1400,15 +1403,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     theme,
                   })
                 };
-              `}
+              `
+            }
           `;
 
           let arrowStyles = css`
-            color: ${basicColorFormatters &&
-            basicColorFormatters[row.index][originKey]?.arrowColor ===
-              ColorSchemeEnum.Green
-              ? theme.colorSuccess
-              : theme.colorError};
+            color: ${
+              basicColorFormatters &&
+              basicColorFormatters[row.index][originKey]?.arrowColor ===
+                ColorSchemeEnum.Green
+                ? theme.colorSuccess
+                : theme.colorError
+            };
             margin-right: ${theme.sizeUnit}px;
           `;
 
@@ -1417,19 +1423,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             basicColorColumnFormatters?.length > 0
           ) {
             arrowStyles = css`
-              color: ${basicColorColumnFormatters[row.index][column.key]
-                ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colorSuccess
-                : theme.colorError};
+              color: ${
+                basicColorColumnFormatters[row.index][column.key]
+                  ?.arrowColor === ColorSchemeEnum.Green
+                  ? theme.colorSuccess
+                  : theme.colorError
+              };
               margin-right: ${theme.sizeUnit}px;
             `;
           }
 
           const cellProps = {
-            "aria-labelledby": `header-${headerId}`,
-            role: "cell",
+            'aria-labelledby': `header-${headerId}`,
+            role: 'cell',
             // show raw number in title in case of numeric values
-            title: typeof value === "number" ? String(value) : undefined,
+            title: typeof value === 'number' ? String(value) : undefined,
             onClick:
               emitCrossFilters && !valueRange && !isMetric
                 ? () => {
@@ -1458,10 +1466,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               className,
               value == null ||
               (value instanceof DateWithFormatter && value.input == null)
-                ? "dt-is-null"
-                : "",
-              isActiveFilterValue(key, value) ? " dt-is-active-filter" : "",
-            ].join(" "),
+                ? 'dt-is-null'
+                : '',
+              isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
+            ].join(' '),
             style: resolvedTextColor
               ? ({ color: resolvedTextColor } as CSSProperties)
               : undefined,
@@ -1493,10 +1501,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 <div
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
-                    "cell-bar",
-                    typeof value === "number" && value < 0
-                      ? "negative"
-                      : "positive",
+                    'cell-bar',
+                    typeof value === 'number' && value < 0
+                      ? 'negative'
+                      : 'positive',
                   )}
                   css={cellBarStyles}
                   role="presentation"
@@ -1523,9 +1531,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           <th
             id={`header-${headerId}`}
             title={
-              description || t("Shift + Click to sort by multiple columns")
+              description || t('Shift + Click to sort by multiple columns')
             }
-            className={[className, col.isSorted ? "is-sorted" : ""].join(" ")}
+            className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
               ...sharedStyle,
               ...style,
@@ -1539,10 +1547,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             onClick={onClick}
             data-column-name={col.id}
             {...(allowRearrangeColumns && {
-              draggable: "true",
+              draggable: 'true',
               onDragStart,
-              onDragOver: (e) => e.preventDefault(),
-              onDragEnter: (e) => e.preventDefault(),
+              onDragOver: e => e.preventDefault(),
+              onDragEnter: e => e.preventDefault(),
               onDrop,
             })}
             tabIndex={0}
@@ -1560,8 +1568,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <div
               data-column-name={col.id}
               css={{
-                display: "inline-flex",
-                alignItems: "flex-end",
+                display: 'inline-flex',
+                alignItems: 'flex-end',
               }}
             >
               <span data-column-name={col.id}>{displayLabel}</span>
@@ -1576,7 +1584,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // even if the backend reports the column type as String.
         sortType:
           isMetric || isPercentMetric
-            ? "basic"
+            ? 'basic'
             : getSortTypeByDataType(dataType),
       };
     },
@@ -1628,11 +1636,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
       const updatedTotals: Record<string, DataRecordValue> = { ...totals };
 
-      filteredColumnsMeta.forEach((column) => {
+      filteredColumnsMeta.forEach(column => {
         if (column.isMetric || column.isPercentMetric) {
           const aggregatedValue = rows.reduce<number>((acc, row) => {
             const rawValue = row.original?.[column.key];
-            const numValue = Number(String(rawValue ?? "").replace(/,/g, ""));
+            const numValue = Number(String(rawValue ?? '').replace(/,/g, ''));
             return Number.isFinite(numValue) ? acc + numValue : acc;
           }, 0);
 
@@ -1654,8 +1662,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           sortType?: string;
         }[]
     )
-      .filter((col) => col?.sortType === "alphanumeric")
-      .map((column) => ({
+      .filter(col => col?.sortType === 'alphanumeric')
+      .map(column => ({
         value: column.columnKey,
         label: column.columnLabel,
       }));
@@ -1758,7 +1766,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         searchColumn: searchCol,
-        searchText: "",
+        searchText: '',
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
@@ -1769,7 +1777,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const exportColumns = useMemo(
     () =>
-      visibleColumnsMeta.map((col) => ({
+      visibleColumnsMeta.map(col => ({
         key: col.key,
         label: col.config?.customColumnName || col.originalLabel || col.key,
       })),
@@ -1823,7 +1831,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
-        initialSearchText={serverPaginationData?.searchText || ""}
+        initialSearchText={serverPaginationData?.searchText || ''}
         sortByFromParent={serverPaginationData?.sortBy || []}
         searchInputId={`${slice_id}-search`}
         // 9 page items in > 340px works well even for 100+ pages
