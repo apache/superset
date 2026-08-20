@@ -752,3 +752,53 @@ def test_pivot_show_values_as_with_marginal_distributions_raises() -> None:
             marginal_distributions=True,
             show_values_as="percent_row",
         )
+
+
+def test_pivot_show_values_as_with_combine_value_with_metric_preserves_per_metric() -> (
+    None
+):
+    """Regression test for sadpandajoe's finding on #42976.
+
+    ``combine_value_with_metric`` reshapes the column ``MultiIndex`` from
+    ``(metric, category)`` to ``(category, metric)``. Historically the
+    ``show_values_as`` transform ran *after* this reshape, so its per-metric
+    iteration walked categories thinking they were metrics — mixing metric
+    magnitudes and producing wrong percentages (e.g. metric ``a``'s row
+    would sum to ~1.78 instead of 1.0 because metric ``b``'s values leaked
+    into ``a``'s denominators).
+
+    The transform now runs *before* the reshape so per-metric isolation
+    stays intact regardless of the final column layout.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "a": [10, 20, 30, 40],
+            "b": [1, 3, 5, 7],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"a": {"operator": "sum"}, "b": {"operator": "sum"}},
+        combine_value_with_metric=True,
+        show_values_as="percent_row",
+    )
+
+    # After combine_value_with_metric, the column MultiIndex is
+    # ``(category, metric)``. Per-metric row sums are pulled via cross-section
+    # on level 1 (the metric axis).
+    for metric, expected in (("a", [1.0, 1.0]), ("b", [1.0, 1.0])):
+        per_metric = result.xs(metric, axis=1, level=1)
+        assert per_metric.sum(axis=1).tolist() == pytest.approx(expected), (
+            f"metric {metric!r} rows must each sum to 1.0 after "
+            "percent_row on a combined pivot; got contamination from "
+            "other metrics"
+        )
+
+    # And the actual values match the natural per-metric percentages,
+    # not the mixed-metric ones that the bug produced.
+    assert result.loc["r1", ("c1", "a")] == pytest.approx(10 / 30)
+    assert result.loc["r1", ("c1", "b")] == pytest.approx(1 / 4)

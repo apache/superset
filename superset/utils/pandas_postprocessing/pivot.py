@@ -292,12 +292,22 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
     elif pivot_key_set and not df.empty:
         df = df.drop(df.columns.difference(pivot_key_set), axis=PandasAxis.COLUMN)
 
+    # Apply the ``show_values_as`` percent transform BEFORE the
+    # ``combine_value_with_metric`` reshape, not after. The reshape below
+    # swaps the column ``MultiIndex`` level order from ``(metric, category)``
+    # to ``(category, metric)``; if the percent transform runs against the
+    # post-reshape shape, its per-metric iteration
+    # (``df.columns.get_level_values(0).unique()``) walks categories thinking
+    # they are metrics, mixing metrics and producing wrong percentages. See
+    # sadpandajoe's finding on #42976. Running percent first keeps the
+    # per-metric-isolation invariant intact; the reshape then runs on the
+    # already-normalized values without changing them further.
+    if percent_mode is not None:
+        df = _apply_show_values_as(df, percent_mode)
+
     if combine_value_with_metric:
         # dropna=False preserves restored all-NaN metric rows that would otherwise
         # be silently dropped by stack's default dropna=True behavior.
         df = df.stack(level=0, dropna=False).unstack()
-
-    if percent_mode is not None:
-        df = _apply_show_values_as(df, percent_mode)
 
     return df
