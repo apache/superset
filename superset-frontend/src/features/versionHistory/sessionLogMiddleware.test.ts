@@ -104,6 +104,40 @@ test('programmatic writes invalidate normalization without logging an edit', asy
   );
 });
 
+test('a write matching the hydrated default preserves normalization', async () => {
+  const { setControlValue } =
+    await import('src/explore/actions/exploreActions');
+  const store = buildStore({
+    explore: {
+      controls: { show_totals: { label: 'Show totals' } },
+      form_data: { show_totals: false },
+    },
+    versionHistory: {
+      chartNormalization: {
+        chartId: 7,
+        hydrationSessionId: 'hydration-a',
+        saveAttemptId: null,
+        invalidatedControls: {},
+        transitions: {
+          show_totals: {
+            control: 'show_totals',
+            from_present: false,
+            to_present: true,
+            to_value: false,
+          },
+        },
+      },
+    },
+  });
+
+  run(
+    store,
+    setControlValue('show_totals', false, undefined, { programmatic: true }),
+  );
+
+  expect(store.dispatch).not.toHaveBeenCalled();
+});
+
 test('clears the session log when the explore page hydrates', () => {
   const store = buildStore();
   run(store, { type: 'HYDRATE_EXPLORE', data: {} });

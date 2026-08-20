@@ -24,6 +24,8 @@ import {
   clearVersionSessionLog,
   invalidateChartNormalizationControls,
 } from './reducer';
+import { jsonValuesEqual } from './normalization';
+import type { ChartNormalizationTrackingState } from './types';
 
 // Action types are inlined (rather than imported from the explore
 // module) so this middleware does not pull explore code into every
@@ -52,6 +54,9 @@ interface SessionLogState {
   explore?: {
     controls?: Record<string, { label?: unknown } | undefined>;
     form_data?: Record<string, unknown>;
+  };
+  versionHistory?: {
+    chartNormalization?: ChartNormalizationTrackingState | null;
   };
 }
 
@@ -109,6 +114,25 @@ function userName(state: SessionLogState): string | null {
     .join(' ');
   return name || null;
 }
+
+const normalizationControlsNoLongerMatching = (
+  controls: string[],
+  state: SessionLogState,
+) => {
+  const formData = state.explore?.form_data ?? {};
+  const transitions = state.versionHistory?.chartNormalization?.transitions;
+  return controls.filter(control => {
+    const transition = transitions?.[control];
+    if (!transition) {
+      return true;
+    }
+    const present = Object.hasOwn(formData, control);
+    return (
+      present !== transition.to_present ||
+      (present && !jsonValuesEqual(formData[control], transition.to_value))
+    );
+  });
+};
 
 /**
  * Records unsaved explore control changes in the version history
@@ -199,10 +223,13 @@ export const versionSessionLogMiddleware: Middleware =
       );
     }
     const state = store.getState() as SessionLogState;
-    const changedControls = normalizationControlsChangedByExplore(
-      action,
-      before,
-      state.explore?.form_data,
+    const changedControls = normalizationControlsNoLongerMatching(
+      normalizationControlsChangedByExplore(
+        action,
+        before,
+        state.explore?.form_data,
+      ),
+      state,
     );
     if (changedControls.length) {
       store.dispatch(invalidateChartNormalizationControls(changedControls));
