@@ -26,6 +26,13 @@ from sqlalchemy import column, sql, text, types
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
+from superset.models.sql_types.presto_sql_types import (
+    Array,
+    Interval,
+    Map,
+    Row,
+    TinyInteger,
+)
 from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -38,6 +45,11 @@ from tests.unit_tests.db_engine_specs.utils import (
     "target_type,dttm,expected_result",
     [
         ("VARCHAR", datetime(2022, 1, 1), None),
+        # Reachable for real: ``jinja_context.py`` calls this with
+        # ``target_type or ""`` when no column type is known. Both unmapped and
+        # empty types must return ``None`` — every caller branches on that
+        # (``if sql:``) rather than on an exception.
+        ("", datetime(2022, 1, 1), None),
         ("DATE", datetime(2022, 1, 1), "DATE '2022-01-01'"),
         (
             "TIMESTAMP",
@@ -66,6 +78,41 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+def test_convert_dttm_presto_spec_truncates_to_milliseconds() -> None:
+    """Story 105826: ``PrestoEngineSpec.convert_dttm`` renders TIMESTAMP literals
+    with **millisecond** precision, discarding anything finer.
+
+    ``PrestoEngineSpec.convert_dttm`` deliberately overrides
+    ``PrestoBaseEngineSpec.convert_dttm``, which uses microseconds. Nothing pinned
+    that distinction before, and it is the only silent-failure mode in this file: a
+    malformed or wrong-precision literal produces a *valid* query returning the
+    wrong rows, with no error. A refactor collapsing the two methods would shift
+    every Presto timestamp filter's precision without breaking a single test.
+
+    The 123 trailing microseconds below are dropped, not rounded.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.convert_dttm(
+        "TIMESTAMP", datetime(2022, 1, 1, 1, 23, 45, 600123)
+    ) == ("TIMESTAMP '2022-01-01 01:23:45.600'")
+
+
+def test_convert_dttm_base_spec_keeps_microseconds() -> None:
+    """Story 105826: ``PrestoBaseEngineSpec.convert_dttm`` — shared with Trino and
+    the Hive family — keeps **microsecond** precision.
+
+    The other half of the override documented in
+    ``test_convert_dttm_presto_spec_truncates_to_milliseconds``. Same input, same
+    target type, six fractional digits instead of three.
+    """
+    from superset.db_engine_specs.presto import PrestoBaseEngineSpec
+
+    assert PrestoBaseEngineSpec.convert_dttm(
+        "TIMESTAMP", datetime(2022, 1, 1, 1, 23, 45, 600123)
+    ) == ("TIMESTAMP '2022-01-01 01:23:45.600123'")
+
+
 @pytest.mark.parametrize(
     "native_type,sqla_type,attrs,generic_type,is_dttm",
     [
@@ -76,6 +123,37 @@ def test_convert_dttm(
         ("integer", types.Integer, None, GenericDataType.NUMERIC, False),
         ("time", types.Time, None, GenericDataType.TEMPORAL, True),
         ("timestamp", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
+        # Story 105826 — the rest of ``column_type_mappings``. A column mapped to
+        # the wrong generic type is not aggregatable, gets the wrong filter widget
+        # and the wrong chart axis, so every row in the mapping needs an assertion.
+        ("boolean", types.BOOLEAN, None, GenericDataType.BOOLEAN, False),
+        # ``TinyInteger`` is the only genuinely custom numeric type here; it
+        # subclasses ``Integer``, so this asserts the specific class, not the base.
+        ("tinyint", TinyInteger, None, GenericDataType.NUMERIC, False),
+        ("smallint", types.SmallInteger, None, GenericDataType.NUMERIC, False),
+        ("bigint", types.BigInteger, None, GenericDataType.NUMERIC, False),
+        # ``^real.*`` and ``^double.*`` both map to a bare ``FLOAT()``.
+        ("real", types.FLOAT, None, GenericDataType.NUMERIC, False),
+        ("double", types.FLOAT, None, GenericDataType.NUMERIC, False),
+        # Precision and scale are DISCARDED: the mapping returns a bare
+        # ``DECIMAL()`` regardless of what the native type declared. Pinned
+        # deliberately — contrast ``varchar(255)`` above, where length survives.
+        (
+            "decimal(10,2)",
+            types.DECIMAL,
+            {"precision": None, "scale": None},
+            GenericDataType.NUMERIC,
+            False,
+        ),
+        ("varbinary", types.VARBINARY, None, GenericDataType.STRING, False),
+        ("json", types.JSON, None, GenericDataType.STRING, False),
+        ("date", types.Date, None, GenericDataType.TEMPORAL, True),
+        ("interval year to month", Interval, None, GenericDataType.TEMPORAL, True),
+        # Nested types keep their custom classes but are treated as STRING, which
+        # is what lets the results grid render them at all.
+        ("array(varchar)", Array, None, GenericDataType.STRING, False),
+        ("map(varchar, integer)", Map, None, GenericDataType.STRING, False),
+        ("row(a varchar, b integer)", Row, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(
