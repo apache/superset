@@ -509,15 +509,28 @@ def test_redis_bus_close_expires_rather_than_deletes() -> None:
     deleting on close would cut off exactly the reader this bus exists for.
     """
     from superset.ai.eventbus import RedisStreamEventBus
-    from superset.ai.events import done_event
+    from superset.ai.events import final_event
 
     cache = FakeStreamCache()
     bus = RedisStreamEventBus(cache=cache, prefix="prefix-", ttl_seconds=42)
-    bus.publish("run-1", done_event(True))
+    bus.publish("run-1", final_event("answer"))
     bus.close("run-1")
 
     assert cache.expirations == [("prefix-run-1", 42)]
     assert len(cache.streams["prefix-run-1"]) == 1
+
+
+def test_redis_bus_terminal_publish_expires_without_a_reader() -> None:
+    """An abandoned completed stream still gets bounded retention."""
+    from superset.ai.eventbus import RedisStreamEventBus
+    from superset.ai.events import done_event
+
+    cache = FakeStreamCache()
+    bus = RedisStreamEventBus(cache=cache, prefix="prefix-", ttl_seconds=42)
+
+    bus.publish("run-1", done_event(True))
+
+    assert cache.expirations == [("prefix-run-1", 42)]
 
 
 def test_redis_bus_close_survives_a_broken_backend() -> None:
@@ -571,7 +584,7 @@ def test_get_event_bus_returns_a_redis_bus_configured_from_config(
     """
     from superset.ai import eventbus as eventbus_module
     from superset.ai.eventbus import get_event_bus, RedisStreamEventBus
-    from superset.ai.events import done_event
+    from superset.ai.events import final_event
 
     cache = FakeStreamCache()
     mocker.patch.object(eventbus_module, "_stream_backend", return_value=cache)
@@ -588,7 +601,7 @@ def test_get_event_bus_returns_a_redis_bus_configured_from_config(
     bus = get_event_bus()
     assert isinstance(bus, RedisStreamEventBus)
 
-    bus.publish("run-1", done_event(True))
+    bus.publish("run-1", final_event("answer"))
     bus.close("run-1")
 
     assert list(cache.streams) == ["test-ai-events-run-1"]

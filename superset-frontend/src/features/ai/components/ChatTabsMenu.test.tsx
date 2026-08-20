@@ -107,6 +107,17 @@ test('a conversation with messages is confirmed before deletion', async () => {
   expect(props.onDeleteTab).toHaveBeenCalledWith('tab-1');
 });
 
+test('an unloaded conversation with a server message count is confirmed', async () => {
+  const props = handlers();
+  const menu = await openMenu([tab({ messageCount: 2 })], props);
+
+  await userEvent.click(within(menu).getByLabelText('Delete conversation'));
+
+  expect(props.onDeleteTab).not.toHaveBeenCalled();
+  await userEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+  expect(props.onDeleteTab).toHaveBeenCalledWith('tab-1');
+});
+
 test('renaming commits on Enter', async () => {
   const props = handlers();
   const menu = await openMenu([tab()], props);

@@ -437,7 +437,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
             )
 
         try:
-            result, detail = self._dispatch(request.tools, call)
+            result, detail, error_type = self._dispatch(request.tools, call)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("AI tool %s failed", call.name)
             # The model is told the tool failed but not why, for the same reason
@@ -452,12 +452,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
                 {},
                 error_type=type(ex).__name__,
             )
-        error_type = detail.get("error_type")
         return self._traced(
             call,
             result,
             detail,
-            error_type=str(error_type) if error_type else None,
+            error_type=error_type,
         )
 
     def _traced(
@@ -493,7 +492,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
         self,
         tools: Any,
         call: ToolCall,
-    ) -> tuple[ToolResult, dict[str, Any]]:
+    ) -> tuple[ToolResult, dict[str, Any], str | None]:
         """
         Call the dispatcher, preferring the richer interface when offered.
 
@@ -503,17 +502,16 @@ class MessagesApiRuntime(BaseAgentRuntime):
         """
         invoke = getattr(tools, "invoke", None)
         if invoke is None:
-            return tools.dispatch(call), {}
+            return tools.dispatch(call), {}, None
 
         invocation = invoke(call)
         detail: dict[str, Any] = {"duration_ms": getattr(invocation, "duration_ms", 0)}
         if getattr(invocation, "truncated", False):
             detail["truncated"] = True
-        if error_type := getattr(invocation, "error_type", None):
-            detail["error_type"] = error_type
         if display := getattr(invocation, "display", None):
             detail["display"] = display
-        return invocation.result, detail
+        error_type = getattr(invocation, "error_type", None)
+        return invocation.result, detail, str(error_type) if error_type else None
 
     def _record_thoughts(self, text: str) -> None:
         """

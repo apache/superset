@@ -58,6 +58,7 @@ from superset.ai.telemetry import (
     TOOL_UNAVAILABLE,
     ToolCallTrace,
 )
+from superset.ai.tools.base import AITool, ToolError, ToolOutput, ToolRegistry
 from superset.ai.types import MessageRole, RunOutcome, StreamEventType
 from superset.extensions import stats_logger_manager
 from superset.utils import json
@@ -773,23 +774,32 @@ def test_a_rich_dispatcher_failure_preserves_its_exception_class(
     app_context: None,
     mocker: MockerFixture,
 ) -> None:
-    """The registry's hidden exception class survives into the tool span."""
+    """A concrete ToolError reaches telemetry but not persisted run detail."""
 
-    class Detached(RichStubTools):
-        def invoke(self, call: ToolCall) -> TimedInvocation:
-            return TimedInvocation(
-                ToolResult(call_id=call.id, content="failed", is_error=True),
-                duration_ms=12,
-                truncated=False,
-                error_type="DetachedInstanceError",
-            )
+    class WarehouseDeniedError(ToolError):
+        pass
+
+    class RefusingTool(AITool):
+        name = "execute_sql"
+        description = "Always refuses the test call."
+        input_schema = {"type": "object"}
+
+        def run(self, **_kwargs: Any) -> ToolOutput:
+            raise WarehouseDeniedError("warehouse refused the query")
 
     sink = CapturingTelemetry()
     _configure(mocker, [sink])
+    mocker.patch(
+        "superset.ai.tools.base._current_user",
+        return_value=mocker.Mock(id=7, is_authenticated=True),
+    )
 
-    _drive(_script_with_a_tool_call(), tools=Detached())
+    runtime, _ = _drive(
+        _script_with_a_tool_call(), tools=ToolRegistry([RefusingTool()])
+    )
 
-    assert sink.tool_calls[0][1].error_type == "DetachedInstanceError"
+    assert sink.tool_calls[0][1].error_type == "WarehouseDeniedError"
+    assert "error_type" not in runtime.result.tool_calls[0]
 
 
 def test_a_call_for_a_tool_that_is_not_offered_is_reported(

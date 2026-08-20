@@ -173,6 +173,9 @@ class RedisStreamEventBus(BaseEventBus):
             self._cache.xadd(self._stream(run_id), payload, "*", 10_000)
         except Exception:  # pylint: disable=broad-except
             logger.warning("Could not publish AI event for run %s", run_id)
+            return
+        if event.type in _TERMINAL:
+            self.close(run_id)
 
     def consume(
         self,

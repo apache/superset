@@ -74,6 +74,8 @@ export interface ChatTab {
   messages: ChatMessageWithMeta[];
   createdAt: number;
   updatedAt?: number;
+  /** Server count used before this tab's messages have been loaded. */
+  messageCount?: number;
   /** The server conversation this tab is backed by. */
   threadId?: string;
 }

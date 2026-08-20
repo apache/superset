@@ -510,31 +510,38 @@ class AIRestApi(BaseSupersetApi):
             ).run()
             # Created up front so a client that reconnects before any token
             # arrives still has a row to attach its stream to.
-            assistant_message = AppendAIChatMessageCommand(
+            assistant_message_command = AppendAIChatMessageCommand(
                 thread_uuid,
                 user_id,
                 MessageRole.ASSISTANT,
                 "",
                 request_id=payload.get("request_id"),
                 status=MessageStatus.PENDING,
-            ).run()
+            )
+            assistant_message = assistant_message_command.run()
         except AIChatThreadNotFoundError:
             return self.response_404()
         except (AIChatMessageInvalidError, AIChatThreadInvalidError) as ex:
             return self.response_422(message=str(ex))
 
-        run_id = new_run_id()
-        _record_run_context(assistant_message, run_id, payload)
-
-        self._start_run(
-            thread_uuid=thread_uuid,
-            user_id=user_id,
-            run_id=run_id,
-            assistant_message_uuid=str(assistant_message.uuid),
-            agent_key=payload.get("agent_key"),
-            model=payload.get("model"),
-            page_context=payload.get("page_context"),
-        )
+        if assistant_message_command.created:
+            run_id = new_run_id()
+            _record_run_context(assistant_message, run_id, payload)
+            self._start_run(
+                thread_uuid=thread_uuid,
+                user_id=user_id,
+                run_id=run_id,
+                assistant_message_uuid=str(assistant_message.uuid),
+                agent_key=payload.get("agent_key"),
+                model=payload.get("model"),
+                page_context=payload.get("page_context"),
+            )
+        else:
+            # A retried idempotency key returns the run already attached to
+            # the reused assistant row instead of starting inference again.
+            run_id = str(
+                assistant_message.extra.get("run_id") or assistant_message.uuid
+            )
 
         return self.response(
             202,

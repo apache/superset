@@ -465,6 +465,12 @@ production default, includes prompts and SQL in them.
 | `AI_ASSISTANT_MAX_HISTORY_CHARS` | `100000` | Character budget for history. |
 | `AI_ASSISTANT_TIMEZONE` | `"UTC"` | Timezone for the date given to the model. |
 | `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` | `30` | Conversation retention. |
+| `AI_SUGGESTED_PROMPTS_ENABLED` | `False` | Generate contextual starter prompts when the panel is empty. |
+| `AI_SUGGESTED_PROMPTS_COUNT` | `3` | Number of starter prompts to request. |
+| `AI_SUGGESTED_PROMPTS_MODEL_ALIAS` | `"fast"` | Model tier used for starter prompts. |
+| `AI_SUGGESTED_PROMPTS_MODEL` | `None` | Optional concrete model override for starter prompts. |
+| `AI_SUGGESTED_PROMPTS_MAX_TOKENS` | `300` | Output-token cap for starter prompts. |
+| `AI_SUGGESTED_PROMPTS_PROMPT` | `None` | Optional replacement prompt for starter-prompt generation. |
 | `AI_SYSTEM_PROMPT` | `None` | Replace the whole system prompt. |
 | `AI_EXTRA_PROMPT_SECTIONS` | `[]` | Append prompt sections. |
 | `AI_DISABLED_PROMPT_SECTIONS` | `[]` | Drop shipped sections by key. |
@@ -475,6 +481,10 @@ production default, includes prompts and SQL in them.
 | `AI_TELEMETRY` | `[]` | Telemetry sinks, as instances or dotted paths. |
 | `AI_TELEMETRY_REDACT_CONTENT` | `True` | Withhold prompts, answers, SQL and data from telemetry. |
 | `AI_TELEMETRY_MAX_CONTENT_CHARS` | `10000` | Cap per content field when redaction is off. |
+
+Suggested prompts are disabled by default. Enabling them makes one additional
+model call when an empty panel requests suggestions, so it has the same provider
+cost and data-governance implications as any other model request.
 
 ## Things worth knowing before you turn it on
 
