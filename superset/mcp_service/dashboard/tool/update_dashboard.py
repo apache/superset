@@ -33,6 +33,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
+from superset.mcp_service.dashboard.layout_validation import validate_dashboard_layout
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
@@ -236,6 +237,14 @@ def _validate_update_request(
     from superset.commands.utils import validate_tags
     from superset.dashboards.schemas import validate_css
     from superset.tags.models import ObjectType
+
+    if request.position_json is not None:
+        chart_ids = [chart.id for chart in dashboard.slices]
+        if error := validate_dashboard_layout(request.position_json, chart_ids):
+            return DashboardError(
+                error=f"Dashboard layout is invalid: {error}",
+                error_type="InvalidDashboardLayout",
+            )
 
     # Empty string clears CSS (no validation needed); only validate real content.
     if request.css:
