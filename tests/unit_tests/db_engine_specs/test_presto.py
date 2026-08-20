@@ -766,6 +766,212 @@ def test_extract_error_message_from_general_exception() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "extra,expected",
+    [
+        pytest.param({}, False, id="no_version_key"),
+        pytest.param({"version": None}, False, id="version_none"),
+        pytest.param({"version": "0.318"}, False, id="just_below_gate"),
+        pytest.param({"version": "0.319"}, True, id="exactly_at_gate"),
+        pytest.param({"version": "0.400"}, True, id="above_gate"),
+    ],
+)
+def test_get_allow_cost_estimate_version_gate(
+    extra: dict[str, Any],
+    expected: bool,
+) -> None:
+    """Story 105821: cost estimation requires Presto >= 0.319.
+
+    Showing the "Estimate cost" button on a version that cannot support it produces
+    a confusing failure at click time instead of a hidden button, so the boundary
+    is worth pinning exactly — including the off-by-one at 0.318/0.319 and the
+    ``{"version": None}`` case, which is a different code path from a missing key.
+
+    Reach is low either way: ``Database.allows_cost_estimate`` additionally
+    requires an admin to have set ``cost_estimate_enabled`` in the database's Extra
+    JSON, so this gate is only half of a double opt-in.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.get_allow_cost_estimate(extra) is expected
+
+
+def test_get_allow_cost_estimate_rejects_unparseable_version() -> None:
+    """Story 105821 — CHARACTERIZATION test, not an endorsement of this behaviour.
+
+    A non-empty but unparseable version string reaches ``packaging.Version`` and
+    raises ``InvalidVersion``, so a malformed ``version`` in a database's Extra
+    JSON surfaces as an exception rather than simply disabling the feature.
+
+    Pinned so a future guard is deliberate. Whether an admin typo should disable
+    cost estimation or raise is a product decision, not a test fix.
+    """
+    from packaging.version import InvalidVersion
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    with pytest.raises(InvalidVersion):
+        PrestoEngineSpec.get_allow_cost_estimate({"version": "not-a-version"})
+
+
+def test_estimate_statement_cost() -> None:
+    """Unit-suite mirror of presto_tests.py::test_estimate_statement_cost (L940).
+
+    ``EXPLAIN (TYPE IO, FORMAT JSON)`` returns a single row, single column of JSON,
+    which is parsed and handed back untouched. The integration original is
+    intentionally retained; this mirror only removes the app/DB fixture requirement.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchone.return_value = ['{"a": "b"}']
+
+    result = PrestoEngineSpec.estimate_statement_cost(
+        mock.MagicMock(), "SELECT * FROM birth_names", cursor
+    )
+
+    assert result == {"a": "b"}
+    cursor.execute.assert_called_once_with(
+        "EXPLAIN (TYPE IO, FORMAT JSON) SELECT * FROM birth_names"
+    )
+
+
+def test_estimate_statement_cost_propagates_execute_failure() -> None:
+    """Unit-suite mirror of
+    presto_tests.py::test_estimate_statement_cost_invalid_syntax (L954).
+
+    A statement Presto refuses to explain — invalid syntax, or a DDL statement it
+    will not plan — raises from ``cursor.execute`` and is not swallowed here.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.execute.side_effect = Exception("line 1:1: mismatched input 'DROP'")
+
+    with pytest.raises(Exception, match="mismatched input"):
+        PrestoEngineSpec.estimate_statement_cost(
+            mock.MagicMock(), "DROP TABLE birth_names", cursor
+        )
+
+
+def test_query_cost_formatter() -> None:
+    """Unit-suite mirror of presto_tests.py::test_query_cost_formatter (L617).
+
+    Turns raw float estimates into the strings shown in the cost panel. Same
+    expectations as the integration original, with that test's large
+    ``inputTableColumnInfos`` block dropped — the formatter only reads
+    ``row["estimate"]``.
+
+    Note ``humanize`` floor-divides by 1000 repeatedly, so these are deliberately
+    coarse: 904,969,899 rows renders as "904 M rows", not "905 M rows".
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    raw_cost = [
+        {
+            "estimate": {
+                "outputRowCount": 9.04969899e8,
+                "outputSizeInBytes": 3.54143678301e11,
+                "cpuCost": 3.54143678301e11,
+                "maxMemory": 0.0,
+                "networkCost": 3.54143678301e11,
+            },
+        }
+    ]
+
+    assert PrestoEngineSpec.query_cost_formatter(raw_cost) == [
+        {
+            "Output count": "904 M rows",
+            "Output size": "354 GB",
+            "CPU cost": "354 G",
+            "Max memory": "0 B",
+            "Network cost": "354 G",
+        }
+    ]
+
+
+def test_query_cost_formatter_omits_missing_estimate_keys() -> None:
+    """Story 105821: only the keys Presto actually returned are formatted.
+
+    A partial estimate must not surface as zeros or placeholder rows in the cost
+    panel, and a row with no ``estimate`` at all yields an empty dict rather than
+    raising.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    raw_cost = [{"estimate": {"outputRowCount": 1234.0}}, {}]
+
+    assert PrestoEngineSpec.query_cost_formatter(raw_cost) == [
+        {"Output count": "1 K rows"},
+        {},
+    ]
+
+
+def test_estimate_query_cost_raises_when_version_too_old(
+    mocker: MockerFixture,
+) -> None:
+    """Story 105821: the disabled path.
+
+    This criterion is base-class code (``BaseEngineSpec.estimate_query_cost``)
+    reached *through* the Presto spec: the version gate is consulted before any
+    connection is opened, and failing it raises rather than returning an empty
+    estimate.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {"version": "0.318"}
+
+    with pytest.raises(Exception, match="Database does not support cost estimation"):
+        PrestoEngineSpec.estimate_query_cost(
+            database, "hive", "default", "SELECT 1", None
+        )
+
+    database.get_raw_connection.assert_not_called()
+
+
+def test_estimate_query_cost_estimates_each_statement(
+    mocker: MockerFixture,
+) -> None:
+    """Story 105821: multi-statement handling, also base-class code.
+
+    The SQL is parsed by a real ``SQLScript``, so each statement gets its own
+    ``EXPLAIN`` on the same cursor and the results come back in order. One cost
+    entry per statement — not one per query.
+
+    Note the statements are *re-rendered* by the parser before being explained,
+    not passed through verbatim: ``SELECT 1`` reaches the cursor pretty-printed as
+    ``SELECT\n  1``. Asserted as-is, because what actually gets sent to Presto is
+    the point of the test.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {"version": "0.400"}
+    database.mutate_sql_based_on_config.side_effect = lambda sql, **_kwargs: sql
+    cursor = mock.MagicMock()
+    cursor.fetchone.side_effect = [
+        ['{"estimate": {"outputRowCount": 1.0}}'],
+        ['{"estimate": {"outputRowCount": 2.0}}'],
+    ]
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = (  # noqa: E501
+        cursor
+    )
+
+    result = PrestoEngineSpec.estimate_query_cost(
+        database, "hive", "default", "SELECT 1; SELECT 2", None
+    )
+
+    assert result == [
+        {"estimate": {"outputRowCount": 1.0}},
+        {"estimate": {"outputRowCount": 2.0}},
+    ]
+    assert cursor.execute.call_args_list == [
+        mock.call("EXPLAIN (TYPE IO, FORMAT JSON) SELECT\n  1"),
+        mock.call("EXPLAIN (TYPE IO, FORMAT JSON) SELECT\n  2"),
+    ]
+
+
 TRACKING_URL = (
     "https://presto.example.com:8080/ui/query.html?20220101_120000_00001_abcde"
 )
