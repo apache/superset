@@ -35,6 +35,7 @@ import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import handleResourceExport from 'src/utils/export';
+import { redirect } from 'src/utils/navigationUtils';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
@@ -216,7 +217,7 @@ export const useDownloadMenuItems = (
         } = json as ExportStatusResponse;
         if (status === 'ready') {
           if (downloadUrl) {
-            window.location.href = downloadUrl;
+            redirect(downloadUrl);
           }
           addSuccessToast(t('Your export is ready and downloading.'));
           return;
