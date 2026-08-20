@@ -25,6 +25,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -419,3 +420,42 @@ async def test_list_charts_certified_filter(
         expected in actual
         for expected, actual in zip(expected_names, actual_names, strict=False)
     )
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_changed_on_delta_humanized_order_column(
+    mock_list, mcp_server
+):
+    """Regression test: order_column='changed_on_delta_humanized' is the
+    "Last modified" column name used by Superset's own REST API and list
+    views. Production chatbot calls pass it when asked to sort by "most
+    recently modified" and must not be rejected. It resolves to 'changed_on'
+    for the DAO, matching REST API sort behaviour (see
+    models/helpers.py:changed_on_delta_humanized, @renders("changed_on"))."""
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_charts",
+            {"request": {"order_column": "changed_on_delta_humanized"}},
+        )
+    mock_list.assert_called_once()
+    call_args = mock_list.call_args[1]
+    assert call_args["order_column"] == "changed_on"
+    data = json.loads(result.content[0].text)
+    assert "charts" in data
+
+
+@patch("superset.daos.chart.ChartDAO.list")
+@pytest.mark.asyncio
+async def test_list_charts_invalid_order_column_raises_tool_error(
+    mock_list, mcp_server
+):
+    """A genuinely unknown order_column must still be rejected."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+            await client.call_tool(
+                "list_charts", {"request": {"order_column": "random"}}
+            )
+        assert "Invalid order_column" in str(excinfo.value)
+    mock_list.assert_not_called()

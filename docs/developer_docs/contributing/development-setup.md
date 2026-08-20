@@ -519,6 +519,30 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
 
+##### zstd
+
+`npm run dev-server` proxies requests to your local Superset server and rewrites the HTML it returns, so it has to decompress responses sent with `Content-Encoding: zstd`. It does that with [`simple-zstd`](https://www.npmjs.com/package/simple-zstd), which wraps the system `zstd` binary instead of bundling one. That binary has to be on your `PATH`:
+
+```bash
+# macOS
+brew install zstd
+
+# Ubuntu/Debian
+sudo apt install zstd
+
+# Windows
+choco install zstd
+```
+
+`simple-zstd` looks for the binary when it is first imported, not when a response is decompressed, so a missing `zstd` stops the dev server at startup with:
+
+```
+Error: Can not access zstd! Is it installed?
+    at Object.<anonymous> (.../node_modules/simple-zstd/dist/src/index.js:102:11)
+```
+
+The message names the dependency, but it surfaces from inside `webpack.proxy-config.js` while the webpack config is loading, which reads like a build-tooling failure rather than a missing system package.
+
 #### Install dependencies
 
 Install third-party dependencies listed in `package.json` via:

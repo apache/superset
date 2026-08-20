@@ -32,6 +32,7 @@ import {
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -618,6 +619,38 @@ describe('EchartsTimeseries transformProps', () => {
         [BASE_TIMESTAMP + 6, -442.9833136960517],
       ],
     });
+  });
+
+  // Regression for #36401: query results containing integers beyond
+  // Number.MAX_SAFE_INTEGER are parsed as native BigInt (see
+  // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
+  // In Stream mode, per-datum values are not routed through the Expand
+  // normalization, so a raw BigInt reaching getBaselineSeriesForStream's
+  // `0.5 * delta` weighting throws before the baseline series can render.
+  test('does not throw computing a stream baseline series with a BigInt metric value', () => {
+    const streamQueriesDataTyped: ChartDataResponseResult[] = [
+      createTestQueryData([
+        {
+          __timestamp: BASE_TIMESTAMP,
+          'San Francisco': BigInt('9007199254740993'),
+          'New York': 220,
+        },
+        {
+          __timestamp: BASE_TIMESTAMP + 1,
+          'San Francisco': 150,
+          'New York': 190,
+        },
+      ]),
+    ];
+    const streamFormData: Partial<EchartsTimeseriesFormData> = {
+      ...formData,
+      stack: StackControlsValue.Stream,
+    };
+    const chartProps = createTestChartProps({
+      formData: streamFormData,
+      queriesData: streamQueriesDataTyped,
+    });
+    expect(() => transformProps(chartProps)).not.toThrow();
   });
 });
 
@@ -2404,4 +2437,95 @@ test('honors the snake_case flag the compare-chart migration stores in params', 
     [BASE_TIMESTAMP, 0],
     [BASE_TIMESTAMP + 300000000, 2],
   ]);
+});
+describe('EchartsTimeseries tooltip truncation', () => {
+  const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+
+  const buildTooltip = (
+    tooltipTruncation?: TooltipTruncationMode,
+    xValue: string | number = 599616000000,
+  ) => {
+    const chartProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['foo'],
+        viz_type: 'my_viz',
+        ...(tooltipTruncation ? { tooltipTruncation } : {}),
+      } as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { [longSeriesName]: 1, __timestamp: 599616000000 },
+            { [longSeriesName]: 3, __timestamp: 599916000000 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const { formatter } = echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    };
+    return formatter([
+      {
+        seriesId: longSeriesName,
+        seriesName: longSeriesName,
+        value: [xValue, 1],
+        marker,
+      },
+    ]);
+  };
+
+  test('applies the CSS cap and keeps full text by default', () => {
+    const html = buildTooltip();
+    expect(html).toContain(longSeriesName);
+    // sanitizeHtml normalizes spacing inside style attributes, so compare with
+    // whitespace stripped rather than hard-coding one version's formatting.
+    expect(html.replace(/\s/g, '')).toContain('max-width:300px');
+  });
+
+  test('removes the cap and keeps full text when off', () => {
+    const html = buildTooltip('off');
+    expect(html).not.toContain('max-width');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('drops the shared prefix when truncating from the start', () => {
+    const html = buildTooltip('start');
+    expect(html).not.toContain('prod-us-east');
+    expect(html).toContain('latency-p99');
+    expect(html.replace(/\s/g, '')).toContain('white-space:nowrap');
+  });
+
+  test('keeps both ends when truncating the middle', () => {
+    const html = buildTooltip('middle');
+    expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
+    expect(html).not.toContain(longSeriesName);
+  });
+
+  test('preserves the echarts marker in every mode', () => {
+    (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
+      expect(buildTooltip(mode)).toContain('background-color:#1f77b4');
+    });
+  });
+
+  test('truncates a long non-temporal x-axis title', () => {
+    const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
+    const html = buildTooltip('start', longCategory);
+    expect(html).not.toContain(longCategory);
+    expect(html).toContain('cohort-2026');
+  });
+
+  test('leaves a long title alone in the default mode', () => {
+    const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
+    expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
+  });
 });
