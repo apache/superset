@@ -631,5 +631,14 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                         )
                     )
                 options = post_process.get("options", {})
+                if operation == "resample":
+                    # Resolved absolute bounds of the query's time range, so
+                    # zero-filled resampling can cover the full range rather
+                    # than only the span between existing data points.
+                    options = {
+                        **options,
+                        "time_range_start": self.from_dttm,
+                        "time_range_end": self.to_dttm,
+                    }
                 df = getattr(pandas_postprocessing, operation)(df, **options)
             return df
