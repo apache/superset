@@ -627,7 +627,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _(
                             "Unsupported post processing operation: %(operation)s",
-                            type=operation,
+                            operation=operation,
                         )
                     )
                 options = post_process.get("options", {})
