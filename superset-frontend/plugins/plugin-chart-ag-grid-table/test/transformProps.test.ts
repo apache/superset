@@ -338,7 +338,7 @@ test('attaches Basic comparison-color formatters to totals when enabled', () => 
     } as unknown as TableChartProps['rawFormData'],
     queriesData: [
       {
-        data: [{ metric_a: 100, 'metric_a__P1D': 80 }],
+        data: [{ metric_a: 100, metric_a__P1D: 80 }],
         colnames: ['metric_a', 'metric_a__P1D'],
         coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
         rowcount: 1,
@@ -346,7 +346,7 @@ test('attaches Basic comparison-color formatters to totals when enabled', () => 
         rejected_filters: [],
       },
       {
-        data: [{ metric_a: 250, 'metric_a__P1D': 100 }],
+        data: [{ metric_a: 250, metric_a__P1D: 100 }],
         colnames: ['metric_a', 'metric_a__P1D'],
         coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
         rowcount: 1,
@@ -367,7 +367,5 @@ test('attaches Basic comparison-color formatters to totals when enabled', () => 
       | undefined
   )?.[BASIC_COLOR_FORMATTERS_ROW_KEY];
 
-  expect(totalsFormatters?.metric_a?.backgroundColor).toBe(
-    'rgba(0,150,0,0.2)',
-  );
+  expect(totalsFormatters?.metric_a?.backgroundColor).toBe('rgba(0,150,0,0.2)');
 });

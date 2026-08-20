@@ -716,8 +716,8 @@ describe('plugin-chart-table', () => {
                 {
                   metric_1: 100,
                   metric_2: 200,
-                  'metric_1__P1D': 80,
-                  'metric_2__P1D': 150,
+                  metric_1__P1D: 80,
+                  metric_2__P1D: 150,
                 },
               ],
               colnames: [
@@ -739,8 +739,8 @@ describe('plugin-chart-table', () => {
                 {
                   metric_1: 250,
                   metric_2: 400,
-                  'metric_1__P1D': 100,
-                  'metric_2__P1D': 500,
+                  metric_1__P1D: 100,
+                  metric_2__P1D: 500,
                 },
               ],
               colnames: [
@@ -759,12 +759,12 @@ describe('plugin-chart-table', () => {
           ],
         });
 
-        expect(props.totalsBasicColorFormatters?.metric_1?.backgroundColor).toBe(
-          'rgba(0,150,0,0.2)',
-        );
-        expect(props.totalsBasicColorFormatters?.metric_2?.backgroundColor).toBe(
-          'rgba(150,0,0,0.2)',
-        );
+        expect(
+          props.totalsBasicColorFormatters?.metric_1?.backgroundColor,
+        ).toBe('rgba(0,150,0,0.2)');
+        expect(
+          props.totalsBasicColorFormatters?.metric_2?.backgroundColor,
+        ).toBe('rgba(150,0,0,0.2)');
       });
 
       test('applies Basic conditional formatting to the totals row when enabled', () => {
