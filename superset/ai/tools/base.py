@@ -242,6 +242,8 @@ def truncate_payload(payload: Any, max_bytes: int) -> tuple[str, bool]:
                 candidate[key] = {}
             else:
                 candidate.pop(key)
+            if key in candidate and candidate[key] == value:
+                candidate.pop(key)
 
     marker = json.dumps(
         {
