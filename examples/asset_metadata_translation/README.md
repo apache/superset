@@ -49,16 +49,37 @@ enough to wire up and demonstrate, not a supported component.
 
 ## Usage sketch
 
+This directory is **not** packaged with Superset -- the distribution ships the
+`superset` package, not the repository's top-level `examples/`. Importing it
+straight from a `superset_config.py` therefore fails at startup with
+`ModuleNotFoundError`. Make it importable first, either by copying the directory
+next to your config:
+
+```bash
+cp -r examples/asset_metadata_translation /app/pythonpath/
+```
+
+or by putting the repository checkout on the path:
+
+```bash
+export PYTHONPATH="/path/to/superset/examples:$PYTHONPATH"
+```
+
+Then wire it up:
+
 ```python
 # superset_config.py
-from asset_metadata_translation.hook import translation_hook
+from asset_metadata_translation.hook import translation_batch_hook
 
 FEATURE_FLAGS = {"ENABLE_I18N_ASSET_TRANSLATIONS": True}
 LANGUAGES = {
     "en": {"flag": "us", "name": "English"},
     "fr": {"flag": "fr", "name": "French"},
 }
-TRANSLATION_HOOK = translation_hook
+# Batch form preferred for a table-backed store: one query per collection
+# instead of one per string. ``translation_hook`` is the single-string
+# equivalent if you want that instead.
+TRANSLATION_BATCH_HOOK = translation_batch_hook
 ```
 
 Create the table once (this example uses Superset's metadata DB session), then

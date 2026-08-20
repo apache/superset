@@ -2092,6 +2092,9 @@
           "last_saved_by": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
+          "localized_name": {
+            "readOnly": true
+          },
           "params": {
             "nullable": true,
             "type": "string"
@@ -2752,6 +2755,11 @@
             "description": "The id of the chart.",
             "type": "integer"
           },
+          "localized_name": {
+            "description": "The chart name resolved for the viewer's locale (read-only). Falls back to slice_name when no translation applies.",
+            "readOnly": true,
+            "type": "string"
+          },
           "slice_name": {
             "description": "The name of the chart.",
             "type": "string"
@@ -2864,6 +2872,10 @@
           },
           "is_managed_externally": {
             "type": "boolean"
+          },
+          "localized_name": {
+            "readOnly": true,
+            "type": "string"
           },
           "params": {
             "type": "string"
@@ -3001,6 +3013,9 @@
           },
           "last_saved_by": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+          },
+          "localized_name": {
+            "readOnly": true
           },
           "params": {
             "nullable": true,
@@ -4059,6 +4074,11 @@
             "description": "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter  specific parameters.",
             "type": "string"
           },
+          "localized_title": {
+            "description": "The dashboard title resolved for the viewer's locale (read-only). Falls back to dashboard_title when no translation applies.",
+            "readOnly": true,
+            "type": "string"
+          },
           "position_json": {
             "description": "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view",
             "type": "string"
@@ -4219,6 +4239,9 @@
           },
           "is_managed_externally": {
             "type": "boolean"
+          },
+          "localized_title": {
+            "readOnly": true
           },
           "published": {
             "nullable": true,

@@ -392,9 +392,9 @@ def test_batch_hook_takes_precedence_when_both_are_configured(
     current_app.config["LANGUAGES"] = MULTI_LANG
     single_hook = mocker.MagicMock(return_value="from-single-hook")
     current_app.config["TRANSLATION_HOOK"] = single_hook
-    current_app.config["TRANSLATION_BATCH_HOOK"] = lambda texts, locale, **k: {
-        "Sales": "Ventes"
-    }
+    batch_hook = mocker.MagicMock(return_value={"Sales": "Ventes"})
+    current_app.config["TRANSLATION_BATCH_HOOK"] = batch_hook
 
     assert i18n.translate("Sales") == "Ventes"
+    batch_hook.assert_called_once()
     single_hook.assert_not_called()
