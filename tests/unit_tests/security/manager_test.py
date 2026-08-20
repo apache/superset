@@ -4059,7 +4059,7 @@ def test_sql_filters_cross_filter_adhoc_col_from_sibling_chart_allowed(
     db_query = mocker.patch("superset.db.session.query").return_value
     db_query.filter.return_value.one_or_none.return_value = dashboard
     mocker.patch(
-        "superset.security.manager.security_manager.has_guest_access",
+        "superset.security_manager.has_guest_access",
         return_value=True,
     )
 
@@ -4101,7 +4101,7 @@ def test_sql_filters_cross_filter_rejected_for_unauthorized_dashboard(
     db_query = mocker.patch("superset.db.session.query").return_value
     db_query.filter.return_value.one_or_none.return_value = dashboard
     mocker.patch(
-        "superset.security.manager.security_manager.has_guest_access",
+        "superset.security_manager.has_guest_access",
         return_value=False,
     )
 
@@ -4124,6 +4124,7 @@ def test_sql_filters_cross_filter_rejected_when_chart_not_on_dashboard(
     query_context = mocker.MagicMock()
     stored_chart = mocker.MagicMock()
     stored_chart.id = 99  # not on the dashboard
+    stored_chart.params_dict = {}
 
     sibling_chart = mocker.MagicMock()
     sibling_chart.id = 1
@@ -4138,7 +4139,7 @@ def test_sql_filters_cross_filter_rejected_when_chart_not_on_dashboard(
     db_query = mocker.patch("superset.db.session.query").return_value
     db_query.filter.return_value.one_or_none.return_value = dashboard
     mocker.patch(
-        "superset.security.manager.security_manager.has_guest_access",
+        "superset.security_manager.has_guest_access",
         return_value=True,
     )
 
@@ -4178,10 +4179,6 @@ def test_sql_filters_sibling_expressions_cannot_inject_where_having(
     mocker.patch("superset.db.session.query")
     db_query = mocker.patch("superset.db.session.query").return_value
     db_query.filter.return_value.one_or_none.return_value = dashboard
-    mocker.patch(
-        "superset.security.manager.security_manager.has_guest_access",
-        return_value=True,
-    )
 
     # Attacker injects the sibling expression into extras.where.
     query = QueryObject(
