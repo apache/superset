@@ -112,6 +112,11 @@ _VIZ_CATEGORY: dict[str, str] = {
 _MAX_RECOMMENDATIONS = 4
 
 
+def _compute_effective_force(request: GetChartDataRequest) -> bool:
+    """use_cache=False must also bypass the cache, not just force_refresh=True."""
+    return request.force_refresh or not request.use_cache
+
+
 def _coerce_row_limit(value: Any, default: int) -> int:
     """Coerce a row_limit (which may arrive as a str from chart.params) to int,
     falling back to ``default`` when it is missing, non-numeric, or non-positive.
@@ -359,8 +364,7 @@ async def get_chart_data(  # noqa: C901
             request.cache_timeout,
         )
     )
-    # use_cache=False must also bypass the cache, not just force_refresh=True.
-    effective_force = request.force_refresh or not request.use_cache
+    effective_force = _compute_effective_force(request)
 
     try:
         await ctx.report_progress(1, 4, "Looking up chart")
@@ -1060,8 +1064,7 @@ async def _query_from_form_data(
         current_app.config["ROW_LIMIT"],
     )
     viz_type = form_data.get("viz_type", "unknown")
-    # use_cache=False must also bypass the cache, not just force_refresh=True.
-    effective_force = request.force_refresh or not request.use_cache
+    effective_force = _compute_effective_force(request)
 
     try:
         query_context = build_query_context_from_form_data(
