@@ -25,6 +25,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  ComparisonType,
   CurrencyFormatter,
   DataRecordValue,
   DTTM_ALIAS,
@@ -591,6 +592,20 @@ export default function transformProps(
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
+
+  // A Percentage time comparison replaces the derived series' values with a
+  // ratio, so that row is no longer in the source metric's units and must not
+  // inherit its currency/D3 format. `renameOperator` labels those series with
+  // the offset alone, or `<metric>, <offset>` when several metrics are plotted.
+  const percentageComparisonSeries = new Set<string>(
+    chartProps.rawFormData?.comparison_type === ComparisonType.Percentage
+      ? array.flatMap(offset =>
+          rawValueMetricLabels.length > 1
+            ? rawValueMetricLabels.map(label => `${label}, ${offset}`)
+            : [String(offset)],
+        )
+      : [],
+  );
 
   // With the "full range" time-shift option, offset series are outer-joined onto
   // the main series, which inserts null rows into the main series wherever the
@@ -1429,8 +1444,11 @@ export default function transformProps(
         // `labelMap`, whose values lead with the raw metric label. Series
         // renamed by a verbose_name are absent from that map, so fall back to
         // the verbose-name inversion, as MixedTimeseries does.
+        // A Percentage comparison row is a ratio rather than a value in the
+        // metric's units, so it takes the percent formatter instead of the
+        // metric's own currency/D3 format.
         const getSeriesFormatter = (seriesKey: string) =>
-          forcePercentFormatter
+          forcePercentFormatter || percentageComparisonSeries.has(seriesKey)
             ? percentFormatter
             : (getCustomFormatter(
                 customFormatters,

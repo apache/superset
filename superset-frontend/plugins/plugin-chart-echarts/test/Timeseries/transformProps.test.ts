@@ -2663,3 +2663,53 @@ test('tooltip keeps per-metric formats on time-comparison (time-shifted) series'
   expect(result).toContain('$ 1k');
   expect(result).toContain('$ 900');
 });
+
+test('tooltip does not apply a metric currency format to a Percentage time comparison', () => {
+  // Reported on #33757: a Time Comparison set to Percentage change on a
+  // currency metric kept rendering the derived row in dollars. That row holds a
+  // ratio rather than a value in the metric's units, so it must not inherit the
+  // metric's saved CurrencyFormatter.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ sum__num: 100, '1 week ago': 0.25, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { sum__num: ['sum__num'], '1 week ago': ['1 week ago'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num',
+      seriesName: 'sum__num',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago',
+      seriesName: '1 week ago',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  // The source metric keeps its currency; the percentage-change row does not.
+  expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
