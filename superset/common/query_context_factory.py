@@ -291,19 +291,30 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     ),
                     None,
                 )
-                # Replaces x-axis column values with granularity
+                # Point the x-axis at the overridden Time Column (granularity).
                 if x_axis_column:
                     if isinstance(x_axis_column, dict):
+                        # Only swap the underlying expression, keeping the
+                        # column's original label. The temporal offset join
+                        # (``processing_time_offsets``), the post-processing
+                        # pivot ``index`` and the frontend all reference this
+                        # column by its label; renaming it to the granularity
+                        # here desynchronizes those consumers from the label
+                        # the saved chart still advertises, which — with a Time
+                        # Comparison offset — collapses the series into a single
+                        # point.
                         x_axis_column["sqlExpression"] = granularity
-                        x_axis_column["label"] = granularity
                     else:
+                        # A bare string x-axis has no distinct label, so it is
+                        # replaced wholesale and the pivot ``index`` must be
+                        # realigned to the overridden column.
                         query_object.columns = [
                             granularity if column == x_axis_column else column
                             for column in query_object.columns
                         ]
-                    for post_processing in query_object.post_processing:
-                        if post_processing.get("operation") == "pivot":
-                            post_processing["options"]["index"] = [granularity]
+                        for post_processing in query_object.post_processing:
+                            if post_processing.get("operation") == "pivot":
+                                post_processing["options"]["index"] = [granularity]
 
             # If no temporal x-axis, then get the default temporal filter
             if not filter_to_remove:

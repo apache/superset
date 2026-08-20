@@ -577,7 +577,7 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
 
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -587,7 +587,6 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"source": "Apache Superset"},
-        future=True,
     )
     listen.assert_any_call(
         create_engine_mock.return_value,
@@ -622,7 +621,7 @@ def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
     )
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -662,7 +661,7 @@ def test_get_sqla_engine_does_not_cache_unsaved_instances(
     )
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -736,7 +735,7 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
 
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -750,7 +749,6 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice", "source": "Apache Superset"},
-        future=True,
     )
     listen.assert_any_call(
         create_engine_mock.return_value,
@@ -801,7 +799,7 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
 
     create_engine_mock = mocker.patch(
         "superset.models.core.create_engine",
-        return_value=create_engine("sqlite://", future=True),
+        return_value=create_engine("sqlite://"),
     )
     listen = mocker.spy(__import__("sqlalchemy").event, "listen")
 
@@ -815,7 +813,6 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     create_engine_mock.assert_called_with(
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
-        future=True,
     )
     listen.assert_any_call(
         create_engine_mock.return_value,
@@ -1333,7 +1330,7 @@ def test_get_schema_access_for_file_upload() -> None:
     try:
         from sqlalchemy import create_engine
 
-        create_engine("gsheets://", future=True)
+        create_engine("gsheets://")
     except Exception:
         pytest.skip("gsheets:// dialect not available (Shillelagh not installed)")
 
@@ -2241,7 +2238,6 @@ def test_prequery_listener_mutation_race_deterministic(
 
     def patched_create_engine(url: Any, **kwargs: Any) -> Any:
         kwargs["creator"] = parking_creator
-        kwargs["future"] = True
         return real_create_engine(url, **kwargs)
 
     mocker.patch(

@@ -15,12 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pandas as pd
 import pytest
 from flask import current_app
 from marshmallow import ValidationError
+from pytest_mock import MockerFixture
 
 from superset.charts.schemas import (
     ChartDataExtrasSchema,
+    ChartDataPostProcessingOperationSchema,
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
     ChartDataResponseResult,
@@ -478,3 +481,60 @@ def test_chart_data_extras_rejects_system_sampling(app_context: None) -> None:
     with pytest.raises(ValidationError) as exc_info:
         ChartDataExtrasSchema().load({"system_sampling": True})
     assert "system_sampling" in exc_info.value.messages
+
+
+def _no_config_app(mocker: MockerFixture) -> None:
+    """Make ``current_app.config`` raise as it does outside an app context."""
+    app = mocker.MagicMock()
+    type(app).config = mocker.PropertyMock(
+        side_effect=RuntimeError("Working outside of application context.")
+    )
+    mocker.patch("superset.charts.schemas.current_app", app)
+
+
+def test_post_processing_builtin_op_does_not_read_config(
+    mocker: MockerFixture,
+) -> None:
+    """A built-in operation validates without dereferencing ``current_app``.
+
+    Chart query schemas are loaded in places that have no app context (for
+    example OpenAPI spec generation), so validating a built-in must not depend
+    on one.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "aggregate"})["operation"] == "aggregate"
+
+
+def test_post_processing_unknown_op_outside_app_context(
+    mocker: MockerFixture,
+) -> None:
+    """Outside an app context an unknown operation is a ValidationError.
+
+    The missing config is treated as "no extra ops registered" rather than
+    surfacing a RuntimeError to the caller.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"operation": "not_a_real_op"})
+    assert "operation" in exc_info.value.messages
+
+
+def _custom_op(df: pd.DataFrame, **options: object) -> pd.DataFrame:
+    """Named callable registered as an extra op — used in tests only."""
+    return df
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"EXTRA_PANDAS_POSTPROCESSING_OPS": [_custom_op]}],
+    indirect=True,
+)
+def test_post_processing_extra_op_is_accepted(app_context: None) -> None:
+    """An op registered via EXTRA_PANDAS_POSTPROCESSING_OPS validates by name."""
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "_custom_op"})["operation"] == "_custom_op"

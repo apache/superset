@@ -2186,3 +2186,121 @@ async def test_query_from_form_data_string_row_limit_is_coerced(
 
     assert captured["row_limit"] == 250
     assert isinstance(captured["row_limit"], int)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("use_cache", "force_refresh", "expected_force"),
+    [
+        (True, False, False),
+        (False, False, True),
+        (True, True, True),
+        (False, True, True),
+    ],
+)
+async def test_query_from_form_data_use_cache_false_bypasses_cache(
+    monkeypatch: pytest.MonkeyPatch,
+    use_cache: bool,
+    force_refresh: bool,
+    expected_force: bool,
+) -> None:
+    """use_cache=False must bypass the cache the same way force_refresh=True
+    does; previously only force_refresh was wired to the QueryContext's
+    ``force`` flag and use_cache was silently ignored."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    captured: dict[str, Any] = {}
+
+    def fake_build(form_data: Any, **kwargs: Any) -> Any:
+        captured["force"] = kwargs.get("force")
+        captured["custom_cache_timeout"] = kwargs.get("custom_cache_timeout")
+        return object()
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [], "colnames": [], "rowcount": 0}]}
+
+    monkeypatch.setattr(module, "build_query_context_from_form_data", fake_build)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    monkeypatch.setattr(get_data_command_module, "ChartDataCommand", _Command)
+
+    await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table"},
+        GetChartDataRequest(
+            form_data_key="k",
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+            cache_timeout=90,
+        ),
+        _AsyncContext(),
+    )
+
+    assert captured["force"] is expected_force
+    assert captured["custom_cache_timeout"] == 90
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("use_cache", "force_refresh", "expected_refreshed"),
+    [
+        (True, False, False),
+        (False, False, False),
+        (True, True, True),
+        (False, True, True),
+    ],
+)
+async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
+    monkeypatch: pytest.MonkeyPatch,
+    use_cache: bool,
+    force_refresh: bool,
+    expected_refreshed: bool,
+) -> None:
+    """cache_status.refreshed must reflect only the explicit force_refresh
+    request field, not the use_cache-derived effective_force used for query
+    execution; otherwise a use_cache=False, force_refresh=False request would
+    incorrectly report refreshed=True."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+
+    def fake_build(form_data: Any, **kwargs: Any) -> Any:
+        return object()
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [{"data": [{"col": 1}], "colnames": ["col"], "rowcount": 1}]
+            }
+
+    monkeypatch.setattr(module, "build_query_context_from_form_data", fake_build)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    monkeypatch.setattr(get_data_command_module, "ChartDataCommand", _Command)
+
+    result = await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table"},
+        GetChartDataRequest(
+            form_data_key="k",
+            use_cache=use_cache,
+            force_refresh=force_refresh,
+        ),
+        _AsyncContext(),
+    )
+
+    assert isinstance(result, ChartData)
+    assert result.cache_status is not None
+    assert result.cache_status.refreshed is expected_refreshed
