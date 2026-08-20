@@ -142,3 +142,4 @@ PROJECT.md
 oxc-custom-build/
 *.code-workspace
 *.duckdb
+.superpowers/
