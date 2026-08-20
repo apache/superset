@@ -129,25 +129,30 @@ def test_adhoc_metric_without_expression_type_is_not_read_as_a_saved_metric(
     An ad-hoc metric that is missing ``expressionType`` must not be silently
     reinterpreted as a reference to a metric saved on the dataset.
 
-    ``QueryObject._set_metrics`` rewrites any metric ``dict`` that is not
-    recognized as ad-hoc down to its ``label``, to support the legacy
+    ``QueryObject._set_metrics`` used to rewrite any metric ``dict`` that was
+    not recognized as ad-hoc down to its ``label``, to support the legacy
     ``{"label": "saved_metric_name"}`` reference format. ``is_adhoc_metric``
     recognizes a metric solely by the presence of ``expressionType``, so an
-    ad-hoc definition that lacks that one key is collapsed into a bare string.
-    For a Custom SQL metric the label is the SQL text, so the request is then
-    resolved as if the user had asked for a saved metric literally named
-    ``count(DISTINCT product_line)``.
+    ad-hoc definition that lacks that one key used to be collapsed into a bare
+    string. For a Custom SQL metric the label is the SQL text, so the request
+    was then resolved as if the user had asked for a saved metric literally
+    named ``count(DISTINCT product_line)``.
 
     ``ChartDataAdhocMetricSchema`` declares ``expressionType`` as required, but
     ``ChartDataQueryObjectSchema.metrics`` is a list of ``fields.Raw``, so that
-    contract is never enforced at the API boundary.
+    contract is never enforced at the API boundary. ``_set_metrics`` is the
+    last point that can tell an ad-hoc-shaped dict apart from a legacy
+    reference, so it must reject the malformed shape outright rather than
+    guess.
     """
-    metrics = _load_metrics(_chart_data_payload(MALFORMED_ADHOC_METRIC))
+    from superset.exceptions import QueryObjectValidationError
 
-    assert metrics != ["count(DISTINCT product_line)"], (
-        "the malformed ad-hoc metric was silently collapsed into a bare "
-        "saved-metric name; it should be rejected or preserved as a dict"
-    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Invalid ad-hoc metric count\(DISTINCT product_line\): "
+        r"`expressionType` is missing",
+    ):
+        _load_metrics(_chart_data_payload(MALFORMED_ADHOC_METRIC))
 
 
 def test_malformed_adhoc_metric_surfaces_as_a_missing_saved_metric(

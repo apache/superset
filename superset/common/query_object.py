@@ -202,12 +202,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         adhoc_metric_keys = {"sqlExpression", "aggregate", "column"}
 
         def normalize_metric(metric: Metric) -> Metric:
-            if (
-                isinstance(metric, str)
-                or is_adhoc_metric(metric)
-                or adhoc_metric_keys & metric.keys()
-            ):
+            if isinstance(metric, str) or is_adhoc_metric(metric):
                 return metric
+            if adhoc_metric_keys & metric.keys():
+                raise QueryObjectValidationError(
+                    _(
+                        "Invalid ad-hoc metric %(label)s: `expressionType` is missing",
+                        label=metric.get("label"),
+                    )
+                )
             return metric["label"]  # type: ignore
 
         self.metrics = metrics and [normalize_metric(x) for x in metrics]
