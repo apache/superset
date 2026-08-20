@@ -182,6 +182,27 @@ SELECT * FROM some_table;
     )
 
 
+def test_get_default_schema_for_query_set_config(mocker: MockerFixture) -> None:
+    """
+    A ``set_config('search_path', ...)`` call rebinds unqualified-name
+    resolution on the shared cursor just like ``SET search_path``, so it
+    must be rejected too.
+    """
+    database = mocker.MagicMock()
+    query = mocker.MagicMock()
+    query.schema = "foo"
+    query.sql = (
+        "SELECT set_config('search_path', 'tenant_b', false); SELECT * FROM orders"
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        spec.get_default_schema_for_query(database, query)
+    assert (
+        str(excinfo.value)
+        == "Users are not allowed to set a search path for security reasons."
+    )
+
+
 def test_adjust_engine_params() -> None:
     """
     Test `adjust_engine_params`.

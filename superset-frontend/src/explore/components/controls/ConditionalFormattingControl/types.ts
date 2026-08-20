@@ -25,6 +25,7 @@ import {
   ObjectFormattingEnum,
 } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
+import { type RGBColor } from '@superset-ui/core/components';
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
@@ -32,7 +33,7 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
@@ -48,7 +49,7 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
   verboseMap: Record<string, string>;
   label: string;
   description: string;
-  extraColorChoices?: { label: string; value: string }[];
+  extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
 };
 
@@ -58,7 +59,7 @@ export type FormattingPopoverProps = PopoverProps & {
   config?: ConditionalFormattingConfig;
   title: string;
   children: ReactNode;
-  extraColorChoices?: { label: string; value: string }[];
+  extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
 };
 
