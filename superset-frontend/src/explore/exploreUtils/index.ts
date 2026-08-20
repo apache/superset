@@ -461,10 +461,15 @@ export const getSimpleSQLExpression = (
     if (comparatorArray.length > 0 && showComparator) {
       const formattedComparators = comparatorArray
         .map(val => optionLabel(val))
-        .map(
-          val =>
-            `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
-        );
+        .map(val => {
+          // Array-literal values (e.g. ['a', 'b']) are shown as-is rather than
+          // quoted/escaped as a string, so array-column filters read naturally.
+          const asString = String(val);
+          if (asString.startsWith('[') && asString.endsWith(']')) {
+            return asString;
+          }
+          return `${quote}${isString ? asString.replace(/'/g, "''") : val}${quote}`;
+        });
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }
