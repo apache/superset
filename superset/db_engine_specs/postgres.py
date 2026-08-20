@@ -197,9 +197,10 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     # Verified against a live postgres:16 instance, including under GROUPING
     # SETS (the pivot table's non-additive-total rollup pattern): the grand
     # total correctly reflects every row, not an aggregate-of-aggregates.
-    # Inherited by Redshift (a Postgres fork); its SQL function reference
-    # documents the same PERCENTILE_CONT/STDDEV_SAMP/VAR_SAMP support, but
-    # that has not been separately verified against a live Redshift instance.
+    # STDDEV_SAMP/VAR_SAMP (not MEDIAN -- see its override) are inherited by
+    # Redshift (a Postgres fork); its SQL function reference documents the
+    # same support, but that has not been separately verified against a live
+    # Redshift instance.
     # Also inherited by TimescaleDB (a Postgres extension, not a forked query
     # engine -- it runs unmodified Postgres aggregate execution) and by
     # Aurora PostgreSQL / its Data API variant (AWS's wire- and

@@ -83,10 +83,18 @@ def test_normalize_table_name_for_upload(
 
 def test_extended_aggregation_func_inherited_from_postgres() -> None:
     """
-    Redshift is a Postgres fork and inherits `_extended_aggregations` from
+    Redshift is a Postgres fork and inherits STDDEV_SAMP/VAR_SAMP from
     `PostgresBaseEngineSpec` -- its documented SQL function reference matches
     Postgres for these functions, though this has not been separately
     verified against a live Redshift instance (see the SIP doc for caveats).
+
+    MEDIAN is overridden rather than inherited (see
+    `RedshiftEngineSpec._extended_aggregations`): unlike Postgres, Redshift
+    documents a native `MEDIAN(x)` function, so Redshift emits that directly
+    instead of Postgres's `percentile_cont(0.5) WITHIN GROUP (ORDER BY col)`
+    spelling -- which also sidesteps Redshift's documented restriction
+    against more than one sort-based aggregate with a different ORDER BY in
+    the same query, e.g. `MEDIAN(sales)` alongside `MEDIAN(margin)`.
     """
     from sqlalchemy import column
 
@@ -96,7 +104,7 @@ def test_extended_aggregation_func_inherited_from_postgres() -> None:
     assert median_func is not None
     assert (
         str(median_func(col).compile(compile_kwargs={"literal_binds": True}))
-        == "percentile_cont(0.5) WITHIN GROUP (ORDER BY sales)"
+        == "median(sales)"
     )
 
     for aggregate in ("STDDEV_SAMP", "VAR_SAMP"):
