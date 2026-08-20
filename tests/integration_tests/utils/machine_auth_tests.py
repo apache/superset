@@ -64,6 +64,7 @@ class MachineAuthProviderTests(SupersetTestCase):
 
         assert result is mock_context
         mock_page.goto.assert_called_once()
+        mock_context.clear_cookies.assert_called_once()
         mock_context.add_cookies.assert_called_once()
         cookies_added = mock_context.add_cookies.call_args[0][0]
         assert any(
