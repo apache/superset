@@ -126,3 +126,15 @@ def test_validate_control_values_flags_color_dimension_not_grouped() -> None:
 def test_validate_control_values_empty_when_no_values() -> None:
     # Nothing to validate (required-field checks live elsewhere).
     assert _block("balloons").validate_control_values(None) == []
+
+
+def test_data_binding_declares_column_and_metric_controls() -> None:
+    schema = _block("balloons").get_control_schema(None, None)
+    data_binding_props = schema["$defs"]["DataBinding"]["properties"]
+    assert data_binding_props["dimensions"]["x-control"] == "column-multi"
+    assert data_binding_props["metrics"]["x-control"] == "metric-multi"
+
+
+def test_color_dimension_declares_column_control() -> None:
+    schema = _block("balloons").get_control_schema(None, None)
+    assert schema["properties"]["colorDimension"]["x-control"] == "column"

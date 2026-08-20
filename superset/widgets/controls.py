@@ -58,14 +58,16 @@ class DataBinding(BaseModel):
             'like "SUM(sales)" — a plain string is looked up as a saved-metric '
             "name, not evaluated as an expression."
         ),
-        # Entries are heterogeneous (a name string or an ad-hoc object), so the
-        # generic panel edits the list as JSON rather than a typed array.
-        json_schema_extra={"x-control": "code", "x-language": "json"},
+        # A saved-metric name renders as a picker over the dataset's metrics;
+        # an ad-hoc object falls back to the raw JSON editor (see
+        # `MetricMultiControl` on the frontend).
+        json_schema_extra={"x-control": "metric-multi", "x-language": "json"},
     )
     dimensions: list[str] = Field(
         default_factory=list,
         title="Dimensions",
         description="Columns to group by (the categories / series).",
+        json_schema_extra={"x-control": "column-multi"},
     )
     row_limit: int = Field(
         default=1000,
@@ -215,6 +217,7 @@ class BalloonsControls(BaseModel):
             'E.g. to color by gender: set this to "gender" AND include "gender" '
             'in dimensions (e.g. dimensions ["name", "gender"]).'
         ),
+        json_schema_extra={"x-control": "column"},
     )
     customize: Customization = Field(
         default_factory=Customization,
