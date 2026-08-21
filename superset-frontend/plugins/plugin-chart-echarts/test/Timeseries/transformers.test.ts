@@ -39,6 +39,7 @@ import {
 import {
   transformSeries,
   transformNegativeLabelsPosition,
+  getAutoBarLabelLayout,
   getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -262,7 +263,7 @@ test('Auto moves wide labels outside tall narrow vertical bars', () => {
 test('Auto overflow uses ECharts outside-label text color', () => {
   const darkBarColorScale = jest.fn(() => '#111111');
   const series = transformSeries(
-    { name: 'test-series', type: 'bar', data: [[0, 123456789]] },
+    { name: 'test-series', type: 'bar', data: [[0, 123456789012]] },
     darkBarColorScale as unknown as CategoricalColorScale,
     'test-key',
     {
@@ -282,12 +283,14 @@ test('Auto overflow uses ECharts outside-label text color', () => {
     animation: false,
     darkMode: false,
     xAxis: { type: 'category', data: ['A'], show: false },
-    yAxis: { type: 'value', max: 1_000_000_000, show: false },
+    // A tall bar (well above the segment-legibility floor) whose 12-digit
+    // label is too wide to fit inside, so ECharts still moves it outside.
+    yAxis: { type: 'value', max: 250_000_000_000, show: false },
     series: [series],
   });
 
   expect(chart.renderToSVGString()).toMatch(
-    /fill="#333"[^>]*>123456789<\/text>/,
+    /fill="#333"[^>]*>123456789012<\/text>/,
   );
   chart.dispose();
 });
@@ -398,12 +401,12 @@ test('Auto positions negative stacked segments at their inside end', () => {
       text: '-1,000',
       align: 'center',
       verticalAlign: 'bottom',
-      rect: { x: 10, y: 20, width: 12, height: 10 },
-      labelRect: { x: 1, y: 15, width: 30, height: 14 },
+      rect: { x: 10, y: 20, width: 12, height: 30 },
+      labelRect: { x: 1, y: 35, width: 30, height: 14 },
     }),
   ).toEqual({
     x: 16,
-    y: 35,
+    y: 55,
     align: 'center',
     verticalAlign: 'top',
   });
@@ -460,6 +463,118 @@ test('Auto label layout does not change non-Bar series', () => {
     color: supersetTheme.colorText,
   });
 });
+
+test('Auto suppresses the label for a vertical segment below the legibility floor', () => {
+  // A 10px-tall stacked segment can't legibly fit its 14px-tall label inside
+  // or outside without colliding with a neighboring segment's label.
+  expect(
+    getAutoBarLabelLayout(
+      {
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '0.14',
+        align: 'center',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 40, height: 10 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      },
+      false,
+    ),
+  ).toEqual({ fontSize: 0 });
+});
+
+test('Auto keeps placing labels normally for a vertical segment at the legibility floor', () => {
+  expect(
+    getAutoBarLabelLayout(
+      {
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '0.14',
+        align: 'center',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 40, height: 16 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      },
+      false,
+    ),
+  ).not.toEqual({ fontSize: 0 });
+});
+
+test('Auto suppresses the label for a horizontal segment below the legibility floor', () => {
+  // Horizontal bars stack along the x axis, so the value-axis dimension that
+  // matters is rect.width rather than rect.height.
+  expect(
+    getAutoBarLabelLayout(
+      {
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '0.14',
+        align: 'left',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 10, height: 40 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      },
+      true,
+    ),
+  ).toEqual({ fontSize: 0 });
+});
+
+test('Auto suppresses labels for tiny adjacent stacked segments end to end', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 0.14]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      showValue: true,
+    },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '0.14',
+      align: 'center',
+      verticalAlign: 'middle',
+      rect: { x: 10, y: 20, width: 40, height: 8 },
+      labelRect: { x: 12, y: 22, width: 20, height: 14 },
+    }),
+  ).toEqual({ fontSize: 0 });
+});
+
+test.each([
+  [BarValueLabelPosition.InsideEnd, 'insideTop'],
+  [BarValueLabelPosition.OutsideEnd, 'top'],
+  [BarValueLabelPosition.InsideCenter, 'inside'],
+  [BarValueLabelPosition.InsideBase, 'insideBottom'],
+] as const)(
+  'manual %s label placement is unaffected by tiny segments (no labelLayout applied)',
+  (position, expected) => {
+    const result = transformSeries(
+      { name: 'test-series', type: 'bar', data: [[2026, 0.14]] },
+      mockColorScale,
+      'test-key',
+      {
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        stack: StackControlsValue.Stack,
+        valueLabelPosition: position,
+        showValue: true,
+        theme: supersetTheme,
+      },
+    ) as BarSeriesOption;
+
+    // Manual positions don't use the fit-aware labelLayout callback at all,
+    // so a tiny segment can't trigger the Auto-only suppression behavior.
+    expect(result.labelLayout).toBeUndefined();
+    expect(result.label).toMatchObject({ position: expected });
+  },
+);
 
 describe('transformNegativeLabelsPosition', () => {
   test('label position bottom of negative value no Horizontal', () => {

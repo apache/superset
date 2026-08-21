@@ -75,6 +75,19 @@ import {
 
 const AUTO_LABEL_FIT_RATIO = 0.8;
 const BAR_LABEL_DISTANCE = 5;
+// Neither an inside nor an outside placement gives a stacked segment's value
+// label legible, non-overlapping room once the segment's own extent drops
+// below roughly the label text's height, since the closest available
+// placement then collides with a neighboring segment's label regardless of
+// which side it's drawn on. Highcharts and D3 apply the same kind of floor.
+// The label font size is theme.fontSizeSM (~12px, see series.ts), so 16px
+// covers the glyph height plus a couple of pixels of breathing room.
+const MIN_LABEL_SEGMENT_SIZE_PX = 16;
+// The labelLayout callback only applies align/verticalAlign/width/height/
+// fontSize from its return value (LABEL_OPTION_TO_STYLE_KEYS in ECharts'
+// LabelManager) — there is no hide/ignore field, so a zero font size is the
+// supported way to suppress an individual label from this callback.
+const HIDDEN_LABEL_LAYOUT: LabelLayoutOption = { fontSize: 0 };
 
 type BarLabelPosition =
   | 'bottom'
@@ -136,12 +149,19 @@ function getVerticalOutsideLayout(
   };
 }
 
-/** Keep fitting labels inside and move oversized labels outside the bar. */
+/** Keep fitting labels inside, move oversized labels outside the bar, and
+ * suppress labels for segments too small to legibly fit one either way. */
 export function getAutoBarLabelLayout(
   params: LabelLayoutOptionCallbackParams,
   isHorizontal: boolean,
   isNegative = false,
 ): LabelLayoutOption {
+  const segmentSize = isHorizontal
+    ? Math.abs(params.rect.width)
+    : Math.abs(params.rect.height);
+  if (segmentSize < MIN_LABEL_SEGMENT_SIZE_PX) {
+    return HIDDEN_LABEL_LAYOUT;
+  }
   const fitsWidth =
     params.labelRect.width <=
     Math.abs(params.rect.width) * AUTO_LABEL_FIT_RATIO;
