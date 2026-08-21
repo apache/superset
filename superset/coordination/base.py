@@ -62,8 +62,10 @@ class CoordinationService:
       This keeps the pub/sub-vs-poll boilerplate in one place; callers just supply a
       channel and a check.
 
-    All methods are class-level: the service is app-global and resolves its backend
-    from the shared coordination connection on each call.
+    All methods are class-level: the service is app-global. Calls resolve the shared
+    coordination backend from ``DISTRIBUTED_COORDINATION_CONFIG`` on each call, except
+    the raw primitives, which accept an optional ``backend`` so a caller with its own
+    connection (Global Async Queries, during the deprecation window) can run against it.
 
     Distributed locking is *not* exposed here: it has its own user-facing interface
     (:class:`~superset.distributed_lock.DistributedLock`) that uses this service's

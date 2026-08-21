@@ -463,6 +463,8 @@ class AsyncQueryManager:
         swallowed and treated as "not cancelled" — a Redis blip must never mask
         the original error (e.g. a genuine timeout) with a connection error.
         """
+        if self._gaq_backend is None:
+            return False
         try:
             raw = CoordinationService.get_value(
                 self._job_registry_key(job_id), backend=self._gaq_backend
