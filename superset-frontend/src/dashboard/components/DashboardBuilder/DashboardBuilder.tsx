@@ -20,7 +20,6 @@
 import cx from 'classnames';
 import {
   Suspense,
-  lazy,
   memo,
   useCallback,
   useEffect,
@@ -28,6 +27,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { t } from '@apache-superset/core/translation';
 import {
   addAlpha,
@@ -94,10 +94,10 @@ import DashboardWrapper from './DashboardWrapper';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
-const DashboardVersionHistory = lazy(
+const DashboardVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/DashboardVersionHistory'),
 );
-const PreviewBanner = lazy(
+const PreviewBanner = lazyWithRetry(
   () => import('src/features/versionHistory/PreviewBanner'),
 );
 
