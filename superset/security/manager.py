@@ -1615,6 +1615,66 @@ def _columns_metrics_modified(
     return False
 
 
+def _annotation_layer_identity(layer: Any) -> Optional[tuple[str, str]]:
+    """
+    Identity of an annotation layer for tamper comparison: the source type and
+    the underlying source it reads (a native annotation-layer id or a chart
+    id). Cosmetic keys (``name``, styling, overrides) are not part of the
+    identity. Returns ``None`` for a malformed (non-dict) layer.
+    """
+    if not isinstance(layer, dict):
+        return None
+    return (
+        freeze_value(layer.get("sourceType")),
+        freeze_value(layer.get("value")),
+    )
+
+
+def _annotation_layers_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request references annotation layers the stored chart does
+    not already carry.
+
+    ``annotation_layers`` is accepted on any query object, and native layers
+    resolve every annotation of each referenced layer id with no further
+    access check, so a guest injecting a layer the chart was not saved with
+    would read data that was never shared with them. Replaying the chart's
+    own stored layers is not tampering.
+    """
+    requested: set[Optional[tuple[str, str]]] = {
+        _annotation_layer_identity(layer)
+        for layer in form_data.get("annotation_layers") or []
+    }
+    requested.update(
+        _annotation_layer_identity(layer)
+        for query in query_context.queries
+        for layer in getattr(query, "annotation_layers", None) or []
+    )
+    if not requested:
+        return False
+    # A malformed (non-dict) layer is nothing the frontend produces from a
+    # stored chart; treat it as tampering rather than crashing on it later.
+    if None in requested:
+        return True
+
+    stored: set[Optional[tuple[str, str]]] = {
+        _annotation_layer_identity(layer)
+        for layer in stored_chart.params_dict.get("annotation_layers") or []
+    }
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            stored.update(
+                _annotation_layer_identity(layer)
+                for layer in query.get("annotation_layers") or []
+            )
+    return not requested.issubset(stored)
+
+
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -1727,6 +1787,20 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         logger.warning(
             "Guest chart payload rejected for slice %s: SQL filter/extras "
             "not on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
+
+    # Native annotation layers resolve every annotation of each referenced
+    # layer with no further access check on this path, so a layer the chart
+    # was not saved with reads data that was never shared with the guest.
+    if _annotation_layers_modified(
+        query_context, form_data, stored_chart, stored_query_context
+    ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: annotation layer not "
+            "on the stored chart (stored query_context %s)",
             stored_chart.id,
             stored_context_state,
         )

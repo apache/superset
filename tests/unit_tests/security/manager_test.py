@@ -1405,6 +1405,57 @@ def test_query_context_modified_malformed_stored_query_context(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_injected_annotation_layer(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A guest must not be able to inject annotation layers the stored chart
+    does not carry: native annotation layers resolve all their annotations
+    with no further access check. Replaying the chart's own stored layers is
+    not tampering.
+    """
+    layer = {
+        "annotationType": "INTERVAL",
+        "sourceType": "NATIVE",
+        "value": 1,
+        "name": "Incidents",
+    }
+
+    # replaying the stored layer is allowed
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+        "annotation_layers": [layer],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "annotation_layers": [layer],
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, annotation_layers=[layer])  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+    # injecting a layer the chart was not saved with is tampering
+    injected = {**layer, "value": 2}
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "annotation_layers": [injected],
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, annotation_layers=[injected])  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_singular_metric_param(
     mocker: MockerFixture,
 ) -> None:
