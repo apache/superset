@@ -106,7 +106,7 @@ export const useDownloadMenuItems = (
       isEmbedded
         ? t('Your export is being generated. Please, do not leave the page.')
         : t(
-            "Your export is being generated. You'll receive an email when it's ready.",
+            "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
           ),
       { noDuplicate: true },
     );
