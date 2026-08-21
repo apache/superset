@@ -220,6 +220,26 @@ class TestTaskWrapperMergeOptions:
         assert merged.task_key == "override_key"
         assert merged.task_name == "Override Name"
 
+    def test_merge_options_depends_on_from_override(self):
+        """Test depends_on is carried through from call-time options"""
+
+        @task(name="test_merge_depends_on_unique")
+        def merge_task_deps() -> None:
+            pass
+
+        override = TaskOptions(depends_on=[TEST_UUID])
+        merged = merge_task_deps._merge_options(override)
+        assert merged.depends_on == [TEST_UUID]
+
+    def test_merge_options_depends_on_default_none(self):
+        """Test depends_on defaults to None when not provided"""
+
+        @task(name="test_merge_depends_on_default_unique")
+        def merge_task_no_deps() -> None:
+            pass
+
+        assert merge_task_no_deps._merge_options(None).depends_on is None
+
 
 class TestTaskWrapperSchedule:
     """Tests for TaskWrapper.schedule() with scope"""
@@ -331,6 +351,34 @@ class TestTaskWrapperSchedule:
         # Should work without task_key (generates random UUID)
         private_task.schedule(123)
         mock_submit.assert_called_once()
+
+    @patch("superset.tasks.decorators.TaskManager.submit_task")
+    def test_schedule_forwards_depends_on(self, mock_submit):
+        """Test schedule() forwards depends_on to TaskManager.submit_task"""
+        mock_submit.return_value = MagicMock()
+
+        @task(name="test_schedule_depends_on", scope=TaskScope.PRIVATE)
+        def dependent_task(arg1: int) -> None:
+            pass
+
+        dependent_task.schedule(123, options=TaskOptions(depends_on=[TEST_UUID]))
+
+        mock_submit.assert_called_once()
+        assert mock_submit.call_args[1]["depends_on"] == [TEST_UUID]
+
+    @patch("superset.tasks.decorators.TaskManager.submit_task")
+    def test_schedule_without_depends_on_passes_none(self, mock_submit):
+        """Test schedule() passes depends_on=None when not provided"""
+        mock_submit.return_value = MagicMock()
+
+        @task(name="test_schedule_no_depends_on", scope=TaskScope.PRIVATE)
+        def standalone_task(arg1: int) -> None:
+            pass
+
+        standalone_task.schedule(123)
+
+        mock_submit.assert_called_once()
+        assert mock_submit.call_args[1]["depends_on"] is None
 
 
 class TestTaskWrapperCall:

@@ -48,6 +48,7 @@ import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import TaskStatusIcon from 'src/features/tasks/TaskStatusIcon';
 import TaskPayloadPopover from 'src/features/tasks/TaskPayloadPopover';
 import TaskStackTracePopover from 'src/features/tasks/TaskStackTracePopover';
+import TaskDependenciesPopover from 'src/features/tasks/TaskDependenciesPopover';
 import { formatDuration } from 'src/features/tasks/timeUtils';
 import {
   Task,
@@ -394,6 +395,50 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         Header: t('Duration'),
         size: 'sm',
         id: 'duration_seconds',
+        disableSortBy: true,
+      },
+      {
+        Cell: ({
+          row: {
+            original: { depends_on, status },
+          },
+        }: TaskCellProps) => {
+          if (!depends_on || depends_on.length === 0) {
+            return null;
+          }
+          // "waiting on N" surfaces the block-and-wait gate: a PENDING task
+          // parked until its unmet (non-SUCCESS) prerequisites finish.
+          const unmet = depends_on.filter(
+            dep => dep.status !== TaskStatus.Success,
+          ).length;
+          const showWaiting = status === TaskStatus.Pending && unmet > 0;
+          return (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.sizeUnit * 2,
+              }}
+            >
+              <TaskDependenciesPopover dependencies={depends_on} />
+              {showWaiting && (
+                <Tooltip
+                  title={t(
+                    'Waiting on %s prerequisite task(s) to finish',
+                    unmet,
+                  )}
+                  placement="top"
+                >
+                  <Label type="warning">{t('Waiting on %s', unmet)}</Label>
+                </Tooltip>
+              )}
+            </div>
+          );
+        },
+        accessor: 'depends_on',
+        Header: t('Dependencies'),
+        size: 'sm',
+        id: 'depends_on',
         disableSortBy: true,
       },
       {

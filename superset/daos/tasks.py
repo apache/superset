@@ -26,6 +26,7 @@ from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
+from superset.models.task_dependencies import TaskDependency
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.constants import ABORTABLE_STATES, TERMINAL_STATES
@@ -331,6 +332,73 @@ class TaskDAO(BaseDAO[Task]):
             raise DAODeleteFailedError(
                 f"Failed to remove subscription for task {task_id}, user {user_id}"
             ) from ex
+
+    # Dependency (DAG) management methods
+
+    @classmethod
+    def find_by_uuids(cls, uuids: list[UUID]) -> list[Task]:
+        """
+        Resolve a list of task UUIDs to Task instances.
+
+        Used when persisting dependency edges, which are declared with public
+        UUIDs but stored against the internal integer ``id``. The base filter is
+        intentionally skipped: dependency resolution is a structural operation on
+        tasks the caller is wiring together (typically its own), not a
+        user-facing listing.
+
+        :param uuids: Task UUIDs to resolve
+        :returns: Matching Task instances (order not guaranteed; missing UUIDs
+            are simply absent from the result)
+        """
+        if not uuids:
+            return []
+        return db.session.query(Task).filter(Task.uuid.in_(uuids)).all()
+
+    @classmethod
+    def add_dependency(cls, task_id: int, depends_on_task_id: int) -> bool:
+        """
+        Add a prerequisite edge: ``task_id`` depends on ``depends_on_task_id``.
+
+        :param task_id: ID of the dependent task
+        :param depends_on_task_id: ID of the prerequisite task
+        :returns: True if the edge was added, False if it already existed
+        """
+        # Check first to avoid IntegrityError which invalidates the session
+        # in nested transaction contexts (mirrors add_subscriber).
+        existing = (
+            db.session.query(TaskDependency)
+            .filter_by(task_id=task_id, depends_on_task_id=depends_on_task_id)
+            .first()
+        )
+        if existing:
+            logger.debug(
+                "Dependency %s -> %s already exists", task_id, depends_on_task_id
+            )
+            return False
+
+        db.session.add(
+            TaskDependency(task_id=task_id, depends_on_task_id=depends_on_task_id)
+        )
+        db.session.flush()
+        logger.info(
+            "Added dependency: task %s depends on %s", task_id, depends_on_task_id
+        )
+        return True
+
+    @classmethod
+    def get_prerequisite_ids(cls, task_id: int) -> list[int]:
+        """
+        Get the direct prerequisite task IDs of a task.
+
+        :param task_id: ID of the dependent task
+        :returns: IDs of the tasks it directly depends on
+        """
+        rows = (
+            db.session.query(TaskDependency.depends_on_task_id)
+            .filter(TaskDependency.task_id == task_id)
+            .all()
+        )
+        return [row[0] for row in rows]
 
     @classmethod
     def set_properties_and_payload(

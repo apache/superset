@@ -227,6 +227,7 @@ class TaskWrapper(Generic[P]):
                 task_key=self.default_options.task_key,
                 task_name=self.default_options.task_name,
                 timeout=self.default_timeout,  # Use decorator default
+                depends_on=self.default_options.depends_on,
             )
 
         # Merge: use override if provided, otherwise use default
@@ -238,6 +239,7 @@ class TaskWrapper(Generic[P]):
             timeout=override_options.timeout
             if override_options.timeout is not None
             else self.default_timeout,
+            depends_on=override_options.depends_on or self.default_options.depends_on,
         )
 
     def _validate_task(self, options: TaskOptions) -> None:
@@ -625,4 +627,5 @@ class TaskWrapper(Generic[P]):
             timeout=options.timeout,
             args=args,
             kwargs=kwargs,
+            depends_on=options.depends_on,
         )

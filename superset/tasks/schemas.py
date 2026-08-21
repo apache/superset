@@ -61,6 +61,10 @@ subscriber_count_description = (
     "Number of users subscribed to this task (for shared tasks)"
 )
 subscribers_description = "List of users subscribed to this task (for shared tasks)"
+depends_on_description = (
+    "Prerequisite tasks this task depends on. The task only runs once all of "
+    "them reach a terminal SUCCESS (all_success semantics)."
+)
 
 
 class UserSchema(Schema):
@@ -117,6 +121,9 @@ class TaskResponseSchema(Schema):
     subscribers = Method(
         "get_subscribers", metadata={"description": subscribers_description}
     )
+    depends_on = Method(
+        "get_depends_on", metadata={"description": depends_on_description}
+    )
 
     def get_payload_dict(self, obj: object) -> dict[str, object] | None:
         """Get payload as dictionary"""
@@ -167,6 +174,17 @@ class TaskResponseSchema(Schema):
                 }
             )
         return subscribers
+
+    def get_depends_on(self, obj: object) -> list[dict[str, object]]:
+        """Get prerequisite tasks (uuid, name, status) for DAG display."""
+        return [
+            {
+                "uuid": str(prerequisite.uuid),
+                "task_name": prerequisite.task_name,
+                "status": prerequisite.status,
+            }
+            for prerequisite in obj.dependencies  # type: ignore[attr-defined]
+        ]
 
 
 class TaskStatusResponseSchema(Schema):
