@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from '@superset-ui/core/spec';
+import { act, render, screen, userEvent } from '@superset-ui/core/spec';
 import { DynamicEditableTitle } from '.';
 
 const createProps = (overrides: Record<string, any> = {}) => ({
@@ -64,5 +64,41 @@ describe('Chart editable title', () => {
     await userEvent.click(titleElement);
     await userEvent.type(titleElement, ' edited{enter}');
     expect(props.onSave).not.toHaveBeenCalled();
+  });
+
+  test('observes the sizer and re-measures it on reflow (e.g. web font finishing loading)', () => {
+    // jsdom has no layout engine, so the rendered px width can't be asserted
+    // here (it's covered by the live Playwright check). This verifies the
+    // mechanism: the component observes the sizer span and re-reads its width
+    // when it reflows, instead of measuring once and clipping a stale width.
+    let resizeCb: (() => void) | undefined;
+    const observe = jest.fn();
+    const original = global.ResizeObserver;
+    global.ResizeObserver = jest.fn().mockImplementation((cb: () => void) => {
+      resizeCb = cb;
+      return { observe, disconnect: jest.fn(), unobserve: jest.fn() };
+    }) as never;
+
+    try {
+      const { container } = render(<DynamicEditableTitle {...createProps()} />);
+      const sizer = container.querySelector('.input-sizer') as HTMLElement;
+      // The sizer span (not the in-flow container) is what's observed.
+      expect(observe).toHaveBeenCalledWith(sizer);
+
+      const widthGetter = jest.fn(() => 321);
+      Object.defineProperty(sizer, 'offsetWidth', {
+        configurable: true,
+        get: widthGetter,
+      });
+      widthGetter.mockClear();
+
+      // A reflow (font load) fires the observer; the component re-measures.
+      act(() => {
+        resizeCb?.();
+      });
+      expect(widthGetter).toHaveBeenCalled();
+    } finally {
+      global.ResizeObserver = original;
+    }
   });
 });

@@ -18,9 +18,10 @@
  */
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { useDirectPathToChild } from 'src/dashboard/stores';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
 import { isEmpty } from 'lodash-es';
@@ -35,7 +36,7 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { MenuKeys, RootState } from 'src/dashboard/types';
+import { MenuKeys } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
@@ -84,9 +85,7 @@ export const useHeaderActionsMenu = ({
   const { canExportImage } = usePermissions();
   const history = useHistory();
   const location = useLocation();
-  const directPathToChild = useSelector(
-    (state: RootState) => state.dashboardState.directPathToChild,
-  );
+  const directPathToChild = useDirectPathToChild();
 
   useEffect(() => {
     if (customCss) {

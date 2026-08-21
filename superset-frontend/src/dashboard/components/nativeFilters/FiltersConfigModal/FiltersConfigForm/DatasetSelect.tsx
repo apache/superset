@@ -22,12 +22,11 @@ import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  JsonResponse,
   ClientErrorObject,
   getClientErrorObject,
 } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import { fetchDatasetList } from 'src/dashboard/queries';
 import {
   Dataset,
   DatasetSelectLabel,
@@ -107,40 +106,35 @@ export const loadDatasetOptions = async (
     order_column: 'table_name',
     order_direction: 'asc',
   });
-  const endpoint = useSemanticLayers
-    ? `/api/v1/datasource/?q=${query}`
-    : `/api/v1/dataset/?q=${query}`;
-  return cachedSupersetGet({
-    endpoint,
-  })
-    .then((response: JsonResponse) => {
-      const filteredResult = response.json.result.filter(
-        (item: Dataset) => !isExcludedDatasource(item, excludeDatasetIds),
-      );
+  try {
+    const { result: datasets, count } = await fetchDatasetList<Dataset>(
+      query,
+      useSemanticLayers ? 'datasource' : 'dataset',
+    );
+    const filteredResult = datasets.filter(
+      (item: Dataset) => !isExcludedDatasource(item, excludeDatasetIds),
+    );
 
-      const list: {
-        label: string | ReactNode;
-        value: string | number;
-        table_name: string;
-        kind?: string;
-      }[] = filteredResult.map((item: Dataset) => ({
-        ...item,
-        label: DatasetSelectLabel(item),
-        value: useSemanticLayers
-          ? toCompositeValue(item.id, item.kind)
-          : item.id,
-        table_name: item.table_name,
-        kind: item.kind,
-      }));
-      return {
-        data: list,
-        totalCount: response.json.count ?? 0,
-      };
-    })
-    .catch(async error => {
-      const errorMessage = getErrorMessage(await getClientErrorObject(error));
-      throw new Error(errorMessage);
-    });
+    const list: {
+      label: string | ReactNode;
+      value: string | number;
+      table_name: string;
+      kind?: string;
+    }[] = filteredResult.map((item: Dataset) => ({
+      ...item,
+      label: DatasetSelectLabel(item),
+      value: useSemanticLayers ? toCompositeValue(item.id, item.kind) : item.id,
+      table_name: item.table_name,
+      kind: item.kind,
+    }));
+    return {
+      data: list,
+      totalCount: count,
+    };
+  } catch (error) {
+    const errorMessage = getErrorMessage(await getClientErrorObject(error));
+    throw new Error(errorMessage);
+  }
 };
 
 const DatasetSelect = ({

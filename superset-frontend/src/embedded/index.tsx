@@ -37,6 +37,7 @@ import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridRea
 import setupClient from 'src/setup/setupClient';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { store, USER_LOADED } from 'src/views/store';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -114,18 +115,18 @@ const EmbeddedLazyDashboardPage = () => {
     if (!emitDataMasks) return undefined;
     log('setting up Switchboard event emitter');
 
-    let previousDataMask = store.getState().dataMask;
-
-    return store.subscribe(() => {
-      const currentDataMask = store.getState().dataMask;
-      if (previousDataMask !== currentDataMask) {
+    // Zustand's subscribe(selector, listener) passes (current, previous) and
+    // returns an unsubscribe fn, so returning it cleans up on unmount
+    // (including StrictMode's dev-mode double-mount cycle).
+    return useDataMaskStore.subscribe(
+      state => state.dataMask,
+      (currentDataMask, previousDataMask) => {
         Switchboard.emit('observeDataMask', {
           ...currentDataMask,
           ...getDataMaskChangeTrigger(currentDataMask, previousDataMask),
         });
-        previousDataMask = currentDataMask;
-      }
-    });
+      },
+    );
   }, [emitDataMasks]);
 
   return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
