@@ -155,18 +155,21 @@ class TestDeleteTagsCommand(SupersetTestCase):
 
         try:
             # a non-admin who is not the tag's creator may not delete it
+            self.logout()
             self.login(GAMMA_USERNAME)
             with pytest.raises(TagInvalidError):
                 DeleteTagsCommand(example_tags).run()
             assert db.session.query(Tag).filter(Tag.name.in_(example_tags)).count() == 1
 
             # system-generated tags are refused outright, even for an admin
+            self.logout()
             self.login(ADMIN_USERNAME)
             with pytest.raises(TagInvalidError):
                 DeleteTagsCommand([system_tag.name]).run()
             assert db.session.query(Tag).filter_by(name=system_tag.name).count() == 1
         finally:
             # cleanup
+            self.logout()
             self.login(ADMIN_USERNAME)
             DeleteTagsCommand(example_tags).run()
             db.session.query(Tag).filter_by(name=system_tag.name).delete()

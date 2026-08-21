@@ -136,6 +136,7 @@ class DeleteTagsCommand(DeleteMixin, BaseCommand):
     def validate(self) -> None:
         exceptions: list[TagNotFoundError | TagDeleteFailedError] = []
         for tag_name in self._tags:
+            tag_name = tag_name.strip()
             tag = TagDAO.find_by_name(tag_name)
             # Validate tag exists
             if not tag:
