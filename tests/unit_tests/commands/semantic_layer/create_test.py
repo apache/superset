@@ -202,6 +202,30 @@ def test_create_semantic_view_layer_not_found(mocker: MockerFixture) -> None:
         CreateSemanticViewCommand({"name": "v", "semantic_layer_uuid": "missing"}).run()
 
 
+def test_create_semantic_view_requires_layer_access(mocker: MockerFixture) -> None:
+    """Creating a view under a layer the user cannot access is blocked."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewForbiddenError
+    from superset.exceptions import SupersetSecurityException
+
+    mock_layer = MagicMock()
+    mock_layer.raise_for_access.side_effect = SupersetSecurityException(MagicMock())
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+
+    with pytest.raises(SemanticViewForbiddenError):
+        CreateSemanticViewCommand(
+            {"name": "v", "semantic_layer_uuid": "no-access"}
+        ).run()
+    dao_view.create.assert_not_called()
+
+
 def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:
     """Test CreateSemanticViewCommand raises on duplicate view."""
     mock_layer = MagicMock()
