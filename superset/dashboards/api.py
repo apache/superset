@@ -1983,7 +1983,9 @@ class DashboardRestApi(
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force):
+        if cache_payload.should_trigger_task(
+            force, expected_scope=f"dashboard:{dashboard.id}"
+        ):
             logger.info("Triggering screenshot ASYNC")
             cache_dashboard_screenshot.delay(
                 username=get_current_user(),

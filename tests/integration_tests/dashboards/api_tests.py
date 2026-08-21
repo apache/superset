@@ -4283,6 +4283,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 202
 
+        # Restore a valid, correctly-scoped payload so the request below
+        # actually reaches the download_format validation instead of
+        # failing the earlier cache-scope check.
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake png data", scope=f"dashboard:{dashboard.id}"
+        )
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
         assert response.status_code == 404
 

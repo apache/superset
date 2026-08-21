@@ -196,13 +196,31 @@ class ScreenshotCachePayload:
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() >= computing_ttl
 
-    def should_trigger_task(self, force: bool = False) -> bool:
+    def should_trigger_task(
+        self, force: bool = False, expected_scope: str | None = None
+    ) -> bool:
+        """
+        :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
+            requires this entry to carry. Entries written before scope
+            tracking existed -- or by a stale/mismatched caller -- deserialize
+            with no scope (or a different one) and are otherwise
+            indistinguishable from a fresh, valid ``UPDATED`` entry, which
+            would leave them permanently un-refreshed: the scope check at
+            read time rejects them, but nothing ever re-triggers computation.
+            Treat a scope mismatch on an ``UPDATED`` entry as a cache miss so
+            it gets recomputed and re-scoped.
+        """
         return (
             force
             or self.status == StatusValues.PENDING
             or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
             or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
             or (self.status == StatusValues.UPDATED and self._image is None)
+            or (
+                self.status == StatusValues.UPDATED
+                and expected_scope is not None
+                and self._scope != expected_scope
+            )
         )
 
 
@@ -331,7 +349,9 @@ class BaseScreenshot:
                 cache_payload = (
                     self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
                 )
-                if not cache_payload.should_trigger_task(force=force):
+                if not cache_payload.should_trigger_task(
+                    force=force, expected_scope=self.cache_scope
+                ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
                         cache_key,

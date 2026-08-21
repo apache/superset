@@ -50,6 +50,18 @@ logger = logging.getLogger(__name__)
 _LOGGED_RESPONSE_BODY_LIMIT = 500
 
 
+def _sanitize_for_log(text: str) -> str:
+    """
+    Escape newlines and other control characters in text that gets embedded
+    in a log line. The webhook target controls the response body verbatim,
+    so logging it unescaped would let it forge additional log records or
+    corrupt line-oriented log ingestion.
+    """
+    return text.translate(
+        {c: f"\\x{c:02x}" for c in [*range(0x20), 0x7F] if c not in (0x09,)}
+    )
+
+
 def _raise_for_unsafe_peer(conn: HTTPConnection) -> None:
     """
     Validate that a connection's actual peer is publicly routable.
@@ -309,7 +321,7 @@ class WebhookNotification(BaseNotification):
                     "Webhook to %s failed with status code %s: %s",
                     wh_url,
                     response.status_code,
-                    response.text[:_LOGGED_RESPONSE_BODY_LIMIT],
+                    _sanitize_for_log(response.text[:_LOGGED_RESPONSE_BODY_LIMIT]),
                 )
                 raise NotificationUnprocessableException(
                     f"Webhook failed with status code {response.status_code}"
@@ -319,7 +331,7 @@ class WebhookNotification(BaseNotification):
                     "Webhook to %s failed with status code %s: %s",
                     wh_url,
                     response.status_code,
-                    response.text[:_LOGGED_RESPONSE_BODY_LIMIT],
+                    _sanitize_for_log(response.text[:_LOGGED_RESPONSE_BODY_LIMIT]),
                 )
                 raise NotificationParamException(
                     f"Webhook failed with status code {response.status_code}"
