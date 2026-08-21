@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   SupersetClient,
   buildQueryContext,
@@ -38,6 +38,8 @@ type Props = {
     nativeFilters?: Record<string, any>;
     dataMask?: Record<string, any>;
   };
+  /** Whether the dashboard is in edit mode. */
+  editMode?: boolean;
 };
 
 async function extractErrorMessage(error: unknown): Promise<string> {
@@ -101,7 +103,11 @@ const ErrorPre = styled.pre`
   white-space: pre-wrap;
 `;
 
-const HandlebarsDashboard = ({ dashboardId, dashboardData }: Props) => {
+const HandlebarsDashboard = ({
+  dashboardId,
+  dashboardData,
+  editMode,
+}: Props) => {
   const theme = useTheme();
   const [apiConfig, setApiConfig] = useState<DynamicDashboardApiConfig | null>(
     null,
@@ -111,6 +117,15 @@ const HandlebarsDashboard = ({ dashboardId, dashboardData }: Props) => {
     null,
   );
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // In-memory config from live edit (not persisted until Save)
+  const [pendingConfig, setPendingConfig] =
+    useState<DynamicDashboardApiConfig | null>(null);
+  const pendingConfigRef = useRef<DynamicDashboardApiConfig | null>(null);
+  pendingConfigRef.current = pendingConfig;
+
+  // The active config: pending (live edit) takes priority over API-fetched
+  const activeConfig = pendingConfig ?? apiConfig;
 
   // Fetch config — extracted so it can be called on mount and on refresh
   const [configVersion, setConfigVersion] = useState(0);
@@ -156,6 +171,50 @@ const HandlebarsDashboard = ({ dashboardId, dashboardData }: Props) => {
       window.removeEventListener('dynamic-dashboard-updated', handler);
   }, []);
 
+  // Listen for live-edit events (in-memory config from applyLiveEdit tool)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { template, slots } = (e as CustomEvent).detail;
+      setPendingConfig({
+        dashboard_template: template,
+        slots: slots ?? [],
+      });
+    };
+    window.addEventListener('dynamic-dashboard-live-edit', handler);
+    return () =>
+      window.removeEventListener('dynamic-dashboard-live-edit', handler);
+  }, []);
+
+  // Persist pending config when dashboard saves
+  const savePendingConfig = useCallback(async () => {
+    const pending = pendingConfigRef.current;
+    if (!pending || !dashboardId) return;
+    try {
+      await SupersetClient.put({
+        endpoint: `/api/v1/dynamic-dashboard/${dashboardId}/config`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template: pending.dashboard_template,
+          slots: pending.slots,
+        }),
+      });
+      setPendingConfig(null);
+      setConfigVersion(v => v + 1);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to save dynamic dashboard config:', e);
+    }
+  }, [dashboardId]);
+
+  useEffect(() => {
+    const handler = () => {
+      savePendingConfig();
+    };
+    window.addEventListener('dynamic-dashboard-save', handler);
+    return () =>
+      window.removeEventListener('dynamic-dashboard-save', handler);
+  }, [savePendingConfig]);
+
   // Extract active filter values from dashboard dataMask.
   // When filters change, dataMask updates and this triggers a re-fetch.
   const extraFormData = useMemo(() => {
@@ -181,10 +240,10 @@ const HandlebarsDashboard = ({ dashboardId, dashboardData }: Props) => {
 
   // Fetch slot data once config is loaded, re-fetch when filters change.
   useEffect(() => {
-    if (!apiConfig) return;
+    if (!activeConfig) return;
     let cancelled = false;
 
-    const { slots } = apiConfig;
+    const { slots } = activeConfig;
 
     Promise.allSettled(slots.map(slot => fetchSlot(slot, extraFormData))).then(
       results => {
@@ -219,7 +278,7 @@ const HandlebarsDashboard = ({ dashboardId, dashboardData }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [apiConfig, extraFormData]);
+  }, [activeConfig, extraFormData]);
 
   const appContainer = document.getElementById('app');
   const { common } = JSON.parse(
@@ -233,9 +292,9 @@ const HandlebarsDashboard = ({ dashboardId, dashboardData }: Props) => {
   const [renderError, setRenderError] = useState('');
 
   useEffect(() => {
-    if (!context || !apiConfig) return;
+    if (!context || !activeConfig) return;
     const partials: Record<string, string> = Object.fromEntries(
-      apiConfig.slots.map((slot: SlotConfig) => [slot.name, slot.template]),
+      activeConfig.slots.map((slot: SlotConfig) => [slot.name, slot.template]),
     );
     const hb = Handlebars.create();
     try {
@@ -245,19 +304,19 @@ const HandlebarsDashboard = ({ dashboardId, dashboardData }: Props) => {
       Object.entries(partials).forEach(([name, src]) =>
         hb.registerPartial(name, src),
       );
-      const template = hb.compile(apiConfig.dashboard_template);
+      const template = hb.compile(activeConfig.dashboard_template);
       setRendered(template({ ...context, theme }));
       setRenderError('');
     } catch (e) {
       setRendered('');
       setRenderError(e instanceof Error ? e.message : String(e));
     }
-  }, [apiConfig, context, theme]);
+  }, [activeConfig, context, theme]);
 
   if (configError) return <ErrorPre>{configError}</ErrorPre>;
   if (fetchError) return <ErrorPre>{fetchError}</ErrorPre>;
   if (renderError) return <ErrorPre>{renderError}</ErrorPre>;
-  if (!apiConfig || !context) return <p>{t('Loading...')}</p>;
+  if (!activeConfig || !context) return <p>{t('Loading...')}</p>;
 
   return (
     <SafeMarkdown

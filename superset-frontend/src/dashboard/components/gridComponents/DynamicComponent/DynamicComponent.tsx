@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, Suspense } from 'react';
+import { FC, Suspense, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { DashboardComponentMetadata, JsonObject } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
@@ -112,6 +112,13 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
     state => state.dashboardInfo?.id,
   );
 
+  useEffect(() => {
+    (window as any).__supersetDashboardEditMode = editMode;
+    return () => {
+      delete (window as any).__supersetDashboardEditMode;
+    };
+  }, [editMode]);
+
   return (
     <Draggable
       component={component}
@@ -174,6 +181,7 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
                   <Component
                     dashboardData={dashboardData}
                     dashboardId={dashboardId}
+                    editMode={editMode}
                   />
                 </Suspense>
               </div>

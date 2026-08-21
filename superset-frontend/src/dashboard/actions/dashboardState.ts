@@ -637,6 +637,8 @@ export function saveDashboardRequest(
 
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       dispatch(setOverrideConfirm(undefined));
+      // Notify dynamic dashboard components to persist pending live-edit config
+      window.dispatchEvent(new CustomEvent('dynamic-dashboard-save'));
       return response;
     };
 

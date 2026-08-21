@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from flask import Response
+from flask import Response, request
 from flask_appbuilder.api import BaseApi, expose
 
 from superset import db
@@ -61,5 +61,37 @@ class DynamicDashboardConfigApi(BaseApi):
             dashboard_template=config.template,
             slots=slots,
             drill_down_config=drill_down,
+            version=config.version,
+        )
+
+    @expose("/<int:dashboard_id>/config", methods=("PUT",))
+    def update_config(self, dashboard_id: int) -> Response:
+        """Update the Handlebars config for a dashboard."""
+        config: DynamicDashboardConfig | None = (
+            db.session.query(DynamicDashboardConfig)
+            .filter_by(dashboard_id=dashboard_id)
+            .first()
+        )
+        if not config:
+            return self.response(
+                404,
+                error=f"No dynamic dashboard config for dashboard {dashboard_id}",
+            )
+
+        body: dict[str, Any] = request.get_json(silent=True) or {}
+        template = body.get("template")
+        slots = body.get("slots")
+
+        if template is not None:
+            config.template = template
+        if slots is not None:
+            config.slots = json.dumps(slots)
+
+        config.version = (config.version or 0) + 1
+        db.session.commit()
+
+        return self.response(
+            200,
+            dashboard_id=dashboard_id,
             version=config.version,
         )
