@@ -216,13 +216,13 @@ def validate_dashboard_layout(  # noqa: C901
 
     visited: set[str] = set()
     reachable_chart_ids: set[int] = set()
-    stack: list[tuple[str, list[str]]] = [(_ROOT_ID, [])]
+    # The frontend treats ``parents`` as derived metadata and recomputes it
+    # during hydration. Saved layouts can therefore omit it or retain stale
+    # values after drag-and-drop; the validated child edges are authoritative.
+    stack = [_ROOT_ID]
     while stack:
-        component_id, ancestors = stack.pop()
+        component_id = stack.pop()
         component = components[component_id]
-        expected_parents = [] if component_id == _ROOT_ID else ancestors
-        if component.get("parents", []) != expected_parents:
-            return f"Layout component {component_id} has inconsistent parents."
         visited.add(component_id)
 
         if component["type"] == _CHART_TYPE:
@@ -235,7 +235,7 @@ def validate_dashboard_layout(  # noqa: C901
             reachable_chart_ids.add(chart_id)
 
         for child_id in reversed(component.get("children") or []):
-            stack.append((child_id, [*ancestors, component_id]))
+            stack.append(child_id)
 
     top_level_type = components[root_children[0]]["type"]
     for component_id, component in components.items():
@@ -248,7 +248,6 @@ def validate_dashboard_layout(  # noqa: C901
             and top_level_type == "TABS"
             and component["type"] == "GRID"
             and component.get("children") == []
-            and component.get("parents") == [_ROOT_ID]
         ):
             continue
         return f"Layout component {component_id} is unreachable from ROOT_ID."

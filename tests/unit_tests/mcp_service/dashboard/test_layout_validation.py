@@ -18,7 +18,10 @@
 """Tests for MCP dashboard layout validation."""
 
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
+
+import yaml
 
 from superset.mcp_service.dashboard.layout_validation import (
     validate_dashboard_layout,
@@ -156,13 +159,38 @@ def test_rejects_cycle() -> None:
     assert error == "Layout contains a cycle at ROW-1."
 
 
-def test_rejects_inconsistent_parents() -> None:
+def test_accepts_stale_parents_metadata() -> None:
     layout = _grid_layout()
     layout["CHART-1"]["parents"] = ["ROOT_ID", "GRID_ID"]
 
-    error = validate_dashboard_layout(layout, {1})
+    assert validate_dashboard_layout(layout, {1}) is None
 
-    assert error == "Layout component CHART-1 has inconsistent parents."
+
+def test_accepts_missing_parents_metadata() -> None:
+    layout = _grid_layout()
+    del layout["GRID_ID"]["parents"]
+    del layout["CHART-1"]["parents"]
+
+    assert validate_dashboard_layout(layout, {1}) is None
+
+
+def test_accepts_saved_example_layout_with_stale_parents() -> None:
+    fixture_path = (
+        Path(__file__).parents[4]
+        / "superset"
+        / "examples"
+        / "video_game_sales"
+        / "dashboard.yaml"
+    )
+    with fixture_path.open(encoding="utf-8") as fixture:
+        layout = yaml.safe_load(fixture)["position"]
+    chart_ids = {
+        component["meta"]["chartId"]
+        for component in layout.values()
+        if isinstance(component, dict) and component.get("type") == "CHART"
+    }
+
+    assert validate_dashboard_layout(layout, chart_ids) is None
 
 
 def test_rejects_component_in_invalid_parent() -> None:
