@@ -63,6 +63,7 @@ from superset.dashboards.excel_export.download_link import (
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
 from superset.extensions import celery_app
+from superset.security.guest_token import GuestToken
 from superset.utils import json, s3
 from superset.utils.core import override_user
 from superset.utils.excel_streaming import StreamingXlsxWriter
@@ -306,6 +307,13 @@ def _write_chart_sheets(
     json_body["result_type"] = ChartDataResultType.FULL
     json_body.pop("force", None)
 
+    # Guest authorization links a chart to its dashboard through
+    # ``form_data.dashboardId`` (raise_for_access); saved contexts don't carry
+    # it, so stamp it the way the browser does on interactive requests.
+    form_data = dict(json_body.get("form_data") or {})
+    form_data["dashboardId"] = dashboard_id
+    json_body["form_data"] = form_data
+
     filter_context = get_dashboard_filter_context(
         dashboard_id=dashboard_id,
         chart_id=chart.id,
@@ -451,31 +459,45 @@ def _handle_export_failure(
 def export_dashboard_excel(
     self: Any,  # pylint: disable=unused-argument
     dashboard_id: int,
-    user_id: int,
+    user_id: int | None,
     active_data_mask: dict[str, Any],
     job_id: str,
     mode: str = EXPORT_MODE_DATA,
+    guest_token: GuestToken | None = None,
 ) -> None:
     """
     Export a dashboard's charts to an ``.xlsx`` and record a download link.
 
     :param dashboard_id: The dashboard to export
-    :param user_id: The requesting user (the task runs with their permissions)
+    :param user_id: The requesting user (the task runs with their permissions),
+        or ``None`` for a guest/embedded requester
     :param active_data_mask: Live dashboard filter state keyed by native filter id
     :param job_id: Correlation id, also the Celery task id and S3 object name
     :param mode: ``"data"`` streams every chart's tabular result; ``"images"``
         embeds non-table charts as rendered images and keeps tables tabular
+    :param guest_token: The guest token payload when the requester is an
+        embedded guest; the guest user is reconstructed from it so the export
+        runs under the token's RLS rules and resource claims, never under an
+        elevated identity
     """
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
 
     requested_at = datetime.now(tz=timezone.utc)
-    user = security_manager.get_user_by_id(user_id)
+    user = None
     dashboard_title = ""
     tmp_path: str | None = None
     ttl = current_app.config["EXCEL_EXPORT_LINK_TTL_SECONDS"]
 
     try:
+        # Resolve the user inside the protected block: if this raises (e.g. the
+        # guest role lookup fails), the ``finally`` below must still release the
+        # lock the API acquired, and the failure status must still be recorded
+        # for pollers.
+        if user_id is not None:
+            user = security_manager.get_user_by_id(user_id)
+        elif guest_token:
+            user = security_manager.get_guest_user_from_token(guest_token)
         with override_user(user, force=False):
             dashboard = (
                 db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
@@ -537,7 +559,8 @@ def export_dashboard_excel(
         try:
             ReleaseDistributedLock(
                 EXPORT_LOCK_NAMESPACE,
-                export_lock_params(user_id, dashboard_id),
+                # Must mirror the key the API acquired: guests share slot 0.
+                export_lock_params(user_id or 0, dashboard_id),
             ).run()
         except Exception:  # pylint: disable=broad-except
             # Best-effort: the lock's TTL is the backstop if this fails.

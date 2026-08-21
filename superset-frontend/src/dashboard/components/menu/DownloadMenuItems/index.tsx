@@ -16,32 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from "react";
-import { useSelector } from "react-redux";
-import { logging } from "@apache-superset/core/utils";
-import { t } from "@apache-superset/core/translation";
+import { SyntheticEvent } from 'react';
+import { useSelector } from 'react-redux';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   getClientErrorObject,
   isFeatureEnabled,
   SupersetClient,
-} from "@superset-ui/core";
-import { MenuItem } from "@superset-ui/core/components/Menu";
-import { parse as parseContentDisposition } from "content-disposition";
-import { useDownloadScreenshot } from "src/dashboard/hooks/useDownloadScreenshot";
-import { NATIVE_FILTER_PREFIX } from "src/dashboard/components/nativeFilters/FiltersConfigModal/utils";
-import { MenuKeys, RootState } from "src/dashboard/types";
-import downloadAsPdf from "src/utils/downloadAsPdf";
-import downloadAsImage from "src/utils/downloadAsImage";
-import handleResourceExport from "src/utils/export";
+} from '@superset-ui/core';
+import { MenuItem } from '@superset-ui/core/components/Menu';
+import { parse as parseContentDisposition } from 'content-disposition';
+import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
+import { isEmbedded as isEmbeddedDashboard } from 'src/dashboard/util/isEmbedded';
+import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
+import { MenuKeys, RootState } from 'src/dashboard/types';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import handleResourceExport from 'src/utils/export';
+import { redirect } from 'src/utils/navigationUtils';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
-} from "src/logger/LogUtils";
-import { useToasts } from "src/components/MessageToasts/withToasts";
+} from 'src/logger/LogUtils';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 
-import { MenuItemTooltip } from "src/components/Chart/DisabledMenuItemTooltip";
-import { DownloadScreenshotFormat } from "./types";
+import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
+import { DownloadScreenshotFormat } from './types';
 
 // A guest/embedded session has no email address to be notified at, so rather
 // than wait on that notification the frontend polls for completion instead;
@@ -49,9 +51,13 @@ import { DownloadScreenshotFormat } from "./types";
 // which arrives before its export email in practice.
 const EXPORT_STATUS_POLL_INTERVAL_MS = 3000;
 const EXPORT_STATUS_POLL_TIMEOUT_MS = 5 * 60 * 1000;
+// An embedded guest has no email fallback: if the client stops polling, a
+// slow-but-successful export is orphaned with no way to retrieve it. Outlive
+// the server's hard task budget (11 minutes) instead of racing it.
+const EMBEDDED_EXPORT_STATUS_POLL_TIMEOUT_MS = 12 * 60 * 1000;
 
 interface ExportStatusResponse {
-  status?: "pending" | "ready" | "error";
+  status?: 'pending' | 'ready' | 'error';
   download_url?: string;
   message?: string;
 }
@@ -83,9 +89,28 @@ export const useDownloadMenuItems = (
     canExportImage,
   } = props;
 
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
-  const SCREENSHOT_NODE_SELECTOR = ".dashboard";
+  // Embedded (iframe) sessions may have no email address, so they get
+  // delivery-neutral copy and a poll window that outlives the task budget.
+  const isEmbedded = isEmbeddedDashboard();
+  const pollTimeoutMs = isEmbedded
+    ? EMBEDDED_EXPORT_STATUS_POLL_TIMEOUT_MS
+    : EXPORT_STATUS_POLL_TIMEOUT_MS;
+
+  // Mirror the screenshot download's repeating info toast: re-shown on every
+  // pending poll with noDuplicate, so the reminder persists for the export's
+  // whole lifetime without stacking.
+  const addExportPendingToast = () =>
+    addInfoToast(
+      isEmbedded
+        ? t('Your export is being generated. Please, do not leave the page.')
+        : t(
+            "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
+          ),
+      { noDuplicate: true },
+    );
+  const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
   const buildActiveDataMask = (): Record<string, { extraFormData: object }> =>
     Object.entries(dataMask || {}).reduce<
@@ -108,7 +133,7 @@ export const useDownloadMenuItems = (
       downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
     } catch (error) {
       logging.error(error);
-      addDangerToast(t("Sorry, something went wrong. Try again later."));
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
     logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF);
   };
@@ -118,18 +143,18 @@ export const useDownloadMenuItems = (
       downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
     } catch (error) {
       logging.error(error);
-      addDangerToast(t("Sorry, something went wrong. Try again later."));
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
     logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
   };
 
   const onExportZip = async () => {
     try {
-      await handleResourceExport("dashboard", [dashboardId], () => {});
-      addSuccessToast(t("Dashboard exported successfully"));
+      await handleResourceExport('dashboard', [dashboardId], () => {});
+      addSuccessToast(t('Dashboard exported successfully'));
     } catch (error) {
       logging.error(error);
-      addDangerToast(t("Sorry, something went wrong. Try again later."));
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   };
 
@@ -138,13 +163,13 @@ export const useDownloadMenuItems = (
       const response = await SupersetClient.get({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_as_example/`,
         headers: {
-          Accept: "application/zip",
+          Accept: 'application/zip',
         },
-        parseMethod: "raw",
+        parseMethod: 'raw',
       });
 
       // Parse filename from Content-Disposition header
-      const disposition = response.headers.get("Content-Disposition");
+      const disposition = response.headers.get('Content-Disposition');
       let fileName = `dashboard_${dashboardId}_example.zip`;
 
       if (disposition) {
@@ -154,7 +179,7 @@ export const useDownloadMenuItems = (
             fileName = parsed.parameters.filename;
           }
         } catch (error) {
-          logging.warn("Failed to parse Content-Disposition header:", error);
+          logging.warn('Failed to parse Content-Disposition header:', error);
         }
       }
 
@@ -162,10 +187,10 @@ export const useDownloadMenuItems = (
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       try {
-        const a = document.createElement("a");
+        const a = document.createElement('a');
         a.href = url;
         a.download = fileName;
-        a.style.display = "none";
+        a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -173,10 +198,10 @@ export const useDownloadMenuItems = (
         window.URL.revokeObjectURL(url);
       }
 
-      addSuccessToast(t("Dashboard exported as example successfully"));
+      addSuccessToast(t('Dashboard exported as example successfully'));
     } catch (error) {
       logging.error(error);
-      addDangerToast(t("Sorry, something went wrong. Try again later."));
+      addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
   };
 
@@ -190,36 +215,37 @@ export const useDownloadMenuItems = (
           download_url: downloadUrl,
           message,
         } = json as ExportStatusResponse;
-        if (status === "ready") {
+        if (status === 'ready') {
           if (downloadUrl) {
-            window.location.href = downloadUrl;
+            redirect(downloadUrl);
           }
-          addSuccessToast(t("Your export is ready and downloading."));
+          addSuccessToast(t('Your export is ready and downloading.'));
           return;
         }
-        if (status === "error") {
+        if (status === 'error') {
           addDangerToast(
-            message || t("Sorry, something went wrong. Try again later."),
+            message || t('Sorry, something went wrong. Try again later.'),
           );
           return;
         }
-        if (Date.now() - startedAt > EXPORT_STATUS_POLL_TIMEOUT_MS) {
+        if (Date.now() - startedAt > pollTimeoutMs) {
           addDangerToast(
-            t("Your export is taking longer than expected. Try again later."),
+            t('Your export is taking longer than expected. Try again later.'),
           );
           return;
         }
+        addExportPendingToast();
         setTimeout(
           () => pollExportStatus(jobId, startedAt),
           EXPORT_STATUS_POLL_INTERVAL_MS,
         );
       })
-      .catch((error) => {
+      .catch(error => {
         // A transient polling failure shouldn't give up the wait -- the export
         // itself may still succeed -- so keep polling until the timeout.
         logging.error(error);
-        if (Date.now() - startedAt > EXPORT_STATUS_POLL_TIMEOUT_MS) {
-          addDangerToast(t("Sorry, something went wrong. Try again later."));
+        if (Date.now() - startedAt > pollTimeoutMs) {
+          addDangerToast(t('Sorry, something went wrong. Try again later.'));
           return;
         }
         setTimeout(
@@ -229,7 +255,7 @@ export const useDownloadMenuItems = (
       });
   };
 
-  const onExportXlsx = async (mode: "data" | "images") => {
+  const onExportXlsx = async (mode: 'data' | 'images') => {
     try {
       const { json } = await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
@@ -239,18 +265,14 @@ export const useDownloadMenuItems = (
       // message but no job_id; only a freshly enqueued job carries a job_id.
       const jobId = (json as { job_id?: string })?.job_id;
       if (jobId) {
-        addSuccessToast(
-          t(
-            "Your export is being prepared. You'll receive an email when it's ready.",
-          ),
-        );
+        addExportPendingToast();
         setTimeout(
           () => pollExportStatus(jobId, Date.now()),
           EXPORT_STATUS_POLL_INTERVAL_MS,
         );
       } else {
         addSuccessToast(
-          t("An export for this dashboard is already in progress."),
+          t('An export for this dashboard is already in progress.'),
         );
       }
     } catch (error) {
@@ -260,9 +282,9 @@ export const useDownloadMenuItems = (
         status?: number;
       };
       if (status === 501) {
-        addDangerToast(t("Excel export is not configured on this server."));
+        addDangerToast(t('Excel export is not configured on this server.'));
       } else {
-        addDangerToast(t("Sorry, something went wrong. Try again later."));
+        addDangerToast(t('Sorry, something went wrong. Try again later.'));
       }
     }
   };
@@ -298,13 +320,13 @@ export const useDownloadMenuItems = (
       ]
     : [
         {
-          key: "download-pdf",
+          key: 'download-pdf',
           label: imageExportLabel(pdfMenuItemTitle),
           disabled: imageDisabled,
           onClick: (e: any) => onDownloadPdf(e.domEvent),
         },
         {
-          key: "download-image",
+          key: 'download-image',
           label: imageExportLabel(imageMenuItemTitle),
           disabled: imageDisabled,
           onClick: (e: any) => onDownloadImage(e.domEvent),
@@ -315,35 +337,37 @@ export const useDownloadMenuItems = (
     ...(userCanExport
       ? [
           {
-            key: "export-xlsx",
-            label: t("Export Data to Excel"),
-            onClick: () => onExportXlsx("data"),
+            key: 'export-xlsx',
+            label: t('Export Data to Excel'),
+            onClick: () => onExportXlsx('data'),
           },
           // Image export renders charts through the headless webdriver, so only
           // offer it where that infrastructure is available (same signal as the
           // PDF/PNG image downloads above); otherwise non-table charts would
-          // silently come back empty.
-          ...(isWebDriverScreenshotEnabled
+          // silently come back empty. Embedded sessions are excluded too: the
+          // webdriver cannot render Explore under a guest identity, so the
+          // export would burn its whole task budget and produce nothing.
+          ...(isWebDriverScreenshotEnabled && !isEmbedded
             ? [
                 {
-                  key: "export-xlsx-images",
-                  label: t("Export Images to Excel"),
-                  onClick: () => onExportXlsx("images"),
+                  key: 'export-xlsx-images',
+                  label: t('Export Images to Excel'),
+                  onClick: () => onExportXlsx('images'),
                 },
               ]
             : []),
         ]
       : []),
     {
-      key: "export-yaml",
-      label: t("Export YAML"),
+      key: 'export-yaml',
+      label: t('Export YAML'),
       onClick: onExportZip,
     },
     ...(userCanExport
       ? [
           {
-            key: "export-as-example",
-            label: t("Export as Example"),
+            key: 'export-as-example',
+            label: t('Export as Example'),
             onClick: onExportAsExample,
           },
         ]
@@ -352,13 +376,13 @@ export const useDownloadMenuItems = (
 
   const children: MenuItem[] = [
     ...screenshotMenuItems,
-    { type: "divider", key: "export-divider" },
+    { type: 'divider', key: 'export-divider' },
     ...exportMenuItems,
   ];
 
   return {
     key: MenuKeys.Download,
-    type: "submenu",
+    type: 'submenu',
     label: title,
     disabled,
     children,

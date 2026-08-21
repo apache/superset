@@ -164,7 +164,11 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json, s3
-from superset.utils.core import parse_boolean_string, sanitize_cookie_token
+from superset.utils.core import (
+    get_user_id,
+    parse_boolean_string,
+    sanitize_cookie_token,
+)
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -1814,7 +1818,12 @@ class DashboardRestApi(
         # otherwise) so the guard works across the web server and workers and is
         # not a no-op under the default cache. The task releases it when it
         # settles; the TTL is the backstop if that release is ever lost.
-        lock_params = export_lock_params(g.user.id, dashboard.id)
+        # A guest/embedded requester has no DB-backed user id (GuestUser carries
+        # no ``id`` attribute at all), so all guests share lock slot 0 for the
+        # dashboard; the task reconstructs the guest (with the token's RLS rules
+        # and resource claims) from the token payload passed alongside.
+        user_id = get_user_id()
+        lock_params = export_lock_params(user_id or 0, dashboard.id)
         try:
             AcquireDistributedLock(
                 EXPORT_LOCK_NAMESPACE,
@@ -1832,10 +1841,15 @@ class DashboardRestApi(
             export_dashboard_excel.apply_async(
                 kwargs={
                     "dashboard_id": dashboard.id,
-                    "user_id": g.user.id,
+                    "user_id": user_id,
                     "active_data_mask": payload.get("active_data_mask", {}),
                     "job_id": job_id,
                     "mode": payload.get("mode", "data"),
+                    "guest_token": (
+                        getattr(g.user, "guest_token", None)
+                        if user_id is None
+                        else None
+                    ),
                 },
                 task_id=job_id,
             )
