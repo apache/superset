@@ -866,3 +866,151 @@ test('disables Apply button when JSON configuration is invalid', async () => {
   const applyButton = await screen.findByRole('button', { name: /apply/i });
   expect(applyButton).toBeDisabled();
 });
+
+// Curated color pickers ("Colors" section) -- see ThemeColorPickers.test.tsx
+// for exhaustive coverage of the pure patch/parse helpers; these tests cover
+// the wiring between ThemeModal's JSON textarea and that section.
+test('shows a color picker row for the curated colorPrimary token', () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  expect(screen.getByTestId('theme-color-pickers')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('theme-color-picker-colorPrimary'),
+  ).toBeInTheDocument();
+});
+
+test('does not show the Colors section for read-only system themes', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+      theme={mockSystemTheme}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  await screen.findByText('System Theme - Read Only');
+
+  expect(screen.queryByTestId('theme-color-pickers')).not.toBeInTheDocument();
+});
+
+test('editing the JSON textarea updates the matching color picker (JSON -> pickers sync)', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const jsonEditor = screen.getByTestId('json-editor');
+  await userEvent.clear(jsonEditor);
+  await userEvent.type(
+    jsonEditor,
+    JSON.stringify({ token: { colorPrimary: '#336699' } }),
+  );
+
+  await waitFor(() => {
+    const swatch = screen
+      .getByTestId('theme-color-picker-colorPrimary')
+      .querySelector('.ant-color-picker-color-block-inner') as HTMLElement;
+    expect(swatch.style.background).toContain('51, 102, 153'); // #336699
+  });
+});
+
+test('a token present only in the JSON, not in the curated list, survives a picker edit untouched', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const jsonEditor = screen.getByTestId('json-editor');
+  await userEvent.clear(jsonEditor);
+  await userEvent.type(
+    jsonEditor,
+    JSON.stringify({
+      token: { colorPrimary: '#1890ff', borderRadiusLG: 12 },
+    }),
+  );
+
+  await waitFor(() => {
+    expect(jsonEditor).toHaveValue(
+      JSON.stringify({
+        token: { colorPrimary: '#1890ff', borderRadiusLG: 12 },
+      }),
+    );
+  });
+
+  const trigger = screen
+    .getByTestId('theme-color-picker-colorSuccess')
+    .querySelector('.ant-color-picker-trigger');
+  await userEvent.click(trigger!);
+
+  await waitFor(() => {
+    expect(document.querySelector('.ant-color-picker')).toBeInTheDocument();
+  });
+  const hexInput = document.querySelector<HTMLInputElement>(
+    '.ant-color-picker-input input',
+  );
+  await userEvent.clear(hexInput!);
+  await userEvent.type(hexInput!, '00ff00{enter}');
+
+  await waitFor(() => {
+    const parsed = JSON.parse((jsonEditor as HTMLTextAreaElement).value);
+    expect(parsed.token.colorSuccess.toLowerCase()).toBe('#00ff00');
+    // uncurated token untouched by the picker -> JSON patch
+    expect(parsed.token.borderRadiusLG).toBe(12);
+    expect(parsed.token.colorPrimary).toBe('#1890ff');
+  });
+});
+
+test('does not crash and shows the invalid-JSON notice while the JSON textarea is mid-edit', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const jsonEditor = screen.getByTestId('json-editor');
+  await userEvent.clear(jsonEditor);
+  await userEvent.type(jsonEditor, '{ "token": { "colorPrimary"');
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId('theme-color-pickers-invalid-json-notice'),
+    ).toBeInTheDocument();
+  });
+  // the modal itself is still usable -- name field etc. still present
+  expect(screen.getByPlaceholderText('Enter theme name')).toBeInTheDocument();
+});

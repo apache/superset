@@ -45,6 +45,7 @@ export default function transformProps(
     groupby,
     ranges: rawRanges,
     rangeLabels: rawRangeLabels,
+    rangeColors,
     markers: rawMarkers,
     markerLabels: rawMarkerLabels,
     markerLines: rawMarkerLines,
@@ -102,17 +103,27 @@ export default function transformProps(
     theme.colorFillSecondary,
     theme.colorFill,
   ];
+  // Custom colors (if any) are authored positionally against the original,
+  // pre-sort `ranges` order via the `range_colors` control -- capture each
+  // range's color here, before the descending sort below reorders them.
   const sortedRanges = [...ranges]
-    .map((value, i) => ({ value, label: rangeLabels[i] }))
+    .map((value, i) => ({
+      value,
+      label: rangeLabels[i],
+      color: rangeColors?.[i] || undefined,
+    }))
     .filter(({ value }) => value > axisMin)
     .sort((a, b) => b.value - a.value);
   // Each band's label sits inside its own top-right corner: the visible strip
   // of a nested band ends at its threshold, so the label lands inside the
   // range it names and the rightmost label cannot clip at the chart edge.
-  const bands = sortedRanges.map(({ value, label }, i) => ({
+  const bands = sortedRanges.map(({ value, label, color }, i) => ({
     name: label,
     itemStyle: {
-      color: bandFills[Math.min(i, bandFills.length - 1)],
+      // A custom `range_colors` entry wins; otherwise fall back to the
+      // default theme-token ramp exactly as before this control existed, so
+      // Bullet charts saved without `range_colors` are unaffected.
+      color: color || bandFills[Math.min(i, bandFills.length - 1)],
     },
     label: {
       show: Boolean(showLabels) && Boolean(label),
