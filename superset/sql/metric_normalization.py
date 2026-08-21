@@ -14,15 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import re
-from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from superset.sql.parse import sanitize_clause
 
-POSTGRES_FAMILY_ENGINES: frozenset[str] = frozenset(
-    {"postgres", "postgresql", "redshift"}
-)
+if TYPE_CHECKING:
+    from superset.db_engine_specs.base import BaseEngineSpec
 
 
 @dataclass(frozen=True)
@@ -135,11 +136,22 @@ class SqlCommentConverter:
 def normalize_custom_metric(
     expression: str,
     engine: str,
-    normalizer: Callable[[str], str],
+    db_engine_spec: type[BaseEngineSpec],
 ) -> NormalizedMetric:
-    """Normalize custom metric SQL and determine whether source can be preserved."""
-    normalized_expression = normalizer(expression)
-    if engine not in POSTGRES_FAMILY_ENGINES:
+    """
+    Normalize custom metric SQL and determine whether source can be preserved.
+
+    The engine spec decides both halves: ``normalize_custom_sql_metric`` rewrites
+    the expression into the engine's canonical form, and
+    ``preserves_custom_sql_metric_source`` declares whether that normalized text
+    may be embedded verbatim (after comment conversion) instead of being
+    re-rendered by ``sanitize_clause``. Keeping the policy on the spec means
+    every engine that inherits the normalization hook inherits the matching
+    source-preservation policy, rather than relying on a fixed list of engine
+    names that subclasses can silently fall outside of.
+    """
+    normalized_expression = db_engine_spec.normalize_custom_sql_metric(expression)
+    if not db_engine_spec.preserves_custom_sql_metric_source:
         return NormalizedMetric(normalized_expression, False)
 
     try:

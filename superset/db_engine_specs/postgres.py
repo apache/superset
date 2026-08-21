@@ -176,6 +176,20 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine_name = "PostgreSQL"
     supports_multivalues_insert = True
 
+    # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.
+    # PostgreSQL-like engines compare a metric's ``DATE_TRUNC`` call against
+    # the ``GROUP BY`` expression structurally, so a custom metric using a
+    # different unit spelling fails with a grouping error. Every spec that
+    # inherits these templates therefore also inherits the normalization that
+    # keeps custom metric units aligned with them; specs that replace the
+    # templates (e.g. Snowflake) replace the normalization as well.
+    preserves_custom_sql_metric_source = True
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Canonicalize DATE_TRUNC units to match generated time grains."""
+        return normalize_date_trunc_units(expression)
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
@@ -323,11 +337,6 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_name = "PostgreSQL"
     engine_aliases = {"postgres"}
-
-    @classmethod
-    def normalize_custom_sql_metric(cls, expression: str) -> str:
-        """Canonicalize DATE_TRUNC units to match generated time grains."""
-        return normalize_date_trunc_units(expression)
 
     supports_dynamic_schema = True
     supports_catalog = True

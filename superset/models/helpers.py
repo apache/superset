@@ -1863,7 +1863,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         normalized_metric = normalize_custom_metric(
             expression,
             context.engine,
-            self.database.db_engine_spec.normalize_custom_sql_metric,
+            self.database.db_engine_spec,
         )
         return self._process_validated_sql_expression(
             normalized_metric.expression,

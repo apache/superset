@@ -16,7 +16,15 @@
 
 import pytest
 
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
+from superset.db_engine_specs.greenplum import GreenplumEngineSpec
+from superset.db_engine_specs.netezza import NetezzaEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.risingwave import RisingWaveDbEngineSpec
+from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.db_engine_specs.timescaledb import TimescaleDBEngineSpec
 from superset.exceptions import QueryClauseValidationException
 from superset.sql.dialects.postgres import normalize_date_trunc_units
 from superset.sql.metric_normalization import (
@@ -48,7 +56,7 @@ def test_comment_conversion_fallback(
     normalized_metric = normalize_custom_metric(
         expression,
         "postgresql",
-        PostgresEngineSpec.normalize_custom_sql_metric,
+        PostgresEngineSpec,
     )
 
     assert normalized_metric.expression == expected
@@ -59,7 +67,7 @@ def test_postgres_alias_preserves_normalized_source() -> None:
     normalized_metric = normalize_custom_metric(
         "DATE_TRUNC('QUARTER', created_at) -- trailing",
         "postgres",
-        PostgresEngineSpec.normalize_custom_sql_metric,
+        PostgresEngineSpec,
     )
 
     assert normalized_metric.expression == (
@@ -72,7 +80,7 @@ def test_postgres_alias_uses_postgres_dialect_for_fallback() -> None:
     normalized_metric = normalize_custom_metric(
         "DATE_TRUNC('QUARTER', created_at) -- contains */",
         "postgres",
-        PostgresEngineSpec.normalize_custom_sql_metric,
+        PostgresEngineSpec,
     )
 
     assert normalized_metric.expression == (
@@ -85,7 +93,7 @@ def test_trims_trailing_semicolon() -> None:
     normalized_metric = normalize_custom_metric(
         "DATE_TRUNC('QUARTER', created_at);  ",
         "postgresql",
-        PostgresEngineSpec.normalize_custom_sql_metric,
+        PostgresEngineSpec,
     )
 
     assert normalized_metric.expression == "DATE_TRUNC('quarter', created_at)"
@@ -97,7 +105,7 @@ def test_invalid_fallback_expression_raises_validation_error() -> None:
         normalize_custom_metric(
             "DATE_TRUNC('QUARTER', created_at) -- contains */\nSELECT",
             "postgresql",
-            PostgresEngineSpec.normalize_custom_sql_metric,
+            PostgresEngineSpec,
         )
 
 
@@ -140,11 +148,60 @@ def test_comment_converter_rejects_unterminated_regions(expression: str) -> None
 
 
 def test_non_postgres_engine_uses_normalizer_without_source_preservation() -> None:
+    class LowercasingEngineSpec(SqliteEngineSpec):
+        @classmethod
+        def normalize_custom_sql_metric(cls, expression: str) -> str:
+            return expression.lower()
+
     normalized_metric = normalize_custom_metric(
         "CUSTOM(value)",
         "sqlite",
-        str.lower,
+        LowercasingEngineSpec,
     )
 
     assert normalized_metric.expression == "custom(value)"
+    assert not normalized_metric.may_preserve_source
+
+
+@pytest.mark.parametrize(
+    "engine, db_engine_spec",
+    [
+        ("cockroachdb", CockroachDbEngineSpec),
+        ("greenplum", GreenplumEngineSpec),
+        ("netezza", NetezzaEngineSpec),
+        ("risingwave", RisingWaveDbEngineSpec),
+        ("timescaledb", TimescaleDBEngineSpec),
+    ],
+)
+def test_postgres_family_engines_preserve_normalized_source(
+    engine: str,
+    db_engine_spec: type[BaseEngineSpec],
+) -> None:
+    """
+    Every spec inheriting PostgresBaseEngineSpec's lowercase DATE_TRUNC grains
+    must normalize custom metric units and skip SQLGlot re-rendering, which
+    would otherwise turn the call into ``TIMESTAMP_TRUNC(created_at, QUARTER)``.
+    """
+    normalized_metric = normalize_custom_metric(
+        "DATE_TRUNC('QUARTER', created_at) -- trailing",
+        engine,
+        db_engine_spec,
+    )
+
+    assert normalized_metric.expression == (
+        "DATE_TRUNC('quarter', created_at) /* trailing */"
+    )
+    assert normalized_metric.may_preserve_source
+
+
+def test_snowflake_keeps_uppercase_units_without_source_preservation() -> None:
+    expression = "DATE_TRUNC('QUARTER', created_at)"
+
+    normalized_metric = normalize_custom_metric(
+        expression,
+        "snowflake",
+        SnowflakeEngineSpec,
+    )
+
+    assert normalized_metric.expression == expression
     assert not normalized_metric.may_preserve_source

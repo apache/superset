@@ -1407,7 +1407,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         normalized_metric = normalize_custom_metric(
             expression,
             self.table.database.backend,
-            self.table.database.db_engine_spec.normalize_custom_sql_metric,
+            self.table.database.db_engine_spec,
         )
         sqla_col: ColumnClause = literal_column(normalized_metric.expression)
         return self.table.database.make_sqla_column_compatible(sqla_col, label)
