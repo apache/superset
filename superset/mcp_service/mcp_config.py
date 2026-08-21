@@ -322,6 +322,13 @@ MCP_STORE_CONFIG: dict[str, Any] = {
 # When enabled with MCP_STORE_CONFIG, uses Redis store.
 MCP_CACHE_CONFIG: dict[str, Any] = {
     "enabled": False,  # Disabled by default
+    # SECURITY: cache keys are method/tool + arguments only (no principal),
+    # and cache hits are served before authentication/RBAC run, so a shared
+    # cache replays one principal's responses to another. Response caching
+    # refuses to start unless this is explicitly set -- only safe when every
+    # request is guaranteed to come from the same principal (e.g. a
+    # single-user development deployment).
+    "dangerously_share_cache_across_principals": False,
     # Base prefix for the shared store. Superset appends an internal response-
     # contract namespace so incompatible cached values are not reused.
     "CACHE_KEY_PREFIX": None,  # Only needed when using the store
