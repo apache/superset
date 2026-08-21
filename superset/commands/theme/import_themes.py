@@ -44,6 +44,11 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
     if existing:
         if not overwrite or not can_write:
             return existing
+        if existing.is_system or existing.is_system_default or existing.is_system_dark:
+            raise ThemeImportError(
+                "Cannot overwrite a system theme or the active "
+                "system-default/dark theme via import"
+            )
         config["id"] = existing.id
     elif not can_write:
         raise ThemeImportError(
