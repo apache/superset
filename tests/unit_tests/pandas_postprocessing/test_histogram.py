@@ -221,3 +221,14 @@ def test_histogram_rejects_unbounded_bins():
     for bad_bins in (0, -1, 2_000_000_000, "auto", None):
         with pytest.raises(InvalidPostProcessingError):
             histogram(data, "a", [], bad_bins)
+
+
+def test_histogram_rejects_bool_bins():
+    """
+    ``bool`` is a subclass of ``int`` in Python, so ``isinstance(bins, int)``
+    alone accepts ``True``/``False``. Both must still be rejected since
+    neither is a valid bin count.
+    """
+    for bad_bins in (True, False):
+        with pytest.raises(InvalidPostProcessingError):
+            histogram(data, "a", [], bad_bins)

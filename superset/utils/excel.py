@@ -68,7 +68,13 @@ def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     # can become a header or row label), so quote them like the CSV writer
     # quotes its headers. ``rename`` applies the mapper to every level of a
     # MultiIndex.
-    return df.rename(columns=_quote_formula, index=_quote_formula)
+    df = df.rename(columns=_quote_formula, index=_quote_formula)
+
+    # ``rename`` above only touches axis *labels*. The axis *names* (e.g. a
+    # pivoted group-by column promoted to ``df.index.name``, or per-level
+    # names on a MultiIndex) are a separate attribute that pandas still
+    # writes into the sheet as header cells, so quote those too.
+    return df.rename_axis(index=_quote_formula, columns=_quote_formula)
 
 
 def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:

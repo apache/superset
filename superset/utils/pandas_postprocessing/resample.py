@@ -62,7 +62,12 @@ def resample(
             step = None
         if step is not None and step.value > 0:
             span = df.index.max() - df.index.min()
-            projected_rows = span.value // step.value + 1
+            # pandas snaps the first resample bin to the nearest frequency
+            # multiple at or before the observed span (and may extend the
+            # last bin similarly), so the actual bin count can exceed a
+            # naive span/step projection by one. Add a margin so the check
+            # cannot under-count due to that alignment.
+            projected_rows = span.value // step.value + 2
             if projected_rows > MAX_RESAMPLE_ROWS:
                 raise InvalidPostProcessingError(
                     _(

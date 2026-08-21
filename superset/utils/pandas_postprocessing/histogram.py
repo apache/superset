@@ -54,7 +54,11 @@ def histogram(
                and each column corresponds to a histogram bin. The values are the counts in each bin.
     """  # noqa: E501
 
-    if not isinstance(bins, int) or not 1 <= bins <= MAX_HISTOGRAM_BINS:
+    if (
+        not isinstance(bins, int)
+        or isinstance(bins, bool)
+        or not 1 <= bins <= MAX_HISTOGRAM_BINS
+    ):
         raise InvalidPostProcessingError(
             _(
                 "`bins` must be an integer between 1 and %(max)s",

@@ -21,6 +21,7 @@ from pandas import to_datetime
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils import pandas_postprocessing as pp
+from superset.utils.pandas_postprocessing.resample import MAX_RESAMPLE_ROWS
 from tests.unit_tests.fixtures.dataframes import (
     categories_df,
     timeseries_df,
@@ -214,6 +215,23 @@ def test_resample_rejects_projection_over_row_limit():
     """
     with pytest.raises(InvalidPostProcessingError, match="exceeding the limit"):
         pp.resample(df=timeseries_df, rule="1ns", method="ffill")
+
+
+def test_resample_rejects_projection_at_alignment_boundary():
+    """
+    pandas snaps the first resample bin to the nearest frequency multiple at
+    or before the observed span, which can add one bin beyond a naive
+    span/step projection. A span/step whose naive estimate lands exactly at
+    ``MAX_RESAMPLE_ROWS`` must still be rejected once that alignment margin
+    is taken into account, rather than silently allowed through.
+    """
+    span_seconds = MAX_RESAMPLE_ROWS - 1  # naive span/step + 1 == MAX_RESAMPLE_ROWS
+    df = pd.DataFrame(
+        index=to_datetime("2019-01-01") + pd.to_timedelta([0, span_seconds], unit="s"),
+        data={"y": [1.0, 2.0]},
+    )
+    with pytest.raises(InvalidPostProcessingError, match="exceeding the limit"):
+        pp.resample(df=df, rule="1s", method="ffill")
 
 
 def test_resample_allows_legitimate_upsampling_within_limit():
