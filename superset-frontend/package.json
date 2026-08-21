@@ -161,7 +161,7 @@
     "antd": "^6.6.0",
     "chrono-node": "^2.10.1",
     "classnames": "^2.2.5",
-    "content-disposition": "^2.0.1",
+    "content-disposition": "^3.0.0",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.21",
     "dom-to-image-more": "^3.10.2",
