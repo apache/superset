@@ -48,9 +48,10 @@ export const checkIsMissingRequiredValue = (
   filter: FilterElement,
   filterState?: FilterState,
 ) => {
-  const isRequired =
-    !!filter.controlValues?.enableEmptyFilter ||
-    !!filter.controlValues?.defaultToFirstItem;
+  // Only `enableEmptyFilter` ("Filter value is required") makes a value
+  // mandatory. `defaultToFirstItem` merely seeds an initial selection, so a
+  // filter that has been cleared by the user must stay clearable and appliable.
+  const isRequired = !!filter.controlValues?.enableEmptyFilter;
 
   if (!isRequired) return false;
 

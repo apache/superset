@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useCallback, useState } from 'react';
 import {
   AppSection,
   Behavior,
   ChartProps,
+  type DataMask,
   type FilterState,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -1391,6 +1393,94 @@ test('preserves dependent filter value restored from URL when it exists in data'
       }),
     );
   });
+});
+
+test('keeps a dependent filter empty after the user clears it', async () => {
+  // Regression: a dependent filter with "Select first filter value by default"
+  // used to re-apply the first option as soon as the cleared value round-tripped
+  // through the filter bar, making it impossible to clear.
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      enableEmptyFilter: false,
+      defaultToFirstItem: true,
+      // Non-empty extraFormData is what marks this filter as dependent
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['North America'] }],
+      },
+    },
+  };
+
+  // The filter bar feeds every dispatched dataMask back into the plugin as the
+  // controlled `filterState` prop; the harness reproduces that round-trip.
+  const ControlledSelectFilter = () => {
+    const [filterState, setFilterState] = useState<FilterState>({
+      value: ['boy'],
+    });
+    const handleDataMask = useCallback((dataMask: DataMask) => {
+      setDataMaskMock(dataMask);
+      setFilterState(prev => ({ ...prev, ...dataMask.filterState }));
+    }, []);
+    return (
+      // @ts-expect-error
+      <SelectFilterPlugin
+        // @ts-expect-error
+        {...transformProps({ ...testProps, filterState })}
+        setDataMask={handleDataMask}
+        showOverflow={false}
+      />
+    );
+  };
+
+  render(<ControlledSelectFilter />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: {
+          'test-filter': {
+            name: 'Test Filter',
+          },
+        },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['boy'] },
+        },
+      },
+    },
+  });
+
+  userEvent.click(
+    screen.getByRole('img', {
+      name: /close-circle/i,
+      hidden: true,
+    }),
+  );
+
+  await waitFor(() =>
+    expect(setDataMaskMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        extraFormData: {},
+        filterState: expect.objectContaining({ value: null }),
+      }),
+    ),
+  );
+
+  // Let the re-validation effects settle: the value must not come back
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(setDataMaskMock).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: null }),
+    }),
+  );
+  expect(screen.queryByTitle('boy')).not.toBeInTheDocument();
 });
 
 test('resets dependent filter to first item when value does not exist in data', async () => {
