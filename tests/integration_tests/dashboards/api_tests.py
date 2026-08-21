@@ -4110,6 +4110,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.status_code == 404
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices",
+    )
     def test_cache_dashboard_screenshot_rejects_permalink_for_other_dashboard(self):
         """
         A permalink key that resolves to a *different* dashboard than `pk` must
