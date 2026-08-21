@@ -127,9 +127,9 @@ describe('isProbablyHTML', () => {
   test('should return true for script-capable and foreign-content tags', () => {
     expect(isProbablyHTML('<svg onload="alert(1)"></svg>')).toBe(true);
     expect(isProbablyHTML('<math><mi>x</mi></math>')).toBe(true);
-    expect(isProbablyHTML('<details open ontoggle="alert(1)">x</details>')).toBe(
-      true,
-    );
+    expect(
+      isProbablyHTML('<details open ontoggle="alert(1)">x</details>'),
+    ).toBe(true);
     expect(isProbablyHTML('<summary>x</summary>')).toBe(true);
     expect(isProbablyHTML('<object data="x"></object>')).toBe(true);
     expect(isProbablyHTML('<embed src="x">')).toBe(true);
