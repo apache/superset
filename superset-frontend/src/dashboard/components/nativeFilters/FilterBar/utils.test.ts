@@ -211,6 +211,16 @@ test('checkIsMissingRequiredValue returns false for non-required filter with und
   expect(checkIsMissingRequiredValue(filter, filterState)).toBe(false);
 });
 
+test('checkIsMissingRequiredValue returns false when only defaultToFirstItem is set', () => {
+  const filter = createFilter('test-filter', {
+    enableEmptyFilter: false,
+    controlValues: { defaultToFirstItem: true },
+  });
+
+  expect(checkIsMissingRequiredValue(filter, { value: null })).toBe(false);
+  expect(checkIsMissingRequiredValue(filter, { value: undefined })).toBe(false);
+});
+
 test('checkIsMissingRequiredValue returns falsy for filter without controlValues', () => {
   const filter = { id: 'test-filter' } as Filter;
   const filterState: FilterState = { value: undefined };
@@ -297,6 +307,48 @@ test('checkIsApplyDisabled returns true when required filter is missing value in
   expect(checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters)).toBe(
     true,
   );
+});
+
+test('checkIsApplyDisabled enables Apply after clearing a cascading defaultToFirstItem child', () => {
+  // Regression: a child filter that is dependent on a parent and configured with
+  // "Select first filter value by default" but NOT "Filter value is required"
+  // must stay clearable — clearing it may not disable Apply.
+  const parent = createFilter('parent', {
+    enableEmptyFilter: true,
+    controlValues: { defaultToFirstItem: true },
+  });
+  const child = createFilter('child', {
+    enableEmptyFilter: false,
+    controlValues: { defaultToFirstItem: true },
+  });
+  const dataMaskSelected: DataMaskStateWithId = {
+    parent: {
+      id: 'parent',
+      filterState: { value: ['USA'] },
+      extraFormData: createExtraFormDataWithFilter('country', ['USA']),
+    },
+    child: {
+      id: 'child',
+      filterState: { value: null },
+      extraFormData: {},
+    },
+  };
+  const dataMaskApplied: DataMaskStateWithId = {
+    parent: {
+      id: 'parent',
+      filterState: { value: ['USA'] },
+      extraFormData: createExtraFormDataWithFilter('country', ['USA']),
+    },
+    child: {
+      id: 'child',
+      filterState: { value: ['CA'] },
+      extraFormData: createExtraFormDataWithFilter('state', ['CA']),
+    },
+  };
+
+  expect(
+    checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, [parent, child]),
+  ).toBe(false);
 });
 
 test('checkIsApplyDisabled enables Apply when Selected has a filter value not yet in Applied', () => {
