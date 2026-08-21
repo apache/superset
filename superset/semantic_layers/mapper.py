@@ -24,6 +24,7 @@ single dataframe.
 
 """
 
+from collections.abc import Callable
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -60,6 +61,11 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers import cache as semantic_cache
+from superset.semantic_layers.cache import SemanticCacheOutcome
+from superset.semantic_layers.cache_host import build_cache_configuration
+from superset.semantic_layers.cache_policy import ContainmentCapabilities
+from superset.semantic_layers.cache_repository import ViewMeta
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -97,6 +103,43 @@ class ValidatedQueryObject(QueryObject):
     series_limit_metric: str | None
 
 
+def _dispatch_semantic_query(
+    datasource: BaseDatasource,
+    dispatcher: Callable[[SemanticQuery], SemanticResult],
+    query: SemanticQuery,
+    *,
+    force: bool = False,
+    cacheable: bool = True,
+) -> SemanticCacheOutcome:
+    # Normalize before any store or reuse: a provider may return
+    # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
+    # table would break every later transformation of that entry.
+    def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
+        return _coerce_empty_result(dispatcher(dispatched_query), dispatched_query)
+
+    if not cacheable or not semantic_cache.semantic_cache_service.state.effective:
+        return semantic_cache.semantic_cache_service.execute_provider(
+            query, normalized_dispatcher
+        )
+    cache_configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
+        build_cache_configuration(datasource)
+    )
+    if cache_configuration is None:
+        return semantic_cache.semantic_cache_service.execute_provider(
+            query, normalized_dispatcher
+        )
+    meta: ViewMeta
+    capabilities: ContainmentCapabilities
+    meta, capabilities = cache_configuration
+    return semantic_cache.semantic_cache_service.execute(
+        meta,
+        query,
+        normalized_dispatcher,
+        capabilities=capabilities,
+        force=force,
+    )
+
+
 def get_results(query_object: QueryObject) -> QueryResult:
     """
     Run 1+ queries based on `QueryObject` and return the results.
@@ -123,7 +166,19 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    main_result = dispatcher(main_query)
+    main_outcome: SemanticCacheOutcome = _dispatch_semantic_query(
+        query_object.datasource,
+        dispatcher,
+        main_query,
+        force=query_object.force_query,
+        # Row-count results share the query's logical identity but not its
+        # shape: a cached table result would satisfy a row-count lookup (and
+        # vice versa) and break server-side pagination. Containment reuse is
+        # only defined over tabular results, so row-count dispatches bypass
+        # the cache entirely.
+        cacheable=not query_object.is_rowcount,
+    )
+    main_result: SemanticResult = main_outcome.result
     main_result = _coerce_empty_result(main_result, main_query)
 
     main_df = stringify_extension_columns(main_result.results).to_pandas()
@@ -138,6 +193,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             main_result,
             query_object,
             duration,
+            semantic_cache_hit=main_outcome.cache_hit,
         )
 
     # Get metric names from the main query
@@ -155,7 +211,14 @@ def get_results(query_object: QueryObject) -> QueryResult:
         strict=False,
     ):
         # Execute the offset query
-        result = dispatcher(offset_query)
+        outcome: SemanticCacheOutcome = _dispatch_semantic_query(
+            query_object.datasource,
+            dispatcher,
+            offset_query,
+            force=query_object.force_query,
+            cacheable=not query_object.is_rowcount,
+        )
+        result: SemanticResult = outcome.result
         result = _coerce_empty_result(result, offset_query)
 
         # Add this query's requests to the collection
@@ -221,6 +284,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         semantic_result,
         query_object,
         duration,
+        semantic_cache_hit=main_outcome.cache_hit,
     )
 
 
@@ -254,6 +318,8 @@ def map_semantic_result_to_query_result(
     semantic_result: SemanticResult,
     query_object: ValidatedQueryObject,
     duration: timedelta,
+    *,
+    semantic_cache_hit: bool = False,
 ) -> QueryResult:
     """
     Convert a SemanticResult to a QueryResult.
@@ -291,6 +357,7 @@ def map_semantic_result_to_query_result(
         # Time range - pass through from original query_object
         from_dttm=query_object.from_dttm,
         to_dttm=query_object.to_dttm,
+        semantic_cache_hit=semantic_cache_hit,
     )
 
 
@@ -330,9 +397,13 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
 
     # Normalize columns (may be dicts with isColumnReference=True for time-series)
     dimension_names = set(all_dimensions.keys())
-    normalized_columns = {
-        _normalize_column(column, dimension_names) for column in query_object.columns
-    }
+    normalized_column_order: list[str] = list(
+        dict.fromkeys(
+            _normalize_column(column, dimension_names)
+            for column in query_object.columns
+        )
+    )
+    normalized_columns: set[str] = set(normalized_column_order)
 
     metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
 
@@ -345,7 +416,6 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     # to any available variant so the axis is never silently dropped; for
     # every other selected column we prefer the raw variant and otherwise
     # take any available variant.
-    dimensions: list[Dimension] = []
     seen_non_axis: dict[str, Dimension] = {}
     axis_variants: list[Dimension] = []
     axis_match: Dimension | None = None
@@ -361,19 +431,25 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
         if existing is None or (existing.grain is not None and dimension.grain is None):
             seen_non_axis[dimension.name] = dimension
 
-    if axis_match is not None:
-        dimensions.append(axis_match)
+    selected_dimensions: dict[str, Dimension] = dict(seen_non_axis)
+    if axis_match is not None and time_axis_column is not None:
+        selected_dimensions[time_axis_column] = axis_match
     elif axis_variants:
         # No variant matches the requested grain. Prefer the raw (grain=None)
         # variant; otherwise pick a deterministic fallback so the axis stays
         # on the query instead of being silently dropped.
         raw_variant = next((v for v in axis_variants if v.grain is None), None)
-        dimensions.append(
+        selected_axis: Dimension = (
             raw_variant
             if raw_variant is not None
             else min(axis_variants, key=lambda v: v.grain.name if v.grain else "")
         )
-    dimensions.extend(seen_non_axis.values())
+        selected_dimensions[selected_axis.name] = selected_axis
+    dimensions: list[Dimension] = [
+        selected_dimensions[name]
+        for name in normalized_column_order
+        if name in selected_dimensions
+    ]
 
     order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
     limit = query_object.row_limit

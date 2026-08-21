@@ -1050,6 +1050,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_async_queries()
         self.configure_ssh_manager()
         self.configure_stats_manager()
+        self.configure_semantic_cache()
         self.configure_task_manager()
 
         # Hook that provides administrators a handle on the Flask APP
@@ -1408,6 +1409,74 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_stats_manager(self) -> None:
         stats_logger_manager.init_app(self.superset_app)
+
+    def configure_semantic_cache(self) -> None:
+        """Configure optional semantic containment caching for this process."""
+        from typing import cast
+
+        from superset.semantic_layers.cache import (
+            initialize_semantic_cache,
+            SemanticCacheDisabledReason,
+            SemanticCacheMetrics,
+            SemanticCacheState,
+        )
+        from superset.semantic_layers.cache_repository import SemanticCacheBackend
+
+        requested: bool = feature_flag_manager.is_feature_enabled(
+            "SEMANTIC_LAYER_CONTAINMENT_CACHE"
+        )
+        state: SemanticCacheState = initialize_semantic_cache(
+            parent_enabled=feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"),
+            requested=requested,
+            backend=cast(SemanticCacheBackend, cache_manager.data_cache),
+            coordination=cache_manager.semantic_cache_coordination,
+            wait_seconds=self.config["SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS"],
+            lease_seconds=self.config["SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS"],
+            metrics=cast(SemanticCacheMetrics, stats_logger_manager.instance),
+        )
+        try:
+            stats_logger_manager.instance.gauge(
+                "semantic_cache.containment.enabled",
+                float(state.effective),
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("Semantic cache startup metric emission failed", exc_info=True)
+        if (
+            state.disabled_reason
+            is SemanticCacheDisabledReason.UNSUPPORTED_COORDINATION
+        ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.unsupported"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but the configured "
+                "distributed coordination backend does not support owner-token leases; "
+                "containment caching is disabled for this process"
+            )
+        elif (
+            state.disabled_reason
+            is SemanticCacheDisabledReason.INVALID_COORDINATION_CONFIGURATION
+        ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.invalid_configuration"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but its coordination "
+                "timing configuration is invalid; containment caching is disabled "
+                "for this process"
+            )
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(

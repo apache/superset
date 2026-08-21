@@ -94,6 +94,12 @@
         "description": "Enable semantic layers and show semantic views alongside datasets"
       },
       {
+        "name": "SEMANTIC_LAYER_CONTAINMENT_CACHE",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable Superset-owned containment caching for opted-in semantic providers"
+      },
+      {
         "name": "SOFT_DELETE",
         "default": true,
         "lifecycle": "development",

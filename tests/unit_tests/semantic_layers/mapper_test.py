@@ -924,6 +924,20 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
     ]
 
 
+def test_map_query_object_preserves_order_while_deduplicating_columns(
+    mock_datasource: MagicMock,
+) -> None:
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category", "category"],
+    )
+
+    result: list[SemanticQuery] = map_query_object(query_object)
+
+    assert [dimension.name for dimension in result[0].dimensions] == ["category"]
+
+
 def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
     """
     Test mapping with time offsets.

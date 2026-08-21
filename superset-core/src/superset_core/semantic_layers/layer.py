@@ -17,8 +17,10 @@
 
 from __future__ import annotations
 
+import enum
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from dataclasses import dataclass
+from typing import Any, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
 from superset_core.semantic_layers.view import SemanticView
@@ -27,12 +29,70 @@ ConfigT = TypeVar("ConfigT", bound=BaseModel)
 SemanticViewT = TypeVar("SemanticViewT", bound="SemanticView")
 
 
+class SemanticCacheResponsibility(str, enum.Enum):
+    """Component responsible for caching semantic provider results."""
+
+    PROVIDER = "provider"
+    SUPERSET = "superset"
+
+
+class SemanticCacheScope(str, enum.Enum):
+    """Execution scope in which a semantic result may be reused."""
+
+    EXECUTION_CONTEXT = "execution_context"
+    GLOBAL = "global"
+
+
+@dataclass(frozen=True)
+class SemanticCacheCapabilities:
+    """Provider guarantees for equivalent cached post-processing semantics."""
+
+    comparisons: bool = False
+    membership: bool = False
+    nulls: bool = False
+    pattern_escape: str | None = None
+
+
+@dataclass(frozen=True)
+class SemanticCacheExecutionContext:
+    """Typed host principal context offered to provider identity policy."""
+
+    principal_id: str | None
+    role_ids: tuple[str, ...]
+    host_identity: str
+
+
+@dataclass(frozen=True)
+class SemanticCacheIdentityMaterial:
+    """Explicit secret-free, result-affecting provider identity material."""
+
+    values: Mapping[str, object]
+
+
 class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
     Abstract base class for semantic layers.
     """
 
     configuration_class: type[BaseModel]
+    semantic_cache_responsibility: SemanticCacheResponsibility = (
+        SemanticCacheResponsibility.PROVIDER
+    )
+    semantic_cache_scope: SemanticCacheScope = SemanticCacheScope.EXECUTION_CONTEXT
+    semantic_cache_capabilities: SemanticCacheCapabilities = SemanticCacheCapabilities()
+
+    def get_semantic_cache_provider_identity(
+        self,
+    ) -> SemanticCacheIdentityMaterial | None:
+        """Return explicit secret-free provider identity, or bypass containment."""
+        return None
+
+    def get_semantic_cache_context_identity(
+        self,
+        context: SemanticCacheExecutionContext,
+    ) -> SemanticCacheIdentityMaterial | None:
+        """Return complete request-context identity, or bypass containment."""
+        return None
 
     @classmethod
     @abstractmethod
