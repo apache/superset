@@ -46,17 +46,17 @@ class TestAsyncEventApi(SupersetTestCase):
 
     def run_test_with_cache_backend(self, cache_backend_cls: Type[Any], test_func):
         app._got_first_request = False
-        async_query_manager_factory.init_app(app)
 
-        # The manager resolves its backend through CoordinationService.get_backend(),
-        # so patch there rather than assigning a (now-removed) private attribute.
+        # GAQ resolves its own backend from get_cache_backend during init_app, so
+        # inject the mock there and initialize within the patch.
         mock_cache = mock.Mock(spec=cache_backend_cls)
 
         self.login(ADMIN_USERNAME)
         with mock.patch(
-            "superset.coordination.base.CoordinationService.get_backend",
+            "superset.async_events.async_query_manager.get_cache_backend",
             return_value=mock_cache,
         ):
+            async_query_manager_factory.init_app(app)
             test_func(mock_cache)
 
     def _test_events_logic(self, mock_cache):

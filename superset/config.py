@@ -2942,11 +2942,15 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 # - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
 # - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
 #
-# DEPRECATED: prefer DISTRIBUTED_COORDINATION_CONFIG, which powers a single
-# coordination service for distributed locks, pub/sub, and the async-events
-# streams. When DISTRIBUTED_COORDINATION_CONFIG is set it takes precedence; this
-# setting is only used as a fallback (with a deprecation warning) and will be
-# removed in Superset 8.0. All parameters here are supported identically under
+# DEPRECATED: this dedicated backend is retained only so Global Async Queries can
+# keep running on its own coordination connection during the deprecation window.
+# When configured it is used by GAQ *only* (its event streams and cancel registry);
+# it never powers distributed locks or the Global Task Framework, which use
+# DISTRIBUTED_COORDINATION_CONFIG exclusively. GAQ prefers this dedicated backend
+# when set and otherwise falls back to DISTRIBUTED_COORDINATION_CONFIG. This
+# dual-backend arrangement is deprecated and removed in Superset 8.0, when GAQ
+# moves onto DISTRIBUTED_COORDINATION_CONFIG like the rest of Superset's
+# coordination. All parameters here are supported identically under
 # DISTRIBUTED_COORDINATION_CONFIG (both use the same
 # RedisCache/RedisSentinelCache backend).
 GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
@@ -3240,10 +3244,12 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 #
 # This backend powers the higher-level coordination service
 # (``superset.coordination.base.CoordinationService``) exposing standardized interfaces
-# for distributed locks, pub/sub, and streams under a single connection. Global
-# Async Queries use this when configured; the former
-# ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` is deprecated and, if set, used only as a
-# fallback (with a deprecation warning).
+# for distributed locks, pub/sub, and streams under a single connection. It is the
+# single source of truth for the coordinator's consumers (distributed locks, the
+# Global Task Framework, and future stream/pub-sub users). Global Async Queries keep
+# their own dedicated ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` for now (falling back to
+# this when that is unset); that dual-backend arrangement is deprecated and, in
+# Superset 8.0, GAQ moves onto this connection and the dedicated backend is removed.
 #
 # All parameters previously supported by GLOBAL_ASYNC_QUERIES_CACHE_BACKEND are
 # supported here (both go through the same RedisCacheBackend/RedisSentinelCacheBackend

@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import threading
-from collections.abc import Iterator
 
 import pytest
 from pytest_mock import MockerFixture
@@ -25,17 +24,6 @@ from pytest_mock import MockerFixture
 from superset.coordination.base import CoordinationService
 from superset.coordination.exceptions import CoordinationBackendUnavailableError
 from superset.coordination.types import SignalListener
-
-
-@pytest.fixture(autouse=True)
-def _reset_legacy_state() -> Iterator[None]:
-    # The legacy backend + warning flag are class-level caches; reset around each
-    # test so fallback behavior is exercised deterministically.
-    CoordinationService._legacy_backend = None
-    CoordinationService._legacy_warning_emitted = False
-    yield
-    CoordinationService._legacy_backend = None
-    CoordinationService._legacy_warning_emitted = False
 
 
 def _patch_distributed_coordination(mocker: MockerFixture, backend: object) -> None:
@@ -56,48 +44,39 @@ def test_get_backend_prefers_distributed_coordination(
     assert CoordinationService.is_backend_defined() is True
 
 
-def test_get_backend_none_when_nothing_configured(
+def test_get_backend_none_when_distributed_coordination_unset(
     app_context: None, mocker: MockerFixture
 ) -> None:
     _patch_distributed_coordination(mocker, None)
-    mocker.patch.dict(
-        "flask.current_app.config", {"GLOBAL_ASYNC_QUERIES_CACHE_BACKEND": {}}
-    )
 
     assert CoordinationService.get_backend() is None
     assert CoordinationService.is_backend_defined() is False
 
 
-def test_get_backend_falls_back_to_legacy_gaq_backend_with_warning(
+def test_get_backend_ignores_legacy_gaq_config(
     app_context: None, mocker: MockerFixture
 ) -> None:
+    # The coordinator resolves DISTRIBUTED_COORDINATION_CONFIG only; the deprecated
+    # GAQ backend must never leak into locks/GTF, even with GAQ enabled.
     _patch_distributed_coordination(mocker, None)
     mocker.patch("superset.is_feature_enabled", return_value=True)
     mocker.patch.dict(
         "flask.current_app.config",
         {"GLOBAL_ASYNC_QUERIES_CACHE_BACKEND": {"CACHE_TYPE": "RedisCache"}},
     )
-    legacy_backend = mocker.MagicMock(name="legacy_backend")
     get_cache_backend = mocker.patch(
         "superset.async_events.async_query_manager.get_cache_backend",
-        return_value=legacy_backend,
     )
-    warning = mocker.patch("superset.coordination.base.logger.warning")
 
-    assert CoordinationService.get_backend() is legacy_backend
-    # The legacy backend is memoized and the deprecation warning emitted once.
-    assert CoordinationService.get_backend() is legacy_backend
-    get_cache_backend.assert_called_once()
-    warning.assert_called_once()
+    assert CoordinationService.get_backend() is None
+    assert CoordinationService.is_backend_defined() is False
+    get_cache_backend.assert_not_called()
 
 
 def test_backend_only_ops_raise_when_backend_unavailable(
     app_context: None, mocker: MockerFixture
 ) -> None:
     _patch_distributed_coordination(mocker, None)
-    mocker.patch.dict(
-        "flask.current_app.config", {"GLOBAL_ASYNC_QUERIES_CACHE_BACKEND": {}}
-    )
 
     for op in (
         lambda: CoordinationService.publish("channel", "msg"),
@@ -109,6 +88,25 @@ def test_backend_only_ops_raise_when_backend_unavailable(
     ):
         with pytest.raises(CoordinationBackendUnavailableError):
             op()
+
+
+def test_ops_use_explicit_backend_without_resolving_coordinator(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    # An explicit backend (e.g. GAQ's own) is used directly; the shared coordinator
+    # is never consulted.
+    get_backend = mocker.patch.object(
+        CoordinationService, "get_backend", side_effect=AssertionError("resolved")
+    )
+    backend = mocker.MagicMock(name="explicit_backend")
+    backend.xadd.return_value = "1-0"
+
+    assert (
+        CoordinationService.stream_add("stream", {"data": "x"}, backend=backend)
+        == "1-0"
+    )
+    backend.xadd.assert_called_once_with("stream", {"data": "x"}, "*", None)
+    get_backend.assert_not_called()
 
 
 def test_ops_delegate_to_backend(app_context: None, mocker: MockerFixture) -> None:
@@ -185,6 +183,22 @@ def test_wait_for_signal_wakes_via_pubsub_and_cleans_up(
     pubsub.get_message.assert_called_once()
     pubsub.unsubscribe.assert_called_once()
     pubsub.close.assert_called_once()
+
+
+def test_wait_for_signal_already_satisfied_skips_backend(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    # An already-satisfied predicate returns straight from the source of truth,
+    # without resolving or subscribing to a backend — so an already-terminal task
+    # does not require Redis to be reachable.
+    backend = mocker.MagicMock(name="backend")
+    get_backend = mocker.patch.object(
+        CoordinationService, "get_backend", return_value=backend
+    )
+
+    assert CoordinationService.wait_for_signal("ch", lambda: "done") == "done"
+    get_backend.assert_not_called()
+    backend.pubsub.assert_not_called()
 
 
 def test_listen_invokes_on_signal_then_stops(

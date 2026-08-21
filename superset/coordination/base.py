@@ -51,7 +51,9 @@ class CoordinationService:
     - **Raw primitives** — ``publish``, ``get`` / ``set`` / ``delete``,
       ``stream_add`` / ``stream_range``. These are backend-only and have no fallback:
       they raise :class:`CoordinationBackendUnavailableError` when no backend is
-      configured, rather than silently doing nothing.
+      available, rather than silently doing nothing. Each accepts an optional
+      ``backend`` so a caller with its own connection (Global Async Queries, during
+      the deprecation window) can run against it instead of the shared coordinator.
     - **Higher-level await/notify** — ``wait_for_signal`` (blocking) and
       ``listen_for_signal`` (background). These combine a pub/sub channel with a
       caller-supplied predicate:
@@ -67,60 +69,22 @@ class CoordinationService:
     backend when one is defined and falls back to a database-backed lock otherwise.
     """
 
-    _legacy_backend: "CoordinationBackend | None" = None
-    _legacy_warning_emitted: bool = False
-
     @classmethod
     def get_backend(cls) -> "CoordinationBackend | None":
-        """Resolve the coordination backend.
+        """Resolve the coordination backend from ``DISTRIBUTED_COORDINATION_CONFIG``.
 
-        Prefers ``DISTRIBUTED_COORDINATION_CONFIG`` (via the cache manager). Falls
-        back to the deprecated ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` when only that
-        is configured, emitting a one-time deprecation warning. Returns ``None`` when
-        neither is configured.
+        Returns the shared coordination connection (via the cache manager), or
+        ``None`` when ``DISTRIBUTED_COORDINATION_CONFIG`` is not configured. This is
+        the single source of truth for the coordinator's consumers (distributed
+        locks, the Global Task Framework, and future stream/pub-sub users); it does
+        *not* consult the deprecated ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND``. Global
+        Async Queries owns its own separate backend during the deprecation window —
+        see :class:`~superset.async_events.async_query_manager.AsyncQueryManager` —
+        and passes it explicitly to the primitives below via ``backend``.
         """
         from superset.extensions import cache_manager
 
-        if (backend := cache_manager.distributed_coordination) is not None:
-            return backend
-        return cls._get_legacy_backend()
-
-    @classmethod
-    def _get_legacy_backend(cls) -> "CoordinationBackend | None":
-        if cls._legacy_backend is not None:
-            return cls._legacy_backend
-
-        from flask import current_app
-
-        from superset import is_feature_enabled
-
-        # GLOBAL_ASYNC_QUERIES_CACHE_BACKEND ships a populated default, so its mere
-        # presence is not operator intent — it only signals a coordination backend
-        # when Global Async Queries is actually enabled. Without this gate every
-        # deployment (and all lock/GTF callers) would treat the default as a live
-        # Redis backend and try to connect. The legacy bridge exists solely to keep
-        # GAQ working during the deprecation window.
-        if not is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            return None
-
-        if not current_app.config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {}).get(
-            "CACHE_TYPE"
-        ):
-            return None
-
-        if not cls._legacy_warning_emitted:
-            logger.warning(
-                "GLOBAL_ASYNC_QUERIES_CACHE_BACKEND is deprecated and will be "
-                "removed in Superset 8.0; configure DISTRIBUTED_COORDINATION_CONFIG "
-                "instead so a single connection powers distributed locks, pub/sub, "
-                "and streams."
-            )
-            cls._legacy_warning_emitted = True
-
-        from superset.async_events.async_query_manager import get_cache_backend
-
-        cls._legacy_backend = get_cache_backend(current_app.config)
-        return cls._legacy_backend
+        return cache_manager.distributed_coordination
 
     @classmethod
     def is_backend_defined(cls) -> bool:
@@ -135,13 +99,18 @@ class CoordinationService:
         return cls.get_backend() is not None
 
     @classmethod
-    def _require_backend(cls) -> "CoordinationBackend":
-        """Return the backend or raise if none is configured.
+    def _require_backend(
+        cls, backend: "CoordinationBackend | None" = None
+    ) -> "CoordinationBackend":
+        """Return a usable backend or raise if none is available.
 
         Used by the backend-only primitives (pub/sub publish, key/value, streams)
-        so a missing backend fails loudly instead of silently no-op'ing.
+        so a missing backend fails loudly instead of silently no-op'ing. When
+        ``backend`` is supplied (e.g. Global Async Queries passing its own separate
+        backend) it is used directly; otherwise the shared coordinator backend is
+        resolved via :meth:`get_backend`.
         """
-        backend = cls.get_backend()
+        backend = backend or cls.get_backend()
         if backend is None:
             raise CoordinationBackendUnavailableError(
                 "No coordination backend configured; set "
@@ -153,26 +122,33 @@ class CoordinationService:
     # -- Pub/Sub -------------------------------------------------------------
 
     @classmethod
-    def publish(cls, channel: str, message: str) -> int:
+    def publish(
+        cls,
+        channel: str,
+        message: str,
+        backend: "CoordinationBackend | None" = None,
+    ) -> int:
         """Publish a message to a channel; returns the subscriber count.
 
         Only publishing is offered here — subscribing needs the native connection
         (a long-lived subscription with its own receive loop), so consumers that
         subscribe should obtain it via :meth:`get_backend`.
 
-        :raises CoordinationBackendUnavailableError: if no backend is configured.
+        :param backend: optional explicit backend (see :meth:`_require_backend`).
+        :raises CoordinationBackendUnavailableError: if no backend is available.
         """
-        return cls._require_backend().publish(channel, message)
+        return cls._require_backend(backend).publish(channel, message)
 
     # -- Key/Value -----------------------------------------------------------
 
     @classmethod
-    def get_value(cls, key: str) -> Any:
+    def get_value(cls, key: str, backend: "CoordinationBackend | None" = None) -> Any:
         """Return the raw (bytes) value at ``key``, or ``None`` if absent.
 
-        :raises CoordinationBackendUnavailableError: if no backend is configured.
+        :param backend: optional explicit backend (see :meth:`_require_backend`).
+        :raises CoordinationBackendUnavailableError: if no backend is available.
         """
-        return cls._require_backend().get(key)
+        return cls._require_backend(backend).get(key)
 
     @classmethod
     def set_value(
@@ -182,27 +158,32 @@ class CoordinationService:
         ttl: int | None = None,
         if_absent: bool = False,
         if_present: bool = False,
+        backend: "CoordinationBackend | None" = None,
     ) -> bool | None:
         """Store ``value`` at ``key``.
 
         :param ttl: optional expiry, in seconds.
         :param if_absent: only set if the key does not already exist.
         :param if_present: only set if the key already exists.
+        :param backend: optional explicit backend (see :meth:`_require_backend`).
         :returns: ``True`` on success, or ``None`` when an ``if_absent`` /
             ``if_present`` condition prevented the write.
-        :raises CoordinationBackendUnavailableError: if no backend is configured.
+        :raises CoordinationBackendUnavailableError: if no backend is available.
         """
-        return cls._require_backend().set(
+        return cls._require_backend(backend).set(
             key, value, ex=ttl, nx=if_absent, xx=if_present
         )
 
     @classmethod
-    def delete_value(cls, *keys: str) -> int:
+    def delete_value(
+        cls, *keys: str, backend: "CoordinationBackend | None" = None
+    ) -> int:
         """Delete one or more keys; returns the number deleted.
 
-        :raises CoordinationBackendUnavailableError: if no backend is configured.
+        :param backend: optional explicit backend (see :meth:`_require_backend`).
+        :raises CoordinationBackendUnavailableError: if no backend is available.
         """
-        return cls._require_backend().delete(*keys)
+        return cls._require_backend(backend).delete(*keys)
 
     # -- Streams -------------------------------------------------------------
 
@@ -213,12 +194,14 @@ class CoordinationService:
         data: dict[str, Any],
         event_id: str = "*",
         max_len: int | None = None,
+        backend: "CoordinationBackend | None" = None,
     ) -> str:
         """Append an event to a stream; returns the generated event id.
 
-        :raises CoordinationBackendUnavailableError: if no backend is configured.
+        :param backend: optional explicit backend (see :meth:`_require_backend`).
+        :raises CoordinationBackendUnavailableError: if no backend is available.
         """
-        return cls._require_backend().xadd(stream, data, event_id, max_len)
+        return cls._require_backend(backend).xadd(stream, data, event_id, max_len)
 
     @classmethod
     def stream_range(
@@ -227,12 +210,14 @@ class CoordinationService:
         start: str = "-",
         end: str = "+",
         count: int | None = None,
+        backend: "CoordinationBackend | None" = None,
     ) -> list[Any]:
         """Read a range of events from a stream.
 
-        :raises CoordinationBackendUnavailableError: if no backend is configured.
+        :param backend: optional explicit backend (see :meth:`_require_backend`).
+        :raises CoordinationBackendUnavailableError: if no backend is available.
         """
-        return cls._require_backend().xrange(stream, start, end, count)
+        return cls._require_backend(backend).xrange(stream, start, end, count)
 
     # -- Await / notify ------------------------------------------------------
 
@@ -264,14 +249,19 @@ class CoordinationService:
         :raises TimeoutError: if ``timeout`` elapses before ``check`` is satisfied.
         """
         deadline = None if timeout is None else time.monotonic() + timeout
+        # Check first, before touching the backend: if the awaited state is already
+        # reached (e.g. the task is already terminal), return straight from the
+        # source of truth so the fast path never requires the backend to be reachable.
+        if (result := check()) is not None:
+            return result
         backend = cls.get_backend()
         pubsub = backend.pubsub() if backend is not None else None
         try:
             if pubsub is not None:
                 pubsub.subscribe(channel)
             while True:
-                # ``check`` is the source of truth; run it first so the fast path and
-                # any signal missed before subscribing are both covered.
+                # Re-check every tick even in pub/sub mode, so a signal published
+                # before the subscription (or a dropped message) is still caught.
                 if (result := check()) is not None:
                     return result
                 remaining = (

@@ -262,16 +262,15 @@ def test_parse_channel_id_from_request_as_guest_user_differs_per_scope(
     assert with_datasets != with_rev
 
 
-@mock.patch(
-    "superset.coordination.base.CoordinationService.get_backend", return_value=None
-)
 @mock.patch("superset.is_feature_enabled")
 def test_submit_chart_data_job_as_guest_user(
-    is_feature_enabled_mock, get_backend_mock, async_query_manager
+    is_feature_enabled_mock, async_query_manager
 ):
     is_feature_enabled_mock.return_value = True
     set_current_as_guest_user()
 
+    # The manager has no GAQ backend wired (init_app not run), so the best-effort
+    # cancel registry write is skipped and submission still proceeds.
     job_mock = Mock()
     async_query_manager._load_chart_data_into_cache_job = job_mock
     job_meta = async_query_manager.submit_chart_data_job(
@@ -363,13 +362,8 @@ def test_validate_session_guest_user_creates_valid_token(async_query_manager):
 
 @fixture
 def coordination_backend():
-    """Patch the coordination service to a mock Redis backend and expose it."""
-    backend = mock.Mock(spec=RedisCacheBackend)
-    with mock.patch(
-        "superset.coordination.base.CoordinationService.get_backend",
-        return_value=backend,
-    ):
-        yield backend
+    """A mock Redis backend GAQ operates against as its own dedicated backend."""
+    return mock.Mock(spec=RedisCacheBackend)
 
 
 @fixture
@@ -378,6 +372,7 @@ def cancellable_manager(coordination_backend):
     manager = AsyncQueryManager()
     manager._jwt_expiration_seconds = 3600
     manager._stream_prefix = "async-events-"
+    manager._gaq_backend = coordination_backend
     return manager
 
 
