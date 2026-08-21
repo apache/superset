@@ -527,7 +527,11 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({ row: { original } }: CellProps<Chart>) => {
-          const allowEdit = isUserEditorOrAdmin(user, original.editors);
+          const allowEdit = isUserEditorOrAdmin(
+            user,
+            original.editors,
+            original.extra_editors,
+          );
           const handleDelete = () =>
             handleChartDelete(
               original,
