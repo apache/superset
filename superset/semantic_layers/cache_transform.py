@@ -213,7 +213,10 @@ def transform_result(
             requests=result.requests,
             results=pa.Table.from_pandas(frame, preserve_index=False),
         )
-    except (KeyError, TypeError, ValueError, pa.ArrowException) as ex:
+    except (AttributeError, KeyError, TypeError, ValueError, pa.ArrowException) as ex:
+        # AttributeError covers entries stored before results were normalized
+        # (``results is None``); treating them as incompatible turns a stale
+        # poisoned entry into a graceful miss instead of a request failure.
         raise SemanticCacheTransformationError(
             "Cached semantic result is incompatible with the requested transformation"
         ) from ex

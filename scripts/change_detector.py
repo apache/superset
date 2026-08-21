@@ -58,6 +58,17 @@ PATTERNS = {
         r"^\.github/workflows/.*(bashlib|frontend|e2e)",
         r"^superset-frontend/",
     ],
+    # Scopes the semantic-cache coordination job (real Redis/Sentinel services)
+    # to changes that can affect it, instead of every python-touching PR.
+    "semantic-layers": [
+        r"^\.github/workflows/superset-python-integrationtest\.yml$",
+        r"^\.github/actions/change-detector/",
+        r"^scripts/change_detector\.py$",
+        r"^superset/semantic_layers/",
+        r"^superset-core/src/superset_core/semantic_layers/",
+        r"^tests/unit_tests/semantic_layers/",
+        r"^tests/integration_tests/semantic_layers/",
+    ],
     "docker": [
         r"^Dockerfile$",
         r"^docker.*",

@@ -109,21 +109,32 @@ def _dispatch_semantic_query(
     query: SemanticQuery,
     *,
     force: bool = False,
+    cacheable: bool = True,
 ) -> SemanticCacheOutcome:
-    if not semantic_cache.semantic_cache_service.state.effective:
-        return semantic_cache.semantic_cache_service.execute_provider(query, dispatcher)
+    # Normalize before any store or reuse: a provider may return
+    # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
+    # table would break every later transformation of that entry.
+    def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
+        return _coerce_empty_result(dispatcher(dispatched_query), dispatched_query)
+
+    if not cacheable or not semantic_cache.semantic_cache_service.state.effective:
+        return semantic_cache.semantic_cache_service.execute_provider(
+            query, normalized_dispatcher
+        )
     cache_configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
         build_cache_configuration(datasource)
     )
     if cache_configuration is None:
-        return semantic_cache.semantic_cache_service.execute_provider(query, dispatcher)
+        return semantic_cache.semantic_cache_service.execute_provider(
+            query, normalized_dispatcher
+        )
     meta: ViewMeta
     capabilities: ContainmentCapabilities
     meta, capabilities = cache_configuration
     return semantic_cache.semantic_cache_service.execute(
         meta,
         query,
-        dispatcher,
+        normalized_dispatcher,
         capabilities=capabilities,
         force=force,
     )
@@ -160,6 +171,12 @@ def get_results(query_object: QueryObject) -> QueryResult:
         dispatcher,
         main_query,
         force=query_object.force_query,
+        # Row-count results share the query's logical identity but not its
+        # shape: a cached table result would satisfy a row-count lookup (and
+        # vice versa) and break server-side pagination. Containment reuse is
+        # only defined over tabular results, so row-count dispatches bypass
+        # the cache entirely.
+        cacheable=not query_object.is_rowcount,
     )
     main_result: SemanticResult = main_outcome.result
     main_result = _coerce_empty_result(main_result, main_query)
@@ -199,6 +216,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             dispatcher,
             offset_query,
             force=query_object.force_query,
+            cacheable=not query_object.is_rowcount,
         )
         result: SemanticResult = outcome.result
         result = _coerce_empty_result(result, offset_query)
