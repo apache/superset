@@ -1408,6 +1408,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "CssTemplate",
         "Dataset",
         "Datasource",
+        "Theme",
     } | READ_ONLY_MODEL_VIEWS
 
     GAMMA_EXCLUDED_PVMS = {
