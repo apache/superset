@@ -16,15 +16,19 @@
 # under the License.
 
 from collections.abc import Callable
+from typing import cast
 from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
+from flask_caching.backends.rediscache import RedisSentinelCache
+from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
     Metric,
     SemanticQuery,
+    SemanticResult,
 )
 
 from superset.semantic_layers.cache import (
@@ -46,6 +50,7 @@ from superset.semantic_layers.cache_policy import (
 from superset.semantic_layers.cache_repository import (
     CachedEntry,
     CachedResultCandidate,
+    SemanticCacheBackend,
     SemanticCacheBackendError,
     SemanticCacheLookupError,
     SemanticCacheLookupResult,
@@ -555,3 +560,133 @@ def test_candidate_ranking_prefers_mode_then_freshest_equal_rank() -> None:
         (ReuseMode.PROJECT, "project"),
         (ReuseMode.ROLLUP, "rollup"),
     ]
+
+
+def test_unexpected_lookup_failure_degrades_to_provider() -> None:
+    """Shape-incompatible cached entries (e.g. pickles from an older release)
+    raise untyped errors; the request must fall through to the provider."""
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.side_effect = AttributeError("stale entry shape")
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+    )
+    provider: MagicMock = MagicMock(return_value=build_semantic_result())
+
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+
+    assert outcome.cache_hit is False
+    provider.assert_called_once()
+
+
+def test_unexpected_transform_failure_degrades_to_miss(
+    mocker: MockerFixture,
+) -> None:
+    candidate: MagicMock = MagicMock()
+    candidate.result = build_semantic_result()
+    candidate.decision = MagicMock()
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.return_value = SemanticCacheLookupResult(
+        candidates=(candidate,),
+        missing_value_keys=frozenset(),
+    )
+    mocker.patch(
+        "superset.semantic_layers.cache.transform_result",
+        side_effect=RuntimeError("unanticipated shape"),
+    )
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+    )
+    provider: MagicMock = MagicMock(return_value=build_semantic_result())
+
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+
+    assert outcome.cache_hit is False
+    provider.assert_called_once()
+    repository.store.assert_called_once()
+
+
+def test_unexpected_prune_failure_does_not_prevent_provider_execution() -> None:
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.return_value = SemanticCacheLookupResult(
+        candidates=(),
+        missing_value_keys=frozenset({"missing"}),
+    )
+    repository.prune_missing.side_effect = RuntimeError("prune blew up")
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+    )
+    provider: MagicMock = MagicMock(return_value=build_semantic_result())
+
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+
+    assert outcome.cache_hit is False
+    provider.assert_called_once()
+
+
+def test_unexpected_store_failure_still_returns_provider_result() -> None:
+    repository: MagicMock = MagicMock(spec=SemanticCacheRepository)
+    repository.lookup.return_value = SemanticCacheLookupResult(
+        candidates=(),
+        missing_value_keys=frozenset(),
+    )
+    repository.store.side_effect = RuntimeError("value key canonicalization failed")
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+    )
+    expected: SemanticResult = build_semantic_result()
+    provider: MagicMock = MagicMock(return_value=expected)
+
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        build_semantic_query(),
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+
+    assert outcome.cache_hit is False
+    assert outcome.result is expected
+
+
+def test_initialize_disables_on_replica_read_backend() -> None:
+    """Sentinel backends read from replicas; the lease-guarded bucket
+    read-modify-write requires read-your-writes, so containment fails closed."""
+
+    class _StubSentinelBackend(RedisSentinelCache):
+        def __init__(self) -> None:  # pragma: no cover - trivial stub
+            pass
+
+    class _WrappedBackend:
+        cache = _StubSentinelBackend()
+
+    for backend in (_StubSentinelBackend(), _WrappedBackend()):
+        state: SemanticCacheState = initialize_semantic_cache(
+            parent_enabled=True,
+            requested=True,
+            backend=cast(SemanticCacheBackend, backend),
+            coordination=MagicMock(),
+            wait_seconds=1.0,
+            lease_seconds=30,
+        )
+
+        assert state.effective is False
+        assert state.disabled_reason is SemanticCacheDisabledReason.UNSUPPORTED_BACKEND
+        assert state.requested is True
