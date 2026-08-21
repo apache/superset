@@ -157,8 +157,19 @@ def main() -> None:
                 sys.stderr.write(f"[MCP] Client disconnected: {e}\n")
                 sys.exit(0)
     else:
-        # For other transports, use normal initialization
-        init_fastmcp_server()
+        # For other transports (network listeners), install the same auth
+        # provider as the supported entry point (`superset mcp run` ->
+        # server.run_server()) instead of starting with no verifier at all.
+        # _create_auth_provider fails closed (raises MCPAuthConfigError) when
+        # auth is configured but a verifier could not be built, so letting
+        # that propagate here refuses to start rather than silently running
+        # this transport unauthenticated.
+        from superset.mcp_service.flask_singleton import get_flask_app
+        from superset.mcp_service.server import _create_auth_provider
+
+        flask_app = get_flask_app()
+        auth_provider = _create_auth_provider(flask_app)
+        init_fastmcp_server(auth=auth_provider)
         _add_default_middlewares()
 
         # Run with specified transport
