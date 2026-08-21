@@ -523,3 +523,72 @@ test('EChartOptionsParseError contains validation error details', () => {
     );
   }
 });
+
+// =============================================================================
+// Security: creator-authored options must not reach innerHTML/navigation
+// sinks (tooltip string formatters render via innerHTML with the default
+// renderMode 'html'; title.link/sublink navigate on click; extraCssText
+// injects raw CSS into the tooltip element).
+// =============================================================================
+
+test('rejects tooltip string formatters containing HTML markup', () => {
+  const input = `{ tooltip: { formatter: '<img src=x onerror=alert(1)>' } }`;
+
+  expect(() => parseEChartOptions(input)).toThrow(EChartOptionsParseError);
+  try {
+    parseEChartOptions(input);
+  } catch (error) {
+    expect((error as EChartOptionsParseError).errorType).toBe(
+      'validation_error',
+    );
+  }
+});
+
+test('strips per-series tooltip config so its formatter never reaches the merge', () => {
+  const result = parseEChartOptions(
+    `{ series: [{ type: 'line', tooltip: { formatter: '<b onpointerover=alert(1)>x</b>' } }] }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({ series: [{ type: 'line' }] });
+});
+
+test('accepts markup-free tooltip placeholder formatters', () => {
+  const input = `{ tooltip: { formatter: '{b}: {c}' } }`;
+  const result = parseEChartOptions(input);
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({ tooltip: { formatter: '{b}: {c}' } });
+});
+
+test('rejects javascript: URLs in title link and sublink', () => {
+  expect(() =>
+    parseEChartOptions(`{ title: { link: 'javascript:alert(1)' } }`),
+  ).toThrow(EChartOptionsParseError);
+  expect(() =>
+    parseEChartOptions(`{ title: { sublink: 'javascript:alert(1)' } }`),
+  ).toThrow(EChartOptionsParseError);
+  expect(() =>
+    parseEChartOptions(`{ title: { link: '//evil.example/x' } }`),
+  ).toThrow(EChartOptionsParseError);
+});
+
+test('accepts http(s) and same-origin relative title links', () => {
+  const result = parseEChartOptions(
+    `{ title: { link: 'https://superset.apache.org', sublink: '/dashboard/1/' } }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({
+    title: { link: 'https://superset.apache.org', sublink: '/dashboard/1/' },
+  });
+});
+
+test('strips tooltip extraCssText instead of passing raw CSS through', () => {
+  const result = parseEChartOptions(
+    `{ tooltip: { show: true, extraCssText: 'background:url(//evil.example/x)' } }`,
+  );
+
+  expect(result.success).toBe(true);
+  expect(result.data).toEqual({ tooltip: { show: true } });
+});

@@ -57,6 +57,37 @@ const fontStyleSchema = z.enum(['normal', 'italic', 'oblique']);
 /** Symbol type */
 const symbolTypeSchema = z.string();
 
+/**
+ * Tooltip formatter template (SECURITY): with the ECharts default
+ * renderMode 'html', a string tooltip formatter is assigned to the tooltip
+ * DOM element via innerHTML — and the custom-options merge replaces the
+ * plugin's sanitizing formatter function. Creator-authored options render
+ * for every chart viewer, so markup is rejected outright; placeholder
+ * templates like '{b}: {c}' need no '<'.
+ */
+const htmlFreeFormatterSchema = z
+  .string()
+  .refine(value => !value.includes('<'), {
+    message:
+      'HTML markup is not allowed in string formatters (they are rendered via innerHTML)',
+  });
+
+/**
+ * Navigation URL (SECURITY): ECharts navigates to title.link/sublink on
+ * click, so restrict them to http(s) and same-origin relative paths —
+ * javascript:/data: URLs must never become navigable.
+ */
+const safeLinkSchema = z
+  .string()
+  .refine(
+    value =>
+      /^https?:\/\//i.test(value) ||
+      (value.startsWith('/') && !value.startsWith('//')),
+    {
+      message: 'Only http(s) or same-origin relative URLs are allowed',
+    },
+  );
+
 // =============================================================================
 // Text Style Schema
 // =============================================================================
@@ -168,11 +199,11 @@ export const titleSchema = z.object({
   id: z.string().optional(),
   show: z.boolean().optional(),
   text: z.string().optional(),
-  link: z.string().optional(),
+  link: safeLinkSchema.optional(),
   target: z.enum(['self', 'blank']).optional(),
   textStyle: textStyleSchema.optional(),
   subtext: z.string().optional(),
-  sublink: z.string().optional(),
+  sublink: safeLinkSchema.optional(),
   subtarget: z.enum(['self', 'blank']).optional(),
   subtextStyle: textStyleSchema.optional(),
   textAlign: z.enum(['left', 'center', 'right']).optional(),
@@ -386,7 +417,9 @@ export const tooltipSchema = z.object({
       z.array(z.union([z.number(), z.string()])),
     ])
     .optional(),
-  formatter: z.string().optional(), // Only string formatters
+  // Only string formatters, and only markup-free ones: a string tooltip
+  // formatter is rendered via innerHTML (default renderMode 'html').
+  formatter: htmlFreeFormatterSchema.optional(),
   padding: z.union([z.number(), z.array(z.number())]).optional(),
   backgroundColor: colorSchema.optional(),
   borderColor: colorSchema.optional(),
@@ -397,7 +430,10 @@ export const tooltipSchema = z.object({
   shadowOffsetX: z.number().optional(),
   shadowOffsetY: z.number().optional(),
   textStyle: textStyleSchema.optional(),
-  extraCssText: z.string().optional(),
+  // NOTE (SECURITY): `extraCssText` is intentionally not accepted — it
+  // would inject creator-authored CSS into the tooltip DOM element for
+  // every viewer. Unknown keys are stripped by the schema, so configs that
+  // still carry it keep working minus the raw CSS.
   order: z
     .enum(['seriesAsc', 'seriesDesc', 'valueAsc', 'valueDesc'])
     .optional(),
@@ -575,6 +611,11 @@ export const seriesSchema = z.object({
   polarIndex: z.number().optional(),
   geoIndex: z.number().optional(),
   calendarIndex: z.number().optional(),
+  // NOTE (SECURITY): per-series `tooltip` is intentionally not admitted.
+  // The schema strips unknown keys, so a creator-supplied series[].tooltip
+  // (and its innerHTML-rendered string formatter) never reaches the merged
+  // options. If per-series tooltips are ever admitted, reuse tooltipSchema
+  // so the markup-free formatter constraint applies.
   label: labelSchema.optional(),
   labelLine: z
     .object({
