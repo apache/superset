@@ -27,6 +27,8 @@ import {
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
 import { initialState, databases } from 'src/SqlLab/fixtures';
 
+const RESULT_COLUMNS = [{ column_name: 'col', type: 'STRING' }];
+
 const mockedProps = {
   queryEditorId: '123',
   animation: false,
@@ -35,7 +37,6 @@ const mockedProps = {
   onSave: () => {},
   saveQueryWarning: null,
   columns: [],
-  canSaveDataset: true,
 };
 
 const mockState = {
@@ -60,7 +61,30 @@ const splitSaveBtnProps = {
     ...mockedProps.database,
     allows_virtual_table_explore: true,
   },
+  columns: RESULT_COLUMNS,
 };
+
+const EDITOR_SQL = 'SELECT * FROM t';
+
+const stateWithLatestQuery = ({
+  id,
+  state,
+  sql = EDITOR_SQL,
+}: {
+  id: string;
+  state: string;
+  sql?: string;
+}) => ({
+  ...mockState,
+  sqlLab: {
+    ...mockState.sqlLab,
+    queryEditors: mockState.sqlLab.queryEditors.map(qe => ({
+      ...qe,
+      latestQueryId: id,
+    })),
+    queries: { [id]: { id, state, sql } },
+  },
+});
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -95,6 +119,71 @@ describe('SavedQuery', () => {
     const saveBtn = screen.getByRole('button', { name: /save/i });
 
     expect(saveBtn).toBeVisible();
+  });
+
+  test('blocks "Save dataset" until the query has run successfully', () => {
+    // Without a successful run the save can only fail server-side.
+    render(<SaveQuery {...splitSaveBtnProps} />, {
+      useRedux: true,
+      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'failed' })),
+    });
+
+    expect(
+      screen.getByRole('button', { name: /save dataset/i }),
+    ).toBeDisabled();
+    // Saving the query itself is unaffected.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  test('blocks "Save dataset" when no query has been run at all', () => {
+    render(<SaveQuery {...splitSaveBtnProps} />, {
+      useRedux: true,
+      store: mockStore(mockState),
+    });
+
+    expect(
+      screen.getByRole('button', { name: /save dataset/i }),
+    ).toBeDisabled();
+  });
+
+  test('blocks "Save dataset" when the SQL changed after a successful run', () => {
+    // The run succeeded, but not for what is in the editor now -- and it is
+    // the editor's SQL that gets saved.
+    render(<SaveQuery {...splitSaveBtnProps} />, {
+      useRedux: true,
+      store: mockStore(
+        stateWithLatestQuery({
+          id: 'qid-1',
+          state: 'success',
+          sql: 'SELECT 1 AS ran_earlier',
+        }),
+      ),
+    });
+
+    expect(
+      screen.getByRole('button', { name: /save dataset/i }),
+    ).toBeDisabled();
+  });
+
+  test('blocks "Save dataset" when the successful query returned no columns', () => {
+    // e.g. a DDL/DML statement -- there is nothing to introspect into a dataset.
+    render(<SaveQuery {...splitSaveBtnProps} columns={[]} />, {
+      useRedux: true,
+      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
+    });
+
+    expect(
+      screen.getByRole('button', { name: /save dataset/i }),
+    ).toBeDisabled();
+  });
+
+  test('enables "Save dataset" once the query has succeeded', () => {
+    render(<SaveQuery {...splitSaveBtnProps} />, {
+      useRedux: true,
+      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
+    });
+
+    expect(screen.getByRole('button', { name: /save dataset/i })).toBeEnabled();
   });
 
   test('renders a save query modal when user clicks save button', () => {
@@ -234,7 +323,7 @@ describe('SavedQuery', () => {
   test('renders a save dataset modal when user clicks "save dataset" menu item', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, {
       useRedux: true,
-      store: mockStore(mockState),
+      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
     });
 
     const saveDatasetMenuItem = await screen.findByLabelText(/save dataset/i);
@@ -248,7 +337,7 @@ describe('SavedQuery', () => {
   test('renders the save dataset modal UI', async () => {
     render(<SaveQuery {...splitSaveBtnProps} />, {
       useRedux: true,
-      store: mockStore(mockState),
+      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
     });
     const saveDatasetMenuItem = await screen.findByLabelText(/save dataset/i);
     userEvent.click(saveDatasetMenuItem);

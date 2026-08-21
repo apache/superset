@@ -356,7 +356,10 @@ describe('SqlEditor', () => {
     );
 
   test('enables the save dataset button when the latest query succeeded', async () => {
-    const { findByRole } = setupWithLatestQuery({ state: QueryState.Success });
+    const { findByRole } = setupWithLatestQuery({
+      state: QueryState.Success,
+      sql: mockedProps.queryEditor.sql,
+    });
     expect(await findByRole('button', { name: 'Save dataset' })).toBeEnabled();
   });
 
