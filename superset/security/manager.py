@@ -73,6 +73,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
 
+from superset.common.chart_data import ChartDataResultType
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -1562,6 +1563,146 @@ def _columns_metrics_modified(
     return False
 
 
+def _annotation_layer_identity(layer: Any) -> Optional[tuple[str, str]]:
+    """
+    Identity of an annotation layer for tamper comparison: the source type and
+    the underlying source it reads (a native annotation-layer id or a chart
+    id). Cosmetic keys (``name``, styling, overrides) are not part of the
+    identity. Returns ``None`` for a malformed (non-dict) layer.
+    """
+    if not isinstance(layer, dict):
+        return None
+    return (
+        freeze_value(layer.get("sourceType")),
+        freeze_value(layer.get("value")),
+    )
+
+
+def _annotation_layers_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request references annotation layers the stored chart does
+    not already carry.
+
+    ``annotation_layers`` is accepted on any query object, and native layers
+    resolve every annotation of each referenced layer id with no further
+    access check, so a guest injecting a layer the chart was not saved with
+    would read data that was never shared with them. Replaying the chart's
+    own stored layers is not tampering.
+    """
+    requested: set[Optional[tuple[str, str]]] = {
+        _annotation_layer_identity(layer)
+        for layer in form_data.get("annotation_layers") or []
+    }
+    requested.update(
+        _annotation_layer_identity(layer)
+        for query in query_context.queries
+        for layer in getattr(query, "annotation_layers", None) or []
+    )
+    if not requested:
+        return False
+    # A malformed (non-dict) layer is nothing the frontend produces from a
+    # stored chart; treat it as tampering rather than crashing on it later.
+    if None in requested:
+        return True
+
+    stored: set[Optional[tuple[str, str]]] = {
+        _annotation_layer_identity(layer)
+        for layer in stored_chart.params_dict.get("annotation_layers") or []
+    }
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            stored.update(
+                _annotation_layer_identity(layer)
+                for layer in query.get("annotation_layers") or []
+            )
+    return not requested.issubset(stored)
+
+
+#: Result types that make the server rewrite the query to return raw rows of
+#: every datasource column (``_prepare_samples_query`` and
+#: ``_prepare_drill_detail_query`` in ``superset.common.query_actions``).
+_ROW_EXPANDING_RESULT_TYPES = {
+    ChartDataResultType.SAMPLES.value,
+    ChartDataResultType.DRILL_DETAIL.value,
+}
+
+
+def _result_type_value(result_type: Any) -> str:
+    """Normalize a result type (enum member or raw string) to its value."""
+    return str(getattr(result_type, "value", result_type)).lower()
+
+
+def _effective_result_type(
+    query_result_type: Any, default_result_type: Any
+) -> Optional[str]:
+    """
+    The result type a query actually runs with: its own ``result_type`` if
+    set, else the query context's top-level default.
+
+    Mirrors ``query_obj.result_type or query_context.result_type``
+    (``QueryContextProcessor.get_payload``), so this reads the same value the
+    server uses to pick the samples/drill_detail preparer for that query.
+    """
+    if query_result_type:
+        return _result_type_value(query_result_type)
+    if default_result_type:
+        return _result_type_value(default_result_type)
+    return None
+
+
+def _result_type_modified(
+    query_context: "QueryContext",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request asks for a result type that expands one of its
+    queries to raw datasource rows beyond what the stored chart runs at that
+    same query position.
+
+    The ``samples`` and ``drill_detail`` preparers replace a query's columns
+    with every column on the datasource - and drop its metrics - *after*
+    ``raise_for_access`` has run, so the subset comparisons on columns and
+    metrics in ``query_context_modified`` still pass while the response
+    contains the full underlying table. A guest's entitlement is only what
+    each query on the stored chart itself renders, so each requested query's
+    effective result type is compared against its own corresponding stored
+    query's effective result type by position - never against result types
+    used by other queries in the same query context - matching how
+    ``query_obj.result_type or query_context.result_type`` is resolved
+    per-query at runtime.
+    """
+    stored_queries: list[dict[str, Any]] = []
+    stored_default_result_type: Any = None
+    if stored_query_context:
+        stored_default_result_type = stored_query_context.get("result_type")
+        stored_queries = [
+            stored_query
+            for stored_query in stored_query_context.get("queries") or []
+            if isinstance(stored_query, dict)
+        ]
+
+    for index, query in enumerate(query_context.queries):
+        requested = _effective_result_type(query.result_type, query_context.result_type)
+        if requested not in _ROW_EXPANDING_RESULT_TYPES:
+            continue
+        stored = (
+            _effective_result_type(
+                stored_queries[index].get("result_type"), stored_default_result_type
+            )
+            if index < len(stored_queries)
+            else None
+        )
+        if requested != stored:
+            return True
+
+    return False
+
+
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -1613,6 +1754,17 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # Use ``is not None`` so an empty-but-present stored context reads as present.
     stored_context_state = "present" if stored_query_context is not None else "missing"
 
+    # Reject result types that would have the server expand the query to raw
+    # datasource rows regardless of the stored chart's columns and metrics.
+    if _result_type_modified(query_context, stored_query_context):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: result type expands "
+            "the chart to raw datasource rows (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
+
     # compare columns and metrics in form_data with stored values. Order-by is
     # handled separately: a strict subset check there would reject a guest
     # legitimately sorting an embedded chart by one of its existing columns.
@@ -1647,6 +1799,20 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         logger.warning(
             "Guest chart payload rejected for slice %s: order-by references a "
             "term not on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
+
+    # Native annotation layers resolve every annotation of each referenced
+    # layer with no further access check on this path, so a layer the chart
+    # was not saved with reads data that was never shared with the guest.
+    if _annotation_layers_modified(
+        query_context, form_data, stored_chart, stored_query_context
+    ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: annotation layer not "
+            "on the stored chart (stored query_context %s)",
             stored_chart.id,
             stored_context_state,
         )

@@ -29,6 +29,7 @@ from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
+from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.exceptions import SupersetSecurityException
@@ -1379,6 +1380,156 @@ def test_query_context_modified_tampered(
     }
     query_context.queries = [QueryObject(metrics=tampered_metrics)]  # type: ignore
     assert query_context_modified(query_context)
+
+
+def test_query_context_modified_injected_annotation_layer(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A guest must not be able to inject annotation layers the stored chart
+    does not carry: native annotation layers resolve all their annotations
+    with no further access check. Replaying the chart's own stored layers is
+    not tampering.
+    """
+    layer = {
+        "annotationType": "INTERVAL",
+        "sourceType": "NATIVE",
+        "value": 1,
+        "name": "Incidents",
+    }
+
+    # replaying the stored layer is allowed
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+        "annotation_layers": [layer],
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "annotation_layers": [layer],
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, annotation_layers=[layer])  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+    # injecting a layer the chart was not saved with is tampering
+    injected = {**layer, "value": 2}
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "annotation_layers": [injected],
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, annotation_layers=[injected])  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_result_type_expansion(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Requesting the ``samples``/``drill_detail`` result types is tampering:
+    the server-side preparers expand those queries to every datasource
+    column after the subset checks on columns/metrics have run.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+
+    # Top-level result type rewritten to samples.
+    query_context.result_type = ChartDataResultType.SAMPLES
+    assert query_context_modified(query_context)
+
+    # Per-query result type rewritten to drill_detail.
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.queries[0].result_type = ChartDataResultType.DRILL_DETAIL
+    assert query_context_modified(query_context)
+
+    # The chart's own result type is not tampering.
+    query_context.queries[0].result_type = None
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_result_type_per_query_position(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A chart's queries are validated by position: only the query stored with
+    ``samples``/``drill_detail`` may request it, and swapping which query
+    index carries that result type is tampering even though the type itself
+    is used somewhere on the stored chart.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {"metrics": stored_metrics}
+    query_context.slice_.query_context = json.dumps(
+        {
+            "result_type": "full",
+            "queries": [
+                {"metrics": stored_metrics, "result_type": "full"},
+                {"metrics": stored_metrics, "result_type": "samples"},
+            ],
+        }
+    )
+    query_context.form_data = {"slice_id": 42, "metrics": stored_metrics}
+    query_context.result_type = ChartDataResultType.FULL
+
+    # Replaying each query's own stored result type, in the stored order, is
+    # not tampering.
+    query_context.queries = [
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.FULL,
+        ),
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.SAMPLES,
+        ),
+    ]
+    assert not query_context_modified(query_context)
+
+    # Requesting `samples` for the query stored at index 0 - a position the
+    # chart never renders with raw datasource rows - is tampering, even
+    # though `samples` is the stored result type of a different query.
+    query_context.queries = [
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.SAMPLES,
+        ),
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.FULL,
+        ),
+    ]
+    assert query_context_modified(query_context)
+
+    # Neither the query nor the query context names a result type: nothing
+    # resolves to a row-expanding type, so this is not tampering.
+    query_context.result_type = None
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics),  # type: ignore
+        QueryObject(metrics=stored_metrics),  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
 
 
 def test_query_context_modified_singular_metric_param(

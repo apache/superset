@@ -238,24 +238,17 @@ class AsyncQueryManager:
         secret so the value is unguessable to outside callers.
         """
         token = guest_user.guest_token
-        # ``iat`` uniquely identifies a guest token issuance, so it provides
-        # per-token isolation while remaining stable across the lifetime of a
-        # single embedded session.
-        message = json.dumps(
-            {
-                "user": token.get("user"),
-                "resources": token.get("resources"),
-                "iat": token.get("iat"),
-                "exp": token.get("exp"),
-                "aud": token.get("aud"),
-                # ``datasets`` and ``rev`` are optional scope claims, so tokens
-                # that differ only in their dataset allowlist or revocation
-                # version still derive distinct channels.
-                "datasets": token.get("datasets"),
-                "rev": token.get("rev"),
-            },
-            sort_keys=True,
-        ).encode("utf-8")
+        # HMAC over the complete claim set so that tokens differing in *any*
+        # claim derive distinct channels. Enumerating claims here is unsafe:
+        # omitting one that scopes the session -- most importantly
+        # ``rls_rules``, the primary tenant-isolation mechanism for embedded
+        # dashboards -- would let two tenants' tokens minted in the same
+        # second with identical user/resources collide on one channel,
+        # exposing job events (including error strings) and cross-tenant
+        # cancellation. ``iat`` uniquely identifies a token issuance, so it
+        # provides per-token isolation while remaining stable across the
+        # lifetime of a single embedded session.
+        message = json.dumps(token, sort_keys=True).encode("utf-8")
         digest = hmac.new(
             self._jwt_secret.encode("utf-8"), message, hashlib.sha256
         ).hexdigest()
