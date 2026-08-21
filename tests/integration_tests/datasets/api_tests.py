@@ -3433,6 +3433,42 @@ class TestDatasetApi(SupersetTestCase):
 
         self.items_to_delete = [dataset]
 
+    def test_get_drill_info_does_not_expose_editor_emails(self):
+        """
+        Dataset API: drill_info must not leak an editor's email address
+        through the ``editors`` list.
+
+        User-subject synchronization stores a user's email in the Subject's
+        ``secondary_label`` field, and ``editors`` nests Subjects directly,
+        so email must be excluded the same way it is for created_by/changed_by.
+        """
+        self.login(ADMIN_USERNAME)
+        gamma_user = self.get_user(GAMMA_USERNAME)
+        dataset = self.insert_dataset(
+            table_name="test_drill_dataset_no_editor_email",
+            editor_user_ids=[gamma_user.id],
+            columns=[
+                TableColumn(
+                    column_name="category",
+                    type="VARCHAR(255)",
+                    groupby=True,
+                ),
+            ],
+            fetch_metadata=False,
+        )
+
+        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+        rv = self.get_assert_metric(uri, "get_drill_info")
+        assert rv.status_code == 200
+
+        result = json.loads(rv.data.decode("utf-8"))["result"]
+        editors = result.get("editors") or []
+        assert len(editors) == 1
+        assert "secondary_label" not in editors[0]
+        assert gamma_user.email not in json.dumps(editors)
+
+        self.items_to_delete = [dataset]
+
     def test_get_drill_info_admin_user_dataset_not_found(self):
         """
         Dataset API: Test drill_info endpoint returns 404 for non-existent dataset.

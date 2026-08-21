@@ -69,6 +69,30 @@ def test_drill_info_user_schema_does_not_expose_email() -> None:
     assert dumped == {"first_name": "Jane", "last_name": "Doe"}
 
 
+def test_drill_info_editor_schema_does_not_expose_secondary_label() -> None:
+    """
+    Regression test: ``DatasetDrillInfoSchema.editors`` used to nest the
+    shared ``SubjectResponseSchema``, which includes ``secondary_label``.
+    For a user-backed Subject, user-subject synchronization
+    (``superset.subjects.sync.sync_user_subject``) stores that user's email
+    in ``secondary_label``, so nesting it unfiltered leaked the same
+    maintainer PII that dropping ``email`` from ``UserSchema`` was meant to
+    close, just under a different field name.
+    """
+    from superset.datasets.schemas import DrillInfoEditorSchema
+
+    class _FakeEditorSubject:
+        id = 1
+        label = "Jane Doe"
+        secondary_label = "jane.doe@example.com"
+        img = "avatar.png"
+        type = 1
+
+    dumped = DrillInfoEditorSchema().dump(_FakeEditorSubject())
+    assert "secondary_label" not in dumped
+    assert dumped == {"id": 1, "label": "Jane Doe", "img": "avatar.png", "type": 1}
+
+
 def test_dataset_post_schema_has_all_put_scalar_fields() -> None:
     """
     Every scalar model field accepted by DatasetPutSchema should also be accepted
