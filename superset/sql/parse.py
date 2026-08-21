@@ -2234,6 +2234,10 @@ def count_referenced_tables(statement: str, dialect: Dialects | str | None) -> i
     the same physical table twice (via two aliases) is still counted as 2 -
     callers use this count to decide whether a statement is a join, and a
     self-join needs the same treatment as a join across different tables.
+    A CTE that's referenced more than once (e.g. self-joined) is weighted the
+    same way: each reference to it counts its own underlying tables again,
+    since a CTE is inlined at every place it's used (see
+    ``_count_weighted_table_references``).
 
     Falls back to a conservative count of 1 (i.e. "not multi-table") if the
     statement can't be parsed, since callers gating multi-table-only behavior
@@ -2245,9 +2249,50 @@ def count_referenced_tables(statement: str, dialect: Dialects | str | None) -> i
         parsed = sqlglot.parse_one(statement, dialect=dialect)
         if isinstance(parsed, exp.Show):
             return len(_find_show_statement_tables(parsed))
-        return len(_find_table_sources(parsed, dialect))
+        if isinstance(parsed, (exp.Describe, exp.Command)):
+            # Neither has join semantics for a per-table row cap to interact
+            # with, so the plain (unweighted) extraction already used for
+            # permissioning is fine here too.
+            return len(_find_table_sources(parsed, dialect))
+        return _count_weighted_table_references(parsed)
     except Exception:  # pylint: disable=broad-except
         return 1
+
+
+def _count_weighted_table_references(statement: exp.Expression) -> int:
+    """
+    Count table references the way callers gating multi-table-only behavior
+    need: weighting each CTE by how many times it's actually referenced,
+    not by how many distinct tables its own definition reads.
+
+    ``_find_table_sources`` (used for permissioning) intentionally counts a
+    CTE's underlying tables exactly once regardless of how many times the
+    CTE is referenced downstream, since permission checks only care about
+    the *set* of tables read. But a CTE that wraps a single virtual table
+    and is then self-joined N ways is inlined at each of those N places, so
+    it triggers N separate reads of that table -- one per join side -- and
+    must count as N here too. Otherwise a per-table row cap (see
+    ``SUPERSET_META_DB_LIMIT`` and #36304) looks safe to apply and silently
+    truncates one side of the self-join away before the join runs.
+    """
+
+    def resolve(scope: Scope, seen: frozenset[int]) -> list[exp.Table]:
+        if id(scope) in seen:
+            return []  # guards a WITH RECURSIVE self-reference from looping forever
+        seen = seen | {id(scope)}
+        tables: list[exp.Table] = []
+        for _, source in scope.selected_sources.values():
+            if isinstance(source, exp.Table) and not is_cte(source, scope):
+                tables.append(source)
+            elif isinstance(source, Scope) and source.scope_type == ScopeType.CTE:
+                tables.extend(resolve(source, seen))
+        return tables
+
+    return sum(
+        len(resolve(scope, frozenset()))
+        for scope in traverse_scope(statement)
+        if scope.scope_type != ScopeType.CTE
+    )
 
 
 def is_cte(source: exp.Table, scope: Scope) -> bool:

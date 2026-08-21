@@ -276,6 +276,50 @@ def test_count_referenced_tables_self_join() -> None:
     )
 
 
+def test_count_referenced_tables_cte_self_join() -> None:
+    """
+    A CTE that reads a single virtual table and is then self-joined must
+    count as 2, matching the direct self-join case, since the CTE is
+    inlined at each of its two consumption sites and triggers a read of
+    that table for both sides of the join.
+    """
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") '
+            "SELECT l.a, r.a FROM cte AS l JOIN cte AS r ON l.a = r.a",
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    # A CTE used exactly once, with no join, still counts as a single table.
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") SELECT a FROM cte',
+            Dialects.SQLITE,
+        )
+        == 1
+    )
+    # A CTE joined against a distinct real table also counts as 2.
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") '
+            'SELECT l.a, r.a FROM cte AS l JOIN "db.table2" AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    # Nested CTEs: a CTE built on top of another CTE, then self-joined,
+    # still weights the base CTE's own table by the self-join count.
+    assert (
+        count_referenced_tables(
+            'WITH base AS (SELECT a FROM "db.table1"), derived AS (SELECT a FROM base) '
+            "SELECT l.a, r.a FROM derived AS l JOIN derived AS r ON l.a = r.a",
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
 def test_count_referenced_tables_respects_parse_length_cap(
     mocker: MockerFixture,
 ) -> None:
