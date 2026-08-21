@@ -227,7 +227,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         delimiter = csv_export_config.get("sep", ",")
         decimal_separator = csv_export_config.get("decimal", ".")
 
-        with db.session(future=True) as session:
+        with db.session() as session:
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
 

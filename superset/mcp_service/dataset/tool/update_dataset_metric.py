@@ -32,10 +32,6 @@ from superset.mcp_service.dataset.schemas import (
     UpdateDatasetMetricRequest,
     UpdateDatasetMetricResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -61,59 +57,38 @@ def _find_metric(metrics: list[Any], identifier: int | str) -> Any | None:
 
 
 def _metric_not_found_message(metrics: list[Any], identifier: int | str) -> str:
-    """Build a "metric not found" error, escaping caller- and stored-supplied
-    text so it can't break out of the LLM context delimiters (same treatment as
-    the success path in ``_serialize_metric``)."""
+    """Build a "metric not found" error while preserving supplied text."""
     names = [m.metric_name for m in metrics]
-    safe_identifier = escape_llm_context_delimiters(str(identifier))
-    msg = f"Metric '{safe_identifier}' not found on this dataset."
+    msg = f"Metric '{identifier}' not found on this dataset."
     if not names:
         return f"{msg} This dataset has no saved metrics."
     suggestions = difflib.get_close_matches(str(identifier), names, n=3, cutoff=0.6)
     if suggestions:
-        safe_suggestions = [escape_llm_context_delimiters(n) for n in suggestions]
-        return f"{msg} Did you mean: {', '.join(safe_suggestions)}?"
-    safe_names = [escape_llm_context_delimiters(n) for n in sorted(names)]
-    return f"{msg} Available metrics: {', '.join(safe_names)}."
+        return f"{msg} Did you mean: {', '.join(suggestions)}?"
+    return f"{msg} Available metrics: {', '.join(sorted(names))}."
 
 
 def _serialize_metric(metric: Any) -> DatasetMetricDetail:
     """Build a ``DatasetMetricDetail`` from a ``SqlMetric`` model.
 
-    Returns the metric's identifiers (id, uuid) and all updatable properties,
-    wrapping free-text fields in LLM-context sanitization the same way the
-    dataset read path does.
+    Returns identifiers and all updatable properties without changing the
+    values that a client may pass into a later update.
     """
     currency = getattr(metric, "currency", None)
     return DatasetMetricDetail(
         id=getattr(metric, "id", None),
         uuid=str(metric.uuid) if getattr(metric, "uuid", None) else None,
-        metric_name=escape_llm_context_delimiters(metric.metric_name) or "",
-        verbose_name=sanitize_for_llm_context(
-            getattr(metric, "verbose_name", None),
-            field_path=("metric", "verbose_name"),
-        ),
-        expression=sanitize_for_llm_context(
-            getattr(metric, "expression", None),
-            field_path=("metric", "expression"),
-        ),
-        description=sanitize_for_llm_context(
-            getattr(metric, "description", None),
-            field_path=("metric", "description"),
-        ),
+        metric_name=metric.metric_name or "",
+        verbose_name=getattr(metric, "verbose_name", None),
+        expression=getattr(metric, "expression", None),
+        description=getattr(metric, "description", None),
         d3format=getattr(metric, "d3format", None),
         metric_type=getattr(metric, "metric_type", None),
         currency=MetricCurrency.model_validate(currency)
         if isinstance(currency, dict)
         else None,
-        warning_text=sanitize_for_llm_context(
-            getattr(metric, "warning_text", None),
-            field_path=("metric", "warning_text"),
-        ),
-        extra=sanitize_for_llm_context(
-            getattr(metric, "extra", None),
-            field_path=("metric", "extra"),
-        ),
+        warning_text=getattr(metric, "warning_text", None),
+        extra=getattr(metric, "extra", None),
     )
 
 

@@ -54,6 +54,7 @@ interface SaveQueryProps {
   onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Partial<DatabaseObject> | undefined;
+  canSaveDataset: boolean;
 }
 
 export type QueryPayload = {
@@ -83,6 +84,7 @@ const SaveQuery = ({
   saveQueryWarning,
   database,
   columns,
+  canSaveDataset,
 }: SaveQueryProps) => {
   const queryEditor = useQueryEditor(queryEditorId, [
     'autorun',
@@ -218,7 +220,7 @@ const SaveQuery = ({
         <SaveDatasetActionButton
           setShowSave={setShowSave}
           onSaveAsExplore={canExploreDatabase ? onSaveAsExplore : undefined}
-          saveDatasetDisabled={!hasSuccessfulQuery}
+          canSaveDataset={canSaveDataset && hasSuccessfulQuery}
         />
       )}
       <SaveDatasetModal
