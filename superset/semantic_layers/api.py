@@ -41,6 +41,7 @@ from superset.commands.semantic_layer.delete import (
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
+    SemanticLayerForbiddenError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
@@ -338,6 +339,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                 errors.append(
                     {"name": view_data.get("name"), "error": "Semantic layer not found"}
                 )
+            except SemanticViewForbiddenError as ex:
+                errors.append({"name": view_data.get("name"), "error": str(ex)})
             except SemanticViewCreateFailedError as ex:
                 logger.error(
                     "Error creating semantic view: %s",
@@ -880,6 +883,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response(200, result={"uuid": str(changed_model.uuid)})
         except SemanticLayerNotFoundError:
             return self.response_404()
+        except SemanticLayerForbiddenError as ex:
+            return self.response(403, message=str(ex))
         except SemanticLayerInvalidError as ex:
             return self.response_422(message=str(ex))
         except SemanticLayerUpdateFailedError as ex:
@@ -919,6 +924,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response(200, message="OK")
         except SemanticLayerNotFoundError:
             return self.response_404()
+        except SemanticLayerForbiddenError as ex:
+            return self.response(403, message=str(ex))
         except SemanticLayerDeleteFailedError as ex:
             logger.error(
                 "Error deleting semantic layer: %s",

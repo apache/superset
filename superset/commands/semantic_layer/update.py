@@ -26,6 +26,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
+    SemanticLayerForbiddenError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
@@ -115,6 +116,11 @@ class UpdateSemanticLayerCommand(BaseCommand):
         self._model = SemanticLayerDAO.find_by_uuid(self._uuid)
         if not self._model:
             raise SemanticLayerNotFoundError()
+
+        try:
+            security_manager.raise_for_editorship(self._model)
+        except SupersetSecurityException as ex:
+            raise SemanticLayerForbiddenError() from ex
 
         name = self._properties.get("name")
         if name and not SemanticLayerDAO.validate_update_uniqueness(self._uuid, name):

@@ -759,6 +759,30 @@ def test_put_semantic_layer_not_found(
 
 
 @SEMANTIC_LAYERS_APP
+def test_put_semantic_layer_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test PUT /<uuid> returns 403 when the caller is not an editor."""
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticLayerForbiddenError,
+    )
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.UpdateSemanticLayerCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticLayerForbiddenError()
+
+    response = client.put(
+        f"/api/v1/semantic_layer/{uuid_lib.uuid4()}",
+        json={"name": "New"},
+    )
+
+    assert response.status_code == 403
+
+
+@SEMANTIC_LAYERS_APP
 def test_put_semantic_layer_invalid(
     client: Any,
     full_api_access: None,
@@ -848,6 +872,27 @@ def test_delete_semantic_layer_not_found(
     response = client.delete(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
 
     assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_delete_semantic_layer_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE /<uuid> returns 403 when the caller is not an editor."""
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticLayerForbiddenError,
+    )
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.DeleteSemanticLayerCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticLayerForbiddenError()
+
+    response = client.delete(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
+
+    assert response.status_code == 403
 
 
 @SEMANTIC_LAYERS_APP
@@ -1699,6 +1744,35 @@ def test_post_semantic_view_layer_not_found(
     result = response.json["result"]
     assert len(result["errors"]) == 1
     assert result["errors"][0]["error"] == "Semantic layer not found"
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST / collects forbidden errors instead of aborting the batch."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewForbiddenError()
+
+    payload = {
+        "views": [
+            {
+                "name": "View 1",
+                "semantic_layer_uuid": str(uuid_lib.uuid4()),
+                "configuration": {},
+            },
+        ],
+    }
+    response = client.post("/api/v1/semantic_view/", json=payload)
+
+    assert response.status_code == 422
+    result = response.json["result"]
+    assert len(result["errors"]) == 1
+    assert not result["created"]
 
 
 @SEMANTIC_LAYERS_APP

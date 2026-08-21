@@ -166,6 +166,10 @@ def test_create_semantic_view_success(mocker: MockerFixture) -> None:
     mock_model.name = "orders"
     dao_view.create.return_value = mock_model
 
+    mocker.patch(
+        "superset.commands.semantic_layer.create.security_manager"
+    ).raise_for_editorship.return_value = None
+
     from superset.commands.semantic_layer.create import CreateSemanticViewCommand
 
     result = CreateSemanticViewCommand(
@@ -215,6 +219,10 @@ def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:
     )
     dao_view.validate_uniqueness.return_value = False
 
+    mocker.patch(
+        "superset.commands.semantic_layer.create.security_manager"
+    ).raise_for_editorship.return_value = None
+
     from superset.commands.semantic_layer.create import CreateSemanticViewCommand
     from superset.commands.semantic_layer.exceptions import (
         SemanticViewCreateFailedError,
@@ -228,3 +236,39 @@ def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:
                 "configuration": {"db": "prod"},
             }
         ).run()
+
+
+def test_create_semantic_view_forbidden(mocker: MockerFixture) -> None:
+    """Test CreateSemanticViewCommand raises when caller lacks layer editorship."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewForbiddenError
+    from superset.exceptions import SupersetSecurityException
+
+    mock_layer = MagicMock()
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+
+    sm = mocker.patch(
+        "superset.commands.semantic_layer.create.security_manager",
+    )
+    # Use a regular MagicMock for raise_for_editorship to avoid AsyncMock issues
+    sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+
+    with pytest.raises(SemanticViewForbiddenError):
+        CreateSemanticViewCommand(
+            {
+                "name": "orders",
+                "semantic_layer_uuid": "layer-uuid",
+                "configuration": {"db": "prod"},
+            }
+        ).run()
+
+    dao_view.create.assert_not_called()

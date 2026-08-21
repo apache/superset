@@ -21,7 +21,11 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.semantic_layer.delete import DeleteSemanticLayerCommand
-from superset.commands.semantic_layer.exceptions import SemanticLayerNotFoundError
+from superset.commands.semantic_layer.exceptions import (
+    SemanticLayerForbiddenError,
+    SemanticLayerNotFoundError,
+)
+from superset.exceptions import SupersetSecurityException
 
 
 def test_delete_semantic_layer_success(mocker: MockerFixture) -> None:
@@ -32,6 +36,10 @@ def test_delete_semantic_layer_success(mocker: MockerFixture) -> None:
         "superset.commands.semantic_layer.delete.SemanticLayerDAO",
     )
     dao.find_by_uuid.return_value = mock_model
+
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.security_manager"
+    ).raise_for_editorship.return_value = None
 
     DeleteSemanticLayerCommand("some-uuid").run()
 
@@ -48,6 +56,29 @@ def test_delete_semantic_layer_not_found(mocker: MockerFixture) -> None:
 
     with pytest.raises(SemanticLayerNotFoundError):
         DeleteSemanticLayerCommand("missing-uuid").run()
+
+
+def test_delete_semantic_layer_forbidden(mocker: MockerFixture) -> None:
+    """Test that SemanticLayerForbiddenError is raised for non-editors."""
+    mock_model = MagicMock()
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticLayerDAO",
+    )
+    dao.find_by_uuid.return_value = mock_model
+
+    sm = mocker.patch(
+        "superset.commands.semantic_layer.delete.security_manager",
+    )
+    # Use a regular MagicMock for raise_for_editorship to avoid AsyncMock issues
+    sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+
+    with pytest.raises(SemanticLayerForbiddenError):
+        DeleteSemanticLayerCommand("some-uuid").run()
+
+    dao.delete.assert_not_called()
 
 
 def test_delete_semantic_view_success(mocker: MockerFixture) -> None:

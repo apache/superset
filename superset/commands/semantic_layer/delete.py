@@ -25,6 +25,7 @@ from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerDeleteFailedError,
+    SemanticLayerForbiddenError,
     SemanticLayerNotFoundError,
     SemanticViewDeleteFailedError,
     SemanticViewForbiddenError,
@@ -59,6 +60,11 @@ class DeleteSemanticLayerCommand(BaseCommand):
         self._model = SemanticLayerDAO.find_by_uuid(self._uuid)
         if not self._model:
             raise SemanticLayerNotFoundError()
+
+        try:
+            security_manager.raise_for_editorship(self._model)
+        except SupersetSecurityException as ex:
+            raise SemanticLayerForbiddenError() from ex
 
 
 class DeleteSemanticViewCommand(BaseCommand):

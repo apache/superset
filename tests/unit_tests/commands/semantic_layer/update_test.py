@@ -21,6 +21,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.semantic_layer.exceptions import (
+    SemanticLayerForbiddenError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticViewForbiddenError,
@@ -127,6 +128,10 @@ def test_update_semantic_layer_success(mocker: MockerFixture) -> None:
     dao.find_by_uuid.return_value = mock_model
     dao.update.return_value = mock_model
 
+    mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
+
     data = {"name": "Updated", "description": "New desc"}
     result = UpdateSemanticLayerCommand("some-uuid", data).run()
 
@@ -146,6 +151,29 @@ def test_update_semantic_layer_not_found(mocker: MockerFixture) -> None:
         UpdateSemanticLayerCommand("missing-uuid", {"name": "test"}).run()
 
 
+def test_update_semantic_layer_forbidden(mocker: MockerFixture) -> None:
+    """Test that SemanticLayerForbiddenError is raised on ownership failure."""
+    mock_model = MagicMock()
+    mock_model.type = "snowflake"
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO",
+    )
+    dao.find_by_uuid.return_value = mock_model
+
+    sm = mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
+    sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+
+    with pytest.raises(SemanticLayerForbiddenError):
+        UpdateSemanticLayerCommand("some-uuid", {"name": "test"}).run()
+
+    dao.update.assert_not_called()
+
+
 def test_update_semantic_layer_duplicate_name(mocker: MockerFixture) -> None:
     """Test that SemanticLayerInvalidError is raised for duplicate names."""
     mock_model = MagicMock()
@@ -156,6 +184,10 @@ def test_update_semantic_layer_duplicate_name(mocker: MockerFixture) -> None:
     )
     dao.find_by_uuid.return_value = mock_model
     dao.validate_update_uniqueness.return_value = False
+
+    mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
 
     with pytest.raises(SemanticLayerInvalidError):
         UpdateSemanticLayerCommand("some-uuid", {"name": "Duplicate"}).run()
@@ -173,6 +205,10 @@ def test_update_semantic_layer_validates_configuration(
     )
     dao.find_by_uuid.return_value = mock_model
     dao.update.return_value = mock_model
+
+    mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
 
     mock_cls = MagicMock()
     mocker.patch.dict(
@@ -199,6 +235,10 @@ def test_update_semantic_layer_skips_name_check_when_no_name(
     dao.find_by_uuid.return_value = mock_model
     dao.update.return_value = mock_model
 
+    mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
+
     UpdateSemanticLayerCommand("some-uuid", {"description": "Updated"}).run()
 
     dao.validate_update_uniqueness.assert_not_called()
@@ -214,6 +254,10 @@ def test_update_semantic_layer_copies_data(mocker: MockerFixture) -> None:
     )
     dao.find_by_uuid.return_value = mock_model
     dao.update.return_value = mock_model
+
+    mocker.patch(
+        "superset.commands.semantic_layer.update.security_manager",
+    )
 
     original_data = {"description": "Original"}
     UpdateSemanticLayerCommand("some-uuid", original_data).run()
