@@ -113,17 +113,41 @@ def test_report_execution_log_filter_admin_sees_all(mock_sm: MagicMock) -> None:
     """
     Regression test: ``ReportExecutionLogRestApi`` had no base filter at all,
     so any role with generic ReportSchedule read could iterate every
-    schedule's logs by pk. An admin (can_access_all_datasources) must still
+    schedule's logs by pk. An admin (can_access_all_queries) must still
     see everything unfiltered.
     """
     from superset.reports.filters import ReportExecutionLogFilter
 
-    mock_sm.can_access_all_datasources.return_value = True
+    mock_sm.can_access_all_queries.return_value = True
     query = MagicMock()
     f = ReportExecutionLogFilter("id", MagicMock())
     result = f.apply(query, None)
     assert result is query
     query.filter.assert_not_called()
+
+
+@patch("superset.reports.filters.security_manager", new_callable=MagicMock)
+def test_report_execution_log_filter_stock_alpha_is_scoped(
+    mock_sm: MagicMock,
+) -> None:
+    """
+    Regression test: the unrestricted bypass used to key off
+    ``can_access_all_datasources``, which is also granted to stock Alpha
+    (see ``SupersetSecurityManager.ALPHA_ONLY_PERMISSIONS``), letting a
+    non-editor Alpha user read every other schedule's evaluated alert
+    values and database errors. The bypass must require
+    ``can_access_all_queries`` (admin-only) instead, matching the
+    equivalent per-execution SQL Lab query history filter
+    (``superset.queries.filters.QueryFilter``).
+    """
+    from superset.reports.filters import ReportExecutionLogFilter
+
+    mock_sm.can_access_all_datasources.return_value = True
+    mock_sm.can_access_all_queries.return_value = False
+    query = MagicMock()
+    f = ReportExecutionLogFilter("id", MagicMock())
+    f.apply(query, None)
+    query.filter.assert_called_once()
 
 
 @patch("superset.reports.filters.security_manager", new_callable=MagicMock)
@@ -139,7 +163,7 @@ def test_report_execution_log_filter_non_admin_scoped_to_log_fk(
     from superset.reports.filters import ReportExecutionLogFilter
     from superset.reports.models import ReportExecutionLog
 
-    mock_sm.can_access_all_datasources.return_value = False
+    mock_sm.can_access_all_queries.return_value = False
     query = MagicMock()
     f = ReportExecutionLogFilter("id", MagicMock())
     f.apply(query, None)

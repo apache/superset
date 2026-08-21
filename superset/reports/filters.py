@@ -49,10 +49,18 @@ class ReportExecutionLogFilter(BaseFilter):  # pylint: disable=too-few-public-me
     ``ReportScheduleFilter`` on the schedule API. Logs carry evaluated alert
     values and database error messages, so they must not be readable across
     ownership boundaries via an attacker-chosen schedule id.
+
+    The unrestricted bypass is gated by ``can_access_all_queries`` rather
+    than ``can_access_all_datasources``: the latter is also granted to
+    stock Alpha, which would let a non-editor Alpha user read every other
+    schedule's evaluated values and database errors. ``can_access_all_queries``
+    is the admin-only permission this codebase already uses to gate the
+    equivalent per-execution data on SQL Lab query history
+    (see ``superset.queries.filters.QueryFilter``).
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.can_access_all_datasources():
+        if security_manager.can_access_all_queries():
             return query
 
         from superset.subjects.models import report_schedule_editors
