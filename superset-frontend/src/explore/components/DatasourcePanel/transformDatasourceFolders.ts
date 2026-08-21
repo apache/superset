@@ -22,13 +22,16 @@ import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import {
   DEFAULT_METRICS_FOLDER_UUID,
   DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_FILTERS_FOLDER_UUID,
 } from 'src/components/Datasource/FoldersEditor/constants';
 import {
   ColumnItem,
   DatasourceFolder,
   DatasourcePanelColumn,
+  FilterItem,
   Folder,
   MetricItem,
+  SavedFilter,
 } from './types';
 
 const transformToFolderStructure = (
@@ -178,12 +181,45 @@ const transformToFolderStructure = (
   return folders;
 };
 
+const insertFiltersFolder = (
+  folders: Folder[],
+  filtersToDisplay: SavedFilter[],
+  allFiltersCount: number,
+): Folder[] => {
+  if (filtersToDisplay.length === 0) {
+    return folders;
+  }
+  const filterItems: FilterItem[] = filtersToDisplay.map(sqlFilter => ({
+    ...sqlFilter,
+    type: 'filter' as const,
+  }));
+  const filtersFolder: Folder = {
+    id: DEFAULT_FILTERS_FOLDER_UUID,
+    name: t('Filters'),
+    isCollapsed: false,
+    items: filterItems,
+    totalItems: allFiltersCount,
+    showingItems: filterItems.length,
+  };
+  const metricsIndex = folders.findIndex(
+    folder => folder.id === DEFAULT_METRICS_FOLDER_UUID,
+  );
+  const insertAt = metricsIndex >= 0 ? metricsIndex + 1 : 0;
+  return [
+    ...folders.slice(0, insertAt),
+    filtersFolder,
+    ...folders.slice(insertAt),
+  ];
+};
+
 export const transformDatasourceWithFolders = (
   metricsToDisplay: Metric[],
   columnsToDisplay: DatasourcePanelColumn[],
   folderConfig: DatasourceFolder[] | undefined,
   allMetrics: Metric[],
   allColumns: DatasourcePanelColumn[],
+  filtersToDisplay: SavedFilter[] = [],
+  allFiltersCount = filtersToDisplay.length,
 ): Folder[] => {
   const metricsWithType: MetricItem[] = metricsToDisplay.map(metric => ({
     ...metric,
@@ -194,11 +230,15 @@ export const transformDatasourceWithFolders = (
     type: FoldersEditorItemType.Column,
   }));
 
-  return transformToFolderStructure(
-    metricsWithType,
-    columnsWithType,
-    folderConfig,
-    allMetrics,
-    allColumns,
+  return insertFiltersFolder(
+    transformToFolderStructure(
+      metricsWithType,
+      columnsWithType,
+      folderConfig,
+      allMetrics,
+      allColumns,
+    ),
+    filtersToDisplay,
+    allFiltersCount,
   );
 };

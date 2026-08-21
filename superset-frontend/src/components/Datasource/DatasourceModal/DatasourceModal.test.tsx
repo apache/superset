@@ -27,6 +27,7 @@ import {
 import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core';
 import mockDatasource from 'spec/fixtures/mockDatasource';
+import type { FilterObject } from 'src/features/datasets/types';
 import React from 'react';
 import DatasourceModalComponent, { buildExtraJsonObject } from '.';
 
@@ -133,6 +134,55 @@ describe('DatasourceModal', () => {
           call.options?.method === 'put',
       );
     expect(JSON.parse(putCall?.options?.body as string).editors).toEqual([1]);
+  });
+
+  test('includes dataset filters in the save payload', async () => {
+    cleanup();
+    await renderAndWait({
+      ...mockedProps,
+      datasource: {
+        ...mockedProps.datasource,
+        filters: [
+          {
+            id: 11,
+            uuid: '11111111-1111-1111-1111-111111111111',
+            filter_name: 'only_boys',
+            expression: "gender = 'boy'",
+            warning_markdown: 'check this',
+            certified_by: 'data-team',
+            certification_details: 'verified',
+          },
+          {
+            id: 'new-filter-id',
+            filter_name: 'only_girls',
+            expression: "gender = 'girl'",
+          },
+        ],
+      } as typeof mockedProps.datasource & { filters: FilterObject[] },
+    });
+
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'OK' }));
+
+    await waitFor(() => {
+      const putCall = fetchMock.callHistory
+        .calls()
+        .find(
+          call =>
+            call.url.includes('/api/v1/dataset/7') &&
+            call.options?.method === 'put',
+        );
+      expect(putCall).toBeDefined();
+      const payload = JSON.parse(putCall?.options?.body as string);
+      expect(payload.filters).toHaveLength(2);
+      expect(payload.filters[0].id).toBe(11);
+      expect(payload.filters[0].filter_name).toBe('only_boys');
+      expect(payload.filters[0].extra).toContain('check this');
+      expect(payload.filters[0].extra).toContain('data-team');
+      expect(payload.filters[1].id).toBeUndefined();
+      expect(payload.filters[1].filter_name).toBe('only_girls');
+      expect(payload.filters[1].expression).toBe("gender = 'girl'");
+    });
   });
 
   test('should render error dialog', async () => {

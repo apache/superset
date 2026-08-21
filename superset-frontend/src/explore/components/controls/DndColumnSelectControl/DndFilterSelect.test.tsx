@@ -121,7 +121,7 @@ function setup({
 test('renders with default props', async () => {
   render(setup(), { useDndKit: true, store });
   expect(
-    await screen.findByText('Drop columns/metrics here or click'),
+    await screen.findByText('Drop columns/metrics/filters here or click'),
   ).toBeInTheDocument();
 });
 
@@ -151,7 +151,7 @@ test('renders options with saved metric', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns/metrics here or click'),
+    await screen.findByText('Drop columns/metrics/filters here or click'),
   ).toBeInTheDocument();
 });
 
@@ -173,7 +173,7 @@ test('renders options with column', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns/metrics here or click'),
+    await screen.findByText('Drop columns/metrics/filters here or click'),
   ).toBeInTheDocument();
 });
 
@@ -195,7 +195,7 @@ test('renders options with adhoc metric', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns/metrics here or click'),
+    await screen.findByText('Drop columns/metrics/filters here or click'),
   ).toBeInTheDocument();
 });
 
@@ -416,4 +416,59 @@ test('onChange is not called when close is clicked and canDelete is string, warn
   expect(canDelete).toHaveBeenCalled();
   expect(defaultProps.onChange).not.toHaveBeenCalled();
   expect(await screen.findByText('Test warning')).toBeInTheDocument();
+});
+
+test('dropping a saved dataset filter opens SQL WHERE with the filter expression', async () => {
+  render(setup({ columns: [{ column_name: 'column_a' }] }), {
+    useDndKit: true,
+    store,
+  });
+
+  act(() => {
+    simulateDrop(captured, {
+      type: DndItemType.Filter,
+      value: {
+        filter_name: 'only_boys',
+        expression: "gender = 'boy'",
+        uuid: 'filter-1',
+      } as any,
+    });
+  });
+
+  const filterPopup = await screen.findByTestId('filter-edit-popover');
+  expect(within(filterPopup).getByTestId('react-ace')).toHaveTextContent(
+    "gender = 'boy'",
+  );
+});
+
+test('when disallow_adhoc_metrics is set, a saved dataset filter can still be dropped', async () => {
+  render(
+    setup({
+      datasource: {
+        ...PLACEHOLDER_DATASOURCE,
+        extra: '{ "disallow_adhoc_metrics": true }',
+      },
+      columns: [{ column_name: 'column_a' }],
+    }),
+    {
+      useDndKit: true,
+      store,
+    },
+  );
+
+  act(() => {
+    simulateDrop(captured, {
+      type: DndItemType.Filter,
+      value: {
+        filter_name: 'only_boys',
+        expression: "gender = 'boy'",
+        uuid: 'filter-1',
+      } as any,
+    });
+  });
+
+  const filterPopup = await screen.findByTestId('filter-edit-popover');
+  expect(within(filterPopup).getByTestId('react-ace')).toHaveTextContent(
+    "gender = 'boy'",
+  );
 });
