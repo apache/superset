@@ -168,7 +168,7 @@ describe('transformSeries', () => {
       isHorizontal: false,
       timeShiftColor: false,
       // percentage_threshold defaults to 0, so thresholdValues[dataIndex] is
-      // 0 too — a value of exactly 0 would satisfy `numericValue >= 0`
+      // 0 too — a value of exactly 0 would satisfy `numericValue >= (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)`
       // without the explicit `numericValue !== 0` guard.
       thresholdValues: [0],
       formatter: new NumberFormatter({
