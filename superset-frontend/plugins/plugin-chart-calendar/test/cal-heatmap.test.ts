@@ -25,8 +25,12 @@ type FunctionalDateFormat = (date: Date) => string;
 interface CalHeatMapInstance {
   options: {
     dateFormatter: DateFormatter | null;
+    timeFormatter: (t: number) => string;
+    valueFormatter: (v: number) => string;
   };
   formatDate(date: Date, format: string | FunctionalDateFormat): string;
+  tip: { html(): (d: { t: number; v: number }) => string };
+  legendTip: { html(): (d: number) => string };
 }
 
 const CalHeatMap = CalHeatMapImport as unknown as new () => CalHeatMapInstance;
@@ -58,4 +62,31 @@ test('CalHeatMap keeps the D3 formatter fallback', () => {
   const date = new Date(2024, 0, 1);
 
   expect(calendar.formatDate(date, '%B')).toBe('January');
+});
+
+test('cell tooltip HTML escapes creator-controlled formatter output', () => {
+  // SECURITY regression test: the tip's .html() callback is assigned to the
+  // tooltip node via innerHTML (d3-tip). timeFormatter/valueFormatter are
+  // built from creator-controlled freeForm format strings, so markup smuggled
+  // through either formatter must never survive into the returned HTML.
+  const calendar = new CalHeatMap();
+  calendar.options.timeFormatter = () => '<img src=x onerror=alert(1)>';
+  calendar.options.valueFormatter = () => '<svg onload=alert(2)>';
+
+  const html = calendar.tip.html()({ t: 0, v: 1 });
+
+  expect(html).not.toContain('<img');
+  expect(html).not.toContain('<svg');
+  expect(html).toContain('&lt;img');
+  expect(html).toContain('&lt;svg');
+});
+
+test('legend tooltip HTML escapes creator-controlled formatter output', () => {
+  const calendar = new CalHeatMap();
+  calendar.options.valueFormatter = () => '<img src=x onerror=alert(1)>';
+
+  const html = calendar.legendTip.html()(1);
+
+  expect(html).not.toContain('<img');
+  expect(html).toContain('&lt;img');
 });

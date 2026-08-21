@@ -38,3 +38,15 @@ export const convertUTCTimestampToLocal = (utcTimestamp: number): number => {
   const offsetMs = date.getTimezoneOffset() * 60 * 1000;
   return utcTimestamp + offsetMs;
 };
+
+// SECURITY: escape HTML special characters before formatter output reaches
+// an innerHTML sink. The tooltip time/value formatters are built from
+// creator-controlled format strings (d3-time-format passes non-% characters
+// through verbatim, and an invalid d3 number format echoes the raw format
+// string back), so their output must never be treated as markup. Mirrors
+// plugin-chart-country-map's escapeHtml.
+export const escapeHtml = (text: unknown): string => {
+  const div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+};
