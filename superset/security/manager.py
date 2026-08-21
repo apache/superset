@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
+import contextlib
 import datetime
 import logging
 import re
@@ -77,6 +78,7 @@ from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
+    QueryClauseValidationException,
     SupersetSecurityException,
 )
 from superset.security.guest_token import (
@@ -90,7 +92,7 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.sql.parse import process_jinja_sql, Table
+from superset.sql.parse import process_jinja_sql, sanitize_clause, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
@@ -1186,20 +1188,6 @@ def _orderby_modified(
 # filter value.
 _EMPTY_FILTER_SENTINEL = "1 = 0"
 
-#: Chart params keys that hold columns/group-bys a chart renders.  Defined
-#: here (above ``_collect_allowed_sql`` which is the first consumer) and
-#: reused by ``_columns_metrics_modified`` and ``_add_dashboard_column_expressions``.
-_STORED_COLUMN_PARAMS = (
-    "columns",
-    "groupby",
-    "all_columns",
-    "entity",
-    "series",
-    "series_columns",
-    "x_axis",
-    "granularity_sqla",
-)
-
 
 def _split_extras_clauses(composed: str) -> list[str]:
     """
@@ -1249,9 +1237,25 @@ def _add_allowed_sql_from_query_context(
                     allowed.add(col["sqlExpression"])
 
 
+def _add_sanitized_form(allowed: set[str], expr: str, engine: str) -> None:
+    """
+    If *expr* contains SQL comments, also add the form that
+    ``sanitize_clause`` produces so that async-cached query contexts
+    (whose ``extras`` are rewritten in place by ``_sanitize_filters``)
+    still match the allowed set on re-validation.
+    """
+    if "--" not in expr:
+        return
+    try:
+        allowed.add(sanitize_clause(expr, engine))
+    except QueryClauseValidationException:
+        pass
+
+
 def _collect_allowed_sql(
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
+    engine: str = "",
 ) -> set[str]:
     """
     Collect every raw SQL expression a guest user is allowed to send,
@@ -1261,7 +1265,10 @@ def _collect_allowed_sql(
     ``extras.where``/``extras.having`` clauses, SQL-type adhoc filters, and
     adhoc-column ``col`` values in structured filters.
 
-    The empty-filter sentinel ``1 = 0`` is always included.
+    The empty-filter sentinel ``1 = 0`` is always included.  For expressions
+    containing ``--`` comments, the sanitized form (as rewritten by
+    ``sanitize_clause``) is also included so that async-cached contexts
+    pass re-validation.
     """
     allowed: set[str] = {_EMPTY_FILTER_SENTINEL}
     params = stored_chart.params_dict
@@ -1273,9 +1280,11 @@ def _collect_allowed_sql(
             and flt.get("sqlExpression")
         ):
             allowed.add(flt["sqlExpression"])
+            _add_sanitized_form(allowed, flt["sqlExpression"], engine)
 
     if params.get("where"):
         allowed.add(params["where"])
+        _add_sanitized_form(allowed, params["where"], engine)
 
     _add_column_sql_expressions(allowed, params)
 
@@ -1301,36 +1310,15 @@ def _add_column_sql_expressions(target: set[str], params: dict[str, Any]) -> Non
                 target.add(col["sqlExpression"])
 
 
-def _query_has_novel_sql(query: Any, allowed: set[str]) -> bool:
-    """Whether a single query carries SQL not in the allowed set.
-
-    The full composed ``extras.where``/``extras.having`` value is checked
-    first; if it is in ``allowed`` (which includes full composed values from
-    the stored query context as a fallback) the split is skipped.  If a
-    stored expression contains a literal ``) AND (`` (e.g. a ``CASE WHEN``),
-    the split may break it into fragments that fail individually — a false
-    positive (403) rather than a bypass.  This is an acceptable trade-off:
-    such expressions in adhoc filters are rare, and the behavior fails closed.
-    """
-    extras = getattr(query, "extras", None) or {}
-    for param in ("where", "having"):
-        composed = extras.get(param, "")
-        if composed and composed not in allowed:
-            for expr in _split_extras_clauses(composed):
-                if expr not in allowed:
-                    return True
-
-    for flt in getattr(query, "filter", None) or []:
-        if isinstance(flt, dict):
-            col = flt.get("col")
-            if isinstance(col, dict) and col.get("sqlExpression"):
-                if col["sqlExpression"] not in allowed:
-                    return True
-    return False
-
-
 def _query_has_novel_extras(query: Any, allowed: set[str]) -> bool:
-    """Whether a query has novel ``extras.where``/``extras.having`` SQL."""
+    """Whether a query has novel ``extras.where``/``extras.having`` SQL.
+
+    The full composed value is checked first; if it is in ``allowed`` (which
+    includes full composed values from the stored query context as a fallback)
+    the split is skipped.  If a stored expression contains a literal
+    ``) AND (`` the split may break it into fragments that fail individually —
+    a false positive (403) rather than a bypass, and an acceptable trade-off.
+    """
     extras = getattr(query, "extras", None) or {}
     for param in ("where", "having"):
         composed = extras.get(param, "")
@@ -1421,30 +1409,26 @@ def _sql_filters_modified(
     from all charts on the requesting dashboard are allowed so that
     cross-filters referencing a sibling chart's custom SQL dimension pass.
     """
-    allowed = _collect_allowed_sql(stored_chart, stored_query_context)
+    engine = ""
+    if datasource := getattr(query_context, "datasource", None):
+        with contextlib.suppress(Exception):
+            engine = datasource.database.db_engine_spec.engine
+    allowed = _collect_allowed_sql(stored_chart, stored_query_context, engine)
 
-    if any(_query_has_novel_sql(q, allowed) for q in query_context.queries):
-        # A novel SQL expression was found.  Before rejecting, check whether
-        # it comes from a sibling chart's custom SQL dimension (cross-filter).
-        # The dashboard lookup is deferred to here so that the common case
-        # (no cross-filter adhoc cols) pays no DB cost.
-
-        # Novel extras.where/having is always rejected — sibling chart
-        # expressions must never legitimize arbitrary WHERE/HAVING predicates.
-        if any(_query_has_novel_extras(q, allowed) for q in query_context.queries):
-            return True
-
-        # The only remaining novel SQL is in filter[].col.  Expand the
-        # allowed set with sibling chart column expressions (authorized
-        # dashboard only) and re-check just the filter col vector.
-        if dashboard_id := (form_data or {}).get("dashboardId"):
-            _add_dashboard_column_expressions(allowed, dashboard_id, stored_chart.id)
-            if not any(
-                _query_has_novel_filter_col(q, allowed) for q in query_context.queries
-            ):
-                return False
+    # Vector 1: extras.where / extras.having
+    if any(_query_has_novel_extras(q, allowed) for q in query_context.queries):
         return True
 
+    # Vector 3: structured filter col with adhoc SQL.
+    # Sibling chart column expressions (cross-filter) are allowed; the
+    # dashboard lookup is deferred so the common case pays no DB cost.
+    if any(_query_has_novel_filter_col(q, allowed) for q in query_context.queries):
+        if dashboard_id := (form_data or {}).get("dashboardId"):
+            _add_dashboard_column_expressions(allowed, dashboard_id, stored_chart.id)
+        if any(_query_has_novel_filter_col(q, allowed) for q in query_context.queries):
+            return True
+
+    # Vector 2: SQL adhoc filters in form_data
     stored_sql_filters: set[str] = {
         freeze_value(flt)
         for flt in stored_chart.params_dict.get("adhoc_filters") or []
@@ -1475,6 +1459,20 @@ _STORED_METRIC_PARAMS = (
     "x",
     "y",
     "size",
+)
+
+#: Chart params keys that hold the columns/group-bys a chart renders, across
+#: the control names chart types use for them (``entity``/``series`` for
+#: bubble and world map, ``granularity_sqla`` for the temporal axis, etc.).
+_STORED_COLUMN_PARAMS = (
+    "columns",
+    "groupby",
+    "all_columns",
+    "entity",
+    "series",
+    "series_columns",
+    "x_axis",
+    "granularity_sqla",
 )
 
 
