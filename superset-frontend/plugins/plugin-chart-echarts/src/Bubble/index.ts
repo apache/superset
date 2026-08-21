@@ -25,8 +25,8 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import example1 from './images/example1.png';
 import example1Dark from './images/example1-dark.png';
-import example2 from './images/example2.png';
-import example2Dark from './images/example2-dark.png';
+import example2 from './images/custom_thumb_example2.png';
+import example2Dark from './images/custom_thumb_example2-dark.png';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 
 // TODO: Implement cross filtering

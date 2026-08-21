@@ -1,0 +1,52 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: Sales flow between product lines and deal sizes.
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator:
+    - Classic Cars
+    - Motorcycles
+    - Planes
+    expressionType: SIMPLE
+    operator: IN
+    subject: product_line
+  color_scheme: supersetColors
+  columns:
+  - deal_size
+  groupby:
+  - product_line
+  metric:
+    aggregate: SUM
+    column:
+      column_name: sales
+    expressionType: SIMPLE
+    label: SUM(sales)
+    optionName: metric_sales_chord
+  row_limit: 1000
+  time_range: No filter
+  viz_type: chord
+  y_axis_format: SMART_NUMBER
+query_context: null
+slice_name: Product Line Chord
+uuid: 36b63a1e-3103-428c-b451-d74f9aa3c77d
+version: 1.0.0
+viz_type: chord
