@@ -2676,6 +2676,14 @@ class TestDatasetApi(SupersetTestCase):
         self.items_to_delete = [dataset, database]
 
     def test_import_dataset_v0_export(self):
+        """
+        Dataset API: legacy v0-format exports are rejected by the HTTP
+        import endpoint. The v0 command is not registered in the import
+        dispatcher (see superset/commands/dataset/importers/dispatcher.py)
+        because it overrides datasets matched by (table_name, schema,
+        database) with no per-object ownership check. Legacy v0 exports are
+        still importable via the `legacy_import_datasources` CLI command.
+        """
         num_datasets = db.session.query(SqlaTable).count()
 
         self.login(ADMIN_USERNAME)
@@ -2692,14 +2700,25 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
-        assert rv.status_code == 200
-        assert response == {"message": "OK"}
-        assert db.session.query(SqlaTable).count() == num_datasets + 1
-
-        dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="birth_names_2").one()
-        )
-        self.items_to_delete = [dataset]
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Could not find a valid command to import file",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+        assert db.session.query(SqlaTable).count() == num_datasets
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dataset_overwrite(self, mock_add_permissions):
