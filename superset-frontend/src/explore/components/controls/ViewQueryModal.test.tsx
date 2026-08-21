@@ -19,6 +19,7 @@
 
 import { screen, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import userEvent from '@testing-library/user-event';
 import * as chartAction from 'src/components/Chart/chartAction';
 import type { ChartDataRequestResponse } from 'src/components/Chart/chartAction';
 import ViewQueryModal from './ViewQueryModal';
@@ -216,4 +217,63 @@ test('falls back to empty ownState when prop is omitted', async () => {
       ownState: {},
     }),
   );
+});
+
+test('shows cached response statistics in the query inspector', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={[
+        { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
+        { data: [{ rowcount: 2 }], is_cached: false },
+      ]}
+      chartUpdateStartTime={1000}
+      chartUpdateEndTime={1250}
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Queries2Returned rows3Cached queries1',
+  );
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Duration250 ms',
+  );
+});
+
+test('only exposes the raw response when explicitly enabled', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+  const queriesResponse = [{ data: [{ country: 'KR' }] }];
+
+  const { rerender } = render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+    />,
+    { useRedux: true },
+  );
+
+  expect(
+    screen.queryByRole('tab', { name: 'Response' }),
+  ).not.toBeInTheDocument();
+
+  rerender(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+      showResponse
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
+
+  expect(screen.getByRole('tabpanel')).toHaveTextContent('"country": "KR"');
 });
