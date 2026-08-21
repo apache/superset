@@ -48,6 +48,27 @@ def test_validate_python_date_format_raises(payload) -> None:
         validate_python_date_format(payload)
 
 
+def test_drill_info_user_schema_does_not_expose_email() -> None:
+    """
+    Regression test: the drill_info-local ``UserSchema`` used to declare an
+    ``email`` field. ``DatasetDrillInfoSchema`` nests it (unfiltered by
+    ``select_columns``) for both ``created_by`` and ``changed_by``, so any
+    user with dataset-read access -- or, via the dashboard fallback,
+    embedded guests -- received maintainer email addresses. Dataset-read
+    access does not imply entitlement to other users' PII.
+    """
+    from superset.datasets.schemas import UserSchema
+
+    class _FakeUser:
+        first_name = "Jane"
+        last_name = "Doe"
+        email = "jane.doe@example.com"
+
+    dumped = UserSchema().dump(_FakeUser())
+    assert "email" not in dumped
+    assert dumped == {"first_name": "Jane", "last_name": "Doe"}
+
+
 def test_dataset_post_schema_has_all_put_scalar_fields() -> None:
     """
     Every scalar model field accepted by DatasetPutSchema should also be accepted

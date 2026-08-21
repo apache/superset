@@ -3402,6 +3402,37 @@ class TestDatasetApi(SupersetTestCase):
 
         self.items_to_delete = [dataset]
 
+    def test_get_drill_info_does_not_expose_user_emails(self):
+        """
+        Dataset API: drill_info must not leak creator/modifier email addresses.
+
+        The nested user schema exposes first/last name only; email is PII and
+        is not part of the endpoint's select_columns contract.
+        """
+        self.login(ADMIN_USERNAME)
+        dataset = self.insert_dataset(
+            table_name="test_drill_dataset_no_email",
+            editor_user_ids=[],
+            columns=[
+                TableColumn(
+                    column_name="category",
+                    type="VARCHAR(255)",
+                    groupby=True,
+                ),
+            ],
+            fetch_metadata=False,
+        )
+
+        uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+        rv = self.get_assert_metric(uri, "get_drill_info")
+        assert rv.status_code == 200
+
+        result = json.loads(rv.data.decode("utf-8"))["result"]
+        for user_field in ("created_by", "changed_by"):
+            assert "email" not in (result.get(user_field) or {})
+
+        self.items_to_delete = [dataset]
+
     def test_get_drill_info_admin_user_dataset_not_found(self):
         """
         Dataset API: Test drill_info endpoint returns 404 for non-existent dataset.

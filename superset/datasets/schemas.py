@@ -480,9 +480,13 @@ class DatasetColumnDrillInfoSchema(Schema):
 
 
 class UserSchema(Schema):
+    # Deliberately excludes ``email``: drill_info is reachable by any user
+    # with read access to the dataset (and, via the dashboard fallback, by
+    # embedded guests), so exposing maintainer emails here would leak user
+    # PII across an access boundary. Mirrors the dashboard/RLS user schemas,
+    # which expose names only.
     first_name = fields.String()
     last_name = fields.String()
-    email = fields.String()
 
 
 class DatasetDrillInfoSchema(Schema):
