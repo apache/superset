@@ -19,7 +19,14 @@
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatabaseList from 'src/pages/DatabaseList';
 
@@ -31,6 +38,7 @@ import DatabaseList from 'src/pages/DatabaseList';
  */
 
 const SL_UUID = '6a000000-0000-4000-8000-000000000001';
+const SL_UUID_B = '6b000000-0000-4000-8000-000000000002';
 
 const semanticLayerRow = {
   source_type: 'semantic_layer',
@@ -45,6 +53,12 @@ const semanticLayerRow = {
   expose_in_sqllab: null,
   changed_on_delta_humanized: 'a day ago',
   changed_by: null,
+};
+
+const semanticLayerRowB = {
+  ...semanticLayerRow,
+  uuid: SL_UUID_B,
+  database_name: 'Second Semantic Layer',
 };
 
 const CONNECTIONS_ROUTE = 'glob:*/api/v1/semantic_layer/connections/*';
@@ -72,9 +86,11 @@ const dependentView = (id: number, name: string) => ({
 const setupMocks = ({
   dependents,
   dependentsError = false,
+  rows = [semanticLayerRow],
 }: {
   dependents: { id: number; table_name: string }[];
   dependentsError?: boolean;
+  rows?: (typeof semanticLayerRow)[];
 }) => {
   fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/database/_info*', {
@@ -83,8 +99,8 @@ const setupMocks = ({
   fetchMock.get('glob:*/api/v1/database/?q=*', { result: [], count: 0 });
   fetchMock.get('glob:*/api/v1/database/related/*', { result: [], count: 0 });
   fetchMock.get(CONNECTIONS_ROUTE, {
-    result: [semanticLayerRow],
-    count: 1,
+    result: rows,
+    count: rows.length,
   });
   if (dependentsError) {
     fetchMock.get(DATASOURCE_ROUTE, 500, { name: DATASOURCE_ROUTE });
@@ -211,6 +227,28 @@ test('a genuinely empty layer says so instead of warning about nonexistent views
   ).not.toBeInTheDocument();
 });
 
+test('a counted response with an empty name page keeps the count but omits the list', async () => {
+  setupMocks({ dependents: [] });
+  fetchMock.removeRoutes({ names: [DATASOURCE_ROUTE] });
+  fetchMock.get(
+    DATASOURCE_ROUTE,
+    { result: [], count: 3 },
+    { name: DATASOURCE_ROUTE },
+  );
+  renderDatabaseList();
+
+  const dialog = await openDeleteModal();
+
+  expect(
+    within(dialog).getByText(
+      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).queryByText('Affected semantic views'),
+  ).not.toBeInTheDocument();
+});
+
 test('a failed dependent lookup still opens the modal with an uncounted warning', async () => {
   setupMocks({ dependents: [], dependentsError: true });
   renderDatabaseList();
@@ -306,6 +344,67 @@ test('a pending lookup disables repeated delete requests and shows progress', as
 
   releaseLookup();
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
+});
+
+test("a stale lookup resolving late cannot replace a newer row's modal", async () => {
+  // Click Delete on layer A (its lookup hangs), then on layer B (resolves
+  // immediately). When A's lookup finally resolves, the generation guard must
+  // drop it: the modal keeps showing B's preview.
+  setupMocks({
+    dependents: [],
+    rows: [semanticLayerRow, semanticLayerRowB],
+  });
+  fetchMock.removeRoutes({ names: [DATASOURCE_ROUTE] });
+  let releaseFirstLookup: () => void = () => {};
+  const firstLookupGate = new Promise<void>(resolve => {
+    releaseFirstLookup = resolve;
+  });
+  fetchMock.get(
+    DATASOURCE_ROUTE,
+    async ({ url }) => {
+      // The layer uuid rides in the rison-encoded `q` filter and its
+      // characters survive URL encoding, so a substring check is enough to
+      // tell the two lookups apart.
+      if (url.includes(SL_UUID)) {
+        await firstLookupGate;
+        return { result: [dependentView(1, 'stale_view')], count: 1 };
+      }
+      return { result: [dependentView(2, 'fresh_view')], count: 1 };
+    },
+    { name: DATASOURCE_ROUTE },
+  );
+  renderDatabaseList();
+
+  const deleteButtons = await screen.findAllByTestId('Delete');
+  expect(deleteButtons).toHaveLength(2);
+
+  // fireEvent, not userEvent: userEvent's hover step re-renders the row
+  // (tooltip) and detaches the pressed node mid-sequence when the table has
+  // multiple rows, so its click never reaches the handler.
+  fireEvent.click(deleteButtons[0]);
+  await waitFor(() => {
+    expect(screen.getAllByTestId('Delete')[0]).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getAllByTestId('Delete')[1]);
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByText('fresh_view')).toBeInTheDocument();
+
+  await act(async () => {
+    releaseFirstLookup();
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+  });
+
+  expect(
+    within(screen.getByRole('dialog')).getByText('fresh_view'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('stale_view')).not.toBeInTheDocument();
 });
 
 test('confirming the modal deletes the semantic layer', async () => {
