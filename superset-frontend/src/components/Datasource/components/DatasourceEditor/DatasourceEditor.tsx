@@ -1993,7 +1993,6 @@ function DatasourceEditor({
                           col => col.column_name,
                         )}
                         height={300}
-                        allowHTML
                       />
                     </>
                   )}

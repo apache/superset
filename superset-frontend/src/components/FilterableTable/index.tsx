@@ -63,7 +63,7 @@ export const FilterableTable = ({
   height,
   filterText = '',
   expandedColumns = [],
-  allowHTML = true,
+  allowHTML = false,
   striped,
   themeOverrides,
 }: FilterableTableProps) => {
