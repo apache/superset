@@ -23,7 +23,6 @@ from typing import Any
 from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerForbiddenError,
@@ -34,8 +33,8 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
-from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -67,10 +66,8 @@ class UpdateSemanticViewCommand(BaseCommand):
         if not self._model:
             raise SemanticViewNotFoundError()
 
-        try:
-            security_manager.raise_for_editorship(self._model)
-        except SupersetSecurityException as ex:
-            raise SemanticViewForbiddenError() from ex
+        if not current_user_can_modify_object(self._model):
+            raise SemanticViewForbiddenError()
 
         name = self._properties.get("name", self._model.name)
         layer_uuid = str(self._model.semantic_layer_uuid)
@@ -117,10 +114,8 @@ class UpdateSemanticLayerCommand(BaseCommand):
         if not self._model:
             raise SemanticLayerNotFoundError()
 
-        try:
-            security_manager.raise_for_editorship(self._model)
-        except SupersetSecurityException as ex:
-            raise SemanticLayerForbiddenError() from ex
+        if not current_user_can_modify_object(self._model):
+            raise SemanticLayerForbiddenError()
 
         name = self._properties.get("name")
         if name and not SemanticLayerDAO.validate_update_uniqueness(self._uuid, name):

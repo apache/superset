@@ -23,7 +23,6 @@ from typing import Any
 from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
@@ -32,8 +31,8 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewCreateFailedError,
     SemanticViewForbiddenError,
 )
+from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
-from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.registry import registry
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
@@ -99,10 +98,8 @@ class CreateSemanticViewCommand(BaseCommand):
         if not layer:
             raise SemanticLayerNotFoundError()
 
-        try:
-            security_manager.raise_for_editorship(layer)
-        except SupersetSecurityException as ex:
-            raise SemanticViewForbiddenError() from ex
+        if not current_user_can_modify_object(layer):
+            raise SemanticViewForbiddenError()
 
         name: str = self._properties.get("name", "")
         configuration: dict[str, Any] = self._properties.get("configuration") or {}

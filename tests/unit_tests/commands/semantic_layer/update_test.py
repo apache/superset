@@ -47,7 +47,7 @@ def test_update_semantic_view_success(mocker: MockerFixture) -> None:
     dao.update.return_value = mock_model
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     data = {"description": "Updated", "cache_timeout": 300}
@@ -78,16 +78,63 @@ def test_update_semantic_view_forbidden(mocker: MockerFixture) -> None:
     )
     dao.find_by_id.return_value = mock_model
 
-    sm = mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
-    )
-    # Use a regular MagicMock for raise_for_editorship to avoid AsyncMock issues
-    sm.raise_for_editorship = MagicMock(
-        side_effect=SupersetSecurityException(MagicMock()),
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=False,
     )
 
     with pytest.raises(SemanticViewForbiddenError):
         UpdateSemanticViewCommand(1, {"description": "test"}).run()
+
+
+def test_update_semantic_view_creator_allowed(mocker: MockerFixture) -> None:
+    """A non-admin who created the view, but holds no explicit editorship on
+    it, can still update it."""
+    mock_model = MagicMock()
+    mock_model.id = 1
+    mock_model.configuration = "{}"
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticViewDAO",
+    )
+    dao.find_by_id.return_value = mock_model
+    dao.update.return_value = mock_model
+
+    sm = mocker.patch("superset.commands.utils.security_manager")
+    sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+    mock_model.created_by = sm.current_user
+
+    data = {"description": "Updated"}
+    result = UpdateSemanticViewCommand(1, data).run()
+
+    assert result == mock_model
+    dao.update.assert_called_once_with(mock_model, attributes=data)
+
+
+def test_update_semantic_view_non_creator_non_editor_forbidden(
+    mocker: MockerFixture,
+) -> None:
+    """A non-admin who neither created the view nor is an editor of it is
+    rejected."""
+    mock_model = MagicMock()
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticViewDAO",
+    )
+    dao.find_by_id.return_value = mock_model
+
+    sm = mocker.patch("superset.commands.utils.security_manager")
+    sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+    mock_model.created_by = MagicMock(name="someone_else")
+
+    with pytest.raises(SemanticViewForbiddenError):
+        UpdateSemanticViewCommand(1, {"description": "test"}).run()
+
+    dao.update.assert_not_called()
 
 
 def test_update_semantic_view_copies_data(mocker: MockerFixture) -> None:
@@ -102,7 +149,7 @@ def test_update_semantic_view_copies_data(mocker: MockerFixture) -> None:
     dao.update.return_value = mock_model
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     original_data = {"description": "Original"}
@@ -129,7 +176,7 @@ def test_update_semantic_layer_success(mocker: MockerFixture) -> None:
     dao.update.return_value = mock_model
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     data = {"name": "Updated", "description": "New desc"}
@@ -161,12 +208,60 @@ def test_update_semantic_layer_forbidden(mocker: MockerFixture) -> None:
     )
     dao.find_by_uuid.return_value = mock_model
 
-    sm = mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=False,
     )
+
+    with pytest.raises(SemanticLayerForbiddenError):
+        UpdateSemanticLayerCommand("some-uuid", {"name": "test"}).run()
+
+    dao.update.assert_not_called()
+
+
+def test_update_semantic_layer_creator_allowed(mocker: MockerFixture) -> None:
+    """A non-admin who created the layer, but holds no explicit editorship
+    on it, can still update it."""
+    mock_model = MagicMock()
+    mock_model.type = "snowflake"
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO",
+    )
+    dao.find_by_uuid.return_value = mock_model
+    dao.update.return_value = mock_model
+
+    sm = mocker.patch("superset.commands.utils.security_manager")
     sm.raise_for_editorship = MagicMock(
         side_effect=SupersetSecurityException(MagicMock()),
     )
+    mock_model.created_by = sm.current_user
+
+    data = {"description": "Updated"}
+    result = UpdateSemanticLayerCommand("some-uuid", data).run()
+
+    assert result == mock_model
+    dao.update.assert_called_once_with(mock_model, attributes=data)
+
+
+def test_update_semantic_layer_non_creator_non_editor_forbidden(
+    mocker: MockerFixture,
+) -> None:
+    """A non-admin who neither created the layer nor is an editor of it is
+    rejected."""
+    mock_model = MagicMock()
+    mock_model.type = "snowflake"
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO",
+    )
+    dao.find_by_uuid.return_value = mock_model
+
+    sm = mocker.patch("superset.commands.utils.security_manager")
+    sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+    mock_model.created_by = MagicMock(name="someone_else")
 
     with pytest.raises(SemanticLayerForbiddenError):
         UpdateSemanticLayerCommand("some-uuid", {"name": "test"}).run()
@@ -186,7 +281,7 @@ def test_update_semantic_layer_duplicate_name(mocker: MockerFixture) -> None:
     dao.validate_update_uniqueness.return_value = False
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     with pytest.raises(SemanticLayerInvalidError):
@@ -207,7 +302,7 @@ def test_update_semantic_layer_validates_configuration(
     dao.update.return_value = mock_model
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     mock_cls = MagicMock()
@@ -236,7 +331,7 @@ def test_update_semantic_layer_skips_name_check_when_no_name(
     dao.update.return_value = mock_model
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     UpdateSemanticLayerCommand("some-uuid", {"description": "Updated"}).run()
@@ -256,7 +351,7 @@ def test_update_semantic_layer_copies_data(mocker: MockerFixture) -> None:
     dao.update.return_value = mock_model
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     original_data = {"description": "Original"}
@@ -293,7 +388,7 @@ def test_update_uniqueness_different_config_same_name(
     dao.validate_update_uniqueness.return_value = True
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     # Update to a config that differs from an existing view
@@ -323,7 +418,7 @@ def test_update_uniqueness_same_config_different_name(
     dao.validate_update_uniqueness.return_value = True
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     data = {"name": "renamed_view", "configuration": {"schema": "prod"}}
@@ -351,7 +446,7 @@ def test_update_uniqueness_same_config_same_name_fails(
     dao.validate_update_uniqueness.return_value = False
 
     mocker.patch(
-        "superset.commands.semantic_layer.update.security_manager",
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
     )
 
     from superset.commands.semantic_layer.exceptions import (
