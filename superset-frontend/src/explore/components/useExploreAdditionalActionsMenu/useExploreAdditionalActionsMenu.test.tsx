@@ -99,8 +99,10 @@ const defaultProps = {
   setCurrentReportDeleting: jest.fn(),
 };
 
-type TestComponentProps = typeof defaultProps;
 type HookParams = Parameters<typeof useExploreAdditionalActionsMenu>;
+type TestComponentProps = typeof defaultProps & {
+  options?: HookParams[9];
+};
 
 const TestComponent = (props: TestComponentProps) => {
   const [menu] = useExploreAdditionalActionsMenu(
@@ -113,6 +115,7 @@ const TestComponent = (props: TestComponentProps) => {
     props.dashboards as HookParams[6],
     props.showReportModal,
     props.setCurrentReportDeleting,
+    props.options,
   );
 
   return <div>{menu}</div>;
@@ -236,6 +239,40 @@ test('shows 413 error toast when Export Current View CSV server path fails with 
       expect.stringMatching(/The chart data is too large to download/),
     );
   });
+});
+
+test('showDataExportOnly hides screenshot, share, report, and query actions', async () => {
+  render(
+    <TestComponent {...defaultProps} options={{ showDataExportOnly: true }} />,
+    { useRedux: true },
+  );
+
+  expect(screen.queryByText('Data Export Options')).not.toBeInTheDocument();
+  expect(screen.queryByText('On dashboards')).not.toBeInTheDocument();
+  expect(screen.queryByText('Share')).not.toBeInTheDocument();
+  expect(screen.queryByText('View query')).not.toBeInTheDocument();
+  expect(await screen.findByText('Export All Data')).toBeInTheDocument();
+  expect(await screen.findByText('Export Current View')).toBeInTheDocument();
+
+  userEvent.hover(await screen.findByText('Export All Data'));
+  expect(
+    await screen.findByText('Export to original .CSV'),
+  ).toBeInTheDocument();
+  expect(await screen.findByText('Export to .JSON')).toBeInTheDocument();
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(
+    screen.queryByText('Export screenshot (jpeg)'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('Export screenshot (png)')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+
+  userEvent.hover(await screen.findByText('Export Current View'));
+  expect(await screen.findAllByText('Export to .CSV')).toHaveLength(1);
+  expect(
+    screen.queryByText('Export screenshot (jpeg)'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('Export screenshot (png)')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
 });
 
 const CHART_SELECTOR = '.panel-body .chart-container';

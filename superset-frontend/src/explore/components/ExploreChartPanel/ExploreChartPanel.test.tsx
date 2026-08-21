@@ -201,9 +201,10 @@ describe('ChartContainer', () => {
     expect(gutter).not.toBeVisible();
   });
 
-  test('does not render standalone download control when show_download is absent', () => {
+  test('does not render standalone download control when showDownload is disabled', () => {
     const props = createProps({
       standalone: true,
+      showDownload: false,
       can_download: true,
     });
 
@@ -214,26 +215,10 @@ describe('ChartContainer', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('does not render standalone download control when show_download is disabled', () => {
-    window.history.replaceState({}, '', '?show_download=0');
-
+  test('renders standalone download control when showDownload is enabled and user can download', () => {
     const props = createProps({
       standalone: true,
-      can_download: true,
-    });
-
-    render(<ChartContainer {...props} />, { useRedux: true });
-
-    expect(
-      screen.queryByTestId('standalone-download-button'),
-    ).not.toBeInTheDocument();
-  });
-
-  test('renders standalone download control when show_download is enabled and user can download', () => {
-    window.history.replaceState({}, '', '?show_download=1');
-
-    const props = createProps({
-      standalone: true,
+      showDownload: true,
       can_download: true,
     });
 
@@ -245,10 +230,9 @@ describe('ChartContainer', () => {
   });
 
   test('does not render standalone download control when user cannot download', () => {
-    window.history.replaceState({}, '', '?show_download=1');
-
     const props = createProps({
       standalone: true,
+      showDownload: true,
       can_download: false,
     });
 
@@ -260,10 +244,9 @@ describe('ChartContainer', () => {
   });
 
   test('does not render standalone download control outside standalone mode', () => {
-    window.history.replaceState({}, '', '?show_download=1');
-
     const props = createProps({
       standalone: false,
+      showDownload: true,
       can_download: true,
     });
 

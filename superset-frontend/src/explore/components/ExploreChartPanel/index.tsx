@@ -29,8 +29,6 @@ import {
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { URL_PARAMS } from 'src/constants';
-import { getUrlParam } from 'src/utils/urlUtils';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
@@ -89,6 +87,7 @@ export interface ExploreChartPanelProps {
   form_data: QueryFormData;
   ownState?: JsonObject;
   standalone?: boolean;
+  showDownload?: boolean;
   force?: boolean;
   timeout?: number;
   chartIsStale?: boolean;
@@ -169,13 +168,13 @@ const ExploreChartPanel = ({
   actions,
   timeout,
   standalone,
+  showDownload,
   chartIsStale,
   chartAlert,
   can_download: canDownload,
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const showDownload = getUrlParam(URL_PARAMS.showDownload);
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
 
