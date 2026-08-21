@@ -1962,6 +1962,7 @@ def test_sanitize_svg_content_removes_unterminated_script():
     malicious_svg = "<svg><script>alert('xss')"
     result = sanitize_svg_content(malicious_svg)
     assert "script" not in result.lower()
+    assert "alert" not in result
 
 
 def test_sanitize_url_relative():

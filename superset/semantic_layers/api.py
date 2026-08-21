@@ -211,6 +211,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
               description: Semantic view structure
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -450,6 +452,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
               description: Semantic view deleted
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:

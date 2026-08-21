@@ -623,9 +623,13 @@ def sanitize_svg_content(svg_content: str) -> str:
         svg_content,
         flags=re.IGNORECASE | re.DOTALL,
     )
-    # Second pass: strip any leftover <script ...> / </script ...> fragments
-    # that didn't have a matching pair above (e.g. an unterminated opener).
-    content = re.sub(r"</?script\b[^>]*>?", "", content, flags=re.IGNORECASE)
+    # Second pass: an unterminated <script ...> opener has no matching
+    # closer, so browsers treat everything after it as script content
+    # through end-of-file. Drop the opener and the remainder of the
+    # content with it, rather than leaving the payload text behind.
+    content = re.sub(r"<script\b[^>]*>.*", "", content, flags=re.IGNORECASE | re.DOTALL)
+    # Drop any orphaned closing </script ...> fragment too.
+    content = re.sub(r"</script\b[^>]*>?", "", content, flags=re.IGNORECASE)
     content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
     content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
 
