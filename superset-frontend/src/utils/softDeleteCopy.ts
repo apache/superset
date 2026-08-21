@@ -66,21 +66,21 @@ export function archiveConfirmDescription(
   if (days) {
     return plural
       ? t(
-          'These %(type)s will be moved to Recently Archived. You can recover them there within %(days)s days.',
+          'These %(type)s will be moved to Recently Archived in the Settings menu. You can recover them there within %(days)s days.',
           { type: typeLabel, days },
         )
       : t(
-          'This %(type)s will be moved to Recently Archived. You can recover it there within %(days)s days.',
+          'This %(type)s will be moved to Recently Archived in the Settings menu. You can recover it there within %(days)s days.',
           { type: typeLabel, days },
         );
   }
   return plural
     ? t(
-        'These %(type)s will be moved to Recently Archived. You can recover them there.',
+        'These %(type)s will be moved to Recently Archived in the Settings menu. You can recover them there.',
         { type: typeLabel },
       )
     : t(
-        'This %(type)s will be moved to Recently Archived. You can recover it there.',
+        'This %(type)s will be moved to Recently Archived in the Settings menu. You can recover it there.',
         { type: typeLabel },
       );
 }
