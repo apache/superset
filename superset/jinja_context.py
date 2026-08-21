@@ -144,14 +144,17 @@ class SQLSafeList(list[Any]):  # noqa: FURB189
 
 class SQLSafeDict(dict[Any, Any]):  # noqa: FURB189
     """
-    A dict of dialect-escaped values whose *whole-container* string
-    rendering cannot re-introduce raw quote characters. Mirrors
+    A dict of dialect-escaped keys and values whose *whole-container*
+    string rendering cannot re-introduce raw quote characters. Mirrors
     :class:`SQLSafeList` for the mapping case.
 
-    Keys are rendered as-is: they are used for member lookups (for
-    example ``{{ get_guest_user_attribute('tenant').id }}``), not
-    interpolated into SQL, and are never passed through
-    ``ExtraCache._escape_value``.
+    Keys are typically used for member lookups (for example
+    ``{{ get_guest_user_attribute('tenant').id }}``) rather than
+    interpolated into SQL directly, but a template can still render the
+    whole dict -- and a key, like a value, may originate from data the
+    caller does not fully control. Keys are therefore escaped the same
+    way values are, through ``ExtraCache._escape_value``, so whole-dict
+    rendering carries the same guarantee as whole-list rendering.
     """
 
     def __str__(self) -> str:
@@ -505,10 +508,9 @@ class ExtraCache:
         to restore parity with PostgreSQL's default configuration, while
         MySQL/MariaDB keep the stricter, backslash-doubling behavior above.
 
-        Lists are processed element-wise and dict values recursively, so
-        strings nested inside JSON structures are also escaped; dict keys
-        are left untouched since they are used for member lookups, not
-        interpolation. Non-string leaf values are left as-is.
+        Lists are processed element-wise and dict keys/values recursively,
+        so strings nested inside JSON structures are also escaped. Non-string
+        leaf values are left as-is.
 
         Lists and dicts are returned as :class:`SQLSafeList` /
         :class:`SQLSafeDict` rather than plain ``list``/``dict``: Jinja
@@ -529,7 +531,9 @@ class ExtraCache:
         if isinstance(val, list):
             return SQLSafeList(self._escape_value(v) for v in val)
         if isinstance(val, dict):
-            return SQLSafeDict((k, self._escape_value(v)) for k, v in val.items())
+            return SQLSafeDict(
+                (self._escape_value(k), self._escape_value(v)) for k, v in val.items()
+            )
         return val
 
     def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:

@@ -2506,6 +2506,51 @@ def test_generate_cache_key_scopes_by_user_when_impersonation_enabled(
     assert key_analyst_a != key_analyst_b
 
 
+def test_generate_cache_key_includes_impersonation_key_when_present(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    The executor's result cache mirrors the chart-data cache-key path:
+    when CACHE_IMPERSONATION / CACHE_QUERY_BY_USER / per_user_caching
+    resolves an impersonation key for the connection, that key must be
+    folded into the generated cache key so it can't collide with a key
+    generated for a different impersonated identity.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: cache_dict.__setitem__(
+            "impersonation_key", "engineer_a"
+        ),
+    )
+    key_engineer_a = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: cache_dict.__setitem__(
+            "impersonation_key", "engineer_b"
+        ),
+    )
+    key_engineer_b = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: None,
+    )
+    key_no_impersonation = executor._generate_cache_key(
+        "SELECT * FROM salaries", options
+    )
+
+    assert key_engineer_a is not None
+    assert key_engineer_b is not None
+    assert key_no_impersonation is not None
+    assert len({key_engineer_a, key_engineer_b, key_no_impersonation}) == 3
+
+
 def test_generate_cache_key_none_when_identity_unknown(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:

@@ -541,6 +541,23 @@ def test_escape_value_dict_renders_without_raw_quotes() -> None:
     assert "'" not in rendered.replace("''", "")
 
 
+def test_escape_value_dict_escapes_keys_too() -> None:
+    """
+    Regression: a dict key, like a value, can originate from data the
+    caller does not fully control (for example a guest-token attribute
+    key). Rendering the whole dict must not let a quote in a key
+    re-introduce an unescaped delimiter.
+    """
+    cache = ExtraCache(dialect=dialect())
+    escaped = cache._escape_value(  # pylint: disable=protected-access
+        {"O'Brien' OR 1=1 --": "value"}
+    )
+    [key] = escaped.keys()
+    assert key == "O''Brien'' OR 1=1 --"
+    rendered = str(escaped)
+    assert "'" not in rendered.replace("''", "")
+
+
 def test_url_param_query() -> None:
     """
     Test the ``url_param`` macro.
