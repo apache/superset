@@ -4316,6 +4316,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         schema: Optional[str] = None,
         template_params: Optional[dict[str, Any]] = None,
         force_dataset_match: bool = False,
+        allow_query_authorship_bypass: bool = False,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -4338,6 +4339,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             The default (False) preserves the historical semantics for
             chart-data, dataset CRUD, ``/table_metadata/``, and
             ``/select_star/``.
+        :param allow_query_authorship_bypass: When True, a SQL Lab query's
+            own author is granted access to that exact, already-succeeded
+            query without an additional dataset-level ``datasource_access``
+            grant. Deliberately opt-in and scoped to the one-time
+            explore/create-chart transition: repeat, ongoing access to a
+            query-backed chart or dashboard (fetching its data, exporting
+            it) must keep going through the regular catalog/schema/
+            datasource_access checks below on every call, since authorship
+            alone does not track whether the author still holds that
+            access, and a query's SQL may be templated such that the
+            tables actually touched depend on parameters supplied at
+            request time.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -4425,14 +4438,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # this same method; the query path had no equivalent authorship
             # bypass.
             #
-            # Scoped to ``not force_dataset_match``: that flag is set by the
-            # call sites that execute a query or return its row data (SQL
-            # Lab execute, results/export, MetaDB), where every SQL Lab
-            # query's author trivially equals the current user and an
-            # unscoped bypass would erase the per-table
-            # catalog/schema/datasource_access checks below entirely. It is
-            # left unset only by the explore/form-data path this bypass is
-            # meant to cover.
+            # Gated on the explicit ``allow_query_authorship_bypass`` opt-in
+            # rather than firing for every ``not force_dataset_match`` call:
+            # that flag is also False for call sites unrelated to the
+            # one-time explore/create-chart transition this bypass is meant
+            # to cover, e.g. fetching or exporting a query-backed chart's
+            # data (``query_context_processor.raise_for_access``), which
+            # runs on every view of an already-created chart or dashboard.
+            # Those call sites must keep re-checking catalog/schema/
+            # datasource_access on every call: authorship alone does not
+            # track whether the author still holds that access, and the
+            # query's SQL may be templated such that the tables actually
+            # touched depend on parameters supplied at request time.
             #
             # Does not apply to the ephemeral query built above either:
             # that one's ``user_id`` is always the current user by
@@ -4451,6 +4468,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 query
                 and not is_ephemeral_query
                 and not force_dataset_match
+                and allow_query_authorship_bypass
                 and hasattr(query, "user_id")
                 and (user_id := get_user_id()) is not None
                 and query.user_id == user_id

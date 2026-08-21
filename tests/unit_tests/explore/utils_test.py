@@ -33,6 +33,7 @@ from superset.commands.exceptions import (
 )
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException, SupersetTemplateException
+from superset.extensions import appbuilder
 from superset.utils.core import DatasourceType, override_user
 
 dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
@@ -454,3 +455,50 @@ def test_unsaved_query_explore_allows_the_query_author(
             chart_id=None,
             datasource_type=DatasourceType.QUERY,
         )
+
+
+def test_query_authorship_bypass_does_not_cover_chart_data_fetch(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The authorship bypass above is deliberately opt-in
+    (``allow_query_authorship_bypass``) and only set by the one-time
+    explore/create-chart transition (``check_query_access`` above). A
+    query-backed chart's *data*, fetched on every dashboard/chart view or
+    export via ``QueryContextProcessor.raise_for_access`` (see
+    ``superset/common/query_context_processor.py``), calls
+    ``raise_for_access(query=...)`` without that flag, and must keep going
+    through the regular catalog/schema/datasource_access checks on every
+    call -- authorship alone does not track whether the author still holds
+    that access.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.sql_lab import Query
+    from superset.security.manager import SupersetSecurityManager
+
+    sm = SupersetSecurityManager(appbuilder)
+    current_user = User(id=1)
+
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "public"
+    query = Query(
+        database=database,
+        sql="select * from foo",
+        user_id=current_user.id,
+        status=QueryStatus.SUCCESS,
+    )
+
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+
+    with override_user(current_user):
+        # Same query, same author, same SUCCESS status as the explore-path
+        # bypass test above -- but with no allow_query_authorship_bypass
+        # (the chart-data/export call shape), so it must still be denied.
+        with raises(SupersetSecurityException):
+            sm.raise_for_access(query=query)

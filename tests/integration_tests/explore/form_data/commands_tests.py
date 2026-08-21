@@ -46,21 +46,37 @@ from tests.integration_tests.base_tests import SupersetTestCase
 FORM_DATA_SCHEMA_ACCESS_ROLE = "form_data_schema_access_role"
 
 
-def _grant_schema_access(view_menu_name: str) -> None:
+def _grant_schema_access(view_menu_name: str) -> bool:
+    """
+    Grants ``FORM_DATA_SCHEMA_ACCESS_ROLE`` schema_access on the given view
+    menu. Returns whether this call created the underlying permission-view
+    (as opposed to one that already existed, e.g. granted to some other
+    role by an earlier test), so the caller's teardown knows whether it's
+    safe to delete it without affecting other schema-access tests.
+    """
     permission = "schema_access"
+    created_permission_view = (
+        security_manager.find_permission_view_menu(permission, view_menu_name) is None
+    )
     security_manager.add_permission_view_menu(permission, view_menu_name)
     perm_view = security_manager.find_permission_view_menu(permission, view_menu_name)
     security_manager.add_permission_role(
         security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE), perm_view
     )
+    return created_permission_view
 
 
-def _revoke_schema_access(view_menu_name: str) -> None:
+def _revoke_schema_access(view_menu_name: str, delete_permission_view: bool) -> None:
     pv = security_manager.find_permission_view_menu("schema_access", view_menu_name)
     security_manager.del_permission_role(
         security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE), pv
     )
-    security_manager.del_permission_view_menu("schema_access", view_menu_name)
+    # Only remove the permission-view menu itself if this fixture created
+    # it; it may have pre-dated this test (e.g. granted to another role),
+    # and other schema-access tests shouldn't become order-dependent on
+    # this teardown.
+    if delete_permission_view:
+        security_manager.del_permission_view_menu("schema_access", view_menu_name)
 
 
 class TestCreateFormDataCommand(SupersetTestCase):
@@ -405,7 +421,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
 
         security_manager.add_role(FORM_DATA_SCHEMA_ACCESS_ROLE)
         db.session.commit()
-        _grant_schema_access(view_menu_name)
+        created_permission_view = _grant_schema_access(view_menu_name)
         gamma_user = security_manager.find_user(username="gamma")
         gamma_user.roles.append(
             security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE)
@@ -448,7 +464,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
                 security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE)
             )
             db.session.commit()
-            _revoke_schema_access(view_menu_name)
+            _revoke_schema_access(view_menu_name, created_permission_view)
             db.session.delete(security_manager.find_role(FORM_DATA_SCHEMA_ACCESS_ROLE))
             db.session.commit()
 
