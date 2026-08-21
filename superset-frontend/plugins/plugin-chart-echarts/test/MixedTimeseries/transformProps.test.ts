@@ -43,6 +43,7 @@ import {
 } from '../../src/MixedTimeseries/types';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import type { SeriesOption } from 'echarts';
+import type { BarSeriesOption } from 'echarts/charts';
 
 type LabelFormatterParams = {
   value: [number, number];
@@ -192,6 +193,61 @@ function formatSeriesLabel(
     value,
   });
 }
+
+test('bar value labels retain their legacy outside position', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showValueB: true },
+    queriesData,
+  });
+
+  const transformed = transformProps(chartProps);
+  const barSeries = (transformed.echartOptions.series as SeriesOption[]).filter(
+    (series): series is BarSeriesOption => series.type === 'bar',
+  );
+
+  expect(barSeries).not.toHaveLength(0);
+  barSeries.forEach(series => {
+    expect(series.label).toMatchObject({ show: true, position: 'top' });
+    expect(series.labelLayout).toBeUndefined();
+  });
+});
+
+test('negative bar values retain their legacy outside position', () => {
+  const negativeRows = [
+    { boy: -1, girl: -2, ds: 599616000000 },
+    { boy: -3, girl: -4, ds: 599916000000 },
+  ];
+  const negativeQueriesData = [
+    createTestQueryData(negativeRows, { label_map: defaultLabelMap }),
+    createTestQueryData(negativeRows, { label_map: defaultLabelMap }),
+  ];
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: negativeQueriesData,
+    formData: { ...formData, showValueB: true },
+    queriesData: negativeQueriesData,
+  });
+
+  const transformed = transformProps(chartProps);
+  const barSeries = (transformed.echartOptions.series as SeriesOption[]).filter(
+    (series): series is BarSeriesOption => series.type === 'bar',
+  );
+
+  expect(barSeries).not.toHaveLength(0);
+  barSeries.forEach(series => {
+    expect(series.data?.[0]).toMatchObject({
+      label: { position: 'bottom' },
+    });
+  });
+});
 
 test('should transform chart props for viz with showQueryIdentifiers=false', () => {
   const chartProps = createEchartsTimeseriesTestChartProps<

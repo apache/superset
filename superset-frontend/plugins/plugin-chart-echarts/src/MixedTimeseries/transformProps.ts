@@ -59,6 +59,7 @@ import {
   LegendOrientation,
   Refs,
 } from '../types';
+import { BarValueLabelPosition } from '../Timeseries/types';
 import { parseAxisBound } from '../utils/controls';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import {
@@ -513,6 +514,7 @@ export default function transformProps(
         areaOpacity: opacity,
         seriesType,
         showValue,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
         onlyTotal,
         stack: Boolean(stack),
         stackIdSuffix: '\na',
@@ -601,6 +603,7 @@ export default function transformProps(
         areaOpacity: opacityB,
         seriesType: seriesTypeB,
         showValue: showValueB,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
         onlyTotal: onlyTotalB,
         stack: Boolean(stackB),
         stackIdSuffix: '\nb',

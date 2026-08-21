@@ -23,7 +23,10 @@ import {
   StackControlOptionsWithoutStream,
   StackControlsValue,
 } from '../../../src/constants';
-import { OrientationType } from '../../../src/Timeseries/types';
+import {
+  BarValueLabelPosition,
+  OrientationType,
+} from '../../../src/Timeseries/types';
 
 const config = controlPanel;
 
@@ -130,6 +133,41 @@ test('should have proper form data overrides', () => {
 test('should include stack control in the panel', () => {
   const stackControl = getControl('stack');
   expect(stackControl).toBeDefined();
+});
+
+test('should expose Auto and manual value label positions for Bar charts', () => {
+  const valueLabelPositionControl = getControl(
+    'value_label_position',
+  ) as unknown as {
+    config: {
+      choices: [BarValueLabelPosition, string][];
+      default: BarValueLabelPosition;
+      visibility: (props: ControlPanelsContainerProps) => boolean;
+    };
+  };
+
+  expect(valueLabelPositionControl.config.default).toBe(
+    BarValueLabelPosition.Auto,
+  );
+  expect(
+    valueLabelPositionControl.config.choices.map(([value]) => value),
+  ).toEqual([
+    BarValueLabelPosition.Auto,
+    BarValueLabelPosition.InsideEnd,
+    BarValueLabelPosition.OutsideEnd,
+    BarValueLabelPosition.InsideCenter,
+    BarValueLabelPosition.InsideBase,
+  ]);
+  expect(
+    valueLabelPositionControl.config.visibility({
+      controls: { show_value: { value: true } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    valueLabelPositionControl.config.visibility({
+      controls: { show_value: { value: false } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
 });
 
 test('should use StackControlOptionsWithoutStream for stack control', () => {

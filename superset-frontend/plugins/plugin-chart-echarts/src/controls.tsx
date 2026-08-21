@@ -34,6 +34,7 @@ import {
   StackControlOptionsWithoutStream,
 } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
+import { BarValueLabelPosition } from './Timeseries/types';
 import { defaultXAxis } from './defaults';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
@@ -140,6 +141,28 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
+export const valueLabelPositionControl: ControlSetItem = {
+  name: 'value_label_position',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    clearable: false,
+    label: t('Value label position'),
+    choices: [
+      [BarValueLabelPosition.Auto, t('Auto')],
+      [BarValueLabelPosition.InsideEnd, t('Inside End')],
+      [BarValueLabelPosition.OutsideEnd, t('Outside End')],
+      [BarValueLabelPosition.InsideCenter, t('Inside Center')],
+      [BarValueLabelPosition.InsideBase, t('Inside Base')],
+    ],
+    default: DEFAULT_FORM_DATA.valueLabelPosition,
+    renderTrigger: true,
+    description: t('Choose where to display values relative to the bars'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value),
+  },
+};
+
 export const colorByPrimaryAxisControl: ControlSetItem = {
   name: 'color_by_primary_axis',
   config: {
@@ -235,6 +258,7 @@ export const showValueSectionWithoutStack: ControlSetRow[] = [
 
 export const showValueSectionWithoutStream: ControlSetRow[] = [
   [showValueControl],
+  [valueLabelPositionControl],
   [stackControlWithoutStream],
   [onlyTotalControl],
   [percentageThresholdControl],
