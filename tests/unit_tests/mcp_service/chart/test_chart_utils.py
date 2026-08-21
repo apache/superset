@@ -89,6 +89,24 @@ class TestCreateMetricObject:
         assert result["optionName"] == "metric_revenue"
         assert result["expressionType"] == "SIMPLE"
 
+    def test_create_metric_object_normalizes_stddev_var_shorthand(self) -> None:
+        """
+        Pre-SIP "STDDEV"/"VAR" shorthand is normalized to the real,
+        unambiguous aggregate names ("STDDEV_SAMP"/"VAR_SAMP") this chart
+        can actually query -- see docs/sip/median-stddev-variance-aggregates.md.
+        Before this, a chart built with "STDDEV"/"VAR" always errored at
+        query time, since that name was never a real Superset aggregate.
+        """
+        stddev_col = ColumnRef(name="price", aggregate="STDDEV", label="Std Dev")
+        result = create_metric_object(stddev_col)
+        assert isinstance(result, dict)
+        assert result["aggregate"] == "STDDEV_SAMP"
+
+        var_col = ColumnRef(name="price", aggregate="VAR", label="Variance")
+        result = create_metric_object(var_col)
+        assert isinstance(result, dict)
+        assert result["aggregate"] == "VAR_SAMP"
+
     def test_create_metric_object_default_aggregate(self) -> None:
         """Test creating metric object with default aggregate"""
         col = ColumnRef(name="orders")

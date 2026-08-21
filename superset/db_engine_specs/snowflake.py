@@ -20,7 +20,7 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
 from apispec import APISpec
@@ -33,6 +33,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -86,6 +87,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine_name = "Snowflake"
     force_column_alias_quotes = True
     max_column_name_length = 256
+
+    # `PostgresBaseEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+    # is verified against real Postgres behavior, not Snowflake's; disable it here
+    # until someone confirms the same expressions against a live Snowflake instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     # Snowflake doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True

@@ -42,6 +42,7 @@ from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
     DatasourceType,
+    EXTENDED_METRIC_AGGREGATES,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -434,7 +435,15 @@ class ChartDataAdhocMetricSchema(Schema):
             "Only required for simple expression types."
         },
         validate=validate.OneOf(
-            choices=("AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM")
+            choices=(
+                "AVG",
+                "COUNT",
+                "COUNT_DISTINCT",
+                "MAX",
+                "MIN",
+                "SUM",
+                *sorted(EXTENDED_METRIC_AGGREGATES),
+            )
         ),
     )
     column = fields.Nested(ChartDataColumnSchema)
