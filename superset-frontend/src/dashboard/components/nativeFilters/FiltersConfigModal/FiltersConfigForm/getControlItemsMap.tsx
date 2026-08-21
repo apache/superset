@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CustomControlItem } from '@superset-ui/chart-controls';
-import { ReactNode } from 'react';
+import {
+  BaseControlConfig,
+  CustomControlItem,
+} from '@superset-ui/chart-controls';
+import { ReactNode, useState, useEffect, useRef } from 'react';
+import rison from 'rison';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   Checkbox,
   FormItem,
   InfoTooltip,
+  Select,
   Tooltip,
   type FormInstance,
 } from '@superset-ui/core/components';
@@ -66,6 +72,135 @@ const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 
+/** Resolves the saved or default initial value for a control. */
+function resolveInitialValue(
+  controlItem: CustomControlItem,
+  filterToEdit?: ControlItemsProps['filterToEdit'],
+  customizationToEdit?: ControlItemsProps['customizationToEdit'],
+) {
+  return (
+    filterToEdit?.controlValues?.[controlItem.name] ??
+    customizationToEdit?.controlValues?.[controlItem.name] ??
+    controlItem?.config?.default ??
+    null
+  );
+}
+
+/** Renders a StyledLabel with an optional description tooltip. */
+function ControlLabel({
+  label,
+  description,
+  fallbackLabel,
+}: {
+  label?: BaseControlConfig['label'];
+  description?: BaseControlConfig['description'];
+  fallbackLabel?: ReactNode;
+}) {
+  // Only zero-argument label/description functions are safe to invoke here:
+  // (state, controlState, chartState) are supplied by the Explore control
+  // panel renderer (ControlPanelsContainer), which this filter-config-modal
+  // control list does not have access to.
+  const resolvedLabel =
+    (typeof label === 'function'
+      ? label.length === 0
+        ? (label as () => ReactNode)()
+        : undefined
+      : label) ?? fallbackLabel;
+  const resolvedDescription =
+    typeof description === 'function'
+      ? description.length === 0
+        ? (description as () => ReactNode)()
+        : undefined
+      : description;
+  return (
+    <StyledLabel>
+      {resolvedLabel}
+      {resolvedDescription != null && (
+        <>
+          &nbsp;
+          <InfoTooltip placement="top" tooltip={resolvedDescription} />
+        </>
+      )}
+    </StyledLabel>
+  );
+}
+
+function DatasetColumnSelect({
+  datasetId,
+  value,
+  onChange,
+}: {
+  datasetId?: number;
+  value?: string | null;
+  onChange?: (value: string | null) => void;
+}) {
+  const [{ loadedForId, fetchedColumns }, setFetchState] = useState<{
+    loadedForId?: number;
+    fetchedColumns: string[];
+  }>({ fetchedColumns: [] });
+
+  // Read via ref inside the async handlers below so a value change that
+  // happens while the request is in flight is validated against the
+  // current value, not the one captured when the effect started.
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
+  const loading = !!(datasetId && loadedForId !== datasetId);
+  const options = loadedForId === datasetId ? fetchedColumns : [];
+
+  useEffect(() => {
+    if (!datasetId) {
+      // dataset cleared — drop any stale selection immediately
+      if (value) {
+        onChange?.(null);
+      }
+      return undefined;
+    }
+    let cancelled = false;
+    cachedSupersetGet({
+      endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
+        columns: ['columns.column_name'],
+      })}`,
+    })
+      .then(({ json: { result } }) => {
+        if (cancelled) return;
+        const columnNames: string[] = result.columns
+          .map((col: { column_name: string }) => col.column_name)
+          .filter(Boolean);
+        setFetchState({ loadedForId: datasetId, fetchedColumns: columnNames });
+        if (valueRef.current && !columnNames.includes(valueRef.current)) {
+          onChange?.(null);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // A failed fetch tells us nothing about the value's validity —
+        // only clear it when a successful response says so.
+        setFetchState({
+          loadedForId: datasetId,
+          fetchedColumns: valueRef.current ? [valueRef.current] : [],
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datasetId]);
+
+  return (
+    <Select
+      allowClear
+      ariaLabel={t('Column')}
+      loading={loading}
+      value={value ?? undefined}
+      onChange={val => onChange?.(typeof val === 'string' ? val : null)}
+      options={options.map(col => ({ label: col, value: col }))}
+      placeholder={t('None — show filter values as labels')}
+      showSearch
+    />
+  );
+}
+
 export default function getControlItemsMap({
   expanded,
   datasetId,
@@ -84,6 +219,10 @@ export default function getControlItemsMap({
   const controlPanelRegistry = getChartControlPanelRegistry();
   const controlItems =
     getControlItems(controlPanelRegistry.get(filterType)) ?? [];
+  const notifyChange = () => {
+    forceUpdate();
+    formChanged();
+  };
   const mapControlItems: Record<
     string,
     { element: ReactNode; checked: boolean }
@@ -99,10 +238,11 @@ export default function getControlItemsMap({
         mainControlItem?.name === 'groupby',
     )
     .forEach(mainControlItem => {
-      const initialValue =
-        filterToEdit?.controlValues?.[mainControlItem.name] ??
-        customizationToEdit?.controlValues?.[mainControlItem.name] ??
-        mainControlItem?.config?.default;
+      const initialValue = resolveInitialValue(
+        mainControlItem,
+        filterToEdit,
+        customizationToEdit,
+      );
       const initColumn =
         customizationToEdit?.targets?.[0]?.column?.name ??
         filterToEdit?.targets?.[0]?.column?.name;
@@ -123,11 +263,10 @@ export default function getControlItemsMap({
             name={['filters', filterId, 'column']}
             initialValue={initColumn}
             label={
-              <StyledLabel>
-                {typeof mainControlItem.config?.label === 'function'
-                  ? (mainControlItem.config.label as Function)()
-                  : mainControlItem.config?.label || t('Column')}
-              </StyledLabel>
+              <ControlLabel
+                label={mainControlItem.config?.label}
+                fallbackLabel={t('Column')}
+              />
             }
             rules={[
               {
@@ -154,8 +293,7 @@ export default function getControlItemsMap({
                 setNativeFilterFieldValues(form, filterId, {
                   defaultDataMask: null,
                 });
-                forceUpdate();
-                formChanged();
+                notifyChange();
               }}
             />
           </StyledFormItem>
@@ -175,10 +313,11 @@ export default function getControlItemsMap({
         controlItem.name !== 'operatorType',
     )
     .forEach(controlItem => {
-      const initialValue =
-        filterToEdit?.controlValues?.[controlItem.name] ??
-        customizationToEdit?.controlValues?.[controlItem.name] ??
-        controlItem?.config?.default;
+      const initialValue = resolveInitialValue(
+        controlItem,
+        filterToEdit,
+        customizationToEdit,
+      );
       const element = (
         <>
           <CleanFormItem
@@ -224,27 +363,14 @@ export default function getControlItemsMap({
                         defaultDataMask: null,
                       });
                     }
-                    formChanged();
-                    forceUpdate();
+                    notifyChange();
                   }}
                 >
-                  <>
-                    {typeof controlItem.config.label === 'function'
-                      ? (controlItem.config.label as Function)()
-                      : controlItem.config.label}
-                    &nbsp;
-                    {controlItem.config.description && (
-                      <InfoTooltip
-                        placement="top"
-                        tooltip={
-                          typeof controlItem.config.description === 'function'
-                            ? (controlItem.config.description as Function)()
-                            : (controlItem.config
-                                .description as React.ReactNode)
-                        }
-                      />
-                    )}
-                  </>
+                  <ControlLabel
+                    label={controlItem.config.label}
+                    description={controlItem.config.description}
+                    fallbackLabel={controlItem.name}
+                  />
                 </Checkbox>
               </StyledRowFormItem>
             </span>
@@ -252,6 +378,52 @@ export default function getControlItemsMap({
         </>
       );
       mapControlItems[controlItem.name] = { element, checked: initialValue };
+    });
+
+  // Render plugin-declared column-picker controls using config hooks
+  controlItems
+    .filter((item: CustomControlItem) => item?.config?.isColumnSelect === true)
+    .forEach(controlItem => {
+      const initialValue = resolveInitialValue(
+        controlItem,
+        filterToEdit,
+        customizationToEdit,
+      );
+      const element = (
+        <StyledFormItem
+          expanded={expanded}
+          name={['filters', filterId, 'controlValues', controlItem.name]}
+          initialValue={initialValue}
+          label={
+            <ControlLabel
+              label={controlItem.config?.label}
+              description={controlItem.config?.description}
+              fallbackLabel={controlItem.name}
+            />
+          }
+          rules={[
+            {
+              required: controlItem.config?.required && !removed,
+              message: t('This field is required'),
+            },
+          ]}
+        >
+          <DatasetColumnSelect
+            datasetId={datasetId}
+            onChange={() => {
+              // We need reset default value when column changed
+              setNativeFilterFieldValues(form, filterId, {
+                defaultDataMask: null,
+              });
+              notifyChange();
+            }}
+          />
+        </StyledFormItem>
+      );
+      mapMainControlItems[controlItem.name] = {
+        element,
+        checked: initialValue,
+      };
     });
   return {
     controlItems: mapControlItems,
