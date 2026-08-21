@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import useGetDatasetRelatedCounts from 'src/features/datasets/hooks/useGetDatasetRelatedCounts';
 import { Badge } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
+import { useDatasetLineage } from 'src/hooks/apiResources';
+import { LineageView } from 'src/features/lineage';
 
 const StyledTabs = styled(Tabs)`
   ${({ theme }) => `
@@ -51,16 +54,25 @@ const TRANSLATIONS = {
   USAGE_TEXT: t('Usage'),
   COLUMNS_TEXT: t('Columns'),
   METRICS_TEXT: t('Metrics'),
+  LINEAGE_TEXT: t('Lineage'),
 };
 
 const TABS_KEYS = {
   COLUMNS: 'COLUMNS',
   METRICS: 'METRICS',
   USAGE: 'USAGE',
+  LINEAGE: 'LINEAGE',
 };
 
 const EditPage = ({ id }: EditPageProps) => {
   const { usageCount } = useGetDatasetRelatedCounts(id);
+  const [activeKey, setActiveKey] = useState(TABS_KEYS.COLUMNS);
+  // Only fetch lineage once the user opens the Lineage tab to avoid
+  // unnecessary requests/backend load on page load.
+  const lineageResource = useDatasetLineage(
+    id,
+    activeKey !== TABS_KEYS.LINEAGE,
+  );
 
   const usageTab = (
     <TabStyles>
@@ -85,9 +97,23 @@ const EditPage = ({ id }: EditPageProps) => {
       label: usageTab,
       children: null,
     },
+    {
+      key: TABS_KEYS.LINEAGE,
+      label: TRANSLATIONS.LINEAGE_TEXT,
+      children: (
+        <LineageView lineageResource={lineageResource} entityType="dataset" />
+      ),
+    },
   ];
 
-  return <StyledTabs moreIcon={null} items={items} />;
+  return (
+    <StyledTabs
+      moreIcon={null}
+      items={items}
+      activeKey={activeKey}
+      onChange={setActiveKey}
+    />
+  );
 };
 
 export default EditPage;

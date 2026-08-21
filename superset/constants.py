@@ -182,6 +182,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "list_versions": "read",
     "get_version": "read",
     "activity": "read",
+    "lineage": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

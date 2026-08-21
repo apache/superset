@@ -36,6 +36,7 @@ import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { useIsMobile } from 'src/hooks/useIsMobile';
+import { LineageModal } from 'src/features/lineage';
 
 const menuItemButtonCss = css`
   appearance: none;
@@ -84,6 +85,7 @@ function DashboardCard({
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
   const allowEdit = isUserEditorOrAdmin(user, dashboard.editors);
+  const canRead = hasPerm('can_read');
   const digest = dashboard.changed_on_utc || dashboard.changed_on;
   const thumbnailUrl =
     isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id && digest
@@ -91,6 +93,23 @@ function DashboardCard({
       : '';
 
   const menuItems: MenuItem[] = [];
+
+  if (canRead) {
+    menuItems.push({
+      key: 'lineage',
+      label: (
+        <LineageModal
+          entityType="dashboard"
+          entityId={dashboard.id}
+          triggerNode={
+            <div data-test="dashboard-card-option-lineage-button">
+              <Icons.ShareAltOutlined iconSize="l" /> {t('View Lineage')}
+            </div>
+          }
+        />
+      ),
+    });
+  }
 
   if (canEdit && openDashboardEditModal) {
     menuItems.push({
