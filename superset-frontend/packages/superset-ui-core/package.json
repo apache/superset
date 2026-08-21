@@ -77,7 +77,7 @@
     "math-expression-evaluator": "^2.0.7",
     "parse-ms": "^4.0.0",
     "re-resizable": "^6.11.2",
-    "react-ace": "^14.0.1",
+    "react-ace": "^15.0.0",
     "react-draggable": "^4.7.1",
     "react-error-boundary": "^6.1.2",
     "react-js-cron": "^6.0.2",
