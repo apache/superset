@@ -118,6 +118,67 @@ test('buildUiSchema respects x-propertyOrder and includes placeholders/tooltips'
   });
 });
 
+test('buildUiSchema omits an x-hidden property from the generated elements', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      column: { type: 'string' },
+      options: { type: 'array', items: { type: 'string' }, 'x-hidden': true },
+    },
+  } as JsonSchema;
+
+  const uiSchema = buildUiSchema(schema) as {
+    type: string;
+    elements: Array<Record<string, unknown>>;
+  };
+
+  expect(uiSchema.elements.map(element => element.scope)).toEqual([
+    '#/properties/column',
+  ]);
+});
+
+test('buildUiSchema attaches a SHOW rule gated on x-dependsOn', () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      datasetId: { type: 'integer' },
+      column: {
+        type: 'string',
+        'x-dynamic': true,
+        'x-dependsOn': ['datasetId'],
+      },
+    },
+  } as JsonSchema;
+
+  const uiSchema = buildUiSchema(schema) as {
+    type: string;
+    elements: Array<Record<string, unknown>>;
+  };
+
+  const columnElement = uiSchema.elements.find(
+    element => element.scope === '#/properties/column',
+  );
+  expect(columnElement?.rule).toEqual({
+    effect: 'SHOW',
+    condition: {
+      type: 'AND',
+      conditions: [
+        {
+          scope: '#/properties/datasetId',
+          schema: {},
+          failWhenUndefined: true,
+        },
+      ],
+    },
+  });
+  // The field it depends on carries no rule of its own — visibility only
+  // ever gates the dependent field.
+  const datasetElement = uiSchema.elements.find(
+    element => element.scope === '#/properties/datasetId',
+  );
+  expect(datasetElement?.rule).toBeUndefined();
+});
+
 test('getDynamicDependencies extracts x-dynamic dependency mapping', () => {
   const schema = {
     type: 'object',

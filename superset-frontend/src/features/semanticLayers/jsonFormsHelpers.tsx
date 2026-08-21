@@ -435,6 +435,20 @@ export function sanitizeSchema(schema: JsonSchema): JsonSchema {
 /**
  * Builds a JSON Forms UI schema from a JSON Schema, using the first
  * `examples` entry as placeholder text for each string property.
+ *
+ * Two schema markers change whether, and when, a property gets a Control at
+ * all, rather than how it's rendered:
+ *  - `x-hidden: true` drops the property from the generated Form entirely —
+ *    still a real field (present in the schema, the JSON tab, and whatever
+ *    the widget itself reads), just not offered as one of the Form's own
+ *    controls (e.g. `filter.select`'s `options`/`defaultSelection`, which
+ *    only need a raw "Add one at a time" list control not worth surfacing
+ *    as a first-class field).
+ *  - `x-dependsOn` on a property whose dependencies aren't satisfied yet
+ *    hides its Control via a JsonForms `SHOW` rule, rather than rendering it
+ *    disabled/blank — asking for a value the field can't yet offer real
+ *    choices for (e.g. `filter.select`'s `column`, before `datasetId` is
+ *    set) reads as broken, not as "not ready yet."
  */
 export function buildUiSchema(schema: JsonSchema): UISchemaElement | undefined {
   if (!schema.properties) return undefined;
@@ -447,6 +461,14 @@ export function buildUiSchema(schema: JsonSchema): UISchemaElement | undefined {
 
   const elements = propertyOrder
     .filter(key => key in (schema.properties ?? {}))
+    .filter(key => {
+      const prop = schema.properties![key];
+      return !(
+        typeof prop === 'object' &&
+        prop !== null &&
+        (prop as Record<string, unknown>)['x-hidden'] === true
+      );
+    })
     .map(key => {
       const prop = schema.properties![key];
       const control: Record<string, unknown> = {
@@ -467,6 +489,21 @@ export function buildUiSchema(schema: JsonSchema): UISchemaElement | undefined {
         }
         if (Object.keys(options).length > 0) {
           control.options = options;
+        }
+
+        const dependsOn = (prop as Record<string, unknown>)['x-dependsOn'];
+        if (Array.isArray(dependsOn) && dependsOn.length > 0) {
+          control.rule = {
+            effect: 'SHOW',
+            condition: {
+              type: 'AND',
+              conditions: dependsOn.map(dep => ({
+                scope: `#/properties/${dep}`,
+                schema: {},
+                failWhenUndefined: true,
+              })),
+            },
+          };
         }
       }
       return control;

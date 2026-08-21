@@ -27,6 +27,8 @@ import BalloonsWidget from './widgets/BalloonsWidget';
 import TabsWidget, { TAB_TYPE } from './widgets/TabsWidget';
 import CollapsibleWidget from './widgets/CollapsibleWidget';
 import CarouselWidget, { SLIDE_TYPE } from './widgets/CarouselWidget';
+import FilterSelectWidget from './widgets/FilterSelectWidget';
+import FilterBarWidget from './widgets/FilterBarWidget';
 
 let registered = false;
 
@@ -96,6 +98,24 @@ export function registerBuiltInWidgets(): void {
   );
   views.registerView(
     {
+      id: 'filter.select',
+      name: 'Filter',
+      description: 'A value/multi-select dashboard filter.',
+    },
+    DASHBOARD_WIDGETS_LOCATION,
+    FilterSelectWidget,
+  );
+  views.registerView(
+    {
+      id: 'filter.bar',
+      name: 'Filter Bar',
+      description: 'A plain arranging container for filter.* children.',
+    },
+    DASHBOARD_WIDGETS_LOCATION,
+    FilterBarWidget,
+  );
+  views.registerView(
+    {
       id: 'tabs',
       name: 'Tabs',
       description: 'Groups widgets into switchable tabs.',
@@ -136,4 +156,11 @@ export function registerBuiltInWidgets(): void {
   registerContainerType('collapsible');
   registerContainerType('carousel');
   registerContainerType(SLIDE_TYPE);
+
+  // filter.bar is a real container (its filter.* children are ordinary
+  // nodes, added/removed/reordered like any other container's — see
+  // FilterBarWidget), unlike the private pane/slide types above, so it's
+  // also registered as a view (WidgetView renders it like any other
+  // widget when placed directly).
+  registerContainerType('filter.bar');
 }

@@ -24,19 +24,26 @@ path. This module is imported (for its decorator side-effects) by
 
 from __future__ import annotations
 
+import logging
 from copy import deepcopy
 from typing import Any
 
 from pydantic import BaseModel
 from superset_core.widgets import Widget, widget
 
+from superset.daos.dataset import DatasetDAO
+from superset.exceptions import SupersetSecurityException
 from superset.widgets.controls import (
     AgGridTableControls,
     BalloonsControls,
     EchartsControls,
+    FilterBarControls,
+    FilterSelectControls,
     MarkdownControls,
     MetricTileControls,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @widget(
@@ -140,3 +147,75 @@ class Balloons(Widget):
             style["title"] = value
             properties[value] = style
         series_prop["properties"] = properties
+
+
+@widget(
+    widget_type="filter.select",
+    name="Filter",
+    description="A value/multi-select dashboard filter.",
+)
+class FilterSelect(Widget):
+    """
+    A leaf ``filter.*`` widget: reads ``datasetId``/``column`` and, at
+    render time, either the author's static ``options`` or the column's own
+    distinct values. Its live selection travels over the widget event bus
+    (``dashboard.emit``/``getValue``), not ``props`` — see the frontend
+    ``FilterSelectWidget`` and ``collectActiveFilters`` — so nothing about
+    that selection lives in this schema.
+    """
+
+    controls_class = FilterSelectControls
+
+    @classmethod
+    def enrich_schema(
+        cls,
+        schema: dict[str, Any],
+        parsed: BaseModel | None,
+        series: list[str],  # noqa: ARG003
+    ) -> None:
+        # Unlike `column` below, this doesn't depend on any other field, so
+        # it's populated unconditionally with every dataset the caller can
+        # view — `enum` carries the ids the widget actually stores, and
+        # `x-enumNames` the display names the control panel shows instead
+        # (see `EnumNamesControl` on the frontend).
+        if (dataset_prop := schema.get("properties", {}).get("datasetId")) is not None:
+            datasets = DatasetDAO.find_all()
+            dataset_prop["enum"] = [dataset.id for dataset in datasets]
+            dataset_prop["x-enumNames"] = [dataset.name for dataset in datasets]
+
+        column_prop = schema.get("properties", {}).get("column")
+        if column_prop is None:
+            return
+        # Every early-return below leaves `enum` explicitly blank (rather than
+        # merely absent) so the field degrades to a plain text input instead
+        # of an enum-typed control with no choices. `build_configuration_schema`
+        # already does this when `parsed` is None; these branches cover the
+        # cases it doesn't (a dataset that's unset, missing, or inaccessible).
+        column_prop["enum"] = []
+        dataset_id = getattr(parsed, "dataset_id", None) if parsed else None
+        if not dataset_id:
+            return
+        dataset = DatasetDAO.find_by_id(dataset_id)
+        if dataset is None:
+            return
+        try:
+            dataset.raise_for_access()
+        except SupersetSecurityException:
+            # Same fail-open as an unset dataset: the field just falls back to
+            # a plain text input rather than a 500 or a schema that leaks
+            # column names for a dataset this caller cannot read.
+            logger.info(
+                "Access denied enriching filter.select column enum for dataset %s",
+                dataset_id,
+            )
+            return
+        column_prop["enum"] = dataset.filterable_column_names
+
+
+@widget(
+    widget_type="filter.bar",
+    name="Filter Bar",
+    description="A plain arranging container for filter.* children.",
+)
+class FilterBar(Widget):
+    controls_class = FilterBarControls
