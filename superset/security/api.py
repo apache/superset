@@ -40,6 +40,7 @@ from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
 from superset.commands.exceptions import ForbiddenError
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
 from superset.security.guest_token import (
@@ -423,6 +424,11 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
+    # This API is read-only by design: restricting the exposed routes keeps
+    # the FAB default POST/PUT/DELETE handlers from ever being registered,
+    # so a mis-granted role cannot create, alter, or silently cancel a
+    # pending registration.
+    include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST, RouteMethod.INFO}
     # NOTE: registration_hash is intentionally excluded from both list_columns
     # and search_columns. It is a bearer token for the
     # /register/activation/<hash> flow; exposing it in API responses (and thus

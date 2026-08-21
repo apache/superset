@@ -19,8 +19,10 @@ from typing import Any
 import pytest
 from marshmallow import ValidationError
 
+from superset.constants import RouteMethod
 from superset.extensions import csrf
-from superset.security.api import RlsRuleSchema
+from superset.security.api import RlsRuleSchema, UserRegistrationsRestAPI
+from superset.security.manager import SupersetSecurityManager
 
 
 @pytest.mark.parametrize(
@@ -172,3 +174,26 @@ def test_rls_rule_schema_rejects_falsy_dataset(dataset: Any) -> None:
     with pytest.raises(ValidationError) as exc_info:
         RlsRuleSchema().load({"dataset": dataset, "clause": "tenant_id = 1"})
     assert "dataset" in exc_info.value.messages
+
+
+def test_user_registrations_rest_api_is_admin_only() -> None:
+    """
+    The API is documented Admin-only, but the admin gate is membership in
+    ADMIN_ONLY_VIEW_MENUS keyed by the FAB-derived view-menu name (the class
+    name). If the entry is missing, ``superset init`` grants the API's
+    permissions to stock Gamma and Alpha via ``_is_gamma_pvm``, exposing
+    pending registrants' PII and registration deletion.
+    """
+    assert "UserRegistrationsRestAPI" in SupersetSecurityManager.ADMIN_ONLY_VIEW_MENUS
+
+
+def test_user_registrations_rest_api_routes_are_read_only() -> None:
+    """
+    Only the read routes should be registered; the FAB default POST/PUT/
+    DELETE handlers must not exist on this API at all.
+    """
+    assert UserRegistrationsRestAPI.include_route_methods == {
+        RouteMethod.GET,
+        RouteMethod.GET_LIST,
+        RouteMethod.INFO,
+    }
