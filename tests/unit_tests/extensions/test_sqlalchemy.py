@@ -348,6 +348,85 @@ def table2_multi_late_match(session: Session, database2: "Database") -> Iterator
         db.session.commit()
 
 
+@pytest.fixture
+def table2_fanout_match(session: Session, database2: "Database") -> Iterator[None]:
+    with database2.get_sqla_engine() as engine:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "CREATE TABLE table2_fanout_match "
+                    "(id INTEGER NOT NULL PRIMARY KEY, a INTEGER, b TEXT)"
+                )
+            )
+            # `a` is deliberately not unique (unlike table2_late_match, where
+            # it's the primary key): a single outer row matching on `a=3`
+            # fans out into two inner rows here, so reading the match
+            # requires pulling more than one row through the cursor per
+            # outer probe, instead of a single unique-index lookup.
+            conn.execute(
+                text(
+                    "INSERT INTO table2_fanout_match (a, b) "
+                    "VALUES (3, 'thirty-x'), (3, 'thirty-y')"
+                )
+            )
+        db.session.commit()
+
+        yield
+
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE table2_fanout_match"))
+        db.session.commit()
+
+
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+def test_superset_joins_with_limit_drops_fanout_matches(
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+    table1_large: None,
+    table2_fanout_match: None,
+) -> None:
+    """
+    Coverage note from review of #42598: the other join regression tests
+    match on a primary key on both sides, so each inner lookup returns at
+    most one row. Here `table1_large`'s single match (a=3) fans out into two
+    rows in `table2_fanout_match`, so satisfying it means pulling more than
+    one row through the cursor for a single outer probe, rather than a single
+    unique-index lookup.
+    """
+    monkeypatch.setitem(current_app.config, "DB_SQLA_URI_VALIDATOR", None)
+    monkeypatch.setitem(current_app.config, "SUPERSET_META_DB_LIMIT", 2)
+    monkeypatch.setitem(current_app.config, "DATABASE_OAUTH2_CLIENTS", {})
+    monkeypatch.setitem(current_app.config, "SQLALCHEMY_CUSTOM_PASSWORD_STORE", None)
+
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
+
+    from flask import g
+
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
+    try:
+        engine = create_engine("superset://", future=True)
+    except Exception as e:
+        pytest.skip(f"Superset dialect not available: {e}")
+
+    with engine.connect() as conn:
+        results = conn.execute(
+            text("""
+            SELECT t1.b, t2.b
+            FROM "database1.table1_large" AS t1
+            JOIN "database2.table2_fanout_match" AS t2
+            ON t1.a = t2.a
+            ORDER BY t2.b
+            """)
+        )
+        assert list(results) == [(30, "thirty-x"), (30, "thirty-y")]
+
+
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_superset_joins_with_limit_multiple_late_matches(
     mocker: MockerFixture,
@@ -504,6 +583,65 @@ def test_superset_comma_join_with_limit_drops_matches(
         # Same scenario as test_superset_joins_with_limit_drops_matches, but
         # using a comma join instead of the `JOIN` keyword.
         assert list(results) == [(30, "thirty")]
+
+
+@with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+def test_superset_joins_via_raw_cursor_drops_matches(
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+    table1_large: None,
+    table2_late_match: None,
+) -> None:
+    """
+    Regression for #36304: SQL Lab executes statements through a raw DBAPI
+    cursor (``engine.raw_connection().cursor()``), not through SQLAlchemy's
+    ``Connection.execute()``. That path never reaches
+    ``SupersetAPSWDialect.do_execute*``, so a fix keyed only on those hooks
+    leaves the per-table ``SUPERSET_META_DB_LIMIT`` skip blind to exactly the
+    statements SQL Lab runs, and the same join match SQL Lab users see would
+    still be silently dropped even though
+    ``test_superset_joins_with_limit_drops_matches`` (which goes through
+    ``Connection.execute()``) passes.
+    """
+    monkeypatch.setitem(current_app.config, "DB_SQLA_URI_VALIDATOR", None)
+    monkeypatch.setitem(current_app.config, "SUPERSET_META_DB_LIMIT", 2)
+    monkeypatch.setitem(current_app.config, "DATABASE_OAUTH2_CLIENTS", {})
+    monkeypatch.setitem(current_app.config, "SQLALCHEMY_CUSTOM_PASSWORD_STORE", None)
+
+    mocker.patch(
+        "superset.extensions.metadb.security_manager.raise_for_access",
+        return_value=None,
+    )
+
+    from flask import g
+
+    g.user = mocker.MagicMock()
+    g.user.is_anonymous = False
+
+    try:
+        engine = create_engine("superset://", future=True)
+    except Exception as e:
+        # Skip test if superset:// dialect can't be loaded (common in Docker)
+        pytest.skip(f"Superset dialect not available: {e}")
+
+    raw_connection = engine.raw_connection()
+    try:
+        cursor = raw_connection.cursor()
+        cursor.execute(
+            """
+            SELECT t1.b, t2.b
+            FROM "database1.table1_large" AS t1
+            JOIN "database2.table2_late_match" AS t2
+            ON t1.a = t2.a
+            """
+        )
+        # Same scenario as test_superset_joins_with_limit_drops_matches, but
+        # executed the way SQL Lab actually runs queries: a raw DBAPI cursor
+        # obtained from `engine.raw_connection()`, bypassing `do_execute*`.
+        assert list(cursor) == [(30, "thirty")]
+    finally:
+        raw_connection.close()
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)

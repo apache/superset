@@ -43,7 +43,6 @@ import decimal
 import operator
 import urllib.parse
 from collections.abc import Iterator
-from contextlib import contextmanager
 from functools import partial, wraps
 from typing import Any, Callable, cast, TypeVar
 
@@ -91,10 +90,10 @@ def _count_referenced_tables(statement: str) -> int:
     return count_referenced_tables(statement, "sqlite")
 
 
-# `SupersetAPSWDialect.do_execute*` populates `_executing_multi_table_query`
-# for the duration of a statement so that `get_data` can tell whether it's
-# being asked for a standalone table or for one side of a multi-table query
-# (see `get_data` for why this matters).
+# `SupersetAPSWDialect.on_connect` populates `_executing_multi_table_query` for
+# the duration of a statement so that `get_data` can tell whether it's being
+# asked for a standalone table or for one side of a multi-table query (see
+# `get_data` for why this matters).
 _executing_multi_table_query: contextvars.ContextVar[bool] = contextvars.ContextVar(
     "_executing_multi_table_query", default=False
 )
@@ -148,52 +147,48 @@ class SupersetAPSWDialect(APSWDialect):
             },
         )
 
-    def do_execute(
-        self,
-        cursor: Any,
-        statement: str,
-        parameters: Any,
-        context: Any = None,
-    ) -> None:
-        with self._flag_multi_table_query(statement):
-            super().do_execute(cursor, statement, parameters, context)
-
-    def do_execute_no_params(
-        self,
-        cursor: Any,
-        statement: str,
-        context: Any = None,
-    ) -> None:
-        with self._flag_multi_table_query(statement):
-            super().do_execute_no_params(cursor, statement, context)
-
-    def do_executemany(
-        self,
-        cursor: Any,
-        statement: str,
-        parameters: Any,
-        context: Any = None,
-    ) -> None:
-        with self._flag_multi_table_query(statement):
-            super().do_executemany(cursor, statement, parameters, context)
-
-    @staticmethod
-    @contextmanager
-    def _flag_multi_table_query(statement: str) -> Iterator[None]:
+    def on_connect(self) -> Callable[[Any], None]:
         """
-        Record, for the duration of executing ``statement``, whether it references
-        more than one `superset://` virtual table.
+        Wrap cursor creation on every new DBAPI connection so ``execute`` tracks
+        whether the statement it's about to run references more than one
+        `superset://` virtual table, no matter how that statement reaches the
+        cursor.
 
-        `SupersetShillelaghAdapter.get_data` reads this to decide whether it's safe
-        to apply `SUPERSET_META_DB_LIMIT` to the table it's fetching (see `get_data`).
+        SQLAlchemy's `do_execute*` hooks only fire for statements executed
+        through a SQLAlchemy `Connection` (the ORM/Core path). SQL Lab, the
+        primary way users query these tables, instead pulls a raw DBAPI cursor
+        via `engine.raw_connection()` and calls `cursor.execute()` on it
+        directly, bypassing those hooks entirely -- which would leave
+        `_executing_multi_table_query` permanently `False` for that path, and
+        `get_data` back to silently truncating one side of a join (see
+        `get_data` and #36304). Patching the cursor factory here, at the point
+        a new physical connection is established, catches every path, since
+        each one ultimately calls `execute()` on a cursor obtained from this
+        same connection.
         """
-        token = _executing_multi_table_query.set(
-            _count_referenced_tables(statement) > 1
-        )
-        try:
-            yield
-        finally:
-            _executing_multi_table_query.reset(token)
+
+        def setup(dbapi_connection: Any) -> None:
+            original_cursor = dbapi_connection.cursor
+
+            def cursor(*args: Any, **kwargs: Any) -> Any:
+                raw_cursor = original_cursor(*args, **kwargs)
+                original_execute = raw_cursor.execute
+
+                def execute(operation: str, parameters: Any = None) -> Any:
+                    token = _executing_multi_table_query.set(
+                        _count_referenced_tables(operation) > 1
+                    )
+                    try:
+                        return original_execute(operation, parameters)
+                    finally:
+                        _executing_multi_table_query.reset(token)
+
+                raw_cursor.execute = execute
+                return raw_cursor
+
+            dbapi_connection.cursor = cursor
+
+        return setup
 
 
 F = TypeVar("F", bound=Callable[..., Any])
