@@ -13832,8 +13832,12 @@ msgstr ""
 #, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there within %(days)s day."
+msgid_plural ""
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s days."
-msgstr ""
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid ""
@@ -13847,8 +13851,12 @@ msgstr ""
 #, python-format
 msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there within %(days)s day."
+msgid_plural ""
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s days."
-msgstr ""
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid ""

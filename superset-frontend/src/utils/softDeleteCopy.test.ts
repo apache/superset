@@ -103,6 +103,16 @@ test('the confirm copy quotes the window when there is one', () => {
   );
 });
 
+test('a one-day window is quoted in the singular', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 1 });
+  expect(archiveConfirmDescription('chart')).toBe(
+    'This chart will be moved to Recently Archived in the Settings menu. You can recover it there within 1 day.',
+  );
+  expect(archiveConfirmDescription('charts', true)).toBe(
+    'These charts will be moved to Recently Archived in the Settings menu. You can recover them there within 1 day.',
+  );
+});
+
 test('the confirm copy omits the clause when there is no window', () => {
   withConf({});
   expect(archiveConfirmDescription('dashboard')).toBe(
