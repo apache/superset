@@ -29,13 +29,32 @@ interface LeftCellProps {
 }
 
 /**
+ * SECURITY: the URL control is creator-authored free text rendered as a
+ * clickable link to every chart viewer. Confine it to http(s) and relative
+ * URLs so `javascript:` (or any other script-bearing scheme) never reaches
+ * an href — rel/target do not mitigate javascript: execution. Returns
+ * undefined for anything unsafe, degrading the cell to plain text.
+ */
+export const toSafeHref = (url: string): string | undefined => {
+  try {
+    const { protocol } = new URL(url, window.location.origin);
+    if (protocol === 'http:' || protocol === 'https:') {
+      return url;
+    }
+  } catch {
+    // fall through: unparseable URLs are not rendered as links
+  }
+  return undefined;
+};
+
+/**
  * Renders the left cell containing either column labels or metric information
  */
 const LeftCell = ({ row, rowType, url }: LeftCellProps): ReactElement => {
   const fullUrl = useMemo(() => {
     if (!url) return undefined;
     const context = { metric: row };
-    return Mustache.render(url, context);
+    return toSafeHref(Mustache.render(url, context));
   }, [url, row]);
 
   if (rowType === 'column') {
