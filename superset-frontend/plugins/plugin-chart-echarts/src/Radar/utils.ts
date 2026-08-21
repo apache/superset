@@ -64,7 +64,7 @@ export const renderNormalizedTooltip = (
   const { color, name = '', value: values } = params;
   const seriesName = name || 'series0';
 
-  const colorDot = `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:5px;height:5px;background-color:${color}"></span>`;
+  const colorDot = `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:5px;height:5px;background-color:${sanitizeHtml(color)}"></span>`;
 
   // Get metric values with denormalization if needed
   const metricValues: TooltipMetricValue[] = metrics.map((metric, index) => {
@@ -87,8 +87,8 @@ export const renderNormalizedTooltip = (
   });
 
   // Tooltip is rendered via innerHTML (ECharts default renderMode
-  // 'html'), so seriesName/metric/value are HTML-escaped, matching the
-  // treatment every other echarts tooltip path applies.
+  // 'html'), so seriesName/metric/value/color are HTML-escaped, matching
+  // the treatment every other echarts tooltip path applies.
   const tooltipRows = metricValues
     .map(
       ({ metric, value }) => `

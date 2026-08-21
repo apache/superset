@@ -526,20 +526,23 @@ test('EChartOptionsParseError contains validation error details', () => {
 
 // =============================================================================
 // Creator-authored options must not reach the tooltip's innerHTML/
-// navigation sinks.
+// navigation sinks unsanitized.
 // =============================================================================
 
-test('rejects tooltip string formatters containing HTML markup', () => {
+test('sanitizes tooltip string formatters instead of rejecting all markup', () => {
   const input = `{ tooltip: { formatter: '<img src=x onerror=alert(1)>' } }`;
+  const result = parseEChartOptions(input);
 
-  expect(() => parseEChartOptions(input)).toThrow(EChartOptionsParseError);
-  try {
-    parseEChartOptions(input);
-  } catch (error) {
-    expect((error as EChartOptionsParseError).errorType).toBe(
-      'validation_error',
-    );
-  }
+  expect(result.success).toBe(true);
+  expect(result.data?.tooltip).toEqual({ formatter: '<img src>' });
+});
+
+test('keeps presentational tags in tooltip string formatters', () => {
+  const input = `{ tooltip: { formatter: '{b}<br/>{c}' } }`;
+  const result = parseEChartOptions(input);
+
+  expect(result.success).toBe(true);
+  expect(result.data?.tooltip).toEqual({ formatter: '{b}<br />{c}' });
 });
 
 test('strips per-series tooltip config so its formatter never reaches the merge', () => {

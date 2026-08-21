@@ -28,6 +28,7 @@
  */
 
 import { z } from 'zod';
+import { sanitizeHtml } from '@superset-ui/core';
 
 // =============================================================================
 // Common Schemas
@@ -58,16 +59,16 @@ const fontStyleSchema = z.enum(['normal', 'italic', 'oblique']);
 const symbolTypeSchema = z.string();
 
 /**
- * With the ECharts default renderMode 'html', a string tooltip formatter
- * is assigned to the tooltip DOM element via innerHTML, so markup is
- * rejected outright; placeholder templates like '{b}: {c}' need no '<'.
+ * With the ECharts default renderMode 'html', a string tooltip formatter is
+ * assigned to the tooltip DOM element via innerHTML. ECharts formatter
+ * strings commonly rely on inline markup (e.g. '{b}<br/>{c}') for layout, so
+ * rejecting every '<' would break that supported usage; instead the value is
+ * run through the same allowlist sanitizer used for other tooltip HTML,
+ * which keeps presentational tags and strips anything else.
  */
-const htmlFreeFormatterSchema = z
+const sanitizedFormatterSchema = z
   .string()
-  .refine(value => !value.includes('<'), {
-    message:
-      'HTML markup is not allowed in string formatters (they are rendered via innerHTML)',
-  });
+  .transform(value => sanitizeHtml(value));
 
 /**
  * ECharts navigates to title.link/sublink on click, so restrict them to
@@ -413,9 +414,9 @@ export const tooltipSchema = z.object({
       z.array(z.union([z.number(), z.string()])),
     ])
     .optional(),
-  // Only string formatters, and only markup-free ones: a string tooltip
-  // formatter is rendered via innerHTML (default renderMode 'html').
-  formatter: htmlFreeFormatterSchema.optional(),
+  // Only string formatters: a string tooltip formatter is rendered via
+  // innerHTML (default renderMode 'html'), so it is sanitized above.
+  formatter: sanitizedFormatterSchema.optional(),
   padding: z.union([z.number(), z.array(z.number())]).optional(),
   backgroundColor: colorSchema.optional(),
   borderColor: colorSchema.optional(),
@@ -608,7 +609,7 @@ export const seriesSchema = z.object({
   calendarIndex: z.number().optional(),
   // Per-series `tooltip` is intentionally not admitted; the schema
   // strips unknown keys. If per-series tooltips are ever admitted, reuse
-  // tooltipSchema so the markup-free formatter constraint applies.
+  // tooltipSchema so the formatter sanitization applies.
   label: labelSchema.optional(),
   labelLine: z
     .object({

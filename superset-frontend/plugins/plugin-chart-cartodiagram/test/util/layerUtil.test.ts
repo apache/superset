@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { WfsLayerConf, XyzLayerConf } from '../../src/types';
+import { WfsLayerConf, WmsLayerConf, XyzLayerConf } from '../../src/types';
 import {
   createLayer,
   createWfsLayer,
@@ -43,6 +43,22 @@ describe('layerUtil', () => {
     test('exists', () => {
       // function is trivial
       expect(createWmsLayer).toBeDefined();
+    });
+
+    test('escapes HTML in the layer attribution', () => {
+      const wmsLayerConf: WmsLayerConf = {
+        title: 'wms',
+        type: 'WMS',
+        url: 'https://ows-demo.terrestris.de/geoserver/osm/wms',
+        version: '1.3.0',
+        layersParam: 'osm:osm-fuel',
+        attribution: '(c) OSM <img src=x onerror=alert(1)>',
+      };
+      const layer = createWmsLayer(wmsLayerConf);
+      const attributions = layer.getSource()?.getAttributions();
+      expect(attributions?.(undefined as never)).toEqual([
+        '(c) OSM &lt;img src=x onerror=alert(1)&gt;',
+      ]);
     });
   });
 

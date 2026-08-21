@@ -94,4 +94,18 @@ describe('renderNormalizedTooltip', () => {
     expect(tooltip).not.toContain('<svg');
     expect(tooltip).toContain('&lt;svg');
   });
+
+  test('should HTML-escape the series color used for the tooltip color dot', () => {
+    // Regression test: `color` is interpolated into a style attribute
+    // unquoted, so an unescaped quote could break out of the attribute
+    // and inject markup.
+    const tooltip = renderNormalizedTooltip(
+      { ...params, color: 'red" onmouseover="alert(1)' },
+      metrics,
+      mockGetDenormalizedValue,
+      metricsWithCustomBounds,
+    );
+    expect(tooltip).not.toContain('" onmouseover="alert(1)"');
+    expect(tooltip).toContain('&quot; onmouseover=&quot;alert(1)');
+  });
 });
