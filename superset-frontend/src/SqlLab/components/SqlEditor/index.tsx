@@ -296,6 +296,9 @@ const SqlEditor: FC<Props> = ({
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
+  const successful = latestQuery?.state === QueryState.Success;
+  const resultColumns = latestQuery?.results?.columns || [];
+
   const startQuery = useCallback(
     (
       ctasArg = false,
@@ -713,7 +716,6 @@ const SqlEditor: FC<Props> = ({
 
   const getSecondaryMenuItems = () => {
     const qe = queryEditor;
-    const successful = latestQuery?.state === QueryState.Success;
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
@@ -859,14 +861,14 @@ const SqlEditor: FC<Props> = ({
           )}
         <SaveQuery
           queryEditorId={queryEditor.id}
-          columns={latestQuery?.results?.columns || []}
+          columns={resultColumns}
           onSave={onSaveQuery}
           onUpdate={(query, remoteId) =>
             dispatch(updateSavedQuery(query, remoteId))
           }
           saveQueryWarning={saveQueryWarning}
           database={database}
-          canSaveDataset={latestQuery?.state !== QueryState.Failed}
+          canSaveDataset={successful && resultColumns.length > 0}
         />
         <ShareSqlLabQuery queryEditorId={queryEditor.id} />
       </>

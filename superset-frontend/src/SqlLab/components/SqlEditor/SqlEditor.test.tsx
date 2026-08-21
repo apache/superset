@@ -368,9 +368,12 @@ describe('SqlEditor', () => {
     expect(await findByRole('button', { name: 'Save dataset' })).toBeDisabled();
   });
 
-  test('enables the save dataset button while the query is still running', async () => {
-    const { findByRole } = setupWithLatestQuery({ state: QueryState.Running });
-    expect(await findByRole('button', { name: 'Save dataset' })).toBeEnabled();
+  test('disables the save dataset button when the results are not loaded', async () => {
+    const { findByRole } = setupWithLatestQuery({
+      state: QueryState.Success,
+      results: undefined,
+    });
+    expect(await findByRole('button', { name: 'Save dataset' })).toBeDisabled();
   });
 
   test('renders an Extension if provided', async () => {
