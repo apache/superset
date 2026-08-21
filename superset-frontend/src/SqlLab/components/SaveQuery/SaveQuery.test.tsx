@@ -27,6 +27,8 @@ import {
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
 import { initialState, databases } from 'src/SqlLab/fixtures';
 
+const RESULT_COLUMNS = [{ column_name: 'col', type: 'STRING' }];
+
 const mockedProps = {
   queryEditorId: '123',
   animation: false,
@@ -35,7 +37,6 @@ const mockedProps = {
   onSave: () => {},
   saveQueryWarning: null,
   columns: [],
-  canSaveDataset: true,
 };
 
 const mockState = {
@@ -60,6 +61,7 @@ const splitSaveBtnProps = {
     ...mockedProps.database,
     allows_virtual_table_explore: true,
   },
+  columns: RESULT_COLUMNS,
 };
 
 const EDITOR_SQL = 'SELECT * FROM t';
@@ -156,6 +158,18 @@ describe('SavedQuery', () => {
           sql: 'SELECT 1 AS ran_earlier',
         }),
       ),
+    });
+
+    expect(
+      screen.getByRole('button', { name: /save dataset/i }),
+    ).toBeDisabled();
+  });
+
+  test('blocks "Save dataset" when the successful query returned no columns', () => {
+    // e.g. a DDL/DML statement -- there is nothing to introspect into a dataset.
+    render(<SaveQuery {...splitSaveBtnProps} columns={[]} />, {
+      useRedux: true,
+      store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
     });
 
     expect(

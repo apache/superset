@@ -54,7 +54,6 @@ interface SaveQueryProps {
   onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Partial<DatabaseObject> | undefined;
-  canSaveDataset: boolean;
 }
 
 export type QueryPayload = {
@@ -84,7 +83,6 @@ const SaveQuery = ({
   saveQueryWarning,
   database,
   columns,
-  canSaveDataset,
 }: SaveQueryProps) => {
   const queryEditor = useQueryEditor(queryEditorId, [
     'autorun',
@@ -116,14 +114,16 @@ const SaveQuery = ({
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   // Saving a dataset runs the SQL to introspect columns, so it needs a
-  // successful run of the SQL being saved -- editing after a run invalidates
-  // it, and running a selection only validates that selection.
+  // successful run of the SQL being saved that produced at least one column
+  // -- editing after a run invalidates it, and running a selection only
+  // validates that selection.
   const latestQuery = useSelector<SqlLabRootState, Query | undefined>(
     ({ sqlLab }) => sqlLab.queries[queryEditor.latestQueryId || ''],
   );
-  const hasSuccessfulQuery =
+  const canSaveDataset =
     latestQuery?.state === QueryState.Success &&
-    latestQuery.sql === queryEditor.sql;
+    latestQuery.sql === queryEditor.sql &&
+    columns.length > 0;
   const isSaved = !!query.remoteId;
   const isLabelEmpty = label.trim().length === 0;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
@@ -220,7 +220,7 @@ const SaveQuery = ({
         <SaveDatasetActionButton
           setShowSave={setShowSave}
           onSaveAsExplore={canExploreDatabase ? onSaveAsExplore : undefined}
-          canSaveDataset={canSaveDataset && hasSuccessfulQuery}
+          canSaveDataset={canSaveDataset}
         />
       )}
       <SaveDatasetModal
