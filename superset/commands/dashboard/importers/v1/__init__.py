@@ -25,8 +25,15 @@ from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
 from superset import db
+from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.charts.schemas import ImportV1ChartSchema
-from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.annotation_layer.importers.v1.utils import (
+    import_annotation_layer,
+)
+from superset.commands.chart.importers.v1.utils import (
+    import_chart,
+    topological_sort_charts,
+)
 from superset.commands.dashboard.exceptions import DashboardImportError
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
@@ -63,6 +70,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
     model_name = "dashboard"
     prefix = "dashboards/"
     schemas: dict[str, Schema] = {
+        "annotation_layers/": ImportV1AnnotationLayerSchema(),
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -164,6 +172,13 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
 
+        # import annotation layers before charts so UUID→ID maps are ready
+        annotation_layer_ids: dict[str, int] = {}
+        for file_name, config in configs.items():
+            if file_name.startswith("annotation_layers/"):
+                layer = import_annotation_layer(config, overwrite=overwrite_assets)
+                annotation_layer_ids[str(layer.uuid)] = layer.id
+
         # Resolve the creator's default viewers once for the whole bundle
         # rather than once per chart/dashboard (a membership query each).
         default_viewers = get_default_viewers_for_current_user()
@@ -171,6 +186,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         # import charts with the correct parent ref
         charts = []
         chart_ids: dict[str, int] = {}
+        chart_configs: list[dict[str, Any]] = []
         for file_name, config in configs.items():
             if (
                 file_name.startswith("charts/")
@@ -179,22 +195,26 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 # update datasource id, type, and name
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config = update_chart_config_dataset(config, dataset_dict)
+                chart_configs.append(config)
 
-                chart = import_chart(
-                    config,
-                    overwrite=overwrite_assets,
-                    default_viewers=default_viewers,
-                )
-                charts.append(chart)
-                chart_ids[str(chart.uuid)] = chart.id
+        # Topologically sort all charts for multi-level deps (A→B→C).
+        chart_configs = topological_sort_charts(chart_configs)
 
-                # Handle tags using import_tag function
-                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tags" in config:
-                        target_tag_names = config["tags"]
-                        import_tag(
-                            target_tag_names, contents, chart.id, "chart", db.session
-                        )
+        for config in chart_configs:
+            chart = import_chart(
+                config,
+                overwrite=overwrite_assets,
+                default_viewers=default_viewers,
+                annotation_layer_ids=annotation_layer_ids,
+                chart_ids=chart_ids,
+            )
+            charts.append(chart)
+            chart_ids[str(chart.uuid)] = chart.id
+
+            # Handle tags using import_tag function
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                if "tags" in config:
+                    import_tag(config["tags"], contents, chart.id, "chart", db.session)
 
         # store the existing relationship between dashboards and charts
         # (only used when overwrite=False to avoid inserting duplicates)

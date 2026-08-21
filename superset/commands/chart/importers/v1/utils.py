@@ -16,6 +16,7 @@
 # under the License.
 
 import copy
+import logging
 from inspect import isclass
 from typing import Any
 
@@ -24,25 +25,59 @@ from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.v1.utils import find_existing_for_import
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
+from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.utils import json
-from superset.utils.core import AnnotationType, get_user
+from superset.utils.core import (
+    ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
+    AnnotationType,
+    get_user,
+)
+
+logger = logging.getLogger(__name__)
 
 
-def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
+def filter_chart_annotations(
+    chart_config: dict[str, Any],
+    annotation_layer_ids: dict[str, int] | None = None,
+    chart_ids: dict[str, int] | None = None,
+) -> None:
     """
-    Mutating the chart's config params to keep only the annotations of
-    type FORMULA.
-    TODO:
-      handle annotation dependencies on either other charts or
-      annotation layers objects.
+    Resolve annotation references from exported UUIDs to local integer IDs.
+    - FORMULA: kept unchanged (no DB reference)
+    - NATIVE: UUID resolved to AnnotationLayer.id
+    - table/line: UUID resolved to referenced Chart.id
+    Annotations whose references cannot be resolved are dropped.
     """
     params = chart_config.get("params", {})
-    als = params.get("annotation_layers", [])
-    params["annotation_layers"] = [
-        al for al in als if al.get("annotationType") == AnnotationType.FORMULA
-    ]
+    annotation_layers = params.get("annotation_layers", [])
+    resolved_annotations: list[dict[str, Any]] = []
+    for annotation in annotation_layers:
+        source_type = annotation.get("sourceType")
+        value = annotation.get("value")
+
+        if annotation.get("annotationType") == AnnotationType.FORMULA:
+            resolved_annotations.append(annotation)
+        elif source_type == "NATIVE" and isinstance(value, int):
+            resolved_annotations.append(annotation)
+        elif source_type == "NATIVE" and isinstance(value, str):
+            layer_id = _resolve_uuid_to_id(value, annotation_layer_ids, AnnotationLayer)
+            if layer_id is not None:
+                annotation["value"] = layer_id
+                resolved_annotations.append(annotation)
+        elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE and isinstance(
+            value, int
+        ):
+            resolved_annotations.append(annotation)
+        elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE and isinstance(
+            value, str
+        ):
+            ref_chart_id = _resolve_uuid_to_id(value, chart_ids, Slice)
+            if ref_chart_id is not None:
+                annotation["value"] = ref_chart_id
+                resolved_annotations.append(annotation)
+    params["annotation_layers"] = resolved_annotations
 
 
 def _ensure_can_edit_existing_chart(
@@ -139,6 +174,8 @@ def import_chart(
     overwrite: bool = False,
     ignore_permissions: bool = False,
     default_viewers: list[Subject] | None = None,
+    annotation_layer_ids: dict[str, int] | None = None,
+    chart_ids: dict[str, int] | None = None,
 ) -> Slice:
     """Import a chart from a config dict, handling existing matches.
 
@@ -191,7 +228,13 @@ def import_chart(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
 
-    filter_chart_annotations(config)
+    filter_chart_annotations(
+        config,
+        annotation_layer_ids=annotation_layer_ids,
+        chart_ids=chart_ids,
+    )
+
+    _resolve_query_context_annotations(config, annotation_layer_ids, chart_ids)
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])
@@ -271,3 +314,147 @@ def migrate_chart(config: dict[str, Any]) -> dict[str, Any]:
         output["query_context"] = json.dumps(query_context)
 
     return output
+
+
+def topological_sort_charts(
+    chart_configs: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Sort charts so that annotation dependencies are imported first.
+
+    Handles multi-level dependencies (A→B→C) by iteratively resolving
+    charts whose in-batch dependencies are already satisfied.
+
+    TODO: Add runtime circular annotation detection in
+    QueryContextProcessor.get_viz_annotation_data to prevent infinite
+    recursion when rendering charts with circular line annotations.
+    """
+    if len(chart_configs) <= 1:
+        return chart_configs
+
+    def _annotation_dependencies(chart_config: dict[str, Any]) -> set[str]:
+        refs = {
+            ann["value"]
+            for ann in chart_config.get("params", {}).get("annotation_layers", [])
+            if ann.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+            and isinstance(ann.get("value"), str)
+        }
+        if query_context_raw := chart_config.get("query_context"):
+            try:
+                query_context = json.loads(query_context_raw)
+            except (json.JSONDecodeError, TypeError):
+                query_context = {}
+
+            for query in query_context.get("queries", []):
+                refs.update(
+                    ann["value"]
+                    for ann in query.get("annotation_layers", [])
+                    if ann.get("sourceType")
+                    in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+                    and isinstance(ann.get("value"), str)
+                )
+            refs.update(
+                ann["value"]
+                for ann in query_context.get("form_data", {}).get(
+                    "annotation_layers", []
+                )
+                if ann.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+                and isinstance(ann.get("value"), str)
+            )
+        return refs
+
+    batch_uuids = {c["uuid"] for c in chart_configs}
+    sorted_refs: list[dict[str, Any]] = []
+    remaining = list(chart_configs)
+    resolved: set[str] = set()
+    while remaining:
+        next_remaining = []
+        for c in remaining:
+            unmet = _annotation_dependencies(c).intersection(batch_uuids - resolved)
+            if not unmet:
+                sorted_refs.append(c)
+                resolved.add(c["uuid"])
+            else:
+                next_remaining.append(c)
+        if len(next_remaining) == len(remaining):
+            logger.warning(
+                "Circular annotation dependency detected for charts: %s — "
+                "these charts may have unresolved annotation references after import.",
+                [c["uuid"] for c in next_remaining],
+            )
+            sorted_refs.extend(next_remaining)
+            break
+        remaining = next_remaining
+    return sorted_refs
+
+
+def _resolve_uuid_to_id(
+    uuid_value: str,
+    id_map: dict[str, int] | None,
+    model: type,
+) -> int | None:
+    """Resolve a UUID to a local integer ID using a map or DB fallback."""
+    if id_map and uuid_value in id_map:
+        return id_map[uuid_value]
+    try:
+        obj = db.session.query(model).filter_by(uuid=uuid_value).first()
+    except Exception:  # noqa: BLE001 — malformed UUID raises at bind time
+        return None
+    return obj.id if obj else None
+
+
+def _resolve_annotation_list(
+    annotations: list[dict[str, Any]],
+    annotation_layer_ids: dict[str, int] | None,
+    chart_ids: dict[str, int] | None,
+) -> None:
+    """Resolve UUID values to integer IDs in-place for an annotation list."""
+    resolved_annotations: list[dict[str, Any]] = []
+    for annotation in annotations:
+        if annotation.get("annotationType") == AnnotationType.FORMULA:
+            resolved_annotations.append(annotation)
+            continue
+        source_type = annotation.get("sourceType")
+        value = annotation.get("value")
+        if isinstance(value, int):
+            resolved_annotations.append(annotation)
+            continue
+        if not isinstance(value, str):
+            continue
+        if source_type == "NATIVE":
+            layer_id = _resolve_uuid_to_id(value, annotation_layer_ids, AnnotationLayer)
+            if layer_id is not None:
+                annotation["value"] = layer_id
+                resolved_annotations.append(annotation)
+        elif source_type in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE:
+            ref_chart_id = _resolve_uuid_to_id(value, chart_ids, Slice)
+            if ref_chart_id is not None:
+                annotation["value"] = ref_chart_id
+                resolved_annotations.append(annotation)
+    annotations[:] = resolved_annotations
+
+
+def _resolve_query_context_annotations(
+    config: dict[str, Any],
+    annotation_layer_ids: dict[str, int] | None,
+    chart_ids: dict[str, int] | None,
+) -> None:
+    """Resolve annotation UUIDs to IDs in query_context (in-place)."""
+    if not config.get("query_context"):
+        return
+    try:
+        query_context = json.loads(config["query_context"])
+        for query in query_context.get("queries", []):
+            _resolve_annotation_list(
+                query.get("annotation_layers", []),
+                annotation_layer_ids,
+                chart_ids,
+            )
+        form_data = query_context.get("form_data", {})
+        _resolve_annotation_list(
+            form_data.get("annotation_layers", []),
+            annotation_layer_ids,
+            chart_ids,
+        )
+        config["query_context"] = json.dumps(query_context)
+    except json.JSONDecodeError:
+        pass
