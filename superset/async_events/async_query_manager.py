@@ -159,27 +159,30 @@ class AsyncQueryManager:
                 "is deprecated)."
             )
 
-        # Global Async Queries keeps its own coordination backend during the
-        # deprecation window: prefer the dedicated (deprecated)
-        # GLOBAL_ASYNC_QUERIES_CACHE_BACKEND when configured, otherwise use the
-        # shared DISTRIBUTED_COORDINATION_CONFIG. This scopes GAQ's stream/pub-sub
-        # traffic to its own connection and keeps it off the coordinator's backend
-        # (which powers distributed locks and the Global Task Framework). In 8.0 the
-        # dedicated backend is removed and GAQ moves onto the coordinator's connection.
-        if app.config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {}).get("CACHE_TYPE"):
+        # Global Async Queries share the coordinator's backend whenever
+        # DISTRIBUTED_COORDINATION_CONFIG is configured, so an 8.0-leaning deployment
+        # keeps a single coordination config rather than maintaining a separate one.
+        # Only when no coordinator is configured does GAQ fall back to its dedicated
+        # (deprecated) GLOBAL_ASYNC_QUERIES_CACHE_BACKEND, emitting a one-time
+        # deprecation warning. That dedicated backend is removed in Superset 8.0, when
+        # DISTRIBUTED_COORDINATION_CONFIG becomes the only option. Either way GAQ passes
+        # its resolved backend explicitly to CoordinationService's primitives, keeping
+        # its stream/pub-sub traffic scoped to the connection it resolved here.
+        if (coordinator := CoordinationService.get_backend()) is not None:
+            self._gaq_backend = coordinator
+        else:
             if not AsyncQueryManager._legacy_backend_warning_emitted:
                 logger.warning(
-                    "Global Async Queries is running on its own "
-                    "GLOBAL_ASYNC_QUERIES_CACHE_BACKEND. This dedicated backend is "
-                    "deprecated and will be removed in Superset 8.0, when GAQ will "
-                    "use DISTRIBUTED_COORDINATION_CONFIG like the rest of Superset's "
-                    "coordination (distributed locks, task framework, pub/sub). "
-                    "Configure DISTRIBUTED_COORDINATION_CONFIG to consolidate now."
+                    "Global Async Queries is running on the deprecated "
+                    "GLOBAL_ASYNC_QUERIES_CACHE_BACKEND because "
+                    "DISTRIBUTED_COORDINATION_CONFIG is not configured. Configure "
+                    "DISTRIBUTED_COORDINATION_CONFIG to consolidate coordination "
+                    "(distributed locks, task framework, pub/sub, and the GAQ event "
+                    "streams) onto a single connection; the dedicated backend is "
+                    "removed in Superset 8.0."
                 )
                 AsyncQueryManager._legacy_backend_warning_emitted = True
             self._gaq_backend = get_cache_backend(app.config)
-        else:
-            self._gaq_backend = CoordinationService.get_backend()
 
         if len(app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
             raise AsyncQueryTokenException(

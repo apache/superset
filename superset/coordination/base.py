@@ -78,9 +78,10 @@ class CoordinationService:
         the single source of truth for the coordinator's consumers (distributed
         locks, the Global Task Framework, and future stream/pub-sub users); it does
         *not* consult the deprecated ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND``. Global
-        Async Queries owns its own separate backend during the deprecation window —
-        see :class:`~superset.async_events.async_query_manager.AsyncQueryManager` —
-        and passes it explicitly to the primitives below via ``backend``.
+        Async Queries resolve their own backend (this coordinator when configured,
+        else the deprecated dedicated backend — see
+        :class:`~superset.async_events.async_query_manager.AsyncQueryManager`) and pass
+        it explicitly to the primitives below via ``backend``.
         """
         from superset.extensions import cache_manager
 
