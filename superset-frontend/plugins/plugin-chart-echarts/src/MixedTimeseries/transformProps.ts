@@ -189,6 +189,8 @@ export default function transformProps(
     showLegend,
     showValue,
     showValueB,
+    labelPosition,
+    labelPositionB,
     onlyTotal,
     onlyTotalB,
     stack,
@@ -533,6 +535,7 @@ export default function transformProps(
         thresholdValues,
         timeShiftColor,
         theme,
+        labelPosition,
       },
     );
 
@@ -621,6 +624,7 @@ export default function transformProps(
         thresholdValues: thresholdValuesB,
         timeShiftColor,
         theme,
+        labelPosition: labelPositionB,
       },
     );
 
