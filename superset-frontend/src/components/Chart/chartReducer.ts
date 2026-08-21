@@ -223,11 +223,9 @@ export default function chartReducer(
   }
 
   if (action.type in actionHandlers) {
-    // A stale action (e.g. an aborted query dispatching CHART_UPDATE_STOPPED)
-    // can arrive after its chart was removed from state. Every handler except
-    // ADD_CHART assumes the chart exists, so ignore the action when the keyed
-    // chart is missing to avoid reading properties of `undefined`.
-    if (action.type !== actions.ADD_CHART && charts[action.key] === undefined) {
+    // ADD_CHART creates the entry, so it runs without prior state; every other
+    // handler reads state that is absent once the chart has been removed
+    if (action.type !== actions.ADD_CHART && !charts[action.key]) {
       return charts;
     }
     return {

@@ -28,6 +28,7 @@ import {
   getSSHPrivateKeyPasswordsNeeded,
   hasTerminalValidation,
   isAlreadyExists,
+  isNavigationHandledByLink,
   isNeedsEncryptedExtraField,
   isNeedsPassword,
   isNeedsSSHPassword,
@@ -258,6 +259,37 @@ const encryptedExtraFieldNoLabelErrors = {
     },
   ],
 };
+
+test('identifies clicks a link has already navigated', () => {
+  document.body.innerHTML = `
+    <div id="card">
+      <a id="cover" href="/explore/?slice_id=1"><img id="thumbnail" alt="" /></a>
+      <span id="title">Chart</span>
+      <a id="anchorWithoutHref"><span id="inertLabel">Label</span></a>
+    </div>
+  `;
+  const target = (id: string) => ({ target: document.getElementById(id) });
+
+  // the link itself and anything nested inside it
+  expect(isNavigationHandledByLink(target('cover'))).toBe(true);
+  expect(isNavigationHandledByLink(target('thumbnail'))).toBe(true);
+
+  // the rest of the card still navigates through its own click handler
+  expect(isNavigationHandledByLink(target('title'))).toBe(false);
+  expect(isNavigationHandledByLink(target('card'))).toBe(false);
+
+  // an anchor with no href does not navigate, so it must not suppress the card
+  expect(isNavigationHandledByLink(target('anchorWithoutHref'))).toBe(false);
+  expect(isNavigationHandledByLink(target('inertLabel'))).toBe(false);
+
+  // targets that are not elements
+  expect(isNavigationHandledByLink({ target: null })).toBe(false);
+  expect(
+    isNavigationHandledByLink({ target: document.createTextNode('text') }),
+  ).toBe(false);
+
+  document.body.innerHTML = '';
+});
 
 test('identifies error payloads indicating that password is needed', () => {
   let needsPassword;

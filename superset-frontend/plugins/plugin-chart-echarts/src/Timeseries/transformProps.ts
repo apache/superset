@@ -95,6 +95,7 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
   extractForecastValuesFromTooltipParams,
@@ -1393,11 +1394,13 @@ export default function transformProps(
         const forecastValue: CallbackDataParams[] = richTooltip
           ? params
           : [params];
-        const sortedKeys = extractTooltipKeys(
-          forecastValue,
-          yIndex,
-          richTooltip,
-          tooltipSortByMetric,
+        const sortedKeys = collapseForecastKeys(
+          extractTooltipKeys(
+            forecastValue,
+            yIndex,
+            richTooltip,
+            tooltipSortByMetric,
+          ),
         );
         const filteredForecastValue = forecastValue.filter(
           (item: CallbackDataParams) =>

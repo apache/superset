@@ -41,9 +41,9 @@ class LifecycleRow(Base):
 @pytest.fixture
 def lifecycle_session() -> Iterator[Session]:
     """Yield an isolated SQLAlchemy session backed by in-memory SQLite."""
-    engine = sa.create_engine("sqlite://", future=True)
+    engine = sa.create_engine("sqlite://")
     Base.metadata.create_all(engine)
-    session = sessionmaker(bind=engine, future=True)()
+    session = sessionmaker(bind=engine)()
     try:
         yield session
     finally:

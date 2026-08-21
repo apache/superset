@@ -17,11 +17,13 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import datetime
 from pprint import pformat
 from typing import Any, NamedTuple, TYPE_CHECKING
 
+from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
@@ -205,8 +207,93 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     def _set_post_processing(
         self, post_processing: list[dict[str, Any] | None] | None
     ) -> None:
-        post_processing = post_processing or []
-        self.post_processing = [post_proc for post_proc in post_processing if post_proc]
+        self.post_processing = [
+            self._drop_unsupported_options(post_proc)
+            for post_proc in post_processing or []
+            if post_proc
+        ]
+
+    @staticmethod
+    def _drop_unsupported_options(post_proc: dict[str, Any]) -> dict[str, Any]:
+        """
+        Drop options that the post-processing operation no longer accepts.
+
+        A chart's ``query_context`` is written when the chart is saved and is
+        never rewritten afterwards, while Explore rebuilds the query from
+        ``form_data`` at every render. A chart saved by an older version of
+        Superset can therefore reference an option that has since been removed
+        from the operation. ``exec_post_processing`` passes the stored options
+        as keyword arguments, so that option raises a bare ``TypeError`` on
+        every path that replays the stored ``query_context`` -- the chart data
+        endpoint, alerts and reports, thumbnails, CSV export -- while the same
+        chart still renders correctly in Explore.
+
+        Comparing against the signature avoids a hard-coded list of removed
+        option names, which would need extending at each release.
+
+        Only the built-in operations in ``pandas_postprocessing.__all__`` are
+        inspected. The module also exposes helpers, imported submodules and
+        typing aliases, none of which are operations; and options belonging to a
+        callable registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` are the
+        operator's to manage, so both are passed through untouched.
+        """
+        operation = post_proc.get("operation")
+        function = (
+            getattr(pandas_postprocessing, operation, None)
+            if isinstance(operation, str) and operation in pandas_postprocessing.__all__
+            else None
+        )
+        if function is None:
+            # A missing, unknown or operator-registered operation is left
+            # untouched, so that exec_post_processing either dispatches it or
+            # reports it as InvalidPostProcessingError.
+            return post_proc
+
+        parameters = inspect.signature(function).parameters
+        if any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        ):
+            return post_proc
+
+        # `exec_post_processing` calls the operation as `operation(df, **options)`,
+        # so an option can only reach a parameter that a caller may fill by
+        # keyword. That excludes the first parameter, which receives the
+        # DataFrame positionally, and any positional-only or `*args` parameter.
+        keyword_parameters = {
+            name
+            for position, (name, parameter) in enumerate(parameters.items())
+            if position > 0
+            and parameter.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            )
+        }
+
+        options = post_proc.get("options") or {}
+        unsupported = {key for key in options if key not in keyword_parameters}
+        if not unsupported:
+            return post_proc
+
+        # Logged at info: a chart saved before the option was removed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
+        logger.info(
+            "Dropping unsupported option(s) %s of post-processing operation "
+            "`%s`. The chart's stored query_context predates the current "
+            "signature of that operation.",
+            sorted(unsupported),
+            operation,
+        )
+        return {
+            **post_proc,
+            "options": {
+                key: value
+                for key, value in options.items()
+                if key in keyword_parameters
+            },
+        }
 
     def _init_series_columns(
         self,
@@ -544,13 +631,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _("`operation` property of post processing object undefined")
                     )
-                if not hasattr(pandas_postprocessing, operation):
-                    raise InvalidPostProcessingError(
-                        _(
-                            "Unsupported post processing operation: %(operation)s",
-                            type=operation,
-                        )
+                # ``__all__`` is the authoritative list of built-in operations.
+                # ``hasattr`` would also match module internals (helpers, imported
+                # submodules, typing aliases), shadowing a like-named custom op.
+                if operation in pandas_postprocessing.__all__:
+                    func = getattr(pandas_postprocessing, operation)
+                else:
+                    extra_ops = pandas_postprocessing.build_extra_ops_map(
+                        current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
                     )
-                options = post_process.get("options", {})
-                df = getattr(pandas_postprocessing, operation)(df, **options)
+                    if operation not in extra_ops:
+                        raise InvalidPostProcessingError(
+                            _(
+                                "Unsupported post processing operation: %(operation)s",
+                                operation=operation,
+                            )
+                        )
+                    func = extra_ops[operation]
+                df = func(df, **post_process.get("options", {}))
             return df
