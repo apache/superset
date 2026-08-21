@@ -1690,44 +1690,70 @@ def _result_type_value(result_type: Any) -> str:
     return str(getattr(result_type, "value", result_type)).lower()
 
 
+def _effective_result_type(
+    query_result_type: Any, default_result_type: Any
+) -> Optional[str]:
+    """
+    The result type a query actually runs with: its own ``result_type`` if
+    set, else the query context's top-level default.
+
+    Mirrors ``query_obj.result_type or query_context.result_type``
+    (``QueryContextProcessor.get_payload``), so this reads the same value the
+    server uses to pick the samples/drill_detail preparer for that query.
+    """
+    if query_result_type:
+        return _result_type_value(query_result_type)
+    if default_result_type:
+        return _result_type_value(default_result_type)
+    return None
+
+
 def _result_type_modified(
     query_context: "QueryContext",
     stored_query_context: Optional[dict[str, Any]],
 ) -> bool:
     """
-    Whether the request asks for a result type that expands the stored chart's
-    query to raw datasource rows.
+    Whether the request asks for a result type that expands one of its
+    queries to raw datasource rows beyond what the stored chart runs at that
+    same query position.
 
-    The ``samples`` and ``drill_detail`` preparers replace the query's columns
+    The ``samples`` and ``drill_detail`` preparers replace a query's columns
     with every column on the datasource - and drop its metrics - *after*
     ``raise_for_access`` has run, so the subset comparisons on columns and
     metrics in ``query_context_modified`` still pass while the response
-    contains the full underlying table. A guest's entitlement is the chart's
-    rendered data, so these result types are rejected unless the chart's
-    stored query context itself uses them.
+    contains the full underlying table. A guest's entitlement is only what
+    each query on the stored chart itself renders, so each requested query's
+    effective result type is compared against its own corresponding stored
+    query's effective result type by position - never against result types
+    used by other queries in the same query context - matching how
+    ``query_obj.result_type or query_context.result_type`` is resolved
+    per-query at runtime.
     """
-    stored_result_types: set[str] = set()
+    stored_queries: list[dict[str, Any]] = []
+    stored_default_result_type: Any = None
     if stored_query_context:
-        if stored_type := stored_query_context.get("result_type"):
-            stored_result_types.add(_result_type_value(stored_type))
-        for stored_query in stored_query_context.get("queries") or []:
-            if isinstance(stored_query, dict) and (
-                stored_type := stored_query.get("result_type")
-            ):
-                stored_result_types.add(_result_type_value(stored_type))
+        stored_default_result_type = stored_query_context.get("result_type")
+        stored_queries = [
+            stored_query
+            for stored_query in stored_query_context.get("queries") or []
+            if isinstance(stored_query, dict)
+        ]
 
-    requested_result_types = {_result_type_value(query_context.result_type)}
-    requested_result_types.update(
-        _result_type_value(query.result_type)
-        for query in query_context.queries
-        if query.result_type
-    )
+    for index, query in enumerate(query_context.queries):
+        requested = _effective_result_type(query.result_type, query_context.result_type)
+        if requested not in _ROW_EXPANDING_RESULT_TYPES:
+            continue
+        stored = (
+            _effective_result_type(
+                stored_queries[index].get("result_type"), stored_default_result_type
+            )
+            if index < len(stored_queries)
+            else None
+        )
+        if requested != stored:
+            return True
 
-    return any(
-        result_type in _ROW_EXPANDING_RESULT_TYPES
-        and result_type not in stored_result_types
-        for result_type in requested_result_types
-    )
+    return False
 
 
 def query_context_modified(query_context: "QueryContext") -> bool:
