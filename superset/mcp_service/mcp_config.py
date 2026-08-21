@@ -259,7 +259,9 @@ MCP_FACTORY_CONFIG = {
 #
 # Configuration Flow:
 # -------------------
-# - MCP_CACHE_CONFIG controls whether caching is enabled and its TTL settings
+# - MCP_CACHE_CONFIG controls whether caching is enabled and its TTL settings.
+#   Note "enabled" alone is not sufficient -- see
+#   "dangerously_share_cache_across_principals" below.
 # - MCP_STORE_CONFIG controls the Redis store (optional)
 #
 # Scenarios:
@@ -270,11 +272,13 @@ MCP_FACTORY_CONFIG = {
 #
 # 2. Caching with in-memory store:
 #    MCP_CACHE_CONFIG["enabled"] = True
+#    MCP_CACHE_CONFIG["dangerously_share_cache_across_principals"] = True
 #    MCP_STORE_CONFIG["enabled"] = False (or not configured)
 #    → Caching uses FastMCP's default in-memory store, no Prefix wrapper used
 #
 # 3. Caching with Redis store:
 #    MCP_CACHE_CONFIG["enabled"] = True
+#    MCP_CACHE_CONFIG["dangerously_share_cache_across_principals"] = True
 #    MCP_STORE_CONFIG["enabled"] = True
 #    MCP_STORE_CONFIG["CACHE_REDIS_URL"] = "redis://..."
 #    → Caching uses Redis with PrefixKeysWrapper
