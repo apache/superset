@@ -21,6 +21,8 @@
 Contributions are welcome and are greatly appreciated! Every
 little bit helps, and credit will always be given.
 
+> **Before you push:** run the linters locally (e.g. `pre-commit run --all-files`) so CI stays green — see the [Submitting Pull Requests](https://superset.apache.org/developer_portal/contributing/submitting-pr) guide for the full workflow.
+
 ## Developer Portal
 
 All developer and contribution documentation has moved to the Apache Superset Developer Portal:
