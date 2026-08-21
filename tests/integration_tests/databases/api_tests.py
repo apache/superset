@@ -3516,6 +3516,7 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Database port",
                                 "maximum": 65536,
                                 "minimum": 0,
+                                "nullable": True,
                                 "type": "integer",
                             },
                             "query": {
@@ -3533,7 +3534,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "string",
                             },
                         },
-                        "required": ["database", "host", "port", "username"],
+                        # ``port`` is intentionally not required: a blank port falls
+                        # back to the default (5432) in
+                        # ``PostgresEngineSpec.build_sqlalchemy_uri``.
+                        "required": ["database", "host", "username"],
                         "type": "object",
                     },
                     "preferred": True,
