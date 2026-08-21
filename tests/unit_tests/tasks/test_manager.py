@@ -247,7 +247,9 @@ class TestTaskManagerWaitForCompletion:
         pending.status = "pending"
         complete = MagicMock()
         complete.status = "success"
-        mock_dao.find_one_or_none.side_effect = [pending, complete]
+        # find_one_or_none is called for: the existence check, the pre-subscribe fast
+        # path (still pending → we subscribe), then the post-subscribe check (success).
+        mock_dao.find_one_or_none.side_effect = [pending, pending, complete]
 
         backend = MagicMock()
         pubsub = MagicMock()

@@ -172,14 +172,16 @@ def test_wait_for_signal_wakes_via_pubsub_and_cleans_up(
     pubsub = mocker.MagicMock(name="pubsub")
     backend.pubsub.return_value = pubsub
     mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
-    results = iter([None, "done"])
+    # First check (pre-subscribe fast path) is None, so we subscribe; the next None
+    # forces one pub/sub nudge, then "done" satisfies the wait.
+    results = iter([None, None, "done"])
 
     result = CoordinationService.wait_for_signal(
         "ch", lambda: next(results), timeout=5.0
     )
     assert result == "done"
     pubsub.subscribe.assert_called_once_with("ch")
-    # One wake-up nudge between the first (None) and second (done) check.
+    # One wake-up nudge between the post-subscribe (None) and final (done) check.
     pubsub.get_message.assert_called_once()
     pubsub.unsubscribe.assert_called_once()
     pubsub.close.assert_called_once()
