@@ -118,6 +118,48 @@ class TimeFilter:
     time_range: str | None
 
 
+class SQLSafeList(list[Any]):  # noqa: FURB189
+    """
+    A list of dialect-escaped values whose *whole-container* string
+    rendering cannot re-introduce raw quote characters.
+
+    Rendering a plain Python list in a Jinja template goes through
+    ``str()``/``repr()``, which wraps every string element in fresh quote
+    delimiters (and switches to double-quote delimiters when the element
+    contains a single quote, emitting that single quote raw). Either way
+    the rendered text can contain quote characters that were never
+    escaped for SQL, so a template interpolating the list inside its own
+    quotes -- e.g. ``LIKE '{{ filter.get('escaped_val') }}'`` -- could be
+    broken out of even though every string leaf was individually escaped.
+    This subclass renders as its (already-escaped) elements joined with
+    ``", "``, with no additional delimiters, so every quote in the output
+    is one the dialect's literal processor already escaped.
+    """
+
+    def __str__(self) -> str:
+        return ", ".join(str(element) for element in self)
+
+    __repr__ = __str__
+
+
+class SQLSafeDict(dict[Any, Any]):  # noqa: FURB189
+    """
+    A dict of dialect-escaped values whose *whole-container* string
+    rendering cannot re-introduce raw quote characters. Mirrors
+    :class:`SQLSafeList` for the mapping case.
+
+    Keys are rendered as-is: they are used for member lookups (for
+    example ``{{ get_guest_user_attribute('tenant').id }}``), not
+    interpolated into SQL, and are never passed through
+    ``ExtraCache._escape_value``.
+    """
+
+    def __str__(self) -> str:
+        return ", ".join(f"{key}: {value}" for key, value in self.items())
+
+    __repr__ = __str__
+
+
 def _normalize_postgresql_backslash_escapes(dialect: Dialect) -> None:
     """Correct a PostgreSQL dialect instance's ``_backslash_escapes`` default
     in place so backslashes round-trip unchanged when the dialect is used to
@@ -467,6 +509,16 @@ class ExtraCache:
         strings nested inside JSON structures are also escaped; dict keys
         are left untouched since they are used for member lookups, not
         interpolation. Non-string leaf values are left as-is.
+
+        Lists and dicts are returned as :class:`SQLSafeList` /
+        :class:`SQLSafeDict` rather than plain ``list``/``dict``: Jinja
+        renders a whole container through ``str()``/``repr()``, which
+        wraps string elements in fresh quote delimiters that were never
+        escaped, so even a fully-escaped container could re-introduce raw
+        quotes when interpolated as a whole. The safe subclasses render
+        without adding such delimiters, while still comparing equal to
+        (and behaving like) their plain built-in counterparts everywhere
+        else.
         """
         if not self.dialect:
             return val
@@ -475,9 +527,9 @@ class ExtraCache:
             _normalize_postgresql_backslash_escapes(compiler.dialect)
             return compiler.render_literal_value(val, String())[1:-1]
         if isinstance(val, list):
-            return [self._escape_value(v) for v in val]
+            return SQLSafeList(self._escape_value(v) for v in val)
         if isinstance(val, dict):
-            return {k: self._escape_value(v) for k, v in val.items()}
+            return SQLSafeDict((k, self._escape_value(v)) for k, v in val.items())
         return val
 
     def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:
