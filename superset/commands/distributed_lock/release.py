@@ -19,15 +19,12 @@ from __future__ import annotations
 
 import logging
 from functools import partial
-from typing import Any
 
 import redis
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.commands.distributed_lock.base import (
-    BaseDistributedLockCommand,
-    get_redis_client,
-)
+from superset.commands.distributed_lock.base import BaseDistributedLockCommand
+from superset.coordination.base import CoordinationService
 from superset.daos.key_value import KeyValueDAO
 from superset.exceptions import ReleaseDistributedLockFailedException
 from superset.key_value.exceptions import KeyValueDeleteFailedError
@@ -45,15 +42,15 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
     """
 
     def run(self) -> None:
-        if (redis_client := get_redis_client()) is not None:
-            self._release_redis(redis_client)
+        if CoordinationService.is_backend_defined():
+            self._release_redis()
         else:
             self._release_kv()
 
-    def _release_redis(self, redis_client: Any) -> None:
-        """Release lock using Redis DELETE."""
+    def _release_redis(self) -> None:
+        """Release lock using the coordination backend's DELETE."""
         try:
-            redis_client.delete(self.redis_lock_key)
+            CoordinationService.delete_value(self.redis_lock_key)
             logger.debug("Released Redis lock: %s", self.redis_lock_key)
         except redis.RedisError as ex:
             # Log warning but don't raise - TTL will handle cleanup

@@ -80,11 +80,11 @@ def task_context(mock_task, mock_task_dao, mock_update_command, mock_flask_app):
 
     with (
         patch("superset.tasks.context.current_app") as mock_current_app,
-        patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+        patch(
+            "superset.coordination.base.CoordinationService.get_backend",
+            return_value=None,
+        ),
     ):
-        # Disable Redis by making distributed_coordination return None
-        mock_cache_manager.distributed_coordination = None
-
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config
         # Use regular Mock (not MagicMock) for _get_current_object to avoid

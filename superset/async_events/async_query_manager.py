@@ -25,12 +25,12 @@ from typing import Any, Literal, Optional, TYPE_CHECKING
 
 import jwt
 from flask import Flask, Request, request, Response, session
-from flask_caching.backends.base import BaseCache
 
 from superset.async_events.cache_backend import (
     RedisCacheBackend,
     RedisSentinelCacheBackend,
 )
+from superset.coordination.base import CoordinationService
 from superset.utils import json
 from superset.utils.core import get_user_id
 
@@ -87,6 +87,12 @@ def increment_id(entry_id: str) -> str:
 def get_cache_backend(
     config: dict[str, Any],
 ) -> RedisCacheBackend | RedisSentinelCacheBackend:
+    """Build a coordination backend from the deprecated GAQ cache config.
+
+    DEPRECATED: retained only so Global Async Queries can run on its own dedicated
+    ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` during the deprecation window. Removed in
+    Superset 8.0, when GAQ moves onto ``DISTRIBUTED_COORDINATION_CONFIG``.
+    """
     cache_config = config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {})
     cache_type = cache_config.get("CACHE_TYPE")
 
@@ -96,7 +102,6 @@ def get_cache_backend(
     if cache_type == "RedisSentinelCache":
         return RedisSentinelCacheBackend.from_config(cache_config)
 
-    # TODO: Expand cache backend options.
     raise UnsupportedCacheBackendError("Unsupported cache backend configuration")
 
 
@@ -110,13 +115,18 @@ class AsyncQueryManager:
     # Redis key prefix (within the GAQ stream namespace) for the per-job record
     # that authorizes cancellation and flags a job as cancelled for the worker.
     _JOB_REGISTRY_PREFIX = "job-cancel:"
+    # Emit the dedicated-backend deprecation notice at most once per process.
+    _legacy_backend_warning_emitted: bool = False
 
     def __init__(self) -> None:
         super().__init__()
-        self._cache: Optional[BaseCache] = None
         self._stream_prefix: str = ""
         self._stream_limit: Optional[int]
         self._stream_limit_firehose: Optional[int]
+        # Global Async Queries owns its coordination backend separately from the
+        # shared coordinator (see init_app); resolved there and passed explicitly
+        # to CoordinationService's primitives.
+        self._gaq_backend: RedisCacheBackend | RedisSentinelCacheBackend | None = None
         self._jwt_cookie_name: str = ""
         self._jwt_cookie_secure: bool = False
         self._jwt_cookie_domain: Optional[str]
@@ -137,8 +147,42 @@ class AsyncQueryManager:
                 """
             )
 
-        self._cache = get_cache_backend(app.config)
-        logger.debug("Using GAQ Cache backend as %s", type(self._cache).__name__)
+        if not (
+            app.config.get("DISTRIBUTED_COORDINATION_CONFIG")
+            or app.config.get("GLOBAL_ASYNC_QUERIES_CACHE_BACKEND", {}).get(
+                "CACHE_TYPE"
+            )
+        ):
+            raise UnsupportedCacheBackendError(
+                "Global async queries require a coordination backend; configure "
+                "DISTRIBUTED_COORDINATION_CONFIG (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND "
+                "is deprecated)."
+            )
+
+        # Global Async Queries share the coordinator's backend whenever
+        # DISTRIBUTED_COORDINATION_CONFIG is configured, so an 8.0-leaning deployment
+        # keeps a single coordination config rather than maintaining a separate one.
+        # Only when no coordinator is configured does GAQ fall back to its dedicated
+        # (deprecated) GLOBAL_ASYNC_QUERIES_CACHE_BACKEND, emitting a one-time
+        # deprecation warning. That dedicated backend is removed in Superset 8.0, when
+        # DISTRIBUTED_COORDINATION_CONFIG becomes the only option. Either way GAQ passes
+        # its resolved backend explicitly to CoordinationService's primitives, keeping
+        # its stream/pub-sub traffic scoped to the connection it resolved here.
+        if (coordinator := CoordinationService.get_backend()) is not None:
+            self._gaq_backend = coordinator
+        else:
+            if not AsyncQueryManager._legacy_backend_warning_emitted:
+                logger.warning(
+                    "Global Async Queries is running on the deprecated "
+                    "GLOBAL_ASYNC_QUERIES_CACHE_BACKEND because "
+                    "DISTRIBUTED_COORDINATION_CONFIG is not configured. Configure "
+                    "DISTRIBUTED_COORDINATION_CONFIG to consolidate coordination "
+                    "(distributed locks, task framework, pub/sub, and the GAQ event "
+                    "streams) onto a single connection; the dedicated backend is "
+                    "removed in Superset 8.0."
+                )
+                AsyncQueryManager._legacy_backend_warning_emitted = True
+            self._gaq_backend = get_cache_backend(app.config)
 
         if len(app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
             raise AsyncQueryTokenException(
@@ -298,12 +342,17 @@ class AsyncQueryManager:
         owner without trusting the client-supplied id. Expires with the JWT so
         it never outlives the job it guards.
         """
-        if not self._cache:
+        # The cancel registry is an optimization: skip it when GAQ has no
+        # coordination backend configured. When a backend is configured, a write
+        # failure is not swallowed here — it surfaces to the caller and fails job
+        # submission, matching the behavior of the surrounding stream writes.
+        if self._gaq_backend is None:
             return
-        self._cache.set(
+        CoordinationService.set_value(
             self._job_registry_key(job_id),
             json.dumps({"channel_id": channel_id, "user_id": user_id}),
-            ex=self._jwt_expiration_seconds or None,
+            ttl=self._jwt_expiration_seconds or None,
+            backend=self._gaq_backend,
         )
 
     def submit_chart_data_job(
@@ -337,33 +386,32 @@ class AsyncQueryManager:
     def read_events(
         self, channel: str, last_id: Optional[str]
     ) -> list[Optional[dict[str, Any]]]:
-        if not self._cache:
+        if self._gaq_backend is None:
             raise CacheBackendNotInitialized("Cache backend not initialized")
 
         stream_name = f"{self._stream_prefix}{channel}"
         start_id = increment_id(last_id) if last_id else "-"
-        results = self._cache.xrange(stream_name, start_id, "+", self.MAX_EVENT_COUNT)
-        # Decode bytes to strings, decode_responses is not supported at RedisCache and RedisSentinelCache  # noqa: E501
-        if isinstance(self._cache, (RedisSentinelCacheBackend, RedisCacheBackend)):
-            decoded_results = [
-                (
-                    event_id.decode("utf-8"),
-                    {
-                        key.decode("utf-8"): value.decode("utf-8")
-                        for key, value in event_data.items()
-                    },
-                )
-                for event_id, event_data in results
-            ]
-            return (
-                [] if not decoded_results else list(map(parse_event, decoded_results))
+        results = CoordinationService.stream_range(
+            stream_name, start_id, "+", self.MAX_EVENT_COUNT, backend=self._gaq_backend
+        )
+        # Decode bytes to strings: the coordination Redis backends do not enable
+        # decode_responses, so stream_range returns raw bytes.
+        decoded_results = [
+            (
+                event_id.decode("utf-8"),
+                {
+                    key.decode("utf-8"): value.decode("utf-8")
+                    for key, value in event_data.items()
+                },
             )
-        return [] if not results else list(map(parse_event, results))
+            for event_id, event_data in results
+        ]
+        return [] if not decoded_results else list(map(parse_event, decoded_results))
 
     def update_job(
         self, job_metadata: dict[str, Any], status: str, **kwargs: Any
     ) -> None:
-        if not self._cache:
+        if self._gaq_backend is None:
             raise CacheBackendNotInitialized("Cache backend not initialized")
 
         if "channel_id" not in job_metadata:
@@ -388,10 +436,24 @@ class AsyncQueryManager:
         # SIGUSR1 it is about to receive as a cancellation.
         if status in (self.STATUS_DONE, self.STATUS_ERROR):
             if job_id := job_metadata.get("job_id"):
-                self._cache.delete(self._job_registry_key(job_id))
+                CoordinationService.delete_value(
+                    self._job_registry_key(job_id), backend=self._gaq_backend
+                )
 
-        self._cache.xadd(scoped_stream_name, event_data, "*", self._stream_limit)
-        self._cache.xadd(full_stream_name, event_data, "*", self._stream_limit_firehose)
+        CoordinationService.stream_add(
+            scoped_stream_name,
+            event_data,
+            "*",
+            self._stream_limit,
+            backend=self._gaq_backend,
+        )
+        CoordinationService.stream_add(
+            full_stream_name,
+            event_data,
+            "*",
+            self._stream_limit_firehose,
+            backend=self._gaq_backend,
+        )
 
     def is_job_cancelled(self, job_id: str) -> bool:
         """
@@ -401,10 +463,12 @@ class AsyncQueryManager:
         swallowed and treated as "not cancelled" — a Redis blip must never mask
         the original error (e.g. a genuine timeout) with a connection error.
         """
-        if not self._cache:
+        if self._gaq_backend is None:
             return False
         try:
-            raw = self._cache.get(self._job_registry_key(job_id))
+            raw = CoordinationService.get_value(
+                self._job_registry_key(job_id), backend=self._gaq_backend
+            )
             if raw is None:
                 return False
             return bool(json.loads(raw).get("cancelled"))
@@ -428,11 +492,11 @@ class AsyncQueryManager:
         :raises AsyncQueryJobException: the job is unknown or already terminal
         :raises AsyncQueryTokenException: the caller does not own the job
         """
-        if not self._cache:
+        if self._gaq_backend is None:
             raise CacheBackendNotInitialized("Cache backend not initialized")
 
         key = self._job_registry_key(job_id)
-        raw = self._cache.get(key)
+        raw = CoordinationService.get_value(key, backend=self._gaq_backend)
         if raw is None:
             raise AsyncQueryJobException("Job not found or already completed")
 
@@ -445,11 +509,12 @@ class AsyncQueryManager:
         # key still exists (``xx``): if the job finished and cleared its record
         # between the read above and here, don't recreate a stale record or
         # revoke a task that is already gone — report it as not found instead.
-        flagged = self._cache.set(
+        flagged = CoordinationService.set_value(
             key,
             json.dumps({**record, "cancelled": True}),
-            ex=self._jwt_expiration_seconds or None,
-            xx=True,
+            ttl=self._jwt_expiration_seconds or None,
+            if_present=True,
+            backend=self._gaq_backend,
         )
         if not flagged:
             raise AsyncQueryJobException("Job not found or already completed")

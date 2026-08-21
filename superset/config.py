@@ -2941,6 +2941,19 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 # Global async queries cache backend configuration options:
 # - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
 # - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
+#
+# DEPRECATED: this dedicated backend is retained only so Global Async Queries can
+# keep running on their own coordination connection when DISTRIBUTED_COORDINATION_CONFIG
+# is not configured. When configured it is used by GAQ *only* (its event streams and
+# cancel registry); it never powers distributed locks or the Global Task Framework,
+# which use DISTRIBUTED_COORDINATION_CONFIG exclusively. GAQ uses
+# DISTRIBUTED_COORDINATION_CONFIG whenever it is set and only falls back to this
+# dedicated backend when it is not, so a consolidated deployment need not maintain a
+# second config. This dual-backend arrangement is deprecated and removed in Superset
+# 8.0, when GAQ moves onto DISTRIBUTED_COORDINATION_CONFIG like the rest of Superset's
+# coordination. All parameters here are supported identically under
+# DISTRIBUTED_COORDINATION_CONFIG (both use the same
+# RedisCache/RedisSentinelCache backend).
 GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_REDIS_HOST": "localhost",
@@ -3223,24 +3236,46 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
-# - Streams: Persistent ordered event logs (future)
+# - Streams: Persistent ordered event logs (e.g. the Global Async Queries firehose)
 #
 # When configured, enables:
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
+# - Global Async Queries event streams (the async-events / firehose transport)
 #
-# Future: This backend will power a higher-level coordination service exposing
-# standardized interfaces for distributed locks, pub/sub, and streams — consolidating
-# all advanced Redis primitives under a single connection. Global Async Queries
-# (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND) will also be migrated to this configuration.
+# This backend powers the higher-level coordination service
+# (``superset.coordination.base.CoordinationService``) exposing standardized interfaces
+# for distributed locks, pub/sub, and streams under a single connection. It is the
+# single source of truth for the coordinator's consumers (distributed locks, the
+# Global Task Framework, and future stream/pub-sub users). Global Async Queries use
+# this connection whenever it is set, falling back to their dedicated
+# ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` only when it is unset; that dual-backend
+# arrangement is deprecated and, in Superset 8.0, GAQ moves onto this connection and
+# the dedicated backend is removed.
+#
+# All parameters previously supported by GLOBAL_ASYNC_QUERIES_CACHE_BACKEND are
+# supported here (both go through the same RedisCacheBackend/RedisSentinelCacheBackend
+# `from_config`): CACHE_REDIS_HOST, CACHE_REDIS_PORT, CACHE_REDIS_USER,
+# CACHE_REDIS_PASSWORD, CACHE_REDIS_DB, CACHE_KEY_PREFIX, CACHE_DEFAULT_TIMEOUT,
+# CACHE_REDIS_SSL, CACHE_REDIS_SSL_CERTFILE, CACHE_REDIS_SSL_KEYFILE,
+# CACHE_REDIS_SSL_CERT_REQS, CACHE_REDIS_SSL_CA_CERTS, CACHE_REDIS_SOCKET_TIMEOUT,
+# CACHE_REDIS_SOCKET_CONNECT_TIMEOUT, and for Sentinel CACHE_REDIS_SENTINELS,
+# CACHE_REDIS_SENTINEL_MASTER, CACHE_REDIS_SENTINEL_PASSWORD.
 #
 # Example with standard Redis:
 # DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
-#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_USER": "",
 #     "CACHE_REDIS_PASSWORD": "",
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_DEFAULT_TIMEOUT": 300,
+#     "CACHE_REDIS_SSL": False,  # True or False
+#     "CACHE_REDIS_SSL_CERTFILE": None,
+#     "CACHE_REDIS_SSL_KEYFILE": None,
+#     "CACHE_REDIS_SSL_CERT_REQS": "required",
+#     "CACHE_REDIS_SSL_CA_CERTS": None,
 # }
 #
 # Example with Redis Sentinel:

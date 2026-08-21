@@ -27,8 +27,8 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset.commands.distributed_lock.base import (
     BaseDistributedLockCommand,
     get_default_lock_ttl,
-    get_redis_client,
 )
+from superset.coordination.base import CoordinationService
 from superset.daos.key_value import KeyValueDAO
 from superset.exceptions import (
     AcquireDistributedLockFailedException,
@@ -80,21 +80,21 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
         self.ttl_seconds = ttl_seconds or get_default_lock_ttl()
 
     def run(self) -> None:
-        if (redis_client := get_redis_client()) is not None:
-            self._acquire_redis(redis_client)
+        if CoordinationService.is_backend_defined():
+            self._acquire_redis()
         else:
             self._acquire_kv()
 
-    def _acquire_redis(self, redis_client: Any) -> None:
-        """Acquire lock using Redis SET NX EX (atomic)."""
+    def _acquire_redis(self) -> None:
+        """Acquire lock using the coordination backend's SET NX EX (atomic)."""
         try:
             # SET NX EX: Set if not exists, with expiration
             # Returns True if lock acquired, None if already exists
-            acquired = redis_client.set(
+            acquired = CoordinationService.set_value(
                 self.redis_lock_key,
                 "1",
-                nx=True,
-                ex=self.ttl_seconds,
+                ttl=self.ttl_seconds,
+                if_absent=True,
             )
 
             if not acquired:
