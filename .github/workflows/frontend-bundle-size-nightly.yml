@@ -105,6 +105,14 @@ jobs:
           tool: customSmallerIsBetter
           output-file-path: bundle-size-summary.json
           external-data-json-path: bundle-size-history.json
+          # Required on a schedule event, unlike the PR-time job in
+          # superset-frontend.yml. The action reads the commit from
+          # payload.head_commit or payload.pull_request, and a scheduled run
+          # has neither, so without a token it throws "No commit information
+          # is found in payload" instead of recording a data point. With one
+          # it falls back to a repos.getCommit call, covered by the
+          # contents: read above.
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on-alert: false
           summary-always: true
 
