@@ -21,6 +21,7 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.dialects import sqlite
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
@@ -47,6 +48,70 @@ from superset.models.helpers import (
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
+
+
+def test_get_sqla_col_quotes_snowflake_case_sensitive_identifier(
+    mocker: MockerFixture,
+) -> None:
+    """Snowflake physical columns retain their exact reflected case in generated SQL."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        Database,
+        "get_db_engine_spec",
+        return_value=SnowflakeEngineSpec,
+    )
+    table = SqlaTable(
+        table_name="bug_test",
+        database=database,
+        normalize_columns=False,
+    )
+    tbl_column = TableColumn(column_name="id", type="INTEGER", table=table)
+
+    rendered = str(
+        tbl_column.get_sqla_col().compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert rendered == '"id"'
+
+
+@pytest.mark.parametrize("time_grain", [None, "P1D"])
+def test_get_timestamp_expression_quotes_snowflake_case_sensitive_identifier(
+    mocker: MockerFixture,
+    time_grain: str | None,
+) -> None:
+    """Snowflake timestamp paths quote exact-case physical columns."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        Database,
+        "get_db_engine_spec",
+        return_value=SnowflakeEngineSpec,
+    )
+    table = SqlaTable(
+        table_name="bug_test",
+        database=database,
+        normalize_columns=False,
+    )
+    tbl_column = TableColumn(
+        column_name="created_at",
+        type="TIMESTAMP",
+        table=table,
+    )
+
+    rendered = str(
+        tbl_column.get_timestamp_expression(time_grain=time_grain).compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert '"created_at"' in rendered
 
 
 def test_query_bubbles_errors(mocker: MockerFixture) -> None:

@@ -4203,7 +4203,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             expression = self._validate_stored_expression(expression)
             col = literal_column(expression, type_=type_)
         else:
-            col = sa.column(tbl_column.column_name, type_=type_)
+            identifier = db_engine_spec.prepare_identifier(
+                cast(str, tbl_column.column_name),
+                normalize_columns=bool(self.normalize_columns),
+            )
+            col = sa.column(identifier, type_=type_)
         col = self.make_sqla_column_compatible(col, label)
         return col
 
