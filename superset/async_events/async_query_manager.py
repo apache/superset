@@ -342,8 +342,10 @@ class AsyncQueryManager:
         owner without trusting the client-supplied id. Expires with the JWT so
         it never outlives the job it guards.
         """
-        # Best-effort: the cancel registry is an optimization. Skip when no
-        # coordination backend is configured rather than failing job submission.
+        # The cancel registry is an optimization: skip it when GAQ has no
+        # coordination backend configured. When a backend is configured, a write
+        # failure is not swallowed here — it surfaces to the caller and fails job
+        # submission, matching the behavior of the surrounding stream writes.
         if self._gaq_backend is None:
             return
         CoordinationService.set_value(
