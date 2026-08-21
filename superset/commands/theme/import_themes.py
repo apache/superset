@@ -39,6 +39,7 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
     from superset.utils.core import get_user
 
     can_write = security_manager.can_access("can_write", "Theme")
+    user = get_user()
     existing = db.session.query(Theme).filter_by(uuid=config["uuid"]).first()
 
     if existing:
@@ -81,10 +82,17 @@ def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | No
     if theme.id is None:
         db.session.flush()
 
-    # Add current user as owner if creating new theme
-    if not existing and (user := get_user()):
+    # Add current user as owner + editor when creating a new theme, mirroring
+    # CreateThemeCommand and the dashboard/chart/dataset importers, so the
+    # importer can maintain (edit/delete) the theme they just created.
+    if not existing and user:
+        from superset.subjects.utils import get_user_subject
+
         theme.changed_by = user
         theme.created_by = user
+        subj = get_user_subject(user.id)
+        if subj and subj not in theme.editors:
+            theme.editors.append(subj)
 
     return theme
 
