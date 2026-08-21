@@ -157,7 +157,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
-  const prevDataRef = useRef(data);
   const userClearedRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -429,26 +428,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
     clearAllTrigger,
   ]);
-
-  useEffect(() => {
-    const prev = prevDataRef.current;
-    const curr = data;
-
-    const hasDataChanged =
-      prev?.length !== curr?.length ||
-      prev?.some((row, i) => {
-        const prevVal = row[col];
-        const currVal = curr[i][col];
-        return typeof prevVal === 'bigint' || typeof currVal === 'bigint'
-          ? prevVal?.toString() !== currVal?.toString()
-          : prevVal !== currVal;
-      });
-
-    // If data actually changed (e.g., due to parent filter), reset flag
-    if (hasDataChanged) {
-      prevDataRef.current = data;
-    }
-  }, [data, col]);
 
   useEffect(() => {
     if (
