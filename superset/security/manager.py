@@ -1332,7 +1332,7 @@ def _query_has_novel_extras(query: Any, allowed: set[str]) -> bool:
 def _query_has_novel_filter_col(query: Any, allowed: set[str]) -> bool:
     """Whether a query has a structured filter ``col`` not in the allowed set.
 
-    Unlike ``_query_has_novel_sql`` this only checks the ``filter[].col``
+    Unlike ``_query_has_novel_extras`` this only checks the ``filter[].col``
     vector — the cross-filter path — and intentionally ignores
     ``extras.where``/``extras.having``.  Used for the scoped re-check after
     expanding ``allowed`` with sibling dashboard chart expressions: those
@@ -1367,7 +1367,9 @@ def _add_dashboard_column_expressions(
     from superset import db, security_manager
     from superset.models.dashboard import Dashboard
 
-    if not isinstance(dashboard_id, int):
+    try:
+        dashboard_id = int(dashboard_id)
+    except (TypeError, ValueError):
         return
     dashboard = (
         db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
