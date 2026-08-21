@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from textwrap import dedent
 from typing import Any, Optional
 from unittest import mock
 
@@ -189,6 +190,284 @@ def test_get_schema_from_engine_params() -> None:
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        pytest.param("with/slash", id="slash"),
+        pytest.param("with space", id="space"),
+        pytest.param("with%percent", id="percent"),
+        pytest.param("地区", id="unicode"),
+        pytest.param("plain", id="plain"),
+    ],
+)
+def test_schema_survives_engine_params_round_trip(schema: str) -> None:
+    """Story 105827: a schema name survives being written into the SQLAlchemy URI
+    and read back out.
+
+    Presto encodes the schema into the URI path as ``catalog/schema``, so
+    ``adjust_engine_params`` percent-quotes it with ``safe=""`` and
+    ``get_schema_from_engine_params`` unquotes it. Any asymmetry between those two
+    silently points SQL Lab at the wrong schema — and a schema containing ``/``
+    would otherwise split the path and be read back as a different name entirely.
+
+    Round-tripping is the assertion that matters here; testing either half alone
+    would not catch a mismatched pair.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    uri, _connect_args = PrestoEngineSpec.adjust_engine_params(
+        make_url("presto://localhost:8080/hive"),
+        {},
+        schema=schema,
+    )
+
+    assert PrestoEngineSpec.get_schema_from_engine_params(uri, {}) == schema
+
+
+def test_get_catalog_names_lists_catalogs() -> None:
+    """Story 105827: the catalog dropdown.
+
+    Presto is multi-catalog, unlike most engines, so this override exists at all.
+    The integration suite has a ``test_get_catalog_names`` but it returns early
+    unless the example database is Presto — and it asserts against a *list* while
+    the method returns a *set*, so it would fail if it ever actually ran. This is
+    the first real coverage of the method.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    inspector = mock.MagicMock()
+    conn = inspector.engine.connect.return_value.__enter__.return_value
+    conn.execute.return_value = [("jmx",), ("tpch",), ("memory",)]
+
+    result = PrestoEngineSpec.get_catalog_names(mock.MagicMock(), inspector)
+
+    assert result == {"jmx", "tpch", "memory"}
+    assert str(conn.execute.call_args[0][0]) == "SHOW CATALOGS"
+
+
+def test_get_view_names_queries_information_schema_with_schema() -> None:
+    """Unit-suite mirror of presto_tests.py::test_get_view_names_with_schema (L41).
+
+    pyhive's Presto dialect does not implement ``get_view_names`` at all, so
+    Superset hand-rolls this ``information_schema`` query. If it breaks, views
+    vanish from the dataset picker.
+
+    Asserts the SQL body *and* the params: only the schema branch parameterises.
+    The integration original is intentionally retained: it proves the same
+    expectations against a live app and metadata database, which this test does not.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    cursor = database.get_raw_connection().__enter__().cursor()
+    cursor.fetchall.return_value = [["a", "b,", "c"], ["d", "e"]]
+
+    result = PrestoEngineSpec.get_view_names(database, mock.Mock(), "my_schema")
+
+    assert result == {"a", "d"}
+    cursor.execute.assert_called_once_with(
+        dedent(
+            """
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = %(schema)s
+            AND table_type = 'VIEW'
+            """
+        ).strip(),
+        {"schema": "my_schema"},
+    )
+
+
+def test_get_view_names_queries_information_schema_without_schema() -> None:
+    """Unit-suite mirror of
+    presto_tests.py::test_get_view_names_without_schema (L63).
+
+    No schema means no ``table_schema`` predicate and empty params — a different
+    SQL body, not the same query with a null parameter.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    cursor = database.get_raw_connection().__enter__().cursor()
+    cursor.fetchall.return_value = [["a", "b,", "c"], ["d", "e"]]
+
+    result = PrestoEngineSpec.get_view_names(database, mock.Mock(), None)
+
+    assert result == {"a", "d"}
+    cursor.execute.assert_called_once_with(
+        dedent(
+            """
+            SELECT table_name FROM information_schema.tables
+            WHERE table_type = 'VIEW'
+            """
+        ).strip(),
+        {},
+    )
+
+
+def test_get_view_names_returns_empty_set_when_no_views() -> None:
+    """Story 105827: a schema with no views yields an empty set, not ``None``."""
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    database.get_raw_connection().__enter__().cursor().fetchall.return_value = []
+
+    assert PrestoEngineSpec.get_view_names(database, mock.Mock(), "empty") == set()
+
+
+def test_get_view_names_propagates_driver_error() -> None:
+    """Story 105827: ``get_view_names`` does not swallow driver errors.
+
+    Whatever the reason the query fails — the schema was dropped, or the user lacks
+    permission on ``information_schema`` — the exception surfaces. Nothing in the
+    engine spec converts it, and for Presto the caller's
+    ``get_dbapi_mapped_exception`` is a pass-through, since Presto overrides
+    neither ``get_dbapi_exception_mapping`` nor ``parse_error_exception``.
+
+    This replaces the ticket's "permission denied is handled gracefully"
+    criterion, which describes handling that does not exist anywhere in this path.
+    """
+    from pyhive.exc import DatabaseError
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    database.get_raw_connection().__enter__().cursor().execute.side_effect = (
+        DatabaseError("Access Denied: Cannot select from table information_schema")
+    )
+
+    with pytest.raises(DatabaseError, match="Access Denied"):
+        PrestoEngineSpec.get_view_names(database, mock.Mock(), "my_schema")
+
+
+def test_get_table_names_subtracts_views() -> None:
+    """Story 105822: the whole reason this override exists.
+
+    pyhive's dialect wrongly reports views as tables, so Presto's
+    ``get_table_names`` subtracts the view names from what the inspector returned.
+    If either side of that subtraction breaks, users report duplicated entries or
+    missing tables.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    inspector = mock.MagicMock()
+    inspector.get_table_names.return_value = ["t1", "t2", "v1", "v2"]
+    database = mock.MagicMock()
+    database.get_raw_connection().__enter__().cursor().fetchall.return_value = [
+        ["v1"],
+        ["v2"],
+    ]
+
+    result = PrestoEngineSpec.get_table_names(database, inspector, "my_schema")
+
+    assert result == {"t1", "t2"}
+
+
+def test_get_table_names_returns_empty_set_for_empty_schema() -> None:
+    """Story 105827: an empty schema yields an empty set from both sides of the
+    subtraction.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    inspector = mock.MagicMock()
+    inspector.get_table_names.return_value = []
+    database = mock.MagicMock()
+    database.get_raw_connection().__enter__().cursor().fetchall.return_value = []
+
+    assert PrestoEngineSpec.get_table_names(database, inspector, "empty") == set()
+
+
+def test_get_create_view_returns_view_definition() -> None:
+    """Unit-suite mirror of presto_tests.py::test_get_create_view (L963).
+
+    Despite the name it does not *generate* DDL — it runs ``SHOW CREATE VIEW`` and
+    returns row 0, column 0, which is what the UI shows in the view-definition
+    panel.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    cursor = database.get_raw_connection().__enter__().cursor()
+    cursor.fetchall.return_value = [["CREATE VIEW v AS SELECT 1", "b"], ["d"]]
+
+    result = PrestoEngineSpec.get_create_view(database, schema="s", table="v")
+
+    assert result == "CREATE VIEW v AS SELECT 1"
+
+
+@pytest.mark.parametrize(
+    "schema,table,expected_sql",
+    [
+        pytest.param("s", "v", "SHOW CREATE VIEW s.v", id="simple"),
+        pytest.param(
+            "analytics",
+            "daily_users",
+            "SHOW CREATE VIEW analytics.daily_users",
+            id="schema_qualified",
+        ),
+        # Schema and table are interpolated into the SQL string, not passed as
+        # bound parameters. Pinned so the interpolation is visible: these values
+        # reach this method from the metadata database, not from user input, but
+        # any change to that assumption changes the risk.
+        pytest.param(
+            "s",
+            'v" OR 1=1',
+            'SHOW CREATE VIEW s.v" OR 1=1',
+            id="not_parameterised",
+        ),
+    ],
+)
+def test_get_create_view_interpolates_schema_qualified_name(
+    schema: str,
+    table: str,
+    expected_sql: str,
+) -> None:
+    """Story 105822: the statement is built from a schema-qualified name."""
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    cursor = database.get_raw_connection().__enter__().cursor()
+    cursor.fetchall.return_value = [["CREATE VIEW ..."]]
+
+    PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
+
+    cursor.execute.assert_called_once_with(expected_sql)
+
+
+def test_get_create_view_returns_none_for_non_view() -> None:
+    """Unit-suite mirror of
+    presto_tests.py::test_get_create_view_database_error (L985).
+
+    ``SHOW CREATE VIEW`` on a real table raises ``DatabaseError``, which is caught
+    and reported as "not a view" rather than surfacing as an error.
+    """
+    from pyhive.exc import DatabaseError
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    cursor = database.get_raw_connection().__enter__().cursor()
+    cursor.fetchall.side_effect = DatabaseError()
+
+    assert PrestoEngineSpec.get_create_view(database, schema="s", table="t") is None
+
+
+def test_get_create_view_propagates_other_errors() -> None:
+    """Unit-suite mirror of presto_tests.py::test_get_create_view_exception (L976).
+
+    Only ``DatabaseError`` means "not a view". Anything else — a dropped
+    connection, an auth failure — propagates rather than being misreported as a
+    missing view definition.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    cursor = database.get_raw_connection().__enter__().cursor()
+    cursor.execute.side_effect = Exception("connection reset")
+
+    with pytest.raises(Exception, match="connection reset"):
+        PrestoEngineSpec.get_create_view(database, schema="s", table="v")
 
 
 @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")
