@@ -130,6 +130,9 @@ import {
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
+// One pixel avoids zero- or negative-height ECharts grids for pathological legends.
+const MIN_TIMESERIES_GRID_HEIGHT = 1;
+
 const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
   'dashed',
   'dotted',
@@ -1123,9 +1126,11 @@ export default function transformProps(
     name,
     icon: 'roundRect',
   }));
+  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
+  const isLegendVisible = showLegend && !isSmallChart;
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
-      showLegend,
+      isLegendVisible,
       legendOrientation,
       addYAxisLabelOffset,
       zoomable,
@@ -1156,7 +1161,8 @@ export default function transformProps(
           : sortedLegendData,
       legendMargin: candidateLegendMargin,
       orientation: legendOrientation,
-      show: showLegend,
+      reserveFullHorizontalPlainLegendMargin: true,
+      show: isLegendVisible,
       showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
       theme,
       type: legendType,
@@ -1170,6 +1176,11 @@ export default function transformProps(
       ? getLegendLayout(initialLegendLayout.effectiveLegendMargin)
       : initialLegendLayout;
   const { effectiveLegendType } = legendLayout;
+  const hasHorizontalPlainLegend =
+    isLegendVisible &&
+    effectiveLegendType === LegendType.Plain &&
+    (legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom);
   const effectiveLegendMargin =
     isHorizontal &&
     legendOrientation === LegendOrientation.Bottom &&
@@ -1177,7 +1188,7 @@ export default function transformProps(
       ? legendMargin
       : legendLayout.effectiveLegendMargin;
   const padding = getPadding(
-    showLegend,
+    isLegendVisible,
     legendOrientation,
     addYAxisLabelOffset,
     zoomable,
@@ -1193,8 +1204,18 @@ export default function transformProps(
   // Keep enough top padding so the max label doesn't clip against the cell border.
   // Preserve bottom padding when zoomable, since getPadding() reserves space for the dataZoom slider.
   if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
-    padding.top = Math.min(padding.top, 12);
-    if (!zoomable) {
+    if (
+      !hasHorizontalPlainLegend ||
+      legendOrientation !== LegendOrientation.Top
+    ) {
+      padding.top = Math.min(padding.top, 12);
+    }
+    if (
+      !zoomable &&
+      (!hasHorizontalPlainLegend ||
+        legendOrientation !== LegendOrientation.Bottom ||
+        isHorizontal)
+    ) {
       padding.bottom = Math.min(padding.bottom, 5);
     }
   }
@@ -1301,7 +1322,6 @@ export default function transformProps(
   // >= 100px: full axis with proportional tick count
   // 60-99px: show only min/max boundary labels (splitNumber=1), hide lines/ticks
   // < 60px: hide all axis decorations, show line only
-  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
   const isMicroChart = height < TIMESERIES_CONSTANTS.microChartHeight;
   const yAxisSplitNumber = isMicroChart
     ? undefined
@@ -1366,6 +1386,19 @@ export default function transformProps(
         padding.right || 0,
         TIMESERIES_CONSTANTS.horizontalBarLabelRightPadding,
       );
+    }
+  }
+
+  if (hasHorizontalPlainLegend) {
+    const maxReservedHeight = Math.max(height - MIN_TIMESERIES_GRID_HEIGHT, 0);
+    if (padding.top + padding.bottom > maxReservedHeight) {
+      const legendSide =
+        legendOrientation === LegendOrientation.Top ? 'top' : 'bottom';
+      const oppositeSide = legendSide === 'top' ? 'bottom' : 'top';
+
+      // Preserve the complete legend reservation; a negative opposite offset
+      // keeps a minimal grid without moving it into an oversized legend.
+      padding[oppositeSide] = maxReservedHeight - padding[legendSide];
     }
   }
 
@@ -1501,7 +1534,7 @@ export default function transformProps(
         effectiveLegendType,
         legendOrientation,
         // Hide legend on compact charts — not enough vertical space
-        isSmallChart ? false : showLegend,
+        isLegendVisible,
         theme,
         zoomable,
         legendState,

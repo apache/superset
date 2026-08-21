@@ -81,6 +81,9 @@ export function resolveLegendLayout(args: {
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
   orientation: LegendOrientation;
+  // Only Timeseries opts into full required-margin layout until sibling callers
+  // explicitly adopt the same behavior.
+  reserveFullHorizontalPlainLegendMargin?: boolean;
   show: boolean;
   showSelectors?: boolean;
   theme: SupersetTheme;

@@ -60,7 +60,6 @@ const DEFAULT_LEGEND_ICON_WIDTH = 25;
 const LEGEND_ICON_LABEL_GAP = 5;
 const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
 const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
-// Cap the reserved horizontal legend margin so an overflowing legend can't eat the plot.
 const MAX_LEGEND_MARGIN_RATIO = 0.4;
 const LEGEND_VERTICAL_SIDE_GUTTER = 16;
 const LEGEND_SELECTOR_GAP = 10;
@@ -246,6 +245,7 @@ function getHorizontalPlainLegendLayout({
   currentMargin,
   legendLabels,
   orientation,
+  reserveFullHorizontalPlainLegendMargin,
   showSelectors,
   theme,
 }: {
@@ -254,6 +254,7 @@ function getHorizontalPlainLegendLayout({
   currentMargin: number;
   legendLabels: string[];
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  reserveFullHorizontalPlainLegendMargin?: boolean;
   showSelectors: boolean;
   theme: SupersetTheme;
 }): LegendLayoutResult {
@@ -270,7 +271,7 @@ function getHorizontalPlainLegendLayout({
     defaultLegendPadding[orientation] +
     Math.max(0, rowsForMargin - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
   const boundedMargin =
-    availableHeight > 0
+    !reserveFullHorizontalPlainLegendMargin && availableHeight > 0
       ? Math.min(requiredMargin, availableHeight * MAX_LEGEND_MARGIN_RATIO)
       : requiredMargin;
 
@@ -328,6 +329,7 @@ export function getLegendLayoutResult({
   legendItems = [],
   legendMargin,
   orientation,
+  reserveFullHorizontalPlainLegendMargin,
   show,
   showSelectors = true,
   theme,
@@ -342,6 +344,9 @@ export function getLegendLayoutResult({
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
   orientation: LegendOrientation;
+  // Full required-margin layout is opt-in for Timeseries; sibling callers that
+  // leave it false retain the legacy ratio cap.
+  reserveFullHorizontalPlainLegendMargin?: boolean;
   show: boolean;
   showSelectors?: boolean;
   theme: SupersetTheme;
@@ -366,6 +371,7 @@ export function getLegendLayoutResult({
       currentMargin: resolvedLegendMargin,
       legendLabels,
       orientation,
+      reserveFullHorizontalPlainLegendMargin,
       showSelectors,
       theme,
     });
