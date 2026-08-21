@@ -54,8 +54,6 @@ jobs:
     services:
       mysql:
         image: ghcr.io/apache/superset/ci/mysql:8.0
-        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
-        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
