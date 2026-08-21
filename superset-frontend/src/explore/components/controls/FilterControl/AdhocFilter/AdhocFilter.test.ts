@@ -270,6 +270,74 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter.comparator).toBe(undefined);
   });
+  // Charts saved before #32701 persisted `==` as the operation for IS_TRUE and
+  // IS_FALSE, alongside a boolean comparator. `translateToSql` and the backend
+  // both key off `operator`, so dropping the comparator would render such a
+  // filter as `col =` and query it as `col IS NULL`.
+  test('keeps the legacy boolean comparator for IS_TRUE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      comparator: true,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(true);
+    expect(adhocFilter.translateToSql()).toBe("col = 'TRUE'");
+  });
+  test('keeps the legacy boolean comparator for IS_FALSE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsFalse,
+      comparator: false,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(false);
+    expect(adhocFilter.translateToSql()).toBe("col = 'FALSE'");
+  });
+  test('restores the boolean even when the stored comparator is missing', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.comparator).toBe(true);
+  });
+  test('keeps a legacy boolean filter intact when the control re-posts it', () => {
+    const stored = {
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.IsTrue,
+      comparator: true,
+      clause: Clauses.Where,
+    };
+    // DndFilterSelect wraps props.value and hands those instances to onChange
+    const posted = JSON.parse(JSON.stringify(new AdhocFilter(stored)));
+    expect(posted.operator).toBe('==');
+    expect(posted.comparator).toBe(true);
+    expect(posted.operatorId).toBe(Operators.IsTrue);
+  });
+  test('leaves a genuine equality filter on a boolean value alone', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: '==',
+      operatorId: Operators.Equals,
+      comparator: true,
+      clause: Clauses.Where,
+    });
+    expect(adhocFilter.operator).toBe('==');
+    expect(adhocFilter.comparator).toBe(true);
+    expect(adhocFilter.translateToSql()).toBe("col = 'TRUE'");
+  });
   test('sets the label properly if subject is a string', () => {
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,

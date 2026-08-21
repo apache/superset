@@ -14,6 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
 from superset.utils.pandas_postprocessing.aggregate import aggregate
 from superset.utils.pandas_postprocessing.boxplot import boxplot
 from superset.utils.pandas_postprocessing.compare import compare
@@ -63,3 +68,15 @@ __all__ = [
     "escape_separator",
     "unescape_separator",
 ]
+
+
+def build_extra_ops_map(
+    extra: list[Callable[..., Any]],
+) -> dict[str, Callable[..., Any]]:
+    """Build a name→callable map from EXTRA_PANDAS_POSTPROCESSING_OPS.
+
+    Callables without ``__name__`` (e.g. ``functools.partial``, lambdas) are
+    silently excluded — they cannot be addressed by name in a post_processing
+    spec.
+    """
+    return {name: fn for fn in extra if (name := getattr(fn, "__name__", None))}
