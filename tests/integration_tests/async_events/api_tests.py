@@ -48,16 +48,18 @@ class TestAsyncEventApi(SupersetTestCase):
         app._got_first_request = False
 
         # GAQ resolves its own backend from get_cache_backend during init_app, so
-        # inject the mock there and initialize within the patch.
+        # inject the mock there. init_app must run before login(): it re-registers the
+        # after_request handler, and login()'s request would otherwise trip Flask's
+        # "setup method after first request" guard before init_app gets to re-register.
         mock_cache = mock.Mock(spec=cache_backend_cls)
-
-        self.login(ADMIN_USERNAME)
         with mock.patch(
             "superset.async_events.async_query_manager.get_cache_backend",
             return_value=mock_cache,
         ):
             async_query_manager_factory.init_app(app)
-            test_func(mock_cache)
+
+        self.login(ADMIN_USERNAME)
+        test_func(mock_cache)
 
     def _test_events_logic(self, mock_cache):
         with mock.patch.object(mock_cache, "xrange") as mock_xrange:
