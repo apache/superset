@@ -3142,7 +3142,7 @@ class BasicParametersMixin:
             return errors
 
         port = parameters.get("port", None)
-        if not port:
+        if port is None or port == "":
             return errors
         try:
             port = int(port)

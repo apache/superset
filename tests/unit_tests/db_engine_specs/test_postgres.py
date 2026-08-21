@@ -688,6 +688,75 @@ def test_validate_parameters_invalid_port_still_errors(
     assert errors[0].error_type == SupersetErrorType.CONNECTION_INVALID_PORT_ERROR
 
 
+def test_validate_parameters_explicit_zero_port_is_validated(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): an explicit ``port=0`` must not be silently
+    treated as blank. ``0`` is falsy in Python, so a naive ``if not port``
+    short-circuit (the base method's original bug, inherited by Postgres)
+    would skip the int/range/``is_port_open`` checks entirely for a real,
+    explicitly-supplied port value of ``0`` -- which the schema's own
+    ``Range(min=0, ...)`` validator accepts as valid. This confirms
+    ``is_port_open`` is actually called (i.e. validation ran) for ``port=0``.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    is_port_open = mocker.patch(
+        "superset.db_engine_specs.base.is_port_open", return_value=True
+    )
+
+    properties = {"parameters": _basic_parameters(port=0)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    is_port_open.assert_called_once_with("localhost", 0)
+    assert errors == []
+
+
+def test_validate_parameters_explicit_zero_port_reports_closed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): the other side of the ``port=0`` fix above --
+    when the (now-actually-run) open-port check for an explicit ``port=0``
+    fails, ``CONNECTION_PORT_CLOSED_ERROR`` is reported like it would be for
+    any other supplied port.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    is_port_open = mocker.patch(
+        "superset.db_engine_specs.base.is_port_open", return_value=False
+    )
+
+    properties = {"parameters": _basic_parameters(port=0)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    is_port_open.assert_called_once_with("localhost", 0)
+    assert len(errors) == 1
+    assert errors[0].error_type == SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR
+
+
+@pytest.mark.parametrize("blank_port", [None, ""])
+def test_validate_parameters_blank_port_never_calls_is_port_open(
+    blank_port: Optional[str],
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): regression lock for the blank-port UX this
+    whole ticket exists to fix -- ``None`` (an omitted/null port) and ``""``
+    (what a cleared HTML number input submits) must both keep
+    short-circuiting ``validate_parameters`` with zero errors *before* any
+    port validation runs, and must not be conflated with the ``port=0`` fix
+    above: ``is_port_open`` must never be called for either blank form.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    is_port_open = mocker.patch("superset.db_engine_specs.base.is_port_open")
+
+    properties = {"parameters": _basic_parameters(port=blank_port)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    assert errors == []
+    is_port_open.assert_not_called()
+
+
 def test_validate_parameters_non_integer_port_matches_base_parity(
     mocker: MockerFixture,
 ) -> None:
