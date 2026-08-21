@@ -219,6 +219,8 @@ class UploadCommand(BaseCommand):
                 database_id=self._model_id,
                 editors=editors,
                 schema=self._schema,
+                # Ensure catalog is set
+                catalog=self._model.get_default_catalog(),
             )
             db.session.add(sqla_table)
 
