@@ -187,13 +187,19 @@ def test_user_registrations_rest_api_is_admin_only() -> None:
     assert "UserRegistrationsRestAPI" in SupersetSecurityManager.ADMIN_ONLY_VIEW_MENUS
 
 
-def test_user_registrations_rest_api_routes_are_read_only() -> None:
+def test_user_registrations_rest_api_excludes_create_and_update() -> None:
     """
-    Only the read routes should be registered; the FAB default POST/PUT/
-    DELETE handlers must not exist on this API at all.
+    The FAB default POST/PUT handlers must not exist on this API, so a
+    mis-granted role cannot create or silently alter a pending registration.
+    DELETE stays registered: the User Registrations admin page deletes
+    pending registrations through it, and the route is still fully gated
+    Admin-only (see test_user_registrations_rest_api_is_admin_only).
     """
     assert UserRegistrationsRestAPI.include_route_methods == {
         RouteMethod.GET,
         RouteMethod.GET_LIST,
         RouteMethod.INFO,
+        RouteMethod.DELETE,
     }
+    assert "post" not in UserRegistrationsRestAPI.include_route_methods
+    assert "put" not in UserRegistrationsRestAPI.include_route_methods

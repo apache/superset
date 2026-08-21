@@ -424,11 +424,20 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
-    # This API is read-only by design: restricting the exposed routes keeps
-    # the FAB default POST/PUT/DELETE handlers from ever being registered,
-    # so a mis-granted role cannot create, alter, or silently cancel a
-    # pending registration.
-    include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST, RouteMethod.INFO}
+    # POST/PUT are intentionally excluded: restricting the exposed routes
+    # keeps the FAB default create/update handlers from ever being
+    # registered, so a mis-granted role cannot silently alter a pending
+    # registration. DELETE is kept: the User Registrations admin page
+    # deletes pending registrations through this route, and the class is
+    # gated Admin-only via ADMIN_ONLY_VIEW_MENUS (keyed on the view-menu
+    # name, i.e. every permission on this class, not just specific ones),
+    # so exposing it does not grant non-Admin roles anything.
+    include_route_methods = {
+        RouteMethod.GET,
+        RouteMethod.GET_LIST,
+        RouteMethod.INFO,
+        RouteMethod.DELETE,
+    }
     # NOTE: registration_hash is intentionally excluded from both list_columns
     # and search_columns. It is a bearer token for the
     # /register/activation/<hash> flow; exposing it in API responses (and thus
