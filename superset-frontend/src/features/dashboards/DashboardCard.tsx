@@ -20,7 +20,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
-import { CardStyles } from 'src/views/CRUD/utils';
+import { CardStyles, isNavigationHandledByLink } from 'src/views/CRUD/utils';
 import {
   FaveStar,
   Icons,
@@ -169,8 +169,8 @@ function DashboardCard({
 
   return (
     <CardStyles
-      onClick={() => {
-        if (!bulkSelectEnabled) {
+      onClick={event => {
+        if (!bulkSelectEnabled && !isNavigationHandledByLink(event)) {
           history.push(dashboard.url);
         }
       }}

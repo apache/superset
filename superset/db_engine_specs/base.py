@@ -632,6 +632,33 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # issuing one query per level. Conservative default of False; engines opt in.
     supports_grouping_sets = False
 
+    # SQL-generating callables for metric aggregates that have no safe, universal
+    # cross-dialect spelling -- unlike SUM/COUNT/AVG/MIN/MAX/COUNT_DISTINCT (see
+    # `SqlaTable.sqla_aggregations`), which SQLAlchemy's generic `sa.func` can emit
+    # unchanged on every engine. Keyed by `Aggregate` name (see
+    # `superset-frontend/packages/superset-ui-core/src/query/types/Metric.ts`);
+    # each value takes a SQLAlchemy column and returns the aggregate expression.
+    # Absent by default: an aggregate not present here is unsupported on this
+    # engine, and callers must surface a clear "not supported" error rather than
+    # emit unverified SQL (a wrong statistic returned silently is worse than an
+    # error). Engines opt in via `get_extended_aggregation_func` below once the
+    # expression has been verified against real engine behavior, not assumed
+    # from syntax alone -- see the MySQL engine spec for a concrete example of
+    # why this distinction matters (its `VARIANCE()` computes the *population*
+    # variance, not the *sample* variance `VAR_SAMP` denotes).
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
+
+    @classmethod
+    def get_extended_aggregation_func(
+        cls, aggregate: str
+    ) -> Callable[[ColumnElement], ColumnElement] | None:
+        """
+        SQL-generating callable for an aggregate not handled by the generic
+        `sa.func` mapping (e.g. MEDIAN, STDDEV_SAMP, VAR_SAMP). Returns None if
+        this engine has no verified, correct expression for it.
+        """
+        return cls._extended_aggregations.get(aggregate)
+
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False

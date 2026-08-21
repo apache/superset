@@ -655,6 +655,7 @@ def build_query_context_from_form_data(
     order_desc: bool | None = None,
     result_type: Any = None,
     force: bool = False,
+    custom_cache_timeout: int | None = None,
 ) -> Any:
     """Build a QueryContext from chart-type-aware Explore form_data."""
     # avoid circular import
@@ -683,6 +684,7 @@ def build_query_context_from_form_data(
         form_data=form_data,
         result_type=result_type,
         force=force,
+        custom_cache_timeout=custom_cache_timeout,
     )
 
 
