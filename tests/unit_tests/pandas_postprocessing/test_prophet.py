@@ -186,15 +186,14 @@ def test_prophet_periods_exceeding_max_raises():
     ``periods`` comes from the unvalidated post-processing options dict; the
     schema-declared upper bound (``MAX_PROPHET_PERIODS``, configurable, default
     10000) is documentation-only unless enforced at the point ``periods`` is
-    consumed, since every forecast period adds a future row per series. The
-    over-limit value is derived from the actual configured max, rather than
-    hardcoded, so the test stays valid if that config is overridden.
+    consumed, since every forecast period adds a future row per series.
     """
+    assert get_max_prophet_periods() == 10000
     with pytest.raises(InvalidPostProcessingError, match="must not exceed"):
         prophet(
             df=prophet_df,
             time_grain="P1M",
-            periods=get_max_prophet_periods() + 1,
+            periods=10001,
             confidence_interval=0.8,
         )
 
