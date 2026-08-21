@@ -65,6 +65,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
+    SqlExpressionContext,
 )
 from superset.sql.parse import (
     CTASMethod,
@@ -459,11 +460,12 @@ class Query(
             pdf = col_in_metadata.python_date_format
 
         expression = self._process_sql_expression(
-            expression=sql_expression,
-            database_id=self.database_id,
-            engine=self.database.backend,
-            schema=self.schema,
-            template_processor=template_processor,
+            sql_expression,
+            SqlExpressionContext(
+                self.database.backend,
+                self.schema,
+                template_processor,
+            ),
         )
         sqla_column = literal_column(expression)
 
