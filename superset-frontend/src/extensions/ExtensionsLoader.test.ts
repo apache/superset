@@ -346,7 +346,11 @@ test('each extension gets a chat.registerClientTool(s) rebind that prefixes its 
 
   const appendChildSpy = mockRemoteEntryLoad();
   mockWebpackSharing({
-    '0.1.0': { get: () => Promise.resolve(() => ({})), loaded: true, eager: true },
+    '0.1.0': {
+      get: () => Promise.resolve(() => ({})),
+      loaded: true,
+      eager: true,
+    },
   });
 
   const ext1 = createMockExtension({
@@ -354,7 +358,10 @@ test('each extension gets a chat.registerClientTool(s) rebind that prefixes its 
     remoteEntry: 'http://ext1/remoteEntry.js',
   });
   (window as any).airbnb_ext1 = makeContainer();
-  await loader.initializeExtension({ ...ext1, moduleFederationName: 'airbnb_ext1' });
+  await loader.initializeExtension({
+    ...ext1,
+    moduleFederationName: 'airbnb_ext1',
+  });
 
   const noopTool = {
     description: 'test',
