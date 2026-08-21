@@ -539,6 +539,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the ``array_*`` capability methods below must be implemented. Defaults to
     # False so engines that have not opted in keep treating arrays as strings.
     supports_multivalue_columns = False
+    supports_temporal_column_shift: bool = False
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
@@ -1241,6 +1242,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             time_expr = cls._apply_year_to_dttm(time_expr)
 
         return TimestampExpression(time_expr, col, type_=col.type)
+
+    @classmethod
+    def get_temporal_column_shift_expr(
+        cls,
+        col: ColumnClause,
+        offset_hours: int,
+    ) -> TimestampExpression:
+        """Shift a temporal SQL expression by a bounded number of hours."""
+        return TimestampExpression(
+            f"{{col}} + INTERVAL '{offset_hours}' HOUR",
+            col,
+            type_=col.type,
+        )
 
     @classmethod
     def _apply_year_to_dttm(cls, time_expr: str) -> str:
