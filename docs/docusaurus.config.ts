@@ -49,13 +49,23 @@ if (!versionsConfig.user_docs.disabled) {
       path: 'docs',
       routeBasePath: 'user-docs',
       sidebarPath: require.resolve('./sidebars.js'),
-      editUrl: ({ versionDocsDirPath, docPath }: { versionDocsDirPath: string; docPath: string }) => {
+      editUrl: ({
+        versionDocsDirPath,
+        docPath,
+      }: {
+        versionDocsDirPath: string;
+        docPath: string;
+      }) => {
         if (docPath === 'intro.md') {
           return 'https://github.com/apache/superset/edit/master/README.md';
         }
         return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
       },
-      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
+      remarkPlugins: [
+        remarkImportPartial,
+        remarkLocalizeBadges,
+        remarkTechArticleSchema,
+      ],
       admonitions: {
         keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
         extendDefaults: true,
@@ -81,9 +91,12 @@ if (!versionsConfig.components.disabled) {
       path: 'components',
       routeBasePath: 'components',
       sidebarPath: require.resolve('./sidebarComponents.js'),
-      editUrl:
-        'https://github.com/apache/superset/edit/master/docs/components',
-      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
+      editUrl: 'https://github.com/apache/superset/edit/master/docs/components',
+      remarkPlugins: [
+        remarkImportPartial,
+        remarkLocalizeBadges,
+        remarkTechArticleSchema,
+      ],
       admonitions: {
         keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
         extendDefaults: true,
@@ -109,9 +122,12 @@ if (!versionsConfig.admin_docs.disabled) {
       path: 'admin_docs',
       routeBasePath: 'admin-docs',
       sidebarPath: require.resolve('./sidebarAdminDocs.js'),
-      editUrl:
-        'https://github.com/apache/superset/edit/master/docs/admin_docs',
-      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
+      editUrl: 'https://github.com/apache/superset/edit/master/docs/admin_docs',
+      remarkPlugins: [
+        remarkImportPartial,
+        remarkLocalizeBadges,
+        remarkTechArticleSchema,
+      ],
       admonitions: {
         keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
         extendDefaults: true,
@@ -139,13 +155,18 @@ if (!versionsConfig.developer_docs.disabled) {
       sidebarPath: require.resolve('./sidebarTutorials.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/developer_docs',
-      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
+      remarkPlugins: [
+        remarkImportPartial,
+        remarkLocalizeBadges,
+        remarkTechArticleSchema,
+      ],
       admonitions: {
         keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
         extendDefaults: true,
       },
       docItemComponent: '@theme/ApiItem', // Required for OpenAPI docs
-      includeCurrentVersion: versionsConfig.developer_docs.includeCurrentVersion,
+      includeCurrentVersion:
+        versionsConfig.developer_docs.includeCurrentVersion,
       lastVersion: versionsConfig.developer_docs.lastVersion,
       onlyIncludeVersions: versionsConfig.developer_docs.onlyIncludeVersions,
       versions: versionsConfig.developer_docs.versions,
@@ -222,7 +243,10 @@ if (!versionsConfig.admin_docs.disabled) {
 }
 
 // Add Developer Docs navbar item if not hidden from nav
-if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hideFromNav) {
+if (
+  !versionsConfig.developer_docs.disabled &&
+  !versionsConfig.developer_docs.hideFromNav
+) {
   dynamicNavbarItems.push({
     label: 'Developers',
     to: '/developer-docs/',
@@ -262,7 +286,6 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
     ],
   });
 }
-
 
 const config: Config = {
   future: {
@@ -315,7 +338,8 @@ const config: Config = {
         name: 'Apache Superset',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Cross-platform',
-        description: 'Apache Superset is a modern, enterprise-ready business intelligence web application for data exploration and visualization.',
+        description:
+          'Apache Superset is a modern, enterprise-ready business intelligence web application for data exploration and visualization.',
         url: 'https://superset.apache.org',
         license: 'https://www.apache.org/licenses/LICENSE-2.0',
         author: {
@@ -354,7 +378,8 @@ const config: Config = {
           '@type': 'SearchAction',
           target: {
             '@type': 'EntryPoint',
-            urlTemplate: 'https://superset.apache.org/search?q={search_term_string}',
+            urlTemplate:
+              'https://superset.apache.org/search?q={search_term_string}',
           },
           'query-input': 'required name=search_term_string',
         },
@@ -716,7 +741,9 @@ const config: Config = {
 
           // Redirect all /developer_portal/* paths to /developer-docs/*
           if (existingPath.startsWith('/developer-docs/')) {
-            redirects.push(existingPath.replace('/developer-docs/', '/developer_portal/'));
+            redirects.push(
+              existingPath.replace('/developer-docs/', '/developer_portal/'),
+            );
           }
 
           // Redirect all /docs/* paths to /user-docs/* for user documentation
@@ -748,8 +775,7 @@ const config: Config = {
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
-          editUrl:
-            'https://github.com/apache/superset/tree/master/docs',
+          editUrl: 'https://github.com/apache/superset/tree/master/docs',
         },
         theme: {
           customCss: require.resolve('./src/styles/custom.css'),
@@ -761,10 +787,10 @@ const config: Config = {
           priority: 0.5,
           ignorePatterns: ['/tags/**'],
           filename: 'sitemap.xml',
-          createSitemapItems: async (params) => {
+          createSitemapItems: async params => {
             const { defaultCreateSitemapItems, ...rest } = params;
             const items = await defaultCreateSitemapItems(rest);
-            return items.map((item) => {
+            return items.map(item => {
               // Boost priority for key pages
               if (item.url.endsWith('/user-docs/')) {
                 return { ...item, priority: 1.0, changefreq: 'daily' };
@@ -798,14 +824,24 @@ const config: Config = {
   themeConfig: {
     // SEO: OpenGraph and Twitter meta tags
     metadata: [
-      { name: 'keywords', content: 'data visualization, business intelligence, BI, dashboards, SQL, analytics, open source, Apache, charts, reporting' },
+      {
+        name: 'keywords',
+        content:
+          'data visualization, business intelligence, BI, dashboards, SQL, analytics, open source, Apache, charts, reporting',
+      },
       { property: 'og:type', content: 'website' },
       { property: 'og:site_name', content: 'Apache Superset' },
-      { property: 'og:image', content: 'https://superset.apache.org/img/superset-og-image.png' },
+      {
+        property: 'og:image',
+        content: 'https://superset.apache.org/img/superset-og-image.png',
+      },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:image', content: 'https://superset.apache.org/img/superset-og-image.png' },
+      {
+        name: 'twitter:image',
+        content: 'https://superset.apache.org/img/superset-og-image.png',
+      },
       { name: 'twitter:site', content: '@ApacheSuperset' },
     ],
     colorMode: {

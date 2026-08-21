@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { ensureIsArray } from '@superset-ui/core';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import { styled } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { GridTable } from 'src/components/GridTable';
@@ -35,7 +36,7 @@ import {
 import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
-const Error = styled.pre`
+const ErrorAlertWrapper = styled.div`
   margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
@@ -104,10 +105,17 @@ export const SamplesPane = ({
         1,
       )
         .then(response => {
-          setData(ensureIsArray(response.data));
-          setColnames(ensureIsArray(response.colnames));
-          setColtypes(ensureIsArray(response.coltypes));
-          setRowCount(response.rowcount);
+          // A 200 that carries no `result` payload resolves to undefined here.
+          // Read through it so the pane falls back to its empty state instead
+          // of throwing a TypeError that surfaces as an internal error message.
+          const rows = ensureIsArray(response?.data);
+          setData(rows);
+          setColnames(ensureIsArray(response?.colnames));
+          setColtypes(ensureIsArray(response?.coltypes));
+          // Fall back to the rows actually returned rather than to zero: the
+          // controls only render when there are rows, and a hardcoded 0 would
+          // label a populated table as "0 rows".
+          setRowCount(response?.rowcount ?? rows.length);
           setResponseError('');
           cache.set(queryFormData, true);
           if (queryForce) {
@@ -148,13 +156,21 @@ export const SamplesPane = ({
           rowcount={rowcount}
           datasourceId={datasourceId}
           onInputChange={handleInputChange}
+          filterText={filterText}
           isLoading={isLoading}
           canDownload={canDownload}
           rowLimit={rowLimit}
           rowLimitOptions={ROW_LIMIT_OPTIONS}
           onRowLimitChange={handleRowLimitChange}
         />
-        <Error>{responseError}</Error>
+        <ErrorAlertWrapper>
+          <Alert
+            type="error"
+            showIcon
+            message={t('Failed to load samples')}
+            description={responseError}
+          />
+        </ErrorAlertWrapper>
       </>
     );
   }
@@ -176,6 +192,7 @@ export const SamplesPane = ({
         rowcount={rowcount}
         datasourceId={datasourceId}
         onInputChange={handleInputChange}
+        filterText={filterText}
         isLoading={isLoading}
         canDownload={canDownload}
         rowLimit={rowLimit}

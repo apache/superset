@@ -80,7 +80,7 @@ def replace(source, target):
 
             for slc, database in query:
                 try:
-                    engine = create_engine(database.sqlalchemy_uri, future=True)
+                    engine = create_engine(database.sqlalchemy_uri)
 
                     if engine.dialect.identifier_preparer._double_percents:
                         params = json.loads(slc.params)

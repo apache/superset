@@ -36,7 +36,6 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -868,7 +867,7 @@ function DatasourceEditor({
       return {
         ...metric,
         certification_details: certificationDetails || details,
-        warning_markdown: warningMarkdown || '',
+        warning_markdown: warningMarkdown || metric.warning_markdown || '',
         certified_by: certifiedBy || certifiedByMetric,
       };
     }),
@@ -1628,9 +1627,7 @@ function DatasourceEditor({
               {t(
                 'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as',
               )}{' '}
-              <Typography.Text code>
-                /superset/dashboard/{'{id}'}/
-              </Typography.Text>
+              <Typography.Text code>/dashboard/{'{id}'}/</Typography.Text>
             </>
           }
           control={<TextControl controlId="default_endpoint" />}
@@ -1754,14 +1751,17 @@ function DatasourceEditor({
     () => (
       <div>
         <EditLockContainer>
-          <span
+          <button
+            type="button"
             css={themeParam => css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
               color: ${themeParam.colorTextTertiary};
             `}
-            role="button"
-            tabIndex={0}
             onClick={onChangeEditMode}
-            onKeyDown={handleKeyboardActivation(onChangeEditMode)}
           >
             {isEditMode ? (
               <Icons.UnlockOutlined
@@ -1778,7 +1778,7 @@ function DatasourceEditor({
                 })}
               />
             )}
-          </span>
+          </button>
           {!isEditMode && <div>{t('Click the lock to make changes.')}</div>}
           {isEditMode && (
             <div>{t('Click the lock to prevent further changes.')}</div>

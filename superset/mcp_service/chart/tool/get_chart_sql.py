@@ -45,22 +45,8 @@ from superset.mcp_service.chart.schemas import (
     ChartSql,
     GetChartSqlRequest,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_chart_sql_for_llm_context(chart_sql: ChartSql) -> ChartSql:
-    """Wrap chart SQL read-path descriptive fields before LLM exposure."""
-    payload = chart_sql.model_dump(mode="python")
-
-    for field_name in ("chart_name", "datasource_name", "sql", "error"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    return ChartSql.model_validate(payload)
 
 
 def _get_cached_form_data(form_data_key: str) -> str | None:
@@ -312,15 +298,13 @@ def _extract_sql_from_result(
             error_type="QueryGenerationFailed",
         )
 
-    return _sanitize_chart_sql_for_llm_context(
-        ChartSql(
-            chart_id=chart_id,
-            chart_name=chart_name,
-            sql="\n\n".join(sql_parts),
-            language=language,
-            datasource_name=datasource_name,
-            error="; ".join(errors) if errors else None,
-        )
+    return ChartSql(
+        chart_id=chart_id,
+        chart_name=chart_name,
+        sql="\n\n".join(sql_parts),
+        language=language,
+        datasource_name=datasource_name,
+        error="; ".join(errors) if errors else None,
     )
 
 
@@ -421,7 +405,7 @@ async def _handle_chart_sql_request(
     )
 
     # Validate the chart's dataset is accessible
-    validation_result = validate_chart_dataset(chart, check_access=True)
+    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)

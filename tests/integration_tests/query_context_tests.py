@@ -1314,6 +1314,58 @@ def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset
 
 
 @only_sqlite
+@pytest.mark.parametrize("sql_expression", ["col6", " col6 "])
+def test_time_offset_without_grain_aligns_direct_custom_sql_temporal_axis(
+    app_context, physical_dataset, sql_expression
+):
+    """A direct Custom SQL reference uses its physical column's temporal type."""
+    column_on_axis: AdhocColumn = {
+        "label": "custom_col6",
+        "sqlExpression": sql_expression,
+        "columnType": "BASE_AXIS",
+        "isColumnReference": True,
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [column_on_axis],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["32 days ago"],
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-02-04 : 2002-04-13",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    df = qc.get_df_payload(qc.queries[0])["df"]
+
+    assert df["custom_col6"].tolist() == [
+        "2002-02-04 00:00:00",
+        "2002-03-07 00:00:00",
+        "2002-04-12 00:00:00",
+    ]
+    assert df["SUM(col1)"].tolist() == [1, 2, 3]
+    assert df["SUM(col1)__32 days ago"].tolist()[0] == 0
+
+
+@only_sqlite
 def test_time_grain_and_time_offset_on_legacy_query(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={

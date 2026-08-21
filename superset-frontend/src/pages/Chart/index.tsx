@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import type { Location, Action } from 'history';
 import { t } from '@apache-superset/core/translation';
@@ -36,6 +36,11 @@ import { URL_PARAMS } from 'src/constants';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+  selectRestoreTarget,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
 import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
@@ -138,6 +143,7 @@ export default function ExplorePage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
   const history = useHistory();
+  const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
 
   const loadExploreData = useCallback(
     (
@@ -304,10 +310,22 @@ export default function ExplorePage() {
   // PUSH/POP: full reload (unmount + re-fetch).
   // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
   // Other REPLACE: ignored (URL sync from updateHistory).
+  // Entries holding a chart state of the loaded chart are skipped: Explore
+  // pushed them itself, and ExploreViewContainer restores a popped one in place.
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
-        SaveActionType | undefined;
+        | SaveActionType
+        | undefined;
+      const chartState = getChartStateFromHistoryState(loc.state);
+      if (chartState) {
+        if (action === 'PUSH') {
+          return;
+        }
+        if (action === 'POP' && isSameChartState(chartState, restoreTarget)) {
+          return;
+        }
+      }
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);
         loadExploreData(loc, saveAction);
@@ -316,7 +334,7 @@ export default function ExplorePage() {
       }
     });
     return unlisten;
-  }, [history, loadExploreData]);
+  }, [history, loadExploreData, restoreTarget]);
 
   if (!isLoaded) {
     return <Loading />;

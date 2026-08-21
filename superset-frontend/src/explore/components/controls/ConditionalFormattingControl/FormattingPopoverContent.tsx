@@ -44,8 +44,9 @@ import {
   stringOperatorOptions,
   booleanOperatorOptions,
   formattingOptions,
-  colorSchemeOptions,
+  colorScheme,
 } from './constants';
+import ColorPickerControl from '../ColorPickerControl';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -236,11 +237,11 @@ export const FormattingPopoverContent = ({
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
-  extraColorChoices?: { label: string; value: string }[];
+  extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
 }) => {
   const [form] = Form.useForm();
-  const colorScheme = colorSchemeOptions();
+  const colors = colorScheme();
   const [showOperatorFields, setShowOperatorFields] = useState(
     config === undefined ||
       (config?.colorScheme !== ColorSchemeEnum.Green &&
@@ -319,6 +320,7 @@ export const FormattingPopoverContent = ({
     () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
     [allColumns],
   );
+  const defaultColorToken = colors[0]?.colors?.[0];
 
   const visibleUseGradient = useMemo(
     () =>
@@ -365,6 +367,14 @@ export const FormattingPopoverContent = ({
     }
   }, [column, columns, previousColumnType]);
 
+  const trendColorsTooltip = (
+    <div>
+      <div>{t('Trend colors are added (for time-based comparison):')}</div>
+      <div>{t('green — increase / red — decrease')}</div>
+      <div>{t('red — increase / green — decrease')}</div>
+    </div>
+  );
+
   return (
     <Form
       form={form}
@@ -395,12 +405,15 @@ export const FormattingPopoverContent = ({
             name="colorScheme"
             label={t('Color scheme')}
             rules={rulesRequired}
-            initialValue={colorScheme[0].value}
+            initialValue={defaultColorToken}
+            tooltip={extraColorChoices.length > 0 ? trendColorsTooltip : ''}
           >
-            <Select
-              onChange={event => handleChange(event)}
+            <ColorPickerControl
               ariaLabel={t('Color scheme')}
-              options={[...colorScheme, ...extraColorChoices]}
+              onChange={event => handleChange(event)}
+              presets={[...colors, ...extraColorChoices]}
+              resolveThemeTokens
+              outputFormat="hex"
             />
           </FormItem>
         </Col>

@@ -27,6 +27,7 @@ import {
   VizType,
   ChartDataResponseResult,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -694,9 +695,11 @@ test('should add a formula annotation when X-axis column has dataset-level label
     result.echartOptions.series as SeriesOption[] | undefined
   )?.find((s: SeriesOption) => s.name === 'My Formula');
   expect(formulaSeries).toBeDefined();
-  expect(formulaSeries?.data).toBeDefined();
-  expect(Array.isArray(formulaSeries?.data)).toBe(true);
-  expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
+  const series = formulaSeries as SeriesOption;
+  expect(series.data).toBeDefined();
+  const data = series.data as unknown[];
+  expect(Array.isArray(data)).toBe(true);
+  expect(data.length).toBeGreaterThan(0);
 });
 
 test('numeric x coltype never gets silently coerced to the Time axis', () => {
@@ -1160,4 +1163,296 @@ test('x-axis dedup keeps the forced min label when the endpoints format identica
   formatter(max);
 
   expect(formatter(min)).toBe('May');
+});
+
+test('#39899 - x-axis dates do not overlap and last label stays visible at 0° rotation (mixed)', () => {
+  // When showMaxLabel is active on a time axis with 0° rotation,
+  // hideOverlap must be off so ECharts cannot suppress the forced
+  // max label (the end-of-axis date).
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+    ],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['sum__num'],
+      metricsB: ['sum__num'],
+      groupby: [],
+      groupbyB: [],
+      xAxisLabelRotation: 0,
+      // showMaxLabel (and therefore hideOverlap: false) only activates when
+      // a time grain resolves, so this needs one set to actually exercise
+      // the #39899 fix rather than silently no-op.
+      timeGrainSqla: TimeGranularity.MONTH,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { axisLabel } = echartOptions.xAxis as Record<string, any>;
+
+  expect(axisLabel.showMaxLabel).toBe(true);
+  expect(axisLabel.alignMaxLabel).toBe('right');
+  expect(axisLabel.hideOverlap).toBe(false);
+});
+
+test('regression #37921: multi-metric Query A with groupby does not duplicate first metric in series names', () => {
+  // Regression test for https://github.com/apache/superset/issues/37921
+  // ("Residual" follow-up to #37055).
+  //
+  // When Query A has multiple metrics + at least one Group By dimension,
+  // the display-name builder in transformProps.ts used to prepend the FIRST
+  // metric's display name to every series that didn't literally contain it:
+  //   name: `${MetricDisplayNameA}, ${entryName}`
+  // For series belonging to the *second* metric, this produced a
+  // cross-contaminated label like `score_one, score_two, A` — the
+  // user-visible "first metric duplicated" symptom in the legend / tooltip.
+  // The fix derives each series' metric from its label-map tuple instead.
+  const multiMetricRows = [
+    {
+      'score_one, A': 1,
+      'score_one, B': 2,
+      'score_two, A': 3,
+      'score_two, B': 4,
+      ds: 599616000000,
+    },
+    {
+      'score_one, A': 5,
+      'score_one, B': 6,
+      'score_two, A': 7,
+      'score_two, B': 8,
+      ds: 599916000000,
+    },
+  ];
+  const multiMetricLabelMap = {
+    ds: ['ds'],
+    'score_one, A': ['score_one', 'A'],
+    'score_one, B': ['score_one', 'B'],
+    'score_two, A': ['score_two', 'A'],
+    'score_two, B': ['score_two', 'B'],
+  };
+
+  const queryAData = createTestQueryData(multiMetricRows, {
+    label_map: multiMetricLabelMap,
+  });
+  // Query B keeps the existing single-metric shape — the bug is on
+  // Query A's path so we just need a valid Query B alongside.
+  const queryBData = createTestQueryData(defaultQueryRows, {
+    label_map: defaultLabelMap,
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [queryAData, queryBData],
+    formData: {
+      ...formData,
+      metrics: ['score_one', 'score_two'],
+      groupby: ['category'],
+    },
+    queriesData: [queryAData, queryBData],
+  });
+  const transformed = transformProps(chartProps);
+
+  const queryASeriesNames = (transformed.echartOptions.series as any[])
+    .map((s: any) => String(s.name))
+    .filter((n: string) => n.includes('score_'));
+
+  // Each (metric, dim_value) combo from Query A should appear exactly once
+  // with the *correct* metric prefix — not the first-metric-prepended-to-
+  // everything-else form. Comparing the sorted array (rather than using
+  // separate toContain assertions) also catches a regression that emits
+  // duplicate series for the same name.
+  expect([...queryASeriesNames].sort()).toEqual(
+    ['score_one, A', 'score_one, B', 'score_two, A', 'score_two, B'].sort(),
+  );
+
+  // And explicitly: no series name should contain *both* metric names —
+  // that's the smoking gun for the duplication bug.
+  for (const name of queryASeriesNames) {
+    expect(name).not.toMatch(/score_one,\s+score_two/);
+  }
+});
+
+test('y-axis title position: Left sets nameLocation to middle', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      yAxisTitlePosition: 'Left',
+      yAxisTitleMargin: 20,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const yAxis = transformed.echartOptions.yAxis as Array<{
+    nameGap: number;
+    nameLocation: string;
+  }>;
+
+  expect(yAxis[0].nameGap).toEqual(20);
+  expect(yAxis[0].nameLocation).toEqual('middle');
+  expect(yAxis[1].nameGap).toEqual(20);
+  expect(yAxis[1].nameLocation).toEqual('middle');
+});
+
+test('y-axis title position: non-Left sets nameLocation to end', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      yAxisTitlePosition: 'Top',
+      yAxisTitleMargin: 30,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const yAxis = transformed.echartOptions.yAxis as Array<{
+    nameGap: number;
+    nameLocation: string;
+  }>;
+
+  expect(yAxis[0].nameGap).toEqual(30);
+  expect(yAxis[0].nameLocation).toEqual('end');
+  expect(yAxis[1].nameGap).toEqual(30);
+  expect(yAxis[1].nameLocation).toEqual('end');
+});
+describe('EchartsMixedTimeseries tooltip truncation', () => {
+  const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+
+  const buildTooltip = (tooltipTruncation?: TooltipTruncationMode) => {
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queriesData,
+      formData: {
+        ...formData,
+        ...(tooltipTruncation ? { tooltipTruncation } : {}),
+      },
+      queriesData,
+    });
+    const { echartOptions } = transformProps(chartProps);
+    const { formatter } = echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    };
+    // richTooltip is false in this fixture, so the trigger is 'item' and the
+    // formatter receives a single param object rather than an array.
+    return formatter({
+      seriesId: longSeriesName,
+      seriesName: longSeriesName,
+      value: [599616000000, 1],
+      marker,
+    });
+  };
+
+  test('keeps full text with the CSS cap by default', () => {
+    const html = buildTooltip();
+    expect(html.replace(/\s/g, '')).toContain('max-width:300px');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('removes the cap and keeps full text when off', () => {
+    const html = buildTooltip('off');
+    expect(html).not.toContain('max-width');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('drops the shared prefix when truncating from the start', () => {
+    const html = buildTooltip('start');
+    expect(html).not.toContain('prod-us-east');
+    expect(html).toContain('latency-p99');
+    expect(html).toContain('background-color:#1f77b4');
+  });
+
+  test('keeps both ends when truncating the middle', () => {
+    const html = buildTooltip('middle');
+    expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
+    expect(html).not.toContain(longSeriesName);
+  });
 });

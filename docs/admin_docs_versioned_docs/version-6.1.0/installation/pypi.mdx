@@ -5,12 +5,13 @@ sidebar_position: 4
 version: 1
 ---
 
-import useBaseUrl from "@docusaurus/useBaseUrl";
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Installing Superset from PyPI
 
-<img src={useBaseUrl("/img/pypi.png" )} width="150" />
-<br /><br />
+<img src={useBaseUrl('/img/pypi.png')} width="150" />
+<br />
+<br />
 
 This page describes how to install Superset using the `apache_superset` package [published on PyPI](https://pypi.org/project/apache_superset/).
 
@@ -23,6 +24,7 @@ level dependencies.
 **Debian and Ubuntu**
 
 Ubuntu **24.04** uses python 3.12 per default, which currently is not supported by Superset. You need to add a second python installation of 3.11 and install the required additional dependencies.
+
 ```bash
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
@@ -133,6 +135,7 @@ pip install apache_superset
 ```
 
 Then, define mandatory configurations, SECRET_KEY and FLASK_APP:
+
 ```bash
 export SUPERSET_SECRET_KEY=YOUR-SECRET-KEY # For production use, make sure this is a strong key, for example generated using `openssl rand -base64 42`. See https://superset.apache.org/admin-docs/configuration/configuring-superset#specifying-a-secret_key
 export FLASK_APP=superset

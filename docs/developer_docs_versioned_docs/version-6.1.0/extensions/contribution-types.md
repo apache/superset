@@ -152,6 +152,7 @@ from .api import MyExtensionAPI
 - **Host context**: `/api/v1/` with original ID
 
 For an extension with publisher `my-org` and name `dataset-tools`, the endpoint above would be accessible at:
+
 ```
 /extensions/my-org/dataset-tools/hello
 ```

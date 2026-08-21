@@ -25,6 +25,7 @@ from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from urllib import parse
 
+import sqlalchemy as sa
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.dialects.mysql import (
@@ -40,9 +41,11 @@ from sqlalchemy.dialects.mysql import (
     TINYTEXT,
 )
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
     BasicParametersMixin,
     DatabaseCategory,
@@ -80,6 +83,10 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine_name = "MySQL"
     max_column_name_length = 64
 
+    # MySQL/MariaDB quote identifiers with backticks rather than ANSI double quotes.
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
+
     default_driver = "mysqldb"
     sqlalchemy_uri_placeholder = (
         "mysql://user:password@host:port/dbname[?key=value&key=value...]"
@@ -88,6 +95,22 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     supports_dynamic_schema = True
     supports_multivalues_insert = True
+
+    # Verified against a live mysql:8.0 instance, including under GROUP BY ...
+    # WITH ROLLUP. `STDDEV_SAMP`/`VAR_SAMP` are native, correct sample
+    # statistics. MEDIAN is deliberately absent: MySQL has neither a `MEDIAN`
+    # function nor `PERCENTILE_CONT` (confirmed: both error). Its `VARIANCE()`
+    # function is population variance, not sample variance, so it is not a
+    # valid stand-in for VAR_SAMP either.
+    # Inherited by MariaDB (a MySQL fork implementing the same aggregate
+    # functions) and by Aurora MySQL / its Data API variant (AWS's wire- and
+    # SQL-compatible managed MySQL) -- unlike CockroachDB/Greenplum/HANA
+    # relative to Postgres, none of these run a materially different query
+    # engine, so no separate reset is needed.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
 
     metadata = {
         "description": "MySQL is a popular open-source relational database.",
@@ -183,6 +206,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                     DatabaseCategory.CLOUD_AWS,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
+                "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
             },
         ],
     }
@@ -250,12 +274,9 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "DATE_ADD(DATE({col}), "
-        "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
-        " + SECOND({col})) SECOND)",
-        TimeGrain.MINUTE: "DATE_ADD(DATE({col}), "
-        "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        TimeGrain.HOUR: "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
+        TimeGrain.SECOND: "DATE_FORMAT({col}, '%Y-%m-%d %H:%i:%s')",
+        TimeGrain.MINUTE: "DATE_FORMAT({col}, '%Y-%m-%d %H:%i:00')",
+        TimeGrain.HOUR: "DATE_FORMAT({col}, '%Y-%m-%d %H:00:00')",
         TimeGrain.DAY: "DATE({col})",
         TimeGrain.WEEK: "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
         TimeGrain.MONTH: "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",
