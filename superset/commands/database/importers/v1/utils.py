@@ -21,6 +21,7 @@ from typing import Any
 from flask import current_app as app
 
 from superset import db, security_manager
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
@@ -43,7 +44,7 @@ def _connection_identity_changed(existing: Database, config: dict[str, Any]) -> 
     try:
         stored = make_url_safe(existing.sqlalchemy_uri)._replace(password=None)
         incoming = make_url_safe(config["sqlalchemy_uri"])._replace(password=None)
-    except Exception:  # pylint: disable=broad-except
+    except DatabaseInvalidError:
         # An unparseable URI cannot be compared: treat it as a change so
         # stored secrets never survive onto it.
         return True
@@ -63,7 +64,7 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
     if _connection_identity_changed(existing, config):
         try:
             uri_password = make_url_safe(config["sqlalchemy_uri"]).password
-        except Exception:  # pylint: disable=broad-except
+        except DatabaseInvalidError:
             uri_password = None
         if config.get("password") in (None, PASSWORD_MASK) and uri_password in (
             None,
@@ -86,7 +87,17 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
                 ssh_tunnel.get(field) not in (None, PASSWORD_MASK)
                 for field in ("password", "private_key")
             )
-            if not has_fresh_credential:
+            # A passphrase-protected private key's stored passphrase is a
+            # secret in its own right: if the existing tunnel had one, a
+            # repoint that supplies a fresh private_key but leaves
+            # private_key_password masked/absent would keep the old
+            # passphrase attached to the new key rather than requiring the
+            # importer to confirm it too.
+            stale_private_key_password = (
+                existing_tunnel.private_key_password is not None
+                and ssh_tunnel.get("private_key_password") in (None, PASSWORD_MASK)
+            )
+            if not has_fresh_credential or stale_private_key_password:
                 raise ImportFailedError(
                     f"Import would change the SSH tunnel endpoint of database "
                     f"'{existing.database_name}' without providing new tunnel "

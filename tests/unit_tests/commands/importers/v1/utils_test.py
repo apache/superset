@@ -22,6 +22,8 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from marshmallow.exceptions import ValidationError
+from sqlalchemy.orm import Session
 
 
 class TestConvertTemporalColumns:
@@ -162,6 +164,69 @@ class TestLoadYaml:
 
         with pytest.raises(ValidationError):
             load_yaml("test.yaml", 'key: "unterminated string')
+
+
+class TestLoadConfigsNonMappingYaml:
+    """A syntactically valid YAML document whose top-level value is a
+    scalar or list (not a mapping) must be reported as a schema validation
+    error, not raise an unhandled AttributeError from the ``config.get()``
+    calls that assume a mapping."""
+
+    def test_top_level_list_is_reported_as_validation_error(
+        self, session: Session
+    ) -> None:
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.databases.schemas import ImportV1DatabaseSchema
+        from superset.models.core import Database
+
+        engine = session.get_bind()
+        Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+        contents = {"databases/malformed.yaml": "- not\n- a\n- mapping\n"}
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            {"databases/": ImportV1DatabaseSchema()},
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert configs == {}
+        assert len(exceptions) == 1
+        assert "databases/malformed.yaml" in exceptions[0].messages
+
+    def test_top_level_scalar_is_reported_as_validation_error(
+        self, session: Session
+    ) -> None:
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.databases.schemas import ImportV1DatabaseSchema
+        from superset.models.core import Database
+
+        engine = session.get_bind()
+        Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+        contents = {"databases/malformed.yaml": "just a string"}
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            {"databases/": ImportV1DatabaseSchema()},
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert configs == {}
+        assert len(exceptions) == 1
+        assert "databases/malformed.yaml" in exceptions[0].messages
 
 
 class TestDatabaseConnectionIdentityUnchanged:

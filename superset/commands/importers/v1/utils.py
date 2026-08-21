@@ -195,6 +195,13 @@ def load_configs(
         if schema:
             try:
                 config = load_yaml(file_name, content)
+                if not isinstance(config, dict):
+                    # A syntactically valid YAML document whose top-level
+                    # value is a scalar or list (not a mapping) has no
+                    # fields to validate against the schema; report it the
+                    # same way as unparseable YAML instead of letting the
+                    # ``.get()`` calls below raise an unhandled AttributeError.
+                    raise ValidationError({file_name: "Not a valid YAML file"})
 
                 # Stored secrets are only reusable when the incoming config
                 # still points at the same endpoint as the stored one; a UUID

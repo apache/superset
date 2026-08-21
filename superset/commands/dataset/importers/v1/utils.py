@@ -662,10 +662,13 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     opener = request.build_opener(*handlers)
     data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
     # Cap the bytes materialized from the download, before and after gzip
-    # decompression (same per-file knob as ZIP bundle uploads).
+    # decompression (same per-file knob as ZIP bundle uploads): a gzip
+    # stream can carry oversized headers, trailing data, or additional
+    # members that would otherwise let the raw (compressed) download exceed
+    # the limit even when the decompressed CSV stays within it.
     max_bytes = app.config["ZIPPED_FILE_MAX_SIZE"]
     if data_uri.endswith(".gz"):
-        data = gzip.open(data)
+        data = gzip.open(_read_bounded(data, max_bytes))
     df = pd.read_csv(_read_bounded(data, max_bytes), encoding="utf-8")
     dtype = get_dtype(df, dataset)
 
