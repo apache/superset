@@ -693,7 +693,15 @@ class DatasetValidator:
                 # and text in most SQL engines, so restricting them here would
                 # produce false-positive errors.  Leave those to the Tier-2
                 # compile check.
-                numeric_aggs = ["SUM", "AVG", "STDDEV", "VAR", "MEDIAN"]
+                numeric_aggs = [
+                    "SUM",
+                    "AVG",
+                    "STDDEV_SAMP",
+                    "VAR_SAMP",
+                    "MEDIAN",
+                    "STDDEV",
+                    "VAR",
+                ]
                 if (
                     col_ref.aggregate in numeric_aggs
                     and not col_info.get("is_numeric", False)

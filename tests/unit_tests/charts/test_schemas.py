@@ -22,6 +22,7 @@ from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
 from superset.charts.schemas import (
+    ChartDataAdhocMetricSchema,
     ChartDataExtrasSchema,
     ChartDataPostProcessingOperationSchema,
     ChartDataProphetOptionsSchema,
@@ -538,3 +539,23 @@ def test_post_processing_extra_op_is_accepted(app_context: None) -> None:
     schema = ChartDataPostProcessingOperationSchema()
 
     assert schema.load({"operation": "_custom_op"})["operation"] == "_custom_op"
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_chart_data_adhoc_metric_schema_accepts_extended_aggregates(
+    app_context: None, aggregate: str
+) -> None:
+    """
+    The chart-data REST schema's ``aggregate`` enum must stay in sync with
+    ``EXTENDED_METRIC_AGGREGATES``, otherwise Swagger/generated clients
+    reject requests using these compiler-supported aggregates.
+    """
+    schema = ChartDataAdhocMetricSchema()
+    result = schema.load(
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": aggregate,
+            "column": {"column_name": "value"},
+        }
+    )
+    assert result["aggregate"] == aggregate

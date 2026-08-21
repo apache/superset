@@ -718,10 +718,15 @@ class ColumnRef(UnknownFieldCheckMixin):
             "MIN",
             "MAX",
             "COUNT_DISTINCT",
-            "STDDEV",
-            "VAR",
+            "STDDEV_SAMP",
+            "VAR_SAMP",
             "MEDIAN",
             "PERCENTILE",
+            # Pre-SIP shorthand, accepted and normalized to the names above by
+            # `chart_utils.create_metric_object`; kept here so schema
+            # validation doesn't reject them before that normalization runs.
+            "STDDEV",
+            "VAR",
         ]
         | None
     ) = Field(None, description="SQL aggregate function")
