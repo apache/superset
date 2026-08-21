@@ -218,11 +218,21 @@ _SENSITIVE_PARAM_KEYS = frozenset(
 )
 
 
+def _sanitize_value(value: Any) -> Any:
+    """Apply ``_sanitize_params`` recursively to any dict/list container."""
+    if isinstance(value, dict):
+        return _sanitize_params(value)
+    if isinstance(value, list):
+        return [_sanitize_value(item) for item in value]
+    return value
+
+
 def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Remove sensitive fields from params before logging.
 
-    Recurses into nested containers so sensitive keys are redacted no matter
-    which wrapper they arrive under (``arguments``, ``request``, etc.).
+    Recurses into nested containers, including lists of lists, so sensitive
+    keys are redacted no matter which wrapper they arrive under
+    (``arguments``, ``request``, etc.).
     """
     if not isinstance(params, dict):
         return params
@@ -230,14 +240,8 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     for k, v in params.items():
         if k.lower() in _SENSITIVE_PARAM_KEYS:
             result[k] = "[REDACTED]"
-        elif isinstance(v, dict):
-            result[k] = _sanitize_params(v)
-        elif isinstance(v, list):
-            result[k] = [
-                _sanitize_params(item) if isinstance(item, dict) else item for item in v
-            ]
         else:
-            result[k] = v
+            result[k] = _sanitize_value(v)
     return result
 
 

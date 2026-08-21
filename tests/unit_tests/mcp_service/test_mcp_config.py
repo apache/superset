@@ -440,6 +440,30 @@ def test_create_default_mcp_auth_factory_jwt_enabled_without_keys_fails_closed()
         create_default_mcp_auth_factory(mock_app)
 
 
+def test_create_default_mcp_auth_factory_jwt_missing_keys_fails_closed_with_api_key():
+    """A missing JWT key must abort startup even when API-key auth is also
+    enabled: silently starting without the operator's requested JWT mode
+    would leave JWT clients unable to authenticate with only a log line to
+    show for it.
+    """
+    from superset.mcp_service.mcp_config import (
+        create_default_mcp_auth_factory,
+        MCPAuthConfigError,
+    )
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": True,
+        "FAB_API_KEY_ENABLED": False,
+        "FAB_API_KEY_PREFIXES": ["sst_"],
+        "MCP_JWT_AUDIENCE": "superset-mcp",
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        create_default_mcp_auth_factory(mock_app)
+
+
 def test_create_default_mcp_auth_factory_jwt_build_failure_fails_closed():
     """A JWT verifier build failure must abort startup, not disable auth."""
     from superset.mcp_service.mcp_config import (

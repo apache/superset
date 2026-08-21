@@ -58,6 +58,7 @@ if os.environ.get("FASTMCP_TRANSPORT", "stdio") == "stdio":
     click.secho = secho_to_stderr
 
 from superset.mcp_service.app import init_fastmcp_server, mcp
+from superset.mcp_service.caching import create_response_caching_middleware
 from superset.mcp_service.middleware import create_response_size_guard_middleware
 from superset.mcp_service.server import build_middleware_list
 
@@ -67,8 +68,9 @@ def _add_default_middlewares() -> None:
 
     Delegates to ``server.build_middleware_list()`` for the core stack so
     the stdio entry point stays in sync with the HTTP server without
-    duplicating middleware ordering.  The optional response size guard is
-    appended separately (innermost position, same as in run_server()).
+    duplicating middleware ordering.  The optional response size guard and
+    response caching middleware are appended separately (innermost
+    position, same order as in run_server()).
 
     FastMCP wraps handlers so that the FIRST-added middleware is outermost.
     ``build_middleware_list()`` already returns middlewares in the correct
@@ -77,11 +79,15 @@ def _add_default_middlewares() -> None:
     for middleware in build_middleware_list():
         mcp.add_middleware(middleware)
 
-    # Response size guard is innermost (added last)
+    # Response size guard is innermost (added last), then response caching.
     if size_guard := create_response_size_guard_middleware():
         mcp.add_middleware(size_guard)
         limit = size_guard.token_limit
         sys.stderr.write(f"[MCP] Response size guard enabled (token_limit={limit})\n")
+
+    if caching_middleware := create_response_caching_middleware():
+        mcp.add_middleware(caching_middleware)
+        sys.stderr.write("[MCP] Response caching enabled\n")
 
 
 def main() -> None:

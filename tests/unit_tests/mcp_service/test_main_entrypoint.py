@@ -95,3 +95,29 @@ def test_main_propagates_auth_config_error_for_network_transport(
 
     mock_init.assert_not_called()
     mock_run.assert_not_called()
+
+
+def test_add_default_middlewares_installs_response_caching() -> None:
+    """``_add_default_middlewares`` must install response caching when
+    configured, matching ``run_server()``'s default (non-factory) path --
+    otherwise MCP_CACHE_CONFIG has no effect for this entrypoint's transports.
+    """
+    from superset.mcp_service import __main__ as main_module
+
+    caching_middleware = object()
+
+    with (
+        patch.object(main_module, "build_middleware_list", return_value=[]),
+        patch.object(
+            main_module, "create_response_size_guard_middleware", return_value=None
+        ),
+        patch.object(
+            main_module,
+            "create_response_caching_middleware",
+            return_value=caching_middleware,
+        ),
+        patch.object(main_module.mcp, "add_middleware") as mock_add_middleware,
+    ):
+        main_module._add_default_middlewares()
+
+    mock_add_middleware.assert_called_once_with(caching_middleware)
