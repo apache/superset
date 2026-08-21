@@ -82,3 +82,14 @@ test('Should handle boolean true comparator as a string value', () => {
     "subject operator 'TRUE'",
   );
 });
+
+test('Should render array-literal comparators as-is (not quoted)', () => {
+  // Whole-array = filter: the pasted array literal is shown unquoted.
+  expect(getSimpleSQLExpression('ingredients', '=', "['1 large egg']")).toBe(
+    "ingredients = ['1 large egg']",
+  );
+  // IN with multiple array literals.
+  expect(
+    getSimpleSQLExpression('ingredients', Operators.In, ["['a']", "['b']"]),
+  ).toBe(`ingredients ${Operators.In} (['a'], ['b'])`);
+});

@@ -55,6 +55,29 @@ theme editor picker.
 
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 
+### MCP tool results preserve stored string values
+
+Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or
+rewrite delimiter-looking text inside string fields. Tool-result content remains
+user-controlled data, but clients must convey that trust boundary outside domain
+values instead of recognizing or removing marker strings.
+
+Clients that handled the former delimiter convention should stop stripping marker
+text: the same text can be legitimate stored content. Response models and content
+types are unchanged, and no metadata-database migration is required. Automated
+read-modify-write workflows should be paused or pinned away from older instances
+until every serving instance is upgraded; a mixed-version response has no reliable
+signal that tells a client whether its text is decorated. Redis-backed MCP response
+caches use a new internal namespace after the upgrade, so upgraded instances do not
+reuse older cached results.
+
+Values that a client already wrote back with presentation wrappers cannot be
+distinguished safely from intentional content. Operators should review possible
+`<UNTRUSTED-CONTENT>` / `</UNTRUSTED-CONTENT>` wrappers and
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` /
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]` substitutions rather than applying an automatic
+marker-removal migration.
+
 ### OAuth2 database callback metrics include their outcome
 
 The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with
