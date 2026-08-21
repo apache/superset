@@ -129,6 +129,24 @@ class TestComputeAndCache:
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Updated"
 
+    def test_stamps_cache_scope_when_set(self, mocker: MockerFixture, screenshot_obj):
+        """A caller (the thumbnail Celery tasks) sets `cache_scope` before
+        calling compute_and_cache so the persisted entry can later be checked
+        against the object a caller-supplied digest is being used to access."""
+        self._setup_compute_and_cache(mocker, screenshot_obj)
+        screenshot_obj.cache_scope = "dashboard:5"
+        screenshot_obj.compute_and_cache(force=False)
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["scope"] == "dashboard:5"
+
+    def test_scope_unset_when_caller_never_sets_it(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        self._setup_compute_and_cache(mocker, screenshot_obj)
+        screenshot_obj.compute_and_cache(force=False)
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["scope"] is None
+
     def test_passes_cache_key_log_context_to_capture(
         self, mocker: MockerFixture, screenshot_obj
     ):
@@ -265,6 +283,42 @@ class TestScreenshotCachePayloadGetImage:
 
         # Should be different BytesIO instances
         assert result1 is not result2
+
+
+class TestScreenshotCachePayloadScope:
+    """
+    Cache entries are shared across every dashboard and chart in the same
+    cache backend. `scope` records which object (e.g. "dashboard:5") an
+    entry was actually rendered for, so a caller-supplied digest/cache_key
+    can be checked against the object it's being used to authorize before
+    serving the image.
+    """
+
+    def test_scope_defaults_to_none(self):
+        payload = ScreenshotCachePayload(image=b"data")
+        assert payload.get_scope() is None
+
+    def test_set_scope(self):
+        payload = ScreenshotCachePayload(image=b"data")
+        payload.set_scope("dashboard:5")
+        assert payload.get_scope() == "dashboard:5"
+
+    def test_scope_round_trips_through_to_dict_from_dict(self):
+        payload = ScreenshotCachePayload(image=b"data", scope="dashboard:5")
+        restored = ScreenshotCachePayload.from_dict(payload.to_dict())
+        assert restored.get_scope() == "dashboard:5"
+
+    def test_legacy_dict_without_scope_key_tolerated(self):
+        """A cache entry written before `scope` existed has no "scope" key at
+        all -- from_dict must not raise and must report no scope rather than
+        matching any caller-supplied scope."""
+        legacy_dict: ScreenshotCachePayloadType = {
+            "image": None,
+            "timestamp": "2024-01-01T00:00:00",
+            "status": "Updated",
+        }  # type: ignore[typeddict-item]
+        restored = ScreenshotCachePayload.from_dict(legacy_dict)
+        assert restored.get_scope() is None
 
 
 class TestBaseScreenshotDriverFallback:

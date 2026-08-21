@@ -73,6 +73,13 @@ class ScreenshotCachePayloadType(TypedDict):
     image: str | None
     timestamp: str
     status: str
+    # Identifies which object (e.g. "dashboard:<id>" or "chart:<id>") this
+    # entry was rendered for. Cache entries written before this field existed
+    # (or by a not-yet-upgraded worker during a rolling deploy) have no scope
+    # and are treated as belonging to no object -- read access is fail-closed
+    # until the entry is recomputed. Optional at the type level via `.get()`
+    # in `from_dict` for that reason.
+    scope: str | None
 
 
 # Magic bytes for a cheap image sanity check. This is intentionally not a full
@@ -101,10 +108,12 @@ class ScreenshotCachePayload:
         image: bytes | None = None,
         status: StatusValues = StatusValues.PENDING,
         timestamp: str = "",
+        scope: str | None = None,
     ):
         self._image = image
         self._timestamp = timestamp or datetime.now().isoformat()
         self.status = StatusValues.UPDATED if image else status
+        self._scope = scope
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
@@ -112,6 +121,9 @@ class ScreenshotCachePayload:
             image=base64.b64decode(payload["image"]) if payload["image"] else None,
             status=StatusValues(payload["status"]),
             timestamp=payload["timestamp"],
+            # `.get` rather than `payload["scope"]`: entries cached before this
+            # field existed won't have the key.
+            scope=payload.get("scope"),
         )
 
     def to_dict(self) -> ScreenshotCachePayloadType:
@@ -121,7 +133,14 @@ class ScreenshotCachePayload:
             else None,
             "timestamp": self._timestamp,
             "status": self.status.value,
+            "scope": self._scope,
         }
+
+    def get_scope(self) -> str | None:
+        return self._scope
+
+    def set_scope(self, scope: str | None) -> None:
+        self._scope = scope
 
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now().isoformat()
@@ -196,6 +215,13 @@ class BaseScreenshot:
     window_size: WindowSize = DEFAULT_SCREENSHOT_WINDOW_SIZE
     thumb_size: WindowSize = DEFAULT_SCREENSHOT_THUMBNAIL_SIZE
     cache: Cache = thumbnail_cache
+    # Set by the caller (e.g. "dashboard:<id>" or "chart:<id>") before
+    # compute_and_cache() so the resulting cache entry records which object it
+    # was rendered for -- callers that later serve a cache entry by a
+    # caller-supplied digest/cache_key must check this against the object
+    # they're authorizing, since the same cache backend is shared across
+    # every dashboard and chart.
+    cache_scope: str | None = None
 
     def __init__(self, url: str, digest: str | None):
         self.digest = digest
@@ -315,6 +341,7 @@ class BaseScreenshot:
                 window_size = window_size or self.window_size
                 thumb_size = thumb_size or self.thumb_size
                 logger.info("Processing url for thumbnail: %s", cache_key)
+                cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
                 self.cache.set(cache_key, cache_payload.to_dict())
                 image = None

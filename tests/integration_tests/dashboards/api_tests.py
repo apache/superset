@@ -31,6 +31,7 @@ import yaml
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
+from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.exceptions import LockAlreadyHeldException
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
@@ -4086,8 +4087,46 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
+        # A permalink key must resolve (and access-check) to `dashboard.id` --
+        # an arbitrary/unresolvable key is now rejected rather than accepted
+        # verbatim.
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(dashboard.id),
+            state={"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []},
+        ).run()
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": permalink_key})
         assert response.status_code == 202
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_rejects_unresolvable_permalink(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
+        assert response.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    def test_cache_dashboard_screenshot_rejects_permalink_for_other_dashboard(self):
+        """
+        A permalink key that resolves to a *different* dashboard than `pk` must
+        be rejected -- otherwise a caller with access to `pk` could pass a
+        permalink key for a dashboard they don't have access to and have it
+        rendered by the (potentially more-privileged) screenshot executor.
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard_a_id, dashboard_b_id = get_dashboards_ids(["world_health", "births"])
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(dashboard_b_id),
+            state={"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []},
+        ).run()
+        response = self._cache_screenshot(
+            dashboard_a_id, {"permalinkKey": permalink_key}
+        )
+        assert response.status_code == 403
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
@@ -4124,14 +4163,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
@@ -4162,15 +4201,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
@@ -4222,12 +4261,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     ):
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(b"fake png data")
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake png data", scope=f"dashboard:{dashboard.id}"
         )
 
         cache_resp = self._cache_screenshot(dashboard.id)
@@ -4254,15 +4295,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
 
         cache_resp = self._cache_screenshot(dashboard.id)
@@ -4292,14 +4333,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = Dashboard()
         db.session.add(dashboard)
         db.session.commit()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
+        )
 
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
