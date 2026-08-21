@@ -176,7 +176,7 @@ def serialize_user_object(user: Any) -> UserInfo | None:
 class FindUsersRequest(BaseModel):
     """Request schema for find_users tool.
 
-    Resolves a person's name (or partial name, username, or email) to user IDs
+    Resolves a person's name (or partial name or username) to user IDs
     so they can be passed to listing tools as filter values for created_by_fk
     or changed_by_fk. This is the only sanctioned path for "show me what
     <person> is working on" queries.
@@ -191,8 +191,9 @@ class FindUsersRequest(BaseModel):
             max_length=200,
             description=(
                 "Substring to match (case-insensitive) against username, "
-                "first_name, last_name, and email. Required and non-empty: "
-                "this tool does not enumerate the full user directory."
+                "first_name, and last_name (never email). Required and "
+                "non-empty: this tool does not enumerate the full user "
+                "directory."
             ),
         ),
     ]
