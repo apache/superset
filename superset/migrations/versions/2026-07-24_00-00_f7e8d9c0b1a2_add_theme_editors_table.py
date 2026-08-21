@@ -17,7 +17,7 @@
 """add theme_editors table
 
 Revision ID: f7e8d9c0b1a2
-Revises: e5f6a7b8c9d0
+Revises: 1072de5ed955
 Create Date: 2026-07-24 00:00:00.000000
 
 """
