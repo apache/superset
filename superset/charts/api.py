@@ -92,7 +92,10 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
-from superset.security.manager import get_extra_editor_subject_ids
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -409,6 +412,15 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
         except ChartNotFoundError:
             return self.response_404()
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Slice, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
 
     @expose("/<pk>/deck_layers/", methods=("GET",))
     @protect()
