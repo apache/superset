@@ -22,7 +22,6 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
@@ -2152,12 +2151,47 @@ class SQLScript:
         return len(self.statements) == 1 and self.statements[0].is_select()
 
 
-def extract_tables_from_statement(
+def _find_show_statement_tables(statement: exp.Show) -> set[Table]:
+    """
+    Build the table references for a ``SHOW`` statement.
+
+    Structured metadata statements (`SHOW CREATE TABLE foo.bar`,
+    `SHOW COLUMNS FROM foo`, ...) reference their target via dedicated
+    args rather than query sources, so build the table references
+    explicitly. Statements with no extractable target (e.g.
+    `SHOW TABLES FROM some_schema`) yield an empty set and are treated
+    as unparseable for authorization purposes (see
+    `SQLScript.has_unparseable_statement`).
+
+    ``SHOW`` statements reference a single metadata target, never a join, so
+    (unlike ``_find_table_sources``) there is no distinct occurrence-counting
+    variant of this helper: the deduplicated set is always the right count.
+    """
+    show_tables = {
+        Table(
+            source.name,
+            source.db if source.db != "" else None,
+            source.catalog if source.catalog != "" else None,
+        )
+        for source in statement.find_all(exp.Table)
+    }
+    if target := statement.args.get("target"):
+        db = statement.args.get("db")
+        show_tables.add(
+            Table(
+                target.name if isinstance(target, exp.Expression) else str(target),
+                db.name if isinstance(db, exp.Expression) else db,
+            )
+        )
+    return show_tables
+
+
+def _find_table_sources(
     statement: exp.Expression,
     dialect: Dialects | None,
-) -> set[Table]:
+) -> list[exp.Table]:
     """
-    Extract all table references in a single statement.
+    Find every table reference (occurrence, not deduplicated) in a statement.
 
     Please note that this is not trivial; consider the following queries:
 
@@ -2165,60 +2199,45 @@ def extract_tables_from_statement(
         SHOW PARTITIONS FROM some_table;
         WITH masked_name AS (SELECT * FROM some_table) SELECT * FROM masked_name;
 
-    See the unit tests for other tricky cases.
+    See the unit tests for other tricky cases. Note that `exp.Show` statements
+    are not handled here: see `_find_show_statement_tables`.
     """
-    sources: Iterable[exp.Table]
-
     if isinstance(statement, exp.Describe):
         # A `DESCRIBE` query has no sources in sqlglot, so we need to explicitly
         # query for all tables.
-        sources = statement.find_all(exp.Table)
-    elif isinstance(statement, exp.Command):
+        return list(statement.find_all(exp.Table))
+    if isinstance(statement, exp.Command):
         # Commands, like `SHOW COLUMNS FROM foo`, have to be converted into a
         # `SELECT` statetement in order to extract tables.
         literal = statement.find(exp.Literal)
         if not literal:
-            return set()
+            return []
 
         pseudo_sql = f"SELECT {literal.this}"
         try:
             _check_script_length(pseudo_sql, None)
             pseudo_query = sqlglot.parse_one(pseudo_sql, dialect=dialect)
         except (ParseError, SupersetParseError):
-            return set()
-        sources = pseudo_query.find_all(exp.Table)
-    elif isinstance(statement, exp.Show):
-        # Structured metadata statements (`SHOW CREATE TABLE foo.bar`,
-        # `SHOW COLUMNS FROM foo`, ...) reference their target via dedicated
-        # args rather than query sources, so build the table references
-        # explicitly. Statements with no extractable target (e.g.
-        # `SHOW TABLES FROM some_schema`) yield an empty set and are treated
-        # as unparseable for authorization purposes (see
-        # `SQLScript.has_unparseable_statement`).
-        show_tables = {
-            Table(
-                source.name,
-                source.db if source.db != "" else None,
-                source.catalog if source.catalog != "" else None,
-            )
-            for source in statement.find_all(exp.Table)
-        }
-        if target := statement.args.get("target"):
-            db = statement.args.get("db")
-            show_tables.add(
-                Table(
-                    target.name if isinstance(target, exp.Expression) else str(target),
-                    db.name if isinstance(db, exp.Expression) else db,
-                )
-            )
-        return show_tables
-    else:
-        sources = [
-            source
-            for scope in traverse_scope(statement)
-            for source in scope.sources.values()
-            if isinstance(source, exp.Table) and not is_cte(source, scope)
-        ]
+            return []
+        return list(pseudo_query.find_all(exp.Table))
+
+    return [
+        source
+        for scope in traverse_scope(statement)
+        for source in scope.sources.values()
+        if isinstance(source, exp.Table) and not is_cte(source, scope)
+    ]
+
+
+def extract_tables_from_statement(
+    statement: exp.Expression,
+    dialect: Dialects | None,
+) -> set[Table]:
+    """
+    Extract all distinct table references in a single statement.
+    """
+    if isinstance(statement, exp.Show):
+        return _find_show_statement_tables(statement)
 
     return {
         Table(
@@ -2226,8 +2245,77 @@ def extract_tables_from_statement(
             source.db if source.db != "" else None,
             source.catalog if source.catalog != "" else None,
         )
-        for source in sources
+        for source in _find_table_sources(statement, dialect)
     }
+
+
+def count_referenced_tables(statement: str, dialect: Dialects | str | None) -> int:
+    """
+    Count the table references in a raw SQL string.
+
+    This counts occurrences, not distinct tables, so a self-join referencing
+    the same physical table twice (via two aliases) is still counted as 2 -
+    callers use this count to decide whether a statement is a join, and a
+    self-join needs the same treatment as a join across different tables.
+    A CTE that's referenced more than once (e.g. self-joined) is weighted the
+    same way: each reference to it counts its own underlying tables again,
+    since a CTE is inlined at every place it's used (see
+    ``_count_weighted_table_references``).
+
+    Falls back to a conservative count of 1 (i.e. "not multi-table") if the
+    statement can't be parsed, since callers gating multi-table-only behavior
+    on this count should default to treating an unparseable statement as a
+    single table.
+    """
+    try:
+        _check_script_length(statement, str(dialect) if dialect else None)
+        parsed = sqlglot.parse_one(statement, dialect=dialect)
+        if isinstance(parsed, exp.Show):
+            return len(_find_show_statement_tables(parsed))
+        if isinstance(parsed, (exp.Describe, exp.Command)):
+            # Neither has join semantics for a per-table row cap to interact
+            # with, so the plain (unweighted) extraction already used for
+            # permissioning is fine here too.
+            return len(_find_table_sources(parsed, dialect))
+        return _count_weighted_table_references(parsed)
+    except Exception:  # pylint: disable=broad-except
+        return 1
+
+
+def _count_weighted_table_references(statement: exp.Expression) -> int:
+    """
+    Count table references the way callers gating multi-table-only behavior
+    need: weighting each CTE by how many times it's actually referenced,
+    not by how many distinct tables its own definition reads.
+
+    ``_find_table_sources`` (used for permissioning) intentionally counts a
+    CTE's underlying tables exactly once regardless of how many times the
+    CTE is referenced downstream, since permission checks only care about
+    the *set* of tables read. But a CTE that wraps a single virtual table
+    and is then self-joined N ways is inlined at each of those N places, so
+    it triggers N separate reads of that table -- one per join side -- and
+    must count as N here too. Otherwise a per-table row cap (see
+    ``SUPERSET_META_DB_LIMIT`` and #36304) looks safe to apply and silently
+    truncates one side of the self-join away before the join runs.
+    """
+
+    def resolve(scope: Scope, seen: frozenset[int]) -> list[exp.Table]:
+        if id(scope) in seen:
+            return []  # guards a WITH RECURSIVE self-reference from looping forever
+        seen = seen | {id(scope)}
+        tables: list[exp.Table] = []
+        for _, source in scope.selected_sources.values():
+            if isinstance(source, exp.Table) and not is_cte(source, scope):
+                tables.append(source)
+            elif isinstance(source, Scope) and source.scope_type == ScopeType.CTE:
+                tables.extend(resolve(source, seen))
+        return tables
+
+    return sum(
+        len(resolve(scope, frozenset()))
+        for scope in traverse_scope(statement)
+        if scope.scope_type != ScopeType.CTE
+    )
 
 
 def is_cte(source: exp.Table, scope: Scope) -> bool:
