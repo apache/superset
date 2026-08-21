@@ -53,6 +53,23 @@ def test_quote_formulas() -> None:
     ]
 
 
+def test_quote_formulas_in_headers_and_index() -> None:
+    """
+    Test that formulas in column headers and index labels are quoted too.
+
+    Pivot exports promote data values into the column MultiIndex and row
+    index, so hostile warehouse strings can end up there.
+    """
+    df = pd.DataFrame(
+        {"=SUM(A1:A2)": ["normal"]},
+        index=pd.Index(['=cmd|" /C calc"!A0'], name="label"),
+    )
+    contents = df_to_excel(df)
+    result = pd.read_excel(contents, index_col=0)
+    assert result.columns.tolist() == ["'=SUM(A1:A2)"]
+    assert result.index.tolist() == ['\'=cmd|" /C calc"!A0']
+
+
 def test_document_properties_are_neutral() -> None:
     """
     Test that exported workbooks do not carry identifying document properties.
