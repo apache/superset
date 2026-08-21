@@ -665,6 +665,8 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
             # Canonical form_data key is camelCase; the echarts plugins read
             # `legendOrientation` directly off form_data.
             form_data["legendOrientation"] = config.legend.position
+    if config.legend_orientation:
+        form_data["legendOrientation"] = config.legend_orientation
 
 
 def add_color_scheme(form_data: Dict[str, Any], color_scheme: str | None) -> None:
@@ -1415,6 +1417,8 @@ def map_filter_operator(op: str) -> str:
         "NOT LIKE": "NOT LIKE",
         "IN": "IN",
         "NOT IN": "NOT IN",
+        "IS NULL": "IS NULL",
+        "IS NOT NULL": "IS NOT NULL",
     }
     return operator_map.get(op, op)
 

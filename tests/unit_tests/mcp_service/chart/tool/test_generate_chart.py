@@ -188,6 +188,13 @@ class TestGenerateChart:
         for i, f in enumerate(filters):
             assert f.op == operators[i]
 
+        null_filter = FilterConfig(column="optional_value", op="IS NOT NULL")
+        assert null_filter.value is None
+        with pytest.raises(ValueError, match="must not have 'value'"):
+            FilterConfig(column="optional_value", op="IS NULL", value="unexpected")
+        with pytest.raises(ValueError, match="requires 'value'"):
+            FilterConfig(column="optional_value", op="=")
+
     @pytest.mark.asyncio
     async def test_generate_chart_response_structure(self):
         """Test the expected response structure for chart generation."""
@@ -305,6 +312,10 @@ class TestGenerateChart:
         assert col2.name == "sales"
         assert col2.aggregate == "SUM"
         assert col2.label == "Total Sales"
+
+        aliased = ColumnRef.model_validate({"column": "sales", "aggregate": "AVG"})
+        assert aliased.name == "sales"
+        assert aliased.aggregate == "AVG"
 
         # All supported aggregations
         aggs = ["SUM", "AVG", "COUNT", "MIN", "MAX", "COUNT_DISTINCT"]
