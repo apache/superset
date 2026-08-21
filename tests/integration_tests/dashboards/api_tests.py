@@ -3298,6 +3298,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
 
     def test_import_dashboard_v0_export(self):
+        """
+        Dashboard API: legacy v0-format exports are rejected by the HTTP
+        import endpoint. The v0 command is not registered in the import
+        dispatcher (see superset/commands/dashboard/importers/dispatcher.py)
+        because it overrides charts/dashboards matched by remote_id with no
+        per-object ownership check. Legacy v0 JSON is still importable via
+        the `legacy_import_dashboards` CLI command.
+        """
         num_dashboards = db.session.query(Dashboard).count()
 
         self.login(ADMIN_USERNAME)
@@ -3312,20 +3320,28 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
-        assert rv.status_code == 200
-        assert response == {"message": "OK"}
-        assert db.session.query(Dashboard).count() == num_dashboards + 1
-
-        dashboard = (
-            db.session.query(Dashboard).filter_by(dashboard_title="Births 2").one()
-        )
-        chart = dashboard.slices[0]
-        dataset = chart.table
-
-        db.session.delete(dashboard)
-        db.session.delete(chart)
-        db.session.delete(dataset)
-        db.session.commit()
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Could not find a valid command to import file",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+        assert db.session.query(Dashboard).count() == num_dashboards
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard_overwrite(self, mock_add_permissions):
