@@ -737,15 +737,51 @@ def _build_jwt_verifier(
         "required_scopes": app.config.get("MCP_REQUIRED_SCOPES", []),
     }
 
-    # For HS256 (symmetric), use the secret as the public_key parameter
-    if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
+    algorithm = app.config.get("MCP_JWT_ALGORITHM", "RS256")
+
+    if algorithm in ("HS256", "HS384", "HS512"):
+        # HMAC algorithms are symmetric: verification MUST be keyed on an
+        # explicit shared secret. Never fall back to public-key material
+        # (PEM or JWKS) as the HMAC key -- public keys are public by design
+        # (JWKS endpoints, docs), so anyone holding one could forge tokens
+        # that verify (RS->HS key confusion). Refuse the contradictory
+        # configuration outright instead of honoring it.
+        if not secret:
+            raise MCPAuthConfigError(
+                f"MCP_JWT_ALGORITHM is '{algorithm}' but MCP_JWT_SECRET is "
+                "not set. Refusing to build an HMAC verifier keyed on "
+                "public-key material. Set MCP_JWT_SECRET, or switch to an "
+                "asymmetric algorithm (e.g. RS256) with MCP_JWT_PUBLIC_KEY "
+                "or MCP_JWKS_URI."
+            )
+        if public_key or jwks_uri:
+            raise MCPAuthConfigError(
+                "MCP_JWT_PUBLIC_KEY/MCP_JWKS_URI are configured alongside "
+                f"MCP_JWT_ALGORITHM='{algorithm}'. This usually indicates "
+                "leftover asymmetric-key configuration; remove the public "
+                "key/JWKS settings, or switch back to an asymmetric "
+                "algorithm."
+            )
+        # For HMAC (symmetric), use the secret as the public_key parameter
         common_kwargs["public_key"] = secret
-        common_kwargs["algorithm"] = "HS256"
+        common_kwargs["algorithm"] = algorithm
     else:
         # For RS256 (asymmetric), use public key or JWKS
+        if not (jwks_uri or public_key):
+            # Only a secret is configured but the algorithm is asymmetric: a
+            # keyless verifier cannot validate anything. Name the fix rather
+            # than letting the verifier constructor raise opaquely (it would
+            # still fail closed via the caller's fail-closed exception
+            # handling, but with a less actionable message).
+            raise MCPAuthConfigError(
+                "MCP_JWT_SECRET is set but MCP_JWT_ALGORITHM is not 'HS256' "
+                "and no MCP_JWKS_URI/MCP_JWT_PUBLIC_KEY is configured. Set "
+                "MCP_JWT_ALGORITHM='HS256' to use the secret, or configure "
+                "an asymmetric key."
+            )
         common_kwargs["jwks_uri"] = jwks_uri
         common_kwargs["public_key"] = public_key
-        common_kwargs["algorithm"] = app.config.get("MCP_JWT_ALGORITHM", "RS256")
+        common_kwargs["algorithm"] = algorithm
 
     if debug_errors:
         # DetailedJWTVerifier: detailed server-side logging of JWT
