@@ -322,12 +322,12 @@ MCP_STORE_CONFIG: dict[str, Any] = {
 # When enabled with MCP_STORE_CONFIG, uses Redis store.
 MCP_CACHE_CONFIG: dict[str, Any] = {
     "enabled": False,  # Disabled by default
-    # SECURITY: cache keys are method/tool + arguments only (no principal),
-    # and cache hits are served before authentication/RBAC run, so a shared
-    # cache replays one principal's responses to another. Response caching
-    # refuses to start unless this is explicitly set -- only safe when every
-    # request is guaranteed to come from the same principal (e.g. a
-    # single-user development deployment).
+    # Cache keys are method/tool + arguments only and cache hits are served
+    # ahead of per-request auth/RBAC, so a shared cache can return one
+    # caller's response to another. Response caching refuses to start
+    # unless this is explicitly set -- only appropriate when every request
+    # is guaranteed to come from the same principal (e.g. a single-user
+    # development deployment).
     "dangerously_share_cache_across_principals": False,
     # Base prefix for the shared store. Superset appends an internal response-
     # contract namespace so incompatible cached values are not reused.
@@ -503,9 +503,8 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
         return None
 
     # MCP_DEV_USERNAME makes user resolution fall back to a fixed user for
-    # requests that carry no resolvable identity, so with transport auth
-    # enabled it turns any auth misconfiguration or bypass into "execute as
-    # that user". Refuse the combination outright.
+    # requests that carry no resolvable identity, which defeats the point of
+    # having transport auth enabled. Refuse the combination outright.
     if auth_enabled and app.config.get("MCP_DEV_USERNAME"):
         raise MCPAuthConfigError(
             "MCP_DEV_USERNAME must not be set when MCP_AUTH_ENABLED is True: "
@@ -748,10 +747,8 @@ def _build_jwt_verifier(
 
     if algorithm in ("HS256", "HS384", "HS512"):
         # HMAC algorithms are symmetric: verification MUST be keyed on an
-        # explicit shared secret. Never fall back to public-key material
-        # (PEM or JWKS) as the HMAC key -- public keys are public by design
-        # (JWKS endpoints, docs), so anyone holding one could forge tokens
-        # that verify (RS->HS key confusion). Refuse the contradictory
+        # explicit shared secret, never on public-key material (PEM or
+        # JWKS), which isn't confidential. Refuse the contradictory
         # configuration outright instead of honoring it.
         if not secret:
             raise MCPAuthConfigError(

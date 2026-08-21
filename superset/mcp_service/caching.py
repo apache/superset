@@ -123,13 +123,11 @@ def create_response_caching_middleware() -> Any | None:
             logger.debug("MCP response caching disabled")
             return None
 
-        # SECURITY: ResponseCachingMiddleware keys cache entries on the
-        # method/tool name + arguments only -- the requesting principal is not
-        # part of the key -- and it runs as middleware, before the tool body
-        # where mcp_auth_hook binds g.user and enforces RBAC, the embedded
-        # guest allow-list, and DAO base filters. On a cache hit the tool body
-        # never executes, so a response computed for one principal (e.g. an
-        # Admin's get_chart_data) is replayed verbatim to any other principal
+        # ResponseCachingMiddleware keys cache entries on the method/tool
+        # name + arguments only and runs ahead of the per-request auth/RBAC
+        # checks, so a cache hit returns a response computed for a different
+        # caller. Only appropriate when every request is guaranteed to come
+        # from the same principal.
         # that sends byte-identical arguments within the TTL, skipping every
         # authorization check. Fail closed unless the operator explicitly
         # accepts a cache shared across principals -- only safe when every
