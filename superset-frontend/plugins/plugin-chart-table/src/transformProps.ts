@@ -118,6 +118,11 @@ const calculateDifferences = (
   return { valueDifference, percentDifferenceNum };
 };
 
+// Comparison *keys* stay on the untranslated "Main" prefix so they match
+// processComparisonColumns (`Main ${metric}`) and saved column_config.
+// The visible header label is translated separately via t('Main').
+const COMPARISON_MAIN_KEY_PREFIX = 'Main';
+
 const processComparisonTotals = (
   comparisonSuffix: string,
   totals?: DataRecord[],
@@ -129,8 +134,9 @@ const processComparisonTotals = (
   totals.map((totalRecord: DataRecord) =>
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
-        transformedTotals[`Main ${key}`] =
-          parseFloat(transformedTotals[`Main ${key}`]?.toString() || '0') +
+        const mainKey = `${COMPARISON_MAIN_KEY_PREFIX} ${key}`;
+        transformedTotals[mainKey] =
+          parseFloat(transformedTotals[mainKey]?.toString() || '0') +
           parseFloat(totalRecord[key]?.toString() || '0');
         transformedTotals[`# ${key}`] =
           parseFloat(transformedTotals[`# ${key}`]?.toString() || '0') +
@@ -138,7 +144,7 @@ const processComparisonTotals = (
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
-          transformedTotals[`Main ${key}`] as number,
+          transformedTotals[mainKey] as number,
           transformedTotals[`# ${key}`] as number,
         );
         transformedTotals[`△ ${key}`] = valueDifference;
@@ -148,6 +154,25 @@ const processComparisonTotals = (
   );
 
   return transformedTotals;
+};
+
+const toOriginalMetricTotals = (
+  totals: DataRecord,
+  originalColumns: DataColumnMeta[],
+  comparisonSuffix: string,
+): DataRecord => {
+  const source: DataRecord = { ...totals };
+  originalColumns.forEach(col => {
+    const mainKey = `${COMPARISON_MAIN_KEY_PREFIX} ${col.key}`;
+    const comparisonKey = `# ${col.key}`;
+    if (totals[mainKey] !== undefined) {
+      source[col.key] = totals[mainKey];
+      if (totals[comparisonKey] !== undefined) {
+        source[`${col.key}__${comparisonSuffix}`] = totals[comparisonKey];
+      }
+    }
+  });
+  return source;
 };
 
 const processComparisonDataRecords = memoizeOne(
@@ -407,7 +432,7 @@ const processComparisonColumns = (
           ...col,
           originalLabel,
           label: t('Main'),
-          key: `Main ${col.key}`,
+          key: `${COMPARISON_MAIN_KEY_PREFIX} ${col.key}`,
           config: getComparisonColConfig('Main', col.key, columnConfig),
           formatter: getComparisonColFormatter(
             'Main',
@@ -529,6 +554,7 @@ const transformProps = (
     query_mode: queryMode,
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
+    conditional_formatting_totals: applyConditionalFormattingToTotals = false,
     allow_rearrange_columns: allowRearrangeColumns,
     allow_render_html: allowRenderHtml,
     time_compare,
@@ -767,6 +793,25 @@ const transformProps = (
     columns,
     conditionalFormatting,
   );
+  const totalsBasicColorSource =
+    applyConditionalFormattingToTotals && totals
+      ? [
+          isUsingTimeComparison && comparisonSuffix
+            ? toOriginalMetricTotals(totals, columns, comparisonSuffix)
+            : totals,
+        ]
+      : undefined;
+  const totalsBasicColorFormatters =
+    totalsBasicColorSource && comparisonColorEnabled
+      ? getBasicColorFormatter(totalsBasicColorSource, columns)?.[0]
+      : undefined;
+  const totalsBasicColorColumnFormatters = totalsBasicColorSource
+    ? getBasicColorFormatterForColumn(
+        totalsBasicColorSource,
+        columns,
+        conditionalFormatting,
+      )?.[0]
+    : undefined;
 
   // Get cached values for this slice
   const cachedValues = sliceCache.get(slice_id);
@@ -821,6 +866,7 @@ const transformProps = (
     emitCrossFilters,
     onChangeFilter,
     columnColorFormatters,
+    applyConditionalFormattingToTotals,
     timeGrain,
     allowRearrangeColumns,
     allowRenderHtml,
@@ -833,6 +879,8 @@ const transformProps = (
     serverPageLength,
     slice_id,
     columnLabelToNameMap,
+    totalsBasicColorFormatters,
+    totalsBasicColorColumnFormatters,
   };
 };
 

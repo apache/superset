@@ -17,6 +17,7 @@
  * under the License.
  */
 import getCellStyle from '../../src/utils/getCellStyle';
+import { BASIC_COLOR_FORMATTERS_ROW_KEY } from '../../src/consts';
 
 // A standard conditional-formatting rule that paints metric_a red.
 const standardCfFormatter = {
@@ -102,6 +103,60 @@ test('does not apply basic formatting to the pinned summary row', () => {
       basicColorFormatters: [
         { metric_a: { backgroundColor: '#00ff00', mainArrow: '↑' } },
       ],
+    }),
+  );
+  expect(style.backgroundColor).toBe('');
+});
+
+test('does not apply column formatting to the pinned summary row by default', () => {
+  const style = getCellStyle(
+    buildParams({
+      node: { rowPinned: 'bottom', data: {} },
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [standardCfFormatter],
+    }),
+  );
+  expect(style.backgroundColor).toBe('');
+});
+
+test('applies column formatting to the pinned summary row when enabled', () => {
+  const style = getCellStyle(
+    buildParams({
+      node: { rowPinned: 'bottom', data: {} },
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [standardCfFormatter],
+      applyConditionalFormattingToTotals: true,
+    }),
+  );
+  expect(style.backgroundColor).toBe('#ff0000');
+});
+
+test('applies Basic formatting to the pinned summary row when enabled', () => {
+  const style = getCellStyle(
+    buildParams({
+      node: {
+        rowPinned: 'bottom',
+        data: {
+          [BASIC_COLOR_FORMATTERS_ROW_KEY]: {
+            metric_a: { backgroundColor: '#00ff00', mainArrow: '↑' },
+          },
+        },
+      },
+      applyConditionalFormattingToTotals: true,
+    }),
+  );
+  expect(style.backgroundColor).toBe('#00ff00');
+});
+
+test('does not color totals from the first data row when Basic formatters are missing on the summary', () => {
+  const style = getCellStyle(
+    buildParams({
+      node: { rowPinned: 'bottom', data: {} },
+      hasBasicColorFormatters: true,
+      basicColorFormatters: [
+        { metric_a: { backgroundColor: '#00ff00', mainArrow: '↑' } },
+      ],
+      applyConditionalFormattingToTotals: true,
     }),
   );
   expect(style.backgroundColor).toBe('');

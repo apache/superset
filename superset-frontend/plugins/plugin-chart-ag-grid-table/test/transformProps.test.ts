@@ -18,8 +18,9 @@
  */
 import transformProps from '../src/transformProps';
 import { TableChartProps } from '../src/types';
+import { BASIC_COLOR_FORMATTERS_ROW_KEY } from '../src/consts';
 import { GenericDataType } from '@apache-superset/core/common';
-import { QueryMode } from '@superset-ui/core';
+import { ComparisonType, QueryMode } from '@superset-ui/core';
 
 function createMockChartProps(
   overrides: Partial<TableChartProps> = {},
@@ -313,4 +314,58 @@ test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
   expect(formattedColumns).toContain('metric_b');
   // ...but the Green rule is excluded.
   expect(formattedColumns).not.toContain('metric_a');
+});
+
+test('attaches Basic comparison-color formatters to totals when enabled', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_a'],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      show_totals: true,
+      comparison_color_enabled: true,
+      comparison_color_scheme: 'Green',
+      comparison_type: ComparisonType.Values,
+      time_compare: ['P1D'],
+      conditional_formatting_totals: true,
+      conditional_formatting: [],
+    } as unknown as TableChartProps['rawFormData'],
+    queriesData: [
+      {
+        data: [{ metric_a: 100, metric_a__P1D: 80 }],
+        colnames: ['metric_a', 'metric_a__P1D'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+      {
+        data: [{ metric_a: 250, metric_a__P1D: 100 }],
+        colnames: ['metric_a', 'metric_a__P1D'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+  });
+
+  const result = transformProps(props);
+  const totalsFormatters = (
+    result.totals as
+      | {
+          [BASIC_COLOR_FORMATTERS_ROW_KEY]?: {
+            metric_a?: { backgroundColor: string };
+          };
+        }
+      | undefined
+  )?.[BASIC_COLOR_FORMATTERS_ROW_KEY];
+
+  expect(totalsFormatters?.metric_a?.backgroundColor).toBe('rgba(0,150,0,0.2)');
 });

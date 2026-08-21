@@ -44,6 +44,11 @@ export type {
   ServerPaginationData,
   TableColumnConfig,
 };
+
+/** Per-column increase/decrease colors for a single table row. */
+export type RowBasicColorFormatters = {
+  [Key: string]: BasicColorFormatterType;
+};
 // Types only re-exported, not used locally - direct re-export
 export type { SearchOption, SortByItem } from '@superset-ui/chart-controls';
 
@@ -70,6 +75,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  conditional_formatting_totals?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -108,6 +114,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitCrossFilters?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
+  applyConditionalFormattingToTotals?: boolean;
   allowRearrangeColumns?: boolean;
   allowRenderHtml?: boolean;
   onContextMenu?: (
@@ -116,8 +123,12 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
     filters?: ContextMenuFilters,
   ) => void;
   isUsingTimeComparison?: boolean;
-  basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
-  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  // Per-data-row maps, indexed by the original query row.
+  basicColorFormatters?: RowBasicColorFormatters[];
+  basicColorColumnFormatters?: RowBasicColorFormatters[];
+  // Single-row maps: the summary/totals row is one record, not a row array.
+  totalsBasicColorFormatters?: RowBasicColorFormatters;
+  totalsBasicColorColumnFormatters?: RowBasicColorFormatters;
   startDateOffset?: string;
   // For explore page to reset the server Pagination data
   // if server page length is changed from control panel

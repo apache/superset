@@ -82,6 +82,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     showTotals,
     columnColorFormatters,
     basicColorFormatters,
+    applyConditionalFormattingToTotals,
     width,
     onChartStateChange,
     chartState,
@@ -278,6 +279,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     emitCrossFilters,
     alignPositiveNegative,
     slice_id,
+    applyConditionalFormattingToTotals,
   });
 
   const gridHeight = getGridHeight(height, includeSearch);

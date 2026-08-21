@@ -126,6 +126,26 @@ const processComparisonTotals = (
   return transformedTotals;
 };
 
+const toOriginalMetricTotals = (
+  totals: DataRecord,
+  originalColumns: DataColumnMeta[],
+  comparisonSuffix: string,
+): DataRecord => {
+  const source: DataRecord = { ...totals };
+  const mainPrefix = `${t('Main')} `;
+  originalColumns.forEach(col => {
+    const mainKey = `${mainPrefix}${col.key}`;
+    const comparisonKey = `# ${col.key}`;
+    if (totals[mainKey] !== undefined) {
+      source[col.key] = totals[mainKey];
+      if (totals[comparisonKey] !== undefined) {
+        source[`${col.key}__${comparisonSuffix}`] = totals[comparisonKey];
+      }
+    }
+  });
+  return source;
+};
+
 const getComparisonColConfig = (
   label: string,
   parentColKey: string,
@@ -523,6 +543,7 @@ const transformProps = (
     color_pn: colorPositiveNegative = true,
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
+    conditional_formatting_totals: applyConditionalFormattingToTotals = false,
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
     show_numbered_column: showNumberedColumn = false,
@@ -789,6 +810,42 @@ const transformProps = (
       : totalQuery?.data[0]
     : undefined;
 
+  const totalsBasicColorSource =
+    applyConditionalFormattingToTotals && totals
+      ? [
+          isUsingTimeComparison && comparisonSuffix
+            ? toOriginalMetricTotals(totals, columns, comparisonSuffix)
+            : totals,
+        ]
+      : undefined;
+  const totalsComparisonColorFormatters =
+    totalsBasicColorSource && comparisonColorEnabled
+      ? getBasicColorFormatter(totalsBasicColorSource, columns)?.[0]
+      : undefined;
+  const totalsGreenRedFormatters = totalsBasicColorSource
+    ? getBasicColorFormatterForColumn(
+        totalsBasicColorSource,
+        columns,
+        conditionalFormatting,
+      )?.[0]
+    : undefined;
+  const totalsRowBasicColorFormatters =
+    totalsComparisonColorFormatters || totalsGreenRedFormatters
+      ? {
+          ...totalsComparisonColorFormatters,
+          ...totalsGreenRedFormatters,
+        }
+      : undefined;
+
+  if (totals && totalsRowBasicColorFormatters) {
+    Object.defineProperty(totals, BASIC_COLOR_FORMATTERS_ROW_KEY, {
+      value: totalsRowBasicColorFormatters,
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    });
+  }
+
   // Map saved metric/calculated column labels to their SQL expressions for filter resolution
   const metricSqlExpressions: Record<string, string> = {};
   chartProps.datasource.metrics.forEach(metric => {
@@ -862,6 +919,7 @@ const transformProps = (
     colorPositiveNegative,
     totals,
     showTotals,
+    applyConditionalFormattingToTotals,
     columnColorFormatters,
     basicColorColumnFormatters,
     basicColorFormatters,

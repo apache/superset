@@ -73,6 +73,7 @@ type UseColDefsProps = {
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
   slice_id: number;
+  applyConditionalFormattingToTotals?: boolean;
 };
 
 function getValueRange(
@@ -238,6 +239,7 @@ export const useColDefs = ({
   emitCrossFilters,
   alignPositiveNegative,
   slice_id,
+  applyConditionalFormattingToTotals = false,
 }: UseColDefsProps) => {
   const theme = useTheme();
   const getCommonColProps = useCallback(
@@ -316,6 +318,7 @@ export const useColDefs = ({
             col,
             cellSurfaceColor,
             hoverCellSurfaceColor,
+            applyConditionalFormattingToTotals,
           } as Parameters<typeof getCellStyle>[0];
 
           return getCellStyle(cellStyleParams);
@@ -434,6 +437,7 @@ export const useColDefs = ({
       allowRearrangeColumns,
       serverPagination,
       alignPositiveNegative,
+      applyConditionalFormattingToTotals,
       theme.colorBgBase,
       theme.colorFillSecondary,
       theme.colorFillQuaternary,

@@ -522,6 +522,23 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'conditional_formatting_totals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Apply conditional formatting to totals'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Apply conditional color formatting to the totals row',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.show_totals?.value),
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
             name: 'show_numbered_column',
             config: {
               type: 'CheckboxControl',

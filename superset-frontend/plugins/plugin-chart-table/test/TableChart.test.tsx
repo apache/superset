@@ -638,6 +638,212 @@ describe('plugin-chart-table', () => {
         );
       });
 
+      test('applies conditional formatting to the totals row when enabled', () => {
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            metrics: ['sum__num'],
+            conditional_formatting: [
+              {
+                colorScheme: '#ACE1C4',
+                column: 'sum__num',
+                operator: '>',
+                targetValue: 100000,
+              },
+            ],
+            conditional_formatting_totals: true,
+          },
+        });
+        props.totals = { sum__num: 2481872 };
+
+        render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2481872')).background).toBe(
+          'rgb(172, 225, 196)',
+        );
+        expect(
+          screen.getByTitle('2481872').querySelector('div.cell-bar'),
+        ).not.toBeInTheDocument();
+      });
+
+      test('does not apply conditional formatting to the totals row when disabled', () => {
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            metrics: ['sum__num'],
+            conditional_formatting: [
+              {
+                colorScheme: '#ACE1C4',
+                column: 'sum__num',
+                operator: '>',
+                targetValue: 100000,
+              },
+            ],
+            conditional_formatting_totals: false,
+          },
+        });
+        props.totals = { sum__num: 2481872 };
+
+        render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2481872')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
+      });
+
+      test('computes Basic conditional formatting for comparison totals when enabled', () => {
+        const props = transformProps({
+          ...testData.comparison,
+          rawFormData: {
+            ...testData.comparison.rawFormData,
+            percent_metrics: [],
+            conditional_formatting: [],
+            conditional_formatting_totals: true,
+            comparison_color_enabled: true,
+            time_compare: ['P1D'],
+          },
+          queriesData: [
+            {
+              ...testData.comparison.queriesData[0],
+              data: [
+                {
+                  metric_1: 100,
+                  metric_2: 200,
+                  metric_1__P1D: 80,
+                  metric_2__P1D: 150,
+                },
+              ],
+              colnames: [
+                'metric_1',
+                'metric_2',
+                'metric_1__P1D',
+                'metric_2__P1D',
+              ],
+              coltypes: [
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+              ],
+            },
+            {
+              ...testData.comparison.queriesData[0],
+              data: [
+                {
+                  metric_1: 250,
+                  metric_2: 400,
+                  metric_1__P1D: 100,
+                  metric_2__P1D: 500,
+                },
+              ],
+              colnames: [
+                'metric_1',
+                'metric_2',
+                'metric_1__P1D',
+                'metric_2__P1D',
+              ],
+              coltypes: [
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+              ],
+            },
+          ],
+        });
+
+        // getBasicColorFormatter keys by the original metric (`metric_1`),
+        // after toOriginalMetricTotals maps comparison totals
+        // (`Main metric_1` / `# metric_1`) back to those source keys.
+        expect(
+          props.totalsBasicColorFormatters?.metric_1?.backgroundColor,
+        ).toBe('rgba(0,150,0,0.2)');
+        expect(
+          props.totalsBasicColorFormatters?.metric_2?.backgroundColor,
+        ).toBe('rgba(150,0,0,0.2)');
+        expect(
+          props.totalsBasicColorFormatters?.['Main metric_1'],
+        ).toBeUndefined();
+      });
+
+      test('applies Basic conditional formatting to the totals row when enabled', () => {
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            metrics: ['sum__num'],
+            conditional_formatting_totals: true,
+          },
+        });
+        props.totals = { sum__num: 2481872 };
+        props.columnColorFormatters = [];
+        props.totalsBasicColorFormatters = {
+          sum__num: {
+            backgroundColor: 'rgba(0,150,0,0.2)',
+            arrowColor: 'Green',
+            mainArrow: '↑',
+          },
+        };
+
+        render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2481872')).background).toBe(
+          'rgba(0, 150, 0, 0.2)',
+        );
+      });
+
+      test('applies cell-bar conditional formatting to the totals row when enabled', () => {
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            metrics: ['sum__num'],
+            show_cell_bars: true,
+            conditional_formatting_totals: true,
+          },
+        });
+        props.totals = { sum__num: 2481872 };
+        props.showCellBars = true;
+        props.columnColorFormatters = [
+          {
+            column: 'sum__num',
+            objectFormatting: ObjectFormattingEnum.CELL_BAR,
+            getColorFromValue: () => '#ACE1C4',
+          },
+        ];
+        const metricCol = props.columns.find(col => col.key === 'sum__num');
+        if (metricCol) {
+          metricCol.isMetric = true;
+        }
+
+        render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        const footer = screen.getByTitle('2481872');
+        const bar = footer.querySelector('div.cell-bar');
+        expect(bar).toBeInTheDocument();
+        expect(getComputedStyle(bar as Element).backgroundColor).toBe(
+          'rgba(172, 225, 196, 0.6)',
+        );
+      });
+
       test('render cell without color', () => {
         const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
         dataWithEmptyCell.data.push({
