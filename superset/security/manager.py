@@ -1206,7 +1206,7 @@ def _split_extras_clauses(composed: str) -> list[str]:
     # the malformed string lands in the allowed-set check as-is (→ 403)
     # instead of splitting into fragments that might individually pass.
     if composed.count("(") != composed.count(")"):
-        return []
+        return [composed]
     raw = re.split(r"\)\s+AND\s+\(", composed, flags=re.IGNORECASE)
     # Strip exactly one outer paren added by _sanitize_clause.
     if raw[0].startswith("("):

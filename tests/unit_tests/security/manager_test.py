@@ -4291,10 +4291,10 @@ def test_collect_allowed_sql_includes_scalar_column_params(
         "groupby": [{"sqlExpression": "UPPER(country)", "label": "c"}],
     }
 
-    allowed = _collect_allowed_sql(stored_chart, None)
+    _, col_allowed = _collect_allowed_sql(stored_chart, None)
 
-    assert "DATE_TRUNC('month', ts)" in allowed
-    assert "UPPER(country)" in allowed
+    assert "DATE_TRUNC('month', ts)" in col_allowed
+    assert "UPPER(country)" in col_allowed
 
 
 def test_sql_filters_structured_filter_string_col_allowed(
