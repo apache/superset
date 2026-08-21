@@ -373,3 +373,47 @@ test('should not display tooltip icon when extraColorChoices is empty', () => {
   const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
   expect(tooltipIcon).not.toBeInTheDocument();
 });
+
+test('hides formatting column and formatting object when columnMetricFlag is true', () => {
+  const mockColumns = [
+    { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  ];
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={mockColumns}
+      allColumns={mockColumns}
+      columnMetricFlag
+    />,
+  );
+
+  expect(screen.getByLabelText('Column')).toBeInTheDocument();
+  expect(screen.getByLabelText('Color scheme')).toBeInTheDocument();
+  expect(screen.getByLabelText('Operator')).toBeInTheDocument();
+  expect(screen.queryByText('Use gradient')).toBeInTheDocument();
+  expect(screen.queryByText('Formatting column')).not.toBeInTheDocument();
+  expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
+});
+
+test('shows formatting column and formatting object when columnMetricFlag is false', () => {
+  const mockColumns = [
+    { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  ];
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={mockColumns}
+      allColumns={mockColumns}
+      columnMetricFlag={false}
+    />,
+  );
+
+  expect(screen.getByLabelText('Column')).toBeInTheDocument();
+  expect(screen.getByLabelText('Color scheme')).toBeInTheDocument();
+  expect(screen.getByLabelText('Operator')).toBeInTheDocument();
+  expect(screen.queryByText('Use gradient')).toBeInTheDocument();
+  expect(screen.queryByText('Formatting column')).toBeInTheDocument();
+  expect(screen.queryByText('Formatting object')).toBeInTheDocument();
+});

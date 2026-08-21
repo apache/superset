@@ -233,12 +233,14 @@ export const FormattingPopoverContent = ({
   columns = [],
   extraColorChoices = [],
   allColumns = [],
+  columnMetricFlag = false,
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  columnMetricFlag?: boolean;
 }) => {
   const [form] = Form.useForm();
   const colors = colorScheme();
@@ -262,8 +264,10 @@ export const FormattingPopoverContent = ({
     config?.column || columns[0]?.value,
   );
   const visibleAllColumns = useMemo(
-    () => !!(allColumns && Array.isArray(allColumns) && allColumns.length),
-    [allColumns],
+    () =>
+      !columnMetricFlag &&
+      !!(allColumns && Array.isArray(allColumns) && allColumns.length),
+    [allColumns, columnMetricFlag],
   );
 
   const [columnFormatting, setColumnFormatting] = useState<string | undefined>(
@@ -320,8 +324,8 @@ export const FormattingPopoverContent = ({
     () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
     [allColumns],
   );
-  const defaultColorToken = colors[0]?.colors?.[0];
 
+  const defaultColorToken = colors[0]?.colors?.[0];
   const visibleUseGradient = useMemo(
     () =>
       numericColumns.length > 0
@@ -461,7 +465,7 @@ export const FormattingPopoverContent = ({
           </Col>
         </Row>
       ) : null}
-      {visibleUseGradient && (
+      {(columnMetricFlag || visibleUseGradient) && (
         <Row gutter={20}>
           <Col span={1}>
             <FormItem

@@ -23,8 +23,10 @@ import {
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   getStandardizedControls,
+  Dataset,
 } from '@superset-ui/chart-controls';
 import { countryOptions } from './countries';
+import { GenericDataType } from '@apache-superset/core/common';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -71,6 +73,43 @@ const config: ControlPanelConfig = {
         ],
         ['currency_format'],
         ['linear_color_scheme'],
+        [
+          {
+            name: 'conditional_formatting',
+            config: {
+              type: 'ConditionalFormattingControl',
+              renderTrigger: true,
+              label: t('Custom conditional formatting'),
+              description: t(
+                'Apply conditional color formatting to numeric columns',
+              ),
+              columnMetricFlag: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                const chartStatus = chart?.chartStatus;
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : (explore?.datasource?.columns ?? {});
+                const columnOptions = [
+                  {
+                    value: 'metric',
+                    label: 'metric',
+                    dataType: GenericDataType.Numeric,
+                  },
+                ];
+                return {
+                  removeIrrelevantConditions: chartStatus === 'success',
+                  columnOptions,
+                  verboseMap,
+                };
+              },
+            },
+          },
+        ],
       ],
     },
   ],
