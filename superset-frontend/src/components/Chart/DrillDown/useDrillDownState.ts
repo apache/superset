@@ -37,7 +37,6 @@ import {
   getChartDataRequest,
   handleChartDataResponse,
 } from 'src/components/Chart/chartAction';
-import { getQuerySettings } from 'src/explore/exploreUtils';
 import { DrillDownLevel } from './types';
 
 /**
@@ -349,8 +348,6 @@ export function useDrillDownState({
     setIsLoading(true);
     setError(undefined);
 
-    const [useLegacyApi] = getQuerySettings(activeFormData);
-
     const extractMessage = async (err: unknown): Promise<string> => {
       let message = (err as { message?: string })?.message;
       try {
@@ -383,11 +380,7 @@ export function useDrillDownState({
             formData: activeFormData,
           });
           // eslint-disable-next-line no-await-in-loop
-          const queriesResponse = await handleChartDataResponse(
-            response,
-            json,
-            useLegacyApi,
-          );
+          const queriesResponse = await handleChartDataResponse(response, json);
           if (!cancelled) {
             setDrillData(queriesResponse as QueryData[]);
           }
