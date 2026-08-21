@@ -4414,3 +4414,61 @@ def test_raise_for_access_guest_user_sql_filter_injection_blocked(
 
     with pytest.raises(SupersetSecurityException):
         sm.raise_for_access(query_context=query_context)
+
+
+def test_sql_filters_cache_replay_skips_check(
+    mocker: MockerFixture,
+) -> None:
+    """Cache-replay requests skip the SQL filter check."""
+    query_context = mocker.MagicMock()
+    query_context._from_cache_replay = True
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject(extras={"where": "(injected SQL)"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert not _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_column_expression_cannot_become_where(
+    mocker: MockerFixture,
+) -> None:
+    """A chart's column sqlExpression must not be injectable as extras.where."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {
+        "columns": [
+            {
+                "sqlExpression": "(SELECT secret FROM users LIMIT 1)",
+                "label": "x",
+            },
+        ],
+    }
+
+    query = QueryObject(
+        extras={"where": "((SELECT secret FROM users LIMIT 1))"},
+    )
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)
+
+
+def test_sql_filters_unbalanced_parens_rejected(
+    mocker: MockerFixture,
+) -> None:
+    """Unbalanced parens in extras.where are rejected (403, not 500)."""
+    query_context = mocker.MagicMock()
+    stored_chart = mocker.MagicMock()
+    stored_chart.params_dict = {}
+
+    query = QueryObject(extras={"where": "(a) AND (b"})
+    query_context.queries = [query]
+
+    form_data: dict[str, Any] = {"slice_id": 1}
+
+    assert _sql_filters_modified(query_context, form_data, stored_chart, None)

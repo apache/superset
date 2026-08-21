@@ -17,7 +17,6 @@
 # pylint: disable=too-many-lines
 """A set of constants and methods to manage permissions and security"""
 
-import contextlib
 import datetime
 import logging
 import re
@@ -78,7 +77,6 @@ from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
-    QueryClauseValidationException,
     SupersetSecurityException,
 )
 from superset.security.guest_token import (
@@ -92,7 +90,7 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.sql.parse import process_jinja_sql, sanitize_clause, Table
+from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
@@ -1204,6 +1202,11 @@ def _split_extras_clauses(composed: str) -> list[str]:
     """
     if not composed:
         return []
+    # Unbalanced parens can't be a valid composed clause — fail closed so
+    # the malformed string lands in the allowed-set check as-is (→ 403)
+    # instead of splitting into fragments that might individually pass.
+    if composed.count("(") != composed.count(")"):
+        return []
     raw = re.split(r"\)\s+AND\s+\(", composed, flags=re.IGNORECASE)
     # Strip exactly one outer paren added by _sanitize_clause.
     if raw[0].startswith("("):
@@ -1217,7 +1220,8 @@ def _split_extras_clauses(composed: str) -> list[str]:
 
 
 def _add_allowed_sql_from_query_context(
-    allowed: set[str],
+    extras_allowed: set[str],
+    col_allowed: set[str],
     stored_query_context: dict[str, Any],
 ) -> None:
     """Add allowed SQL expressions from a stored query context."""
@@ -1225,52 +1229,35 @@ def _add_allowed_sql_from_query_context(
         for param in ("where", "having"):
             composed = (query.get("extras") or {}).get(param, "")
             for expr in _split_extras_clauses(composed):
-                allowed.add(expr)
+                extras_allowed.add(expr)
             # Keep the full composed value as a fallback in case a stored
             # expression contains a literal ") AND (" that the split would
             # incorrectly break apart.
             if composed:
-                allowed.add(composed)
+                extras_allowed.add(composed)
         for key in ("columns", "groupby"):
             for col in query.get(key) or []:
                 if isinstance(col, dict) and col.get("sqlExpression"):
-                    allowed.add(col["sqlExpression"])
-
-
-def _add_sanitized_form(allowed: set[str], expr: str, engine: str) -> None:
-    """
-    If *expr* contains SQL comments, also add the form that
-    ``sanitize_clause`` produces so that async-cached query contexts
-    (whose ``extras`` are rewritten in place by ``_sanitize_filters``)
-    still match the allowed set on re-validation.
-    """
-    if "--" not in expr:
-        return
-    try:
-        allowed.add(sanitize_clause(expr, engine))
-    except QueryClauseValidationException:
-        pass
+                    col_allowed.add(col["sqlExpression"])
 
 
 def _collect_allowed_sql(
     stored_chart: "Slice",
     stored_query_context: Optional[dict[str, Any]],
-    engine: str = "",
-) -> set[str]:
+) -> tuple[set[str], set[str]]:
     """
-    Collect every raw SQL expression a guest user is allowed to send,
-    derived from the stored chart's params and query context.
+    Collect the SQL expressions a guest user is allowed to send.
 
-    This single set validates all three SQL injection vectors:
-    ``extras.where``/``extras.having`` clauses, SQL-type adhoc filters, and
-    adhoc-column ``col`` values in structured filters.
+    Returns ``(extras_allowed, col_allowed)``:
 
-    The empty-filter sentinel ``1 = 0`` is always included.  For expressions
-    containing ``--`` comments, the sanitized form (as rewritten by
-    ``sanitize_clause``) is also included so that async-cached contexts
-    pass re-validation.
+    * ``extras_allowed`` — for validating ``extras.where``/``extras.having``:
+      adhoc-filter SQL, legacy ``where`` param, stored query-context extras,
+      and the ``1 = 0`` empty-filter sentinel.
+    * ``col_allowed`` — for validating structured-filter ``col.sqlExpression``:
+      everything in ``extras_allowed`` plus column SQL expressions from the
+      chart's dimensions (which cross-filters legitimately reference).
     """
-    allowed: set[str] = {_EMPTY_FILTER_SENTINEL}
+    extras_allowed: set[str] = {_EMPTY_FILTER_SENTINEL}
     params = stored_chart.params_dict
 
     for flt in params.get("adhoc_filters") or []:
@@ -1279,19 +1266,22 @@ def _collect_allowed_sql(
             and flt.get("expressionType") == "SQL"
             and flt.get("sqlExpression")
         ):
-            allowed.add(flt["sqlExpression"])
-            _add_sanitized_form(allowed, flt["sqlExpression"], engine)
+            extras_allowed.add(flt["sqlExpression"])
 
     if params.get("where"):
-        allowed.add(params["where"])
-        _add_sanitized_form(allowed, params["where"], engine)
+        extras_allowed.add(params["where"])
 
-    _add_column_sql_expressions(allowed, params)
+    # Column expressions go only into col_allowed — they must not be
+    # injectable as WHERE/HAVING predicates.
+    col_allowed: set[str] = set(extras_allowed)
+    _add_column_sql_expressions(col_allowed, params)
 
     if stored_query_context:
-        _add_allowed_sql_from_query_context(allowed, stored_query_context)
+        _add_allowed_sql_from_query_context(
+            extras_allowed, col_allowed, stored_query_context
+        )
 
-    return allowed
+    return extras_allowed, col_allowed
 
 
 def _add_column_sql_expressions(target: set[str], params: dict[str, Any]) -> None:
@@ -1410,24 +1400,34 @@ def _sql_filters_modified(
     native Select filters is always allowed.  For vector 3, SQL expressions
     from all charts on the requesting dashboard are allowed so that
     cross-filters referencing a sibling chart's custom SQL dimension pass.
+
+    Cache-replay requests (``/data/<cache_key>``) are skipped: the original
+    request already passed the full check, and ``_sanitize_filters`` may have
+    rewritten ``extras`` in place before caching (comment normalization,
+    Jinja rendering), making byte-equality comparison unreliable.
     """
-    engine = ""
-    if datasource := getattr(query_context, "datasource", None):
-        with contextlib.suppress(Exception):
-            engine = datasource.database.db_engine_spec.engine
-    allowed = _collect_allowed_sql(stored_chart, stored_query_context, engine)
+    if getattr(query_context, "_from_cache_replay", False):
+        return False
+
+    extras_allowed, col_allowed = _collect_allowed_sql(
+        stored_chart, stored_query_context
+    )
 
     # Vector 1: extras.where / extras.having
-    if any(_query_has_novel_extras(q, allowed) for q in query_context.queries):
+    if any(_query_has_novel_extras(q, extras_allowed) for q in query_context.queries):
         return True
 
     # Vector 3: structured filter col with adhoc SQL.
     # Sibling chart column expressions (cross-filter) are allowed; the
     # dashboard lookup is deferred so the common case pays no DB cost.
-    if any(_query_has_novel_filter_col(q, allowed) for q in query_context.queries):
+    if any(_query_has_novel_filter_col(q, col_allowed) for q in query_context.queries):
         if dashboard_id := (form_data or {}).get("dashboardId"):
-            _add_dashboard_column_expressions(allowed, dashboard_id, stored_chart.id)
-        if any(_query_has_novel_filter_col(q, allowed) for q in query_context.queries):
+            _add_dashboard_column_expressions(
+                col_allowed, dashboard_id, stored_chart.id
+            )
+        if any(
+            _query_has_novel_filter_col(q, col_allowed) for q in query_context.queries
+        ):
             return True
 
     # Vector 2: SQL adhoc filters in form_data
