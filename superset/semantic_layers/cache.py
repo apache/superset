@@ -25,6 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
+from flask_caching.backends.rediscache import RedisSentinelCache
 from superset_core.semantic_layers.types import SemanticQuery, SemanticResult
 
 from superset.semantic_layers.cache_coordination import (
@@ -59,6 +60,7 @@ class SemanticCacheDisabledReason(str, enum.Enum):
     FLAG_OFF = "flag_off"
     UNSUPPORTED_COORDINATION = "unsupported_coordination"
     INVALID_COORDINATION_CONFIGURATION = "invalid_coordination_configuration"
+    UNSUPPORTED_BACKEND = "unsupported_backend"
 
 
 @dataclass(frozen=True)
@@ -198,35 +200,20 @@ class SemanticCacheService:
         if not self.state.effective or repository is None:
             self._increment("bypass")
             return SemanticCacheOutcome(provider(query), cache_hit=False)
+        # Every cache stage degrades on ANY exception rather than failing the
+        # request: cached material outlives the code that wrote it, so a
+        # deploy that reshapes a pickled entry (or any unanticipated backend
+        # fault) must cost a miss or a skipped store, never the user's chart.
         if not force:
-            try:
-                lookup_result: SemanticCacheLookupResult = repository.lookup(
-                    meta, query, capabilities
-                )
-            except SemanticCacheLookupError:
-                self._increment("lookup_failure")
+            served: SemanticCacheOutcome | None
+            proceed_to_store: bool
+            served, proceed_to_store = self._serve_from_cache(
+                repository, meta, query, capabilities
+            )
+            if served is not None:
+                return served
+            if not proceed_to_store:
                 return SemanticCacheOutcome(provider(query), cache_hit=False)
-            for candidate in lookup_result.candidates:
-                try:
-                    transformed: SemanticResult = transform_result(
-                        candidate.result,
-                        query,
-                        candidate.decision,
-                        capabilities,
-                    )
-                except SemanticCacheTransformationError:
-                    self._increment("transform_failure")
-                    continue
-                self._increment("hit")
-                return SemanticCacheOutcome(transformed, cache_hit=True)
-            try:
-                repository.prune_missing(
-                    meta,
-                    lookup_result.missing_value_keys,
-                )
-            except SemanticCacheLookupError:
-                self._increment("prune_failure")
-            self._increment("miss")
         else:
             self._increment("bypass")
         result: SemanticResult = provider(query)
@@ -234,7 +221,67 @@ class SemanticCacheService:
             repository.store(meta, query, result)
         except SemanticCacheStoreError:
             self._increment("store_failure")
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.warning("Semantic cache store failed unexpectedly", exc_info=True)
+            self._increment("store_failure")
         return SemanticCacheOutcome(result, cache_hit=False)
+
+    def _serve_from_cache(
+        self,
+        repository: SemanticCacheRepository,
+        meta: ViewMeta,
+        query: SemanticQuery,
+        capabilities: ContainmentCapabilities,
+    ) -> tuple[SemanticCacheOutcome | None, bool]:
+        """Attempt a cache read; return (hit outcome or None, store on miss).
+
+        The second element is False when the read phase failed outright — the
+        caller should execute the provider without attempting a store, since
+        the backend just demonstrated it is unhealthy.
+        """
+        try:
+            lookup_result: SemanticCacheLookupResult = repository.lookup(
+                meta, query, capabilities
+            )
+        except SemanticCacheLookupError:
+            self._increment("lookup_failure")
+            return None, False
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.warning("Semantic cache lookup failed unexpectedly", exc_info=True)
+            self._increment("lookup_failure")
+            return None, False
+        for candidate in lookup_result.candidates:
+            try:
+                transformed: SemanticResult = transform_result(
+                    candidate.result,
+                    query,
+                    candidate.decision,
+                    capabilities,
+                )
+            except SemanticCacheTransformationError:
+                self._increment("transform_failure")
+                continue
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.warning(
+                    "Semantic cache transformation failed unexpectedly",
+                    exc_info=True,
+                )
+                self._increment("transform_failure")
+                continue
+            self._increment("hit")
+            return SemanticCacheOutcome(transformed, cache_hit=True), False
+        try:
+            repository.prune_missing(
+                meta,
+                lookup_result.missing_value_keys,
+            )
+        except SemanticCacheLookupError:
+            self._increment("prune_failure")
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.warning("Semantic cache pruning failed unexpectedly", exc_info=True)
+            self._increment("prune_failure")
+        self._increment("miss")
+        return None, True
 
     def execute_provider(
         self,
@@ -244,6 +291,14 @@ class SemanticCacheService:
         """Execute a provider while recording an intentional cache bypass."""
         self._increment("bypass")
         return SemanticCacheOutcome(provider(query), cache_hit=False)
+
+
+def _backend_reads_from_replicas(backend: object) -> bool:
+    """Detect cache backends whose reads may lag their own writes."""
+    inner: object = getattr(backend, "cache", backend)
+    return isinstance(backend, RedisSentinelCache) or isinstance(
+        inner, RedisSentinelCache
+    )
 
 
 def initialize_semantic_cache(
@@ -268,6 +323,19 @@ def initialize_semantic_cache(
         return state
     if not requested:
         state = SemanticCacheState.disabled(SemanticCacheDisabledReason.FLAG_OFF)
+        semantic_cache_service = SemanticCacheService(state, metrics=metrics)
+        return state
+    if _backend_reads_from_replicas(backend):
+        # Sentinel-backed caches read through ``slave_for`` replicas while
+        # writing to the master, so the lease-guarded read-modify-write on
+        # descriptor buckets loses read-your-writes under replication lag:
+        # a freshly stored descriptor can be invisible to the next lease
+        # holder, which then persists the stale bucket over it. Fail closed
+        # until repository reads are routed through the write client.
+        state = SemanticCacheState.disabled(
+            SemanticCacheDisabledReason.UNSUPPORTED_BACKEND,
+            requested=True,
+        )
         semantic_cache_service = SemanticCacheService(state, metrics=metrics)
         return state
     if coordination is None:
