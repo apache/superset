@@ -11,6 +11,11 @@ When soft-delete is enabled, deleting a chart, dashboard, or dataset archives it
 instead of removing it permanently. The **Recently Archived** view lets owners
 and admins find archived objects and restore them.
 
+A chart used by an alert or report cannot be archived while that dependency
+exists. In the chart list view, the archive confirmation lists the alerts and
+reports that use the chart; a blocked attempt names them and asks you to
+detach or delete them first.
+
 :::note
 
 This view is gated by the `SOFT_DELETE` feature flag. When the flag is off the
