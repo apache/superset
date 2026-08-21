@@ -36,6 +36,7 @@ from superset.models.sql_types.presto_sql_types import (
     TinyInteger,
 )
 from superset.sql.parse import Table
+from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -1044,6 +1045,144 @@ def test_extract_error_message_from_general_exception() -> None:
         PrestoEngineSpec._extract_error_message(Exception("Err message"))
         == "Err message"
     )
+
+
+def test_expand_data_returns_input_untouched_when_flag_disabled() -> None:
+    """Story 105870: with ``PRESTO_EXPAND_DATA`` off, the inputs come back as they
+    went in and nothing is expanded.
+
+    This is the path almost every deployment takes: the flag defaults to ``False``
+    and is documented in ``config.py`` as "Experimental, doesn't work with all
+    nested types", lifecycle ``development``. It was also completely untested,
+    which is worth fixing first — a regression here would switch nested-column
+    expansion on for everyone.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    columns: list[ResultSetColumnType] = [
+        {
+            "column_name": "row_column",
+            "name": "row_column",
+            "type": "ROW(NESTED_OBJ VARCHAR)",
+            "is_dttm": False,
+        }
+    ]
+    data = [{"row_column": ["a"]}]
+
+    result_columns, result_data, expanded = PrestoEngineSpec.expand_data(columns, data)
+
+    assert result_columns is columns
+    assert result_data is data
+    assert expanded == []
+
+
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    {"PRESTO_EXPAND_DATA": True},
+    clear=True,
+)
+def test_expand_data_flattens_deeply_nested_row_columns() -> None:
+    """Story 105870: five levels of nested ``ROW`` terminate and flatten correctly.
+
+    The ticket asks for this to "complete without recursion errors", but
+    ``expand_data`` is **iterative** — a ``deque`` with a ``while`` loop — so
+    ``RecursionError`` cannot occur and that assertion would pass vacuously. What
+    is worth asserting is termination plus correctness, which is what this does.
+
+    The exact column list is asserted rather than just its length, so a future
+    change in breadth — the real risk here, along with the O(n^2) de-duplication
+    check on each iteration — trips this test instead of passing silently.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    columns: list[ResultSetColumnType] = [
+        {
+            "column_name": "r",
+            "name": "r",
+            "type": "ROW(L1 ROW(L2 ROW(L3 ROW(L4 VARCHAR))))",
+            "is_dttm": False,
+        }
+    ]
+    data = [{"r": [[[["deep"]]]]}]
+
+    result_columns, result_data, expanded = PrestoEngineSpec.expand_data(columns, data)
+
+    assert [column["column_name"] for column in result_columns] == [
+        "r",
+        "r.l1",
+        "r.l1.l2",
+        "r.l1.l2.l3",
+        "r.l1.l2.l3.l4",
+    ]
+    assert [column["column_name"] for column in expanded] == [
+        "r.l1",
+        "r.l1.l2",
+        "r.l1.l2.l3",
+        "r.l1.l2.l3.l4",
+    ]
+    assert result_data[0]["r.l1.l2.l3.l4"] == "deep"
+
+
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    {"PRESTO_EXPAND_DATA": True},
+    clear=True,
+)
+def test_expand_data_raises_on_malformed_json_in_array_column() -> None:
+    """Story 105870 — CHARACTERIZATION test. This asserts a bug, deliberately.
+
+    ``destringify`` is ``json.loads`` with no ``try/except`` (``result_set.py``),
+    so a nested column whose value is not valid JSON raises out of ``expand_data``
+    rather than passing through. Via simplejson the exception is a
+    ``JSONDecodeError``, which subclasses ``ValueError``.
+
+    The ticket asks for "graceful pass-through rather than uncaught exception" —
+    that describes a fix which has not been written. Rather than blocking the
+    story, current behaviour is pinned here and in the ROW-branch test below. When
+    the companion fix ticket lands, both invert; that inversion should be an
+    acceptance criterion on the fix, not tribal knowledge.
+
+    No ``xfail`` — that would silently mask the gap.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    columns: list[ResultSetColumnType] = [
+        {
+            "column_name": "array_column",
+            "name": "array_column",
+            "type": "ARRAY(BIGINT)",
+            "is_dttm": False,
+        }
+    ]
+
+    with pytest.raises(ValueError, match="Expecting value"):
+        PrestoEngineSpec.expand_data(columns, [{"array_column": "not json"}])
+
+
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    {"PRESTO_EXPAND_DATA": True},
+    clear=True,
+)
+def test_expand_data_raises_on_malformed_json_in_row_column() -> None:
+    """Story 105870 — CHARACTERIZATION test, the second unguarded ``destringify``.
+
+    There are two call sites, not one: the ARRAY branch and the ROW branch. A fix
+    that guards only the first would leave this path crashing, so both are pinned.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    columns: list[ResultSetColumnType] = [
+        {
+            "column_name": "row_column",
+            "name": "row_column",
+            "type": "ROW(NESTED_OBJ VARCHAR)",
+            "is_dttm": False,
+        }
+    ]
+
+    with pytest.raises(ValueError, match="Expecting value"):
+        PrestoEngineSpec.expand_data(columns, [{"row_column": "not json"}])
 
 
 def test_get_function_names_lists_presto_functions() -> None:
