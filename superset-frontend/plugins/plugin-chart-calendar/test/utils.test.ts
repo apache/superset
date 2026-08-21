@@ -93,9 +93,8 @@ test('convertUTCTimestampToLocal and getFormattedUTCTime work together to displa
 });
 
 test('escapeHtml neutralizes markup smuggled through a time format string', () => {
-  // SECURITY regression test: d3-time-format passes non-% characters
-  // through verbatim, so a creator-controlled format string can carry
-  // markup into the tooltip's innerHTML sink unless escaped.
+  // Regression test: d3-time-format passes non-% characters through
+  // verbatim, so escaping must happen before the innerHTML sink.
   const formatted = getFormattedUTCTime(
     1704067200000,
     '%Y <img src=x onerror=alert(1)>',

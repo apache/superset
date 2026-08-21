@@ -29,11 +29,9 @@ interface LeftCellProps {
 }
 
 /**
- * SECURITY: the URL control is creator-authored free text rendered as a
- * clickable link to every chart viewer. Confine it to http(s) and relative
- * URLs so `javascript:` (or any other script-bearing scheme) never reaches
- * an href — rel/target do not mitigate javascript: execution. Returns
- * undefined for anything unsafe, degrading the cell to plain text.
+ * Confines a caller-supplied URL to http(s) and relative schemes before
+ * it's rendered as a link. Returns undefined for anything else, degrading
+ * the cell to plain text.
  */
 export const toSafeHref = (url: string): string | undefined => {
   try {

@@ -113,9 +113,8 @@ test('shows a Tooltip for the verbose metric name', () => {
   expect(getByTestId('mock-tooltip')).toBeInTheDocument();
 });
 test('does not render javascript: URLs as links', () => {
-  // SECURITY regression test: the url prop can be creator-authored
-  // (e.g. the Time-series Table URL control) and must never become a
-  // script-bearing href for other viewers.
+  // Regression test: the url prop can be creator-authored and must
+  // never become a script-bearing href for other viewers.
   const { queryByRole, getByText } = setup({
     url: 'javascript:alert(document.domain)', // eslint-disable-line no-script-url
   });

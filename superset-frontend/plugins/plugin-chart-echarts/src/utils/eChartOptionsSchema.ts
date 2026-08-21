@@ -58,12 +58,9 @@ const fontStyleSchema = z.enum(['normal', 'italic', 'oblique']);
 const symbolTypeSchema = z.string();
 
 /**
- * Tooltip formatter template (SECURITY): with the ECharts default
- * renderMode 'html', a string tooltip formatter is assigned to the tooltip
- * DOM element via innerHTML — and the custom-options merge replaces the
- * plugin's sanitizing formatter function. Creator-authored options render
- * for every chart viewer, so markup is rejected outright; placeholder
- * templates like '{b}: {c}' need no '<'.
+ * With the ECharts default renderMode 'html', a string tooltip formatter
+ * is assigned to the tooltip DOM element via innerHTML, so markup is
+ * rejected outright; placeholder templates like '{b}: {c}' need no '<'.
  */
 const htmlFreeFormatterSchema = z
   .string()
@@ -73,9 +70,8 @@ const htmlFreeFormatterSchema = z
   });
 
 /**
- * Navigation URL (SECURITY): ECharts navigates to title.link/sublink on
- * click, so restrict them to http(s) and same-origin relative paths —
- * javascript:/data: URLs must never become navigable.
+ * ECharts navigates to title.link/sublink on click, so restrict them to
+ * http(s) and same-origin relative paths.
  */
 const safeLinkSchema = z
   .string()
@@ -430,10 +426,9 @@ export const tooltipSchema = z.object({
   shadowOffsetX: z.number().optional(),
   shadowOffsetY: z.number().optional(),
   textStyle: textStyleSchema.optional(),
-  // NOTE (SECURITY): `extraCssText` is intentionally not accepted — it
-  // would inject creator-authored CSS into the tooltip DOM element for
-  // every viewer. Unknown keys are stripped by the schema, so configs that
-  // still carry it keep working minus the raw CSS.
+  // `extraCssText` is intentionally not accepted; unknown keys are
+  // stripped by the schema, so configs that still carry it keep working
+  // minus the raw CSS.
   order: z
     .enum(['seriesAsc', 'seriesDesc', 'valueAsc', 'valueDesc'])
     .optional(),
@@ -611,11 +606,9 @@ export const seriesSchema = z.object({
   polarIndex: z.number().optional(),
   geoIndex: z.number().optional(),
   calendarIndex: z.number().optional(),
-  // NOTE (SECURITY): per-series `tooltip` is intentionally not admitted.
-  // The schema strips unknown keys, so a creator-supplied series[].tooltip
-  // (and its innerHTML-rendered string formatter) never reaches the merged
-  // options. If per-series tooltips are ever admitted, reuse tooltipSchema
-  // so the markup-free formatter constraint applies.
+  // Per-series `tooltip` is intentionally not admitted; the schema
+  // strips unknown keys. If per-series tooltips are ever admitted, reuse
+  // tooltipSchema so the markup-free formatter constraint applies.
   label: labelSchema.optional(),
   labelLine: z
     .object({

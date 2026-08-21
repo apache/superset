@@ -72,9 +72,8 @@ describe('renderNormalizedTooltip', () => {
   });
 
   test('should HTML-escape series names from query data', () => {
-    // SECURITY regression test: the series name is built from raw group-by
-    // column values and the tooltip is rendered via innerHTML, so markup in
-    // warehouse data must not become live DOM.
+    // Regression test: the tooltip is rendered via innerHTML, so markup
+    // in query-result values must not become live DOM.
     const tooltip = renderNormalizedTooltip(
       { ...params, name: '<img src=x onerror=alert(1)>' },
       metrics,

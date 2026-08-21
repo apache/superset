@@ -23,9 +23,8 @@ var CalHeatMap = function () {
   'use strict';
 
   var self = this;
-  // SECURITY: d3-tip assigns the .html() return value to the tip node via
-  // innerHTML. timeFormatter/valueFormatter are built from creator-controlled
-  // format strings (freeForm controls), so their output must be HTML-escaped.
+  // d3-tip assigns the .html() return value to the tip node via
+  // innerHTML, so formatter output is HTML-escaped first.
   self.tip = d3tip()
     .attr('class', `d3-tip ${CALENDAR_TOOLTIP_CLASS}`)
     .direction('n')

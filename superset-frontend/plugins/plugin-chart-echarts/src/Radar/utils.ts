@@ -86,12 +86,9 @@ export const renderNormalizedTooltip = (
     };
   });
 
-  // SECURITY: the tooltip is rendered via innerHTML (ECharts default
-  // renderMode 'html'). `seriesName` is built from raw group-by values in
-  // the query results and `metric` from creator-controlled metric labels,
-  // so both must be HTML-escaped — matching the sanitizeHtml/tooltipHtml
-  // treatment every other echarts tooltip path applies. Values are escaped
-  // too for consistency (formatter output is plain text).
+  // Tooltip is rendered via innerHTML (ECharts default renderMode
+  // 'html'), so seriesName/metric/value are HTML-escaped, matching the
+  // treatment every other echarts tooltip path applies.
   const tooltipRows = metricValues
     .map(
       ({ metric, value }) => `

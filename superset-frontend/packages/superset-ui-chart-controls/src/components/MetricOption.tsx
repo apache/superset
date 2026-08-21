@@ -52,12 +52,9 @@ export interface MetricOptionProps {
 }
 
 /**
- * SECURITY: `url` is an arbitrary caller-supplied string that is rendered
- * as an href to whoever views the metric label (e.g. the Time-series Table
- * chart forwards a chart-creator-authored template here). Only http(s) and
- * relative URLs may become links; `javascript:` and other script-bearing
- * schemes degrade to plain text. React only dev-warns on javascript: hrefs
- * and rel/target do not mitigate them, so the check must happen here.
+ * `url` is an arbitrary caller-supplied string rendered as an href. Only
+ * http(s) and relative URLs become links; other schemes degrade to plain
+ * text.
  */
 function isSafeHref(url: string): boolean {
   try {

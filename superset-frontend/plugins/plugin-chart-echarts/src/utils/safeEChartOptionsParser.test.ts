@@ -525,10 +525,8 @@ test('EChartOptionsParseError contains validation error details', () => {
 });
 
 // =============================================================================
-// Security: creator-authored options must not reach innerHTML/navigation
-// sinks (tooltip string formatters render via innerHTML with the default
-// renderMode 'html'; title.link/sublink navigate on click; extraCssText
-// injects raw CSS into the tooltip element).
+// Creator-authored options must not reach the tooltip's innerHTML/
+// navigation sinks.
 // =============================================================================
 
 test('rejects tooltip string formatters containing HTML markup', () => {

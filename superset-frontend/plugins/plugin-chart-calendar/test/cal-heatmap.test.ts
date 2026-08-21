@@ -65,10 +65,9 @@ test('CalHeatMap keeps the D3 formatter fallback', () => {
 });
 
 test('cell tooltip HTML escapes creator-controlled formatter output', () => {
-  // SECURITY regression test: the tip's .html() callback is assigned to the
-  // tooltip node via innerHTML (d3-tip). timeFormatter/valueFormatter are
-  // built from creator-controlled freeForm format strings, so markup smuggled
-  // through either formatter must never survive into the returned HTML.
+  // Regression test: the tip's .html() callback is assigned to the
+  // tooltip node via innerHTML (d3-tip), so formatter output must be
+  // escaped before it's returned.
   const calendar = new CalHeatMap();
   calendar.options.timeFormatter = () => '<img src=x onerror=alert(1)>';
   calendar.options.valueFormatter = () => '<svg onload=alert(2)>';
