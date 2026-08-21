@@ -80,7 +80,7 @@ export default function transformProps(
 
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const groupbySet = new Set(groupby);
-  const xAxisData: string[] = Object.keys(data[0])
+  const xAxisData: string[] = Object.keys(data[0] ?? {})
     .filter(key => !groupbySet.has(key))
     .map(key => {
       const array = key.split(' - ').map(value => parseFloat(value));
