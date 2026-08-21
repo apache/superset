@@ -54,29 +54,22 @@ export function DrillDownBreadcrumb({
   const linkCss = css`
     cursor: pointer;
     color: ${theme.colorPrimary};
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
     &:hover {
       text-decoration: underline;
     }
   `;
 
-  // Render a navigable segment as a keyboard-operable element (role/tabIndex
-  // + Enter/Space) since antd's Breadcrumb items are otherwise inert text.
+  // Render a navigable segment as a native button since antd's Breadcrumb items
+  // are otherwise inert text; a button is keyboard-operable out of the box.
   const clickable = (label: string, depth: number): { title: ReactNode } => ({
     title: (
-      <span
-        role="button"
-        tabIndex={0}
-        onClick={() => onJumpTo(depth)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onJumpTo(depth);
-          }
-        }}
-        css={linkCss}
-      >
+      <button type="button" onClick={() => onJumpTo(depth)} css={linkCss}>
         {label}
-      </span>
+      </button>
     ),
   });
 

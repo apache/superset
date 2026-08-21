@@ -90,12 +90,11 @@ test('clickable breadcrumb segments are keyboard accessible', () => {
     />,
   );
 
-  // Clickable segments expose role="button" and are focusable via tabIndex so
-  // they remain operable by keyboard (Enter/Space) without a native <button>.
+  // Clickable segments render as native <button> elements, which are focusable
+  // and operable by keyboard (Enter/Space) out of the box.
   const root = screen.getByText('country');
-  expect(root).toHaveAttribute('role', 'button');
-  expect(root).toHaveAttribute('tabindex', '0');
-  expect(screen.getByText('USA')).toHaveAttribute('role', 'button');
+  expect(root.tagName).toBe('BUTTON');
+  expect(screen.getByText('USA').tagName).toBe('BUTTON');
 });
 
 test('selectedLeaf is rendered as non-clickable text', () => {
