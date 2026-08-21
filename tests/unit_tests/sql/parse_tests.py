@@ -28,6 +28,7 @@ from superset.exceptions import QueryClauseValidationException, SupersetParseErr
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
+    _count_weighted_table_references,
     BaseSQLStatement,
     count_referenced_tables,
     CTASMethod,
@@ -318,6 +319,63 @@ def test_count_referenced_tables_cte_self_join() -> None:
         )
         == 2
     )
+
+
+def test_count_referenced_tables_describe() -> None:
+    """
+    ``DESCRIBE`` (and other ``exp.Describe``/``exp.Command`` statements) has
+    no join semantics for a per-table row cap to interact with, so it takes
+    the plain unweighted table-extraction path rather than
+    ``_count_weighted_table_references``.
+    """
+    assert count_referenced_tables("DESCRIBE table1", Dialects.SQLITE) == 1
+
+
+def test_count_referenced_tables_derived_subqueries() -> None:
+    """
+    Two distinct derived (non-CTE) subqueries joined together must each
+    resolve their own tables directly, without recursing as if they were
+    CTE sources -- covering the branch in ``_count_weighted_table_references``
+    where a selected source is a ``Scope`` but not a CTE.
+    """
+    assert (
+        count_referenced_tables(
+            'SELECT l.a, r.a FROM (SELECT a FROM "db.table1") AS l '
+            'JOIN (SELECT a FROM "db.table1") AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_weighted_table_references_self_referential_scope_guard(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``_count_weighted_table_references`` must not recurse forever on a
+    self-referential ``Scope`` graph, the shape a ``WITH RECURSIVE`` CTE
+    could in principle produce if sqlglot ever resolved its own
+    self-reference to the same ``Scope`` object instead of a bare
+    ``exp.Table``. The ``seen`` guard must catch the repeat visit and treat
+    it as contributing no further table reads.
+    """
+    from sqlglot.optimizer.scope import Scope, ScopeType  # noqa: PLC0415
+
+    cte_scope = Scope.__new__(Scope)
+    cte_scope.scope_type = ScopeType.CTE
+    # The CTE's own body references itself.
+    cte_scope._selected_sources = {"t": (None, cte_scope)}  # noqa: SLF001
+
+    root_scope = Scope.__new__(Scope)
+    root_scope.scope_type = ScopeType.ROOT
+    root_scope._selected_sources = {"t": (None, cte_scope)}  # noqa: SLF001
+
+    mocker.patch(
+        "superset.sql.parse.traverse_scope",
+        return_value=[cte_scope, root_scope],
+    )
+
+    assert _count_weighted_table_references(mocker.MagicMock()) == 0
 
 
 def test_count_referenced_tables_respects_parse_length_cap(
