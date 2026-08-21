@@ -1406,7 +1406,7 @@ def _sql_filters_modified(
     rewritten ``extras`` in place before caching (comment normalization,
     Jinja rendering), making byte-equality comparison unreliable.
     """
-    if getattr(query_context, "_from_cache_replay", False):
+    if getattr(query_context, "_from_cache_replay", False) is True:
         return False
 
     extras_allowed, col_allowed = _collect_allowed_sql(
