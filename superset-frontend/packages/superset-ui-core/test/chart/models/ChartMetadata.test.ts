@@ -70,4 +70,24 @@ describe('ChartMetadata', () => {
       expect(metadata.thumbnail).toEqual(clone.thumbnail);
     });
   });
+  test('stores supportsCascadeDependencies without defaulting unset to false', () => {
+    const unset = new ChartMetadata({
+      name: 'unset',
+      thumbnail: 'test.png',
+    });
+    const optedOut = new ChartMetadata({
+      name: 'opted out',
+      thumbnail: 'test.png',
+      supportsCascadeDependencies: false,
+    });
+    const optedIn = new ChartMetadata({
+      name: 'opted in',
+      thumbnail: 'test.png',
+      supportsCascadeDependencies: true,
+    });
+    expect(unset.supportsCascadeDependencies).toBeUndefined();
+    expect(optedOut.supportsCascadeDependencies).toBe(false);
+    expect(optedIn.supportsCascadeDependencies).toBe(true);
+    expect(optedOut.clone().supportsCascadeDependencies).toBe(false);
+  });
 });
