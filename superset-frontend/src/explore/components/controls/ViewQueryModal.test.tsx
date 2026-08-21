@@ -245,6 +245,14 @@ test('shows cached response statistics in the query inspector', async () => {
   expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
     'Duration250 ms',
   );
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    `Response size${new Blob([
+      JSON.stringify([
+        { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
+        { data: [{ rowcount: 2 }], is_cached: false },
+      ]),
+    ]).size.toLocaleString()} bytes`,
+  );
 });
 
 test('only exposes the raw response when explicitly enabled', async () => {
@@ -276,4 +284,29 @@ test('only exposes the raw response when explicitly enabled', async () => {
   await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
 
   expect(screen.getByRole('tabpanel')).toHaveTextContent('"country": "KR"');
+});
+
+test('shows empty response and unavailable duration states', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={null}
+      showResponse
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
+  expect(screen.getByRole('tabpanel')).toHaveTextContent(
+    'No response data is available yet.',
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Queries0Returned rows0Cached queries0Response size2 bytesDurationNot available',
+  );
 });
