@@ -177,7 +177,7 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
       jsonPayload: { active_data_mask: {}, mode: 'data' },
     });
     expect(mockAddInfoToast).toHaveBeenCalledWith(
-      "Your export is being generated. You'll receive an email when it's ready.",
+      "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
       { noDuplicate: true },
     );
   });
@@ -199,7 +199,7 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
       jsonPayload: { active_data_mask: {}, mode: 'images' },
     });
     expect(mockAddInfoToast).toHaveBeenCalledWith(
-      "Your export is being generated. You'll receive an email when it's ready.",
+      "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
       { noDuplicate: true },
     );
   });
@@ -226,7 +226,7 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
   await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
     expect(mockAddInfoToast).toHaveBeenCalledWith(
-      "Your export is being generated. You'll receive an email when it's ready.",
+      "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
       { noDuplicate: true },
     ),
   );
@@ -262,7 +262,7 @@ test('Export Data to Excel keeps polling while status is pending', async () => {
   await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
     expect(mockAddInfoToast).toHaveBeenCalledWith(
-      "Your export is being generated. You'll receive an email when it's ready.",
+      "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
       { noDuplicate: true },
     ),
   );
@@ -296,7 +296,7 @@ test('Export Data to Excel shows an error toast when the export job fails', asyn
   await userEvent.click(screen.getByText('Export Data to Excel'));
   await waitFor(() =>
     expect(mockAddInfoToast).toHaveBeenCalledWith(
-      "Your export is being generated. You'll receive an email when it's ready.",
+      "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
       { noDuplicate: true },
     ),
   );
