@@ -27,6 +27,7 @@ jobs:
       pull-requests: read
     outputs:
       python: ${{ steps.check.outputs.python }}
+      semantic-layers: ${{ steps.check.outputs.semantic-layers }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,7 +41,7 @@ jobs:
 
   test-semantic-cache-coordination:
     needs: changes
-    if: needs.changes.outputs.python == 'true'
+    if: needs.changes.outputs.semantic-layers == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     env:

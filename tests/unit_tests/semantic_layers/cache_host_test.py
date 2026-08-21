@@ -28,6 +28,7 @@ from superset_core.semantic_layers.layer import (
     SemanticCacheScope,
 )
 
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.semantic_layers.cache_host import (
     _execution_context,
     build_cache_configuration,
@@ -166,5 +167,14 @@ def test_context_scope_requires_host_and_provider_identity(
         "principal", ("role",), "host"
     )
     layer.get_semantic_cache_context_identity.return_value = None
+
+    assert build_cache_configuration(datasource) is None
+
+
+def test_cache_configuration_bypasses_disabled_caching() -> None:
+    """``cache_timeout == -1`` means no caching; a backend would read the raw
+    sentinel as "never expire", so containment must be bypassed entirely."""
+    datasource: MagicMock = _datasource()
+    datasource.cache_timeout = CACHE_DISABLED_TIMEOUT
 
     assert build_cache_configuration(datasource) is None

@@ -595,3 +595,95 @@ def test_result_affecting_identity_change_forces_provider_fallback(
     get_results(_query(datasource))
 
     assert provider.get_table.call_count == 2
+
+
+def test_rowcount_dispatch_bypasses_cache_both_directions(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+) -> None:
+    """A row-count dispatch must neither reuse nor seed tabular cache entries.
+
+    The cache identity derives from the SemanticQuery alone, and the dispatched
+    result kind (table vs row count) is not part of it; letting a row-count
+    request consult the cache would let it reuse table rows (breaking
+    server-side pagination), and storing its scalar result would poison later
+    table lookups.
+    """
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+    rowcount_frame: pd.DataFrame = pd.DataFrame({"rowcount": [1]})
+    provider.get_row_count.return_value = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="count query")],
+        results=pa.Table.from_pandas(rowcount_frame, preserve_index=False),
+    )
+
+    get_results(_query(datasource))
+    stored_keys: set[str] = set(data_cache.store)
+
+    rowcount_query: ValidatedQueryObject = _query(datasource)
+    rowcount_query.is_rowcount = True
+    rowcount: QueryResult = get_results(rowcount_query)
+
+    assert rowcount.df["rowcount"].tolist() == [1]
+    assert rowcount.semantic_cache_hit is False
+    assert provider.get_row_count.call_count == 1
+    # The row-count dispatch neither stored anything nor disturbed the
+    # tabular entry seeded by the first query.
+    assert set(data_cache.store) == stored_keys
+    repeated: QueryResult = get_results(_query(datasource))
+    assert repeated.semantic_cache_hit is True
+    assert "rowcount" not in repeated.df.columns
+    assert repeated.df["revenue"].tolist() == [10.0]
+
+
+def test_none_results_are_normalized_before_store(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+) -> None:
+    """A ``results=None`` provider payload must never be stored raw.
+
+    Some drivers return ``None`` for zero rows. Before normalization moved
+    ahead of the store, the first request succeeded and every later cache hit
+    crashed on ``None.select(...)``.
+    """
+    provider.get_table.return_value = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="empty query")],
+        results=None,
+    )
+
+    first: QueryResult = get_results(_query(datasource))
+    for value in data_cache.store.values():
+        if isinstance(value, SemanticResult):
+            assert value.results is not None
+    second: QueryResult = get_results(_query(datasource))
+
+    assert first.df.empty
+    assert second.df.empty
+    assert second.semantic_cache_hit is True
+    assert provider.get_table.call_count == 1
+
+
+def test_poisoned_none_entry_degrades_to_miss(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+) -> None:
+    """A pre-normalization cached ``results=None`` entry must miss, not crash."""
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+    get_results(_query(datasource))
+
+    # Simulate an entry stored by a build that predates normalization.
+    for key, value in data_cache.store.items():
+        if isinstance(value, SemanticResult):
+            data_cache.store[key] = SemanticResult(
+                requests=value.requests,
+                results=None,
+            )
+
+    provider.get_table.return_value = _result([("GB", "London", 20.0)])
+    recovered: QueryResult = get_results(_query(datasource))
+
+    assert recovered.df["revenue"].tolist() == [20.0]
+    assert recovered.semantic_cache_hit is False
+    assert provider.get_table.call_count == 2

@@ -33,6 +33,7 @@ from superset_core.semantic_layers.layer import (
 
 from superset import security_manager
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.semantic_layers.cache_identity import (
     SemanticCacheIdentityFactory,
     SemanticViewIdentity,
@@ -102,6 +103,11 @@ def build_cache_configuration(
     datasource: BaseDatasource,
 ) -> tuple[ViewMeta, ContainmentCapabilities] | None:
     """Build safe host metadata when the provider explicitly opts in."""
+    if datasource.cache_timeout == CACHE_DISABLED_TIMEOUT:
+        # The datasource explicitly disables caching. Passing the sentinel to a
+        # cache backend would invert it (Redis reads a negative TTL as "no
+        # expiry"), so containment caching is bypassed entirely instead.
+        return None
     layer: _SemanticCacheProvider = cast(
         _SemanticCacheProvider,
         datasource.semantic_layer.implementation,
