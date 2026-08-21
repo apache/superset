@@ -129,8 +129,8 @@ import {
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
-// One pixel avoids zero- or negative-height ECharts grids for pathological legends.
-const MIN_TIMESERIES_GRID_HEIGHT = 1;
+// Smallest height that still leaves the plot structure usable below the legend.
+const MIN_TIMESERIES_PLOT_HEIGHT = 80;
 
 const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
   'dashed',
@@ -1388,18 +1388,12 @@ export default function transformProps(
     }
   }
 
-  if (hasHorizontalPlainLegend) {
-    const maxReservedHeight = Math.max(height - MIN_TIMESERIES_GRID_HEIGHT, 0);
-    if (padding.top + padding.bottom > maxReservedHeight) {
-      const legendSide =
-        legendOrientation === LegendOrientation.Top ? 'top' : 'bottom';
-      const oppositeSide = legendSide === 'top' ? 'bottom' : 'top';
-
-      // Preserve the complete legend reservation; a negative opposite offset
-      // keeps a minimal grid without moving it into an oversized legend.
-      padding[oppositeSide] = maxReservedHeight - padding[legendSide];
-    }
-  }
+  const contentHeight = hasHorizontalPlainLegend
+    ? Math.max(
+        height,
+        padding.top + padding.bottom + MIN_TIMESERIES_PLOT_HEIGHT,
+      )
+    : height;
 
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
@@ -1614,6 +1608,7 @@ export default function transformProps(
     formData,
     groupby: groupBy,
     height,
+    contentHeight,
     labelMap,
     selectedValues,
     setDataMask,

@@ -1036,6 +1036,29 @@ test('honors an explicit List selection for zoomable top legends even when toolb
   expect((transformed.echartOptions.legend as any).type).toBe(LegendType.Plain);
 });
 
+test('keeps the allocated content height when a Plain legend leaves usable plot space', () => {
+  const chartHeight = 400;
+  const chartProps = createTestChartProps({
+    width: 1200,
+    height: chartHeight,
+    formData: {
+      ...formData,
+      legendType: LegendType.Plain,
+      legendOrientation: LegendOrientation.Top,
+      showLegend: true,
+      yAxisTitleMargin: 0,
+      yAxisTitlePosition: 'Left',
+    },
+  });
+
+  const transformed = transformProps(chartProps);
+  const grid = transformed.echartOptions.grid as GridComponentOption;
+
+  expect(Number(grid.top) + Number(grid.bottom)).toBeLessThan(chartHeight - 80);
+  expect(transformed.height).toBe(chartHeight);
+  expect(transformed.contentHeight).toBe(chartHeight);
+});
+
 test('reserves every Plain legend row before applying zoomable chart padding', () => {
   const chartHeight = 300;
   const manyLegendValues = Object.fromEntries(
@@ -1075,7 +1098,11 @@ test('reserves every Plain legend row before applying zoomable chart padding', (
   // six 24px rows, followed by the fixed 20px top grid offset.
   expect(grid.top).toBe(184);
   expect(grid.bottom).toBe(80);
-  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(36);
+  expect(transformed.height).toBe(chartHeight);
+  expect(transformed.contentHeight).toBe(344);
+  expect(
+    transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
+  ).toBe(80);
 });
 
 test('uses post-swap padding while reserving every horizontal Plain legend row', () => {
@@ -1120,7 +1147,11 @@ test('uses post-swap padding while reserving every horizontal Plain legend row',
   expect(grid.top).toBe(208);
   // The final bottom is the pre-swap left padding, including the axis title.
   expect(grid.bottom).toBe(70);
-  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(22);
+  expect(transformed.height).toBe(chartHeight);
+  expect(transformed.contentHeight).toBe(358);
+  expect(
+    transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
+  ).toBe(80);
 });
 
 test('reserves the complete dense Plain legend at a realistic Explore chart size', () => {
@@ -1160,10 +1191,14 @@ test('reserves the complete dense Plain legend at a realistic Explore chart size
   // twenty-one 24px rows, followed by the fixed 20px top grid offset.
   expect(grid.top).toBe(544);
   expect(grid.bottom).toBe(20);
-  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(36);
+  expect(transformed.height).toBe(chartHeight);
+  expect(transformed.contentHeight).toBe(644);
+  expect(
+    transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
+  ).toBe(80);
 });
 
-test('keeps a minimal grid height when a pathological Plain legend exceeds the chart', () => {
+test('grows the content instead of using a negative offset for a pathological Plain legend', () => {
   const chartHeight = 200;
   const pathologicalLegendValues = Object.fromEntries(
     Array.from({ length: 100 }, (_, index) => [
@@ -1192,11 +1227,17 @@ test('keeps a minimal grid height when a pathological Plain legend exceeds the c
   const transformed = transformProps(chartProps);
   const grid = transformed.echartOptions.grid as GridComponentOption;
 
-  // Keep the complete legend reservation even when it extends beyond the
-  // canvas; only the opposite side moves to preserve a one-pixel grid.
+  // Keep the complete legend reservation and grow the canvas enough for a
+  // usable plot instead of moving the opposite grid edge above the canvas.
   expect(Number(grid.top)).toBeGreaterThan(chartHeight);
-  expect(Number(grid.bottom)).toBeLessThan(0);
-  expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(1);
+  expect(grid.bottom).toBe(80);
+  expect(transformed.height).toBe(chartHeight);
+  expect(transformed.contentHeight).toBe(
+    Number(grid.top) + Number(grid.bottom) + 80,
+  );
+  expect(
+    transformed.contentHeight - (Number(grid.top) + Number(grid.bottom)),
+  ).toBe(80);
 });
 
 test('does not reserve dense Plain legend space when compact charts hide the legend', () => {
@@ -1231,6 +1272,8 @@ test('does not reserve dense Plain legend space when compact charts hide the leg
   expect(grid.top).toBe(12);
   expect(grid.bottom).toBe(5);
   expect(chartHeight - (Number(grid.top) + Number(grid.bottom))).toBe(63);
+  expect(transformed.height).toBe(chartHeight);
+  expect(transformed.contentHeight).toBe(chartHeight);
 });
 
 test('honors user-selected plain legend type for top orientation when space allows (#39540)', () => {

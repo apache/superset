@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { AxisType } from '@superset-ui/core';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
@@ -45,11 +46,12 @@ jest.mock('../../src/components/Echart', () => {
   const { forwardRef, useImperativeHandle } = jest.requireActual('react');
   return {
     __esModule: true,
-    default: forwardRef((_props: unknown, ref: unknown) => {
+    default: forwardRef((props: unknown, ref: unknown) => {
       useImperativeHandle(ref, () => ({
         getEchartInstance: () => mockChart,
       }));
-      return null;
+      const { height } = props as { height: number };
+      return <div data-height={height} data-test="mock-echart" />;
     }),
   };
 });
@@ -89,6 +91,7 @@ function renderTimeseries(
       vizType: 'echarts_timeseries_line',
     } as any,
     height: 400,
+    contentHeight: 400,
     width: 800,
     echartOptions: { series: [{ data: BASE_SERIES_DATA }] } as any,
     groupby: [],
@@ -135,6 +138,29 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+test('renders fitting content at the allocated height without a scroll viewport', () => {
+  const { container } = renderTimeseries();
+
+  expect(screen.getByTestId('mock-echart')).toHaveAttribute(
+    'data-height',
+    '400',
+  );
+  expect(container.querySelector('[style*="overflow-y"]')).toBeNull();
+});
+
+test('renders natural-height content inside the allocated scroll viewport', () => {
+  renderTimeseries({ height: 400, contentHeight: 600 });
+
+  const echart = screen.getByTestId('mock-echart');
+  expect(echart).toHaveAttribute('data-height', '600');
+  expect(echart.parentElement).toHaveStyle({
+    height: '400px',
+    overflowX: 'hidden',
+    overflowY: 'auto',
+    width: '800px',
+  });
 });
 
 test('draws the baseline handle at the first x value on mount', () => {

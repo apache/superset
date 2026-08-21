@@ -95,6 +95,7 @@ afterAll(() => {
 afterEach(() => {
   cleanup();
   mockEchart.mockReset();
+  mockOffsetHeight = 0;
   (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
     originalResizeObserver;
 });
@@ -183,6 +184,7 @@ const defaultProps: TimeseriesChartTransformedProps = {
   echartOptions: {} as EChartsCoreOption,
   formData: defaultFormData,
   height: 400,
+  contentHeight: 400,
   width: 800,
   onContextMenu: jest.fn(),
   setDataMask: jest.fn(),
@@ -214,6 +216,16 @@ function getLatestEchartProps() {
 function getLatestHeight() {
   return getLatestEchartProps().height;
 }
+
+test('keeps the natural canvas height when extra controls use viewport space', async () => {
+  mockOffsetHeight = 42;
+
+  render(<EchartsTimeseries {...defaultProps} contentHeight={600} />);
+
+  await waitFor(() => {
+    expect(getLatestHeight()).toBe(600);
+  });
+});
 
 test('observes extra control height changes when ResizeObserver is available', async () => {
   const disconnectSpy = jest.fn();

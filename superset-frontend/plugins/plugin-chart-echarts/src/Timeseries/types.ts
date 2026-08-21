@@ -115,6 +115,7 @@ export type TimeseriesChartTransformedProps =
   BaseTransformedProps<EchartsTimeseriesFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
+      contentHeight: number;
       legendData?: OptionName[];
       isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;

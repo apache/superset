@@ -26,6 +26,7 @@ import {
   getNumberFormatter,
   LegendState,
   ensureIsArray,
+  ChartFrame,
 } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -58,6 +59,7 @@ const BASELINE_HANDLE_STRIPE_WIDTH = 2;
 export default function EchartsTimeseries({
   formData,
   height,
+  contentHeight,
   width,
   echartOptions,
   groupby,
@@ -644,23 +646,36 @@ export default function EchartsTimeseries({
     },
   };
 
+  const frameContentHeight =
+    contentHeight > height ? contentHeight + extraControlHeight : contentHeight;
+
   return (
-    <>
-      <div ref={extraControlRef}>
-        <ExtraControls formData={formData} setControlValue={setControlValue} />
-      </div>
-      <Echart
-        ref={echartRef}
-        refs={refs}
-        height={height - extraControlHeight}
-        width={width}
-        echartOptions={echartOptions}
-        eventHandlers={eventHandlers}
-        queryEventHandlers={queryEventHandlers}
-        zrEventHandlers={zrEventHandlers}
-        selectedValues={selectedValues}
-        vizType={formData.vizType}
-      />
-    </>
+    <ChartFrame
+      contentHeight={frameContentHeight}
+      height={height}
+      width={width}
+      renderContent={({ height: frameHeight, width: frameWidth }) => (
+        <>
+          <div ref={extraControlRef}>
+            <ExtraControls
+              formData={formData}
+              setControlValue={setControlValue}
+            />
+          </div>
+          <Echart
+            ref={echartRef}
+            refs={refs}
+            height={Math.max(frameHeight - extraControlHeight, 0)}
+            width={frameWidth}
+            echartOptions={echartOptions}
+            eventHandlers={eventHandlers}
+            queryEventHandlers={queryEventHandlers}
+            zrEventHandlers={zrEventHandlers}
+            selectedValues={selectedValues}
+            vizType={formData.vizType}
+          />
+        </>
+      )}
+    />
   );
 }
