@@ -1,5 +1,5 @@
 {
-  "name": "eslint-plugin-icons",
+  "name": "@superset-ui/eslint-plugin-icons",
   "version": "1.0.0",
   "description": "Warns about direct usage of Ant Design icons",
   "keywords": [],
