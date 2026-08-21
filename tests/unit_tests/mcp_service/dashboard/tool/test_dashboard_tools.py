@@ -35,10 +35,6 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.get_dashboard_info import (
     _refresh_request_user_for_permalink_access,
 )
-from superset.mcp_service.utils.sanitization import (
-    LLM_CONTEXT_CLOSE_DELIMITER,
-    LLM_CONTEXT_OPEN_DELIMITER,
-)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -49,7 +45,7 @@ get_dashboard_info_module = import_module(
 
 
 def _wrapped(value: str) -> str:
-    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    return value
 
 
 @pytest.fixture

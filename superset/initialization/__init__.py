@@ -1365,6 +1365,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_cache()
         self.set_db_default_isolation()
         self.configure_sqlglot_dialects()
+        self.configure_extra_post_processing_ops()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
@@ -1437,6 +1438,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             extensions = extensions()
 
         SQLGLOT_DIALECTS.update(extensions)
+
+    def configure_extra_post_processing_ops(self) -> None:
+        from superset.utils.pandas_postprocessing import (
+            __all__ as builtin_ops,
+            build_extra_ops_map,
+        )
+
+        extra = self.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        for name in build_extra_ops_map(extra):
+            if name in builtin_ops:
+                logger.warning(
+                    "EXTRA_PANDAS_POSTPROCESSING_OPS: '%s' conflicts with a "
+                    "built-in post-processing operation and will never fire. "
+                    "Rename the custom function to avoid the conflict.",
+                    name,
+                )
 
     @transaction()
     def configure_fab(self) -> None:
