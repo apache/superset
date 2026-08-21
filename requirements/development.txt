@@ -632,7 +632,7 @@ packaging==25.0
     #   pytest
     #   shillelagh
     #   sqlalchemy-bigquery
-pandas==2.3.3
+pandas==3.0.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -845,7 +845,6 @@ pytz==2025.2
     # via
     #   -c requirements/base-constraint.txt
     #   flask-babel
-    #   pandas
     #   trino
 pyxlsb==1.0.10
     # via
@@ -1046,7 +1045,6 @@ tzdata==2025.2
     # via
     #   -c requirements/base-constraint.txt
     #   kombu
-    #   pandas
 tzlocal==5.4.4
     # via
     #   -c requirements/base-constraint.txt
