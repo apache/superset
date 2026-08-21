@@ -149,3 +149,50 @@ def test_delete_tags_command_refuses_system_tag_even_for_admin(
     assert (
         db.session.query(Tag).filter_by(name="type:some_type").one_or_none() is not None
     )
+
+
+def test_delete_tags_command_refused_tag_reports_normalized_messages(
+    session_with_tags: Session, mocker: MockerFixture
+):
+    """Regression test: DeleteTagsCommand.validate previously appended a
+    plain CommandException (TagDeleteFailedError) into the TagInvalidError
+    it raises, which crashed with AttributeError as soon as anything called
+    .normalized_messages() on that TagInvalidError (as the single-object
+    DELETE /api/v1/tag/<pk> route does). Every exception composited into
+    TagInvalidError must be a ValidationError so normalized_messages() can
+    aggregate it.
+    """
+    from superset.commands.tag.delete import DeleteTagsCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=True
+    )
+
+    with pytest.raises(TagInvalidError) as excinfo:
+        DeleteTagsCommand(["type:some_type"]).run()
+
+    messages = excinfo.value.normalized_messages()
+    assert "tags" in messages
+    assert "system tag" in messages["tags"][0]
+
+
+def test_delete_tags_command_not_found_reports_normalized_messages(
+    session_with_tags: Session, mocker: MockerFixture
+):
+    """A nonexistent tag name is also composited into TagInvalidError; it
+    must likewise support normalized_messages() without raising.
+    """
+    from superset.commands.tag.delete import DeleteTagsCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=True
+    )
+
+    with pytest.raises(TagInvalidError) as excinfo:
+        DeleteTagsCommand(["does_not_exist"]).run()
+
+    messages = excinfo.value.normalized_messages()
+    assert "tags" in messages
+    assert "not found" in messages["tags"][0]

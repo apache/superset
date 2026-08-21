@@ -82,6 +82,46 @@ def test_delete_tag_by_pk_denied_surfaces_as_422(
     assert response.status_code == 422
 
 
+def test_delete_tag_by_pk_denied_with_populated_exceptions_surfaces_as_422(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression test for an AttributeError that only surfaced once
+    DeleteTagsCommand.validate's TagInvalidError actually carried the
+    exceptions it composites at runtime (a plain TagDeleteFailedError,
+    not a ValidationError). The pk route calls
+    ``ex.normalized_messages()`` on the TagInvalidError it catches, which
+    previously crashed with a 500 instead of returning 422 because
+    TagDeleteFailedError has no ``normalized_messages()`` method. A
+    TagInvalidError() with no exceptions (as in the test above) does not
+    exercise that aggregation loop, so this test populates it the way the
+    real command does.
+    """
+    from superset.commands.tag.exceptions import (
+        TagDeleteForbiddenValidationError,
+        TagInvalidError,
+    )
+
+    mock_tag = MagicMock(id=1)
+    mock_tag.name = "system:some_type"
+    mocker.patch("superset.tags.api.TagDAO.find_by_id", return_value=mock_tag)
+    mock_command = mocker.patch("superset.tags.api.DeleteTagsCommand")
+    mock_command.return_value.run.side_effect = TagInvalidError(
+        exceptions=[
+            TagDeleteForbiddenValidationError(
+                "Tag system:some_type is a system tag and cannot be deleted"
+            )
+        ]
+    )
+
+    response = client.delete("/api/v1/tag/1")
+
+    assert response.status_code == 422
+    assert "tags" in response.json["message"]
+
+
 def test_delete_tag_by_pk_race_with_bulk_delete_surfaces_as_404(
     client: Any,
     full_api_access: None,
