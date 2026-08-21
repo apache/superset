@@ -263,6 +263,44 @@ def test_parse_channel_id_from_request_as_guest_user_differs_per_scope(
     assert with_datasets != with_rev
 
 
+@mock.patch("superset.is_feature_enabled")
+def test_parse_channel_id_from_request_as_guest_user_differs_per_rls_rules(
+    is_feature_enabled_mock, async_query_manager
+):
+    """
+    Tokens that differ only in their ``rls_rules`` must derive distinct
+    channel ids. Two tenants embedded via the same dashboard are typically
+    minted tokens with identical user/resources blocks and, with an
+    externally minted integer-second ``iat``, the same issuance time; if the
+    channel ignored ``rls_rules``, tenant B could observe tenant A's job
+    events and cancel A's jobs.
+    """
+    is_feature_enabled_mock.return_value = True
+
+    base_token = {
+        "user": {},
+        "resources": [{"type": "dashboard", "id": "some-uuid"}],
+        "rls_rules": [{"clause": '"TENANT_ID" = 1'}],
+        "iat": 1700000000.0,
+        "exp": 1700000300.0,
+        "aud": "http://0.0.0.0:8080/",
+        "type": "guest",
+    }
+
+    request = Mock()
+    request.cookies = {}
+
+    g.user = security_manager.get_guest_user_from_token(dict(base_token))
+    tenant_a = async_query_manager.parse_channel_id_from_request(request)
+
+    g.user = security_manager.get_guest_user_from_token(
+        {**base_token, "rls_rules": [{"clause": '"TENANT_ID" = 2'}]}
+    )
+    tenant_b = async_query_manager.parse_channel_id_from_request(request)
+
+    assert tenant_a != tenant_b
+
+
 @mark.parametrize(
     "cache_type, cache_backend",
     [
