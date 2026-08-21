@@ -223,14 +223,16 @@ test('shows cached response statistics in the query inspector', async () => {
   jest
     .spyOn(chartAction, 'getChartDataRequest')
     .mockResolvedValue(mockChartDataResponse);
+  const queriesResponse = [
+    { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
+    { data: [{ rowcount: 2 }], is_cached: false },
+    { data: { total: 3 }, is_cached: false },
+  ];
 
   render(
     <ViewQueryModal
       latestQueryFormData={mockFormData}
-      queriesResponse={[
-        { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
-        { data: [{ rowcount: 2 }], is_cached: false },
-      ]}
+      queriesResponse={queriesResponse}
       chartUpdateStartTime={1000}
       chartUpdateEndTime={1250}
     />,
@@ -240,17 +242,14 @@ test('shows cached response statistics in the query inspector', async () => {
   await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
 
   expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
-    'Queries2Returned rows3Cached queries1',
+    'Queries3Returned rows3Cached queries1',
   );
   expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
     'Duration250 ms',
   );
   expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
     `Response size${new Blob([
-      JSON.stringify([
-        { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
-        { data: [{ rowcount: 2 }], is_cached: false },
-      ]),
+      JSON.stringify(queriesResponse),
     ]).size.toLocaleString()} bytes`,
   );
 });
