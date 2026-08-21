@@ -312,8 +312,18 @@ export default function ExplorePage() {
   // Other REPLACE: ignored (URL sync from updateHistory).
   // Entries holding a chart state of the loaded chart are skipped: Explore
   // pushed them itself, and ExploreViewContainer restores a popped one in place.
+  // Navigations that leave the /explore route (e.g. "Save & go to dashboard"
+  // pushes /superset/dashboard/:id/) must not trigger a re-fetch here: the
+  // Explore page is about to unmount, and fetching /api/v1/explore/ with the
+  // destination's params starts a request that either races the unmount abort
+  // or surfaces a spurious error toast on the destination page.
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
+      // ChartPage is mounted at /explore/ and /superset/explore/p in
+      // routes.tsx; only re-fetch for navigations that stay inside those.
+      const isExploreRoute =
+        loc.pathname.startsWith('/explore') ||
+        loc.pathname.startsWith('/superset/explore');
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
         | SaveActionType
         | undefined;
@@ -327,9 +337,12 @@ export default function ExplorePage() {
         }
       }
       if (action === 'PUSH' || action === 'POP') {
+        if (!isExploreRoute) {
+          return;
+        }
         setIsLoaded(false);
         loadExploreData(loc, saveAction);
-      } else if (saveAction) {
+      } else if (saveAction && isExploreRoute) {
         loadExploreData(loc, saveAction);
       }
     });
