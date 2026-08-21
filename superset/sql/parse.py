@@ -630,6 +630,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         return False
 
+    def has_quoted_table_location(self) -> bool:
+        """Check whether a table has a quoted catalog or schema identifier."""
+        return False
+
+    def is_show_statement(self) -> bool:
+        """Check whether this is a SHOW metadata statement."""
+        return False
+
     def get_disallowed_tables(
         self,
         tables: set[str],
@@ -1314,6 +1322,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             }:
                 return True
         return self.changes_search_path()
+
+    def has_quoted_table_location(self) -> bool:
+        """Return whether a table has a quoted catalog or schema identifier."""
+        for table in self._parsed.find_all(exp.Table):
+            for identifier_name in ("catalog", "db"):
+                identifier = table.args.get(identifier_name)
+                if isinstance(identifier, exp.Identifier) and identifier.args.get(
+                    "quoted"
+                ):
+                    return True
+        return False
+
+    def is_show_statement(self) -> bool:
+        """Return whether this is a SHOW metadata statement."""
+        return isinstance(self._parsed, exp.Show)
 
     def get_disallowed_tables(
         self,
@@ -2068,6 +2091,16 @@ class SQLScript:
             unqualified table names
         """
         return any(statement.changes_default_schema() for statement in self.statements)
+
+    def has_quoted_table_location(self) -> bool:
+        """Check if any table has a quoted catalog or schema identifier."""
+        return any(
+            statement.has_quoted_table_location() for statement in self.statements
+        )
+
+    def has_show_statement(self) -> bool:
+        """Check if the script contains a SHOW metadata statement."""
+        return any(statement.is_show_statement() for statement in self.statements)
 
     def optimize(self) -> SQLScript:
         """

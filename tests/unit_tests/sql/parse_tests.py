@@ -4826,6 +4826,66 @@ def test_changes_default_schema(sql: str, engine: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # A quoted catalog identifier is case-sensitive and may not match
+        # after the engine's default case folding.
+        ('SELECT * FROM "c1".s.t1', "snowflake", True),
+        # A quoted schema (``db``) identifier is equally unsafe.
+        ('SELECT * FROM c1."s".t1', "snowflake", True),
+        # An unquoted location can be safely folded to the engine's default
+        # case.
+        ("SELECT * FROM c1.s.t1", "snowflake", False),
+        # Quoting the table name itself doesn't affect catalog/schema safety.
+        ('SELECT * FROM "t1"', "snowflake", False),
+    ],
+)
+def test_has_quoted_table_location(sql: str, engine: str, expected: bool) -> None:
+    """
+    `has_quoted_table_location` flags queries whose catalog or schema is
+    quoted, so the SQL Lab dataset-creation flow keeps the dropdown schema
+    instead of deriving a location that may not match after case folding.
+    """
+    assert SQLStatement(sql, engine).has_quoted_table_location() == expected
+    assert SQLScript(sql, engine).has_quoted_table_location() == expected
+
+
+def test_has_quoted_table_location_unsupported_dialect() -> None:
+    """
+    Engines without a sqlglot AST (e.g. Kusto KQL) report no quoted table
+    location instead of raising, matching the ``BaseSQLStatement`` default.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.has_quoted_table_location() is False
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("show columns from foo from bar", "mysql", True),
+        ("SELECT * FROM t1", "mysql", False),
+    ],
+)
+def test_is_show_statement(sql: str, engine: str, expected: bool) -> None:
+    """
+    `is_show_statement`/`has_show_statement` identify metadata statements so
+    the SQL Lab dataset-creation flow keeps the dropdown schema rather than
+    deriving one from a query with no meaningful result set.
+    """
+    assert SQLStatement(sql, engine).is_show_statement() == expected
+    assert SQLScript(sql, engine).has_show_statement() == expected
+
+
+def test_is_show_statement_unsupported_dialect() -> None:
+    """
+    Engines without a sqlglot AST are never treated as SHOW statements,
+    matching the ``BaseSQLStatement`` default.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.is_show_statement() is False
+
+
+@pytest.mark.parametrize(
     "sql, denylist, expected",
     [
         ("SELECT * FROM pg_stat_activity", {"pg_stat_activity"}, True),
