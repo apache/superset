@@ -20,6 +20,7 @@ import '@testing-library/jest-dom';
 import {
   getTextColorForBackground,
   ObjectFormattingEnum,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
@@ -2073,6 +2074,59 @@ describe('plugin-chart-table', () => {
           );
           expect(totalCellAfter).toBeInTheDocument();
         });
+      });
+
+      test('does not crash when a comparison-color-formatter array has no entry for a rendered row', () => {
+        // Regression test: the per-cell comparison-color lookups in the Cell
+        // renderer (`basicColorFormatters`/`basicColorColumnFormatters`,
+        // indexed by `row.index`) must stay safe even if those arrays ever
+        // end up with fewer entries than the number of rendered rows -- e.g.
+        // when "Show summary" is combined with time comparison and a
+        // comparison-based conditional color scheme ("Green for increase,
+        // red for decrease") applied to a Time Comparison column. Without
+        // the `?.` guard on the array-index lookup, this throws
+        // `TypeError: Cannot read properties of undefined (reading 'Main
+        // metric_1')`.
+        const propsInput = {
+          ...testData.comparison,
+          rawFormData: {
+            ...testData.comparison.rawFormData,
+            conditional_formatting: [
+              { column: 'Main metric_1', colorScheme: ColorSchemeEnum.Green },
+            ],
+          },
+        };
+        const transformedProps = transformProps(propsInput);
+        expect(transformedProps.data).toHaveLength(2);
+        expect(transformedProps.basicColorColumnFormatters).toHaveLength(2);
+
+        // Simulate the row-count mismatch: the formatter array has an entry
+        // for only the first row, matching the shape of the bug (an entry
+        // missing for one of the rendered rows).
+        const propsWithMissingFormatterEntry = {
+          ...transformedProps,
+          basicColorColumnFormatters:
+            transformedProps.basicColorColumnFormatters!.slice(0, 1),
+        };
+
+        expect(() =>
+          render(
+            <TableChart {...propsWithMissingFormatterEntry} sticky={false} />,
+          ),
+        ).not.toThrow();
+
+        // the row that still has a formatter entry keeps its comparison
+        // background color and arrow: the "Main metric_1" cell for the
+        // first row (value 100) renders before the derived "△ metric_1"
+        // cell that happens to share the same value and aria label.
+        const [styledCell] = screen.getAllByTitle('100');
+        expect(styledCell).toHaveTextContent('↑100');
+        expect(getComputedStyle(styledCell).background).toContain(
+          'rgba(0, 150, 0, 0.2)',
+        );
+
+        // the row missing a formatter entry still renders its raw value
+        expect(screen.getAllByTitle('110').length).toBeGreaterThan(0);
       });
 
       test('preserves client-side search text across temporal table rerenders', async () => {
