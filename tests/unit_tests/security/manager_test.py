@@ -1492,6 +1492,70 @@ def test_query_context_modified_result_type_expansion(
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_result_type_per_query_position(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A chart's queries are validated by position: only the query stored with
+    ``samples``/``drill_detail`` may request it, and swapping which query
+    index carries that result type is tampering even though the type itself
+    is used somewhere on the stored chart.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {"metrics": stored_metrics}
+    query_context.slice_.query_context = json.dumps(
+        {
+            "result_type": "full",
+            "queries": [
+                {"metrics": stored_metrics, "result_type": "full"},
+                {"metrics": stored_metrics, "result_type": "samples"},
+            ],
+        }
+    )
+    query_context.form_data = {"slice_id": 42, "metrics": stored_metrics}
+    query_context.result_type = ChartDataResultType.FULL
+
+    # Replaying each query's own stored result type, in the stored order, is
+    # not tampering.
+    query_context.queries = [
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.FULL,
+        ),
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.SAMPLES,
+        ),
+    ]
+    assert not query_context_modified(query_context)
+
+    # Requesting `samples` for the query stored at index 0 - a position the
+    # chart never renders with raw datasource rows - is tampering, even
+    # though `samples` is the stored result type of a different query.
+    query_context.queries = [
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.SAMPLES,
+        ),
+        QueryObject(
+            metrics=stored_metrics,  # type: ignore
+            result_type=ChartDataResultType.FULL,
+        ),
+    ]
+    assert query_context_modified(query_context)
+
+    # Neither the query nor the query context names a result type: nothing
+    # resolves to a row-expanding type, so this is not tampering.
+    query_context.result_type = None
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics),  # type: ignore
+        QueryObject(metrics=stored_metrics),  # type: ignore
+    ]
+    assert not query_context_modified(query_context)
+
+
 def test_query_context_modified_singular_metric_param(
     mocker: MockerFixture,
 ) -> None:
