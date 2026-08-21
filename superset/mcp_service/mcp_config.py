@@ -495,6 +495,17 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     if not (auth_enabled or api_key_enabled or guest_enabled):
         return None
 
+    # MCP_DEV_USERNAME makes user resolution fall back to a fixed user for
+    # requests that carry no resolvable identity, so with transport auth
+    # enabled it turns any auth misconfiguration or bypass into "execute as
+    # that user". Refuse the combination outright.
+    if auth_enabled and app.config.get("MCP_DEV_USERNAME"):
+        raise MCPAuthConfigError(
+            "MCP_DEV_USERNAME must not be set when MCP_AUTH_ENABLED is True: "
+            "it would execute callers without a resolvable identity as that "
+            "user. Unset MCP_DEV_USERNAME (a development-only convenience)."
+        )
+
     # When JWT auth is enabled, an audience must be configured so issued tokens
     # are bound to this service. Without it the verifier accepts any otherwise
     # valid same-issuer token, regardless of which service it was minted for.
@@ -521,7 +532,14 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
         if not (jwks_uri or public_key or secret):
             logger.warning("MCP_AUTH_ENABLED is True but no JWT keys/secret configured")
             if not (api_key_enabled or guest_enabled):
-                return None
+                # Fail closed: the surrounding bootstrap would otherwise turn
+                # a None provider into an unauthenticated server.
+                raise MCPAuthConfigError(
+                    "MCP_AUTH_ENABLED is True but no JWT verification key is "
+                    "configured; refusing to start an unauthenticated MCP "
+                    "server. Set MCP_JWKS_URI, MCP_JWT_PUBLIC_KEY, or "
+                    "MCP_JWT_SECRET (with MCP_JWT_ALGORITHM='HS256')."
+                )
         else:
             try:
                 jwt_verifier = _build_jwt_verifier(
@@ -530,11 +548,22 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                     public_key=public_key,
                     secret=secret,
                 )
+            except MCPAuthConfigError:
+                raise
             except Exception:
-                # Do not log the exception — it may contain secrets (e.g., key material)
+                # Do not log or chain the exception — it may contain secrets
+                # (e.g., key material)
                 logger.error("Failed to create MCP JWT verifier")
-                if not (api_key_enabled or guest_enabled):
-                    return None
+                # Fail closed regardless of API-key/guest fallbacks: JWT auth
+                # was explicitly enabled, so silently starting without it is
+                # a permissive state the operator did not choose.
+                raise MCPAuthConfigError(
+                    "Failed to construct the MCP JWT verifier from the "
+                    "configured key material; refusing to start with JWT "
+                    "auth silently disabled. Verify MCP_JWT_ALGORITHM "
+                    "matches the configured key (HS256 for MCP_JWT_SECRET; "
+                    "RS256 needs MCP_JWKS_URI or MCP_JWT_PUBLIC_KEY)."
+                ) from None
 
     # A composite verifier is needed whenever API-key OR guest auth is on, so
     # those token types are recognized before (or instead of) the JWT verifier.
