@@ -180,6 +180,22 @@ def test_prophet_incorrect_periods():
         )
 
 
+def test_prophet_periods_exceeding_max_raises():
+    """
+    ``periods`` comes from the unvalidated post-processing options dict; the
+    schema-declared upper bound (``MAX_PROPHET_PERIODS``, default 10000) is
+    documentation-only unless enforced at the point ``periods`` is consumed,
+    since every forecast period adds a future row per series.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="must not exceed"):
+        prophet(
+            df=prophet_df,
+            time_grain="P1M",
+            periods=10001,
+            confidence_interval=0.8,
+        )
+
+
 def test_prophet_incorrect_time_grain():
     with pytest.raises(InvalidPostProcessingError):
         prophet(
