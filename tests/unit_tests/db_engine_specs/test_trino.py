@@ -1753,3 +1753,54 @@ def test_unmask_encrypted_extra() -> None:
             "auth_params": {"username": "alice", "password": "old-password"},
         }
     )
+
+
+def test_apply_offset_before_limit_reorders_ansi_ordering() -> None:
+    """
+    Trino requires OFFSET before LIMIT. Some SQLAlchemy drivers (e.g. PyHive)
+    compile paginated queries in the ANSI ``LIMIT ... OFFSET`` order, which
+    Trino rejects with ``mismatched input 'OFFSET'``. The engine spec must
+    normalize such SQL so OFFSET precedes LIMIT.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    ansi_sql = "SELECT a, b\nFROM t\nLIMIT 50 OFFSET 50"
+    result = TrinoEngineSpec.apply_offset_before_limit(ansi_sql)
+
+    upper = result.upper()
+    assert "OFFSET" in upper
+    assert "LIMIT" in upper
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {result!r}"
+    )
+
+
+def test_apply_offset_before_limit_leaves_correct_order_untouched() -> None:
+    """
+    When a driver already emits ``OFFSET ... LIMIT`` (e.g. the official trino
+    package), the SQL is left byte-for-byte unchanged — no needless reparse.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    valid_sql = "SELECT a, b\nFROM t\nOFFSET 50\nLIMIT 50"
+    assert TrinoEngineSpec.apply_offset_before_limit(valid_sql) == valid_sql
+
+
+def test_apply_offset_before_limit_limit_only_untouched() -> None:
+    """A query with LIMIT but no OFFSET (e.g. page 1) is not rewritten."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    limit_only = "SELECT a, b\nFROM t\nLIMIT 50"
+    assert TrinoEngineSpec.apply_offset_before_limit(limit_only) == limit_only
+
+
+def test_apply_offset_before_limit_noop_for_ansi_engines() -> None:
+    """
+    Engines that don't set ``offset_before_limit`` (the default) never touch the
+    SQL, even when it is in ANSI ``LIMIT ... OFFSET`` order (valid for them).
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    ansi_sql = "SELECT a, b FROM t LIMIT 50 OFFSET 50"
+    assert BaseEngineSpec.offset_before_limit is False
+    assert BaseEngineSpec.apply_offset_before_limit(ansi_sql) == ansi_sql

@@ -2296,3 +2296,51 @@ def test_prequery_listener_mutation_race_deterministic(
     assert not t_b.is_alive(), "thread B deadlocked"
 
     assert not errors, f"deterministic interleaving raised: {errors!r}"
+
+
+def test_compile_sqla_query_offset_before_limit_for_trino(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``compile_sqla_query`` must emit OFFSET before LIMIT for Trino/Presto even
+    when the underlying SQLAlchemy driver compiles paginated queries in the
+    ANSI ``LIMIT ... OFFSET`` order (as PyHive's Presto/Trino dialects do).
+
+    We drive a Trino ``Database`` but back it with a SQLite engine, whose
+    dialect emits ANSI ordering — standing in for a driver that lacks the
+    OFFSET-before-LIMIT override. The fix must reorder the compiled SQL so it
+    is valid Trino.
+    """
+    from contextlib import contextmanager
+
+    from sqlalchemy import create_engine
+
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="trino_db",
+        sqlalchemy_uri="trino://user@localhost:8080/catalog",
+    )
+    # SQLite compiles `LIMIT x OFFSET y` (ANSI order), mimicking PyHive.
+    ansi_engine = create_engine("sqlite://")
+
+    @contextmanager
+    def _get_engine(catalog=None, schema=None, **kwargs):
+        yield ansi_engine
+
+    mocker.patch.object(database, "get_sqla_engine", new=_get_engine)
+
+    # Sanity: the engine spec resolves to Trino, which requires the reorder.
+    assert database.db_engine_spec.offset_before_limit is True
+
+    tbl = SqlalchemyTable("t", MetaData(), Column("a", Integer))
+    qry = select(tbl.c.a).limit(50).offset(50)
+
+    sql = database.compile_sqla_query(qry)
+
+    upper = sql.upper()
+    assert "OFFSET" in upper
+    assert "LIMIT" in upper
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    )
