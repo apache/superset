@@ -141,6 +141,7 @@ const renderArchivedList = (withStore = store) =>
 beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
+  mockAddDangerToast.mockClear();
 });
 
 test('renders archived rows with Name and Type columns', async () => {
@@ -202,6 +203,31 @@ test('restore failure surfaces an error and leaves the row in place', async () =
   // No refetch on failure — the row stays.
   expect(fetchMock.callHistory.calls(/chart\/\?q/)).toHaveLength(1);
   expect(screen.getByText('Deleted Chart One')).toBeInTheDocument();
+});
+
+test('restoring an already-restored row (404) surfaces an error without crashing', async () => {
+  // Simulates another actor having restored the object out from under this
+  // view: the server answers 404 to the now-stale row's restore request.
+  mockRoutes(404);
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  const restoreButtons = await screen.findAllByTestId('archived-row-restore');
+  fireEvent.click(restoreButtons[0]);
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(/chart\/uuid-1\/restore/)).toHaveLength(
+      1,
+    );
+  });
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to restore Deleted Chart One'),
+    );
+  });
+  expect(mockAddDangerToast).toHaveBeenCalledTimes(1);
+  // The page is still functional -- the list view did not crash.
+  expect(screen.getByTestId('archived-list-view')).toBeInTheDocument();
 });
 
 test('row actions are keyboard-operable (Enter restores)', async () => {
@@ -271,6 +297,45 @@ test('name search refetches with a contains filter on the name field', async () 
       );
     expect(hit).toBeTruthy();
   });
+});
+
+test('a search that matches nothing shows the empty-state and no restore actions', async () => {
+  // The initial load returns real rows; only the search-triggered request
+  // answers empty. If the list were empty from the start, this test could
+  // pass even if the search never fired a request at all -- so the request
+  // itself is asserted below before trusting the rendered empty state.
+  fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
+  fetchMock.getOnce(listEndpoint, {
+    result: mockCharts,
+    count: mockCharts.length,
+  });
+  fetchMock.get(listEndpoint, { result: [], count: 0 });
+  renderArchivedList();
+  await screen.findByText('Deleted Chart One');
+
+  const searchInput = screen.getByPlaceholderText(/type a value/i);
+  fireEvent.change(searchInput, { target: { value: 'e2e_nonexistent' } });
+  fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 });
+
+  await waitFor(() => {
+    const hit = fetchMock.callHistory
+      .calls(/chart\/\?q/)
+      .find(call =>
+        call.url.includes(
+          '(col:slice_name,opr:chart_all_text,value:e2e_nonexistent)',
+        ),
+      );
+    expect(hit).toBeTruthy();
+  });
+
+  // ListView renders this hardcoded copy whenever a filter is active and the
+  // result set is empty, overriding the page's own `emptyState` prop
+  // entirely (see ListView.tsx) -- so this is the actual rendered text, not
+  // the page's "No archived items" default.
+  expect(
+    await screen.findByText('No results match your filter criteria'),
+  ).toBeInTheDocument();
+  expect(screen.queryAllByTestId('archived-row-restore')).toHaveLength(0);
 });
 
 test('switching Type fetches the newly selected resource with its deleted-state filter', async () => {
