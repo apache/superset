@@ -251,40 +251,21 @@ class ChatProvider {
     return this.resizePanelEmitter.subscribe;
   }
 
-  // Warned at most once per singleton lifetime (reset by reset()) — a whole
-  // extension registering many tools after its own registerChat() call would
-  // otherwise print one warning per tool, which adds noise without adding
-  // information: it's the same one mistake either way.
-  private hasWarnedAboutLateToolRegistration = false;
-
-  // A chat panel that's already registered can mount synchronously (e.g. one
-  // left open in a previous session — localStorage-persisted state makes
-  // this the common case, not an edge case), and its first render calls
-  // chat.getTools(). Registering tools after registerChat() risks that
-  // render missing them; warning here catches the mistake instead of leaving
-  // it to manifest as "the model can't see my tool" with no obvious cause.
-  private warnIfRegisteredAfterChat(): void {
-    if (!this.chat || this.hasWarnedAboutLateToolRegistration) return;
-    this.hasWarnedAboutLateToolRegistration = true;
-    logging.warn(
-      '[Superset] chat.registerClientTool(s) was called after ' +
-        'chat.registerChat() — register your tools BEFORE calling ' +
-        'registerChat(), not after, so an already-open chat panel\'s first ' +
-        "render can't call chat.getTools() before they exist. Example:\n\n" +
-        '  chat.registerClientTools(myTools); // register first\n' +
-        "  chat.registerChat({ id: 'my-ext', name: 'My Ext' }, Trigger, Panel); // then this\n",
-    );
-  }
-
   /**
    * Registers a single client-side tool — mirrors commands.ts's
    * registerCommand exactly: keyed by the tool's own `name` (fully-qualified,
    * author-chosen — nothing prefixes or validates it here, same as a
    * `Command.id`), warns and overwrites on a duplicate name, and the
    * returned Disposable removes it by name unconditionally on dispose.
+   *
+   * Registering after registerChat() is safe — nothing here depends on call
+   * order. (An earlier version of this method warned about that ordering,
+   * back when ChatPanel snapshotted `chat.getTools()` once at mount via
+   * `useMemo(..., [])`; the actual fix was moving that snapshot to send-time
+   * in ChatPanel itself, which made the order genuinely not matter rather
+   * than just warning about it.)
    */
   public registerClientTool(tool: ClientTool): Disposable {
-    this.warnIfRegisteredAfterChat();
     const { name } = tool;
     if (this.clientTools.has(name)) {
       logging.warn(
@@ -347,7 +328,6 @@ class ChatProvider {
     this.modeEmitter = createValueEventEmitter<DisplayMode>('floating');
     this.stateSubscribers.clear();
     this.clientTools.clear();
-    this.hasWarnedAboutLateToolRegistration = false;
     setItem(LocalStorageKeys.ChatState, { open: false, mode: 'floating' });
   }
 }
