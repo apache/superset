@@ -467,19 +467,17 @@ export function transformSeries(
           return formatter(numericValue);
         }
         if (!onlyTotal) {
-          // A zero-height stacked segment has no meaningful position to
-          // attach a label to: it starts and ends at the same y-coordinate
-          // as the top of the previous segment, so its label would render
-          // directly on top of that segment's own label. Excluding exactly
-          // 0 keeps this independent of the configured percentage
-          // threshold, whose default of 0 would otherwise let a value of
-          // exactly 0 pass (#42702) — a strictly-positive check would also
-          // wrongly suppress a genuine negative value that clears a
-          // (possibly also negative) threshold.
+          // A stacked segment with no height begins and ends at the same
+          // coordinate as the top of the segment beneath it, so its label is
+          // drawn over that segment's label. Zero and null have no height, so
+          // they carry no label. The rich tooltip omits zero observations from
+          // a stacked series for the same reason.
+          if (stack && !numericValue) {
+            return '';
+          }
           if (
-            numericValue !== 0 &&
             numericValue >=
-              (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
+            (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
           ) {
             return formatter(numericValue);
           }

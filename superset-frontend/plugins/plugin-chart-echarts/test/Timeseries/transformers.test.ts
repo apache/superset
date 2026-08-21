@@ -21,13 +21,14 @@ import {
   ChartProps,
   NumberFormatter,
   TimeGranularity,
+  getNumberFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import type { ScatterSeriesOption } from 'echarts/charts';
 import { EchartsTimeseriesSeriesType } from '../../src';
-import { TIMESERIES_CONSTANTS } from '../../src/constants';
+import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
   LegendOrientation,
   EchartsTimeseriesChartProps,
@@ -632,4 +633,71 @@ test('getPadding should handle Left position with zero margin correctly', () => 
   } finally {
     getChartPaddingSpy.mockRestore();
   }
+});
+
+/**
+ * #42702: a stacked segment with no height starts and ends at the same
+ * coordinate as the top of the segment beneath it, so a value label on it is
+ * drawn over that segment's label. `percentage_threshold` does not filter these
+ * out: it defaults to 0, and `thresholdValues[dataIndex] || MIN_SAFE_INTEGER`
+ * turns a 0 threshold into "no filtering", which is intentional.
+ */
+const stackedLabel = (
+  numericValue: number | null,
+  opts: Record<string, unknown> = {},
+) => {
+  const series = transformSeries(
+    { id: 'B', name: 'B', data: [[1, numericValue]] } as SeriesOption,
+    mockColorScale,
+    'B',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      showValue: true,
+      onlyTotal: false,
+      formatter: getNumberFormatter(),
+      thresholdValues: [0],
+      ...opts,
+    },
+  ) as SeriesOption & {
+    label: { formatter: (params: unknown) => string };
+  };
+  return series.label.formatter({
+    value: [1, numericValue],
+    dataIndex: 0,
+    seriesIndex: 1,
+    seriesName: 'B',
+  });
+};
+
+test('stacked value labels are omitted for a zero-height segment', () => {
+  expect(stackedLabel(0)).toBe('');
+  expect(stackedLabel(null)).toBe('');
+});
+
+test('stacked value labels are kept for segments that have height', () => {
+  expect(stackedLabel(32)).toBe('32');
+  expect(stackedLabel(-5)).toBe('-5');
+});
+
+test('a zero value keeps its label when the series is not stacked', () => {
+  // Without a stack the label sits on the bar itself, so there is nothing for
+  // it to collide with.
+  expect(stackedLabel(0, { stack: undefined })).toBe('0');
+});
+
+test('percentage_threshold still filters values below the threshold', () => {
+  // 10% of a 100 total. The zero-height guard must not swallow this rule.
+  expect(stackedLabel(5, { thresholdValues: [10] })).toBe('');
+  expect(stackedLabel(50, { thresholdValues: [10] })).toBe('50');
+});
+
+test('only-total labels are unaffected by the zero-height guard', () => {
+  expect(
+    stackedLabel(0, {
+      onlyTotal: true,
+      showValueIndexes: [1],
+      totalStackedValues: [32],
+    }),
+  ).toBe('32');
 });
