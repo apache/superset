@@ -125,7 +125,7 @@ function SemanticLayerCascadeWarning({
 }: {
   preview: ResolvedSemanticLayerDeletePreview;
 }) {
-  if (preview.status === 'failed' || preview.dependentViewCount === 0) {
+  if (preview.status === 'failed') {
     return (
       <p>
         {t(
@@ -133,6 +133,14 @@ function SemanticLayerCascadeWarning({
         )}
       </p>
     );
+  }
+
+  // A reachable layer always has all of its views counted (the layer's perm
+  // and its views' perms travel together), so zero means genuinely empty —
+  // never access-filtered. An honest empty message keeps the destructive
+  // warning credible for the layers where it matters.
+  if (preview.dependentViewCount === 0) {
+    return <p>{t('This semantic layer has no dependent semantic views.')}</p>;
   }
 
   const listedViewCount = preview.dependentViewNames.length;
