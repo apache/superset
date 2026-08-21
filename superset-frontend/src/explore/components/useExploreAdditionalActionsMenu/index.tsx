@@ -100,11 +100,13 @@ export const escapeCsvValue = (v: unknown): string => {
     const isNegativeNumber = s.length > 1 && /^-[0-9.]+$/.test(s);
     if (startsLikeFormula && !isNegativeNumber) {
       // Escape pipe to be extra safe (DDE payloads), then prefix with a
-      // single quote to prevent formula evaluation.
-      s = `'${s.replace(/\|/g, '\\|')}`;
+      // single quote to prevent formula evaluation. Existing backslashes
+      // must be escaped first so the resulting `\|`/`\\` sequences are
+      // unambiguous to a downstream unescaper.
+      s = `'${s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')}`;
     }
   }
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
 const MENU_KEYS = {

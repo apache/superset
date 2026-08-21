@@ -195,6 +195,21 @@ test('escapeCsvValue neutralizes spreadsheet formula prefixes', () => {
   expect(escapeCsvValue('=cmd|calc')).toBe(`'=cmd\\|calc`);
 });
 
+test('escapeCsvValue escapes pre-existing backslashes before escaping pipes', () => {
+  // A literal backslash sitting next to a pipe must not be left as-is: if it
+  // were, the escaped output (`\|`) would be indistinguishable from an
+  // escaped pipe, so a downstream unescaper couldn't recover the original
+  // value. Escaping backslashes first keeps the two cases unambiguous.
+  expect(escapeCsvValue('=cmd\\|calc')).toBe(`'=cmd\\\\\\|calc`);
+});
+
+test('escapeCsvValue RFC-4180-quotes a value containing a bare carriage return', () => {
+  // A raw \r inside a cell can be read as a record separator by some CSV
+  // consumers, so it must trigger outer quoting the same way \n does, even
+  // when it also triggered the formula-prefix guard above.
+  expect(escapeCsvValue('\r=1+1')).toBe(`"'\r=1+1"`);
+});
+
 test('escapeCsvValue keeps ordinary values intact', () => {
   expect(escapeCsvValue('regular text')).toBe('regular text');
   expect(escapeCsvValue('-12.5')).toBe('-12.5');
