@@ -41,12 +41,18 @@ export const LocationProvider: FC<{ children?: ReactNode }> = ({
   const queryParams = new URLSearchParams(location.search);
   const permalink = location.pathname.match(/\/p\/\w+/)?.[0].slice(3);
   if (queryParams.size > 0 || permalink) {
-    const autorun = queryParams.get('autorun') === 'true';
+    // SECURITY: never honor `autorun` from the URL querystring. A crafted
+    // cross-site GET link (?dbid=..&sql=..&autorun=true) is a top-level
+    // navigation, so SameSite=Lax cookies are sent and the attacker-chosen
+    // SQL would execute in the victim's session the moment SQL Lab mounts.
+    // Only in-app navigations that pass `location.state` (handled above)
+    // may request autorun; deep links prefill the editor and wait for the
+    // user to press Run.
     const isDataset = queryParams.get('isDataset') === 'true';
     const queryParamsState = {
       requestedQuery: {
         ...Object.fromEntries(queryParams),
-        autorun,
+        autorun: false,
         permalink,
       },
       isDataset,

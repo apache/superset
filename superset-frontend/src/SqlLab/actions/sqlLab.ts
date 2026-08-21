@@ -1524,7 +1524,12 @@ export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
             dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
             schema: json.schema ?? undefined,
-            autorun: json.autorun ? json.autorun : false,
+            // SECURITY: never honor `autorun` from the permalink payload.
+            // Any account that can POST /api/v1/sqllab/permalink can mint an
+            // opaque /sqllab/p/<key> link with autorun set, hiding attacker
+            // SQL that would execute the moment the recipient opens it. The
+            // recipient must review the prefilled query and press Run.
+            autorun: false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
           }),
@@ -1548,7 +1553,9 @@ export function popStoredQuery(
             dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
             schema: json.schema ?? undefined,
-            autorun: json.autorun ? json.autorun : false,
+            // SECURITY: same rule as popPermalink above — stored payloads
+            // must not auto-execute in the opener's session.
+            autorun: false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
           }),
@@ -1627,7 +1634,11 @@ export function popDatasourceQuery(
             name: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
-            autorun: sql !== undefined,
+            // SECURITY: `sql` here can come straight from the URL
+            // (?datasourceKey=..&sql=..), so its mere presence must never
+            // imply auto-execution — that would let a crafted cross-site
+            // link run attacker SQL in the victim's session.
+            autorun: false,
             sql: sql || json.result.select_star,
           }),
         ),
