@@ -19734,3 +19734,91 @@ msgstr "© 图层归属"
 #, fuzzy
 msgid "№"
 msgstr "№"
+
+# Dashboard folders
+msgid "Dashboard folders"
+msgstr "看板文件夹"
+
+msgid "All dashboards"
+msgstr "全部看板"
+
+msgid "Uncategorized"
+msgstr "未分类"
+
+msgid "Create dashboard folder"
+msgstr "创建看板文件夹"
+
+msgid "Rename dashboard folder"
+msgstr "重命名看板文件夹"
+
+msgid "Folder name"
+msgstr "文件夹名称"
+
+msgid "Parent folder"
+msgstr "父文件夹"
+
+msgid "Child folder"
+msgstr "子文件夹"
+
+msgid "Place in parent folder"
+msgstr "放入父文件夹"
+
+msgid "Target folder"
+msgstr "目标文件夹"
+
+msgid "Move to folder"
+msgstr "移动到文件夹"
+
+msgid "Rename folder"
+msgstr "重命名文件夹"
+
+msgid "Delete folder"
+msgstr "删除文件夹"
+
+msgid "Delete dashboard folder"
+msgstr "删除看板文件夹"
+
+msgid "This also deletes its child folders. Dashboards will become uncategorized."
+msgstr "这也会删除其子文件夹；其中的看板将变为未分类。"
+
+msgid "Dashboard folder created"
+msgstr "看板文件夹已创建"
+
+msgid "Dashboard folder renamed"
+msgstr "看板文件夹已重命名"
+
+msgid "Dashboard folder deleted"
+msgstr "看板文件夹已删除"
+
+msgid "Dashboard moved"
+msgstr "看板已移动"
+
+msgid "Failed to load dashboard folders"
+msgstr "加载看板文件夹失败"
+
+msgid "Move dashboard"
+msgstr "移动看板"
+
+msgid "Dashboard folder"
+msgstr "看板文件夹"
+
+msgid "Dashboard folder not found."
+msgstr "未找到看板文件夹。"
+
+msgid "You do not have permission to modify this dashboard folder."
+msgstr "你没有权限修改此看板文件夹。"
+
+msgid "Dashboard folder is invalid."
+msgstr "看板文件夹无效。"
+
+msgid "A folder with this name already exists in the selected parent folder."
+msgstr "所选父文件夹中已存在同名文件夹。"
+
+msgid "Dashboard folder operation failed."
+msgstr "看板文件夹操作失败。"
+
+msgid "Collapse folders"
+msgstr "折叠文件夹"
+
+msgid "Expand folders"
+msgstr "展开文件夹"

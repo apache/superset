@@ -114,6 +114,18 @@ test('calls onSubmit with trimmed value on Enter key', async () => {
   });
 });
 
+test('submits the current input value when Enter precedes a state update', () => {
+  setup();
+  const input = screen.getByTestId('filters-search') as HTMLInputElement;
+
+  // Simulate a browser input update reaching the DOM immediately before React
+  // commits the corresponding controlled-state update.
+  input.value = '  latest search  ';
+  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+  expect(mockOnSubmit).toHaveBeenCalledWith('latest search');
+});
+
 test('calls onSubmit with empty string when input is cleared', async () => {
   setup({ initialValue: 'initial value' });
   const input = screen.getByTestId('filters-search');

@@ -31,6 +31,7 @@ export {
   type ListViewFilter,
   type ListViewFetchDataConfig,
   type ListViewFilterValue,
+  type ListViewFilterControls,
 } from './ListView';
 export { DatabaseSelector, type DatabaseObject } from './DatabaseSelector';
 export * from './Datasource';
