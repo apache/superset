@@ -1524,11 +1524,8 @@ export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
             dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
             schema: json.schema ?? undefined,
-            // SECURITY: never honor `autorun` from the permalink payload.
-            // Any account that can POST /api/v1/sqllab/permalink can mint an
-            // opaque /sqllab/p/<key> link with autorun set, hiding attacker
-            // SQL that would execute the moment the recipient opens it. The
-            // recipient must review the prefilled query and press Run.
+            // The recipient must review the prefilled query and press
+            // Run; a permalink payload never auto-runs.
             autorun: false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
@@ -1553,8 +1550,8 @@ export function popStoredQuery(
             dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
             schema: json.schema ?? undefined,
-            // SECURITY: same rule as popPermalink above — stored payloads
-            // must not auto-execute in the opener's session.
+            // Same rule as popPermalink above — stored payloads never
+            // auto-run.
             autorun: false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
@@ -1634,10 +1631,8 @@ export function popDatasourceQuery(
             name: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
-            // SECURITY: `sql` here can come straight from the URL
-            // (?datasourceKey=..&sql=..), so its mere presence must never
-            // imply auto-execution — that would let a crafted cross-site
-            // link run attacker SQL in the victim's session.
+            // `sql` here can come straight from the URL, so its mere
+            // presence must never imply auto-execution.
             autorun: false,
             sql: sql || json.result.select_star,
           }),
