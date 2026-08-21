@@ -74,6 +74,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
 
+from superset.common.chart_data import ChartDataResultType
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -1675,6 +1676,60 @@ def _annotation_layers_modified(
     return not requested.issubset(stored)
 
 
+#: Result types that make the server rewrite the query to return raw rows of
+#: every datasource column (``_prepare_samples_query`` and
+#: ``_prepare_drill_detail_query`` in ``superset.common.query_actions``).
+_ROW_EXPANDING_RESULT_TYPES = {
+    ChartDataResultType.SAMPLES.value,
+    ChartDataResultType.DRILL_DETAIL.value,
+}
+
+
+def _result_type_value(result_type: Any) -> str:
+    """Normalize a result type (enum member or raw string) to its value."""
+    return str(getattr(result_type, "value", result_type)).lower()
+
+
+def _result_type_modified(
+    query_context: "QueryContext",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request asks for a result type that expands the stored chart's
+    query to raw datasource rows.
+
+    The ``samples`` and ``drill_detail`` preparers replace the query's columns
+    with every column on the datasource - and drop its metrics - *after*
+    ``raise_for_access`` has run, so the subset comparisons on columns and
+    metrics in ``query_context_modified`` still pass while the response
+    contains the full underlying table. A guest's entitlement is the chart's
+    rendered data, so these result types are rejected unless the chart's
+    stored query context itself uses them.
+    """
+    stored_result_types: set[str] = set()
+    if stored_query_context:
+        if stored_type := stored_query_context.get("result_type"):
+            stored_result_types.add(_result_type_value(stored_type))
+        for stored_query in stored_query_context.get("queries") or []:
+            if isinstance(stored_query, dict) and (
+                stored_type := stored_query.get("result_type")
+            ):
+                stored_result_types.add(_result_type_value(stored_type))
+
+    requested_result_types = {_result_type_value(query_context.result_type)}
+    requested_result_types.update(
+        _result_type_value(query.result_type)
+        for query in query_context.queries
+        if query.result_type
+    )
+
+    return any(
+        result_type in _ROW_EXPANDING_RESULT_TYPES
+        and result_type not in stored_result_types
+        for result_type in requested_result_types
+    )
+
+
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -1739,6 +1794,17 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # query_context was present is the key signal for the missing/stale case.
     # Use ``is not None`` so an empty-but-present stored context reads as present.
     stored_context_state = "present" if stored_query_context is not None else "missing"
+
+    # Reject result types that would have the server expand the query to raw
+    # datasource rows regardless of the stored chart's columns and metrics.
+    if _result_type_modified(query_context, stored_query_context):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: result type expands "
+            "the chart to raw datasource rows (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
 
     # compare columns and metrics in form_data with stored values. Order-by is
     # handled separately: a strict subset check there would reject a guest

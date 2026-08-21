@@ -29,6 +29,7 @@ from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
+from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.exceptions import SupersetSecurityException
@@ -1454,6 +1455,41 @@ def test_query_context_modified_injected_annotation_layer(
         QueryObject(metrics=stored_metrics, annotation_layers=[injected])  # type: ignore
     ]
     assert query_context_modified(query_context)
+
+
+def test_query_context_modified_result_type_expansion(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Requesting the ``samples``/``drill_detail`` result types is tampering:
+    the server-side preparers expand those queries to every datasource
+    column after the subset checks on columns/metrics have run.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+
+    # Top-level result type rewritten to samples.
+    query_context.result_type = ChartDataResultType.SAMPLES
+    assert query_context_modified(query_context)
+
+    # Per-query result type rewritten to drill_detail.
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.queries[0].result_type = ChartDataResultType.DRILL_DETAIL
+    assert query_context_modified(query_context)
+
+    # The chart's own result type is not tampering.
+    query_context.queries[0].result_type = None
+    assert not query_context_modified(query_context)
 
 
 def test_query_context_modified_singular_metric_param(
