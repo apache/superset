@@ -187,7 +187,10 @@ test('a single dependent view is announced in the singular', async () => {
   ).toBeInTheDocument();
 });
 
-test('an access-filtered empty response still shows a generic cascade warning', async () => {
+test('a genuinely empty layer says so instead of warning about nonexistent views', async () => {
+  // A successful count === 0 is always genuinely empty, never
+  // access-filtering: a layer is only reachable when its perm is granted,
+  // and the dependent-view count ORs on that same perm.
   setupMocks({ dependents: [] });
   renderDatabaseList();
 
@@ -195,9 +198,14 @@ test('an access-filtered empty response still shows a generic cascade warning', 
 
   expect(
     within(dialog).getByText(
-      'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+      'This semantic layer has no dependent semantic views.',
     ),
   ).toBeInTheDocument();
+  expect(
+    within(dialog).queryByText(
+      /charts built on those views will stop working/i,
+    ),
+  ).not.toBeInTheDocument();
   expect(
     within(dialog).queryByText('Affected semantic views'),
   ).not.toBeInTheDocument();
