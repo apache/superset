@@ -25,6 +25,7 @@ import downloadAsPdf from 'src/utils/downloadAsPdf';
 import {
   useExploreAdditionalActionsMenu,
   getExportScreenshotMenuItems,
+  escapeCsvValue,
 } from './index';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { Slice } from 'src/types/Chart';
@@ -178,6 +179,30 @@ test('hides Edit chart properties from a chart editor lacking chart write permis
 
   expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
   expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
+});
+
+test('escapeCsvValue neutralizes spreadsheet formula prefixes', () => {
+  // Mirrors superset/utils/csv.py escape_value so the client-built
+  // "Current View" CSV cannot ship live formulas (CSV injection).
+  expect(escapeCsvValue('=HYPERLINK("https://attacker.example")')).toBe(
+    `"'=HYPERLINK(""https://attacker.example"")"`,
+  );
+  expect(escapeCsvValue('@SUM(1+1)')).toBe(`'@SUM(1+1)`);
+  expect(escapeCsvValue('+cmd')).toBe(`'+cmd`);
+  expect(escapeCsvValue('%x')).toBe(`'%x`);
+  expect(escapeCsvValue('\t=1+1')).toBe(`'\t=1+1`);
+  expect(escapeCsvValue('  =1+1')).toBe(`'  =1+1`);
+  expect(escapeCsvValue('=cmd|calc')).toBe(`'=cmd\\|calc`);
+});
+
+test('escapeCsvValue keeps ordinary values intact', () => {
+  expect(escapeCsvValue('regular text')).toBe('regular text');
+  expect(escapeCsvValue('-12.5')).toBe('-12.5');
+  expect(escapeCsvValue(42)).toBe('42');
+  expect(escapeCsvValue(null)).toBe('');
+  expect(escapeCsvValue(undefined)).toBe('');
+  expect(escapeCsvValue('a,b')).toBe(`"a,b"`);
+  expect(escapeCsvValue('say "hi"')).toBe(`"say ""hi"""`);
 });
 
 test('shows 413 error toast when exportCSV fails with 413', async () => {
