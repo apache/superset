@@ -365,6 +365,7 @@ const querySection: ControlPanelSectionConfig = {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     querySection,
+    sections.drilldownHierarchySection,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,

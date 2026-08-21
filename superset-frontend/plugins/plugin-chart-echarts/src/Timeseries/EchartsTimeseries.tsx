@@ -75,6 +75,7 @@ export default function EchartsTimeseries({
   emitCrossFilters,
   coltypeMapping,
   onLegendScroll,
+  onDrillDown,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const theme = useTheme();
@@ -82,6 +83,12 @@ export default function EchartsTimeseries({
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(
+    () => () => {
+      if (clickTimer.current) clearTimeout(clickTimer.current);
+    },
+    [],
+  );
 
   // Draggable percent-change baseline: when the rebase view is active, a
   // vertical line is drawn on the plot; dragging it re-indexes every series
@@ -410,6 +417,79 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
+      // Drill-down takes priority over cross-filter when a hierarchy is configured.
+      // The DrillDownHost provides onDrillDown only when a hierarchy exists.
+      const hasDrillHierarchy = !!onDrillDown;
+
+      if (hasDrillHierarchy) {
+        if (clickTimer.current) {
+          clearTimeout(clickTimer.current);
+        }
+        clickTimer.current = setTimeout(() => {
+          const drillFilters: BinaryQueryObjectFilterClause[] = [];
+          // Timeseries-family charts are always x-axis driven: the hierarchy
+          // advances along the x-axis column, and any groupby is only a series
+          // breakdown. So drill on the clicked x-axis category value, never on
+          // the series dimension. Guard on componentType === 'series' so clicks
+          // on axis labels don't trigger a drill.
+          if (
+            xAxis.type === AxisType.Category &&
+            props.componentType === 'series'
+          ) {
+            // Orientation-aware category value (horizontal bars hold it at a
+            // different index); also falls back to the event name.
+            const categoryAxisValue = getCategoryAxisValue(
+              props.data,
+              props.name,
+            );
+            if (categoryAxisValue != null) {
+              drillFilters.push({
+                col: xAxis.label,
+                op: '==',
+                val: categoryAxisValue,
+                formattedVal: String(categoryAxisValue),
+              });
+            }
+          } else if (props.componentType === 'series') {
+            // Non-category (e.g. time) x-axis. Mirror the drill-to-detail
+            // temporal filter so the drill scopes correctly on strict engines
+            // (e.g. Trino): use the raw value from the data tuple (never the
+            // formatted axis label), map __timestamp to the real granularity
+            // column, and carry the time grain. Null check so zero-like labels
+            // (e.g. 0) still drill.
+            const rawValue = Array.isArray(props.data)
+              ? props.data[0]
+              : props.name;
+            if (rawValue != null) {
+              const isTimeAxis = xAxis.type === AxisType.Time;
+              drillFilters.push({
+                col:
+                  isTimeAxis && xAxis.label === DTTM_ALIAS
+                    ? formData.granularitySqla
+                    : xAxis.label,
+                ...(isTimeAxis && formData.timeGrainSqla
+                  ? { grain: formData.timeGrainSqla }
+                  : {}),
+                op: '==',
+                val: rawValue,
+                formattedVal: isTimeAxis
+                  ? xValueFormatter(rawValue)
+                  : String(rawValue),
+              });
+            }
+          }
+          // Cross-filter is emitted by the DrillDownHost with the full
+          // accumulated drill path; here we only report the click upward.
+          if (drillFilters.length > 0) {
+            const label = drillFilters
+              .map(f => f.formattedVal ?? String(f.val))
+              .join(', ');
+            onDrillDown(drillFilters, label);
+          }
+        }, TIMER_DURATION);
+        return;
+      }
+
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
         return;
@@ -590,6 +670,9 @@ export default function EchartsTimeseries({
 
   const handleXAxisLabelClick = useCallback(
     (event: ECElementEvent) => {
+      // During drill-down the cross-filter is managed by DrillDownHost;
+      // axis label clicks must not emit a conflicting cross-filter.
+      if (onDrillDown) return;
       const { value } = event;
       if (
         canCrossFilterByXAxis &&
@@ -598,7 +681,7 @@ export default function EchartsTimeseries({
         handleXAxisChange(value);
       }
     },
-    [canCrossFilterByXAxis, handleXAxisChange],
+    [canCrossFilterByXAxis, handleXAxisChange, onDrillDown],
   );
 
   const categoryAxis =

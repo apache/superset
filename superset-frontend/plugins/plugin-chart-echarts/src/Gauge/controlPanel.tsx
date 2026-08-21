@@ -23,6 +23,7 @@ import {
   ControlSubSectionHeader,
   D3_FORMAT_OPTIONS,
   getStandardizedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -56,6 +57,7 @@ const config: ControlPanelConfig = {
         ['sort_by_metric'],
       ],
     },
+    sections.drilldownHierarchySection,
     {
       label: t('Chart Options'),
       expanded: true,

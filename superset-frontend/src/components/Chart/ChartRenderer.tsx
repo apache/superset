@@ -44,6 +44,7 @@ import {
   AgGridChartState,
   ContextMenuFilters,
   DataRecordFilters,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
@@ -94,6 +95,7 @@ interface ChartActions {
     },
   ) => Dispatch;
   updateDataMask?: (chartId: number, dataMask: DataMask) => Dispatch;
+  triggerQuery?: (value: boolean, key: number | string) => void;
 }
 
 // Types for own state
@@ -140,6 +142,15 @@ export interface ChartRendererProps {
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
+  /**
+   * Drill-down click handler injected by the DrillDownHost wrapper.
+   * Plugins receive this in their hooks bag and call it instead of
+   * emitting a cross-filter when a drill-down hierarchy is configured.
+   */
+  onDrillDown?: (
+    filters: BinaryQueryObjectFilterClause[],
+    label: string,
+  ) => void;
 }
 
 // Hooks interface
@@ -163,6 +174,15 @@ interface ChartHooks {
   setDataMask: (dataMask: DataMask) => void;
   onLegendScroll: (legendIndex: number) => void;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  /**
+   * Drill-down hook. When the chart has `drilldown_hierarchy` configured
+   * and the user clicks a data point, plugins call this with the filters
+   * identifying the click and a human-readable label for the breadcrumb.
+   */
+  onDrillDown?: (
+    filters: BinaryQueryObjectFilterClause[],
+    label: string,
+  ) => void;
   // Resolve async (HTTP 202 / GLOBAL_ASYNC_QUERIES) chart-data responses for
   // self-contained chart components in superset-ui-core (e.g. StatefulChart),
   // which cannot import app-level async-event middleware.
@@ -214,6 +234,7 @@ function ChartRendererComponent({
     source,
     emitCrossFilters,
     onChartStateChange,
+    onDrillDown,
   } = restProps;
 
   const theme = useTheme();
@@ -394,6 +415,7 @@ function ChartRendererComponent({
       setDataMask: setDataMaskCallback,
       onLegendScroll: handleLegendScroll,
       onChartStateChange,
+      onDrillDown,
       // Lets self-contained chart components in superset-ui-core (e.g.
       // StatefulChart) resolve async (202) chart-data responses without
       // depending on app-level async-event middleware.
@@ -407,6 +429,7 @@ function ChartRendererComponent({
       handleRenderFailure,
       handleSetControlValue,
       onChartStateChange,
+      onDrillDown,
       onFilterMenuClose,
       onFilterMenuOpen,
       setDataMaskCallback,

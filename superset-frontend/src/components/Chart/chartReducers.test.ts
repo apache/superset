@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject } from '@superset-ui/core';
+import { JsonObject, QueryData } from '@superset-ui/core';
 import chartReducer, { chart } from 'src/components/Chart/chartReducer';
 import * as actions from 'src/components/Chart/chartAction';
 import { ChartState } from 'src/explore/types';
@@ -65,6 +65,28 @@ describe('chart reducers', () => {
     expect(newState[chartKey].chartAlert).toContain(
       'Updating chart was stopped',
     );
+  });
+
+  test('ignores a keyed action when the chart is missing from state', () => {
+    // A stale abort (CHART_UPDATE_STOPPED) can arrive after its chart was
+    // removed from state (e.g. during drill-down cross-filtering). The reducer
+    // must not throw when reading properties of the now-undefined chart.
+    expect(() =>
+      chartReducer(charts, actions.chartUpdateStopped(999)),
+    ).not.toThrow();
+    expect(chartReducer(charts, actions.chartUpdateStopped(999))).toBe(charts);
+  });
+
+  test('still applies a keyed action when the chart exists in state', () => {
+    const queriesResponse: QueryData[] = [];
+    const newState = chartReducer(
+      charts,
+      actions.chartUpdateSucceeded(queriesResponse, chartKey),
+    );
+    expect(newState[chartKey].chartStatus).toEqual('success');
+    expect(newState[chartKey].chartAlert).toBeNull();
+    expect(newState[chartKey].queriesResponse).toBe(queriesResponse);
+    expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
   });
 
   test('should update endtime on timeout', () => {
