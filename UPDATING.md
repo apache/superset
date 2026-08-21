@@ -26,6 +26,29 @@ assists people when migrating to a new version.
 
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 
+### MCP tool results preserve stored string values
+
+Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or
+rewrite delimiter-looking text inside string fields. Tool-result content remains
+user-controlled data, but clients must convey that trust boundary outside domain
+values instead of recognizing or removing marker strings.
+
+Clients that handled the former delimiter convention should stop stripping marker
+text: the same text can be legitimate stored content. Response models and content
+types are unchanged, and no metadata-database migration is required. Automated
+read-modify-write workflows should be paused or pinned away from older instances
+until every serving instance is upgraded; a mixed-version response has no reliable
+signal that tells a client whether its text is decorated. Redis-backed MCP response
+caches use a new internal namespace after the upgrade, so upgraded instances do not
+reuse older cached results.
+
+Values that a client already wrote back with presentation wrappers cannot be
+distinguished safely from intentional content. Operators should review possible
+`<UNTRUSTED-CONTENT>` / `</UNTRUSTED-CONTENT>` wrappers and
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` /
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]` substitutions rather than applying an automatic
+marker-removal migration.
+
 ### OAuth2 database callback metrics include their outcome
 
 The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with
@@ -101,6 +124,23 @@ dialect; each package's constraint in `pyproject.toml` documents why.
 
 No application-level configuration changes are required for deployments
 that don't touch SQLAlchemy directly.
+
+### New metric aggregates: MEDIAN, Sample Standard Deviation, Sample Variance
+
+`MEDIAN`, `STDDEV_SAMP`, and `VAR_SAMP` are now available anywhere a metric
+aggregate is chosen (every chart type, SQL Lab, MCP), not only in Pivot
+Table's controls. Support is opt-in per database engine *spec class*,
+verified against a live instance before being enabled: Postgres, MySQL
+(`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and Redshift (inherits
+Postgres's support, not yet separately verified) ship enabled in this
+release. Engine specs that subclass one of those (e.g. MariaDB, Aurora
+MySQL/Postgres, TimescaleDB) inherit the same support, on the same
+not-yet-independently-verified basis. Picking one of these aggregates on a
+database that has not opted in returns a clear "not supported on this
+database" error rather than a failed query. See
+`docs/sip/median-stddev-variance-aggregates.md` for the full design
+rationale, including why this is safe to add without reintroducing the
+totals/subtotals correctness bug fixed by #41184 (SIP-216).
 
 ### Soft delete is on by default, and purging is live
 

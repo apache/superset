@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -27,6 +27,7 @@ describe('SaveDatasetActionButton', () => {
       <SaveDatasetActionButton
         setShowSave={() => true}
         onSaveAsExplore={onSaveAsExplore}
+        canSaveDataset
       />,
     );
 
@@ -40,5 +41,28 @@ describe('SaveDatasetActionButton', () => {
     ).toBeInTheDocument();
     expect(saveBtn).toBeVisible();
     expect(saveDatasetBtn).toBeVisible();
+  });
+
+  test('disables the save dataset button when the query did not run successfully', async () => {
+    render(
+      <SaveDatasetActionButton
+        setShowSave={() => true}
+        onSaveAsExplore={jest.fn()}
+        canSaveDataset={false}
+      />,
+    );
+
+    const saveDatasetBtn = screen.getByRole('button', {
+      name: /save dataset/i,
+    });
+    expect(saveDatasetBtn).toBeDisabled();
+
+    // the disabled button is wrapped in a span so the tooltip still triggers
+    userEvent.hover(saveDatasetBtn.parentElement as HTMLElement);
+    expect(
+      await screen.findByRole('tooltip', {
+        name: 'You must run the query successfully first',
+      }),
+    ).toBeInTheDocument();
   });
 });

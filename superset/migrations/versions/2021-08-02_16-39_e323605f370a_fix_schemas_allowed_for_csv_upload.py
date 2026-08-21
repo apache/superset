@@ -52,7 +52,7 @@ def upgrade():
     Fix databases with ``schemas_allowed_for_csv_upload`` stored as string.
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for database in session.query(Database).all():
         try:
