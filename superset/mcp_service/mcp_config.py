@@ -322,6 +322,8 @@ MCP_STORE_CONFIG: dict[str, Any] = {
 # When enabled with MCP_STORE_CONFIG, uses Redis store.
 MCP_CACHE_CONFIG: dict[str, Any] = {
     "enabled": False,  # Disabled by default
+    # Base prefix for the shared store. Superset appends an internal response-
+    # contract namespace so incompatible cached values are not reused.
     "CACHE_KEY_PREFIX": None,  # Only needed when using the store
     "list_tools_ttl": 60 * 5,  # 5 minutes
     "list_resources_ttl": 60 * 5,  # 5 minutes
