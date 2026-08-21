@@ -1,4 +1,5 @@
 import User from 'src/types/User';
+import Subject from 'src/types/Subject';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -30,4 +31,5 @@ export type ThemeObject = {
   created_by?: User;
   json_data?: string;
   theme_name: string;
+  editors?: Subject[];
 };

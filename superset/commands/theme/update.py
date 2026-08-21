@@ -18,12 +18,20 @@ import logging
 from functools import partial
 from typing import Any, Optional
 
+from marshmallow import ValidationError
+
+from superset import security_manager
 from superset.commands.base import UpdateMixin
 from superset.commands.theme.exceptions import (
     SystemThemeProtectedError,
+    ThemeForbiddenError,
+    ThemeInvalidError,
     ThemeNotFoundError,
+    ThemeUpdateFailedError,
 )
+from superset.commands.utils import compute_subjects
 from superset.daos.theme import ThemeDAO
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Theme
 from superset.utils.decorators import on_error, transaction
 
@@ -36,7 +44,7 @@ class UpdateThemeCommand(UpdateMixin):
         self._properties = data.copy()
         self._model: Optional[Theme] = None
 
-    @transaction(on_error=partial(on_error, reraise=Exception))
+    @transaction(on_error=partial(on_error, reraise=ThemeUpdateFailedError))
     def run(self) -> Theme:
         self.validate()
         assert self._model
@@ -52,3 +60,22 @@ class UpdateThemeCommand(UpdateMixin):
         # Check if it's a system theme
         if self._model.is_system:
             raise SystemThemeProtectedError()
+
+        exceptions: list[ValidationError] = []
+
+        # Check editorship on the persisted model FIRST, so that a non-editor
+        # cannot PUT themselves onto the editors list.
+        try:
+            security_manager.raise_for_editorship(self._model)
+        except SupersetSecurityException as ex:
+            raise ThemeForbiddenError() from ex
+
+        compute_subjects(
+            self._model,
+            self._properties,
+            exceptions,
+            include_viewers=False,
+        )
+
+        if exceptions:
+            raise ThemeInvalidError(exceptions=exceptions)

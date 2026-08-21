@@ -3115,6 +3115,7 @@ SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_THEMES: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown

@@ -28,11 +28,14 @@ from marshmallow import ValidationError
 from werkzeug.datastructures import FileStorage
 
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.theme.create import CreateThemeCommand
 from superset.commands.theme.delete import DeleteThemeCommand
 from superset.commands.theme.exceptions import (
     SystemThemeInUseError,
     SystemThemeProtectedError,
     ThemeDeleteFailedError,
+    ThemeForbiddenError,
+    ThemeInvalidError,
     ThemeNotFoundError,
 )
 from superset.commands.theme.export import ExportThemesCommand
@@ -47,6 +50,7 @@ from superset.commands.theme.update import UpdateThemeCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.core import Theme
+from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.themes.filters import ThemeAllTextFilter
 from superset.themes.schemas import (
     get_delete_ids_schema,
@@ -56,7 +60,6 @@ from superset.themes.schemas import (
     ThemePutSchema,
 )
 from superset.utils.core import sanitize_cookie_token
-from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -100,6 +103,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "json_data",
         "id",
         "is_system",
@@ -118,6 +124,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "json_data",
         "id",
         "is_system",
@@ -136,7 +145,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     edit_model_schema = ThemePutSchema()
 
     search_filters = {"theme_name": [ThemeAllTextFilter]}
-    allowed_rel_fields = {"created_by", "changed_by"}
+    allowed_rel_fields = {"created_by", "changed_by", "editors"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -145,11 +154,26 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Themes"
     openapi_spec_methods = openapi_spec_methods_override
 
+    extra_fields_rel_fields = {
+        **BaseSupersetModelRestApi.extra_fields_rel_fields,
+        "editors": ["type", "active", "secondary_label", "img"],
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+    }
     related_field_filters = {
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "editors": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES_THEMES"),
+                lambda: [],
+            ]
+        ],
     }
 
     @expose("/<int:pk>", methods=("DELETE",))
@@ -203,7 +227,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             )
         except ThemeNotFoundError:
             return self.response_404()
-        except SystemThemeProtectedError:
+        except (SystemThemeProtectedError, ThemeForbiddenError):
             return self.response_403()
         except SystemThemeInUseError as ex:
             return self.response_422(message=str(ex))
@@ -264,7 +288,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             )
         except ThemeNotFoundError:
             return self.response_404()
-        except SystemThemeProtectedError:
+        except (SystemThemeProtectedError, ThemeForbiddenError):
             return self.response_403()
         except SystemThemeInUseError as ex:
             return self.response_422(message=str(ex))
@@ -333,7 +357,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             filtered_data = {
                 k: v
                 for k, v in request.json.items()
-                if k in ["theme_name", "json_data"]
+                if k in ["theme_name", "json_data", "editors"]
             }
 
             item = self.edit_model_schema.load(filtered_data)
@@ -348,8 +372,10 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response(200, id=changed_model.id, result=item)
         except ThemeNotFoundError:
             return self.response_404()
-        except SystemThemeProtectedError:
+        except (SystemThemeProtectedError, ThemeForbiddenError):
             return self.response_403()
+        except ThemeInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
         except Exception as ex:
             logger.exception("Unexpected error in PUT /theme/%s", pk)
             return self.response_422(message=str(ex))
@@ -406,27 +432,13 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            # Create new theme instance with transaction decorator
-            new_theme = self._create_theme(item)
+            new_theme = CreateThemeCommand(item).run()
             return self.response(201, id=new_theme.id, result=item)
+        except ThemeInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
         except Exception as ex:
             logger.exception("Unexpected error in POST /theme")
             return self.response_422(message=str(ex))
-
-    @transaction()
-    def _create_theme(self, item: dict[str, Any]) -> Theme:
-        """Create a new theme with proper transaction handling."""
-        new_theme = Theme(
-            theme_name=item["theme_name"],
-            json_data=item["json_data"],
-            is_system=False,  # User-created themes are never system themes
-        )
-
-        from superset.extensions import db
-
-        db.session.add(new_theme)
-        db.session.flush()  # Flush to get the ID
-        return new_theme
 
     @expose("/export/", methods=("GET",))
     @protect()
