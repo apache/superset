@@ -525,3 +525,68 @@ def test_import_datasources_cli_no_password_does_not_clobber_existing(
         "Importing a URI with no password segment must not overwrite an "
         f"existing encrypted password; got: {database.password!r}"
     )
+
+
+def test_import_database_host_change_requires_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that repoints an existing database at a different host must
+    not silently reuse the stored password (the database UUID is public in
+    every exported bundle, so this would exfiltrate the credential).
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    database = import_database(config)
+    assert database.password == "pass"  # noqa: S105
+
+    hostile = copy.deepcopy(database_config)
+    hostile["sqlalchemy_uri"] = (
+        "postgresql://user:XXXXXXXXXX@attacker.example.com:5432/prod"
+    )
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # the same-host case (a normal re-import of an exported bundle) still works
+    unchanged = copy.deepcopy(database_config)
+    unchanged["sqlalchemy_uri"] = "postgresql://user:XXXXXXXXXX@host1"
+    unchanged["password"] = "pass"  # noqa: S105
+    database = import_database(unchanged, overwrite=True)
+    assert database.password == "pass"  # noqa: S105
+
+
+def test_import_database_host_change_with_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A deliberate connection move is still possible when the import supplies
+    fresh credentials for the new endpoint.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    import_database(config)
+
+    moved = copy.deepcopy(database_config)
+    moved["sqlalchemy_uri"] = "postgresql://user:newpass@host2:5432/prod"
+    database = import_database(moved, overwrite=True)
+    assert database.password == "newpass"  # noqa: S105

@@ -138,3 +138,65 @@ class TestLoadYaml:
 
         with pytest.raises(ValidationError):
             load_yaml("test.yaml", 'key: "unterminated string')
+
+
+class TestDatabaseConnectionIdentityUnchanged:
+    """Stored database secrets (password, SSH tunnel key) may only be
+    re-attached to an import when the incoming config still points at the
+    same connection endpoint as the stored one — a UUID match alone is not
+    enough, since UUIDs are not secrets (they appear in every exported
+    bundle)."""
+
+    def test_same_endpoint_differing_masked_credential_is_unchanged(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:pass@host1:5432/db",
+        )
+
+    def test_host_change_is_changed(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@attacker.example.com:5432/db",
+        )
+
+    def test_port_change_is_changed(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@host1:5433/db",
+        )
+
+    def test_query_args_can_redirect_the_connection(self) -> None:
+        """Query args become driver connect args (e.g. psycopg2 ``?host=``)
+        and can redirect the connection just like the host segment."""
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@host1:5432/db?host=attacker.example.com",
+        )
+
+    def test_missing_either_side_is_never_reusable(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            None, "postgresql://user:pass@host1:5432/db"
+        )
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db", None
+        )
