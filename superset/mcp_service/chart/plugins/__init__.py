@@ -31,6 +31,9 @@ from superset.mcp_service.chart.plugins.big_number import BigNumberChartPlugin
 from superset.mcp_service.chart.plugins.box_plot import BoxPlotChartPlugin
 from superset.mcp_service.chart.plugins.handlebars import HandlebarsChartPlugin
 from superset.mcp_service.chart.plugins.histogram import HistogramChartPlugin
+from superset.mcp_service.chart.plugins.interactive_pivot import (
+    InteractivePivotChartPlugin,
+)
 from superset.mcp_service.chart.plugins.mixed_timeseries import (
     MixedTimeseriesChartPlugin,
 )
@@ -46,6 +49,7 @@ register(XYChartPlugin())
 register(TableChartPlugin())
 register(PieChartPlugin())
 register(PivotTableChartPlugin())
+register(InteractivePivotChartPlugin())
 register(MixedTimeseriesChartPlugin())
 register(HandlebarsChartPlugin())
 register(BigNumberChartPlugin())
@@ -58,6 +62,7 @@ __all__ = [
     "BoxPlotChartPlugin",
     "HandlebarsChartPlugin",
     "HistogramChartPlugin",
+    "InteractivePivotChartPlugin",
     "MixedTimeseriesChartPlugin",
     "PieChartPlugin",
     "PivotTableChartPlugin",
