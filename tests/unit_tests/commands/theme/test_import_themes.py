@@ -122,6 +122,36 @@ def test_import_theme_admin_allows_system_default_overwrite(
 @patch("superset.utils.core.get_user")
 @patch("superset.security_manager")
 @patch("superset.db")
+def test_import_theme_admin_allows_system_dark_overwrite(
+    mock_db, mock_security_manager, mock_get_user
+):
+    """An admin overwrite=True may still replace the active dark theme,
+    mirroring UpdateThemeCommand's admin carve-out."""
+    mock_security_manager.can_access.return_value = True
+    # Use a regular Mock for is_admin to avoid AsyncMock auto-detection
+    mock_security_manager.is_admin = Mock(return_value=True)
+    mock_get_user.return_value = None
+    existing = _mock_existing(is_system_dark=True)
+    mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+        existing
+    )
+
+    config = {"uuid": "some-uuid", "theme_name": "updated", "json_data": "{}"}
+
+    with patch("superset.models.core.Theme.import_from_dict") as mock_import_from_dict:
+        mock_theme = MagicMock(spec=Theme)
+        mock_theme.id = 1
+        mock_import_from_dict.return_value = mock_theme
+
+        result = import_theme(config, overwrite=True)
+
+    assert result is mock_theme
+    assert config["id"] == existing.id
+
+
+@patch("superset.utils.core.get_user")
+@patch("superset.security_manager")
+@patch("superset.db")
 def test_import_theme_allows_regular_theme_overwrite(
     mock_db, mock_security_manager, mock_get_user
 ):
