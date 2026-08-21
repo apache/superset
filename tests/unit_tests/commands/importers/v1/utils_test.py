@@ -16,6 +16,8 @@
 # under the License.
 """Tests for superset/commands/dataset/importers/v1/utils.py temporal helpers."""
 
+import gzip
+import io
 from unittest.mock import patch
 
 import pandas as pd
@@ -117,6 +119,28 @@ class TestConvertTemporalColumns:
 
         call_args = mock_logger.warning.call_args[0]
         assert call_args[1] == 2  # 2 out-of-bounds, 1 pre-existing null
+
+
+class TestReadBounded:
+    """``_read_bounded`` caps the bytes materialized from a dataset import
+    data URI, including after gzip decompression, so a small compressed
+    payload can't expand to an unbounded in-memory allocation."""
+
+    def test_rejects_oversized_gzip_stream(self) -> None:
+        """A small compressed payload that decompresses past the cap must fail."""
+        from superset.commands.dataset.importers.v1.utils import _read_bounded
+        from superset.commands.exceptions import ImportFailedError
+
+        payload = gzip.compress(b"a" * 100_000)
+        stream = gzip.GzipFile(fileobj=io.BytesIO(payload))
+        with pytest.raises(ImportFailedError):
+            _read_bounded(stream, max_bytes=10_000)
+
+    def test_passes_small_payload_through(self) -> None:
+        from superset.commands.dataset.importers.v1.utils import _read_bounded
+
+        buffer = _read_bounded(io.BytesIO(b"a,b\n1,2\n"), max_bytes=10_000)
+        assert buffer.read() == b"a,b\n1,2\n"
 
 
 class TestLoadYaml:
