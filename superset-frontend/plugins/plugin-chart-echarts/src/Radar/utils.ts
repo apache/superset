@@ -18,6 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { NumberFormatter } from '@superset-ui/core';
+import { sanitizeHtml } from '../utils/series';
 
 /*
  function for finding the max metric values among all series data for Radar Chart
@@ -85,19 +86,29 @@ export const renderNormalizedTooltip = (
     };
   });
 
+  // SECURITY: the tooltip is rendered via innerHTML (ECharts default
+  // renderMode 'html'). `seriesName` is built from raw group-by values in
+  // the query results and `metric` from creator-controlled metric labels,
+  // so both must be HTML-escaped — matching the sanitizeHtml/tooltipHtml
+  // treatment every other echarts tooltip path applies. Values are escaped
+  // too for consistency (formatter output is plain text).
   const tooltipRows = metricValues
     .map(
       ({ metric, value }) => `
         <div style="display:flex;">
-          <div>${colorDot}${metric}:</div>
-          <div style="font-weight:bold;margin-left:auto;">${value}</div>
+          <div>${colorDot}${sanitizeHtml(metric)}:</div>
+          <div style="font-weight:bold;margin-left:auto;">${sanitizeHtml(
+            String(value),
+          )}</div>
         </div>
       `,
     )
     .join('');
 
   return `
-    <div style="font-weight:bold;margin-bottom:5px;">${seriesName}</div>
+    <div style="font-weight:bold;margin-bottom:5px;">${sanitizeHtml(
+      seriesName,
+    )}</div>
     ${tooltipRows}
   `;
 };

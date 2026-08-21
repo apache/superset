@@ -70,4 +70,29 @@ describe('renderNormalizedTooltip', () => {
     expect(tooltip).toContain('N/A');
     expect(tooltip).not.toContain('NaN');
   });
+
+  test('should HTML-escape series names from query data', () => {
+    // SECURITY regression test: the series name is built from raw group-by
+    // column values and the tooltip is rendered via innerHTML, so markup in
+    // warehouse data must not become live DOM.
+    const tooltip = renderNormalizedTooltip(
+      { ...params, name: '<img src=x onerror=alert(1)>' },
+      metrics,
+      mockGetDenormalizedValue,
+      metricsWithCustomBounds,
+    );
+    expect(tooltip).not.toContain('<img');
+    expect(tooltip).toContain('&lt;img');
+  });
+
+  test('should HTML-escape metric labels', () => {
+    const tooltip = renderNormalizedTooltip(
+      params,
+      ['<svg onload=alert(1)>', 'metric2'],
+      mockGetDenormalizedValue,
+      metricsWithCustomBounds,
+    );
+    expect(tooltip).not.toContain('<svg');
+    expect(tooltip).toContain('&lt;svg');
+  });
 });
