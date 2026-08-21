@@ -425,6 +425,17 @@ def test_update_dataset_validation_errors(
             },
             "metrics.0.expression",
         ),
+        (
+            {
+                "filters": [
+                    {
+                        "filter_name": "evil_filter",
+                        "expression": "1 UNION SELECT password FROM ab_user",
+                    }
+                ]
+            },
+            "filters.0.expression",
+        ),
     ],
 )
 def test_update_dataset_rejects_malicious_expression(
@@ -461,6 +472,8 @@ def test_update_dataset_rejects_malicious_expression(
     mock_dataset_dao.validate_columns_uniqueness.return_value = True
     mock_dataset_dao.validate_metrics_exist.return_value = True
     mock_dataset_dao.validate_metrics_uniqueness.return_value = True
+    mock_dataset_dao.validate_filters_exist.return_value = True
+    mock_dataset_dao.validate_filters_uniqueness.return_value = True
 
     with pytest.raises(DatasetInvalidError) as excinfo:
         UpdateDatasetCommand(1, payload).run()
