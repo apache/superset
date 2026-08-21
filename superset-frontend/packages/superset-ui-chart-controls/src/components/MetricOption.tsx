@@ -51,6 +51,20 @@ export interface MetricOptionProps {
   shouldShowTooltip?: boolean;
 }
 
+/**
+ * `url` is an arbitrary caller-supplied string rendered as an href. Only
+ * http(s) and relative URLs become links; other schemes degrade to plain
+ * text.
+ */
+function isSafeHref(url: string): boolean {
+  try {
+    const { protocol } = new URL(url, window.location.origin);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function MetricOption({
   metric,
   labelRef,
@@ -70,7 +84,7 @@ export function MetricOption({
       `}
       ref={labelRef}
     >
-      {url ? (
+      {url && isSafeHref(url) ? (
         <Typography.Link
           href={url}
           target={openInNewWindow ? '_blank' : ''}

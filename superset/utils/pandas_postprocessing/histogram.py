@@ -17,7 +17,16 @@
 from __future__ import annotations
 
 import numpy as np
+from flask_babel import gettext as _
 from pandas import DataFrame, Series, to_numeric
+
+from superset.exceptions import InvalidPostProcessingError
+
+# Upper bound on the number of histogram bins. ``bins`` arrives through the
+# post-processing ``options`` dict, which is not schema-validated, so the cap
+# must be enforced here: numpy allocates a bin-edge array proportional to
+# ``bins`` (e.g. bins=2e9 attempts a ~16 GB allocation in a single request).
+MAX_HISTOGRAM_BINS = 1000
 
 
 # pylint: disable=too-many-arguments
@@ -44,6 +53,18 @@ def histogram(
     DataFrame: A DataFrame where each row corresponds to a group (or the entire DataFrame if no grouping is performed),
                and each column corresponds to a histogram bin. The values are the counts in each bin.
     """  # noqa: E501
+
+    if (
+        not isinstance(bins, int)
+        or isinstance(bins, bool)
+        or not 1 <= bins <= MAX_HISTOGRAM_BINS
+    ):
+        raise InvalidPostProcessingError(
+            _(
+                "`bins` must be an integer between 1 and %(max)s",
+                max=MAX_HISTOGRAM_BINS,
+            )
+        )
 
     if groupby is None:
         groupby = []
