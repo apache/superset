@@ -19,6 +19,7 @@ from textwrap import dedent
 from typing import Any, Optional
 from unittest import mock
 
+import pandas as pd
 import pytest
 import pytz
 from pyhive.sqlalchemy_presto import PrestoDialect
@@ -1043,6 +1044,84 @@ def test_extract_error_message_from_general_exception() -> None:
         PrestoEngineSpec._extract_error_message(Exception("Err message"))
         == "Err message"
     )
+
+
+def test_get_function_names_lists_presto_functions() -> None:
+    """Story 105824: SQL Lab autocomplete.
+
+    The implementation is a single line — ``SHOW FUNCTIONS`` into a DataFrame,
+    ``["Function"].tolist()`` out — with no error handling and no de-duplication.
+    Worth stating plainly: if this returns nothing, users type function names by
+    hand and nothing else breaks. It is the lowest-impact method in the file.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    database.get_df.return_value = pd.DataFrame(
+        {"Function": ["abs", "avg", "cardinality"]}
+    )
+
+    assert PrestoEngineSpec.get_function_names(database) == [
+        "abs",
+        "avg",
+        "cardinality",
+    ]
+    database.get_df.assert_called_once_with("SHOW FUNCTIONS")
+
+
+def test_get_function_names_returns_empty_list_for_no_functions() -> None:
+    """Story 105824: a well-formed but empty result yields an empty list.
+
+    "Handles an empty function list" is ambiguous in the ticket, and the two
+    readings behave differently. This is the benign one: the ``Function`` column
+    exists but has no rows.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    database.get_df.return_value = pd.DataFrame({"Function": []})
+
+    assert PrestoEngineSpec.get_function_names(database) == []
+
+
+def test_get_function_names_raises_on_dataframe_without_function_column() -> None:
+    """Story 105824 — CHARACTERIZATION test, and the other reading of "empty".
+
+    A DataFrame with no ``Function`` column at all — an entirely empty result, or a
+    Presto version that labels the column differently — raises ``KeyError`` rather
+    than degrading to an empty list.
+
+    Pinned to resolve the ticket's ambiguity by asserting both readings explicitly
+    rather than picking one silently.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    database.get_df.return_value = pd.DataFrame()
+
+    with pytest.raises(KeyError, match="Function"):
+        PrestoEngineSpec.get_function_names(database)
+
+
+def test_get_function_names_propagates_connection_error() -> None:
+    """Story 105824: the engine spec propagates; it does not degrade gracefully.
+
+    The ticket asks for graceful handling of connection errors, but that already
+    exists one layer up: ``Database.function_names`` wraps this call in a broad
+    ``try/except`` returning ``[]``, with a comment citing issue #9678 — "used in
+    bulk APIs and should not hard crash".
+
+    So the spec-layer contract is propagation, which is what is asserted here. The
+    graceful-``[]`` behaviour belongs to a ``Database.function_names`` test, in a
+    different module.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    database = mock.MagicMock()
+    database.get_df.side_effect = Exception("Connection refused")
+
+    with pytest.raises(Exception, match="Connection refused"):
+        PrestoEngineSpec.get_function_names(database)
 
 
 @pytest.mark.parametrize(
