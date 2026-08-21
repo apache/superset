@@ -338,7 +338,7 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   });
   userEvent.click(combobox);
 
-  await userEvent.type(combobox, 'revenue');
+  userEvent.type(combobox, 'revenue');
 
   let dropdown = document.querySelector(
     '.ant-select-dropdown-list',
@@ -352,7 +352,7 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   ).not.toBeInTheDocument();
 
   await userEvent.clear(combobox);
-  await userEvent.type(combobox, 'Unique');
+  userEvent.type(combobox, 'Unique');
 
   dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Unique Users')).toBeInTheDocument();
@@ -360,7 +360,7 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   expect(within(dropdown).queryByText('Gross Revenue')).not.toBeInTheDocument();
 
   await userEvent.clear(combobox);
-  await userEvent.type(combobox, 'total');
+  userEvent.type(combobox, 'total');
 
   dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Total Count')).toBeInTheDocument();
@@ -421,7 +421,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
     name: 'Select column',
   });
 
-  await userEvent.type(columnCombobox, 'product');
+  userEvent.type(columnCombobox, 'product');
 
   let dropdown = document.querySelector(
     '.ant-select-dropdown-list',
@@ -437,7 +437,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   expect(within(dropdown).queryByText('Last Modified')).not.toBeInTheDocument();
 
   await userEvent.clear(columnCombobox);
-  await userEvent.type(columnCombobox, 'Modified');
+  userEvent.type(columnCombobox, 'Modified');
 
   dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Last Modified')).toBeInTheDocument();
@@ -447,7 +447,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   expect(within(dropdown).queryByText('Product Title')).not.toBeInTheDocument();
 
   await userEvent.clear(columnCombobox);
-  await userEvent.type(columnCombobox, '_at');
+  userEvent.type(columnCombobox, '_at');
 
   dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Creation Timestamp')).toBeInTheDocument();

@@ -391,7 +391,7 @@ test('handles dashboard deletion confirmation', async () => {
 
   // Type DELETE in the confirmation input
   const deleteInput = screen.getByTestId('delete-modal-input');
-  await userEvent.type(deleteInput, 'DELETE');
+  userEvent.type(deleteInput, 'DELETE');
 
   // Verify Delete button becomes enabled
   await waitFor(() => {
@@ -476,7 +476,7 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
   });
 
   const deleteInput = screen.getByTestId('delete-modal-input');
-  await userEvent.type(deleteInput, 'DELETE');
+  userEvent.type(deleteInput, 'DELETE');
 
   const confirmDeleteButton = screen.getByTestId('modal-confirm-button');
 

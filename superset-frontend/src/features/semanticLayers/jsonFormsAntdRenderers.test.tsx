@@ -97,7 +97,7 @@ test('typing into a text control propagates through onChange', async () => {
   const onChange = setup();
 
   const input = screen.getByLabelText('Account');
-  await userEvent.type(input, 'acme');
+  userEvent.type(input, 'acme');
   // commit the value; avoid userEvent.tab() — the vendor's checkbox id
   // ("#/properties/use_ssl-input") breaks nwsapi's focusable-element scan
   fireEvent.blur(input);

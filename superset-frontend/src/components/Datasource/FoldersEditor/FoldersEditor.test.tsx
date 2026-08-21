@@ -179,7 +179,7 @@ test('filters items when searching', async () => {
   const searchInput = screen.getByPlaceholderText(
     'Search all metrics & columns',
   );
-  await userEvent.type(searchInput, 'Count');
+  userEvent.type(searchInput, 'Count');
 
   await waitFor(() => {
     expect(screen.getByText('Count')).toBeInTheDocument();
@@ -281,7 +281,7 @@ test('edits folder name when clicked in edit mode', async () => {
 
   const input = screen.getByDisplayValue('Custom Folder');
   await userEvent.clear(input);
-  await userEvent.type(input, 'Updated Folder');
+  userEvent.type(input, 'Updated Folder');
   fireEvent.blur(input);
 
   await waitFor(() => {
@@ -608,7 +608,7 @@ test('auto-expands folders when searching for items inside them', async () => {
   const searchInput = screen.getByPlaceholderText(
     'Search all metrics & columns',
   );
-  await userEvent.type(searchInput, 'Count');
+  userEvent.type(searchInput, 'Count');
 
   await waitFor(() => {
     expect(screen.getByText('Count')).toBeInTheDocument();
@@ -653,7 +653,7 @@ test('hides folders that do not contain matching items', async () => {
   const searchInput = screen.getByPlaceholderText(
     'Search all metrics & columns',
   );
-  await userEvent.type(searchInput, 'Count');
+  userEvent.type(searchInput, 'Count');
 
   await waitFor(() => {
     expect(screen.getByText('Count')).toBeInTheDocument();
@@ -705,7 +705,7 @@ test('shows all children when folder name matches search', async () => {
   const searchInput = screen.getByPlaceholderText(
     'Search all metrics & columns',
   );
-  await userEvent.type(searchInput, 'Metrics');
+  userEvent.type(searchInput, 'Metrics');
 
   await waitFor(() => {
     expect(screen.getByText('Metrics')).toBeInTheDocument();
@@ -762,7 +762,7 @@ test('restores previous collapsed state when search is cleared', async () => {
   const searchInput = screen.getByPlaceholderText(
     'Search all metrics & columns',
   );
-  await userEvent.type(searchInput, 'Count');
+  userEvent.type(searchInput, 'Count');
 
   await waitFor(() => {
     expect(screen.getByText('Count')).toBeInTheDocument();
@@ -821,7 +821,7 @@ test('handles nested folders correctly during search', async () => {
   const searchInput = screen.getByPlaceholderText(
     'Search all metrics & columns',
   );
-  await userEvent.type(searchInput, 'Deep');
+  userEvent.type(searchInput, 'Deep');
 
   await waitFor(() => {
     expect(screen.getByText('Parent')).toBeInTheDocument();

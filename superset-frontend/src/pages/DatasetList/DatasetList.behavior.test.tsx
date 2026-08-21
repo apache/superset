@@ -84,7 +84,7 @@ test('typing in search updates the input value correctly', async () => {
   const searchInput = within(searchContainer).getByRole('textbox');
 
   // Type search query
-  await userEvent.type(searchInput, 'sales');
+  userEvent.type(searchInput, 'sales');
 
   // Verify input value is updated
   await waitFor(() => {
@@ -108,7 +108,7 @@ test('typing in search triggers debounced API call with search filter', async ()
   ).length;
 
   // Type search query and submit with Enter to trigger the debounced fetch
-  await userEvent.type(searchInput, 'sales{enter}');
+  userEvent.type(searchInput, 'sales{enter}');
 
   // Wait for debounced API call
   await waitFor(
@@ -465,7 +465,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   const modal = await screen.findByRole('dialog');
   const modalInput = within(modal).getByRole('textbox');
   await userEvent.clear(modalInput);
-  await userEvent.type(modalInput, 'Copy of Dataset');
+  userEvent.type(modalInput, 'Copy of Dataset');
 
   const confirmButton = within(modal).getByRole('button', {
     name: /duplicate/i,

@@ -224,7 +224,7 @@ test('refreshes other tab data after deleting a chart', async () => {
   await userEvent.click(await screen.findByText('Delete'));
 
   const deleteInput = screen.getByTestId('delete-modal-input');
-  await userEvent.type(deleteInput, 'DELETE');
+  userEvent.type(deleteInput, 'DELETE');
   await userEvent.click(screen.getByTestId('modal-confirm-button'));
 
   await waitFor(() => {

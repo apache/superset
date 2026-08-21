@@ -76,7 +76,7 @@ test('renders with initial value', () => {
 test('calls onChange when editor content changes', async () => {
   render(<JSEditorControl {...defaultProps} />);
   const editor = screen.getByTestId('js-editor');
-  await userEvent.type(editor, '{ }');
+  userEvent.type(editor, '{ }');
   expect(defaultProps.onChange).toHaveBeenCalled();
 });
 

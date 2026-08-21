@@ -152,7 +152,7 @@ test('propagates the full selection array when adding to a large selection', asy
   const combobox = screen.getByRole('combobox');
   await userEvent.click(combobox);
   // Search-then-click: virtualization renders only a window of options.
-  await userEvent.type(combobox, 'metric_499');
+  userEvent.type(combobox, 'metric_499');
   const option = await waitFor(() => {
     const el = Array.from(
       document.querySelectorAll('.ant-select-item-option'),
@@ -210,7 +210,7 @@ test('DynamicFieldControl handles a 500-option enum via search (FR-006 sibling)'
   render(<DynamicFieldControl {...props} />);
   const combobox = screen.getByRole('combobox');
   await userEvent.click(combobox);
-  await userEvent.type(combobox, 'metric_042');
+  userEvent.type(combobox, 'metric_042');
   const option = await waitFor(() => {
     const el = Array.from(
       document.querySelectorAll('.ant-select-item-option'),

@@ -83,7 +83,7 @@ test('prop changes mid-edit do not clobber unsaved typing', async () => {
   const { rerender } = render(<DynamicEditableTitle {...props} title="Foo" />);
   const input = screen.getByRole('textbox') as HTMLInputElement;
   userEvent.click(input);
-  await userEvent.type(input, 'X', { delay: 1 });
+  userEvent.type(input, 'X', { delay: 1 });
   expect(input.value).toBe('FooX');
   rerender(<DynamicEditableTitle {...props} title="Bar" />);
   expect(input.value).toBe('FooX');

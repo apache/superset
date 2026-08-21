@@ -562,7 +562,7 @@ test('can search charts by chart name', async () => {
   );
   expect(searchInput).toBeInTheDocument();
 
-  await userEvent.type(searchInput, 'Chart 1');
+  userEvent.type(searchInput, 'Chart 1');
 
   await waitFor(() => {
     expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
@@ -588,7 +588,7 @@ test('can search charts by editor name', async () => {
     'Search charts by name, editor, or dashboard',
   );
 
-  await userEvent.type(searchInput, 'Bob');
+  userEvent.type(searchInput, 'Bob');
 
   await waitFor(() => {
     expect(screen.queryByText('Test Chart 1')).not.toBeInTheDocument();
@@ -607,7 +607,7 @@ test('can search charts by dashboard title', async () => {
     'Search charts by name, editor, or dashboard',
   );
 
-  await userEvent.type(searchInput, 'Test Dashboard');
+  userEvent.type(searchInput, 'Test Dashboard');
 
   await waitFor(() => {
     expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
@@ -626,7 +626,7 @@ test('chart search is case-insensitive', async () => {
     'Search charts by name, editor, or dashboard',
   );
 
-  await userEvent.type(searchInput, 'CHART 1');
+  userEvent.type(searchInput, 'CHART 1');
 
   await waitFor(() => {
     expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
@@ -645,7 +645,7 @@ test('shows No items when search has no results', async () => {
     'Search charts by name, editor, or dashboard',
   );
 
-  await userEvent.type(searchInput, 'nonexistent chart');
+  userEvent.type(searchInput, 'nonexistent chart');
 
   await waitFor(() => {
     expect(screen.queryByText('Test Chart 1')).not.toBeInTheDocument();
@@ -669,7 +669,7 @@ test('hides pagination when searching and restores it when cleared', async () =>
     'Search charts by name, editor, or dashboard',
   );
 
-  await userEvent.type(searchInput, 'Chart 1');
+  userEvent.type(searchInput, 'Chart 1');
 
   // Only matching chart is shown
   await waitFor(() => {

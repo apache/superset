@@ -311,7 +311,7 @@ test('"Name" should not be empty when saved', async () => {
   const name = screen.getByRole('textbox', { name: 'Name' });
 
   await userEvent.clear(name);
-  await userEvent.type(name, 'Test chart new name');
+  userEvent.type(name, 'Test chart new name');
 
   expect(name).toHaveValue('Test chart new name');
 
@@ -339,7 +339,7 @@ test('"Cache timeout" should not be empty when saved', async () => {
     name: 'Cache timeout',
   });
   await userEvent.clear(cacheTimeout);
-  await userEvent.type(cacheTimeout, '1000');
+  userEvent.type(cacheTimeout, '1000');
   expect(cacheTimeout).toHaveValue('1000');
 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -366,7 +366,7 @@ test('"Description" should not be empty when saved', async () => {
   const description = textboxes[1]; // Description is the textarea
 
   await userEvent.clear(description);
-  await userEvent.type(description, 'Test description');
+  userEvent.type(description, 'Test description');
 
   expect(description).toHaveValue('Test description');
 
@@ -394,7 +394,7 @@ test('"Certified by" should not be empty when saved', async () => {
     name: 'Certified by',
   });
   await userEvent.clear(certifiedBy);
-  await userEvent.type(certifiedBy, 'Test certified by');
+  userEvent.type(certifiedBy, 'Test certified by');
   expect(certifiedBy).toHaveValue('Test certified by');
 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -421,7 +421,7 @@ test('"Certification details" should not be empty when saved', async () => {
     name: 'Certification details',
   });
   await userEvent.clear(certificationDetails);
-  await userEvent.type(certificationDetails, 'Test certification details');
+  userEvent.type(certificationDetails, 'Test certification details');
   expect(certificationDetails).toHaveValue('Test certification details');
 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));

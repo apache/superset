@@ -612,7 +612,7 @@ test('can search metrics by metric name', async () => {
   expect(screen.getByText('avg__num')).toBeInTheDocument();
 
   // Search for a specific metric
-  await userEvent.type(searchInput, 'sum');
+  userEvent.type(searchInput, 'sum');
 
   // Verify filtered results
   expect(screen.getByText('sum__num')).toBeInTheDocument();
@@ -641,7 +641,7 @@ test('can search metrics by verbose name', async () => {
   );
 
   // Search by verbose name
-  await userEvent.type(searchInput, 'avg');
+  userEvent.type(searchInput, 'avg');
 
   // Verify filtered results
   await waitFor(() => {
@@ -662,7 +662,7 @@ test('metric search is case-insensitive', async () => {
   );
 
   // Search with uppercase
-  await userEvent.type(searchInput, 'SUM');
+  userEvent.type(searchInput, 'SUM');
 
   // Verify results are still found
   await waitFor(() => {
@@ -686,7 +686,7 @@ test('can search columns by name', async () => {
   const initialColumns = screen.getAllByRole('row');
 
   // Search for a specific column
-  await userEvent.type(searchInput, 'ds');
+  userEvent.type(searchInput, 'ds');
 
   // Verify filtered results (fewer rows than before)
   await waitFor(() => {
@@ -714,7 +714,7 @@ test('column search is case-insensitive', async () => {
   const searchInput = screen.getByPlaceholderText('Search columns by name');
 
   // Search with uppercase
-  await userEvent.type(searchInput, 'DS');
+  userEvent.type(searchInput, 'DS');
 
   // Verify results are still found
   await waitFor(() => {
@@ -775,7 +775,7 @@ test('can search calculated columns by name', async () => {
   expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
 
   // Search for a specific calculated column
-  await userEvent.type(searchInput, 'california');
+  userEvent.type(searchInput, 'california');
 
   // Verify filtered results
   await waitFor(() => {
@@ -827,7 +827,7 @@ test('calculated column search is case-insensitive', async () => {
   );
 
   // Search with different case
-  await userEvent.type(searchInput, 'UPPER');
+  userEvent.type(searchInput, 'UPPER');
 
   // Verify results are still found
   await waitFor(() => {

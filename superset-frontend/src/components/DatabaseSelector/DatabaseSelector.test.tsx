@@ -295,7 +295,7 @@ test('Should fetch the search keyword when total count exceeds initial options',
     expect(fetchMock.callHistory.calls(databaseApiRoute)).toHaveLength(1),
   );
   expect(select).toBeInTheDocument();
-  await userEvent.type(select, 'keywordtest');
+  userEvent.type(select, 'keywordtest');
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(databaseApiRoute)).toHaveLength(2),
   );

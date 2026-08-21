@@ -138,7 +138,7 @@ test('duplicate button disabled after clearing input', async () => {
   const input = await screen.findByTestId('duplicate-modal-input');
 
   // Type some text first
-  await userEvent.type(input, 'test');
+  userEvent.type(input, 'test');
 
   // Then clear it
   await userEvent.clear(input);
@@ -157,7 +157,7 @@ test('duplicate button enabled when name is entered', async () => {
   const input = await screen.findByTestId('duplicate-modal-input');
 
   // Type a new name
-  await userEvent.type(input, 'new_dataset_copy');
+  userEvent.type(input, 'new_dataset_copy');
 
   // Duplicate button should now be enabled
   const duplicateButton = await screen.findByRole('button', {
@@ -175,7 +175,7 @@ test('clicking Duplicate calls onDuplicate with new name', async () => {
   const input = await screen.findByTestId('duplicate-modal-input');
 
   // Type a new name
-  await userEvent.type(input, 'new_dataset_copy');
+  userEvent.type(input, 'new_dataset_copy');
 
   // Click Duplicate button
   const duplicateButton = await screen.findByRole('button', {
@@ -199,7 +199,7 @@ test('pressing Enter key triggers duplicate action', async () => {
 
   // Clear any existing value and type new name with Enter at end
   await userEvent.clear(input);
-  await userEvent.type(input, 'new_dataset_copy{enter}');
+  userEvent.type(input, 'new_dataset_copy{enter}');
 
   // onDuplicate should be called by onPressEnter handler
   await waitFor(() => {
@@ -216,7 +216,7 @@ test('pressing Enter with empty input does not trigger duplicate action', async 
   const input = await screen.findByTestId('duplicate-modal-input');
 
   // Press Enter without typing a name
-  await userEvent.type(input, '{enter}');
+  userEvent.type(input, '{enter}');
 
   // onPressEnter should not bypass the disabled state
   expect(onDuplicate).not.toHaveBeenCalled();
@@ -250,7 +250,7 @@ test('cancel button clears input and closes modal', async () => {
   const input = await screen.findByTestId('duplicate-modal-input');
 
   // Type some text
-  await userEvent.type(input, 'test_name');
+  userEvent.type(input, 'test_name');
 
   expect(input).toHaveValue('test_name');
 
@@ -289,7 +289,7 @@ test('input field clears when new dataset is provided', async () => {
   const input = await screen.findByTestId('duplicate-modal-input');
 
   // Type a name
-  await userEvent.type(input, 'old_name');
+  userEvent.type(input, 'old_name');
 
   expect(input).toHaveValue('old_name');
 

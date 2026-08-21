@@ -209,7 +209,7 @@ test('can delete a single dashboard from card menu', async () => {
 
   // Type DELETE in the confirmation input
   const deleteInput = screen.getByTestId('delete-modal-input');
-  await userEvent.type(deleteInput, 'DELETE');
+  userEvent.type(deleteInput, 'DELETE');
 
   // Mock the DELETE endpoint
   fetchMock.delete('glob:*/api/v1/dashboard/*', {
@@ -310,7 +310,7 @@ test('can edit dashboard title via properties modal', async () => {
 
   // Change the title
   await userEvent.clear(titleInput);
-  await userEvent.type(titleInput, 'Updated Dashboard Title');
+  userEvent.type(titleInput, 'Updated Dashboard Title');
 
   // Mock the PUT endpoint
   fetchMock.put('glob:*/api/v1/dashboard/*', {
@@ -369,7 +369,7 @@ test('opens delete confirmation from list view trash icon', async () => {
 
   // Type DELETE in the confirmation input
   const deleteInput = screen.getByTestId('delete-modal-input');
-  await userEvent.type(deleteInput, 'DELETE');
+  userEvent.type(deleteInput, 'DELETE');
 
   // Mock the DELETE endpoint
   fetchMock.delete('glob:*/api/v1/dashboard/*', {

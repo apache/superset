@@ -321,7 +321,7 @@ describe('ListView', () => {
 
     // Handle search filter
     const searchFilter = screen.getByPlaceholderText('Type a value');
-    await userEvent.type(searchFilter, 'something');
+    userEvent.type(searchFilter, 'something');
     await userEvent.tab();
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalledWith(

@@ -121,7 +121,7 @@ const addValidJsonData = async () => {
   );
   const jsonEditor = screen.getByTestId('json-editor');
   await userEvent.clear(jsonEditor);
-  await userEvent.type(jsonEditor, validJson);
+  userEvent.type(jsonEditor, validJson);
 };
 
 // Helper to add JSON with unknown tokens (triggers warnings but not errors)
@@ -133,7 +133,7 @@ const addJsonWithUnknownToken = async () => {
   );
   const jsonEditor = screen.getByTestId('json-editor');
   await userEvent.clear(jsonEditor);
-  await userEvent.type(jsonEditor, jsonWithUnknown);
+  userEvent.type(jsonEditor, jsonWithUnknown);
 };
 
 test('renders modal with add theme dialog when show is true', () => {
@@ -329,7 +329,7 @@ test('enables save button when theme name is entered', async () => {
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'My New Theme');
+  userEvent.type(nameInput, 'My New Theme');
   await addValidJsonData();
 
   // Wait for validation to complete and button to become enabled
@@ -356,7 +356,7 @@ test('validates JSON format and enables save button', async () => {
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'Test Theme');
+  userEvent.type(nameInput, 'Test Theme');
   await addValidJsonData();
 
   // Wait for validation to complete and button to become enabled
@@ -392,7 +392,7 @@ test('warnings do not block save - unknown tokens allow save with warnings', asy
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'Theme With Unknown Token');
+  userEvent.type(nameInput, 'Theme With Unknown Token');
   await addJsonWithUnknownToken();
 
   // Wait for validation to complete - button should still be enabled despite warnings
@@ -419,7 +419,7 @@ test('shows unsaved changes alert when closing modal with modifications', async 
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'Modified Theme');
+  userEvent.type(nameInput, 'Modified Theme');
 
   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
   await userEvent.click(cancelButton);
@@ -474,7 +474,7 @@ test('allows user to keep editing after triggering cancel alert', async () => {
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'Modified Theme');
+  userEvent.type(nameInput, 'Modified Theme');
 
   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
   await userEvent.click(cancelButton);
@@ -512,7 +512,7 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'Modified Theme');
+  userEvent.type(nameInput, 'Modified Theme');
   await addValidJsonData();
 
   // Wait for validation to complete before canceling
@@ -570,7 +570,7 @@ test('discards changes when clicking Discard button in unsaved changes alert', a
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'Modified Theme');
+  userEvent.type(nameInput, 'Modified Theme');
 
   const cancelButton = screen.getByRole('button', { name: 'Cancel' });
   await userEvent.click(cancelButton);
@@ -603,7 +603,7 @@ test('creates new theme when saving', async () => {
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'New Theme');
+  userEvent.type(nameInput, 'New Theme');
   await addValidJsonData();
 
   // Wait for validation to complete and button to become enabled
@@ -641,7 +641,7 @@ test('updates existing theme when saving', async () => {
 
   const nameInput = await screen.findByDisplayValue('Test Theme');
   await userEvent.clear(nameInput);
-  await userEvent.type(nameInput, 'Updated Theme');
+  userEvent.type(nameInput, 'Updated Theme');
 
   const saveButton = screen.getByRole('button', { name: 'Save' });
   await userEvent.click(saveButton);
@@ -667,7 +667,7 @@ test('handles API errors gracefully', async () => {
   );
 
   const nameInput = screen.getByPlaceholderText('Enter theme name');
-  await userEvent.type(nameInput, 'New Theme');
+  userEvent.type(nameInput, 'New Theme');
   await addValidJsonData();
 
   // Wait for validation to complete and button to become enabled

@@ -141,11 +141,11 @@ describe('SaveDatasetModal', () => {
     await waitFor(() => expect(saveBtn).toBeDisabled());
 
     // Whitespace-only name keeps save disabled
-    await userEvent.type(nameInput, '   ');
+    userEvent.type(nameInput, '   ');
     await waitFor(() => expect(saveBtn).toBeDisabled());
 
     // A non-empty name re-enables save
-    await userEvent.type(nameInput, 'My dataset');
+    userEvent.type(nameInput, 'My dataset');
     await waitFor(() => expect(saveBtn).toBeEnabled());
   });
 

@@ -124,7 +124,7 @@ test('can select a timezone values and returns canonical timezone name', async (
 
   const searchInput = screen.getByRole('combobox');
   // search for mountain time
-  await userEvent.type(searchInput, 'mou');
+  userEvent.type(searchInput, 'mou');
   const findTitle = 'GMT -07:00 (Mountain Standard Time)';
   const selectOption = await screen.findByTitle(findTitle);
   await userEvent.click(selectOption);

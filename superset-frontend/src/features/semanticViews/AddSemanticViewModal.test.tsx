@@ -492,7 +492,7 @@ test('renders and selects within a 500-metric runtime schema', async () => {
 
   const metricsBox = await screen.findByRole('combobox', { name: /metrics/i });
   await userEvent.click(metricsBox);
-  await userEvent.type(metricsBox, largeMetricEnum[42]);
+  userEvent.type(metricsBox, largeMetricEnum[42]);
   const option = await waitFor(() => {
     const el = Array.from(
       document.querySelectorAll('.ant-select-item-option'),

@@ -318,7 +318,7 @@ describe('DashboardList Card View Tests', () => {
 
     // Type DELETE in the confirmation input
     const deleteInput = screen.getByTestId('delete-modal-input');
-    await userEvent.type(deleteInput, 'DELETE');
+    userEvent.type(deleteInput, 'DELETE');
 
     // Mock the bulk DELETE endpoint
     fetchMock.delete('glob:*/api/v1/dashboard/?*', {

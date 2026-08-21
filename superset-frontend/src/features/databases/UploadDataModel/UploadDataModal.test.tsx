@@ -500,7 +500,7 @@ describe('UploadDataModal - Form Submission', () => {
     }
 
     const inputTableName = screen.getByRole('textbox', { name: /table name/i });
-    await userEvent.type(inputTableName, 'table1');
+    userEvent.type(inputTableName, 'table1');
 
     const uploadButton = screen.getByRole('button', { name: 'Upload' });
     await userEvent.click(uploadButton);
