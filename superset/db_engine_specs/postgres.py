@@ -23,6 +23,7 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
+import sqlalchemy as sa
 from flask_babel import gettext as __
 from marshmallow import fields, pre_load
 from marshmallow.validate import Range
@@ -31,6 +32,7 @@ from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSO
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
@@ -194,6 +196,25 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         TimeGrain.MONTH: "DATE_TRUNC('month', {col})",
         TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
         TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
+    }
+
+    # Verified against a live postgres:16 instance, including under GROUPING
+    # SETS (the pivot table's non-additive-total rollup pattern): the grand
+    # total correctly reflects every row, not an aggregate-of-aggregates.
+    # STDDEV_SAMP/VAR_SAMP (not MEDIAN -- see its override) are inherited by
+    # Redshift (a Postgres fork); its SQL function reference documents the
+    # same support, but that has not been separately verified against a live
+    # Redshift instance.
+    # Also inherited by TimescaleDB (a Postgres extension, not a forked query
+    # engine -- it runs unmodified Postgres aggregate execution) and by
+    # Aurora PostgreSQL / its Data API variant (AWS's wire- and
+    # SQL-compatible managed Postgres). Engines that share the SQL dialect
+    # but run a materially different query engine (CockroachDB, Greenplum,
+    # SAP HANA) reset this to `{}` instead -- see those engine specs.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": lambda col: sa.func.percentile_cont(0.5).within_group(col),
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
     }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {

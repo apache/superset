@@ -728,3 +728,30 @@ def test_parameters_schema_port_is_not_required() -> None:
     assert "port" not in json_schema.get("required", [])
     assert "host" in json_schema.get("required", [])
     assert "database" in json_schema.get("required", [])
+
+
+@pytest.mark.parametrize(
+    ("aggregate", "expected_sql"),
+    [
+        ("MEDIAN", "percentile_cont(0.5) WITHIN GROUP (ORDER BY sales)"),
+        ("STDDEV_SAMP", "stddev_samp(sales)"),
+        ("VAR_SAMP", "var_samp(sales)"),
+    ],
+)
+def test_extended_aggregation_func_compiles_expected_sql(
+    aggregate: str, expected_sql: str
+) -> None:
+    """
+    Verified against a live postgres:16 instance (including under GROUPING
+    SETS): these expressions compute the correct database-wide statistic, not
+    an aggregate-of-per-group-aggregates.
+    """
+    func = spec.get_extended_aggregation_func(aggregate)
+    assert func is not None
+
+    compiled = str(
+        func(column("sales")).compile(
+            dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert compiled == expected_sql

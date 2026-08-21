@@ -32,7 +32,11 @@ import {
 import Chart from 'src/types/Chart';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
-import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
+import {
+  handleChartDelete,
+  CardStyles,
+  isNavigationHandledByLink,
+} from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
@@ -208,8 +212,12 @@ export default function ChartCard({
 
   return (
     <CardStyles
-      onClick={() => {
-        if (!bulkSelectEnabled && chart.url) {
+      onClick={event => {
+        if (
+          !bulkSelectEnabled &&
+          chart.url &&
+          !isNavigationHandledByLink(event)
+        ) {
           history.push(chart.url);
         }
       }}

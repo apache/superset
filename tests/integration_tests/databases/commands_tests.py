@@ -1139,9 +1139,9 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
 
-    ``port`` is intentionally absent from the payload (and from the expected
-    "missing" list below): it is no longer a required parameter for
-    Postgres, since a blank port falls back to the default (5432).
+    ``port`` is explicitly ``None`` in the payload -- not required for
+    Postgres, since a blank/null port falls back to the default 5432 -- and
+    is correctly absent from the expected "missing" list below.
     """
     is_hostname_valid.return_value = False
 
