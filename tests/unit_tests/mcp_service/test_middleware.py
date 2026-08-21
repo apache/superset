@@ -1472,6 +1472,13 @@ class TestSanitizeParams:
         assert result["items"][0]["token"] == "[REDACTED]"  # noqa: S105
         assert result["items"][1]["name"] == "x"
 
+    def test_redacts_sensitive_key_inside_nested_list_of_lists(self) -> None:
+        """A list nested inside another list must still be recursed into,
+        not copied unchanged -- otherwise a sensitive key inside it would
+        reach the audit log unredacted."""
+        result = _sanitize_params({"items": [[{"password": "hunter2"}]]})
+        assert result["items"][0][0]["password"] == "[REDACTED]"  # noqa: S105
+
     def test_non_dict_passthrough(self) -> None:
         assert _sanitize_params("not-a-dict") == "not-a-dict"  # type: ignore[arg-type]
 

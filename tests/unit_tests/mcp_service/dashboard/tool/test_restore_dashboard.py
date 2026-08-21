@@ -240,6 +240,33 @@ async def test_restore_dashboard_slug_conflict(
     assert "slug" in (content["error"] or "").lower()
 
 
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dashboard_editorship_check_db_error_is_structured(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """DB failures during the editorship check (not just the initial lookup)
+    must return the structured LookupFailed response instead of escaping the
+    tool as an unhandled error."""
+    from sqlalchemy.exc import OperationalError
+
+    mock_find.return_value = _mock_dashboard(10, "Sales Dashboard")
+
+    with patch(
+        "superset.security_manager.raise_for_editorship",
+        side_effect=OperationalError("SELECT ...", {}, Exception("down")),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_dashboard", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "LookupFailed"
+    assert "down" not in (content["error"] or "")
+
+
 @pytest.mark.asyncio
 async def test_restore_dashboard_rejects_boolean_identifier(
     mcp_server: object,
