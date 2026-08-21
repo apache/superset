@@ -138,3 +138,26 @@ def test_get_embedded_dashboard_allows_iframe_sec_fetch_dest(
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri, headers={"Sec-Fetch-Dest": "iframe"})
     assert response.status_code == 200
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    EMBEDDED_SUPERSET=True,
+)
+def test_get_embedded_dashboard_is_neutral_shell(client: FlaskClient[Any]):  # noqa: F811
+    """The pre-token page must not disclose dashboard metadata.
+
+    The Referer / Sec-Fetch-Dest checks are browser cooperation only -- a
+    non-browser client can forge them -- so anything rendered here is
+    effectively public. Title and description belong behind the
+    guest-token-authenticated API.
+    """
+    dash = db.session.query(Dashboard).filter_by(slug="births").first()
+    dash.description = "internal-only dashboard description"
+    embedded = EmbeddedDashboardDAO.upsert(dash, [])
+    db.session.flush()
+    response = client.get(f"embedded/{embedded.uuid}")
+    assert response.status_code == 200
+    assert dash.dashboard_title.encode() not in response.data
+    assert b"internal-only dashboard description" not in response.data
