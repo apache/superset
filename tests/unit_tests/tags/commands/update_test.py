@@ -349,10 +349,10 @@ def test_update_command_empty_objects_to_tag_only_removes_accessible(
 ):
     """An empty/omitted objects_to_tag must not mass-delete every association.
 
-    Regression test for the finding's exact exploit payload: PUT with no
-    objects_to_tag used to be treated as "delete every current association"
-    with zero per-object check. Now each deletion is access-checked, so
-    objects the caller cannot modify keep their association.
+    A PUT with no objects_to_tag used to be treated as "delete every current
+    association" with zero per-object check. Now each deletion is
+    access-checked, so objects the caller cannot modify keep their
+    association.
     """
     from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
     from superset.commands.tag.update import UpdateTagCommand
