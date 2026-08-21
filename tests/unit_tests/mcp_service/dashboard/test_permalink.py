@@ -28,8 +28,26 @@ from superset.mcp_service.dashboard.permalink import (
     extract_dashboard_permalink_key,
     get_dashboard_permalink,
     get_matching_dashboard_permalink_state,
+    lookup_dashboard_reference,
     refresh_request_user_for_permalink_access,
 )
+
+FOUND = "dashboard"
+PERMALINK_URL = "https://example.test/dashboard/p/shared-key/"
+
+
+def _lookup_finding(*found_identifiers: int | str):
+    """Build a ``lookup`` callable that only resolves ``found_identifiers``."""
+    known = {str(identifier) for identifier in found_identifiers}
+
+    def lookup(identifier: int | str) -> str | None:
+        return FOUND if str(identifier) in known else None
+
+    return lookup
+
+
+def _is_found(result: str | None) -> bool:
+    return result is not None
 
 
 @pytest.mark.parametrize(
@@ -189,3 +207,168 @@ def test_get_matching_dashboard_permalink_state_skips_check_when_permalink_resol
 
     assert state is not None
     assert state.key == "key-1"
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+def test_lookup_dashboard_reference_identifier_only(mock_get_permalink) -> None:
+    result = lookup_dashboard_reference(
+        identifier=42,
+        permalink_key=None,
+        lookup=_lookup_finding(42),
+        is_found=_is_found,
+    )
+
+    assert result.result == FOUND
+    assert result.permalink_key is None
+    assert result.permalink_value is None
+    assert result.resolved_from_permalink is False
+    mock_get_permalink.assert_not_called()
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+def test_lookup_dashboard_reference_identifier_wins_but_permalink_adds_state(
+    mock_get_permalink,
+) -> None:
+    """An explicit identifier selects the dashboard; the permalink only adds state."""
+    value = {"dashboardId": "42", "state": {"activeTabs": ["TAB-A"]}}
+    mock_get_permalink.return_value = ("key-1", value)
+
+    result = lookup_dashboard_reference(
+        identifier=42,
+        permalink_key="key-1",
+        lookup=_lookup_finding(42),
+        is_found=_is_found,
+    )
+
+    assert result.result == FOUND
+    assert result.permalink_key == "key-1"
+    assert result.permalink_value == value
+    assert result.resolved_from_permalink is False
+
+
+@patch(
+    "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+    return_value=None,
+)
+def test_lookup_dashboard_reference_keeps_dashboard_when_permalink_unresolvable(
+    mock_get_permalink,
+) -> None:
+    result = lookup_dashboard_reference(
+        identifier=42,
+        permalink_key="expired-key",
+        lookup=_lookup_finding(42),
+        is_found=_is_found,
+    )
+
+    assert result.result == FOUND
+    assert result.permalink_key == "expired-key"
+    assert result.permalink_value is None
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+def test_lookup_dashboard_reference_numeric_identifier_not_found(
+    mock_get_permalink,
+) -> None:
+    """A numeric identifier never falls back to permalink resolution."""
+    result = lookup_dashboard_reference(
+        identifier=99,
+        permalink_key=None,
+        lookup=_lookup_finding(),
+        is_found=_is_found,
+    )
+
+    assert result.result is None
+    assert result.permalink_key is None
+    mock_get_permalink.assert_not_called()
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+def test_lookup_dashboard_reference_identifier_not_found_with_explicit_permalink(
+    mock_get_permalink,
+) -> None:
+    """An explicit permalink_key keeps the identifier's own not-found result."""
+    result = lookup_dashboard_reference(
+        identifier="missing-slug",
+        permalink_key="key-1",
+        lookup=_lookup_finding(),
+        is_found=_is_found,
+    )
+
+    assert result.result is None
+    assert result.permalink_key == "key-1"
+    mock_get_permalink.assert_not_called()
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+def test_lookup_dashboard_reference_shared_url_identifier(mock_get_permalink) -> None:
+    value = {"dashboardId": "42", "state": {"activeTabs": ["TAB-A"]}}
+    mock_get_permalink.return_value = ("shared-key", value)
+
+    result = lookup_dashboard_reference(
+        identifier=PERMALINK_URL,
+        permalink_key=None,
+        lookup=_lookup_finding(42),
+        is_found=_is_found,
+    )
+
+    assert result.result == FOUND
+    assert result.permalink_key == "shared-key"
+    assert result.permalink_value == value
+    assert result.resolved_from_permalink is True
+    mock_get_permalink.assert_called_once_with("shared-key")
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+def test_lookup_dashboard_reference_permalink_only(mock_get_permalink) -> None:
+    value = {"dashboardId": "42", "state": {"activeTabs": ["TAB-A"]}}
+    mock_get_permalink.return_value = ("key-1", value)
+
+    result = lookup_dashboard_reference(
+        identifier=None,
+        permalink_key="key-1",
+        lookup=_lookup_finding(42),
+        is_found=_is_found,
+    )
+
+    assert result.result == FOUND
+    assert result.permalink_key == "key-1"
+    assert result.resolved_from_permalink is True
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+def test_lookup_dashboard_reference_bare_string_falls_back_to_permalink(
+    mock_get_permalink,
+) -> None:
+    """An ambiguous bare string tries identifier lookup before permalink lookup."""
+    value = {"dashboardId": "42", "state": {"activeTabs": ["TAB-A"]}}
+    mock_get_permalink.return_value = ("maybe-key", value)
+
+    result = lookup_dashboard_reference(
+        identifier="maybe-key",
+        permalink_key=None,
+        lookup=_lookup_finding(42),
+        is_found=_is_found,
+    )
+
+    assert result.result == FOUND
+    assert result.permalink_key == "maybe-key"
+    assert result.resolved_from_permalink is True
+    mock_get_permalink.assert_called_once_with("maybe-key")
+
+
+@patch(
+    "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+    return_value=None,
+)
+def test_lookup_dashboard_reference_unresolvable_reference(mock_get_permalink) -> None:
+    result = lookup_dashboard_reference(
+        identifier="nonexistent",
+        permalink_key=None,
+        lookup=_lookup_finding(),
+        is_found=_is_found,
+    )
+
+    assert result.result is None
+    assert result.permalink_key == "nonexistent"
+    assert result.permalink_value is None
+    assert result.resolved_from_permalink is False
