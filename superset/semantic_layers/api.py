@@ -668,6 +668,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Runtime JSON Schema
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
@@ -724,6 +726,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Available views
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
@@ -868,6 +872,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -914,6 +920,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: Semantic layer deleted
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -1169,6 +1177,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
               description: A semantic layer
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
