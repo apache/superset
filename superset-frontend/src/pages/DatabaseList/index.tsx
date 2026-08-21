@@ -156,29 +156,33 @@ function SemanticLayerCascadeWarning({
           preview.dependentViewCount,
         )}
       </p>
-      <h4>{t('Affected semantic views')}</h4>
-      <List
-        split={false}
-        size="small"
-        dataSource={preview.dependentViewNames}
-        renderItem={(name: string) => (
-          <List.Item key={name} compact>
-            <List.Item.Meta avatar={<span>•</span>} title={name} />
-          </List.Item>
-        )}
-        footer={
-          overflowViewCount > 0 && (
-            <div>
-              {tn(
-                '... and %s other',
-                '... and %s others',
-                overflowViewCount,
-                overflowViewCount,
-              )}
-            </div>
-          )
-        }
-      />
+      {listedViewCount > 0 && (
+        <>
+          <h4>{t('Affected semantic views')}</h4>
+          <List
+            split={false}
+            size="small"
+            dataSource={preview.dependentViewNames}
+            renderItem={(name: string, index: number) => (
+              <List.Item key={`${index}-${name}`} compact>
+                <List.Item.Meta avatar={<span>•</span>} title={name} />
+              </List.Item>
+            )}
+            footer={
+              overflowViewCount > 0 && (
+                <div>
+                  {tn(
+                    '... and %s other',
+                    '... and %s others',
+                    overflowViewCount,
+                    overflowViewCount,
+                  )}
+                </div>
+              )
+            }
+          />
+        </>
+      )}
     </>
   );
 }
@@ -795,30 +799,28 @@ function DatabaseList({
 
           if (isSemanticLayer) {
             if (!canEdit && !canDelete) return null;
+            const isLoadingDependents =
+              slDeletePreview?.status === 'loading' &&
+              slDeletePreview.item.uuid === original.uuid;
             return (
               <div className="actions">
                 {canDelete && (
                   <ActionButton
                     label={t('Delete')}
                     tooltip={
-                      slDeletePreview?.status === 'loading' &&
-                      slDeletePreview.item.uuid === original.uuid
+                      isLoadingDependents
                         ? t('Loading dependent semantic views')
                         : t('Delete')
                     }
                     placement="bottom"
                     icon={
-                      slDeletePreview?.status === 'loading' &&
-                      slDeletePreview.item.uuid === original.uuid ? (
+                      isLoadingDependents ? (
                         <Icons.LoadingOutlined iconSize="l" spin />
                       ) : (
                         <Icons.DeleteOutlined iconSize="l" />
                       )
                     }
-                    disabled={
-                      slDeletePreview?.status === 'loading' &&
-                      slDeletePreview.item.uuid === original.uuid
-                    }
+                    disabled={isLoadingDependents}
                     onClick={() => openSemanticLayerDeleteModal(original)}
                   />
                 )}
