@@ -24,6 +24,7 @@ import {
   DASHBOARD_ROOT_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
   TABS_TYPE,
@@ -40,7 +41,7 @@ const notResizable = [
   TAB_TYPE,
 ];
 
-const resizable = [COLUMN_TYPE, CHART_TYPE, MARKDOWN_TYPE];
+const resizable = [COLUMN_TYPE, CHART_TYPE, EXTENSION_TYPE, MARKDOWN_TYPE];
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('componentIsResizable', () => {

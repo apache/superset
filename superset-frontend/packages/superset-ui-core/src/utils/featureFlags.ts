@@ -31,6 +31,7 @@ export enum FeatureFlag {
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
+  CspRuntimeAllowlist = 'CSP_RUNTIME_ALLOWLIST',
   CssTemplates = 'CSS_TEMPLATES',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
   DashboardVirtualizationDeferData = 'DASHBOARD_VIRTUALIZATION_DEFER_DATA',
