@@ -292,7 +292,7 @@ describe('VizTypeControl', () => {
 
     expect(labels.length).toBeGreaterThan(0);
     labels.forEach(label => {
-      expect(label).toHaveAttribute('title', label.textContent);
+      expect(label).toHaveAttribute('title', label.textContent ?? '');
     });
   });
 
