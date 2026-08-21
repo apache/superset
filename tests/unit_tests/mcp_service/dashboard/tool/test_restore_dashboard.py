@@ -45,11 +45,15 @@ def mcp_server() -> object:
 @pytest.fixture(autouse=True)
 def mock_auth() -> Iterator[Mock]:
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "admin"
-        mock_get_user.return_value = mock_user
-        yield mock_get_user
+        # The tool's editorship gate calls the real security manager; default
+        # it to a no-op (caller is an editor) so unrelated tests keep passing.
+        # The disclosure regression tests below re-patch it to raise.
+        with patch("superset.security_manager.raise_for_editorship"):
+            mock_user = Mock()
+            mock_user.id = 1
+            mock_user.username = "admin"
+            mock_get_user.return_value = mock_user
+            yield mock_get_user
 
 
 def _mock_dashboard(
@@ -236,6 +240,33 @@ async def test_restore_dashboard_slug_conflict(
     assert "slug" in (content["error"] or "").lower()
 
 
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dashboard_editorship_check_db_error_is_structured(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """DB failures during the editorship check (not just the initial lookup)
+    must return the structured LookupFailed response instead of escaping the
+    tool as an unhandled error."""
+    from sqlalchemy.exc import OperationalError
+
+    mock_find.return_value = _mock_dashboard(10, "Sales Dashboard")
+
+    with patch(
+        "superset.security_manager.raise_for_editorship",
+        side_effect=OperationalError("SELECT ...", {}, Exception("down")),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_dashboard", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "LookupFailed"
+    assert "down" not in (content["error"] or "")
+
+
 @pytest.mark.asyncio
 async def test_restore_dashboard_rejects_boolean_identifier(
     mcp_server: object,
@@ -248,3 +279,71 @@ async def test_restore_dashboard_rejects_boolean_identifier(
             await client.call_tool(
                 "restore_dashboard", {"request": {"identifier": True}}
             )
+
+
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dashboard_inaccessible_dashboard_reads_as_not_found(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """A dashboard outside the caller's RBAC scope must not leak its
+    existence or title: the unfiltered restore lookup finds it, the
+    base-filtered re-lookup does not, so the tool must answer exactly as if it
+    does not exist."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mock_find.side_effect = [
+        _mock_dashboard(dashboard_id=10, title="Secret Board"),
+        None,  # base-filtered re-lookup
+    ]
+    forbidden = SupersetSecurityException(
+        SupersetError(
+            message="forbidden",
+            error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch("superset.security_manager.raise_for_editorship", side_effect=forbidden):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_dashboard", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["error_type"] == "NotFound"
+    assert "Secret Board" not in (content["error"] or "")
+
+
+@patch(_FIND)
+@pytest.mark.asyncio
+async def test_restore_dashboard_visible_non_editor_gets_nameless_forbidden(
+    mock_find: Mock, mcp_server: object
+) -> None:
+    """A caller who can see the dashboard but cannot edit it gets a
+    permission error naming the id only, never the title."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    dashboard = _mock_dashboard(dashboard_id=10, title="Secret Board")
+    mock_find.side_effect = [dashboard, dashboard]
+    forbidden = SupersetSecurityException(
+        SupersetError(
+            message="forbidden",
+            error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch("superset.security_manager.raise_for_editorship", side_effect=forbidden):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "restore_dashboard", {"request": {"identifier": 10}}
+            )
+
+    content = result.structured_content
+    assert content["success"] is False
+    assert content["permission_denied"] is True
+    assert content["error_type"] == "Forbidden"
+    assert "Secret Board" not in (content["error"] or "")
+    assert "10" in (content["error"] or "")
