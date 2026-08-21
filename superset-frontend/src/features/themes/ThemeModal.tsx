@@ -214,9 +214,20 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   // Functions
   const hasUnsavedChanges = useCallback(() => {
     if (!currentTheme || !initialTheme || isReadOnly) return false;
+    const currentEditorIds = mapSubjectPickerValuesToIds(
+      currentTheme.editors || [],
+    );
+    const initialEditorIds = mapSubjectPickerValuesToIds(
+      initialTheme.editors || [],
+    );
+    const editorsChanged =
+      currentEditorIds.length !== initialEditorIds.length ||
+      [...currentEditorIds].sort().join(',') !==
+        [...initialEditorIds].sort().join(',');
     return (
       currentTheme.theme_name !== initialTheme.theme_name ||
-      currentTheme.json_data !== initialTheme.json_data
+      currentTheme.json_data !== initialTheme.json_data ||
+      editorsChanged
     );
   }, [currentTheme, initialTheme, isReadOnly]);
 
