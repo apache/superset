@@ -25,9 +25,16 @@ logger = logging.getLogger(__name__)
 
 
 def close_pubsub(pubsub: Any) -> None:
-    """Best-effort unsubscribe + close of a pub/sub subscription."""
+    """Best-effort unsubscribe + close of a pub/sub subscription.
+
+    ``unsubscribe`` and ``close`` are attempted independently so a failure of the
+    former still releases the underlying connection.
+    """
     try:
         pubsub.unsubscribe()
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.debug("Error unsubscribing pub/sub subscription: %s", ex)
+    try:
         pubsub.close()
     except Exception as ex:  # pylint: disable=broad-except
         logger.debug("Error closing pub/sub subscription: %s", ex)

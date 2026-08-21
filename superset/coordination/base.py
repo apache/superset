@@ -57,9 +57,10 @@ class CoordinationService:
     - **Higher-level await/notify** — ``wait_for_signal`` (blocking) and
       ``listen_for_signal`` (background). These combine a pub/sub channel with a
       caller-supplied predicate:
-      when a backend is defined they wake promptly on a published message, and either
-      way they fall back to polling the predicate. This keeps the pub/sub-vs-poll
-      boilerplate in one place; callers just supply a channel and a check.
+      when a backend is defined they wake promptly on a published message and
+      re-check the predicate each tick; without a backend they poll the predicate.
+      This keeps the pub/sub-vs-poll boilerplate in one place; callers just supply a
+      channel and a check.
 
     All methods are class-level: the service is app-global and resolves its backend
     from the shared coordination connection on each call.
