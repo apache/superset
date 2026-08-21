@@ -219,15 +219,23 @@ _SENSITIVE_PARAM_KEYS = frozenset(
 
 
 def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
-    """Remove sensitive fields from params before logging."""
+    """Remove sensitive fields from params before logging.
+
+    Recurses into nested containers so sensitive keys are redacted no matter
+    which wrapper they arrive under (``arguments``, ``request``, etc.).
+    """
     if not isinstance(params, dict):
         return params
     result: dict[str, Any] = {}
     for k, v in params.items():
         if k.lower() in _SENSITIVE_PARAM_KEYS:
             result[k] = "[REDACTED]"
-        elif k == "arguments" and isinstance(v, dict):
+        elif isinstance(v, dict):
             result[k] = _sanitize_params(v)
+        elif isinstance(v, list):
+            result[k] = [
+                _sanitize_params(item) if isinstance(item, dict) else item for item in v
+            ]
         else:
             result[k] = v
     return result
@@ -1005,7 +1013,9 @@ class GlobalErrorHandlerMiddleware(Middleware):
             ) from error
         elif isinstance(error, HTTPException):
             # HTTP errors from screenshot endpoints or API calls
-            raise ToolError(f"Service error in {tool_name}: {error.detail}") from error
+            raise ToolError(
+                f"Service error in {tool_name}: {_sanitize_error_for_logging(error)}"
+            ) from error
         elif isinstance(error, MCPPermissionDeniedError):
             # MCP RBAC permission denied — convert to structured ToolError.
             # Must come before the generic PermissionError branch because
@@ -1020,7 +1030,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, ValueError):
             # Value/parameter errors from tool code
             raise ToolError(
-                f"Invalid parameter in {tool_name}: {str(error)}"
+                f"Invalid parameter in {tool_name}: "
+                f"{_sanitize_error_for_logging(error)}"
             ) from error
         elif isinstance(error, (ObjectNotFoundError, CommandInvalidError)):
             # Superset command: not found (404) or validation (422)
