@@ -3804,9 +3804,8 @@ msgstr "Radio de agrupación"
 msgid "Code"
 msgstr "Código"
 
-#, fuzzy
 msgid "Code Copied!"
-msgstr "SQL copiado"
+msgstr "¡Código copiado!"
 
 #, fuzzy
 msgid "Collapse"
@@ -4301,9 +4300,8 @@ msgstr "Controles etiquetados "
 msgid "Copied to clipboard!"
 msgstr "Copiado al portapapeles"
 
-#, fuzzy
 msgid "Copied!"
-msgstr "SQL copiado"
+msgstr "¡Copiado!"
 
 msgid "Copy"
 msgstr "Copiar"
@@ -4903,9 +4901,8 @@ msgstr "Con puntos"
 msgid "Data"
 msgstr "Datos"
 
-#, fuzzy
 msgid "Data Connections"
-msgstr "Conexiones de la base de datos"
+msgstr "Conexiones de datos"
 
 msgid "Data Export Options"
 msgstr "Opciones de exportación de datos"
@@ -4919,13 +4916,11 @@ msgstr "El URI de datos no está permitido."
 msgid "Data Zoom"
 msgstr "«Zoom» de datos"
 
-#, fuzzy
 msgid "Data connection"
-msgstr "Conexiones de la base de datos"
+msgstr "Conexión de datos"
 
-#, fuzzy
 msgid "Data connections"
-msgstr "Conexiones de la base de datos"
+msgstr "Conexiones de datos"
 
 msgid ""
 "Data could not be deserialized from the results backend. The storage "
@@ -5165,9 +5160,8 @@ msgstr ""
 "Se requiere el tipo de fuente de datos cuando se proporciona un ID de "
 "fuentes de datos"
 
-#, fuzzy
 msgid "Datasources"
-msgstr "Fuente de datos"
+msgstr "Fuentes de datos"
 
 msgid "Date Time Format"
 msgstr "Formato de fecha y hora"
@@ -9874,9 +9868,8 @@ msgstr "Error de red al intentar recuperar el recurso"
 msgid "Network error."
 msgstr "Error de red."
 
-#, fuzzy
 msgid "New"
-msgstr "Ahora"
+msgstr "Nuevo"
 
 #, -ERR:PROP-NOT-FOUND-
 msgid "New Semantic Layer"
@@ -19340,20 +19333,17 @@ msgstr "panel de control"
 msgid "dashboards"
 msgstr "Paneles de control"
 
-#, fuzzy
 msgid "data connection"
-msgstr "Conexiones de la base de datos"
+msgstr "conexión de datos"
 
-#, fuzzy
 msgid "data connections"
-msgstr "Conexiones de la base de datos"
+msgstr "conexiones de datos"
 
 msgid "database"
 msgstr "base de datos"
 
-#, fuzzy
 msgid "databases"
-msgstr "Bases de datos"
+msgstr "bases de datos"
 
 msgid "dataset"
 msgstr "conjunto de datos"
@@ -19361,17 +19351,14 @@ msgstr "conjunto de datos"
 msgid "dataset name"
 msgstr "nombre del conjunto de datos"
 
-#, fuzzy
 msgid "datasets"
-msgstr "Conjuntos de datos"
+msgstr "conjuntos de datos"
 
-#, fuzzy
 msgid "datasource"
-msgstr "Fuente de datos"
+msgstr "fuente de datos"
 
-#, fuzzy
 msgid "datasources"
-msgstr "Fuente de datos"
+msgstr "fuentes de datos"
 
 msgid "date"
 msgstr "fecha"
