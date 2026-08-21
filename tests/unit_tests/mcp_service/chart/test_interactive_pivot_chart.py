@@ -28,7 +28,6 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
-    merge_interactive_pivot_ui_config,
 )
 from superset.mcp_service.chart.plugins.interactive_pivot import (
     AG_GRID_PIVOT_FEATURE_FLAG,
@@ -64,7 +63,6 @@ def config() -> InteractivePivotChartConfig:
                 {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
                 {"name": "margin", "aggregate": "AVG", "label": "Avg Margin"},
             ],
-            "temporal_column": "order_date",
             "time_grain": "P1M",
             "filters": [{"column": "status", "op": "=", "value": "active"}],
             "series_limit": 25,
@@ -85,8 +83,6 @@ def config() -> InteractivePivotChartConfig:
             "column_sort": "key_a_to_z",
             "allow_render_html": False,
             "expand_pivot_groups": True,
-            "comparison_period": "1 year ago",
-            "comparison_type": "percentage",
         }
     )
 
@@ -116,8 +112,8 @@ def test_maps_true_ag_grid_pivot_form_data(
     assert form_data["rowTotals"] is True
     assert form_data["colTotals"] is True
     assert form_data["colSubTotals"] is True
-    assert form_data["time_compare"] == ["1 year ago"]
-    assert form_data["comparison_type"] == "percentage"
+    assert "time_compare" not in form_data
+    assert "comparison_type" not in form_data
     assert form_data["time_grain_sqla"] == "P1M"
 
 
@@ -148,31 +144,6 @@ def test_native_viz_type_alias_parses_as_interactive_pivot() -> None:
     assert request.config.chart_type == "interactive_pivot"
 
 
-def test_comparison_controls_are_paired() -> None:
-    with pytest.raises(ValidationError, match="must be provided together"):
-        InteractivePivotChartConfig.model_validate(
-            {
-                "chart_type": "interactive_pivot",
-                "rows": [{"name": "region"}],
-                "metrics": [{"name": "revenue", "aggregate": "SUM"}],
-                "comparison_period": "1 year ago",
-            }
-        )
-
-
-def test_native_comparison_array_round_trips() -> None:
-    config = InteractivePivotChartConfig.model_validate(
-        {
-            "chart_type": "interactive_pivot",
-            "rows": [{"name": "region"}],
-            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
-            "time_compare": ["4 weeks ago"],
-            "comparison_type": "difference",
-        }
-    )
-    assert config.comparison_period == "4 weeks ago"
-
-
 def test_dimension_cannot_be_both_row_and_column() -> None:
     with pytest.raises(ValidationError, match="both rows and columns"):
         InteractivePivotChartConfig.model_validate(
@@ -200,6 +171,8 @@ def test_oss_deployment_hides_schema_and_rejects_generation(
     assert is_valid is False
     assert error is not None
     assert error.error_code == "DISABLED_CHART_TYPE"
+    assert "not available on this instance" in error.details
+    assert "disabled by the operator" not in error.details
 
 
 def test_preset_feature_flag_exposes_schema_and_generation(
@@ -214,7 +187,8 @@ def test_preset_feature_flag_exposes_schema_and_generation(
 
     assert result["chart_type"] == "interactive_pivot"
     assert result["examples"]
-    assert "comparison_period" in result["schema"]["properties"]
+    assert "comparison_period" not in result["schema"]["properties"]
+    assert "comparison_type" not in result["schema"]["properties"]
     assert is_valid is True
     assert parsed is not None
     assert isinstance(parsed.config, InteractivePivotChartConfig)
@@ -296,21 +270,6 @@ def test_preview_update_preserves_viz_type_and_ui_grid_state(
     assert form_data["viz_type"] == "ag-grid-pivot-table"
     assert form_data["column_config"] == {"Revenue": {"columnWidth": 160}}
     assert form_data["pivot_table_state"]["sort"] == {"sortModel": []}
-
-
-def test_merge_state_does_not_cross_visualization_types() -> None:
-    new_form_data = {
-        "viz_type": "pivot_table_v2",
-        "pivot_table_state": {"rowGroup": {"groupColIds": ["new"]}},
-    }
-    merge_interactive_pivot_ui_config(
-        {
-            "viz_type": "ag-grid-pivot-table",
-            "pivot_table_state": {"filter": {"filterModel": {}}},
-        },
-        new_form_data,
-    )
-    assert "filter" not in new_form_data["pivot_table_state"]
 
 
 def test_capability_analysis_marks_ag_grid_pivot_interactive(

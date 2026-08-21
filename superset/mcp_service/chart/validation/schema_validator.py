@@ -185,8 +185,7 @@ class SchemaValidator:
             return False, ChartGenerationError(
                 error_type="disabled_chart_type",
                 message=f"Chart type '{chart_type}' is not enabled on this instance",
-                details=f"Chart type '{chart_type}' is registered but has been "
-                f"disabled by the operator. "
+                details=f"Chart type '{chart_type}' is not available on this instance. "
                 f"Enabled chart types: {valid_types}",
                 suggestions=[
                     f"Use one of the enabled chart types: {valid_types}",
