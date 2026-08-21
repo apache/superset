@@ -36,10 +36,6 @@ from superset.mcp_service.dashboard.schemas import (
     RestoreDashboardRequest,
     RestoreDashboardResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -117,16 +113,13 @@ async def restore_dashboard(
             error_type="LookupFailed",
         )
     if not dashboard:
-        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
-        msg = f"No dashboard found with identifier: {safe_id}."
+        display_id = str(request.identifier)[:200]
+        msg = f"No dashboard found with identifier: {display_id}."
         return RestoreDashboardResponse(success=False, error=msg, error_type="NotFound")
 
     dashboard_id = dashboard.id
-    # Dashboard titles are user-controlled; wrap before composing response
-    # text so a hostile title cannot inject prompt content into the output.
-    dashboard_name = sanitize_for_llm_context(
-        dashboard.dashboard_title, field_path=("dashboard_title",)
-    )
+    # Dashboard titles are user-controlled and must remain exact in response text.
+    dashboard_name = dashboard.dashboard_title
 
     if dashboard.deleted_at is None:
         return RestoreDashboardResponse(
