@@ -36,6 +36,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.api import SemanticLayerRestApi, SemanticViewRestApi
 
@@ -530,6 +531,34 @@ def test_runtime_schema_not_found(
 
 
 @SEMANTIC_LAYERS_APP
+def test_runtime_schema_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST /<uuid>/schema/runtime returns 403 when access is denied."""
+    test_uuid = str(uuid_lib.uuid4())
+    mock_layer = MagicMock()
+    mock_layer.raise_for_access.side_effect = SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message="You don't have access to this semantic layer.",
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = mock_layer
+
+    response = client.post(
+        f"/api/v1/semantic_layer/{test_uuid}/schema/runtime",
+    )
+
+    assert response.status_code == 403
+    mock_layer.raise_for_access.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
 def test_runtime_schema_unknown_type(
     client: Any,
     full_api_access: None,
@@ -937,6 +966,33 @@ def test_get_semantic_layer_not_found(
     response = client.get(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
 
     assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_layer_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<uuid> returns 403 when user lacks access to the layer."""
+    test_uuid = uuid_lib.uuid4()
+    layer = MagicMock()
+    layer.uuid = test_uuid
+    layer.raise_for_access.side_effect = SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message="You don't have access to this semantic layer.",
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = layer
+
+    response = client.get(f"/api/v1/semantic_layer/{test_uuid}")
+
+    assert response.status_code == 403
+    layer.raise_for_access.assert_called_once()
 
 
 @SEMANTIC_LAYERS_APP
@@ -1954,6 +2010,37 @@ def test_get_views(
     assert result[0]["name"] == "View A"
     assert result[0]["already_added"] is False
     assert result[1]["name"] == "View B"
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_views_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST /<uuid>/views returns 403 when access is denied."""
+    test_uuid = str(uuid_lib.uuid4())
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+    mock_layer.raise_for_access.side_effect = SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message="You don't have access to this semantic layer.",
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = mock_layer
+
+    response = client.post(
+        f"/api/v1/semantic_layer/{test_uuid}/views",
+        json={"runtime_data": {"database": "mydb"}},
+    )
+
+    assert response.status_code == 403
+    mock_layer.raise_for_access.assert_called_once()
+    mock_layer.implementation.get_semantic_views.assert_not_called()
 
 
 @SEMANTIC_LAYERS_APP

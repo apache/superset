@@ -672,6 +672,11 @@ class SemanticLayerRestApi(BaseSupersetApi):
         if not layer:
             return self.response_404()
 
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+
         body = request.get_json(silent=True) or {}
         runtime_data = body.get("runtime_data")
 
@@ -725,6 +730,11 @@ class SemanticLayerRestApi(BaseSupersetApi):
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
+
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
 
         body = request.get_json(silent=True) or {}
         runtime_data = body.get("runtime_data", {})
@@ -1158,4 +1168,10 @@ class SemanticLayerRestApi(BaseSupersetApi):
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
+
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+
         return self.response(200, result=_serialize_layer(layer))
