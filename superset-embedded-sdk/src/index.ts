@@ -66,7 +66,7 @@ export type EmbedDashboardParams = {
   iframeTitle?: string;
   /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) **/
   iframeSandboxExtras?: string[];
-  /** iframe allow attribute for Permissions Policy (e.g., ['clipboard-write', 'fullscreen']) **/
+  /** Additional Permissions Policy features for the iframe's `allow` attribute (e.g., ['camera', 'microphone']). `fullscreen` and `clipboard-write` are granted by default. **/
   iframeAllowExtras?: string[];
   /** force a specific refererPolicy to be used in the iframe request **/
   referrerPolicy?: ReferrerPolicy;
@@ -233,9 +233,14 @@ export async function embedDashboard({
       iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
       iframe.title = iframeTitle;
       iframe.style.background = 'transparent';
-      if (iframeAllowExtras.length > 0) {
-        iframe.setAttribute('allow', iframeAllowExtras.join('; '));
-      }
+      // Permissions Policy features the embedded dashboard relies on. Modern
+      // browsers gate these APIs on the iframe's `allow` attribute regardless
+      // of sandbox flags, so we include them by default. Host apps can extend
+      // the list via `iframeAllowExtras`.
+      const allowFeatures = Array.from(
+        new Set(['fullscreen', 'clipboard-write', ...iframeAllowExtras]),
+      );
+      iframe.setAttribute('allow', allowFeatures.join('; '));
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe');
