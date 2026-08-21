@@ -192,10 +192,16 @@ def _sql_from_saved_query_context(
 
         try:
             query_context = ChartDataQueryContextSchema().load(qc_json)
-        except MarshmallowValidationError:
+        except MarshmallowValidationError as ex:
             # A saved query context can become stale as schemas evolve. Let the
             # caller rebuild it from form_data; malformed request filters will
             # still produce a ValidationError from that fallback path.
+            logger.warning(
+                "Saved query context validation failed for chart %s; "
+                "falling back to form_data: %s",
+                chart.id,
+                ex,
+            )
             return None
         query_context.result_type = ChartDataResultType.QUERY
         set_query_context_form_data(
@@ -280,7 +286,7 @@ def _sql_from_form_data(
         )
     except (AttributeError, KeyError, TypeError, MarshmallowValidationError) as ex:
         return ChartError(
-            error=f"Invalid extra_form_data: {ex}",
+            error=f"Invalid chart query data: {ex}",
             error_type="ValidationError",
         )
     set_query_context_form_data(

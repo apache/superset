@@ -1150,7 +1150,7 @@ class TestSqlFromSavedQueryContextExtraFormData:
 
         assert query_context_json["queries"][0]["filters"] == []
 
-    def test_schema_validation_failure_uses_form_data_fallback(self):
+    def test_schema_validation_failure_uses_form_data_fallback(self, caplog):
         """A stale saved query context must not prevent form_data fallback."""
         from marshmallow import ValidationError
 
@@ -1160,18 +1160,20 @@ class TestSqlFromSavedQueryContextExtraFormData:
         from superset.utils import json as _json
 
         chart = Mock(
+            id=42,
             query_context=_json.dumps(
                 {
                     "datasource": {"id": 1, "type": "table"},
                     "queries": [{}],
                 }
-            )
+            ),
         )
         with patch(
             "superset.charts.schemas.ChartDataQueryContextSchema.load",
             side_effect=ValidationError("stale query context"),
         ):
             assert _sql_from_saved_query_context(chart) is None
+        assert "stale query context" in caplog.text
 
 
 class TestGetChartSqlTool:
@@ -1511,4 +1513,4 @@ class TestGetChartSqlTool:
 
             data = result.structured_content.get("result", result.structured_content)
             assert data["error_type"] == "ValidationError"
-            assert "extra_form_data filter" in data["error"]
+            assert "Invalid chart query data" in data["error"]
