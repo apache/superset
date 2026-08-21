@@ -291,6 +291,69 @@ def test_create_auth_provider_propagates_auth_config_error() -> None:
             _create_auth_provider(flask_app)
 
 
+def test_create_auth_provider_fails_closed_when_custom_factory_raises() -> None:
+    """A failing MCP_AUTH_FACTORY must abort startup, not fall through to no auth.
+
+    A custom factory is operator configuration evaluated at startup, so it can
+    fail for mundane reasons (a missing environment variable, a dependency
+    moving a symbol, a verifier's signature changing). Swallowing that leaves
+    auth_provider as None and the service comes up unauthenticated. The
+    original exception must not appear in the raised message — it may contain
+    secrets — but its type name should, to point at the failure.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(
+            side_effect=KeyError("secret-bearing-env-var-value")
+        ),
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError) as excinfo:
+        _create_auth_provider(flask_app)
+
+    assert "KeyError" in str(excinfo.value)
+    assert "secret-bearing-env-var-value" not in str(excinfo.value)
+    assert excinfo.value.__cause__ is None
+    assert excinfo.value.__suppress_context__
+
+
+def test_create_auth_provider_passes_through_custom_factory_config_error() -> None:
+    """A custom factory raising MCPAuthConfigError keeps its own message.
+
+    That message is operator-facing config guidance and carries no secret
+    material by contract, so it must propagate unwrapped rather than being
+    replaced by the generic type-name-only message.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(
+            side_effect=MCPAuthConfigError("MY_AUDIENCE_SETTING must be set")
+        ),
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError, match="MY_AUDIENCE_SETTING must be set"):
+        _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_uses_custom_factory_result() -> None:
+    """The happy path is unchanged: the factory's provider is returned."""
+    from superset.mcp_service.server import _create_auth_provider
+
+    auth_provider = MagicMock()
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(return_value=auth_provider),
+    }.get(key, default)
+
+    assert _create_auth_provider(flask_app) is auth_provider
+
+
 def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
     """Guest-only deployment with an insecure GUEST_TOKEN_JWT_SECRET must abort.
 
