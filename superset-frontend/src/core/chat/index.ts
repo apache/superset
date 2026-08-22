@@ -31,7 +31,7 @@
 import { useSyncExternalStore } from 'react';
 import memoizeOne from 'memoize-one';
 import type { chat as chatApi } from '@apache-superset/core';
-import ChatProvider from './ChatProvider';
+import ChatProvider, { ClientToolsFormat } from './ChatProvider';
 
 export { ChatFloatingHost, ChatPanelHost } from './ChatHost';
 
@@ -79,4 +79,11 @@ export const chat: typeof chatApi = {
   // The host fires this from its panel resizer; until that chrome exists the
   // event is exposed but never fires.
   onDidResizePanel: provider.onDidResizePanel,
+  registerClientTool: provider.registerClientTool.bind(provider),
+  registerClientTools: provider.registerClientTools.bind(provider),
+  getTools: ((format?: chatApi.ClientToolsFormat) =>
+    format
+      ? provider.getTools(format)
+      : provider.getTools()) as typeof chatApi.getTools,
+  ClientToolsFormat,
 };

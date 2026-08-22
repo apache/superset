@@ -34,6 +34,7 @@ import {
   sqlLab,
   views,
 } from 'src/core';
+import getCoreClientTools from 'src/core/clientTools';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import ExtensionsLoader from './ExtensionsLoader';
@@ -68,6 +69,16 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       sqlLab,
       views,
     };
+
+    // "core." is added explicitly here because this call isn't
+    // extension-scoped (see ExtensionsLoader's per-extension registerClientTool(s)
+    // rebind, which does this automatically for an extension's own calls).
+    chat.registerClientTools(
+      getCoreClientTools(chat).map(tool => ({
+        ...tool,
+        name: `core.${tool.name}`,
+      })),
+    );
 
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       ExtensionsLoader.getInstance().initializeExtensions();

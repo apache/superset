@@ -54,7 +54,8 @@ export type DisplayMode = 'floating' | 'panel';
 /**
  * Registers a chat provider. Only one chat is active at a time; the most
  * recently registered chat wins. Disposing the returned Disposable unregisters
- * the chat.
+ * the chat (and, if passed, the {@link RegisterChatOptions.tools} registered
+ * alongside it).
  *
  * @param chat The chat descriptor (id, name).
  * @param trigger The trigger component — the collapsed bubble entry point.
@@ -62,6 +63,7 @@ export type DisplayMode = 'floating' | 'panel';
  * @param panel The panel component, rendered in either display mode. In
  *   'floating' mode it appears as an overlay; in 'panel' mode it is docked
  *   alongside the main content.
+ * @param options Optional extras. See {@link RegisterChatOptions}.
  * @returns A Disposable that unregisters the chat when disposed.
  *
  * @example
@@ -70,6 +72,7 @@ export type DisplayMode = 'floating' | 'panel';
  *   { id: 'acme.chat', name: 'Acme Chat' },
  *   AcmeTrigger,
  *   AcmePanel,
+ *   { tools: getMyTools(chat) },
  * );
  * ```
  */
@@ -77,7 +80,25 @@ export declare function registerChat(
   chat: Chat,
   trigger: ComponentType,
   panel: ComponentType,
+  options?: RegisterChatOptions,
 ): Disposable;
+
+/**
+ * Optional extras for {@link registerChat}.
+ */
+export interface RegisterChatOptions {
+  /**
+   * Client-side tools to register alongside this chat — a convenience
+   * equivalent to calling {@link registerClientTools} yourself right after
+   * `registerChat`. Disposing the Disposable {@link registerChat} returns
+   * also unregisters these tools. Aside from that shared disposal, tool
+   * registration stays decoupled from chat registration (see
+   * {@link registerClientTool}'s own docs) — registering tools this way vs.
+   * via a separate {@link registerClientTool}/{@link registerClientTools}
+   * call is purely a matter of preference.
+   */
+  tools?: ClientTool[];
+}
 
 /**
  * Returns the active chat descriptor, or undefined if none is registered.
@@ -151,6 +172,182 @@ export declare const onDidChangeDisplayMode: Event<DisplayMode>;
  */
 export declare const onDidResizePanel: Event<{ width: number }>;
 
-// TODO: client actions API — tool availability functions will be added here
-// once the client_actions SIP is finalized. The chat namespace is the
-// intended integration point between the two SIPs.
+/**
+ * A client-side (frontend) tool the chat agent can call — see the "Client
+ * Tools" SIP. Unlike a backend/MCP-server tool, its handler runs in the
+ * browser and can read/mutate whatever is currently on screen (e.g. the
+ * Dashboard v2 canvas), so it works entirely off local state with no network
+ * round trip of its own.
+ *
+ * Contributed either by the host itself (built-in "core" tools) or by an
+ * extension, via {@link registerClientTool} called directly from its own
+ * module — same as {@link registerChat}/`commands.registerCommand`.
+ */
+export interface ClientTool {
+  /**
+   * Name WITHOUT your extension's own prefix, e.g. `dashboard__do_thing` —
+   * when {@link registerClientTool}/{@link registerClientTools} is called
+   * from your extension's own module (the normal case: `import { chat }
+   * from '@apache-superset/core'` inside your extension), the host
+   * automatically qualifies it with your extension id, so it's registered
+   * (and addressed in a tool call) as `<your-extension-id>.dashboard__do_thing`.
+   * This only applies to calls made through that per-extension binding —
+   * host-internal code (this codebase's own "core" tools) isn't
+   * extension-scoped, so it manages its own prefix explicitly instead (see
+   * {@link registerClientTool}'s own docs).
+   */
+  name: string;
+  /** Describes what the tool does, so the LLM agent knows when to call it. */
+  description: string;
+  /** JSON Schema for the tool's input, e.g. `{ type: 'object', properties: {} }`. */
+  inputSchema: Record<string, unknown>;
+  /** Invoked with the model's tool-call arguments; return value is reported back as the tool result. */
+  handler: (input: unknown) => Promise<unknown> | unknown;
+}
+
+/**
+ * Registers a single client-side tool the chat agent can call — mirrors
+ * `commands.registerCommand`: a direct, imperative call an extension makes
+ * from its own module (typically its `./index` entry), not a declarative
+ * `extension.json` pointer the host resolves for you. Called from your
+ * extension's own module, your extension id is automatically prepended to
+ * `tool.name` (see {@link ClientTool.name}'s own docs) — write just
+ * `dashboard__do_thing`, not `my-extension.dashboard__do_thing`. Registering
+ * a second tool under the same (already-qualified) name overwrites the
+ * first (logged), and disposing the returned Disposable unregisters it.
+ *
+ * @example
+ * ```typescript
+ * import { chat } from '@apache-superset/core';
+ *
+ * chat.registerClientTool({
+ *   name: 'dashboard__do_thing',
+ *   description: '...',
+ *   inputSchema: { type: 'object', properties: {} },
+ *   handler: () => ({ success: true }),
+ * });
+ * ```
+ */
+export declare function registerClientTool(tool: ClientTool): Disposable;
+
+/**
+ * Registers a list of client-side tools in one call — equivalent to calling
+ * {@link registerClientTool} once per entry (including its automatic
+ * extension-id prefixing), but without writing that loop yourself. Disposing
+ * the returned Disposable unregisters every tool in the list.
+ *
+ * @example
+ * ```typescript
+ * import { chat } from '@apache-superset/core';
+ *
+ * chat.registerClientTools(getMyTools(chat));
+ * ```
+ */
+export declare function registerClientTools(tools: ClientTool[]): Disposable;
+
+/**
+ * A target AI-service wire format `getTools()` can convert to — see
+ * {@link getTools}'s overloads. Each member's transform lives alongside
+ * `ChatProvider.getTools()`'s implementation
+ * (`superset-frontend/src/core/chat/ChatProvider.ts`); adding a new member
+ * here means adding one case there, not redesigning anything.
+ *
+ * A plain `const` object + derived union, not a TS `enum` — this file only
+ * ever *declares* values (the real object lives in host code and is
+ * attached to `window.superset.chat`, same as every function below), and a
+ * real `enum`'s nominal typing doesn't structurally match a differently-built
+ * object the way this does, which would make the two copies incompatible.
+ *
+ * `Claude` is the only member with a real, verified transform —
+ * `devaigateway-provider`'s Anthropic SDK call, and `chat`'s own backend
+ * `ToolSpec`, both expect exactly {@link ClaudeToolSpec}'s shape.
+ * `AgUi`/`CopilotKit`/`Codex` are placeholders: nothing in this codebase
+ * talks to any of those frameworks today, so there is no real tool-spec
+ * shape here to convert to yet, and `getTools()` throws if one of them is
+ * passed (see its own docs) rather than guessing at an unverified shape.
+ * Replace a placeholder's `ChatProvider.ts` case with a real transform once
+ * that framework's actual expected shape is known.
+ */
+export declare const ClientToolsFormat: {
+  readonly Claude: 'claude';
+  readonly AgUi: 'ag-ui';
+  readonly CopilotKit: 'copilot-kit';
+  readonly Codex: 'codex';
+};
+export type ClientToolsFormat =
+  (typeof ClientToolsFormat)[keyof typeof ClientToolsFormat];
+
+/**
+ * `ClientTool` reduced to what Anthropic's Messages API `tools` parameter
+ * expects — `name`/`description` unchanged, `inputSchema` renamed to
+ * `input_schema`, and `handler` dropped (a wire format sent to an external
+ * API has no business carrying a callable). Look the tool back up via a
+ * plain `getTools()` call (no format argument) to actually invoke it by
+ * name — this type's whole point is to be JSON-serializable, so it
+ * intentionally can't do that itself.
+ */
+export interface ClaudeToolSpec {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
+/**
+ * Returns every client-side tool currently available — the host's own
+ * built-in ("core") tools plus every loaded extension's
+ * {@link registerClientTool} calls. Call this once tools are needed (e.g.
+ * when starting a chat turn) rather than caching the result, since it can
+ * grow as extensions finish loading.
+ *
+ * Called with no argument, returns `ClientTool[]` as registered — each entry
+ * keeps its `handler`, so this is what a tool-call dispatcher should look
+ * tools up from by name. Called with {@link ClientToolsFormat}'s `Claude`,
+ * returns the same tools converted to {@link ClaudeToolSpec} instead — this
+ * is what should actually be sent to an LLM API, since it can't serialize a
+ * `handler` function. Called with any other `ClientToolsFormat` member,
+ * throws: those are placeholders for frameworks nothing here talks to yet
+ * (see that type's own docs), not real, verified conversions.
+ *
+ * @example
+ * ```typescript
+ * import { chat } from '@apache-superset/core';
+ *
+ * const tools = chat.getTools(); // for dispatching a tool call by name
+ * const toolSpecs = chat.getTools(chat.ClientToolsFormat.Claude); // for the API request
+ * ```
+ */
+export declare function getTools(): ClientTool[];
+export declare function getTools(
+  format: typeof ClientToolsFormat.Claude,
+): ClaudeToolSpec[];
+export declare function getTools(format: ClientToolsFormat): never;
+
+/**
+ * Authoring convenience for building a list of tools to hand to
+ * {@link registerClientTools} in one call — `typeof import('.')` here means
+ * "the `chat` namespace itself", the same object an extension gets from
+ * `import { chat } from '@apache-superset/core'`, so implementing against
+ * this type is enough to get the parameter right without hand-writing
+ * `(chat: typeof chatApi) => ClientTool[]` again in every extension. Not
+ * required — {@link registerClientTools} takes a plain array and doesn't
+ * care how the caller assembled it — but grouping a surface's tools behind
+ * one factory function (as this codebase's own "core" tools do) keeps a
+ * growing list organized.
+ *
+ * @example
+ * ```typescript
+ * import type { chat } from '@apache-superset/core';
+ *
+ * const getMyTools: chat.ClientToolsFactory = (chat) => [
+ *   {
+ *     name: 'dashboard__my_tool',
+ *     description: '...',
+ *     inputSchema: { type: 'object', properties: {} },
+ *     handler: () => ({ success: true }),
+ *   },
+ * ];
+ *
+ * chat.registerClientTools(getMyTools(chat));
+ * ```
+ */
+export type ClientToolsFactory = (chat: typeof import('.')) => ClientTool[];

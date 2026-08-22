@@ -19,6 +19,7 @@
 
 import { ComponentType } from 'react';
 import type { chat as chatApi } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import {
   LocalStorageKeys,
   getItem,
@@ -29,6 +30,63 @@ import { createValueEventEmitter, createEventEmitter } from '../utils';
 
 type Chat = chatApi.Chat;
 type DisplayMode = chatApi.DisplayMode;
+type ClientTool = chatApi.ClientTool;
+type ClaudeToolSpec = chatApi.ClaudeToolSpec;
+type ClientToolsFormat = chatApi.ClientToolsFormat;
+type RegisterChatOptions = chatApi.RegisterChatOptions;
+
+// The real value backing @apache-superset/core's `declare const
+// ClientToolsFormat` — that package only ever declares (see its own docs on
+// why this isn't a TS `enum`); this is the actual object attached to
+// `window.superset.chat.ClientToolsFormat` (re-exported from ./index).
+export const ClientToolsFormat = {
+  Claude: 'claude',
+  AgUi: 'ag-ui',
+  CopilotKit: 'copilot-kit',
+  Codex: 'codex',
+} as const;
+
+// AgUi/CopilotKit/Codex have no real transform below — see
+// @apache-superset/core's ClientToolsFormat docs for why (no framework in
+// this codebase actually talks to any of them yet, so there's no verified
+// target shape to convert to). Throwing a clear, named error beats either
+// silently returning the native ClientTool[] (wrong shape, and callers can
+// already get that from a plain getTools()) or returning an empty array
+// (looks like "this source has no tools" instead of "this format isn't
+// implemented").
+function notYetImplemented(
+  formatKey: keyof typeof ClientToolsFormat,
+): () => never {
+  return () => {
+    throw new Error(
+      `[Superset] chat.getTools(chat.ClientToolsFormat.${formatKey}) is ` +
+        'not yet implemented — no framework in this codebase talks to ' +
+        'this format yet, so there is no verified target shape to convert ' +
+        'to. Add a real transform to CLIENT_TOOLS_FORMATTERS in ' +
+        'ChatProvider.ts once there is one to verify against, rather than ' +
+        'guessing at it here.',
+    );
+  };
+}
+
+// One entry per ClientToolsFormat member — see that constant's own docs for
+// why only Claude has a real transform. Keeping each target's transform (or
+// placeholder) here, keyed by the same object, is what makes adding a real
+// one later a single changed entry rather than a change to getTools()
+// itself.
+const CLIENT_TOOLS_FORMATTERS: {
+  [K in ClientToolsFormat]: (tools: ClientTool[]) => unknown[];
+} = {
+  [ClientToolsFormat.Claude]: (tools: ClientTool[]): ClaudeToolSpec[] =>
+    tools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      input_schema: tool.inputSchema,
+    })),
+  [ClientToolsFormat.AgUi]: notYetImplemented('AgUi'),
+  [ClientToolsFormat.CopilotKit]: notYetImplemented('CopilotKit'),
+  [ClientToolsFormat.Codex]: notYetImplemented('Codex'),
+};
 
 /**
  * Singleton manager for the chat provider.
@@ -46,6 +104,10 @@ class ChatProvider {
   private opened: boolean;
 
   private stateSubscribers = new Set<() => void>();
+
+  // Keyed by the tool's own (fully-qualified) name — same flat-Map shape as
+  // commands.ts's registerCommand, which this mirrors.
+  private clientTools = new Map<string, ClientTool>();
 
   private registerEmitter = createEventEmitter<Chat>();
 
@@ -100,6 +162,7 @@ class ChatProvider {
     chat: Chat,
     trigger: ComponentType,
     panel: ComponentType,
+    options?: RegisterChatOptions,
   ): Disposable {
     if (this.chat) {
       // eslint-disable-next-line no-console
@@ -116,7 +179,7 @@ class ChatProvider {
     this.registerEmitter.fire(chat);
     this.notifyState();
 
-    return new Disposable(() => {
+    const disposeChat = new Disposable(() => {
       if (this.chat !== chat) return;
       this.chat = undefined;
       this.trigger = undefined;
@@ -125,6 +188,10 @@ class ChatProvider {
       if (this.opened) this.closePanel();
       this.notifyState();
     });
+
+    return options?.tools?.length
+      ? Disposable.from(disposeChat, this.registerClientTools(options.tools))
+      : disposeChat;
   }
 
   public getChat(): Chat | undefined {
@@ -190,6 +257,70 @@ class ChatProvider {
     return this.resizePanelEmitter.subscribe;
   }
 
+  /**
+   * Registers a single client-side tool — mirrors commands.ts's
+   * registerCommand exactly: keyed by the tool's own `name` (fully-qualified,
+   * author-chosen — nothing prefixes or validates it here, same as a
+   * `Command.id`), warns and overwrites on a duplicate name, and the
+   * returned Disposable removes it by name unconditionally on dispose.
+   *
+   * Registering after registerChat() is safe — nothing here depends on call
+   * order. (An earlier version of this method warned about that ordering,
+   * back when ChatPanel snapshotted `chat.getTools()` once at mount via
+   * `useMemo(..., [])`; the actual fix was moving that snapshot to send-time
+   * in ChatPanel itself, which made the order genuinely not matter rather
+   * than just warning about it.)
+   */
+  public registerClientTool(tool: ClientTool): Disposable {
+    const { name } = tool;
+    if (this.clientTools.has(name)) {
+      logging.warn(
+        `[Superset] Client tool "${name}" is already registered. ` +
+          'Overwriting the existing tool.',
+      );
+    }
+    this.clientTools.set(name, tool);
+    return new Disposable(() => {
+      this.clientTools.delete(name);
+    });
+  }
+
+  /**
+   * Registers a list of tools in one call — equivalent to mapping
+   * {@link registerClientTool} over `tools` yourself, bundled into a single
+   * Disposable that unregisters all of them.
+   */
+  public registerClientTools(tools: ClientTool[]): Disposable {
+    return Disposable.from(...tools.map(tool => this.registerClientTool(tool)));
+  }
+
+  public getTools(): ClientTool[];
+
+  public getTools(format: typeof ClientToolsFormat.Claude): ClaudeToolSpec[];
+
+  public getTools(format: ClientToolsFormat): unknown[];
+
+  public getTools(
+    format?: ClientToolsFormat,
+  ): ClientTool[] | ClaudeToolSpec[] | unknown[] {
+    const tools = [...this.clientTools.values()];
+    if (!format) return tools;
+    // window.superset.chat.getTools() is reachable from untyped JS callers,
+    // so `format` isn't guaranteed to actually be a ClientToolsFormat member
+    // at runtime — indexing straight into CLIENT_TOOLS_FORMATTERS on a bad
+    // value would fail with an opaque "undefined is not a function" instead
+    // of a message naming the actual problem. Object.hasOwn (rather than
+    // `in`) also keeps an inherited key like "toString" from resolving to
+    // Object.prototype's own method instead of hitting this same error path.
+    if (!Object.hasOwn(CLIENT_TOOLS_FORMATTERS, format)) {
+      throw new Error(
+        `[Superset] chat.getTools() was called with an unknown format ` +
+          `"${format}" — expected one of ${Object.values(ClientToolsFormat).join(', ')}.`,
+      );
+    }
+    return CLIENT_TOOLS_FORMATTERS[format](tools);
+  }
+
   public reset(): void {
     this.chat = undefined;
     this.trigger = undefined;
@@ -202,6 +333,7 @@ class ChatProvider {
     this.resizePanelEmitter = createEventEmitter<{ width: number }>();
     this.modeEmitter = createValueEventEmitter<DisplayMode>('floating');
     this.stateSubscribers.clear();
+    this.clientTools.clear();
     setItem(LocalStorageKeys.ChatState, { open: false, mode: 'floating' });
   }
 }

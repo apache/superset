@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ComponentType } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import type { common as core } from '@apache-superset/core';
+import type { common as core, chat as chatApi } from '@apache-superset/core';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
@@ -211,8 +212,41 @@ class ExtensionsLoader {
     // receives the same pre-bound instance. Parallel loading is safe because each
     // container gets its own scope with its own resolved module instance.
     const context = createExtensionContext(extension);
+    // registerClientTool(s)/registerChat's `options.tools` are the other APIs
+    // needing a per-extension rebind, same reason as getContext above:
+    // chat.registerClientTool's own implementation has no way to know which
+    // extension is calling it, since it's the same shared function for every
+    // container. Wrapping it here — where this extension's id is already in
+    // scope — auto-prefixes its tool names with that id, so an extension's
+    // own module never has to (see ClientTool.name's own docs on why this
+    // only applies to calls made through this scoped instance, not to a
+    // host-code call like ExtensionsStartup's own "core." tools).
+    const qualifyToolName = (tool: chatApi.ClientTool) => ({
+      ...tool,
+      name: `${extension.id}.${tool.name}`,
+    });
+    const scopedChat = window.superset.chat && {
+      ...window.superset.chat,
+      registerChat: (
+        chat: chatApi.Chat,
+        trigger: ComponentType,
+        panel: ComponentType,
+        options?: chatApi.RegisterChatOptions,
+      ) =>
+        window.superset.chat.registerChat(chat, trigger, panel, {
+          ...options,
+          ...(options?.tools && {
+            tools: options.tools.map(qualifyToolName),
+          }),
+        }),
+      registerClientTool: (tool: chatApi.ClientTool) =>
+        window.superset.chat.registerClientTool(qualifyToolName(tool)),
+      registerClientTools: (tools: chatApi.ClientTool[]) =>
+        window.superset.chat.registerClientTools(tools.map(qualifyToolName)),
+    };
     const scopedCore = {
       ...window.superset,
+      ...(scopedChat && { chat: scopedChat }),
       extensions: {
         ...window.superset.extensions,
         getContext: () => context,

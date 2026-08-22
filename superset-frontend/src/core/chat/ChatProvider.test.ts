@@ -17,7 +17,8 @@
  * under the License.
  */
 import { createElement } from 'react';
-import ChatProvider from './ChatProvider';
+import { logging } from '@apache-superset/core/utils';
+import ChatProvider, { ClientToolsFormat } from './ChatProvider';
 
 const trigger = () => createElement('button', null, 'Bubble');
 const panel = () => createElement('div', null, 'Panel');
@@ -254,4 +255,248 @@ test('reset clears all state', () => {
   expect(provider.getChat()).toBeUndefined();
   expect(provider.isOpen()).toBe(false);
   expect(provider.getDisplayMode()).toBe('floating');
+});
+
+const noopTool = {
+  description: 'test tool',
+  inputSchema: { type: 'object', properties: {} },
+  handler: () => ({ success: true }),
+};
+
+test('registerClientTool registers a tool under its own full name', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
+
+  expect(provider.getTools().map(tool => tool.name)).toEqual([
+    'core.dashboard__get_root',
+  ]);
+});
+
+test('registerClientTools registers every tool in the list', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTools([
+    { ...noopTool, name: 'core.dashboard__get_root' },
+    { ...noopTool, name: 'core.chart__do_thing' },
+  ]);
+
+  expect(
+    provider
+      .getTools()
+      .map(tool => tool.name)
+      .sort(),
+  ).toEqual(['core.chart__do_thing', 'core.dashboard__get_root']);
+});
+
+test('disposing a registerClientTools() call removes every tool it registered', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.dashboard__unrelated',
+  });
+  const disposable = provider.registerClientTools([
+    { ...noopTool, name: 'core.dashboard__get_root' },
+    { ...noopTool, name: 'core.chart__do_thing' },
+  ]);
+
+  disposable.dispose();
+
+  expect(provider.getTools().map(tool => tool.name)).toEqual([
+    'acme.widgets.dashboard__unrelated',
+  ]);
+});
+
+test('registerClientTool warns and overwrites on a duplicate name', () => {
+  const provider = ChatProvider.getInstance();
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.dashboard__get_root',
+    description: 'first',
+  });
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.dashboard__get_root',
+    description: 'second',
+  });
+
+  expect(warn).toHaveBeenCalledTimes(1);
+  const tools = provider.getTools();
+  expect(tools).toHaveLength(1);
+  expect(tools[0].description).toBe('second');
+  warn.mockRestore();
+});
+
+test('registerClientTool works the same regardless of call order relative to registerChat', () => {
+  const provider = ChatProvider.getInstance();
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+
+  provider.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel);
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.dashboard__get_root',
+  });
+
+  expect(warn).not.toHaveBeenCalled();
+  expect(provider.getTools().map(tool => tool.name)).toEqual([
+    'acme.dashboard__get_root',
+  ]);
+  warn.mockRestore();
+});
+
+test('registerChat with options.tools registers those tools too', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel, {
+    tools: [
+      { ...noopTool, name: 'acme.dashboard__get_root' },
+      { ...noopTool, name: 'acme.chart__do_thing' },
+    ],
+  });
+
+  expect(
+    provider
+      .getTools()
+      .map(tool => tool.name)
+      .sort(),
+  ).toEqual(['acme.chart__do_thing', 'acme.dashboard__get_root']);
+});
+
+test('disposing a registerChat() call also removes its options.tools', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__unrelated',
+  });
+  const disposable = provider.registerChat(
+    { id: 'acme.chat', name: 'Acme' },
+    trigger,
+    panel,
+    { tools: [{ ...noopTool, name: 'acme.dashboard__get_root' }] },
+  );
+
+  disposable.dispose();
+
+  expect(provider.getChat()).toBeUndefined();
+  expect(provider.getTools().map(tool => tool.name)).toEqual([
+    'core.dashboard__unrelated',
+  ]);
+});
+
+test('getTools aggregates every registered tool', () => {
+  const provider = ChatProvider.getInstance();
+
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.chart__do_thing',
+  });
+
+  expect(
+    provider
+      .getTools()
+      .map(tool => tool.name)
+      .sort(),
+  ).toEqual(['acme.widgets.chart__do_thing', 'core.dashboard__get_root']);
+});
+
+test('disposing a registerClientTool() call removes that tool', () => {
+  const provider = ChatProvider.getInstance();
+  const disposable = provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.dashboard__get_root',
+  });
+
+  disposable.dispose();
+
+  expect(provider.getTools()).toEqual([]);
+});
+
+test('reset clears registered tools', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
+
+  provider.reset();
+
+  expect(provider.getTools()).toEqual([]);
+});
+
+test('getTools(Claude) converts inputSchema to input_schema and drops handler', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.dashboard__get_root',
+    description: 'gets the root',
+    inputSchema: { type: 'object', properties: { x: { type: 'string' } } },
+  });
+
+  const [tool] = provider.getTools(ClientToolsFormat.Claude);
+
+  expect(tool).toEqual({
+    name: 'acme.widgets.dashboard__get_root',
+    description: 'gets the root',
+    input_schema: { type: 'object', properties: { x: { type: 'string' } } },
+  });
+  expect(tool).not.toHaveProperty('handler');
+  expect(tool).not.toHaveProperty('inputSchema');
+});
+
+test('getTools() and getTools(Claude) reflect the same underlying registry', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'acme.widgets.chart__do_thing',
+  });
+
+  const nativeNames = provider.getTools().map(tool => tool.name);
+  const claudeNames = provider
+    .getTools(ClientToolsFormat.Claude)
+    .map(tool => tool.name);
+
+  expect(claudeNames.sort()).toEqual(nativeNames.sort());
+});
+
+test.each([
+  ['AgUi', ClientToolsFormat.AgUi],
+  ['CopilotKit', ClientToolsFormat.CopilotKit],
+  ['Codex', ClientToolsFormat.Codex],
+])(
+  'getTools(%s) throws — placeholder with no verified target shape yet',
+  (name, format) => {
+    const provider = ChatProvider.getInstance();
+    provider.registerClientTool({
+      ...noopTool,
+      name: 'core.dashboard__get_root',
+    });
+
+    expect(() => provider.getTools(format)).toThrow(
+      `chat.ClientToolsFormat.${name}`,
+    );
+  },
+);
+
+test('getTools() throws a named error for an unknown format instead of an opaque TypeError', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__get_root',
+  });
+
+  expect(() =>
+    provider.getTools(
+      'not-a-real-format' as unknown as typeof ClientToolsFormat.Claude,
+    ),
+  ).toThrow('unknown format "not-a-real-format"');
 });
