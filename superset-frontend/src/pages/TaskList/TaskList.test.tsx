@@ -147,6 +147,13 @@ const mockTasks = [
         subscribed_at: '2024-01-15T12:00:01Z',
       },
     ],
+    depends_on: [
+      {
+        uuid: 'prereq-uuid-1',
+        task_name: 'Totals Query',
+        status: TaskStatus.InProgress,
+      },
+    ],
     properties: {
       is_abortable: null,
       progress_percent: null,
@@ -323,4 +330,15 @@ test('displays empty state when no tasks', async () => {
   fetchMock.modifyRoute(tasksEndpoint, {
     response: { result: mockTasks, count: 3 },
   });
+});
+
+test('shows "waiting on" indicator and chain icon for pending tasks with unmet prerequisites', async () => {
+  renderTaskList();
+  await screen.findByText('Shared Bulk Task');
+
+  // The pending task depends on an in-progress (unmet) prerequisite
+  expect(await screen.findByText('Waiting on 1')).toBeInTheDocument();
+  // The chain-link dependency icon is rendered (antd LinkOutlined -> name "link").
+  // Popover contents on hover are covered by TaskDependenciesPopover.test.tsx.
+  expect(screen.getByRole('img', { name: 'link' })).toBeInTheDocument();
 });

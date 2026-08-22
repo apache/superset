@@ -48,7 +48,7 @@ import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { AsyncJob, waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -639,6 +639,7 @@ export function addChart(
 export function handleChartDataResponse(
   response: Response,
   json: { result: QueryData[] },
+  refetch?: () => Promise<QueryData[]>,
   signal?: AbortSignal,
 ): Promise<QueryData[]> | QueryData[] {
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -648,16 +649,19 @@ export function handleChartDataResponse(
       case 200:
         // Query results returned synchronously, meaning query was already cached.
         return Promise.resolve(result);
-      case 202:
-        // Query is running asynchronously and we must await the results.
-        // When status is 202, result contains async event data (job_id, channel_id, etc.)
-        // which differs from QueryData. We cast through unknown to handle this safely.
-        // The optional signal lets a caller abort the wait (Stop pressed, chart
-        // superseded or unmounted), cancelling the job and avoiding leaked listeners.
-        return waitForAsyncData(
-          result as unknown as Parameters<typeof waitForAsyncData>[0],
-          signal,
-        ) as Promise<QueryData[]>;
+      case 202: {
+        // Query is running asynchronously as one GTF task per QueryObject. The
+        // 202 body is the async job ({task_ids}); await every task, then re-issue
+        // this request via `refetch` to read the now-cached results. The optional
+        // signal lets a caller abort the wait (Stop pressed, chart superseded or
+        // unmounted), cancelling the outstanding tasks.
+        if (!refetch) {
+          throw new Error(
+            'Async chart-data response (202) received without a refetch handler',
+          );
+        }
+        return waitForAsyncData(json as unknown as AsyncJob, refetch, signal);
+      }
       default:
         throw new Error(
           `Received unexpected response status (${response.status}) while fetching chart data`,
@@ -705,19 +709,33 @@ export function exploreJSON(
       setTimeout(() => prevController.abort(), 0);
     }
 
-    const chartDataRequest = getChartDataRequest({
-      setDataMask,
-      formData,
-      resultFormat: 'json',
-      resultType: 'full',
-      force,
-      requestParams,
-      ownState,
-    });
+    // Re-issue the chart-data request. On the async path this runs after every
+    // query task has succeeded, so `force` is dropped — the per-query DATA cache
+    // is warm and this returns synchronously (200) from cache.
+    const requestChartData = (fromCache = false) =>
+      getChartDataRequest({
+        setDataMask,
+        formData,
+        resultFormat: 'json',
+        resultType: 'full',
+        force: fromCache ? false : force,
+        requestParams,
+        ownState,
+      });
+
+    const chartDataRequest = requestChartData();
 
     const chartDataRequestCaught = chartDataRequest
       .then(({ response, json }) =>
-        handleChartDataResponse(response, json, controller.signal),
+        handleChartDataResponse(
+          response,
+          json,
+          () =>
+            requestChartData(true).then(({ response: r, json: j }) =>
+              handleChartDataResponse(r, j),
+            ) as Promise<QueryData[]>,
+          controller.signal,
+        ),
       )
       .then(queriesResponse => {
         // Drop stale responses: if this request was aborted (Stop, or a newer

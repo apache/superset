@@ -36,6 +36,7 @@ from superset_core.tasks.models import Task as CoreTask
 from superset_core.tasks.types import TaskProperties, TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
+from superset.models.task_dependencies import TaskDependency
 from superset.models.task_subscribers import TaskSubscriber
 from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.utils import (
@@ -109,6 +110,23 @@ class Task(CoreTask, AuditMixinNullable, Model):
         back_populates="task",
         cascade="all, delete-orphan",
         lazy="selectin",
+    )
+
+    # Prerequisite tasks (self-referential many-to-many over task_dependencies).
+    # `dependencies` is the list of Task entities this task depends on, so the
+    # full prerequisite tasks load in a single selectin fetch alongside the task
+    # (no per-edge round trips). It is viewonly: edges are written through
+    # TaskDAO.add_dependency, not by mutating this collection. Cleanup on task
+    # deletion relies on the DB-level FK ON DELETE CASCADE (see the migration),
+    # since TaskPruneCommand bulk-deletes via core DELETE, not the ORM.
+    dependencies = relationship(
+        "Task",
+        secondary=TaskDependency.__table__,
+        primaryjoin=id == TaskDependency.task_id,
+        secondaryjoin=id == TaskDependency.depends_on_task_id,
+        order_by=TaskDependency.id,
+        lazy="selectin",
+        viewonly=True,
     )
 
     def __repr__(self) -> str:
@@ -320,13 +338,22 @@ class Task(CoreTask, AuditMixinNullable, Model):
         """
         return any(sub.user_id == user_id for sub in self.subscribers)
 
+    def has_guest_subscriber(self, guest_key: str) -> bool:
+        """
+        Check if an embedded guest (by token-derived key) is subscribed.
+
+        :param guest_key: Guest identity to check (see superset.tasks.guest)
+        :returns: True if the guest is subscribed
+        """
+        return any(sub.guest_key == guest_key for sub in self.subscribers)
+
     def get_subscriber_ids(self) -> list[int]:
         """
         Get list of all subscriber user IDs.
 
         :returns: List of user IDs subscribed to this task
         """
-        return [sub.user_id for sub in self.subscribers]
+        return [sub.user_id for sub in self.subscribers if sub.user_id is not None]
 
     def to_dict(self) -> dict[str, Any]:
         """

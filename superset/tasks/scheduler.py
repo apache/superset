@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
 from celery import Task
@@ -50,6 +50,9 @@ from superset.tasks.registry import TaskRegistry
 from superset.utils.core import LoggerLevel
 from superset.utils.log import get_logger_from_status
 from superset.utils.report_execution import get_report_task_timeout_options
+
+if TYPE_CHECKING:
+    from superset.models.tasks import Task as TaskModel
 
 logger = logging.getLogger(__name__)
 
@@ -277,6 +280,48 @@ def prune_key_value(
         logger.exception("An error occurred while pruning the key-value store: %s", ex)
 
 
+def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
+    """
+    Block until every direct prerequisite of ``task`` reaches a terminal state.
+
+    Implements the ``all_success`` trigger rule for the task DAG: the task may
+    run only if *all* of its direct prerequisites ended in ``SUCCESS``.
+
+    ``task.dependencies`` is already ``selectin``-loaded (in one query) with the
+    task, so a prerequisite that is *already* terminal in that snapshot is
+    evaluated with **no extra database reads** — a terminal status never changes,
+    so the snapshot is authoritative for it (the common case under Model A, where
+    FIFO enqueue order means parents usually finish before the dependent runs).
+    Only prerequisites that are not yet terminal fall through to
+    ``TaskManager.wait_for_completion`` (wake-on-completion else poll), and they
+    are awaited one at a time (≈1 read/poll-interval total, not per-prerequisite).
+    Transitive failure propagation is emergent — a dependent that fails here is
+    itself non-SUCCESS, so its own dependents fail in turn.
+
+    :param task: The dependent task about to run (with ``dependencies`` loaded)
+    :returns: The first prerequisite that did not end in ``SUCCESS``, or ``None``
+        if the task has no prerequisites or all of them succeeded
+    """
+    prerequisites = list(task.dependencies)
+    if not prerequisites:
+        return None
+
+    for prerequisite in prerequisites:
+        # Trust an already-terminal status from the loaded snapshot (no extra
+        # read); otherwise block on a fresh wait until it becomes terminal.
+        if prerequisite.status not in TERMINAL_STATES:
+            try:
+                prerequisite = TaskManager.wait_for_completion(prerequisite.uuid)
+            except ValueError:
+                # Prerequisite no longer exists (e.g. pruned mid-wait) — treat as
+                # a failed prerequisite rather than blocking or crashing.
+                return prerequisite
+        if prerequisite.status != TaskStatus.SUCCESS.value:
+            return prerequisite
+
+    return None
+
+
 @celery_app.task(name="tasks.execute", bind=True)
 def execute_task(  # noqa: C901
     self: Any,  # Celery task instance
@@ -335,6 +380,35 @@ def execute_task(  # noqa: C901
             set_ended_at=True,
         ).run()
         return {"status": TaskStatus.ABORTED.value, "task_uuid": task_uuid}
+
+    # DAG gate: wait for prerequisites before claiming the task. The task stays
+    # PENDING while waiting, so the "waiting on prerequisites" indicator applies
+    # and an abort mid-wait is caught by the PENDING → IN_PROGRESS transition
+    # below. If any prerequisite did not succeed, fail without running the body
+    # (all_success semantics); the failure then cascades to this task's own
+    # dependents.
+    if (failed_prerequisite := _resolve_failed_prerequisite(task)) is not None:
+        logger.info(
+            "Task %s (uuid=%s) failing: prerequisite %s did not succeed (status=%s)",
+            task_type,
+            task_uuid,
+            failed_prerequisite.uuid,
+            failed_prerequisite.status,
+        )
+        InternalStatusTransitionCommand(
+            task_uuid=native_uuid,
+            new_status=TaskStatus.FAILURE,
+            expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
+            set_ended_at=True,
+            properties={
+                "error_message": (
+                    f"Prerequisite task {failed_prerequisite.uuid} did not "
+                    f"succeed (status={failed_prerequisite.status})"
+                )
+            },
+        ).run()
+        TaskManager.publish_completion(native_uuid, TaskStatus.FAILURE.value)
+        return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
 
     # Atomic transition: PENDING → IN_PROGRESS (set started_at for duration tracking)
     if not InternalStatusTransitionCommand(

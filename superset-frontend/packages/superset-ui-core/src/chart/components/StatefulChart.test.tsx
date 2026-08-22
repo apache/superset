@@ -714,10 +714,7 @@ test('should refetch when mixing renderTrigger string control with non-renderTri
 
 test('resolves async (202) responses via the injected handleAsyncChartData hook', async () => {
   const asyncJob = {
-    channel_id: 'c1',
-    job_id: 'j1',
-    status: 'running',
-    result_url: '/api/v1/chart/data/abc',
+    task_ids: ['task-1', 'task-2'],
   };
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
@@ -738,10 +735,12 @@ test('resolves async (202) responses via the injected handleAsyncChartData hook'
   await waitFor(() => {
     expect(handleAsyncChartData).toHaveBeenCalledTimes(1);
   });
-  // Delegates the raw response + job metadata (and abort signal)
+  // Delegates the raw response + async job (task_ids), a refetch thunk, and the
+  // abort signal.
   expect(handleAsyncChartData).toHaveBeenCalledWith(
     { status: 202 },
     asyncJob,
+    expect.any(Function),
     expect.any(AbortSignal),
   );
   // Chart renders once the async data resolves
@@ -978,7 +977,7 @@ test('passes an abort signal to the async handler and aborts it on unmount', asy
     response: { status: 202 } as Response,
     json: { job_id: 'j', channel_id: 'c' },
   });
-  // Typed with a rest param so mock.calls is indexable (the 3rd arg is the signal)
+  // Typed with a rest param so mock.calls is indexable (the 4th arg is the signal)
   const handleAsyncChartData = jest.fn(
     (..._args: unknown[]) => new Promise<never>(() => {}), // never resolves
   );
@@ -994,7 +993,7 @@ test('passes an abort signal to the async handler and aborts it on unmount', asy
   await waitFor(() => {
     expect(handleAsyncChartData).toHaveBeenCalledTimes(1);
   });
-  const signal = handleAsyncChartData.mock.calls[0][2] as AbortSignal;
+  const signal = handleAsyncChartData.mock.calls[0][3] as AbortSignal;
   expect(signal).toBeInstanceOf(AbortSignal);
   expect(signal.aborted).toBe(false);
 

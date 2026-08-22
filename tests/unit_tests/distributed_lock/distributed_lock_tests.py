@@ -18,16 +18,13 @@
 # pylint: disable=invalid-name
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
 from sqlalchemy.orm import Session, sessionmaker
 
-# Force module loading before tests run so patches work correctly
-import superset.commands.distributed_lock.acquire as acquire_module
-import superset.commands.distributed_lock.release as release_module
 from superset import db
 from superset.distributed_lock import DistributedLock
 from superset.distributed_lock.types import LockValue
@@ -38,6 +35,12 @@ from superset.key_value.types import JsonKeyValueCodec
 LOCK_VALUE: LockValue = {"value": True}
 MAIN_KEY = get_key("ns", a=1, b=2)
 OTHER_KEY = get_key("ns2", a=1, b=2)
+
+# Distributed locking is plumbed through the coordination service: acquire/release
+# call CoordinationService.set_value/delete_value when a backend is defined, else KV.
+BACKEND_DEFINED = "superset.coordination.base.CoordinationService.is_backend_defined"
+COORD_SET = "superset.coordination.base.CoordinationService.set_value"
+COORD_DELETE = "superset.coordination.base.CoordinationService.delete_value"
 
 
 def _get_lock(key: UUID, session: Session) -> Any:
@@ -70,11 +73,8 @@ def test_distributed_lock_kv_happy_path() -> None:
     """
     session = _get_other_session()
 
-    # Ensure Redis is not configured so KV backend is used
-    with (
-        patch.object(acquire_module, "get_redis_client", return_value=None),
-        patch.object(release_module, "get_redis_client", return_value=None),
-    ):
+    # Ensure no backend is defined so the KV backend is used
+    with patch(BACKEND_DEFINED, return_value=False):
         with freeze_time("2021-01-01"):
             assert _get_lock(MAIN_KEY, session) is None
 
@@ -100,11 +100,8 @@ def test_distributed_lock_kv_expired() -> None:
     """
     session = _get_other_session()
 
-    # Ensure Redis is not configured so KV backend is used
-    with (
-        patch.object(acquire_module, "get_redis_client", return_value=None),
-        patch.object(release_module, "get_redis_client", return_value=None),
-    ):
+    # Ensure no backend is defined so the KV backend is used
+    with patch(BACKEND_DEFINED, return_value=False):
         with freeze_time("2021-01-01"):
             assert _get_lock(MAIN_KEY, session) is None
             with DistributedLock("ns", a=1, b=2):
@@ -116,33 +113,30 @@ def test_distributed_lock_kv_expired() -> None:
 
 
 def test_distributed_lock_uses_redis_when_configured() -> None:
-    """Test that DistributedLock uses Redis backend when configured."""
-    mock_redis = MagicMock()
-    mock_redis.set.return_value = True  # Lock acquired
-
-    # Use patch.object to patch on already-imported modules
+    """Test that DistributedLock uses the coordination backend when configured."""
     with (
-        patch.object(acquire_module, "get_redis_client", return_value=mock_redis),
-        patch.object(release_module, "get_redis_client", return_value=mock_redis),
+        patch(BACKEND_DEFINED, return_value=True),
+        patch(COORD_SET, return_value=True) as mock_set,
+        patch(COORD_DELETE) as mock_delete,
     ):
         with DistributedLock("test_redis", key="value") as lock_key:
             assert lock_key is not None
             # Verify SET NX EX was called
-            mock_redis.set.assert_called_once()
-            call_args = mock_redis.set.call_args
-            assert call_args.kwargs["nx"] is True
-            assert "ex" in call_args.kwargs
+            mock_set.assert_called_once()
+            call_args = mock_set.call_args
+            assert call_args.kwargs["if_absent"] is True
+            assert "ttl" in call_args.kwargs
 
         # Verify DELETE was called on exit
-        mock_redis.delete.assert_called_once()
+        mock_delete.assert_called_once()
 
 
 def test_distributed_lock_redis_already_taken() -> None:
     """Test Redis lock fails when already held."""
-    mock_redis = MagicMock()
-    mock_redis.set.return_value = None  # Lock not acquired (already taken)
-
-    with patch.object(acquire_module, "get_redis_client", return_value=mock_redis):
+    with (
+        patch(BACKEND_DEFINED, return_value=True),
+        patch(COORD_SET, return_value=None),  # Lock not acquired (already taken)
+    ):
         with pytest.raises(AcquireDistributedLockFailedException):
             with DistributedLock("test_redis", key="value"):
                 pass
@@ -152,10 +146,10 @@ def test_distributed_lock_redis_connection_error() -> None:
     """Test Redis connection error raises exception (fail fast)."""
     import redis
 
-    mock_redis = MagicMock()
-    mock_redis.set.side_effect = redis.RedisError("Connection failed")
-
-    with patch.object(acquire_module, "get_redis_client", return_value=mock_redis):
+    with (
+        patch(BACKEND_DEFINED, return_value=True),
+        patch(COORD_SET, side_effect=redis.RedisError("Connection failed")),
+    ):
         with pytest.raises(AcquireDistributedLockFailedException):
             with DistributedLock("test_redis", key="value"):
                 pass
@@ -163,45 +157,38 @@ def test_distributed_lock_redis_connection_error() -> None:
 
 def test_distributed_lock_custom_ttl() -> None:
     """Test Redis lock with custom TTL."""
-    mock_redis = MagicMock()
-    mock_redis.set.return_value = True
-
     with (
-        patch.object(acquire_module, "get_redis_client", return_value=mock_redis),
-        patch.object(release_module, "get_redis_client", return_value=mock_redis),
+        patch(BACKEND_DEFINED, return_value=True),
+        patch(COORD_SET, return_value=True) as mock_set,
+        patch(COORD_DELETE),
     ):
         with DistributedLock("test", ttl_seconds=60, key="value"):
-            call_args = mock_redis.set.call_args
-            assert call_args.kwargs["ex"] == 60  # Custom TTL
+            call_args = mock_set.call_args
+            assert call_args.kwargs["ttl"] == 60  # Custom TTL
 
 
 def test_distributed_lock_default_ttl(app_context: None) -> None:
     """Test Redis lock uses default TTL when not specified."""
     from superset.commands.distributed_lock.base import get_default_lock_ttl
 
-    mock_redis = MagicMock()
-    mock_redis.set.return_value = True
-
     with (
-        patch.object(acquire_module, "get_redis_client", return_value=mock_redis),
-        patch.object(release_module, "get_redis_client", return_value=mock_redis),
+        patch(BACKEND_DEFINED, return_value=True),
+        patch(COORD_SET, return_value=True) as mock_set,
+        patch(COORD_DELETE),
     ):
         with DistributedLock("test", key="value"):
-            call_args = mock_redis.set.call_args
-            assert call_args.kwargs["ex"] == get_default_lock_ttl()
+            call_args = mock_set.call_args
+            assert call_args.kwargs["ttl"] == get_default_lock_ttl()
 
 
 def test_distributed_lock_fallback_to_kv_when_redis_not_configured() -> None:
-    """Test falls back to KV lock when Redis not configured."""
+    """Test falls back to KV lock when no backend is configured."""
     session = _get_other_session()
     test_key = get_key("test_fallback", key="value")
 
-    with (
-        patch.object(acquire_module, "get_redis_client", return_value=None),
-        patch.object(release_module, "get_redis_client", return_value=None),
-    ):
+    with patch(BACKEND_DEFINED, return_value=False):
         with freeze_time("2021-01-01"):
-            # When Redis is not configured, should use KV backend
+            # When no backend is defined, should use KV backend
             with DistributedLock("test_fallback", key="value") as lock_key:
                 assert lock_key == test_key
                 # Verify lock exists in KV store

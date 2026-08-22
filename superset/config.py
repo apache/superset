@@ -53,7 +53,6 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import (
-    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
     CHANGE_ME_SECRET_KEY,
 )
@@ -2914,50 +2913,13 @@ SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
 
 
 # Global async query config options.
-# Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
-GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
-    "superset.async_events.async_query_manager.AsyncQueryManager"
-)
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
-GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS = True
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = (
-    None
-)
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-# Lifetime of the async-query JWT, in seconds. After this period the token
-# expires and a fresh one is issued on the next request.
-GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
-GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
+# Requires the GLOBAL_ASYNC_QUERIES feature flag to be enabled. Async chart-data
+# queries run on the Global Task Framework (one task per QueryObject) over
+# DISTRIBUTED_COORDINATION_CONFIG; the client polls /api/v1/task/status_changes at
+# this interval (milliseconds) and re-issues its request once the tasks succeed.
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
-GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
-
-# Global async queries cache backend configuration options:
-# - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
-# - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
-GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
-    "CACHE_TYPE": "RedisCache",
-    "CACHE_REDIS_HOST": "localhost",
-    "CACHE_REDIS_PORT": 6379,
-    "CACHE_REDIS_USER": "",
-    "CACHE_REDIS_PASSWORD": "",
-    "CACHE_REDIS_DB": 0,
-    "CACHE_DEFAULT_TIMEOUT": 300,
-    "CACHE_REDIS_SENTINELS": [("localhost", 26379)],
-    "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
-    "CACHE_REDIS_SENTINEL_PASSWORD": None,
-    "CACHE_REDIS_SSL": False,  # True or False
-    "CACHE_REDIS_SSL_CERTFILE": None,
-    "CACHE_REDIS_SSL_KEYFILE": None,
-    "CACHE_REDIS_SSL_CERT_REQS": "required",
-    "CACHE_REDIS_SSL_CA_CERTS": None,
-}
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
@@ -3223,24 +3185,34 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
-# - Streams: Persistent ordered event logs (future)
+# - Streams: Persistent ordered event logs (task completion signalling)
 #
 # When configured, enables:
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
+# - Async chart-data queries (Global Task Framework task streams)
 #
-# Future: This backend will power a higher-level coordination service exposing
-# standardized interfaces for distributed locks, pub/sub, and streams — consolidating
-# all advanced Redis primitives under a single connection. Global Async Queries
-# (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND) will also be migrated to this configuration.
+# This backend powers the higher-level coordination service
+# (``superset.coordination.base.CoordinationService``) exposing standardized interfaces
+# for distributed locks, pub/sub, and streams under a single connection. It is the
+# single source of truth for the coordinator's consumers: distributed locks, the
+# Global Task Framework (including async chart-data queries), and future
+# stream/pub-sub users.
 #
 # Example with standard Redis:
 # DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
-#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_USER": "",
 #     "CACHE_REDIS_PASSWORD": "",
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_DEFAULT_TIMEOUT": 300,
+#     "CACHE_REDIS_SSL": False,  # True or False
+#     "CACHE_REDIS_SSL_CERTFILE": None,
+#     "CACHE_REDIS_SSL_KEYFILE": None,
+#     "CACHE_REDIS_SSL_CERT_REQS": "required",
+#     "CACHE_REDIS_SSL_CA_CERTS": None,
 # }
 #
 # Example with Redis Sentinel:
@@ -3253,6 +3225,13 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 #     "CACHE_REDIS_PASSWORD": "",
 # }
 DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
+
+# Retention (seconds) for the Redis Streams the coordination service uses to deliver
+# signals (e.g. task completion/abort). Each signal is one short-lived stream entry
+# that a waiter consumes almost immediately; the TTL is a safety net so signal
+# streams for tasks that never get awaited cannot accumulate in Redis/Valkey
+# indefinitely. Defaults to 24 hours.
+DISTRIBUTED_COORDINATION_SIGNAL_TTL = int(timedelta(hours=24).total_seconds())
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.

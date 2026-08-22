@@ -145,7 +145,9 @@ class TaskSubscriber(CoreModel):
 
     This model tracks task subscriptions for multi-user shared tasks. When a user
     schedules a shared task with the same parameters as an existing task,
-    they are subscribed to that task instead of creating a duplicate.
+    they are subscribed to that task instead of creating a duplicate. A subscriber
+    is identified by exactly one of ``user_id`` (authenticated) or ``guest_key``
+    (an embedded guest, which has no ``ab_user`` row).
     """
 
     __abstract__ = True
@@ -153,7 +155,8 @@ class TaskSubscriber(CoreModel):
     # Type hints for expected attributes (no actual field definitions)
     id: int
     task_id: int
-    user_id: int
+    user_id: int | None
+    guest_key: str | None
     subscribed_at: datetime
 
     # Audit fields from AuditMixinNullable
@@ -163,7 +166,28 @@ class TaskSubscriber(CoreModel):
     changed_by_fk: int | None
 
 
-__all__ = [
-    "Task",
-    "TaskSubscriber",
-]
+class TaskDependency(CoreModel):
+    """
+    Abstract TaskDependency model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+
+    This model represents a directed edge in the task dependency graph (DAG):
+    the task identified by ``task_id`` depends on the prerequisite task
+    identified by ``depends_on_task_id``. A task only runs once all of its
+    prerequisites have reached a terminal SUCCESS.
+    """
+
+    __abstract__ = True
+
+    # Type hints for expected attributes (no actual field definitions)
+    id: int
+    task_id: int  # The dependent task
+    depends_on_task_id: int  # The prerequisite task
+
+    # Audit fields from AuditMixinNullable
+    created_on: datetime | None
+    changed_on: datetime | None
+    created_by_fk: int | None
+    changed_by_fk: int | None

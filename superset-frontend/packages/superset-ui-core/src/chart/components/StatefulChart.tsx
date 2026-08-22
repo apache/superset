@@ -319,12 +319,12 @@ export default function StatefulChart(props: StatefulChartProps) {
 
       let responseData: QueryData[];
       if (rawResponse?.status === 202) {
-        // With GLOBAL_ASYNC_QUERIES the query is dispatched to a Celery worker
-        // and the 202 body is job metadata (channel_id, job_id, result_url),
-        // not chart data. Delegate to the injected handler, which polls the
-        // async event channel and resolves the cached results. Without a
-        // handler we fail loudly rather than rendering the job metadata as if
-        // it were an (empty) result set.
+        // With GLOBAL_ASYNC_QUERIES the query runs as one GTF task per
+        // QueryObject and the 202 body is the async job ({task_ids}), not chart
+        // data. Delegate to the injected handler, which polls task statuses and,
+        // once they succeed, calls `refetch` to re-issue this request and read
+        // the now-cached results. Without a handler we fail loudly rather than
+        // rendering the job metadata as if it were an (empty) result set.
         if (!hooks?.handleAsyncChartData) {
           throw new Error(
             'Received an async chart data response (HTTP 202) but no async ' +
@@ -332,10 +332,24 @@ export default function StatefulChart(props: StatefulChartProps) {
               'the async handler or disable GLOBAL_ASYNC_QUERIES for this chart.',
           );
         }
+        // Re-issue from the warm per-query cache (force off) and extract rows.
+        const refetch = async (): Promise<QueryData[]> => {
+          const cached = await chartClientRef.current!.client.post({
+            ...requestConfig,
+            jsonPayload: queryContext,
+          });
+          const cachedRows = (
+            Array.isArray(cached.json) ? cached.json : [cached.json]
+          ) as JsonObject[];
+          return (
+            cachedRows[0]?.result ? cachedRows[0].result : cachedRows
+          ) as QueryData[];
+        };
         responseData = ensureIsArray(
           await hooks.handleAsyncChartData(
             rawResponse,
             clientResponse.json as JsonObject,
+            refetch,
             controller.signal,
           ),
         );

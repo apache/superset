@@ -38,6 +38,10 @@ class ChartDataCommand(BaseCommand):
     def __init__(self, query_context: QueryContext):
         self._query_context = query_context
 
+    @property
+    def query_context(self) -> QueryContext:
+        return self._query_context
+
     def run(self, **kwargs: Any) -> dict[str, Any]:
         # caching is handled in query_context.get_df_payload
         # (also evals `force` property)

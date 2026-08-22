@@ -19,7 +19,14 @@
 from datetime import datetime, timezone
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from superset_core.tasks.models import TaskSubscriber as CoreTaskSubscriber
 
@@ -37,6 +44,13 @@ class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
 
     Subscribers can unsubscribe from shared tasks. When the last subscriber
     unsubscribes, the task is automatically aborted.
+
+    A subscriber is identified by exactly one of ``user_id`` (an authenticated
+    ``ab_user``) or ``guest_key`` (a stable, unguessable identity derived from an
+    embedded guest token — see ``superset.tasks.guest``). Guests have no
+    ``ab_user`` row, so they subscribe by ``guest_key`` and gain visibility of
+    the tasks they created/joined (which SHARED-scope dedup may collapse across
+    equivalent guests) through the same subscription mechanism as users.
     """
 
     __tablename__ = "task_subscribers"
@@ -45,9 +59,11 @@ class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
     task_id = Column(
         Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False
     )
+    # Exactly one of user_id / guest_key is set.
     user_id = Column(
-        Integer, ForeignKey("ab_user.id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("ab_user.id", ondelete="CASCADE"), nullable=True
     )
+    guest_key = Column(String(64), nullable=True, index=True)
     subscribed_at = Column(DateTime, nullable=False, default=datetime.now(timezone.utc))
 
     # Relationships
@@ -56,7 +72,9 @@ class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
 
     __table_args__ = (
         UniqueConstraint("task_id", "user_id", name="uq_task_subscribers_task_user"),
+        UniqueConstraint("task_id", "guest_key", name="uq_task_subscribers_task_guest"),
     )
 
     def __repr__(self) -> str:
-        return f"<TaskSubscriber user_id={self.user_id} task_id={self.task_id}>"
+        subscriber = self.user_id if self.user_id is not None else self.guest_key
+        return f"<TaskSubscriber subscriber={subscriber} task_id={self.task_id}>"

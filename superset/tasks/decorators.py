@@ -20,7 +20,16 @@ from __future__ import annotations
 
 import inspect
 import logging
-from typing import Any, Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeVar
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Generic,
+    overload,
+    ParamSpec,
+    TYPE_CHECKING,
+    TypeVar,
+)
 
 from superset_core.tasks.types import TaskOptions, TaskScope, TaskStatus
 
@@ -40,6 +49,20 @@ logger = logging.getLogger(__name__)
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+
+@overload
+def task(func: Callable[P, R]) -> "TaskWrapper[P]": ...
+
+
+@overload
+def task(
+    func: None = None,
+    *,
+    name: str | None = None,
+    scope: TaskScope = TaskScope.PRIVATE,
+    timeout: int | None = None,
+) -> Callable[[Callable[P, R]], "TaskWrapper[P]"]: ...
 
 
 def task(
@@ -227,6 +250,7 @@ class TaskWrapper(Generic[P]):
                 task_key=self.default_options.task_key,
                 task_name=self.default_options.task_name,
                 timeout=self.default_timeout,  # Use decorator default
+                depends_on=self.default_options.depends_on,
             )
 
         # Merge: use override if provided, otherwise use default
@@ -238,6 +262,7 @@ class TaskWrapper(Generic[P]):
             timeout=override_options.timeout
             if override_options.timeout is not None
             else self.default_timeout,
+            depends_on=override_options.depends_on or self.default_options.depends_on,
         )
 
     def _validate_task(self, options: TaskOptions) -> None:
@@ -564,12 +589,21 @@ class TaskWrapper(Generic[P]):
             if final_task and final_task.status in TERMINAL_STATES:
                 TaskManager.publish_completion(task_uuid, final_task.status)
 
-    def schedule(self, *args: P.args, **kwargs: P.kwargs) -> "Task":
+    def schedule(
+        self,
+        *args: Any,
+        options: TaskOptions | None = None,
+        **kwargs: Any,
+    ) -> "Task":
         """
         Schedule this task for asynchronous execution.
 
         The signature mirrors the original task function, with an additional
-        keyword-only 'options' parameter for execution metadata.
+        keyword-only 'options' parameter for execution metadata. Business args
+        are typed as ``Any`` here because PEP 612 does not allow adding a
+        keyword-only parameter alongside the captured ``ParamSpec``; the runtime
+        ``__signature__`` (patched in ``__init__``) still mirrors the wrapped
+        function for introspection and IDE support.
 
         Args:
             *args, **kwargs: Business arguments for the task function
@@ -605,7 +639,7 @@ class TaskWrapper(Generic[P]):
             raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)
-        override_options = cast(TaskOptions | None, kwargs.pop("options", None))
+        override_options = options
         options = self._merge_options(override_options)
 
         # Validate task configuration
@@ -625,4 +659,5 @@ class TaskWrapper(Generic[P]):
             timeout=options.timeout,
             args=args,
             kwargs=kwargs,
+            depends_on=options.depends_on,
         )

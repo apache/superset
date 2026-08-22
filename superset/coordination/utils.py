@@ -14,22 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Helpers for the coordination service."""
 
-from flask import Flask
+from __future__ import annotations
 
-from superset.async_events.async_query_manager import AsyncQueryManager
-from superset.utils.class_utils import load_class_from_name
+import logging
+from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
-class AsyncQueryManagerFactory:
-    def __init__(self) -> None:
-        self._async_query_manager: AsyncQueryManager = None  # type: ignore
+def close_pubsub(pubsub: Any) -> None:
+    """Best-effort unsubscribe + close of a pub/sub subscription.
 
-    def init_app(self, app: Flask) -> None:
-        self._async_query_manager = load_class_from_name(
-            app.config["GLOBAL_ASYNC_QUERY_MANAGER_CLASS"]
-        )()
-        self._async_query_manager.init_app(app)
-
-    def instance(self) -> AsyncQueryManager:
-        return self._async_query_manager
+    ``unsubscribe`` and ``close`` are attempted independently so a failure of the
+    former still releases the underlying connection.
+    """
+    try:
+        pubsub.unsubscribe()
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.debug("Error unsubscribing pub/sub subscription: %s", ex)
+    try:
+        pubsub.close()
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.debug("Error closing pub/sub subscription: %s", ex)

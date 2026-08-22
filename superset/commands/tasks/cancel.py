@@ -188,8 +188,16 @@ class CancelTaskCommand(BaseCommand):
             )
 
         if task.is_shared:
-            # Shared tasks: must be a subscriber
-            if not user_id or not task.has_subscriber(user_id):
+            # Shared tasks: must be a subscriber. Embedded guests have no user_id
+            # and subscribe by a token-derived guest_key instead (see
+            # superset.tasks.guest), so honor either identity.
+            from superset.tasks.guest import get_current_guest_subscriber_key
+
+            guest_key = None if user_id else get_current_guest_subscriber_key()
+            subscribed = (user_id and task.has_subscriber(user_id)) or (
+                guest_key and task.has_guest_subscriber(guest_key)
+            )
+            if not subscribed:
                 raise TaskPermissionDeniedError(
                     "You must be subscribed to cancel this shared task"
                 )
@@ -267,23 +275,32 @@ class CancelTaskCommand(BaseCommand):
 
     def _do_unsubscribe(self, task: "Task", user_id: int | None) -> "Task":
         """
-        Execute unsubscribe operation.
+        Execute unsubscribe operation (user or embedded guest).
 
         :param task: The task to unsubscribe from
-        :param user_id: ID of user to unsubscribe
+        :param user_id: ID of user to unsubscribe, or None for an embedded guest
         :returns: The updated task model
         """
         from superset.daos.tasks import TaskDAO
+        from superset.tasks.guest import get_current_guest_subscriber_key
 
         self._action_taken = "unsubscribed"
 
-        if not user_id or not task.has_subscriber(user_id):
-            # User not subscribed - they shouldn't be able to cancel
+        # Embedded guests subscribe by a token-derived key, not a user_id.
+        guest_key = None if user_id else get_current_guest_subscriber_key()
+
+        if user_id and task.has_subscriber(user_id):
+            result = TaskDAO.remove_subscriber(task.id, user_id)
+            subscriber = f"user {user_id}"
+        elif guest_key and task.has_guest_subscriber(guest_key):
+            result = TaskDAO.remove_guest_subscriber(task.id, guest_key)
+            subscriber = "guest"
+        else:
+            # Not subscribed - they shouldn't be able to cancel
             raise TaskPermissionDeniedError(
                 "You are not subscribed to this shared task"
             )
 
-        result = TaskDAO.remove_subscriber(task.id, user_id)
         if result is None:
             raise TaskPermissionDeniedError(
                 "You are not subscribed to this shared task"
@@ -294,8 +311,8 @@ class CancelTaskCommand(BaseCommand):
         stats_logger.incr("gtf.task.unsubscribe")
 
         logger.info(
-            "User %s unsubscribed from shared task: %s",
-            user_id,
+            "%s unsubscribed from shared task: %s",
+            subscriber,
             task.uuid,
         )
 

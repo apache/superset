@@ -20,7 +20,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Literal, TypedDict
+from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict, Union
+from uuid import UUID
+
+if TYPE_CHECKING:
+    from superset_core.tasks.models import Task
 
 
 class TaskStatus(str, Enum):
@@ -122,11 +126,24 @@ class TaskOptions:
         task = long_task.schedule(
             options=TaskOptions(timeout=600)  # 10 minute timeout
         )
+
+        # Task that waits for prerequisite tasks to succeed before running.
+        # Pass the scheduled Task objects (canonical); UUIDs are also accepted.
+        parent = parent_task.schedule()
+        task = dependent_task.schedule(
+            options=TaskOptions(depends_on=[parent])
+        )
     """
 
     task_key: str | None = None
     task_name: str | None = None
     timeout: int | None = None  # Timeout in seconds
+    # Prerequisite tasks this task depends on. Each entry may be a scheduled
+    # Task, its UUID, or a UUID string. The task only runs once every
+    # prerequisite has reached a terminal SUCCESS; if any prerequisite ends in a
+    # non-SUCCESS terminal state the task fails without running (all_success
+    # semantics).
+    depends_on: list[Union["Task", UUID, str]] | None = None
 
 
 class TaskContext(ABC):
@@ -226,12 +243,3 @@ class TaskContext(ABC):
                 cleanup_partial_work()
         """
         ...
-
-
-__all__ = [
-    "TaskStatus",
-    "TaskScope",
-    "TaskProperties",
-    "TaskContext",
-    "TaskOptions",
-]

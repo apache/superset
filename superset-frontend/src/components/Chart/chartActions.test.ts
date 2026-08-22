@@ -26,6 +26,7 @@ import {
   getChartBuildQueryRegistry,
   QueryFormData,
   JsonObject,
+  QueryData,
   AnnotationLayer,
   AnnotationType,
   AnnotationSourceType,
@@ -153,7 +154,10 @@ describe('chart actions', () => {
     );
     waitForAsyncDataStub = jest
       .spyOn(asyncEvent, 'waitForAsyncData')
-      .mockImplementation((data: unknown) => Promise.resolve(data));
+      // New contract: resolve by invoking the caller-provided refetch thunk.
+      .mockImplementation((_job: unknown, refetch: () => Promise<unknown>) =>
+        refetch(),
+      );
   });
 
   test('should drop stale success dispatches when a newer controller has replaced ours in state', async () => {
@@ -402,14 +406,20 @@ describe('chart actions', () => {
       ).featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
+      // On 202 the body is the async job ({task_ids}); once the tasks resolve
+      // (stubbed waitForAsyncData invokes the refetch), the re-request returns
+      // the cached data.
+      const refetch = jest
+        .fn()
+        .mockResolvedValue([1, 2, 3] as unknown as QueryData[]);
       const result = await handleChartDataResponse(
         { status: 202 } as Response,
         {
-          result: [
-            1, 2, 3,
-          ] as unknown as actions.ChartDataRequestResponse['json']['result'],
-        },
+          task_ids: ['task-1'],
+        } as unknown as actions.ChartDataRequestResponse['json'],
+        refetch,
       );
+      expect(refetch).toHaveBeenCalledTimes(1);
       expect(result).toEqual([1, 2, 3]);
     });
 

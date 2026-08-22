@@ -402,10 +402,18 @@ export default function DrillByModal({
     setChartDataResult(undefined);
     setIsChartDataLoading(true);
 
-    getChartDataRequest({
-      formData: drilledFormData,
-    })
-      .then(({ response, json }) => handleChartDataResponse(response, json))
+    const requestDrillData = () =>
+      getChartDataRequest({
+        formData: drilledFormData,
+      });
+    requestDrillData()
+      .then(({ response, json }) =>
+        handleChartDataResponse(response, json, () =>
+          requestDrillData().then(({ response: r, json: j }) =>
+            handleChartDataResponse(r, j),
+          ),
+        ),
+      )
       .then(queriesResponse => {
         setChartDataResult(queriesResponse);
       })
@@ -491,10 +499,18 @@ export default function DrillByModal({
     if (drilledFormData) {
       setIsChartDataLoading(true);
       setChartDataResult(undefined);
-      getChartDataRequest({
-        formData: drilledFormData,
-      })
-        .then(({ response, json }) => handleChartDataResponse(response, json))
+      const requestDrillData = () =>
+        getChartDataRequest({
+          formData: drilledFormData,
+        });
+      requestDrillData()
+        .then(({ response, json }) =>
+          handleChartDataResponse(response, json, () =>
+            requestDrillData().then(({ response: r, json: j }) =>
+              handleChartDataResponse(r, j),
+            ),
+          ),
+        )
         .then(queriesResponse => {
           setChartDataResult(queriesResponse);
         })

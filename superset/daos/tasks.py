@@ -26,6 +26,7 @@ from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
+from superset.models.task_dependencies import TaskDependency
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.constants import ABORTABLE_STATES, TERMINAL_STATES
@@ -68,6 +69,58 @@ class TaskDAO(BaseDAO[Task]):
         return result[0] if result else None
 
     @classmethod
+    def get_statuses_changed_since(
+        cls, cursor: datetime | None, task_type: str | None = None
+    ) -> tuple[dict[str, dict[str, Any]], datetime]:
+        """Return ``{uuid: {status, progress}}`` for tasks changed since ``cursor``.
+
+        The minimal-IO polling primitive behind both the async chart-data
+        completion poll and the realtime task list. The base filter
+        (``TaskFilter``) scopes results to tasks the caller can see (subscribed
+        tasks for regular users, all tasks for admins), so callers never pass an
+        explicit id list. ``task_type`` optionally narrows to a single kind (e.g.
+        chart-data query tasks) so a client tracks only the work it cares about.
+
+        Without a ``cursor`` this establishes a **baseline**: it returns no
+        statuses and a fresh watermark (the current server clock), so a client
+        gets a definitive starting point without dumping every task in the
+        metastore. Subsequent calls pass that watermark back and receive only
+        tasks whose ``changed_on >= cursor`` (``>=``, not ``>``, so no transition
+        straddling the boundary is missed — re-delivery of an already-seen status
+        is idempotent for the client, a miss would hang it).
+
+        Returns the ``{uuid: {status, progress}}`` map (``progress`` is the
+        0.0–1.0 percent from the task's properties, or ``None`` when unknown) plus
+        the next cursor to poll with (the max ``changed_on`` in this batch), so the
+        client always advances using a server-observed watermark, never its clock.
+        """
+        # Baseline: no cursor → start "from now", surfacing only later changes.
+        if cursor is None:
+            return {}, datetime.now()
+
+        query = cls._apply_base_filter(db.session.query(Task)).filter(
+            # Task.changed_on's type is shadowed by CoreTask's bare annotation
+            # (datetime | None), so reference the real column for the comparison.
+            Task.__table__.c.changed_on >= cursor
+        )
+        if task_type is not None:
+            query = query.filter(Task.task_type == task_type)
+        rows = query.with_entities(
+            Task.uuid, Task.status, Task.changed_on, Task.properties
+        ).all()
+
+        statuses: dict[str, dict[str, Any]] = {}
+        changed_times: list[datetime] = []
+        for uuid, status, changed_on, properties in rows:
+            progress = json.loads(properties or "{}").get("progress_percent")
+            statuses[str(uuid)] = {"status": status, "progress": progress}
+            if changed_on is not None:
+                changed_times.append(changed_on)
+        # Advance to the newest change seen, or hold the cursor if nothing changed.
+        next_cursor = max(changed_times, default=cursor)
+        return statuses, next_cursor
+
+    @classmethod
     def find_by_task_key(
         cls,
         task_type: str,
@@ -108,6 +161,7 @@ class TaskDAO(BaseDAO[Task]):
         task_key: str,
         scope: TaskScope | str = TaskScope.PRIVATE,
         user_id: int | None = None,
+        guest_key: str | None = None,
         payload: dict[str, Any] | None = None,
         properties: TaskProperties | None = None,
         **kwargs: Any,
@@ -180,6 +234,10 @@ class TaskDAO(BaseDAO[Task]):
                 task_key,
                 scope_value,
             )
+        elif guest_key:
+            # Embedded guest creator: subscribe by token-derived key so the guest
+            # can see the task it just created (see superset.tasks.guest).
+            cls.add_guest_subscriber(task.id, guest_key)
 
         logger.info(
             "Created new async task: %s (type: %s, scope: %s)",
@@ -289,6 +347,39 @@ class TaskDAO(BaseDAO[Task]):
         return True
 
     @classmethod
+    def add_guest_subscriber(cls, task_id: int, guest_key: str) -> bool:
+        """
+        Subscribe an embedded guest (by token-derived key) to a task.
+
+        The guest counterpart of ``add_subscriber``: guests have no ``ab_user``
+        row, so they subscribe by ``guest_key`` (see ``superset.tasks.guest``),
+        which grants them visibility of the task through ``TaskFilter``.
+
+        :param task_id: ID of the task
+        :param guest_key: Stable guest identity to subscribe
+        :returns: True if subscriber was added, False if already exists
+        """
+        # Check first to avoid IntegrityError (unrecoverable in nested txns).
+        existing = (
+            db.session.query(TaskSubscriber)
+            .filter_by(task_id=task_id, guest_key=guest_key)
+            .first()
+        )
+        if existing:
+            return False
+
+        db.session.add(
+            TaskSubscriber(
+                task_id=task_id,
+                guest_key=guest_key,
+                subscribed_at=datetime.now(timezone.utc),
+            )
+        )
+        db.session.flush()
+        logger.info("Added guest subscriber to task %s", task_id)
+        return True
+
+    @classmethod
     def remove_subscriber(cls, task_id: int, user_id: int) -> Task | None:
         """
         Remove a user's subscription from a task and return the updated task.
@@ -302,12 +393,33 @@ class TaskDAO(BaseDAO[Task]):
         :returns: Updated Task if subscriber was removed, None if not subscribed
         :raises DAODeleteFailedError: If subscription removal fails
         """
+        return cls._remove_subscription(
+            task_id, TaskSubscriber.user_id == user_id, f"user {user_id}"
+        )
+
+    @classmethod
+    def remove_guest_subscriber(cls, task_id: int, guest_key: str) -> Task | None:
+        """
+        Remove an embedded guest's subscription (by ``guest_key``) from a task.
+
+        The guest counterpart of ``remove_subscriber`` (see ``superset.tasks.guest``).
+
+        :param task_id: ID of the task
+        :param guest_key: Guest identity to unsubscribe
+        :returns: Updated Task if subscriber was removed, None if not subscribed
+        :raises DAODeleteFailedError: If subscription removal fails
+        """
+        return cls._remove_subscription(
+            task_id, TaskSubscriber.guest_key == guest_key, "guest"
+        )
+
+    @classmethod
+    def _remove_subscription(
+        cls, task_id: int, subscriber_clause: Any, label: str
+    ) -> Task | None:
         subscription = (
             db.session.query(TaskSubscriber)
-            .filter(
-                TaskSubscriber.task_id == task_id,
-                TaskSubscriber.user_id == user_id,
-            )
+            .filter(TaskSubscriber.task_id == task_id, subscriber_clause)
             .one_or_none()
         )
 
@@ -317,7 +429,7 @@ class TaskDAO(BaseDAO[Task]):
         try:
             db.session.delete(subscription)
             db.session.flush()
-            logger.info("Removed subscriber %s from task %s", user_id, task_id)
+            logger.info("Removed subscriber %s from task %s", label, task_id)
 
             # Return the updated task
             task = cls.find_by_id(task_id, skip_base_filter=True)
@@ -329,8 +441,55 @@ class TaskDAO(BaseDAO[Task]):
             raise
         except Exception as ex:
             raise DAODeleteFailedError(
-                f"Failed to remove subscription for task {task_id}, user {user_id}"
+                f"Failed to remove subscription for task {task_id} ({label})"
             ) from ex
+
+    # Dependency (DAG) management methods
+
+    @classmethod
+    def find_by_uuids(cls, uuids: list[UUID]) -> list[Task]:
+        """
+        Resolve a list of task UUIDs to Task instances.
+
+        Used when persisting dependency edges, which are declared with public
+        UUIDs but stored against the internal integer ``id``. The base filter is
+        intentionally skipped: dependency resolution is a structural operation on
+        tasks the caller is wiring together (typically its own), not a
+        user-facing listing.
+
+        :param uuids: Task UUIDs to resolve
+        :returns: Matching Task instances (order not guaranteed; missing UUIDs
+            are simply absent from the result)
+        """
+        if not uuids:
+            return []
+        return db.session.query(Task).filter(Task.uuid.in_(uuids)).all()
+
+    @classmethod
+    def add_dependencies(cls, task_id: int, depends_on_task_ids: list[int]) -> None:
+        """
+        Bulk-insert prerequisite edges: ``task_id`` depends on each id given.
+
+        Only ever called for a freshly created task (see ``SubmitTaskCommand``)
+        with already-deduplicated prerequisite ids, so no edge can pre-exist —
+        the per-row existence check that ``add_subscriber`` needs is unnecessary
+        here, and the edges are inserted in a single flush (one INSERT).
+
+        :param task_id: ID of the dependent task
+        :param depends_on_task_ids: IDs of the prerequisite tasks
+        """
+        if not depends_on_task_ids:
+            return
+        db.session.add_all(
+            TaskDependency(task_id=task_id, depends_on_task_id=prerequisite_id)
+            for prerequisite_id in depends_on_task_ids
+        )
+        db.session.flush()
+        logger.info(
+            "Added %d dependencies to task %s",
+            len(depends_on_task_ids),
+            task_id,
+        )
 
     @classmethod
     def set_properties_and_payload(

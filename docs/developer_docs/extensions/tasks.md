@@ -333,6 +333,33 @@ assert task.uuid == task2.uuid  # True
 print(task2.status)  # "success" (terminal status)
 ```
 
+## Task Dependencies
+
+Tasks can declare prerequisite tasks, forming a directed acyclic graph (DAG). Pass the prerequisite `Task` objects (returned by `.schedule()`) via `depends_on`:
+
+```python
+from superset_core.tasks.types import TaskOptions
+
+totals = totals_task.schedule(options=TaskOptions(task_key="totals_123"))
+
+# `dependent` only runs once `totals` has finished successfully.
+dependent = dependent_task.schedule(
+    options=TaskOptions(depends_on=[totals])
+)
+```
+
+Passing the `Task` object is the canonical pattern. For convenience, a prerequisite's `UUID` (or UUID string) is also accepted where you don't hold the `Task` itself.
+
+**Semantics (`all_success`).** A task runs only once **every** direct prerequisite has reached a terminal `SUCCESS`. If **any** prerequisite ends in a non-`SUCCESS` terminal state (`FAILURE`, `ABORTED`, or `TIMED_OUT`), the dependent does **not** run and is transitioned to `FAILURE`. This propagates transitively: because a failed dependent is itself non-`SUCCESS`, its own dependents fail in turn, so a failure anywhere short-circuits everything downstream.
+
+**Scheduling model (block-and-wait).** All tasks in a DAG are enqueued immediately. Each dependent's worker blocks — holding its worker slot — until its prerequisites finish; while waiting, the task remains `PENDING` (shown as "waiting on N prerequisites" in the Task List). Tasks are enqueued in dependency order, so a dependent is rarely dequeued before its prerequisites.
+
+:::warning Worker fleet sizing
+Because dependents hold a worker slot while awaiting their prerequisites, a deep or wide DAG can occupy many workers simultaneously. Deployments that use chained tasks heavily must size their Celery worker fleet large enough to absorb the idle waiting, or a large DAG can exhaust the pool and deadlock.
+:::
+
+Cycles (including self-dependencies) are rejected at schedule time. Dependency edges are removed automatically when either endpoint task is pruned.
+
 ## Task Scopes
 
 ```python
@@ -376,7 +403,7 @@ The prune job only removes tasks in terminal states (`SUCCESS`, `FAILURE`, `ABOR
 See `superset/config.py` for a complete example configuration.
 
 :::tip Distributed Coordination for Faster Notifications
-By default, abort detection and sync join-and-wait use database polling. Configure `DISTRIBUTED_COORDINATION_CONFIG` to enable Redis pub/sub for real-time notifications. See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
+By default, abort detection and sync join-and-wait poll the task row in the metadata database. Configure `DISTRIBUTED_COORDINATION_CONFIG` (Redis/Valkey) and these become event-driven: completion and abort are signalled over Redis **Streams**, so a waiter wakes when the signal lands instead of polling the database. Because stream entries are persisted, a waiter that reads slightly late, reconnects, or fails over still receives the signal. Each signal stream keeps only its latest entry and is given a TTL, so streams for tasks that are never awaited do not accumulate; set the retention window with `DISTRIBUTED_COORDINATION_SIGNAL_TTL` (default 24h). See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
 :::
 
 ## API Reference
@@ -409,13 +436,15 @@ By default, abort detection and sync join-and-wait use database polling. Configu
 TaskOptions(
     task_key: str | None = None,
     task_name: str | None = None,
-    timeout: int | None = None
+    timeout: int | None = None,
+    depends_on: list[Task | UUID | str] | None = None
 )
 ```
 
 - `task_key`: Deduplication key (also used as display name if `task_name` is not set)
 - `task_name`: Human-readable display name for the Task List UI
 - `timeout`: Timeout in seconds (overrides decorator default)
+- `depends_on`: Prerequisite tasks to wait for before running. Pass the scheduled `Task` objects (canonical); a `UUID` or UUID string is also accepted (see [Task Dependencies](#task-dependencies))
 
 :::tip
 Provide a descriptive `task_name` for better readability in the Task List UI. While `task_key` is used for deduplication and may be technical (e.g., `chart_export_123`), `task_name` can be user-friendly (e.g., `"Export Sales Chart 123"`).

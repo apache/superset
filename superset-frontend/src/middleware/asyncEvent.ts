@@ -17,298 +17,204 @@
  * under the License.
  */
 import {
-  ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   makeApi,
   SupersetClient,
-  getClientErrorObject,
-  parseErrorJson,
-  SupersetError,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
-type AsyncEvent = {
-  id?: string | null;
-  channel_id: string;
-  job_id: string;
-  user_id?: string;
-  status: string;
-  errors?: SupersetError[];
-  result_url: string | null;
+// The GTF task type chart-data queries run under (see
+// superset/tasks/async_queries.py CHART_QUERY_TASK). Polling is filtered to this
+// type so a dashboard only tracks its own chart-data work, not every task.
+const CHART_QUERY_TASK_TYPE = 'superset.query_object_v1';
+const STATUS_CHANGES_URL = '/api/v1/task/status_changes';
+
+// Terminal GTF task statuses (mirror superset_core.tasks.types.TaskStatus).
+const STATUS_SUCCESS = 'success';
+const TERMINAL_STATUSES = new Set([
+  STATUS_SUCCESS,
+  'failure',
+  'aborted',
+  'timed_out',
+]);
+
+type TaskStatusChange = { status: string; progress: number | null };
+type StatusChangesResponse = {
+  statuses: Record<string, TaskStatusChange>;
+  cursor: string | null;
 };
 
-type CachedDataResponse = {
-  status: string;
-  data: any;
-};
+// The 202 body from POST /chart/data when async: the query tasks to await.
+export type AsyncJob = { task_ids: string[] };
+
 type AppConfig = Record<string, any>;
-type ListenerFn = (asyncEvent: AsyncEvent) => Promise<any>;
 
-const TRANSPORT_POLLING = 'polling';
-const TRANSPORT_WS = 'ws';
-const JOB_STATUS = {
-  PENDING: 'pending',
-  RUNNING: 'running',
-  ERROR: 'error',
-  DONE: 'done',
+type Waiter = {
+  taskIds: string[];
+  pending: Set<string>;
+  failed: boolean;
+  // Re-issue the original chart-data request once every task has succeeded; the
+  // per-query DATA cache is now warm, so it returns synchronously (200).
+  resolve: () => void;
+  reject: (error: unknown) => void;
+  signal?: AbortSignal;
+  onAbort?: () => void;
 };
-const LOCALSTORAGE_KEY = 'last_async_event_id';
-const POLLING_URL = '/api/v1/async_event/';
-const MAX_RETRIES = 6;
-const RETRY_DELAY = 100;
-// Cap for the exponential backoff applied when polling requests fail
-// repeatedly (e.g. expired session, server or network errors)
-const MAX_ERROR_POLLING_DELAY_MS = 60000;
 
 let config: AppConfig;
-let transport: string;
 let pollingDelayMs: number;
 let pollingTimeoutId: number;
-let listenersByJobId: Map<string, ListenerFn>;
-let retriesByJobId: Map<string, number>;
-let lastReceivedEventId: string | null | undefined;
-let consecutivePollingErrorCount = 0;
-// Incremented on every init() so polling invocations that are already
-// awaiting a fetch when re-init happens can detect they are stale and
-// stop, instead of mutating fresh state or scheduling a second loop
+// Registry of in-flight waiters keyed by every task uuid they await, so a single
+// shared poll loop fans status changes out to whichever requests are awaiting them.
+// A SHARED task can be deduplicated across concurrent chart requests, so each task
+// id maps to a *set* of waiters (never overwrite an earlier subscriber).
+let waitersByTaskId: Map<string, Set<Waiter>>;
+// Server-issued watermark: fetched as a baseline at init (before any chart query
+// is triggered) so no task created afterwards is missed, then advanced by each
+// poll. Always the server's own clock, never the browser's.
+let cursor: string | null;
+let baselineReady: Promise<void> | null;
+// Incremented on every init() so an in-flight poll can detect it is stale and
+// stop instead of scheduling a second loop or mutating fresh state.
 let pollingGeneration = 0;
 
-const addListener = (id: string, fn: ListenerFn) => {
-  listenersByJobId.set(id, fn);
-};
-
-const removeListener = (id: string) => {
-  if (!listenersByJobId.has(id)) return;
-  listenersByJobId.delete(id);
-};
-
-const fetchCachedData = async (
-  asyncEvent: AsyncEvent,
-  signal?: AbortSignal,
-): Promise<CachedDataResponse> => {
-  let status = 'success';
-  let data;
-  try {
-    const { json } = await SupersetClient.get({
-      endpoint: String(asyncEvent.result_url),
-      signal,
-    });
-    data = 'result' in json ? json.result : json;
-  } catch (response) {
-    status = 'error';
-    data = await getClientErrorObject(response);
-  }
-
-  return { status, data };
-};
-
-const cancelAsyncJob = (jobId: string) => {
-  // Best-effort server-side cancel; the request stops the running Celery task
-  // so it no longer consumes warehouse resources. Failures are non-fatal: the
-  // client has already stopped waiting on the job.
-  SupersetClient.post({
-    endpoint: `/api/v1/async_event/${jobId}/cancel`,
-  }).catch(error => {
-    logging.warn('Failed to cancel async job', jobId, error);
-  });
-};
-
-export const waitForAsyncData = async (
-  asyncResponse: AsyncEvent,
-  signal?: AbortSignal,
-) =>
-  new Promise((resolve, reject) => {
-    const jobId = asyncResponse.job_id;
-
-    let onAbort: (() => void) | undefined;
-    const cleanup = () => {
-      removeListener(jobId);
-      if (onAbort && signal) {
-        signal.removeEventListener('abort', onAbort);
-      }
-    };
-
-    // Bail immediately if the caller has already aborted (e.g. the chart was
-    // unmounted before the job started), avoiding a leaked listener.
-    if (signal?.aborted) {
-      cancelAsyncJob(jobId);
-      reject(new DOMException('Aborted', 'AbortError'));
-      return;
-    }
-
-    const listener = async (asyncEvent: AsyncEvent) => {
-      switch (asyncEvent.status) {
-        case JOB_STATUS.DONE: {
-          // Forward the signal so the cached-result download is cancelled too if
-          // the caller aborts mid-fetch, rather than wasting network/processing.
-          let { data, status } = await fetchCachedData(asyncEvent, signal); // eslint-disable-line prefer-const
-          data = ensureIsArray(data);
-          if (status === 'success') {
-            resolve(data);
-          } else {
-            reject(data);
-          }
-          // Terminal status: the promise is settled, so fully clean up.
-          cleanup();
-          break;
-        }
-        case JOB_STATUS.ERROR: {
-          const err = parseErrorJson(asyncEvent);
-          reject(err);
-          // Terminal status: the promise is settled, so fully clean up.
-          cleanup();
-          break;
-        }
-        default: {
-          // Non-terminal status (e.g., 'pending', 'running'): keep the listener
-          // registered so it can receive the eventual terminal event ('done', 'error').
-          // Only cleanup happens on terminal states or abort.
-          logging.info(
-            'received non-terminal event with status',
-            asyncEvent.status,
-          );
-        }
-      }
-    };
-
-    // When the caller aborts (Stop pressed, chart superseded/unmounted), stop
-    // listening so the listener and its retained closure don't leak, and ask the
-    // server to cancel the job so it stops consuming warehouse resources.
-    if (signal) {
-      onAbort = () => {
-        cleanup();
-        cancelAsyncJob(jobId);
-        reject(new DOMException('Aborted', 'AbortError'));
-      };
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
-
-    addListener(jobId, listener);
-  });
-
-const fetchEvents = makeApi<
-  { last_id?: string | null },
-  { result: AsyncEvent[] }
+const fetchStatusChanges = makeApi<
+  { cursor?: string | null; task_type: string },
+  StatusChangesResponse
 >({
   method: 'GET',
-  endpoint: POLLING_URL,
+  endpoint: STATUS_CHANGES_URL,
 });
 
-const setLastId = (asyncEvent: AsyncEvent) => {
-  lastReceivedEventId = asyncEvent.id;
-  try {
-    localStorage.setItem(LOCALSTORAGE_KEY, lastReceivedEventId as string);
-  } catch (err) {
-    logging.warn('Error saving event Id to localStorage', err);
-  }
-};
-
-export const processEvents = async (events: AsyncEvent[]) => {
-  events.forEach((asyncEvent: AsyncEvent) => {
-    const jobId = asyncEvent.job_id;
-    const listener = listenersByJobId.get(jobId);
-    // `jobId` originates from server/WebSocket payloads, so the listener is
-    // resolved exclusively through a Map (never plain-object property access,
-    // which would expose the prototype chain), and we confirm the retrieved
-    // value is a registered function before dispatching the event to it.
-    if (typeof listener === 'function') {
-      listener(asyncEvent);
-      retriesByJobId.delete(jobId);
-    } else {
-      // handle race condition where event is received
-      // before listener is registered
-      const retries = (retriesByJobId.get(jobId) ?? 0) + 1;
-      retriesByJobId.set(jobId, retries);
-
-      if (retries <= MAX_RETRIES) {
-        setTimeout(() => {
-          processEvents([asyncEvent]);
-        }, RETRY_DELAY * retries);
-      } else {
-        retriesByJobId.delete(jobId);
-        logging.warn('listener not found for job_id', asyncEvent.job_id);
-      }
-    }
-    setLastId(asyncEvent);
+const cancelTask = (taskId: string) => {
+  // Best-effort server-side cancel so an abandoned query stops consuming
+  // warehouse resources. Failures are non-fatal: the client has already stopped
+  // waiting on the task.
+  SupersetClient.post({
+    endpoint: `/api/v1/task/${taskId}/cancel`,
+  }).catch(error => {
+    logging.warn('Failed to cancel task', taskId, error);
   });
 };
 
-const getPollingDelay = () => {
-  if (!consecutivePollingErrorCount) return pollingDelayMs;
-  const backoffDelayMs = pollingDelayMs * 2 ** consecutivePollingErrorCount;
-  return Math.max(
+// Drop a waiter from the registry entry of every task it was awaiting, so a
+// settled/aborted waiter never leaks and completion of one task can't re-touch it.
+const unregister = (waiter: Waiter) => {
+  waiter.taskIds.forEach(taskId => {
+    const waiters = waitersByTaskId.get(taskId);
+    if (!waiters) return;
+    waiters.delete(waiter);
+    if (waiters.size === 0) waitersByTaskId.delete(taskId);
+  });
+};
+
+const settle = (waiter: Waiter) => {
+  unregister(waiter);
+  if (waiter.signal && waiter.onAbort) {
+    waiter.signal.removeEventListener('abort', waiter.onAbort);
+  }
+  if (waiter.failed) {
+    waiter.reject(
+      new Error('One or more chart-data queries failed'), // surfaced via getClientErrorObject
+    );
+  } else {
+    waiter.resolve();
+  }
+};
+
+const applyStatus = (taskId: string, status: string) => {
+  const waiters = waitersByTaskId.get(taskId);
+  if (!waiters || !TERMINAL_STATUSES.has(status)) return;
+  // Settle every request awaiting this task, not just the most recent one.
+  [...waiters].forEach(waiter => {
+    waiter.pending.delete(taskId);
+    if (status !== STATUS_SUCCESS) waiter.failed = true;
+    if (waiter.pending.size === 0) settle(waiter);
+  });
+  waitersByTaskId.delete(taskId);
+};
+
+const loadStatusChanges = async (generation: number) => {
+  if (generation !== pollingGeneration) return;
+  if (waitersByTaskId.size) {
+    try {
+      const { statuses, cursor: next } = await fetchStatusChanges({
+        cursor,
+        task_type: CHART_QUERY_TASK_TYPE,
+      });
+      if (generation !== pollingGeneration) return;
+      cursor = next;
+      Object.entries(statuses).forEach(([taskId, { status }]) =>
+        applyStatus(taskId, status),
+      );
+    } catch (err) {
+      if (generation !== pollingGeneration) return;
+      logging.warn(err);
+    }
+  }
+  // Reschedule from the tail so a slow request never overlaps the next tick.
+  pollingTimeoutId = window.setTimeout(
+    () => loadStatusChanges(generation),
     pollingDelayMs,
-    Math.min(backoffDelayMs, MAX_ERROR_POLLING_DELAY_MS),
   );
 };
 
-const loadEventsFromApi = async () => {
-  const generation = pollingGeneration;
-  const eventArgs = lastReceivedEventId ? { last_id: lastReceivedEventId } : {};
-  if (listenersByJobId.size) {
-    try {
-      const { result: events } = await fetchEvents(eventArgs);
-      if (generation !== pollingGeneration) return;
-      consecutivePollingErrorCount = 0;
-      if (events?.length) await processEvents(events);
-    } catch (err) {
-      if (generation !== pollingGeneration) return;
-      consecutivePollingErrorCount += 1;
-      logging.warn(err);
+/**
+ * Await completion of an async chart-data job's query tasks, then re-issue the
+ * original request to read the now-cached results.
+ *
+ * Resolves with the fresh `QueryData[]` once every task has succeeded (the
+ * caller's `refetch` returns synchronously from the warm per-query cache);
+ * rejects if any task ends in a non-success terminal state, or with an
+ * AbortError if the caller aborts (which also cancels the outstanding tasks).
+ */
+export const waitForAsyncData = async <T = unknown[]>(
+  asyncJob: AsyncJob,
+  refetch: () => Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> => {
+  const taskIds = asyncJob.task_ids ?? [];
+  if (baselineReady) await baselineReady;
+
+  await new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      taskIds.forEach(cancelTask);
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
     }
-  }
-
-  if (generation !== pollingGeneration) return;
-  if (transport === TRANSPORT_POLLING) {
-    pollingTimeoutId = window.setTimeout(loadEventsFromApi, getPollingDelay());
-  }
-};
-
-const wsConnectMaxRetries = 6;
-const wsConnectErrorDelay = 2500;
-let wsConnectRetries = 0;
-let wsConnectTimeout: any;
-let ws: WebSocket;
-
-const wsConnect = (): void => {
-  let url = config.GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL;
-  if (lastReceivedEventId) url += `?last_id=${lastReceivedEventId}`;
-  ws = new WebSocket(url);
-
-  ws.addEventListener('open', () => {
-    logging.log('WebSocket connected');
-    clearTimeout(wsConnectTimeout);
-    wsConnectRetries = 0;
-  });
-
-  ws.addEventListener('close', () => {
-    wsConnectTimeout = setTimeout(() => {
-      wsConnectRetries += 1;
-      if (wsConnectRetries <= wsConnectMaxRetries) {
-        wsConnect();
-      } else {
-        logging.warn('WebSocket not available, falling back to async polling');
-        loadEventsFromApi();
+    const waiter: Waiter = {
+      taskIds,
+      pending: new Set(taskIds),
+      failed: false,
+      resolve,
+      reject,
+      signal,
+    };
+    if (signal) {
+      waiter.onAbort = () => {
+        unregister(waiter);
+        taskIds.forEach(cancelTask);
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+      signal.addEventListener('abort', waiter.onAbort, { once: true });
+    }
+    if (!taskIds.length) {
+      settle(waiter);
+      return;
+    }
+    taskIds.forEach(taskId => {
+      let waiters = waitersByTaskId.get(taskId);
+      if (!waiters) {
+        waiters = new Set();
+        waitersByTaskId.set(taskId, waiters);
       }
-    }, wsConnectErrorDelay);
+      waiters.add(waiter);
+    });
   });
 
-  ws.addEventListener('error', () => {
-    // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
-    if (ws.readyState < 2) ws.close();
-  });
-
-  ws.addEventListener('message', async event => {
-    let events: AsyncEvent[] = [];
-    try {
-      events = [JSON.parse(event.data)];
-      await processEvents(events);
-    } catch (err) {
-      logging.warn(err);
-    }
-  });
+  return refetch();
 };
 
 export const init = (appConfig?: AppConfig) => {
@@ -316,27 +222,28 @@ export const init = (appConfig?: AppConfig) => {
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
-  listenersByJobId = new Map();
-  retriesByJobId = new Map();
-  lastReceivedEventId = null;
-  consecutivePollingErrorCount = 0;
+  const generation = pollingGeneration;
+  waitersByTaskId = new Map();
+  cursor = null;
 
   config = appConfig || getBootstrapData().common.conf;
-  transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
 
-  try {
-    lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
-  } catch (err) {
-    logging.warn('Failed to fetch last event Id from localStorage');
-  }
-
-  if (transport === TRANSPORT_POLLING) {
-    loadEventsFromApi();
-  }
-  if (transport === TRANSPORT_WS) {
-    wsConnect();
-  }
+  // Establish a baseline cursor before any chart query is triggered, so tasks
+  // created afterwards are all caught by the changed-since poll, then start the
+  // shared poll loop from that watermark.
+  baselineReady = fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
+    .then(({ cursor: baseline }) => {
+      if (generation === pollingGeneration) cursor = baseline;
+    })
+    .catch(err => {
+      // A missing baseline just means the first poll starts from "everything
+      // changed so far"; the >= cursor semantics still catch our tasks.
+      logging.warn('Failed to fetch async baseline cursor', err);
+    })
+    .finally(() => {
+      loadStatusChanges(generation);
+    });
 };
 
 init();

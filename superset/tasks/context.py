@@ -35,8 +35,8 @@ from superset.tasks.constants import ABORT_STATES
 from superset.tasks.utils import progress_update
 
 if TYPE_CHECKING:
+    from superset.coordination.types import SignalListener
     from superset.models.tasks import Task
-    from superset.tasks.manager import AbortListener
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class TaskContext(CoreTaskContext):
         self._task_uuid = task.uuid
         self._cleanup_handlers: list[Callable[[], None]] = []
         self._abort_handlers: list[Callable[[], None]] = []
-        self._abort_listener: "AbortListener | None" = None
+        self._abort_listener: "SignalListener | None" = None
         self._abort_detected = False
         self._abort_handlers_completed = False  # Track if all abort handlers finished
         self._execution_completed = False  # Set by executor after task work completes

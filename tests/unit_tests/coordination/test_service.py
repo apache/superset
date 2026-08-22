@@ -1,0 +1,284 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+from __future__ import annotations
+
+import threading
+
+import pytest
+from pytest_mock import MockerFixture
+
+from superset.coordination.base import _SIGNAL_STREAM_MAXLEN, CoordinationService
+from superset.coordination.exceptions import CoordinationBackendUnavailableError
+from superset.coordination.types import SignalListener
+
+
+def _patch_distributed_coordination(mocker: MockerFixture, backend: object) -> None:
+    mocker.patch(
+        "superset.utils.cache_manager.CacheManager.distributed_coordination",
+        new_callable=mocker.PropertyMock,
+        return_value=backend,
+    )
+
+
+def test_get_backend_prefers_distributed_coordination(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    backend = mocker.MagicMock(name="coordination_backend")
+    _patch_distributed_coordination(mocker, backend)
+
+    assert CoordinationService.get_backend() is backend
+    assert CoordinationService.is_backend_defined() is True
+
+
+def test_get_backend_none_when_distributed_coordination_unset(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    _patch_distributed_coordination(mocker, None)
+
+    assert CoordinationService.get_backend() is None
+    assert CoordinationService.is_backend_defined() is False
+
+
+def test_backend_only_ops_raise_when_backend_unavailable(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    _patch_distributed_coordination(mocker, None)
+
+    for op in (
+        lambda: CoordinationService.publish("channel", "msg"),
+        lambda: CoordinationService.notify("channel", "msg"),
+        lambda: CoordinationService.get_value("key"),
+        lambda: CoordinationService.set_value("key", "value"),
+        lambda: CoordinationService.delete_value("key"),
+        lambda: CoordinationService.stream_add("stream", {"data": "x"}),
+        lambda: CoordinationService.stream_range("stream"),
+    ):
+        with pytest.raises(CoordinationBackendUnavailableError):
+            op()
+
+
+def test_ops_use_explicit_backend_without_resolving_coordinator(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    # An explicit backend (e.g. GAQ's own) is used directly; the shared coordinator
+    # is never consulted.
+    get_backend = mocker.patch.object(
+        CoordinationService, "get_backend", side_effect=AssertionError("resolved")
+    )
+    backend = mocker.MagicMock(name="explicit_backend")
+    backend.xadd.return_value = "1-0"
+
+    assert (
+        CoordinationService.stream_add("stream", {"data": "x"}, backend=backend)
+        == "1-0"
+    )
+    backend.xadd.assert_called_once_with("stream", {"data": "x"}, "*", None)
+    get_backend.assert_not_called()
+
+
+def test_ops_delegate_to_backend(app_context: None, mocker: MockerFixture) -> None:
+    backend = mocker.MagicMock(name="coordination_backend")
+    backend.publish.return_value = 3
+    backend.get.return_value = b"v"
+    backend.set.return_value = True
+    backend.delete.return_value = 1
+    backend.xadd.return_value = "1-0"
+    backend.xrange.return_value = [("1-0", {"data": "x"})]
+    _patch_distributed_coordination(mocker, backend)
+
+    assert CoordinationService.publish("chan", "msg") == 3
+    assert CoordinationService.get_value("k") == b"v"
+    assert CoordinationService.set_value("k", "v", ttl=10, if_present=True) is True
+    assert CoordinationService.delete_value("k") == 1
+    assert CoordinationService.stream_add("stream", {"data": "x"}, "*", 100) == "1-0"
+    assert CoordinationService.stream_range("stream", "-", "+", 10) == [
+        ("1-0", {"data": "x"})
+    ]
+    backend.publish.assert_called_once_with("chan", "msg")
+    # The generalized set() flags map onto the backend's Redis-native kwargs.
+    backend.set.assert_called_once_with("k", "v", ex=10, nx=False, xx=True)
+    backend.delete.assert_called_once_with("k")
+    backend.xadd.assert_called_once_with("stream", {"data": "x"}, "*", 100)
+    backend.xrange.assert_called_once_with("stream", "-", "+", 10)
+
+
+# -- wait_for_signal / listen --------------------------------------------------
+
+
+def test_wait_for_signal_returns_when_check_satisfied(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+    assert CoordinationService.wait_for_signal("ch", lambda: "done") == "done"
+
+
+def test_wait_for_signal_polls_until_satisfied_without_backend(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+    results = iter([None, "done"])
+
+    result = CoordinationService.wait_for_signal(
+        "ch", lambda: next(results), poll_interval=0.01
+    )
+    assert result == "done"
+
+
+def test_wait_for_signal_times_out(app_context: None, mocker: MockerFixture) -> None:
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+    with pytest.raises(TimeoutError):
+        CoordinationService.wait_for_signal(
+            "ch", lambda: None, timeout=0.05, poll_interval=0.01
+        )
+
+
+def test_notify_appends_to_stream_with_ttl(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    backend = mocker.MagicMock(name="backend")
+    _patch_distributed_coordination(mocker, backend)
+
+    CoordinationService.notify("ch", "done", ttl=60)
+
+    backend.xadd.assert_called_once_with(
+        "ch", {"m": "done"}, "*", _SIGNAL_STREAM_MAXLEN
+    )
+    backend.expire.assert_called_once_with("ch", 60)
+
+
+def test_notify_uses_config_ttl_by_default(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    backend = mocker.MagicMock(name="backend")
+    _patch_distributed_coordination(mocker, backend)
+    mocker.patch.dict(
+        "flask.current_app.config", {"DISTRIBUTED_COORDINATION_SIGNAL_TTL": 123}
+    )
+
+    CoordinationService.notify("ch")
+
+    backend.expire.assert_called_once_with("ch", 123)
+
+
+def test_wait_for_signal_wakes_via_stream(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    # A blocking xread returns a new entry, waking the predicate re-check.
+    backend.xread.return_value = [["ch", [("1-0", {"m": "done"})]]]
+    mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
+    # fast-path None, post-baseline re-check None, then "done" after the stream read.
+    results = iter([None, None, "done"])
+
+    result = CoordinationService.wait_for_signal(
+        "ch", lambda: next(results), timeout=5.0
+    )
+    assert result == "done"
+    backend.stream_last_id.assert_called_once_with("ch")
+    backend.xread.assert_called_once()
+
+
+def test_wait_for_signal_stream_socket_timeout_is_retried(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    from redis.exceptions import TimeoutError as RedisTimeoutError
+
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    # A socket timeout mid-block is treated as "nothing yet": the loop re-checks and
+    # reads again rather than erroring.
+    backend.xread.side_effect = [RedisTimeoutError("blocked"), [["ch", [("1-0", {})]]]]
+    mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
+    results = iter([None, None, None, "done"])
+
+    result = CoordinationService.wait_for_signal(
+        "ch", lambda: next(results), timeout=5.0
+    )
+    assert result == "done"
+    assert backend.xread.call_count == 2
+
+
+def test_wait_for_signal_already_satisfied_skips_backend(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    # An already-satisfied predicate returns straight from the source of truth,
+    # without resolving or subscribing to a backend — so an already-terminal task
+    # does not require Redis to be reachable.
+    backend = mocker.MagicMock(name="backend")
+    get_backend = mocker.patch.object(
+        CoordinationService, "get_backend", return_value=backend
+    )
+
+    assert CoordinationService.wait_for_signal("ch", lambda: "done") == "done"
+    get_backend.assert_not_called()
+    backend.pubsub.assert_not_called()
+
+
+def test_listen_invokes_on_signal_then_stops(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+    fired = threading.Event()
+
+    listener = CoordinationService.listen_for_signal(
+        "ch", check=lambda: True, on_signal=fired.set, poll_interval=0.01, name="t"
+    )
+    assert fired.wait(timeout=2.0) is True
+    listener.stop()
+
+
+def test_listen_does_not_fire_when_condition_never_met(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+    on_signal = mocker.MagicMock()
+
+    listener = CoordinationService.listen_for_signal(
+        "ch", check=lambda: False, on_signal=on_signal, poll_interval=0.01
+    )
+    listener.stop()
+    on_signal.assert_not_called()
+
+
+def test_listen_fires_via_stream(app_context: None, mocker: MockerFixture) -> None:
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    backend.xread.return_value = [["ch", [("1-0", {"m": "abort"})]]]
+    mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
+    fired = threading.Event()
+    # First check is False (so the loop reads the stream), then True after the signal.
+    checks = iter([False, True])
+
+    listener = CoordinationService.listen_for_signal(
+        "ch", check=lambda: next(checks), on_signal=fired.set, poll_interval=0.01
+    )
+    assert fired.wait(timeout=2.0) is True
+    listener.stop()
+    backend.stream_last_id.assert_called_once_with("ch")
+    backend.xread.assert_called()
+
+
+def test_signal_listener_stop_signals_and_joins(mocker: MockerFixture) -> None:
+    thread = mocker.MagicMock(name="thread")
+    thread.is_alive.side_effect = [True, False]
+    stop_event = threading.Event()
+
+    SignalListener(thread, stop_event).stop()
+
+    assert stop_event.is_set()
+    thread.join.assert_called_once_with(timeout=2.0)

@@ -14,292 +14,106 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+"""Unit tests for the GTF chart-data fan-out orchestrator."""
+
 from unittest import mock
+from uuid import uuid4
 
-import pytest
-from celery.exceptions import SoftTimeLimitExceeded
-from flask_babel import lazy_gettext as _
-
-from superset.commands.chart.exceptions import ChartDataQueryFailedError
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    OAuth2RedirectError,
-    SupersetErrorException,
-    SupersetErrorsException,
-)
-from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+from pytest_mock import MockerFixture
 
 
-@mock.patch("superset.tasks.async_queries.security_manager")
-@mock.patch("superset.tasks.async_queries.async_query_manager")
-@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
-def test_load_chart_data_into_cache_with_error(
-    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
-):
-    """Test that the task is gracefully marked failed in event of error"""
-    from superset.tasks.async_queries import load_chart_data_into_cache
+def _fake_query_context(num_queries: int, contribution_idx: int | None = None):
+    """Build a MagicMock QueryContext with ``num_queries`` queries.
 
-    job_metadata = {"user_id": 1}
-    form_data = {}
-    err_message = "Something went wrong"
-    err = ChartDataQueryFailedError(_(err_message))
-
-    mock_user = mock.MagicMock()
-    mock_query_context_schema = mock.MagicMock()
-
-    mock_security_manager.get_user_by_id.return_value = mock_user
-    mock_async_query_manager.STATUS_ERROR = "error"
-    mock_query_context_schema_cls.return_value = mock_query_context_schema
-
-    mock_query_context_schema.load.side_effect = err
-
-    with pytest.raises(ChartDataQueryFailedError):
-        load_chart_data_into_cache(job_metadata, form_data)
-
-    expected_errors = [{"message": err_message}]
-
-    mock_async_query_manager.update_job.assert_called_once_with(
-        job_metadata, "error", errors=expected_errors
-    )
-
-
-@mock.patch("superset.tasks.async_queries.security_manager")
-@mock.patch("superset.tasks.async_queries.async_query_manager")
-@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
-def test_load_chart_data_into_cache_cancelled_emits_no_event(
-    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
-):
-    """A revoke leaves the terminal event to the cancel request that sent it."""
-    from superset.tasks.async_queries import load_chart_data_into_cache
-
-    job_metadata = {"user_id": 1, "job_id": "job-1"}
-    form_data: dict[str, Any] = {}
-
-    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
-    # Sync Mock: is_job_cancelled is a plain method, but patching the manager
-    # yields an AsyncMock whose calls would otherwise return truthy coroutines.
-    mock_async_query_manager.is_job_cancelled = mock.Mock(return_value=True)
-    mock_query_context_schema_cls.return_value.load.side_effect = (
-        SoftTimeLimitExceeded()
-    )
-
-    with pytest.raises(SoftTimeLimitExceeded):
-        load_chart_data_into_cache(job_metadata, form_data)
-
-    mock_async_query_manager.is_job_cancelled.assert_called_once_with("job-1")
-    mock_async_query_manager.update_job.assert_not_called()
-
-
-@mock.patch("superset.tasks.async_queries.security_manager")
-@mock.patch("superset.tasks.async_queries.async_query_manager")
-@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
-def test_load_chart_data_into_cache_timeout_emits_error(
-    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
-):
-    """A genuine timeout reports an error, or the client waits forever."""
-    from superset.tasks.async_queries import load_chart_data_into_cache
-
-    job_metadata = {"user_id": 1, "job_id": "job-1"}
-    form_data: dict[str, Any] = {}
-
-    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
-    mock_async_query_manager.STATUS_ERROR = "error"
-    mock_async_query_manager.is_job_cancelled = mock.Mock(return_value=False)
-    mock_query_context_schema_cls.return_value.load.side_effect = (
-        SoftTimeLimitExceeded()
-    )
-
-    with pytest.raises(SoftTimeLimitExceeded):
-        load_chart_data_into_cache(job_metadata, form_data)
-
-    mock_async_query_manager.update_job.assert_called_once_with(
-        job_metadata,
-        "error",
-        errors=[{"message": "A timeout occurred while loading chart data"}],
-    )
-
-
-@mock.patch("superset.tasks.async_queries.security_manager")
-@mock.patch("superset.tasks.async_queries.async_query_manager")
-@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
-def test_load_chart_data_into_cache_with_superset_error_exception(
-    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
-):
-    """Test that SupersetErrorException extracts SIP-40 style errors"""
-    from superset.tasks.async_queries import load_chart_data_into_cache
-
-    job_metadata = {"user_id": 1}
-    form_data = {}
-
-    superset_error = SupersetError(
-        message="Access denied to datasource",
-        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-        level=ErrorLevel.ERROR,
-        extra={"datasource": "my_table"},
-    )
-    err = SupersetErrorException(superset_error)
-
-    mock_user = mock.MagicMock()
-    mock_query_context_schema = mock.MagicMock()
-
-    mock_security_manager.get_user_by_id.return_value = mock_user
-    mock_async_query_manager.STATUS_ERROR = "error"
-    mock_query_context_schema_cls.return_value = mock_query_context_schema
-
-    mock_query_context_schema.load.side_effect = err
-
-    with pytest.raises(SupersetErrorException):
-        load_chart_data_into_cache(job_metadata, form_data)
-
-    # Verify the full SIP-40 error structure is preserved
-    call_args = mock_async_query_manager.update_job.call_args
-    assert call_args[0] == (job_metadata, "error")
-    errors = call_args[1]["errors"]
-    assert len(errors) == 1
-    assert errors[0]["message"] == "Access denied to datasource"
-    assert errors[0]["error_type"] == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
-    assert errors[0]["level"] == ErrorLevel.ERROR
-    assert errors[0]["extra"]["datasource"] == "my_table"
-
-
-@mock.patch("superset.tasks.async_queries.security_manager")
-@mock.patch("superset.tasks.async_queries.async_query_manager")
-@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
-def test_load_chart_data_into_cache_with_superset_errors_exception(
-    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
-):
-    """Test that SupersetErrorsException extracts multiple SIP-40 style errors"""
-    from superset.tasks.async_queries import load_chart_data_into_cache
-
-    job_metadata = {"user_id": 1}
-    form_data = {}
-
-    superset_errors = [
-        SupersetError(
-            message="Column not found",
-            error_type=SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
-            level=ErrorLevel.ERROR,
-        ),
-        SupersetError(
-            message="Table not found",
-            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-            level=ErrorLevel.WARNING,
-        ),
-    ]
-    err = SupersetErrorsException(superset_errors)
-
-    mock_user = mock.MagicMock()
-    mock_query_context_schema = mock.MagicMock()
-
-    mock_security_manager.get_user_by_id.return_value = mock_user
-    mock_async_query_manager.STATUS_ERROR = "error"
-    mock_query_context_schema_cls.return_value = mock_query_context_schema
-
-    mock_query_context_schema.load.side_effect = err
-
-    with pytest.raises(SupersetErrorsException):
-        load_chart_data_into_cache(job_metadata, form_data)
-
-    # Verify all SIP-40 errors are preserved
-    call_args = mock_async_query_manager.update_job.call_args
-    assert call_args[0] == (job_metadata, "error")
-    errors = call_args[1]["errors"]
-    assert len(errors) == 2
-    assert errors[0]["message"] == "Column not found"
-    assert errors[0]["error_type"] == SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR
-    assert errors[0]["level"] == ErrorLevel.ERROR
-    assert errors[1]["message"] == "Table not found"
-    assert errors[1]["error_type"] == SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR
-    assert errors[1]["level"] == ErrorLevel.WARNING
-
-
-@mock.patch("superset.tasks.async_queries.security_manager")
-@mock.patch("superset.tasks.async_queries.async_query_manager")
-@mock.patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
-@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
-def test_load_chart_data_into_cache_preserves_oauth2_redirect_error(
-    mock_query_context_schema_cls: mock.MagicMock,
-    mock_command_cls: mock.MagicMock,
-    mock_async_query_manager: mock.MagicMock,
-    mock_security_manager: mock.MagicMock,
-) -> None:
+    When ``contribution_idx`` is set, ``prepare_contribution_totals`` reports that
+    query as contribution-coupled with query 0 as the totals query.
     """
-    OAuth2RedirectError raised by ``ChartDataCommand.run`` must reach the async
-    job's errors list as a structured SIP-40 envelope (with ``error_type`` and
-    the OAuth2 ``extra`` payload) instead of being flattened to a plain
-    message, so dashboard charts can render the OAuth2 banner when
-    GLOBAL_ASYNC_QUERIES is enabled.
-    """
-    from superset.tasks.async_queries import load_chart_data_into_cache
+    ctx = mock.MagicMock()
+    ctx.queries = [mock.MagicMock(name=f"q{i}") for i in range(num_queries)]
+    ctx.cache_values = {"queries": [{"i": i} for i in range(num_queries)]}
+    ctx.query_cache_key.side_effect = lambda q: f"key-{ctx.queries.index(q)}"
+    if contribution_idx is not None:
+        ctx.prepare_contribution_totals.return_value = ([contribution_idx], 0)
+    else:
+        ctx.prepare_contribution_totals.return_value = ([], None)
+    return ctx
 
-    job_metadata = {"user_id": 1}
-    form_data: dict[str, Any] = {}
 
-    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
-    mock_async_query_manager.STATUS_ERROR = "error"
-    mock_query_context_schema_cls.return_value.load.return_value = mock.MagicMock()
+def _patch_schedule(mocker: MockerFixture):
+    """Patch execute_chart_query.schedule to return Tasks with unique uuids."""
+    scheduled = []
 
-    mock_command_cls.return_value.run.side_effect = OAuth2RedirectError(
-        url="https://accounts.example.com/o/oauth2/v2/auth?...",
-        tab_id="tab-123",
-        redirect_uri="https://superset.example.com/oauth2/redirect",
+    def _schedule(*args, **kwargs):
+        task = mock.MagicMock()
+        task.uuid = uuid4()
+        scheduled.append({"args": args, "kwargs": kwargs, "task": task})
+        return task
+
+    mocker.patch(
+        "superset.tasks.async_queries.execute_chart_query.schedule",
+        side_effect=_schedule,
     )
-
-    with pytest.raises(OAuth2RedirectError):
-        load_chart_data_into_cache(job_metadata, form_data)
-
-    call_args = mock_async_query_manager.update_job.call_args
-    assert call_args[0] == (job_metadata, "error")
-    errors = call_args[1]["errors"]
-    assert len(errors) == 1
-    # A flattened error would only carry the generic permission message; the
-    # structured envelope must be preserved for the frontend OAuth2 banner.
-    assert errors[0] != {"message": "You don't have permission to access the data."}
-    assert errors[0]["error_type"] == SupersetErrorType.OAUTH2_REDIRECT
-    assert errors[0]["level"] == ErrorLevel.WARNING
-    assert errors[0]["extra"] == {
-        "url": "https://accounts.example.com/o/oauth2/v2/auth?...",
-        "tab_id": "tab-123",
-        "redirect_uri": "https://superset.example.com/oauth2/redirect",
-    }
-
-
-@mock.patch("superset.security.SupersetSecurityManager.is_guest_user")
-@mock.patch("superset.tasks.async_queries.security_manager")
-@mock.patch("superset.tasks.async_queries.async_query_manager")
-@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
-def test_load_chart_data_into_cache_redacts_error_for_guest_user(
-    mock_query_context_schema_cls,
-    mock_async_query_manager,
-    mock_security_manager,
-    mock_is_guest_user,
-    app_context: None,
-):
-    """An embedded viewer gets a generic message instead of the engine's."""
-    from superset.tasks.async_queries import load_chart_data_into_cache
-
-    job_metadata = {"user_id": 1}
-    err = SupersetErrorsException(
-        [
-            SupersetError(
-                message="Table mydb.myschema.mytable was not found",
-                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-                level=ErrorLevel.ERROR,
-                extra={"engine_name": "BigQuery"},
-            )
-        ]
+    mocker.patch(
+        "superset.tasks.async_queries.serialize_query",
+        side_effect=lambda ctx, index: {"query": index},
     )
+    guest = mocker.patch("superset.tasks.async_queries.security_manager")
+    # Force a sync return (a bare patched method resolves to an AsyncMock whose
+    # call is a truthy coroutine here); see the GAQ→GTF testing notes.
+    guest.get_current_guest_user_if_guest = mock.MagicMock(return_value=None)
+    return scheduled
 
-    mock_is_guest_user.return_value = True
-    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
-    mock_async_query_manager.STATUS_ERROR = "error"
-    mock_query_context_schema_cls.return_value.load.side_effect = err
 
-    with pytest.raises(SupersetErrorsException):
-        load_chart_data_into_cache(job_metadata, {})
+def test_fan_out_schedules_one_task_per_query(mocker: MockerFixture) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
 
-    errors = mock_async_query_manager.update_job.call_args[1]["errors"]
-    assert errors[0]["message"] == str(GENERIC_ERROR_MESSAGE)
-    assert errors[0]["error_type"] == SupersetErrorType.GENERIC_BACKEND_ERROR
-    assert "engine_name" not in errors[0]["extra"]
+    scheduled = _patch_schedule(mocker)
+    ctx = _fake_query_context(3)
+
+    result = submit_chart_data_query_tasks(ctx, user_id=7)
+
+    assert len(scheduled) == 3
+    # The 202 body carries the query tasks' uuids, in query order.
+    assert result["task_ids"] == [str(s["task"].uuid) for s in scheduled]
+    # Independent queries carry no dependency and no totals key.
+    for call in scheduled:
+        assert call["kwargs"]["options"].depends_on is None
+        assert call["args"][3] is None  # totals_cache_key
+
+
+def test_contribution_query_depends_on_totals(mocker: MockerFixture) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
+
+    scheduled = _patch_schedule(mocker)
+    # query 1 is a contribution query; query 0 is the totals query.
+    ctx = _fake_query_context(2, contribution_idx=1)
+
+    submit_chart_data_query_tasks(ctx, user_id=7)
+
+    # Totals query (index 0) is scheduled first with no dependency.
+    totals_call = scheduled[0]
+    assert totals_call["kwargs"]["options"].depends_on is None
+    # The totals query's row_limit is normalized so its key matches the entry
+    # its dependents read.
+    assert ctx.cache_values["queries"][0]["row_limit"] is None
+
+    # The contribution query depends on the totals task and receives its key.
+    dep_call = next(c for c in scheduled if c["args"][0] == {"query": 1})
+    assert dep_call["kwargs"]["options"].depends_on == [totals_call["task"]]
+    assert dep_call["args"][3] == "key-0"  # totals_cache_key
+
+
+def test_guest_token_forwarded(mocker: MockerFixture) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
+
+    scheduled = _patch_schedule(mocker)
+    guest = mock.MagicMock()
+    guest.guest_token = {"user": {"username": "guest"}}
+    sm = mocker.patch("superset.tasks.async_queries.security_manager")
+    sm.get_current_guest_user_if_guest = mock.MagicMock(return_value=guest)
+    ctx = _fake_query_context(1)
+
+    submit_chart_data_query_tasks(ctx, user_id=None)
+
+    # The guest token is passed to the task so the worker can impersonate.
+    assert scheduled[0]["args"][2] == guest.guest_token
