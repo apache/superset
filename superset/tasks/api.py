@@ -275,12 +275,13 @@ class TaskRestApi(BaseSupersetModelRestApi):
         get:
           summary: Poll changed task statuses
           description: >
-            Minimal-IO polling primitive for clients awaiting async work (e.g. a
-            chart-data coordinator task) or rendering a live task list. Returns a
-            ``{uuid: status}`` map for tasks the caller can access (subscribed
-            tasks for regular users, all tasks for admins) that changed since the
-            ``cursor``, plus the next cursor to poll with. Omit ``cursor`` on the
-            first call to establish a baseline.
+            Minimal-IO polling primitive for clients awaiting async work (e.g.
+            chart-data query tasks) or rendering a live task list. Returns a
+            ``{uuid: {status, progress}}`` map for tasks the caller can access
+            (subscribed tasks for regular users, all tasks for admins) that changed
+            since the ``cursor``, plus the next cursor to poll with. Omit ``cursor``
+            on the first call to establish a baseline. Pass ``task_type`` to track
+            only one kind of task.
           parameters:
           - in: query
             name: cursor
@@ -290,6 +291,14 @@ class TaskRestApi(BaseSupersetModelRestApi):
             description: >
               Opaque watermark returned by a previous call. Omit to establish a
               baseline (returns the current watermark and no statuses).
+          - in: query
+            name: task_type
+            schema:
+              type: string
+            required: false
+            description: >
+              Restrict results to a single task type (e.g. the chart-data query
+              task type), so a client tracks only the work it cares about.
           responses:
             200:
               description: Changed task statuses since the cursor
@@ -301,8 +310,14 @@ class TaskRestApi(BaseSupersetModelRestApi):
                       statuses:
                         type: object
                         additionalProperties:
-                          type: string
-                        description: Map of task UUID to current status
+                          type: object
+                          properties:
+                            status:
+                              type: string
+                            progress:
+                              type: number
+                              nullable: true
+                        description: Map of task UUID to status and progress
                       cursor:
                         type: string
                         nullable: true
@@ -321,7 +336,9 @@ class TaskRestApi(BaseSupersetModelRestApi):
             except ValueError:
                 return self.response_400(message="Invalid cursor")
 
-        statuses, next_cursor = TaskDAO.get_statuses_changed_since(cursor)
+        statuses, next_cursor = TaskDAO.get_statuses_changed_since(
+            cursor, task_type=request.args.get("task_type")
+        )
         return self.response(
             200,
             statuses=statuses,

@@ -70,31 +70,50 @@ class TaskDAO(BaseDAO[Task]):
 
     @classmethod
     def get_statuses_changed_since(
-        cls, cursor: datetime | None
-    ) -> tuple[dict[str, str], datetime | None]:
-        """Return ``{uuid: status}`` for accessible tasks changed since ``cursor``.
+        cls, cursor: datetime | None, task_type: str | None = None
+    ) -> tuple[dict[str, dict[str, Any]], datetime]:
+        """Return ``{uuid: {status, progress}}`` for tasks changed since ``cursor``.
 
-        The minimal-IO polling primitive: the base filter (``TaskFilter``) scopes
-        results to tasks the caller can see (subscribed tasks for regular users,
-        all tasks for admins), so callers never pass an explicit id list. Only the
-        ``uuid`` and ``status`` columns are read.
+        The minimal-IO polling primitive behind both the async chart-data
+        completion poll and the realtime task list. The base filter
+        (``TaskFilter``) scopes results to tasks the caller can see (subscribed
+        tasks for regular users, all tasks for admins), so callers never pass an
+        explicit id list. ``task_type`` optionally narrows to a single kind (e.g.
+        chart-data query tasks) so a client tracks only the work it cares about.
 
-        ``cursor`` is a ``changed_on`` watermark; ``changed_on >= cursor`` (not
-        ``>``) so no transition straddling the boundary is missed — re-delivery of
-        an already-seen status is idempotent for the client, a miss would hang it.
+        Without a ``cursor`` this establishes a **baseline**: it returns no
+        statuses and a fresh watermark (the current server clock), so a client
+        gets a definitive starting point without dumping every task in the
+        metastore. Subsequent calls pass that watermark back and receive only
+        tasks whose ``changed_on >= cursor`` (``>=``, not ``>``, so no transition
+        straddling the boundary is missed — re-delivery of an already-seen status
+        is idempotent for the client, a miss would hang it).
 
-        Returns the ``{uuid: status}`` map plus the next cursor to poll with (the
-        max ``changed_on`` in this batch, or the input ``cursor`` when empty), so
-        the client always advances using a server-observed watermark rather than
-        its own clock.
+        Returns the ``{uuid: {status, progress}}`` map (``progress`` is the
+        0.0–1.0 percent from the task's properties, or ``None`` when unknown) plus
+        the next cursor to poll with (the max ``changed_on`` in this batch), so the
+        client always advances using a server-observed watermark, never its clock.
         """
-        query = cls._apply_base_filter(db.session.query(Task))
-        if cursor is not None:
-            query = query.filter(Task.changed_on >= cursor)
+        # Baseline: no cursor → start "from now", surfacing only later changes.
+        if cursor is None:
+            return {}, datetime.now()
 
-        rows = query.with_entities(Task.uuid, Task.status, Task.changed_on).all()
-        statuses = {str(uuid): status for uuid, status, _ in rows}
-        next_cursor = max((changed_on for *_, changed_on in rows), default=cursor)
+        query = cls._apply_base_filter(db.session.query(Task)).filter(
+            Task.changed_on >= cursor
+        )
+        if task_type is not None:
+            query = query.filter(Task.task_type == task_type)
+        rows = query.with_entities(
+            Task.uuid, Task.status, Task.changed_on, Task.properties
+        ).all()
+
+        statuses: dict[str, dict[str, Any]] = {}
+        next_cursor = cursor
+        for uuid, status, changed_on, properties in rows:
+            progress = json.loads(properties or "{}").get("progress_percent")
+            statuses[str(uuid)] = {"status": status, "progress": progress}
+            if changed_on and changed_on > next_cursor:
+                next_cursor = changed_on
         return statuses, next_cursor
 
     @classmethod

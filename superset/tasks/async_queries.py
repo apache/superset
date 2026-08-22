@@ -19,13 +19,12 @@ from __future__ import annotations
 import dataclasses
 import logging
 from typing import Any, TYPE_CHECKING
-from uuid import UUID
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
-from superset_core.tasks.types import TaskOptions, TaskScope, TaskStatus
+from superset_core.tasks.types import TaskOptions, TaskScope
 
 from superset.charts.data.form_data import set_form_data
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -59,12 +58,13 @@ query_timeout = current_app.config[
     "SQLLAB_ASYNC_TIME_LIMIT_SEC"
 ]  # TODO: new config key
 
-# GTF task types for the chart-data fan-out. Each QueryObject runs as its own
-# SHARED task keyed by its query_cache_key (safe cross-user dedup — the key encodes
-# RLS/impersonation); a per-job coordinator joins them and emits the completion
-# event onto the async-events stream.
-CHART_QUERY_TASK = "superset.chart_data.query"
-CHART_DATA_COORDINATOR_TASK = "superset.chart_data.coordinator"
+# GTF task type for the chart-data fan-out. Each QueryObject runs as its own SHARED
+# task keyed by its query_cache_key (safe cross-user dedup — the key encodes
+# RLS/impersonation). The client polls /api/v1/task/status_changes (filtered to this
+# type) and aggregates the tasks' statuses itself; GTF owns completion emission (there
+# is no coordinator task). The atomic unit is a QueryObject, not chart-specific, so the
+# type is versioned to allow the serialization/execution contract to evolve.
+CHART_QUERY_TASK = "superset.query_object_v1"
 
 
 def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User:
@@ -136,36 +136,6 @@ def execute_chart_query(
         query_context.get_df_payload_result(query_obj)
 
 
-@task(name=CHART_DATA_COORDINATOR_TASK, scope=TaskScope.PRIVATE, timeout=query_timeout)
-def chart_data_coordinator(
-    job_metadata: dict[str, Any],
-    query_task_uuids: list[str],
-) -> None:
-    """Join the per-query tasks and emit a single async-events completion event.
-
-    Unlike a ``depends_on`` prerequisite (which fails-fast and would leave a failure
-    unreported), the coordinator waits for every query task to reach a terminal
-    state and then emits ``STATUS_DONE`` if all succeeded, else ``STATUS_ERROR`` —
-    the client's single done/error signal on the firehose. On ``done`` the client
-    re-issues its original chart-data request, which now hits the per-query DATA
-    cache (no ``result_url`` / query-context descriptor).
-    """
-    from superset.tasks.manager import TaskManager
-
-    statuses = [
-        TaskManager.wait_for_completion(UUID(task_uuid)).status
-        for task_uuid in query_task_uuids
-    ]
-    if all(status == TaskStatus.SUCCESS.value for status in statuses):
-        async_query_manager.update_job(job_metadata, async_query_manager.STATUS_DONE)
-    else:
-        async_query_manager.update_job(
-            job_metadata,
-            async_query_manager.STATUS_ERROR,
-            errors=[{"message": "One or more chart-data queries failed"}],
-        )
-
-
 def _query_task_cache_key(query_context: "QueryContext", index: int) -> str | None:
     """Compute a query's cache key exactly as its task will.
 
@@ -180,27 +150,27 @@ def _query_task_cache_key(query_context: "QueryContext", index: int) -> str | No
 
 
 def submit_chart_data_query_tasks(
-    channel_id: str,
     query_context: "QueryContext",
     user_id: int | None,
 ) -> dict[str, Any]:
-    """Fan a chart-data request out into one GTF task per ``QueryObject`` + coordinator.
+    """Fan a chart-data request out into one GTF task per ``QueryObject``.
 
     Each ``QueryObject`` runs as its own SHARED task keyed by its ``query_cache_key``
     (safe cross-user dedup — the key encodes RLS/impersonation), writing the per-query
     DATA cache a later re-request reads back. A contribution query ``depends_on`` the
-    totals query's task and reads its cached result to normalize. A per-job coordinator
-    joins every query task and emits the single async-events completion event onto the
-    firehose (so the websocket push keeps working); the client learns completion by
-    polling the coordinator task (``GET /api/v1/task/<uuid>/status``) and, on ``done``,
-    re-issues its original request — now served entirely from the per-query cache.
+    totals query's task and reads its cached result to normalize.
 
-    Returns the job metadata (the HTTP 202 body), carrying the coordinator task UUID as
-    ``task_id`` so the client can poll and cancel via the GTF task API.
+    There is no coordinator task: the client polls ``/api/v1/task/status_changes`` and
+    aggregates the query tasks' own honest statuses itself (all ``SUCCESS`` → re-issue
+    the request, now served entirely from the per-query cache; any terminal non-success
+    → error). GTF owns completion emission (per-task, via the coordination service), so
+    the websocket transport subscribes to GTF, not to any GAQ-specific stream.
+
+    Returns the HTTP 202 body ``{"task_ids": [...]}`` — the query tasks' UUIDs, in
+    query order, for the client to poll and cancel via the GTF task API.
     """
     guest_user = security_manager.get_current_guest_user_if_guest()
     guest_token = guest_user.guest_token if guest_user else None
-    job_metadata = async_query_manager.init_job(channel_id, user_id)
 
     queries = query_context.queries
     # Contribution queries normalize against a shared totals row. Identify the coupling
@@ -239,11 +209,7 @@ def submit_chart_data_query_tasks(
             )
             tasks[index] = _schedule(index, depends_on=depends_on)
 
-    coordinator = chart_data_coordinator.schedule(
-        job_metadata, [str(tasks[index].uuid) for index in range(len(queries))]
-    )
-    job_metadata["task_id"] = str(coordinator.uuid)
-    return job_metadata
+    return {"task_ids": [str(tasks[index].uuid) for index in range(len(queries))]}
 
 
 def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:
