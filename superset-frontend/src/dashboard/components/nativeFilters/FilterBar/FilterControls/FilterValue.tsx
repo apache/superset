@@ -283,6 +283,8 @@ const FilterValue: FC<FilterValueProps> = ({
           formData: newFormData,
           force: fromCache ? false : shouldRefresh,
           ownState: filterOwnState,
+          // 202 is handled below via waitForAsyncData.
+          enableAsyncMode: true,
         });
       requestFilterData()
         .then(({ response, json }) => {

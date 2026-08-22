@@ -405,6 +405,8 @@ export default function DrillByModal({
     const requestDrillData = () =>
       getChartDataRequest({
         formData: drilledFormData,
+        // 202 is handled below via handleChartDataResponse.
+        enableAsyncMode: true,
       });
     requestDrillData()
       .then(({ response, json }) =>
@@ -502,6 +504,8 @@ export default function DrillByModal({
       const requestDrillData = () =>
         getChartDataRequest({
           formData: drilledFormData,
+          // 202 is handled below via handleChartDataResponse.
+          enableAsyncMode: true,
         });
       requestDrillData()
         .then(({ response, json }) =>

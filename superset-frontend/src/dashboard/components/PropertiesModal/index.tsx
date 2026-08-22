@@ -209,6 +209,9 @@ const PropertiesModal = ({
         'map_label_colors',
         'color_scheme_domain',
         'show_chart_timestamps',
+        // Edited via the async-mode dropdown, not the raw JSON editor, so the
+        // dropdown is the single source of truth (mirrors show_chart_timestamps).
+        'async_mode',
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
@@ -357,14 +360,13 @@ const PropertiesModal = ({
     // refresh") rather than falling through to the dropdown value (#42116).
     jsonMetadataObj.refresh_frequency =
       jsonMetadataObj.refresh_frequency ?? refreshFrequency;
-    // Persist the per-dashboard async override (unless set directly in the
-    // Advanced JSON editor). 'default' clears it so the deployment default applies.
-    if (jsonMetadataObj.async_mode === undefined) {
-      if (asyncMode === 'default') {
-        delete jsonMetadataObj.async_mode;
-      } else {
-        jsonMetadataObj.async_mode = asyncMode;
-      }
+    // Persist the per-dashboard async override from the dropdown (the sole source
+    // of truth — async_mode is omitted from the Advanced JSON editor). 'default'
+    // clears it so the deployment default applies.
+    if (asyncMode === 'default') {
+      delete jsonMetadataObj.async_mode;
+    } else {
+      jsonMetadataObj.async_mode = asyncMode;
     }
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};

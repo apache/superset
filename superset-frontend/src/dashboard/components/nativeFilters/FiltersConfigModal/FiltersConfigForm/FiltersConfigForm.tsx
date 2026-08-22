@@ -530,6 +530,8 @@ const FiltersConfigForm = (
         getChartDataRequest({
           formData,
           force: fromCache ? false : force,
+          // 202 is handled below via waitForAsyncData.
+          enableAsyncMode: true,
         });
       requestDefaultValues()
         .then(({ response, json }) => {

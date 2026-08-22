@@ -254,6 +254,9 @@ export interface RequestParams {
   // Per-dashboard async-mode override (from json_metadata.async_mode), used to
   // resolve whether this render requests async execution.
   async_mode_override?: AsyncModeOverride;
+  // Whether the caller handles an HTTP 202 async task response (see
+  // GetChartDataRequestParams.enableAsyncMode).
+  enableAsyncMode?: boolean;
   [key: string]: unknown;
 }
 
@@ -283,6 +286,11 @@ export interface GetChartDataRequestParams {
   force?: boolean;
   requestParams?: RequestParams;
   ownState?: JsonObject;
+  // Opt into asynchronous execution. Only set by callers that handle an HTTP 202
+  // task response (via handleChartDataResponse / waitForAsyncData); direct
+  // consumers that read `response.json.result` must leave this false so they keep
+  // the synchronous flow.
+  enableAsyncMode?: boolean;
 }
 
 // runAnnotationQuery params interface
@@ -449,9 +457,11 @@ const v1ChartDataRequest = async (
   }).toString();
 
   // Opt full JSON chart-data renders into async execution per the resolved policy
-  // (feature flag + deployment default + optional per-dashboard override). The
-  // server treats an absent async_mode as synchronous, so this is additive.
+  // (feature flag + deployment default + optional per-dashboard override). Only
+  // callers that handle a 202 task response set enableAsyncMode; the server treats
+  // an absent async_mode as synchronous, so this is additive.
   const asyncMode =
+    requestParams.enableAsyncMode === true &&
     resultFormat === 'json' &&
     resultType === 'full' &&
     resolveAsyncMode(requestParams.async_mode_override);
@@ -480,9 +490,11 @@ export async function getChartDataRequest({
   force = false,
   requestParams = {},
   ownState = {},
+  enableAsyncMode = false,
 }: GetChartDataRequestParams): Promise<ChartDataRequestResponse> {
   let querySettings: RequestParams = {
     ...requestParams,
+    enableAsyncMode,
   };
 
   if (domainShardingEnabled) {
@@ -743,6 +755,8 @@ export function exploreJSON(
         force: fromCache ? false : force,
         requestParams,
         ownState,
+        // exploreJSON handles 202 via handleChartDataResponse.
+        enableAsyncMode: true,
       });
 
     const chartDataRequest = requestChartData();
