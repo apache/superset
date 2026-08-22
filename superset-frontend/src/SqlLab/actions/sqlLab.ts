@@ -685,50 +685,79 @@ function migrateQuery(
 export function syncQueryEditor(
   queryEditor: QueryEditor,
 ): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: AppDispatch, getState: GetState) {
-    const { tables, queries } = getState().sqlLab;
-    const localStorageTables = tables.filter(
-      (table: Table) =>
-        table.inLocalStorage && table.queryEditorId === queryEditor.id,
-    );
-    const queriesToMigrate = Object.values(queries).filter(
-      query => query.sqlEditorId === queryEditor.id && !query.isDataPreview,
-    );
-    return SupersetClient.post({
-      endpoint: '/tabstateview/',
-      postPayload: { queryEditor },
-    })
-      .then(({ json }) => {
-        const newQueryEditor = {
-          ...queryEditor,
-          inLocalStorage: false,
-          loaded: true,
-          tabViewId: json.id.toString(),
-        };
-        dispatch({
-          type: MIGRATE_QUERY_EDITOR,
-          oldQueryEditor: queryEditor,
-          newQueryEditor,
+  return async function (dispatch: AppDispatch, getState: GetState) {
+    try {
+      const { tables, queries } = getState().sqlLab;
+      let databaseWasRemoved = false;
+      if (queryEditor.dbId != null) {
+        const query = rison.encode({
+          filters: [{ col: 'id', opr: 'eq', value: queryEditor.dbId }],
+          page: 0,
+          page_size: 1,
         });
-        return Promise.all([
-          ...localStorageTables.map((table: Table) =>
-            migrateTable(table, newQueryEditor.tabViewId!, dispatch),
-          ),
-          ...queriesToMigrate.map((query: Query) =>
-            migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
-          ),
-        ]);
-      })
-      .catch(() =>
-        dispatch(
-          addWarningToast(
-            t(
-              'Unable to migrate query editor state to backend. Superset will retry ' +
-                'later. Please contact your administrator if this problem persists.',
-            ),
+        const { json } = await SupersetClient.get({
+          endpoint: `/api/v1/database/?q=${query}`,
+        });
+        databaseWasRemoved = json.count === 0;
+      }
+      const queryEditorToMigrate = databaseWasRemoved
+        ? {
+            ...queryEditor,
+            dbId: undefined,
+            catalog: undefined,
+            schema: undefined,
+          }
+        : queryEditor;
+      const localStorageTables = tables.filter(
+        (table: Table) =>
+          table.inLocalStorage && table.queryEditorId === queryEditor.id,
+      );
+      const queriesToMigrate = Object.values(queries).filter(
+        query => query.sqlEditorId === queryEditor.id && !query.isDataPreview,
+      );
+      const { json } = await SupersetClient.post({
+        endpoint: '/tabstateview/',
+        postPayload: {
+          queryEditor: {
+            ...queryEditorToMigrate,
+            dbId: queryEditorToMigrate.dbId ?? null,
+          },
+        },
+      });
+      const newQueryEditor = {
+        ...queryEditorToMigrate,
+        inLocalStorage: false,
+        loaded: true,
+        tabViewId: json.id.toString(),
+      };
+      dispatch({
+        type: MIGRATE_QUERY_EDITOR,
+        oldQueryEditor: queryEditor,
+        newQueryEditor,
+      });
+      if (databaseWasRemoved && localStorageTables.length > 0) {
+        dispatch({ type: REMOVE_TABLES, tables: localStorageTables });
+      }
+      return Promise.all([
+        ...(databaseWasRemoved
+          ? []
+          : localStorageTables.map((table: Table) =>
+              migrateTable(table, newQueryEditor.tabViewId!, dispatch),
+            )),
+        ...queriesToMigrate.map((query: Query) =>
+          migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
+        ),
+      ]);
+    } catch {
+      return dispatch(
+        addWarningToast(
+          t(
+            'Unable to migrate query editor state to backend. Superset will retry ' +
+              'later. Please contact your administrator if this problem persists.',
           ),
         ),
       );
+    }
   };
 }
 

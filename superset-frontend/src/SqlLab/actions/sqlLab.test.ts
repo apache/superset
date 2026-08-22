@@ -1090,6 +1090,13 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
+    const getDatabaseEndpoint = /\/api\/v1\/database\/\?q=/;
+    fetchMock.get(
+      getDatabaseEndpoint,
+      { count: 1, result: [{}] },
+      { name: 'getDatabase' },
+    );
+
     const updateTableSchemaExpandedEndpoint =
       'glob:**/tableschemaview/*/expanded';
     fetchMock.post(updateTableSchemaExpandedEndpoint, {});
@@ -1105,6 +1112,9 @@ describe('async actions', () => {
       isFeatureEnabledMock.mockImplementation(
         (feature: string) => feature === 'SQLLAB_BACKEND_PERSISTENCE',
       );
+      fetchMock.modifyRoute('getDatabase', {
+        response: { count: 1, result: [{}] },
+      });
     });
 
     afterEach(() => {
@@ -2038,6 +2048,101 @@ describe('async actions', () => {
               fetchMock.callHistory.calls(updateTableSchemaEndpoint),
             ).toHaveLength(2);
           });
+      });
+
+      test('clears a deleted database before migrating the tab state', async () => {
+        expect.assertions(6);
+
+        const oldQueryEditor = {
+          ...queryEditor,
+          dbId: 99,
+          catalog: 'deleted_catalog',
+          schema: 'deleted_schema',
+          inLocalStorage: true,
+        };
+        const staleTable = {
+          id: 'stale-table',
+          dbId: 99,
+          queryEditorId: oldQueryEditor.id,
+          inLocalStorage: true,
+        };
+        const store = mockStore({
+          sqlLab: {
+            queries: [],
+            tables: [staleTable],
+            databases: { 1: {}, 99: {} },
+          },
+        });
+        fetchMock.modifyRoute('getDatabase', {
+          response: { count: 0, result: [] },
+        });
+
+        await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+
+        const call = fetchMock.callHistory.calls(updateTabStateEndpoint)[0];
+        const formData = call.options.body as FormData;
+        const persistedQueryEditor = JSON.parse(
+          formData.get('queryEditor') as string,
+        );
+        expect(persistedQueryEditor).toMatchObject({
+          dbId: null,
+          sql: oldQueryEditor.sql,
+        });
+        expect(persistedQueryEditor).not.toHaveProperty('catalog');
+        expect(persistedQueryEditor).not.toHaveProperty('schema');
+        expect(fetchMock.callHistory.calls('getDatabase')).toHaveLength(1);
+        expect(
+          fetchMock.callHistory.calls(updateTableSchemaEndpoint),
+        ).toHaveLength(0);
+        expect(store.getActions()).toEqual([
+          {
+            type: actions.MIGRATE_QUERY_EDITOR,
+            oldQueryEditor,
+            newQueryEditor: {
+              ...oldQueryEditor,
+              dbId: undefined,
+              catalog: undefined,
+              schema: undefined,
+              tabViewId: '1',
+              inLocalStorage: false,
+              loaded: true,
+            },
+          },
+          {
+            type: actions.REMOVE_TABLES,
+            tables: [staleTable],
+          },
+        ]);
+      });
+
+      test('does not migrate when database validation fails', async () => {
+        const oldQueryEditor = {
+          ...queryEditor,
+          dbId: 99,
+          inLocalStorage: true,
+        };
+        const store = mockStore({
+          sqlLab: {
+            queries: [],
+            tables: [],
+            databases: { 99: {} },
+          },
+        });
+        fetchMock.modifyRoute('getDatabase', {
+          response: { throws: new Error('database lookup failed') },
+        });
+
+        await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+
+        expect(
+          fetchMock.callHistory.calls(updateTabStateEndpoint),
+        ).toHaveLength(0);
+        expect(store.getActions()).toEqual([
+          expect.objectContaining({
+            type: ADD_TOAST,
+            payload: expect.objectContaining({ toastType: ToastType.Warning }),
+          }),
+        ]);
       });
     });
   });
