@@ -99,7 +99,9 @@ class TaskDAO(BaseDAO[Task]):
             return {}, datetime.now()
 
         query = cls._apply_base_filter(db.session.query(Task)).filter(
-            Task.changed_on >= cursor
+            # Task.changed_on's type is shadowed by CoreTask's bare annotation
+            # (datetime | None), so reference the real column for the comparison.
+            Task.__table__.c.changed_on >= cursor
         )
         if task_type is not None:
             query = query.filter(Task.task_type == task_type)
@@ -108,12 +110,14 @@ class TaskDAO(BaseDAO[Task]):
         ).all()
 
         statuses: dict[str, dict[str, Any]] = {}
-        next_cursor = cursor
+        changed_times: list[datetime] = []
         for uuid, status, changed_on, properties in rows:
             progress = json.loads(properties or "{}").get("progress_percent")
             statuses[str(uuid)] = {"status": status, "progress": progress}
-            if changed_on and changed_on > next_cursor:
-                next_cursor = changed_on
+            if changed_on is not None:
+                changed_times.append(changed_on)
+        # Advance to the newest change seen, or hold the cursor if nothing changed.
+        next_cursor = max(changed_times, default=cursor)
         return statuses, next_cursor
 
     @classmethod
@@ -157,6 +161,7 @@ class TaskDAO(BaseDAO[Task]):
         task_key: str,
         scope: TaskScope | str = TaskScope.PRIVATE,
         user_id: int | None = None,
+        guest_key: str | None = None,
         payload: dict[str, Any] | None = None,
         properties: TaskProperties | None = None,
         **kwargs: Any,
@@ -229,6 +234,10 @@ class TaskDAO(BaseDAO[Task]):
                 task_key,
                 scope_value,
             )
+        elif guest_key:
+            # Embedded guest creator: subscribe by token-derived key so the guest
+            # can see the task it just created (see superset.tasks.guest).
+            cls.add_guest_subscriber(task.id, guest_key)
 
         logger.info(
             "Created new async task: %s (type: %s, scope: %s)",
@@ -335,6 +344,39 @@ class TaskDAO(BaseDAO[Task]):
         db.session.add(subscription)
         db.session.flush()
         logger.info("Added subscriber %s to task %s", user_id, task_id)
+        return True
+
+    @classmethod
+    def add_guest_subscriber(cls, task_id: int, guest_key: str) -> bool:
+        """
+        Subscribe an embedded guest (by token-derived key) to a task.
+
+        The guest counterpart of ``add_subscriber``: guests have no ``ab_user``
+        row, so they subscribe by ``guest_key`` (see ``superset.tasks.guest``),
+        which grants them visibility of the task through ``TaskFilter``.
+
+        :param task_id: ID of the task
+        :param guest_key: Stable guest identity to subscribe
+        :returns: True if subscriber was added, False if already exists
+        """
+        # Check first to avoid IntegrityError (unrecoverable in nested txns).
+        existing = (
+            db.session.query(TaskSubscriber)
+            .filter_by(task_id=task_id, guest_key=guest_key)
+            .first()
+        )
+        if existing:
+            return False
+
+        db.session.add(
+            TaskSubscriber(
+                task_id=task_id,
+                guest_key=guest_key,
+                subscribed_at=datetime.now(timezone.utc),
+            )
+        )
+        db.session.flush()
+        logger.info("Added guest subscriber to task %s", task_id)
         return True
 
     @classmethod

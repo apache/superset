@@ -338,13 +338,22 @@ class Task(CoreTask, AuditMixinNullable, Model):
         """
         return any(sub.user_id == user_id for sub in self.subscribers)
 
+    def has_guest_subscriber(self, guest_key: str) -> bool:
+        """
+        Check if an embedded guest (by token-derived key) is subscribed.
+
+        :param guest_key: Guest identity to check (see superset.tasks.guest)
+        :returns: True if the guest is subscribed
+        """
+        return any(sub.guest_key == guest_key for sub in self.subscribers)
+
     def get_subscriber_ids(self) -> list[int]:
         """
         Get list of all subscriber user IDs.
 
         :returns: List of user IDs subscribed to this task
         """
-        return [sub.user_id for sub in self.subscribers]
+        return [sub.user_id for sub in self.subscribers if sub.user_id is not None]
 
     def to_dict(self) -> dict[str, Any]:
         """
