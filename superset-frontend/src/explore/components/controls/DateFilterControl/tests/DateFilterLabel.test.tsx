@@ -20,12 +20,31 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 
-import { NO_TIME_RANGE } from '@superset-ui/core';
+import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
 import DateFilterLabel from '..';
 import { DateFilterControlProps } from '../types';
 import { DateFilterTestKey } from '../utils';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  fetchTimeRange: jest.fn(),
+}));
+
+const mockedFetchTimeRange = fetchTimeRange as jest.MockedFunction<
+  typeof fetchTimeRange
+>;
+
+const FIELD_TOOLTIP = '2024-01-01 ≤ col < 2024-01-08';
+const DESCRIPTION_TOOLTIP =
+  'This control filters the whole chart based on the selected time range.';
 
 const mockStore = configureStore([thunk]);
 
@@ -34,6 +53,11 @@ const defaultProps = {
   onClosePopover: jest.fn(),
   onOpenPopover: jest.fn(),
 };
+
+beforeEach(() => {
+  mockedFetchTimeRange.mockReset();
+  mockedFetchTimeRange.mockResolvedValue({ value: FIELD_TOOLTIP });
+});
 
 function setup(
   props: Omit<DateFilterControlProps, 'name'> = defaultProps,
@@ -135,4 +159,38 @@ test('DateFilter should properly handle isOverflowingFilterBar prop changes', ()
 
   expect(popoverAfterRerender?.parentElement).toBe(trigger.parentElement);
   expect(popoverAfterRerender?.parentElement).not.toBe(document.body);
+});
+
+test('hovering the description icon does not show the date range tooltip', async () => {
+  render(
+    setup({
+      ...defaultProps,
+      value: 'Last week',
+      label: 'Date Range',
+      description: DESCRIPTION_TOOLTIP,
+      hovered: true,
+    }),
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('Last week')).toBeInTheDocument();
+  });
+
+  await userEvent.hover(screen.getByText('Last week'));
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(FIELD_TOOLTIP);
+
+  await userEvent.unhover(screen.getByText('Last week'));
+  await waitFor(() => {
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  const descriptionIcon = within(
+    screen.getByTestId('time_range-description-icon'),
+  ).getByRole('button', { name: 'Show info tooltip' });
+  await userEvent.hover(descriptionIcon);
+
+  const tooltip = await screen.findByRole('tooltip');
+  expect(tooltip).toHaveTextContent(DESCRIPTION_TOOLTIP);
+  expect(tooltip).not.toHaveTextContent(FIELD_TOOLTIP);
+  expect(screen.getAllByRole('tooltip')).toHaveLength(1);
 });
