@@ -18,6 +18,8 @@ import logging
 from functools import partial
 from typing import Any
 
+from jinja2.exceptions import TemplateError
+
 from superset import security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.tag.exceptions import TagCreateFailedError, TagInvalidError
@@ -97,9 +99,14 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
                         f"Access validation not supported for {object_type}"
                     )
                 )
-        except SupersetSecurityException:
+        except (SupersetSecurityException, TemplateError):
+            # A TemplateError can surface when authorizing a saved query whose
+            # Jinja-templated SQL must be parsed to resolve table references; a
+            # malformed template is a validation failure, not an unhandled 500.
             exceptions.append(
-                TagCreateFailedError(f"Access denied for {object_type} {object_id}")
+                TagCreateFailedError(
+                    f"Could not validate access for {object_type} {object_id}"
+                )
             )
 
 
