@@ -19,6 +19,7 @@
 
 import { screen, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import userEvent from '@testing-library/user-event';
 import * as chartAction from 'src/components/Chart/chartAction';
 import type { ChartDataRequestResponse } from 'src/components/Chart/chartAction';
 import ViewQueryModal from './ViewQueryModal';
@@ -215,5 +216,96 @@ test('falls back to empty ownState when prop is omitted', async () => {
       formData: mockFormData,
       ownState: {},
     }),
+  );
+});
+
+test('shows cached response statistics in the query inspector', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+  const queriesResponse = [
+    { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
+    { data: [{ rowcount: 2 }], is_cached: false },
+    { data: { total: 3 }, is_cached: false },
+  ];
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+      chartUpdateStartTime={1000}
+      chartUpdateEndTime={1250}
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Queries3Returned rows3Cached queries1',
+  );
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Duration250 ms',
+  );
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    `Response size${new Blob([
+      JSON.stringify(queriesResponse),
+    ]).size.toLocaleString()} bytes`,
+  );
+});
+
+test('only exposes the raw response when explicitly enabled', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+  const queriesResponse = [{ data: [{ country: 'KR' }] }];
+
+  const { rerender } = render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+    />,
+    { useRedux: true },
+  );
+
+  expect(
+    screen.queryByRole('tab', { name: 'Response' }),
+  ).not.toBeInTheDocument();
+
+  rerender(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={queriesResponse}
+      showResponse
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
+
+  expect(screen.getByRole('tabpanel')).toHaveTextContent('"country": "KR"');
+});
+
+test('shows empty response and unavailable duration states', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={null}
+      showResponse
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Response' }));
+  expect(screen.getByRole('tabpanel')).toHaveTextContent(
+    'No response data is available yet.',
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Queries0Returned rows0Cached queries0Response size2 bytesDurationNot available',
   );
 });

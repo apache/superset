@@ -24,18 +24,25 @@ import {
   ensureIsArray,
   getClientErrorObject,
   JsonObject,
+  QueryData,
   QueryFormData,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
-import { Loading } from '@superset-ui/core/components';
-import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
+import { Loading, Tabs } from '@superset-ui/core/components';
+import CodeSyntaxHighlighter, {
+  SupportedLanguage,
+} from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 interface Props {
   latestQueryFormData: QueryFormData;
   ownState?: JsonObject;
+  queriesResponse?: QueryData[] | null;
+  chartUpdateStartTime?: number;
+  chartUpdateEndTime?: number | null;
+  showResponse?: boolean;
 }
 
 type Result = {
@@ -51,7 +58,64 @@ const ViewQueryModalContainer = styled.div`
   gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
+const InspectorContainer = styled.div`
+  height: 100%;
+
+  .ant-tabs,
+  .ant-tabs-content,
+  .ant-tabs-tabpane {
+    height: 100%;
+  }
+
+  .ant-tabs-tabpane {
+    overflow: auto;
+  }
+`;
+
+const StatsGrid = styled.dl`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${({ theme }) => theme.sizeUnit * 3}px
+    ${({ theme }) => theme.sizeUnit * 6}px;
+  margin: 0;
+
+  dt {
+    color: ${({ theme }) => theme.colorTextSecondary};
+  }
+
+  dd {
+    margin: 0;
+  }
+`;
+
+const getResponseStats = (queriesResponse: QueryData[] | null) => {
+  const responses = queriesResponse ?? [];
+  const serializedResponse = JSON.stringify(responses, null, 2);
+  const returnedRows = responses.reduce((total, response) => {
+    const { data } = response as JsonObject;
+    return total + (Array.isArray(data) ? data.length : 0);
+  }, 0);
+  const cachedQueries = responses.filter(
+    response => (response as JsonObject).is_cached === true,
+  ).length;
+
+  return {
+    cachedQueries,
+    queryCount: responses.length,
+    responseBytes: new Blob([JSON.stringify(responses)]).size,
+    returnedRows,
+    serializedResponse,
+  };
+};
+
+const ViewQueryModal: FC<Props> = ({
+  latestQueryFormData,
+  ownState,
+  queriesResponse,
+  chartUpdateStartTime,
+  chartUpdateEndTime,
+  showResponse = false,
+}) => {
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,14 +157,11 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
     loadChartData('query');
   }, [loadChartData]);
 
-  if (isLoading) {
-    return <Loading />;
-  }
-  if (error) {
-    return <pre>{error}</pre>;
-  }
-
-  return (
+  const queryContent = isLoading ? (
+    <Loading />
+  ) : error ? (
+    <pre>{error}</pre>
+  ) : (
     <ViewQueryModalContainer>
       {result.map((item, index) => (
         // Static API response data - index is appropriate for keys
@@ -118,6 +179,70 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData, ownState }) => {
         </Fragment>
       ))}
     </ViewQueryModalContainer>
+  );
+
+  if (queriesResponse === undefined) {
+    return queryContent;
+  }
+
+  const {
+    cachedQueries,
+    queryCount,
+    responseBytes,
+    returnedRows,
+    serializedResponse,
+  } = getResponseStats(queriesResponse);
+  const duration =
+    chartUpdateStartTime != null && chartUpdateEndTime != null
+      ? Math.max(0, chartUpdateEndTime - chartUpdateStartTime)
+      : null;
+  const items = [
+    {
+      key: 'query',
+      label: t('Query'),
+      children: queryContent,
+    },
+    ...(showResponse
+      ? [
+          {
+            key: 'response',
+            label: t('Response'),
+            children: queriesResponse?.length ? (
+              <CodeSyntaxHighlighter language="json" showLineNumbers>
+                {serializedResponse}
+              </CodeSyntaxHighlighter>
+            ) : (
+              <p>{t('No response data is available yet.')}</p>
+            ),
+          },
+        ]
+      : []),
+    {
+      key: 'stats',
+      label: t('Stats'),
+      children: (
+        <StatsGrid data-test="query-inspector-stats">
+          <dt>{t('Queries')}</dt>
+          <dd>{queryCount}</dd>
+          <dt>{t('Returned rows')}</dt>
+          <dd>{returnedRows}</dd>
+          <dt>{t('Cached queries')}</dt>
+          <dd>{cachedQueries}</dd>
+          <dt>{t('Response size')}</dt>
+          <dd>{t('%s bytes', responseBytes.toLocaleString())}</dd>
+          <dt>{t('Duration')}</dt>
+          <dd>
+            {duration == null ? t('Not available') : t('%s ms', duration)}
+          </dd>
+        </StatsGrid>
+      ),
+    },
+  ];
+
+  return (
+    <InspectorContainer>
+      <Tabs items={items} />
+    </InspectorContainer>
   );
 };
 
