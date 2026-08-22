@@ -16,36 +16,24 @@
 # under the License.
 from __future__ import annotations
 
-import dataclasses
 import logging
 from typing import Any, TYPE_CHECKING
 
-from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
-from marshmallow import ValidationError
 from superset_core.tasks.types import TaskOptions, TaskScope
 
-from superset.charts.data.form_data import set_form_data
-from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_serialization import (
     load_serialized_query,
     serialize_query,
     SerializedQuery,
 )
 from superset.constants import CacheRegion
-from superset.exceptions import (
-    SupersetErrorException,
-    SupersetErrorsException,
-)
 from superset.extensions import (
-    async_query_manager,
-    celery_app,
     security_manager,
 )
 from superset.tasks.decorators import task
 from superset.utils.core import override_user
-from superset.utils.error_sanitization import sanitize_error_dicts
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -210,96 +198,3 @@ def submit_chart_data_query_tasks(
             tasks[index] = _schedule(index, depends_on=depends_on)
 
     return {"task_ids": [str(tasks[index].uuid) for index in range(len(queries))]}
-
-
-def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:
-    """
-    Create the query context from the form data.
-
-    :param form_data: The task form data
-    :returns: The query context
-    :raises ValidationError: If the request is incorrect
-    """
-
-    try:
-        return ChartDataQueryContextSchema().load(form_data)
-    except KeyError as ex:
-        raise ValidationError("Request is incorrect") from ex
-
-
-def _load_user_from_job_metadata(job_metadata: dict[str, Any]) -> User:
-    if user_id := job_metadata.get("user_id"):
-        # logged in user
-        user = security_manager.get_user_by_id(user_id)
-    elif guest_token := job_metadata.get("guest_token"):
-        # embedded guest user
-        user = security_manager.get_guest_user_from_token(guest_token)
-        del job_metadata["guest_token"]
-    else:
-        # default to anonymous user if no user is found
-        user = security_manager.get_anonymous_user()
-    return user
-
-
-def _handle_soft_time_limit(
-    job_metadata: dict[str, Any], ex: Exception, activity: str
-) -> None:
-    """
-    SoftTimeLimitExceeded is raised both by a genuine timeout and by a
-    user-initiated cancel (revoke sends SIGUSR1). The cancel endpoint has
-    already emitted the terminal event for the latter - it has to, since a task
-    revoked while still queued never reaches this handler - so only a timeout
-    is reported here, and without one the client would wait forever.
-    """
-    if async_query_manager.is_job_cancelled(job_metadata["job_id"]):
-        logger.info("Cancelled by the user while %s", activity)
-        return
-
-    logger.warning("A timeout occurred while %s, error: %s", activity, ex)
-    async_query_manager.update_job(
-        job_metadata,
-        async_query_manager.STATUS_ERROR,
-        errors=[{"message": f"A timeout occurred while {activity}"}],
-    )
-
-
-@celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
-def load_chart_data_into_cache(
-    job_metadata: dict[str, Any],
-    form_data: dict[str, Any],
-) -> None:
-    # pylint: disable=import-outside-toplevel
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-
-    with override_user(_load_user_from_job_metadata(job_metadata), force=False):
-        try:
-            set_form_data(form_data)
-            query_context = _create_query_context_from_form(form_data)
-            command = ChartDataCommand(query_context)
-            result = command.run(cache=True)
-            cache_key = result["cache_key"]
-            result_url = f"/api/v1/chart/data/{cache_key}"
-            async_query_manager.update_job(
-                job_metadata,
-                async_query_manager.STATUS_DONE,
-                result_url=result_url,
-            )
-        except SoftTimeLimitExceeded as ex:
-            _handle_soft_time_limit(job_metadata, ex, "loading chart data")
-            raise
-        except Exception as ex:
-            # Extract SIP-40 style errors when available
-            if isinstance(ex, SupersetErrorException):
-                errors = [dataclasses.asdict(ex.error)]
-            elif isinstance(ex, SupersetErrorsException):
-                errors = [dataclasses.asdict(error) for error in ex.errors]
-            else:
-                # Fallback for non-Superset exceptions
-                error = str(ex.message if hasattr(ex, "message") else ex)
-                errors = [{"message": error}]
-            async_query_manager.update_job(
-                job_metadata,
-                async_query_manager.STATUS_ERROR,
-                errors=sanitize_error_dicts(errors),
-            )
-            raise
