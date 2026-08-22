@@ -108,6 +108,30 @@ def test_create_command_success(session_with_data: Session, mocker: MockerFixtur
         )
 
 
+def test_validate_object_access_query_malformed_jinja(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """A saved query with malformed Jinja SQL must surface as a validation
+    error, not an unhandled ``jinja2.TemplateError`` escaping as a 500."""
+    from superset.commands.tag.create import CreateCustomTagCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+    from superset.models.sql_lab import SavedQuery
+    from superset.tags.models import ObjectType
+
+    query = db.session.query(SavedQuery).first()
+    # Unclosed ``{% if %}`` block fails ``env.parse()`` during access checks.
+    query.sql = "SELECT * FROM {% if %} broken"
+
+    mocker.patch("superset.commands.tag.create.to_object_model", return_value=query)
+    # Force the per-table authorization path that parses the query's Jinja SQL.
+    mocker.patch("superset.security_manager.can_access_database", return_value=False)
+
+    command = CreateCustomTagCommand(ObjectType.query, query.id, ["tag"])
+
+    with pytest.raises(TagInvalidError):
+        command.validate()
+
+
 def test_create_command_success_clear(
     session_with_data: Session, mocker: MockerFixture
 ):
