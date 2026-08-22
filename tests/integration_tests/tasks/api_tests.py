@@ -482,7 +482,11 @@ class TestTaskApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         prerequisite = SubmitTaskCommand(
-            data={"task_type": "test_type", "task_key": "api_dep_prereq"}
+            data={
+                "task_type": "test_type",
+                "task_key": "api_dep_prereq",
+                "task_name": "Prerequisite Task",
+            }
         ).run()
         dependent = None
         try:
@@ -501,6 +505,7 @@ class TestTaskApi(SupersetTestCase):
             assert len(result["depends_on"]) == 1
             dep = result["depends_on"][0]
             assert dep["uuid"] == str(prerequisite.uuid)
+            assert dep["task_name"] == "Prerequisite Task"
             assert dep["status"] == prerequisite.status
         finally:
             if dependent is not None:

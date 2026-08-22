@@ -510,3 +510,38 @@ def test_conditional_status_update_terminal_state_updates_dedup_key(
     assert task.dedup_key != original_dedup_key, (
         f"dedup_key should have changed for {terminal_state.value}"
     )
+
+
+def test_add_dependency_and_get_prerequisite_ids(session_with_task: Session) -> None:
+    """add_dependency persists an edge; get_prerequisite_ids/dependencies read it."""
+    from superset.daos.tasks import TaskDAO
+
+    parent = create_task(session_with_task, task_key="parent")
+    child = create_task(session_with_task, task_key="child")
+
+    assert TaskDAO.add_dependency(child.id, parent.id) is True
+    assert TaskDAO.get_prerequisite_ids(child.id) == [parent.id]
+
+    # Task.dependencies resolves to the prerequisite Task entities
+    session_with_task.refresh(child)
+    assert [t.id for t in child.dependencies] == [parent.id]
+
+
+def test_add_dependency_idempotent_duplicate(session_with_task: Session) -> None:
+    """Adding the same edge twice is idempotent (second insert is skipped)."""
+    from superset.daos.tasks import TaskDAO
+
+    parent = create_task(session_with_task, task_key="parent")
+    child = create_task(session_with_task, task_key="child")
+
+    assert TaskDAO.add_dependency(child.id, parent.id) is True
+    assert TaskDAO.add_dependency(child.id, parent.id) is False
+    assert TaskDAO.get_prerequisite_ids(child.id) == [parent.id]
+
+
+def test_get_prerequisite_ids_empty(session_with_task: Session) -> None:
+    """A task with no dependencies has no prerequisite ids."""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(session_with_task, task_key="lonely")
+    assert TaskDAO.get_prerequisite_ids(task.id) == []
