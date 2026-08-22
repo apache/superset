@@ -197,7 +197,7 @@ fastmcp = [
 # landed (discussion #40273).
 firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
-gevent = ["gevent>=26.7.0"]
+gevent = ["gevent>=26.8.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
 hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
 hive = [
