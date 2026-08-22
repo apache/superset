@@ -33,6 +33,7 @@ type DisplayMode = chatApi.DisplayMode;
 type ClientTool = chatApi.ClientTool;
 type ClaudeToolSpec = chatApi.ClaudeToolSpec;
 type ClientToolsFormat = chatApi.ClientToolsFormat;
+type RegisterChatOptions = chatApi.RegisterChatOptions;
 
 // The real value backing @apache-superset/core's `declare const
 // ClientToolsFormat` — that package only ever declares (see its own docs on
@@ -161,6 +162,7 @@ class ChatProvider {
     chat: Chat,
     trigger: ComponentType,
     panel: ComponentType,
+    options?: RegisterChatOptions,
   ): Disposable {
     if (this.chat) {
       // eslint-disable-next-line no-console
@@ -177,7 +179,7 @@ class ChatProvider {
     this.registerEmitter.fire(chat);
     this.notifyState();
 
-    return new Disposable(() => {
+    const disposeChat = new Disposable(() => {
       if (this.chat !== chat) return;
       this.chat = undefined;
       this.trigger = undefined;
@@ -186,6 +188,10 @@ class ChatProvider {
       if (this.opened) this.closePanel();
       this.notifyState();
     });
+
+    return options?.tools?.length
+      ? Disposable.from(disposeChat, this.registerClientTools(options.tools))
+      : disposeChat;
   }
 
   public getChat(): Chat | undefined {

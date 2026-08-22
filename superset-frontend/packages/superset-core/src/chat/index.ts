@@ -54,7 +54,8 @@ export type DisplayMode = 'floating' | 'panel';
 /**
  * Registers a chat provider. Only one chat is active at a time; the most
  * recently registered chat wins. Disposing the returned Disposable unregisters
- * the chat.
+ * the chat (and, if passed, the {@link RegisterChatOptions.tools} registered
+ * alongside it).
  *
  * @param chat The chat descriptor (id, name).
  * @param trigger The trigger component — the collapsed bubble entry point.
@@ -62,6 +63,7 @@ export type DisplayMode = 'floating' | 'panel';
  * @param panel The panel component, rendered in either display mode. In
  *   'floating' mode it appears as an overlay; in 'panel' mode it is docked
  *   alongside the main content.
+ * @param options Optional extras. See {@link RegisterChatOptions}.
  * @returns A Disposable that unregisters the chat when disposed.
  *
  * @example
@@ -70,6 +72,7 @@ export type DisplayMode = 'floating' | 'panel';
  *   { id: 'acme.chat', name: 'Acme Chat' },
  *   AcmeTrigger,
  *   AcmePanel,
+ *   { tools: getMyTools(chat) },
  * );
  * ```
  */
@@ -77,7 +80,25 @@ export declare function registerChat(
   chat: Chat,
   trigger: ComponentType,
   panel: ComponentType,
+  options?: RegisterChatOptions,
 ): Disposable;
+
+/**
+ * Optional extras for {@link registerChat}.
+ */
+export interface RegisterChatOptions {
+  /**
+   * Client-side tools to register alongside this chat — a convenience
+   * equivalent to calling {@link registerClientTools} yourself right after
+   * `registerChat`. Disposing the Disposable {@link registerChat} returns
+   * also unregisters these tools. Aside from that shared disposal, tool
+   * registration stays decoupled from chat registration (see
+   * {@link registerClientTool}'s own docs) — registering tools this way vs.
+   * via a separate {@link registerClientTool}/{@link registerClientTools}
+   * call is purely a matter of preference.
+   */
+  tools?: ClientTool[];
+}
 
 /**
  * Returns the active chat descriptor, or undefined if none is registered.
