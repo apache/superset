@@ -290,7 +290,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
-                timeseries_limit_metric=metric,
+                series_limit_metric=metric,
                 metrics=[metric],
             ),
             editors=[],
@@ -321,7 +321,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
-                timeseries_limit_metric=metric,
+                series_limit_metric=metric,
                 metrics=[metric],
             ),
             editors=[],
@@ -498,7 +498,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 viz_type="echarts_timeseries_line",
                 granularity_sqla="ds",
                 groupby=["name"],
-                timeseries_limit_metric={
+                series_limit_metric={
                     "expressionType": "SIMPLE",
                     "column": {
                         "column_name": "num_california",
@@ -522,7 +522,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 metrics=metrics,
                 groupby=["name"],
                 row_limit=50,
-                timeseries_limit_metric={
+                series_limit_metric={
                     "expressionType": "SIMPLE",
                     "column": {
                         "column_name": "num_california",
