@@ -48,9 +48,9 @@ _SIGNAL_STREAM_MAXLEN = 1
 # Fallback signal-stream retention (seconds) when the app config is unavailable;
 # operators tune it via ``DISTRIBUTED_COORDINATION_SIGNAL_TTL`` (default 24h).
 _DEFAULT_SIGNAL_STREAM_TTL_SECONDS = 86400
-# Blocking-XREAD chunk. The wait is event-driven — it returns the instant an entry
-# lands — so this only bounds how long each read parks before the loop re-checks the
-# deadline. Generous on purpose.
+# Blocking-XREAD chunk: how long each read parks before the loop re-checks the
+# deadline. The read returns as soon as an entry lands, so this only bounds the
+# no-signal wakeup cadence and can be generous.
 _STREAM_BLOCK_MS = 5000
 # Shorter chunk for background listeners so stop() and signal detection stay prompt.
 _LISTEN_BLOCK_MS = 1000
@@ -68,14 +68,14 @@ class CoordinationService:
       rather than silently doing nothing. Each accepts an optional ``backend`` so a
       caller with its own connection (Global Async Queries, during the deprecation
       window) can run against it instead of the shared coordinator.
-    - **Reliable await/notify** — ``notify`` (signal) plus ``wait_for_signal``
+    - **Await / notify** — ``notify`` (signal) plus ``wait_for_signal``
       (blocking) and ``listen_for_signal`` (background), combining a channel with a
-      caller-supplied predicate. Signals ride Redis Streams, so a waiter that reads
-      slightly late, reconnects, or survives a failover still receives them (unlike
-      pub/sub). With a backend the waiter blocks on the stream and wakes the instant a
-      signal lands (event-driven, no polling); without a backend it polls the
-      predicate. The predicate is always the source of truth, so a duplicate or
-      already-seen signal is harmless. Callers just supply a channel and a check.
+      caller-supplied predicate. Signals ride Redis Streams; because stream entries
+      are persisted, a waiter that reads slightly late, reconnects, or fails over
+      still receives them. With a backend the waiter blocks on the stream and wakes
+      when a signal lands (event-driven, no polling); without a backend it polls the
+      predicate. The predicate is the source of truth, so a duplicate or already-seen
+      signal is harmless.
 
     All methods are class-level: the service is app-global. Calls resolve the shared
     coordination backend from ``DISTRIBUTED_COORDINATION_CONFIG`` on each call, except
@@ -152,8 +152,8 @@ class CoordinationService:
         Redis pub/sub does not persist messages: if no subscriber is connected at
         publish time, or one disconnects/reconnects/fails over, the message is
         *forever lost*. Use this **only** for loss-tolerant nudges. For any signal a
-        receiver must not miss (task completion, abort), use :meth:`notify`
-        (Redis Streams, guaranteed delivery) instead.
+        receiver must not miss (task completion, abort), use :meth:`notify` (backed by
+        Redis Streams) instead.
 
         Only publishing is offered here — subscribing needs the native connection.
 
@@ -253,13 +253,13 @@ class CoordinationService:
         ttl: int | None = None,
         backend: "CoordinationBackend | None" = None,
     ) -> None:
-        """Reliably signal ``channel`` so waiters wake and re-check.
+        """Signal ``channel`` so waiters wake and re-check.
 
-        Appends an entry to the channel's Redis Stream — guaranteed delivery: a
-        waiter that reads slightly late, reconnects, or survives a failover still
-        receives it — and gives the stream a TTL so signal streams for tasks that
-        are never awaited cannot accumulate in Redis/Valkey. Pair with
-        :meth:`wait_for_signal` / :meth:`listen_for_signal`.
+        Appends an entry to the channel's Redis Stream. Because stream entries are
+        persisted, a waiter that reads slightly late, reconnects, or fails over still
+        receives it. The stream is capped to its latest entry and given a TTL, so
+        signal streams for tasks that are never awaited do not accumulate in
+        Redis/Valkey. Pair with :meth:`wait_for_signal` / :meth:`listen_for_signal`.
 
         :param message: small marker stored on the entry; the caller's predicate is
             the source of truth, so this is only a wake-up nudge.
@@ -290,7 +290,7 @@ class CoordinationService:
 
         ``check`` is the source of truth (typically a metastore read). With a
         coordination backend, this waits on ``channel``'s Redis Stream and re-runs
-        ``check`` the instant a signal (:meth:`notify`) lands — event-driven, no
+        ``check`` when a signal (:meth:`notify`) lands — event-driven, no
         polling. Without a backend it polls ``check`` every ``poll_interval``
         seconds.
 

@@ -48,8 +48,9 @@ class TaskManager:
     3. Handling deduplication (returning existing active task if duplicate)
     4. Managing real-time abort notifications (optional)
 
-    Redis pub/sub is opt-in via DISTRIBUTED_COORDINATION_CONFIG configuration. When not
-    configured, tasks use database polling for abort detection.
+    Signal delivery is opt-in via DISTRIBUTED_COORDINATION_CONFIG. When configured,
+    completion/abort are delivered over Redis Streams; when not, tasks use database
+    polling for abort detection and completion waits.
     """
 
     # Class-level state (initialized once via init_app)
@@ -91,10 +92,10 @@ class TaskManager:
         """
         Signal that the task should abort so any abort listener wakes and re-checks.
 
-        Uses the coordination service's reliable stream-backed signal, so a listener
-        that reads slightly late still sees it. Best-effort: no-op (returns False)
-        when no coordination backend is configured, in which case listeners poll the
-        task row instead.
+        Emits the abort signal through the coordination service (Redis Streams when
+        a backend is configured), so an abort listener wakes and re-checks. Best-effort:
+        no-op (returns False) when no coordination backend is configured, in which case
+        listeners poll the task row instead.
 
         :param task_uuid: UUID of the task to abort
         :returns: True if the signal was emitted, False if no backend / Redis error
@@ -129,11 +130,10 @@ class TaskManager:
         Signal task completion so any waiter wakes and re-checks.
 
         Called when the task reaches a terminal state (SUCCESS, FAILURE, ABORTED,
-        TIMED_OUT); notifies waiters (e.g. sync join-and-wait, DAG dependents). Uses
-        the coordination service's reliable stream-backed signal so a waiter that
-        reads slightly late, reconnects, or survives a failover still sees it.
-        Best-effort: no-op (returns False) when no coordination backend is
-        configured, in which case waiters poll the task row instead.
+        TIMED_OUT); wakes waiters (e.g. sync join-and-wait, DAG dependents) through
+        the coordination service (Redis Streams when a backend is configured).
+        Best-effort: no-op (returns False) when no coordination backend is configured,
+        in which case waiters poll the task row instead.
 
         :param task_uuid: UUID of the completed task
         :param status: Final status of the task
@@ -164,7 +164,7 @@ class TaskManager:
         """
         Block until task reaches terminal state.
 
-        Delegates the pub/sub-wake-else-poll orchestration to
+        Delegates the wake-else-poll orchestration to
         :meth:`CoordinationService.wait_for_signal`; here we only supply the
         completion channel and a metastore predicate that returns the task once it is
         terminal.
