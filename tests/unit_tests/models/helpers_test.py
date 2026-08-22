@@ -4974,3 +4974,56 @@ def test_adhoc_type_probe_does_not_get_sampling_retry(
     table.adhoc_column_to_sqla(adhoc_col)
 
     retry.assert_not_called()
+
+
+def test_filter_adhoc_column(database: Database) -> None:
+    """
+    Test that filter works with adhoc column labels.
+    When filter contains a string that matches the label of an adhoc column
+    in the columns list, it should correctly convert to a SQLAlchemy column
+    instead of raising QueryObjectValidationError.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="name", type="TEXT"),
+            TableColumn(column_name="real_name", type="TEXT"),
+        ],
+    )
+
+    # Should not raise QueryObjectValidationError
+    result = table.get_sqla_query(
+        columns=[
+            "name",
+            {
+                "expressionType": "SQL",
+                "label": "full_name",
+                "sqlExpression": "real_name",
+            },
+        ],
+        orderby=[],
+        metrics=[],
+        extras={},
+        filter=[
+            {"col": "full_name", "op": "ILIKE", "val": "Zona%"}
+        ],  # Filter by adhoc column label
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Verify the WHERE predicate uses the resolved adhoc expression and value.
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "real_name AS full_name" in sql
+    assert "WHERE" in sql
+    assert "lower(real_name) LIKE lower('Zona%')" in sql
