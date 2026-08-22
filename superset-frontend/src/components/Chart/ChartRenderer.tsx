@@ -169,6 +169,7 @@ interface ChartHooks {
   handleAsyncChartData?: (
     response: Response,
     json: JsonObject,
+    refetch?: () => Promise<QueryData[]>,
     signal?: AbortSignal,
   ) => Promise<QueryData[]> | QueryData[];
 }

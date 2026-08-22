@@ -26,6 +26,7 @@ import {
   getChartBuildQueryRegistry,
   QueryFormData,
   JsonObject,
+  QueryData,
   AnnotationLayer,
   AnnotationType,
   AnnotationSourceType,
@@ -410,7 +411,7 @@ describe('chart actions', () => {
       // the cached data.
       const refetch = jest
         .fn()
-        .mockResolvedValue([1, 2, 3] as unknown as actions.QueryData[]);
+        .mockResolvedValue([1, 2, 3] as unknown as QueryData[]);
       const result = await handleChartDataResponse(
         { status: 202 } as Response,
         {
