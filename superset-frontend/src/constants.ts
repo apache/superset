@@ -200,6 +200,8 @@ export enum FilterPlugins {
   Time = 'filter_time',
   TimeColumn = 'filter_timecolumn',
   TimeGrain = 'filter_timegrain',
+  DateTime = 'filter_datetime',
+  CheckboxRadio = 'filter_checkbox_radio',
 }
 
 export enum ChartCustomizationPlugins {
