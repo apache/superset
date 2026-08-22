@@ -872,3 +872,67 @@ def test_datetime_eval_does_not_emit_parsedatetime_debug_logs(
         "flood production logs. Records: "
         + repr([(r.levelname, r.getMessage()) for r in parsedatetime_records])
     )
+
+
+def test_lastday_supports_quarter_and_day() -> None:
+    """`handle_end_of` emits LASTDAY for quarter and day, so the grammar must
+    accept them.
+
+    The `lastday` rule only matched `year | month | week`, so every "end of ...
+    quarter" and "end of ... day" range raised
+    `ValueError: Expected {'year' | 'month' | 'week'}` instead of resolving.
+    """
+    assert datetime_eval(
+        "LASTDAY(datetime('2026-08-12T15:30:45'), quarter)"
+    ) == datetime(2026, 9, 30)
+    assert datetime_eval("LASTDAY(datetime('2026-08-12T15:30:45'), day)") == datetime(
+        2026, 8, 12
+    )
+
+
+def test_lastday_quarter_boundaries() -> None:
+    """Every month resolves to the last day of the quarter containing it."""
+    expected = {
+        1: datetime(2026, 3, 31),
+        2: datetime(2026, 3, 31),
+        3: datetime(2026, 3, 31),
+        4: datetime(2026, 6, 30),
+        5: datetime(2026, 6, 30),
+        6: datetime(2026, 6, 30),
+        7: datetime(2026, 9, 30),
+        8: datetime(2026, 9, 30),
+        9: datetime(2026, 9, 30),
+        10: datetime(2026, 12, 31),
+        11: datetime(2026, 12, 31),
+        12: datetime(2026, 12, 31),
+    }
+    for month, last_day in expected.items():
+        assert (
+            datetime_eval("LASTDAY(datetime('2026-%02d-15'), quarter)" % month)
+            == last_day
+        )
+
+
+def test_lastday_quarter_from_a_longer_month() -> None:
+    """The 31st must survive a move into a 30-day quarter-end month."""
+    assert datetime_eval("LASTDAY(datetime('2026-08-31'), quarter)") == datetime(
+        2026, 9, 30
+    )
+    # Q1 of a leap year, where the source month is shorter than the target.
+    assert datetime_eval("LASTDAY(datetime('2024-02-15'), quarter)") == datetime(
+        2024, 3, 31
+    )
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_get_since_until_end_of_quarter_and_day() -> None:
+    """End-to-end: the "end of ..." time ranges these units feed."""
+    for time_range, expected_until in [
+        ("2020-01-01 : end of this quarter", datetime(2016, 12, 31)),
+        ("2020-01-01 : end of last quarter", datetime(2016, 9, 30)),
+        ("2020-01-01 : end of next quarter", datetime(2017, 3, 31)),
+        ("2020-01-01 : end of this day", datetime(2016, 11, 7)),
+        ("2020-01-01 : end of prior 3 days", datetime(2016, 11, 4)),
+    ]:
+        _, until = get_since_until(time_range)
+        assert until == expected_until, time_range
