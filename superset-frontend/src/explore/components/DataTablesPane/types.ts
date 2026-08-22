@@ -84,6 +84,9 @@ export interface TableControlsProps extends DrillControlsProps {
   canDownload: boolean;
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
+  // Effective result limit, capped by the chart's row limit.
+  // Defaults to `rowLimit` and controls the "row limit reached" warning.
+  effectiveRowLimit?: number;
   onRowLimitChange?: (limit: number) => void;
 }
 
@@ -104,5 +107,6 @@ export interface SingleQueryResultPaneProp
   columnDisplayNames?: Record<string, string>;
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
+  effectiveRowLimit?: number;
   onRowLimitChange?: (limit: number) => void;
 }

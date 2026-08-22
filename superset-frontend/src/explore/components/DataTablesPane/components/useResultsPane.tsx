@@ -236,6 +236,7 @@ export const useResultsPane = ({
         columnDisplayNames={columnDisplayNames}
         rowLimit={rowLimit}
         rowLimitOptions={ROW_LIMIT_OPTIONS}
+        effectiveRowLimit={effectiveRowLimit}
         onRowLimitChange={handleRowLimitChange}
       />
     </StyledDiv>
