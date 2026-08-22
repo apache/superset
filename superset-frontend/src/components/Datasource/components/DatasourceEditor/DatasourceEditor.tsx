@@ -2414,6 +2414,16 @@ function DatasourceEditor({
               filterTerm={columnSearchTerm}
               filterFields={['column_name']}
               onColumnsChange={cols => setColumns({ databaseColumns: cols })}
+              columnLabelTooltips={{
+                is_dttm: t(
+                  'Marks the column as a time column, so it can drive the ' +
+                    'time range filter and time grain. A column whose database ' +
+                    'type is not already a date or timestamp also needs a ' +
+                    'Datetime format below, otherwise a time grain builds SQL ' +
+                    'such as DATE_TRUNC() directly against the raw column and ' +
+                    'the query fails.',
+                ),
+              }}
             />
             {metadataLoading && <Loading />}
           </StyledTableTabWrapper>
