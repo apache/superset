@@ -46,9 +46,11 @@ def get_current_guest_subscriber_key() -> str | None:
     if not guest_user:
         return None
     token = guest_user.guest_token
-    # ``iat``/``exp`` pin the key to a single token issuance; ``resources``/
-    # ``datasets``/``rev`` bind it to the granted scope, so tokens differing only
-    # in their allowlist or revocation version derive distinct keys.
+    # Bind the key to every authorization-relevant claim so two tokens that differ
+    # in their effective access scope derive different keys (and can't see each
+    # other's tasks): ``iat``/``exp`` pin it to a single issuance, ``resources``/
+    # ``datasets``/``rev`` to the granted resources, and ``rls_rules`` to the
+    # row-level scope.
     message = json.dumps(
         {
             "user": token.get("user"),
@@ -58,6 +60,7 @@ def get_current_guest_subscriber_key() -> str | None:
             "aud": token.get("aud"),
             "datasets": token.get("datasets"),
             "rev": token.get("rev"),
+            "rls_rules": token.get("rls_rules"),
         },
         sort_keys=True,
     ).encode("utf-8")
