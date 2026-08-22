@@ -147,6 +147,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onOpenPopover = noOp,
     onClosePopover = noOp,
     isOverflowingFilterBar = false,
+    hovered: isControlHovered = false,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
@@ -161,8 +162,15 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(t(value));
+  const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
+
+  useEffect(() => {
+    if (!isControlHovered) {
+      setIsDescriptionHovered(false);
+    }
+  }, [isControlHovered]);
 
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
@@ -368,7 +376,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       }
       overlayClassName="time-range-popover"
     >
-      <Tooltip placement="top" title={tooltipTitle}>
+      <Tooltip
+        placement="top"
+        title={isDescriptionHovered ? null : tooltipTitle}
+        mouseLeaveDelay={0}
+        overlayStyle={{ pointerEvents: 'none' }}
+      >
         {/* Wrap in a span so the Popover gets a stable DOM ref target;
             DateLabel forwards its ref to an inner span used for measuring
             text truncation, which would otherwise become the popover's
@@ -390,7 +403,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   return (
     <>
-      <ControlHeader {...props} />
+      <ControlHeader
+        {...props}
+        onDescriptionHoverChange={setIsDescriptionHovered}
+      />
       {popoverContent}
     </>
   );

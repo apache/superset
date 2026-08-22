@@ -38,6 +38,7 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  onDescriptionHoverChange?: (hovered: boolean) => void;
   // Allow extra props from control spread patterns (e.g. {...this.props})
   [key: string]: unknown;
 };
@@ -71,6 +72,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   tooltipOnClick = () => {},
   warning,
   danger,
+  onDescriptionHoverChange,
 }) => {
   const theme = useTheme();
 
@@ -89,21 +91,29 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           position: absolute;
           top: 50%;
           right: 0;
+          z-index: 1;
           padding-left: ${theme.sizeUnit}px;
           transform: translate(100%, -50%);
           white-space: nowrap;
+          pointer-events: auto;
         `}
       >
         {description && (
-          <span>
+          <span
+            data-test={`${name}-description-icon`}
+            onMouseEnter={() => onDescriptionHoverChange?.(true)}
+            onMouseLeave={() => onDescriptionHoverChange?.(false)}
+          >
             <Tooltip
               id="description-tooltip"
               title={description}
               placement="top"
+              mouseLeaveDelay={0}
             >
               <Icons.InfoCircleOutlined
                 css={iconStyles}
                 onClick={tooltipOnClick}
+                aria-label={t('Show info tooltip')}
               />
             </Tooltip>{' '}
           </span>

@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactNode } from 'react';
+
 export type SelectOptionType = {
   value: string;
   label: string;
@@ -113,4 +115,7 @@ export interface DateFilterControlProps {
   onOpenPopover?: () => void;
   onClosePopover?: () => void;
   isOverflowingFilterBar?: boolean;
+  hovered?: boolean;
+  description?: ReactNode;
+  label?: ReactNode;
 }
