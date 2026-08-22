@@ -838,6 +838,123 @@ describe('Does transformProps transform series correctly', () => {
     expect(totalLabels).toEqual(['32']);
   });
 
+  test("should keep a sort-only metric's time-comparison column out of the stacked total (#43068)", () => {
+    // #42881 excluded the sort-only metric from the total by exact name, which
+    // leaves its `__<offset>` column matching nothing, so the shifted value was
+    // summed into the total (and into the thresholds derived from it).
+    const sortMetricVerboseMap = { sort_metric: 'Sort By Metric' };
+    const sortFormData: SqlaFormData = {
+      ...formData,
+      onlyTotal: true,
+      groupby: [],
+      metrics: ['San Francisco', 'New York', 'Boston'],
+      timeseries_limit_metric: 'sort_metric',
+      x_axis_sort: 'sort_metric',
+      timeCompare: ['1 year ago'],
+      time_compare: ['1 year ago'],
+      comparison_type: 'values',
+    };
+    const sortQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': 32,
+              'New York': 0,
+              Boston: 0,
+              'Sort By Metric': 2,
+              // the sort metric's shifted column: must not reach the total
+              'sort_metric__1 year ago': 1000,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      formData: sortFormData,
+      queriesData: sortQueriesData,
+      datasource: { verboseMap: sortMetricVerboseMap },
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    const totalLabels = transformedSeries
+      .flatMap((series, seriesIndex) =>
+        series.data.map((value, dataIndex) =>
+          series.label.formatter({ value, dataIndex, seriesIndex }),
+        ),
+      )
+      .filter(label => label !== '');
+
+    expect(totalLabels).toEqual(['32']);
+  });
+
+  test("should exclude a sort-only metric's time-comparison column from the series (#43138)", () => {
+    // A sort-only metric is part of the query, so time comparison emits a
+    // derived column for it too. That column keeps the raw metric label with
+    // an `__<offset>` suffix, so resolving the base label through verboseMap
+    // is not enough to filter it out.
+    const sortMetricVerboseMap = { sort_metric: 'Sort By Metric' };
+    const sortFormData: SqlaFormData = {
+      ...formData,
+      groupby: [],
+      metrics: ['San Francisco', 'New York', 'Boston'],
+      timeseries_limit_metric: 'sort_metric',
+      x_axis_sort: 'sort_metric',
+      // ChartProps camelizes formData while leaving rawFormData snake_cased, and
+      // transformProps reads the offsets from both, so the test data carries the
+      // key under both spellings.
+      timeCompare: ['1 year ago'],
+      time_compare: ['1 year ago'],
+      comparison_type: 'values',
+    };
+    const sortQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        createTestData(
+          [
+            {
+              'San Francisco': 32,
+              'New York': 8,
+              Boston: 4,
+              'Sort By Metric': 2,
+              'sort_metric__1 year ago': 1,
+              'San Francisco__1 year ago': 16,
+              'New York__1 year ago': 4,
+              'Boston__1 year ago': 2,
+            },
+          ],
+          { intervalMs: 300000000 },
+        ),
+      ),
+    ];
+    const chartProps = createTestChartProps({
+      formData: sortFormData,
+      queriesData: sortQueriesData,
+      datasource: { verboseMap: sortMetricVerboseMap },
+    });
+
+    const seriesNames = (
+      transformProps(chartProps).echartOptions.series as seriesType[]
+    ).map(series => series.name);
+
+    expect(seriesNames).not.toContain('sort_metric__1 year ago');
+    // the sort metric's own column stays excluded, and every displayed metric
+    // keeps both its base and its shifted series
+    expect(seriesNames).not.toContain('Sort By Metric');
+    expect(seriesNames).toEqual(
+      expect.arrayContaining([
+        'San Francisco',
+        'New York',
+        'Boston',
+        'San Francisco__1 year ago',
+        'New York__1 year ago',
+        'Boston__1 year ago',
+      ]),
+    );
+  });
+
   test('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps = createTestChartProps({ formData, queriesData });
 
