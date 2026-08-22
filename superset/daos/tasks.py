@@ -393,12 +393,33 @@ class TaskDAO(BaseDAO[Task]):
         :returns: Updated Task if subscriber was removed, None if not subscribed
         :raises DAODeleteFailedError: If subscription removal fails
         """
+        return cls._remove_subscription(
+            task_id, TaskSubscriber.user_id == user_id, f"user {user_id}"
+        )
+
+    @classmethod
+    def remove_guest_subscriber(cls, task_id: int, guest_key: str) -> Task | None:
+        """
+        Remove an embedded guest's subscription (by ``guest_key``) from a task.
+
+        The guest counterpart of ``remove_subscriber`` (see ``superset.tasks.guest``).
+
+        :param task_id: ID of the task
+        :param guest_key: Guest identity to unsubscribe
+        :returns: Updated Task if subscriber was removed, None if not subscribed
+        :raises DAODeleteFailedError: If subscription removal fails
+        """
+        return cls._remove_subscription(
+            task_id, TaskSubscriber.guest_key == guest_key, "guest"
+        )
+
+    @classmethod
+    def _remove_subscription(
+        cls, task_id: int, subscriber_clause: Any, label: str
+    ) -> Task | None:
         subscription = (
             db.session.query(TaskSubscriber)
-            .filter(
-                TaskSubscriber.task_id == task_id,
-                TaskSubscriber.user_id == user_id,
-            )
+            .filter(TaskSubscriber.task_id == task_id, subscriber_clause)
             .one_or_none()
         )
 
@@ -408,7 +429,7 @@ class TaskDAO(BaseDAO[Task]):
         try:
             db.session.delete(subscription)
             db.session.flush()
-            logger.info("Removed subscriber %s from task %s", user_id, task_id)
+            logger.info("Removed subscriber %s from task %s", label, task_id)
 
             # Return the updated task
             task = cls.find_by_id(task_id, skip_base_filter=True)
@@ -420,7 +441,7 @@ class TaskDAO(BaseDAO[Task]):
             raise
         except Exception as ex:
             raise DAODeleteFailedError(
-                f"Failed to remove subscription for task {task_id}, user {user_id}"
+                f"Failed to remove subscription for task {task_id} ({label})"
             ) from ex
 
     # Dependency (DAG) management methods
