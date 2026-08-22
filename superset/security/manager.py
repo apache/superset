@@ -1737,6 +1737,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
+        # The AI assistant runs queries and costs money per question, so it is
+        # not granted to Gamma by default. Keeping it out of Gamma also keeps it
+        # out of Public, which inherits Gamma when PUBLIC_ROLE_LIKE is set — an
+        # anonymous visitor able to spend an operator's inference budget is not
+        # a default anyone should get by accident. Grant it to Gamma or to a
+        # custom role deliberately.
+        "AIAssistant",
         "Alerts & Report",
         "Annotation Layers",
         "Annotation",
