@@ -128,6 +128,10 @@ docker-compose.override.yml
 
 .temp_cache
 
+# Generated backend query_context bundle (built via
+# `npm run build:backend-querycontext`; see superset/commands/chart/_bundles/README.md)
+superset/commands/chart/_bundles/*.js
+
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html

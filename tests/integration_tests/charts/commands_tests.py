@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+import copy
 import time
 from datetime import datetime
 from unittest.mock import patch
@@ -309,6 +311,153 @@ class TestImportChartsCommand(SupersetTestCase):
         db.session.delete(charts[0])
         db.session.delete(dataset)
         db.session.delete(database)
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_chart_synthesizes_query_context(
+        self, mock_add_permissions, sm_g, utils_g
+    ) -> None:
+        """
+        #33615 / F3-T1 (import side): a derivable chart imported WITHOUT a
+        query_context persists a synthesized one naming the resolved datasource.
+        """
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        derivable = copy.deepcopy(chart_config)
+        derivable["uuid"] = "aaaaaaaa-0000-0000-0000-000000000001"
+        derivable["slice_name"] = "Derivable imported chart"
+        derivable["viz_type"] = "table"
+        derivable["params"]["viz_type"] = "table"
+        derivable["params"]["metrics"] = ["count"]
+        derivable["params"]["groupby"] = ["cnt"]
+        derivable.pop("query_context", None)
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(derivable),
+        }
+        ImportChartsCommand(contents, overwrite=True).run()
+
+        chart: Slice = db.session.query(Slice).filter_by(uuid=derivable["uuid"]).one()
+        # --- RED anchor: synthesis persisted a non-null context (FR-001) ---
+        assert chart.query_context is not None
+        query_context = json.loads(chart.query_context)
+        # --- RED anchor: datasource fidelity — resolved id, not params (RISK-T02) ---
+        assert query_context["datasource"] == {
+            "id": chart.datasource_id,
+            "type": "table",
+        }
+        assert query_context["queries"][0]["metrics"] == ["count"]
+
+        dataset = chart.datasource
+        database = dataset.database if dataset else None
+        db.session.delete(chart)
+        if dataset:
+            db.session.delete(dataset)
+        if database:
+            db.session.delete(database)
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_chart_preserves_existing_query_context(
+        self, mock_add_permissions, sm_g, utils_g
+    ) -> None:
+        """
+        FR-006 / INV-3: an imported chart that already has a query_context keeps
+        it (only the datasource is remapped) — synthesis never clobbers it.
+        """
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
+        }
+        ImportChartsCommand(contents, overwrite=True).run()
+
+        chart: Slice = (
+            db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        )
+        # --- RED anchor: context still present; datasource remapped, not resynthesized
+        assert chart.query_context is not None
+        query_context = json.loads(chart.query_context)
+        assert query_context["datasource"]["id"] == chart.datasource_id
+        assert query_context["result_type"] == "full"
+
+        dataset = chart.datasource
+        database = dataset.database if dataset else None
+        db.session.delete(chart)
+        if dataset:
+            db.session.delete(dataset)
+        if database:
+            db.session.delete(database)
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_mixed_derivable_and_non_derivable_bundle(
+        self, mock_add_permissions, sm_g, utils_g
+    ) -> None:
+        """
+        F3-T4 / FR-003 / FR-004 / RISK-T03: a bundle mixing a derivable chart and
+        a non-derivable (markup) chart imports fully — the derivable one becomes
+        queryable, the markup one keeps a NULL context, and the bundle does not
+        abort.
+        """
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        derivable = copy.deepcopy(chart_config)
+        derivable["uuid"] = "aaaaaaaa-0000-0000-0000-000000000010"
+        derivable["slice_name"] = "Derivable table chart"
+        derivable["viz_type"] = "table"
+        derivable["params"]["viz_type"] = "table"
+        derivable["params"]["metrics"] = ["count"]
+        derivable["params"]["groupby"] = ["cnt"]
+        derivable.pop("query_context", None)
+
+        markup = copy.deepcopy(chart_config)
+        markup["uuid"] = "aaaaaaaa-0000-0000-0000-000000000011"
+        markup["slice_name"] = "Markup chart"
+        markup["viz_type"] = "markup"
+        markup["params"]["viz_type"] = "markup"
+        markup.pop("query_context", None)
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/derivable_chart.yaml": yaml.safe_dump(derivable),
+            "charts/markup_chart.yaml": yaml.safe_dump(markup),
+        }
+        # --- RED anchor: mixed bundle imports without raising (FR-004) ---
+        ImportChartsCommand(contents, overwrite=True).run()
+
+        derivable_chart: Slice = (
+            db.session.query(Slice).filter_by(uuid=derivable["uuid"]).one()
+        )
+        markup_chart: Slice = (
+            db.session.query(Slice).filter_by(uuid=markup["uuid"]).one()
+        )
+        # --- RED anchor: derivable → context; non-derivable → NULL (FR-003) ---
+        assert derivable_chart.query_context is not None
+        assert markup_chart.query_context is None
+
+        dataset = derivable_chart.datasource
+        database = dataset.database if dataset else None
+        db.session.delete(derivable_chart)
+        db.session.delete(markup_chart)
+        if dataset:
+            db.session.delete(dataset)
+        if database:
+            db.session.delete(database)
         db.session.commit()
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
