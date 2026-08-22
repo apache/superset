@@ -191,6 +191,13 @@ fastmcp = [
     # heuristic that under-counts JSON-heavy MCP responses.
     "tiktoken>=0.13.0,<1.0",
 ]
+# AI assistant model providers. Superset core imports neither SDK; each is
+# needed only if AI_LLM_PROVIDER_CLASS names the matching provider.
+ai-anthropic = ["anthropic>=0.40.0, <1"]
+ai-openai = ["openai>=1.60.0, <2"]
+# Needed only to attach external MCP servers via AI_AGENT_MCP_SERVERS. This is
+# the client half; running Superset's own MCP server is a separate concern.
+ai-mcp = ["mcp>=1.24.0, <2"]
 # sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
 # Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
 # release. Bumped now that Superset's own SQLAlchemy 2.0 core bump has
