@@ -80,6 +80,7 @@ def test_backend_only_ops_raise_when_backend_unavailable(
 
     for op in (
         lambda: CoordinationService.publish("channel", "msg"),
+        lambda: CoordinationService.notify("channel", "msg"),
         lambda: CoordinationService.get_value("key"),
         lambda: CoordinationService.set_value("key", "value"),
         lambda: CoordinationService.delete_value("key"),
@@ -165,26 +166,69 @@ def test_wait_for_signal_times_out(app_context: None, mocker: MockerFixture) -> 
         )
 
 
-def test_wait_for_signal_wakes_via_pubsub_and_cleans_up(
+def test_notify_appends_to_stream_with_ttl(
     app_context: None, mocker: MockerFixture
 ) -> None:
     backend = mocker.MagicMock(name="backend")
-    pubsub = mocker.MagicMock(name="pubsub")
-    backend.pubsub.return_value = pubsub
+    _patch_distributed_coordination(mocker, backend)
+
+    CoordinationService.notify("ch", "done", ttl=60)
+
+    backend.xadd.assert_called_once_with("ch", {"m": "done"}, "*", 1)
+    backend.expire.assert_called_once_with("ch", 60)
+
+
+def test_notify_uses_config_ttl_by_default(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    backend = mocker.MagicMock(name="backend")
+    _patch_distributed_coordination(mocker, backend)
+    mocker.patch.dict(
+        "flask.current_app.config", {"DISTRIBUTED_COORDINATION_SIGNAL_TTL": 123}
+    )
+
+    CoordinationService.notify("ch")
+
+    backend.expire.assert_called_once_with("ch", 123)
+
+
+def test_wait_for_signal_wakes_via_stream(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    # A blocking xread returns a new entry, waking the predicate re-check.
+    backend.xread.return_value = [["ch", [("1-0", {"m": "done"})]]]
     mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
-    # First check (pre-subscribe fast path) is None, so we subscribe; the next None
-    # forces one pub/sub nudge, then "done" satisfies the wait.
+    # fast-path None, post-baseline re-check None, then "done" after the stream read.
     results = iter([None, None, "done"])
 
     result = CoordinationService.wait_for_signal(
         "ch", lambda: next(results), timeout=5.0
     )
     assert result == "done"
-    pubsub.subscribe.assert_called_once_with("ch")
-    # One wake-up nudge between the post-subscribe (None) and final (done) check.
-    pubsub.get_message.assert_called_once()
-    pubsub.unsubscribe.assert_called_once()
-    pubsub.close.assert_called_once()
+    backend.stream_last_id.assert_called_once_with("ch")
+    backend.xread.assert_called_once()
+
+
+def test_wait_for_signal_stream_socket_timeout_is_retried(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    from redis.exceptions import TimeoutError as RedisTimeoutError
+
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    # A socket timeout mid-block is treated as "nothing yet": the loop re-checks and
+    # reads again rather than erroring.
+    backend.xread.side_effect = [RedisTimeoutError("blocked"), [["ch", [("1-0", {})]]]]
+    mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
+    results = iter([None, None, None, "done"])
+
+    result = CoordinationService.wait_for_signal(
+        "ch", lambda: next(results), timeout=5.0
+    )
+    assert result == "done"
+    assert backend.xread.call_count == 2
 
 
 def test_wait_for_signal_already_satisfied_skips_backend(

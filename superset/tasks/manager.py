@@ -89,10 +89,15 @@ class TaskManager:
     @classmethod
     def publish_abort(cls, task_uuid: UUID) -> bool:
         """
-        Publish an abort message to the task's channel.
+        Signal that the task should abort so any abort listener wakes and re-checks.
+
+        Uses the coordination service's reliable stream-backed signal, so a listener
+        that reads slightly late still sees it. Best-effort: no-op (returns False)
+        when no coordination backend is configured, in which case listeners poll the
+        task row instead.
 
         :param task_uuid: UUID of the task to abort
-        :returns: True if message was published, False if Redis unavailable
+        :returns: True if the signal was emitted, False if no backend / Redis error
         """
         from superset.coordination.base import CoordinationService
 
@@ -101,15 +106,11 @@ class TaskManager:
 
         try:
             channel = cls.get_abort_channel(task_uuid)
-            subscriber_count = CoordinationService.publish(channel, "abort")
-            logger.debug(
-                "Published abort to channel %s (%d subscribers)",
-                channel,
-                subscriber_count,
-            )
+            CoordinationService.notify(channel, "abort")
+            logger.debug("Signalled abort on %s", channel)
             return True
         except redis.RedisError as ex:
-            logger.error("Failed to publish abort for task %s: %s", task_uuid, ex)
+            logger.error("Failed to signal abort for task %s: %s", task_uuid, ex)
             return False
 
     @classmethod
@@ -125,14 +126,18 @@ class TaskManager:
     @classmethod
     def publish_completion(cls, task_uuid: UUID, status: str) -> bool:
         """
-        Publish a completion message to the task's channel.
+        Signal task completion so any waiter wakes and re-checks.
 
-        Called when task reaches terminal state (SUCCESS, FAILURE, ABORTED, TIMED_OUT).
-        This notifies any waiters (e.g., sync callers waiting for an existing task).
+        Called when the task reaches a terminal state (SUCCESS, FAILURE, ABORTED,
+        TIMED_OUT); notifies waiters (e.g. sync join-and-wait, DAG dependents). Uses
+        the coordination service's reliable stream-backed signal so a waiter that
+        reads slightly late, reconnects, or survives a failover still sees it.
+        Best-effort: no-op (returns False) when no coordination backend is
+        configured, in which case waiters poll the task row instead.
 
         :param task_uuid: UUID of the completed task
         :param status: Final status of the task
-        :returns: True if message was published, False if Redis unavailable
+        :returns: True if the signal was emitted, False if no backend / Redis error
         """
         from superset.coordination.base import CoordinationService
 
@@ -141,16 +146,11 @@ class TaskManager:
 
         try:
             channel = cls.get_completion_channel(task_uuid)
-            subscriber_count = CoordinationService.publish(channel, status)
-            logger.debug(
-                "Published completion to channel %s (status=%s, %d subscribers)",
-                channel,
-                status,
-                subscriber_count,
-            )
+            CoordinationService.notify(channel, status)
+            logger.debug("Signalled completion on %s (status=%s)", channel, status)
             return True
         except redis.RedisError as ex:
-            logger.error("Failed to publish completion for task %s: %s", task_uuid, ex)
+            logger.error("Failed to signal completion for task %s: %s", task_uuid, ex)
             return False
 
     @classmethod
