@@ -68,7 +68,7 @@ const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
-const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
+const TEXT_WIDTH_CACHE = new Map<string, number>();
 
 type LegendDataItem =
   | string
@@ -94,9 +94,9 @@ function getLegendLabel(item: LegendDataItem): string {
   return String(item.name);
 }
 
-function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
+export function measureTextWidth(text: string, theme: SupersetTheme): number {
   const cacheKey = `${theme.fontFamily}:${theme.fontSizeSM}:${text}`;
-  const cachedWidth = LEGEND_TEXT_WIDTH_CACHE.get(cacheKey);
+  const cachedWidth = TEXT_WIDTH_CACHE.get(cacheKey);
   if (cachedWidth !== undefined) {
     return cachedWidth;
   }
@@ -112,7 +112,7 @@ function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
     }
   }
 
-  LEGEND_TEXT_WIDTH_CACHE.set(cacheKey, width);
+  TEXT_WIDTH_CACHE.set(cacheKey, width);
   return width;
 }
 
@@ -137,7 +137,7 @@ function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
     label =>
       DEFAULT_LEGEND_ICON_WIDTH +
       LEGEND_ICON_LABEL_GAP +
-      measureLegendTextWidth(label, theme),
+      measureTextWidth(label, theme),
   );
 }
 
@@ -225,8 +225,7 @@ function getLongestLegendLabelWidth(
   theme: SupersetTheme,
 ): number {
   return labels.reduce(
-    (maxWidth, label) =>
-      Math.max(maxWidth, measureLegendTextWidth(label, theme)),
+    (maxWidth, label) => Math.max(maxWidth, measureTextWidth(label, theme)),
     0,
   );
 }
