@@ -54,6 +54,8 @@ def test_submit_task_success(app_context, login_as, get_user) -> None:
         db.session.refresh(result)
         assert result.id is not None
         assert result.uuid is not None
+        # A task submitted without depends_on has no prerequisites
+        assert result.dependencies == []
     finally:
         # Cleanup
         db.session.delete(result)
@@ -233,3 +235,51 @@ def test_submit_task_run_with_info_returns_is_new_false(
         # Cleanup
         db.session.delete(task1)
         db.session.commit()
+
+
+def test_submit_task_with_depends_on_persists_edges(
+    app_context, login_as, get_user
+) -> None:
+    """Test depends_on (passed as a Task entity) persists dependency edges."""
+    login_as("admin")
+
+    prerequisite = SubmitTaskCommand(
+        data={"task_type": "test-type", "task_key": "dep-prereq"}
+    ).run()
+
+    dependent = None
+    try:
+        dependent = SubmitTaskCommand(
+            data={
+                "task_type": "test-type",
+                "task_key": "dep-child",
+                # Pass the Task entity directly (the natural flow)
+                "depends_on": [prerequisite],
+            }
+        ).run()
+        db.session.refresh(dependent)
+
+        # dependencies resolves to the prerequisite Task entities
+        assert [dep.uuid for dep in dependent.dependencies] == [prerequisite.uuid]
+    finally:
+        # Deleting the dependent removes its edge rows via FK ON DELETE CASCADE
+        if dependent is not None:
+            db.session.delete(dependent)
+        db.session.delete(prerequisite)
+        db.session.commit()
+
+
+def test_submit_task_unknown_dependency_rejected(app_context, login_as) -> None:
+    """Test depends_on referencing an unknown task is rejected (and rolls back)."""
+    from uuid import uuid4
+
+    login_as("admin")
+
+    with pytest.raises(TaskInvalidError):
+        SubmitTaskCommand(
+            data={
+                "task_type": "test-type",
+                "task_key": "dep-unknown",
+                "depends_on": [uuid4()],
+            }
+        ).run()

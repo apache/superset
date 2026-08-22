@@ -271,6 +271,7 @@ class TaskManager:
         timeout: int | None,
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
+        depends_on: list[Task | UUID | str] | None = None,
     ) -> "Task":
         """
         Create task entry and schedule for async execution.
@@ -291,6 +292,10 @@ class TaskManager:
         :param timeout: Optional timeout in seconds
         :param args: Positional arguments for the task function
         :param kwargs: Keyword arguments for the task function
+        :param depends_on: Optional prerequisite tasks (as Task entities, UUIDs,
+            or UUID strings). The task is still enqueued immediately
+            (block-and-wait model); ordering is enforced in the scheduler, which
+            waits for prerequisites before running the body.
         :returns: Task model representing the scheduled task
         """
         from superset.commands.tasks.submit import SubmitTaskCommand
@@ -316,6 +321,7 @@ class TaskManager:
                 "task_name": task_name,
                 "scope": scope.value,
                 "properties": properties,
+                "depends_on": depends_on,
             }
         ).run_with_info()
 

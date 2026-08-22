@@ -20,6 +20,7 @@ import logging
 import uuid
 from functools import partial
 from typing import Any, TYPE_CHECKING
+from uuid import UUID
 
 from flask import current_app
 from marshmallow import ValidationError
@@ -28,6 +29,7 @@ from superset_core.tasks.types import TaskScope
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import (
     TaskCreateFailedError,
+    TaskCyclicDependencyError,
     TaskInvalidError,
 )
 from superset.daos.exceptions import DAOCreateFailedError
@@ -38,6 +40,7 @@ from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
 if TYPE_CHECKING:
+    from superset.daos.tasks import TaskDAO
     from superset.models.tasks import Task
 
 logger = logging.getLogger(__name__)
@@ -137,10 +140,78 @@ class SubmitTaskCommand(BaseCommand):
                     payload=self._properties.get("payload", {}),
                     properties=self._properties.get("properties", {}),
                 )
+                # Persist dependency edges (with cycle guard) for the new task.
+                # Joined/deduplicated tasks keep their original dependencies.
+                self._persist_dependencies(task, TaskDAO)
                 stats_logger.incr("gtf.task.create")
                 return task, True  # is_new=True: created new task
             except DAOCreateFailedError as ex:
                 raise TaskCreateFailedError() from ex
+
+    def _persist_dependencies(self, task: "Task", dao: type["TaskDAO"]) -> None:
+        """
+        Resolve the declared ``depends_on`` references and write dependency edges.
+
+        Runs inside the submit transaction and lock, after the task row is
+        flushed (so ``task.id``/``task.uuid`` are available), and only for a
+        freshly *created* task (never on a dedup join). Rejects self-dependencies
+        and unknown prerequisites. Prerequisite references are de-duplicated and
+        order-preserved.
+
+        No transitive cycle check is needed here: a brand-new task has no
+        incoming edges, so its new ``task -> prerequisite`` edges cannot close a
+        cycle (nothing points back to it). The only cycle a create can express is
+        a direct self-dependency, rejected in-memory below. A future API that
+        adds edges to *existing* tasks would need a transitive check.
+
+        This resolves all prerequisites in one query and inserts all edges in one
+        flush — 2 round-trips regardless of the number of dependencies.
+
+        :param task: The newly created dependent task
+        :param dao: TaskDAO (passed to avoid re-importing)
+        :raises TaskInvalidError: if a prerequisite reference is malformed/unknown
+        :raises TaskCyclicDependencyError: on a direct self-dependency
+        """
+        raw = self._properties.get("depends_on") or []
+        if not raw:
+            return
+
+        uuids: list[UUID] = []
+        seen: set[UUID] = set()
+        for item in raw:
+            # Accept a scheduled Task entity, a UUID, or a UUID string, and
+            # normalize to a UUID. Task entities are the natural output of
+            # .schedule(), so passing them straight through is the common case.
+            if isinstance(item, UUID):
+                dep_uuid = item
+            elif hasattr(item, "uuid"):
+                raw_uuid = item.uuid
+                dep_uuid = (
+                    raw_uuid if isinstance(raw_uuid, UUID) else UUID(str(raw_uuid))
+                )
+            else:
+                try:
+                    dep_uuid = UUID(str(item))
+                except (ValueError, AttributeError, TypeError) as ex:
+                    raise TaskInvalidError(
+                        f"Invalid prerequisite task reference: {item!r}"
+                    ) from ex
+            if dep_uuid == task.uuid:
+                raise TaskCyclicDependencyError(
+                    f"A task cannot depend on itself ({dep_uuid})."
+                )
+            if dep_uuid not in seen:
+                seen.add(dep_uuid)
+                uuids.append(dep_uuid)
+
+        prerequisites = {p.uuid: p for p in dao.find_by_uuids(uuids)}
+        missing = [str(u) for u in uuids if u not in prerequisites]
+        if missing:
+            raise TaskInvalidError(
+                f"Unknown prerequisite task(s): {', '.join(missing)}"
+            )
+
+        dao.add_dependencies(task.id, [prerequisites[u].id for u in uuids])
 
     def validate(self) -> None:
         """Validate command parameters."""

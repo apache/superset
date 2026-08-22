@@ -26,6 +26,7 @@ from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
+from superset.models.task_dependencies import TaskDependency
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.constants import ABORTABLE_STATES, TERMINAL_STATES
@@ -331,6 +332,53 @@ class TaskDAO(BaseDAO[Task]):
             raise DAODeleteFailedError(
                 f"Failed to remove subscription for task {task_id}, user {user_id}"
             ) from ex
+
+    # Dependency (DAG) management methods
+
+    @classmethod
+    def find_by_uuids(cls, uuids: list[UUID]) -> list[Task]:
+        """
+        Resolve a list of task UUIDs to Task instances.
+
+        Used when persisting dependency edges, which are declared with public
+        UUIDs but stored against the internal integer ``id``. The base filter is
+        intentionally skipped: dependency resolution is a structural operation on
+        tasks the caller is wiring together (typically its own), not a
+        user-facing listing.
+
+        :param uuids: Task UUIDs to resolve
+        :returns: Matching Task instances (order not guaranteed; missing UUIDs
+            are simply absent from the result)
+        """
+        if not uuids:
+            return []
+        return db.session.query(Task).filter(Task.uuid.in_(uuids)).all()
+
+    @classmethod
+    def add_dependencies(cls, task_id: int, depends_on_task_ids: list[int]) -> None:
+        """
+        Bulk-insert prerequisite edges: ``task_id`` depends on each id given.
+
+        Only ever called for a freshly created task (see ``SubmitTaskCommand``)
+        with already-deduplicated prerequisite ids, so no edge can pre-exist —
+        the per-row existence check that ``add_subscriber`` needs is unnecessary
+        here, and the edges are inserted in a single flush (one INSERT).
+
+        :param task_id: ID of the dependent task
+        :param depends_on_task_ids: IDs of the prerequisite tasks
+        """
+        if not depends_on_task_ids:
+            return
+        db.session.add_all(
+            TaskDependency(task_id=task_id, depends_on_task_id=prerequisite_id)
+            for prerequisite_id in depends_on_task_ids
+        )
+        db.session.flush()
+        logger.info(
+            "Added %d dependencies to task %s",
+            len(depends_on_task_ids),
+            task_id,
+        )
 
     @classmethod
     def set_properties_and_payload(

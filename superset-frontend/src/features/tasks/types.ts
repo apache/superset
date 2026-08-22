@@ -24,6 +24,16 @@ export interface TaskSubscriber {
   subscribed_at: string;
 }
 
+/**
+ * A prerequisite task in the dependency graph (DAG). The dependent task only
+ * runs once every prerequisite reaches a terminal SUCCESS.
+ */
+export interface TaskDependency {
+  uuid: string;
+  task_name: string | null;
+  status: TaskStatus;
+}
+
 export enum TaskScope {
   Private = 'private',
   Shared = 'shared',
@@ -85,6 +95,8 @@ export interface Task {
   duration_seconds: number | null;
   subscriber_count: number;
   subscribers: TaskSubscriber[];
+  // Prerequisite tasks this task depends on (all_success DAG semantics).
+  depends_on?: TaskDependency[];
 }
 
 // Derived status helpers (frontend computes these from status and properties)

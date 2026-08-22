@@ -463,6 +463,7 @@ class TestTaskApi(SupersetTestCase):
                 "scope",
                 "subscriber_count",
                 "subscribers",
+                "depends_on",
             ]
 
             for field in expected_fields:
@@ -471,6 +472,49 @@ class TestTaskApi(SupersetTestCase):
             # Verify properties is a dict with expected structure
             properties = result["properties"]
             assert isinstance(properties, dict)
+
+            # A task with no declared prerequisites serializes an empty depends_on
+            assert result["depends_on"] == []
+
+    def test_task_depends_on_serialization(self):
+        """
+        Task API: Test depends_on serializes prerequisite tasks (uuid/name/status)
+        """
+        from superset.commands.tasks import SubmitTaskCommand
+
+        self.login(ADMIN_USERNAME)
+
+        prerequisite = SubmitTaskCommand(
+            data={
+                "task_type": "test_type",
+                "task_key": "api_dep_prereq",
+                "task_name": "Prerequisite Task",
+            }
+        ).run()
+        dependent = None
+        try:
+            dependent = SubmitTaskCommand(
+                data={
+                    "task_type": "test_type",
+                    "task_key": "api_dep_child",
+                    "depends_on": [prerequisite.uuid],
+                }
+            ).run()
+
+            rv = self.client.get(f"{self.TASK_API_BASE}/{dependent.uuid}")
+            assert rv.status_code == 200
+            result = json.loads(rv.data.decode("utf-8"))["result"]
+
+            assert len(result["depends_on"]) == 1
+            dep = result["depends_on"][0]
+            assert dep["uuid"] == str(prerequisite.uuid)
+            assert dep["task_name"] == "Prerequisite Task"
+            assert dep["status"] == prerequisite.status
+        finally:
+            if dependent is not None:
+                db.session.delete(dependent)
+            db.session.delete(prerequisite)
+            db.session.commit()
 
     def test_task_payload_serialization(self):
         """
