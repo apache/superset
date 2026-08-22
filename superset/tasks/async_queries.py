@@ -29,6 +29,7 @@ from superset.common.query_serialization import (
     SerializedQuery,
 )
 from superset.constants import CacheRegion
+from superset.exceptions import SupersetException
 from superset.extensions import (
     security_manager,
 )
@@ -86,14 +87,15 @@ def _inject_contribution_totals(
 
     cache = QueryCacheManager.get(key=totals_cache_key, region=CacheRegion.DATA)
     if not cache.is_loaded or cache.df is None:
-        # The depends_on prerequisite guarantees the totals task succeeded, so a
-        # miss here is unexpected; leave the query as-is (the contribution op will
-        # fall back to its own totals) rather than failing the whole chart.
-        logger.warning(
-            "Totals result not cached under %s; contribution left un-normalized",
-            totals_cache_key,
+        # The depends_on prerequisite guarantees the totals task succeeded and wrote
+        # this cache entry, so a miss is unexpected (e.g. it was evicted between the
+        # totals task finishing and this task reading). Fail loudly rather than
+        # caching a silently un-normalized result the client would then re-request:
+        # this task's single query cannot reproduce the synchronous path's
+        # ensure_totals_available (it has no totals query to run).
+        raise SupersetException(
+            f"Contribution totals not found in cache under {totals_cache_key}"
         )
-        return
     df = cache.df
     totals = {col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"}
     for post_processing in query_obj.post_processing or []:
