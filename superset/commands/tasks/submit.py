@@ -34,6 +34,7 @@ from superset.commands.tasks.exceptions import (
 )
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.stats_logger import BaseStatsLogger
+from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.tasks.locks import task_lock
 from superset.tasks.utils import get_active_dedup_key
 from superset.utils.core import get_user_id
@@ -92,6 +93,9 @@ class SubmitTaskCommand(BaseCommand):
         task_key = self._properties.get("task_key") or str(uuid.uuid4())
         scope = self._properties.get("scope", TaskScope.PRIVATE.value)
         user_id = get_user_id()
+        # Embedded guests have no ab_user id; they subscribe by a token-derived
+        # key so TaskFilter can grant them visibility of their own tasks.
+        guest_key = None if user_id else get_current_guest_subscriber_key()
 
         # Build dedup_key for lock
         dedup_key = get_active_dedup_key(
@@ -119,6 +123,11 @@ class SubmitTaskCommand(BaseCommand):
                         user_id,
                         task_key,
                     )
+                elif guest_key and not existing.has_guest_subscriber(guest_key):
+                    # Embedded guest joining a SHARED task an equivalent guest
+                    # created; subscribe so this guest can also poll it.
+                    TaskDAO.add_guest_subscriber(existing.id, guest_key)
+                    stats_logger.incr("gtf.task.subscribe")
                 else:
                     # Same user submitted the same task - deduplication hit
                     stats_logger.incr("gtf.task.dedupe")
@@ -137,6 +146,7 @@ class SubmitTaskCommand(BaseCommand):
                     scope=scope,
                     task_name=self._properties.get("task_name"),
                     user_id=user_id,
+                    guest_key=guest_key,
                     payload=self._properties.get("payload", {}),
                     properties=self._properties.get("properties", {}),
                 )

@@ -53,7 +53,6 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import (
-    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
     CHANGE_ME_SECRET_KEY,
 )
@@ -2914,63 +2913,13 @@ SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
 
 
 # Global async query config options.
-# Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
-GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
-    "superset.async_events.async_query_manager.AsyncQueryManager"
-)
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
-GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS = True
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = (
-    None
-)
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-# Lifetime of the async-query JWT, in seconds. After this period the token
-# expires and a fresh one is issued on the next request.
-GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
-GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
+# Requires the GLOBAL_ASYNC_QUERIES feature flag to be enabled. Async chart-data
+# queries run on the Global Task Framework (one task per QueryObject) over
+# DISTRIBUTED_COORDINATION_CONFIG; the client polls /api/v1/task/status_changes at
+# this interval (milliseconds) and re-issues its request once the tasks succeed.
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
-GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
-
-# Global async queries cache backend configuration options:
-# - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
-# - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
-#
-# DEPRECATED: this dedicated backend is retained only so Global Async Queries can
-# keep running on their own coordination connection when DISTRIBUTED_COORDINATION_CONFIG
-# is not configured. When configured it is used by GAQ *only* (its event streams and
-# cancel registry); it never powers distributed locks or the Global Task Framework,
-# which use DISTRIBUTED_COORDINATION_CONFIG exclusively. GAQ uses
-# DISTRIBUTED_COORDINATION_CONFIG whenever it is set and only falls back to this
-# dedicated backend when it is not, so a consolidated deployment need not maintain a
-# second config. This dual-backend arrangement is deprecated and removed in Superset
-# 8.0, when GAQ moves onto DISTRIBUTED_COORDINATION_CONFIG like the rest of Superset's
-# coordination. All parameters here are supported identically under
-# DISTRIBUTED_COORDINATION_CONFIG (both use the same
-# RedisCache/RedisSentinelCache backend).
-GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
-    "CACHE_TYPE": "RedisCache",
-    "CACHE_REDIS_HOST": "localhost",
-    "CACHE_REDIS_PORT": 6379,
-    "CACHE_REDIS_USER": "",
-    "CACHE_REDIS_PASSWORD": "",
-    "CACHE_REDIS_DB": 0,
-    "CACHE_DEFAULT_TIMEOUT": 300,
-    "CACHE_REDIS_SENTINELS": [("localhost", 26379)],
-    "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
-    "CACHE_REDIS_SENTINEL_PASSWORD": None,
-    "CACHE_REDIS_SSL": False,  # True or False
-    "CACHE_REDIS_SSL_CERTFILE": None,
-    "CACHE_REDIS_SSL_KEYFILE": None,
-    "CACHE_REDIS_SSL_CERT_REQS": "required",
-    "CACHE_REDIS_SSL_CA_CERTS": None,
-}
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
@@ -3236,31 +3185,19 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
-# - Streams: Persistent ordered event logs (e.g. the Global Async Queries firehose)
+# - Streams: Persistent ordered event logs (task completion signalling)
 #
 # When configured, enables:
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
-# - Global Async Queries event streams (the async-events / firehose transport)
+# - Async chart-data queries (Global Task Framework task streams)
 #
 # This backend powers the higher-level coordination service
 # (``superset.coordination.base.CoordinationService``) exposing standardized interfaces
 # for distributed locks, pub/sub, and streams under a single connection. It is the
-# single source of truth for the coordinator's consumers (distributed locks, the
-# Global Task Framework, and future stream/pub-sub users). Global Async Queries use
-# this connection whenever it is set, falling back to their dedicated
-# ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` only when it is unset; that dual-backend
-# arrangement is deprecated and, in Superset 8.0, GAQ moves onto this connection and
-# the dedicated backend is removed.
-#
-# All parameters previously supported by GLOBAL_ASYNC_QUERIES_CACHE_BACKEND are
-# supported here (both go through the same RedisCacheBackend/RedisSentinelCacheBackend
-# `from_config`): CACHE_REDIS_HOST, CACHE_REDIS_PORT, CACHE_REDIS_USER,
-# CACHE_REDIS_PASSWORD, CACHE_REDIS_DB, CACHE_KEY_PREFIX, CACHE_DEFAULT_TIMEOUT,
-# CACHE_REDIS_SSL, CACHE_REDIS_SSL_CERTFILE, CACHE_REDIS_SSL_KEYFILE,
-# CACHE_REDIS_SSL_CERT_REQS, CACHE_REDIS_SSL_CA_CERTS, CACHE_REDIS_SOCKET_TIMEOUT,
-# CACHE_REDIS_SOCKET_CONNECT_TIMEOUT, and for Sentinel CACHE_REDIS_SENTINELS,
-# CACHE_REDIS_SENTINEL_MASTER, CACHE_REDIS_SENTINEL_PASSWORD.
+# single source of truth for the coordinator's consumers: distributed locks, the
+# Global Task Framework (including async chart-data queries), and future
+# stream/pub-sub users.
 #
 # Example with standard Redis:
 # DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {

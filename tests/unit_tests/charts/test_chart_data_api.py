@@ -587,15 +587,6 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
 ) -> None:
     command = MagicMock()
     command.execute.side_effect = ChartDataCacheLoadError("cache miss")
-    async_command = MagicMock()
-    async_command.run.return_value = {
-        "channel_id": "channel",
-        "job_id": "job",
-        "user_id": 1,
-        "status": "pending",
-        "errors": [],
-        "result_url": "/api/v1/chart/data/job",
-    }
     api = ChartDataRestApi()
 
     original = app.config.get("CHART_DATA_INCLUDE_TIMING")
@@ -604,9 +595,9 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
         with (
             app.test_request_context("/api/v1/chart/data", method="POST"),
             patch(
-                "superset.charts.data.api.CreateAsyncChartDataJobCommand",
-                return_value=async_command,
-            ),
+                "superset.charts.data.api.submit_chart_data_query_tasks",
+                return_value={"task_ids": ["task-1", "task-2"]},
+            ) as submit,
             patch("superset.charts.data.api.get_user_id", return_value=1),
         ):
             response = api._run_async({"force": False}, command)
@@ -614,8 +605,10 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
         app.config["CHART_DATA_INCLUDE_TIMING"] = original
 
     assert response.status_code == 202
-    assert "timing" not in json.loads(response.get_data(as_text=True))
-    async_command.validate.assert_called_once()
+    body = json.loads(response.get_data(as_text=True))
+    # The 202 body is just the async job (the query tasks to poll); no timing.
+    assert body == {"task_ids": ["task-1", "task-2"]}
+    submit.assert_called_once_with(command.query_context, 1)
 
 
 def test_run_async_projects_opt_in_timing_for_a_cached_result(

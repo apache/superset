@@ -29,7 +29,6 @@ from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
 from superset import is_feature_enabled, security_manager
-from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.dashboard_filter_context import (
@@ -38,11 +37,7 @@ from superset.charts.data.dashboard_filter_context import (
     get_dashboard_filter_context,
 )
 from superset.charts.data.form_data import set_form_data
-from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.schemas import ChartDataQueryContextSchema
-from superset.commands.chart.data.create_async_job_command import (
-    CreateAsyncChartDataJobCommand,
-)
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
@@ -59,6 +54,7 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.sql_lab import Query
+from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.utils import json
 from superset.utils.core import (
     create_zip,
@@ -77,7 +73,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataRestApi(ChartRestApi):
-    include_route_methods = {"get_data", "data", "data_from_cache"}
+    include_route_methods = {"get_data", "data"}
 
     @expose("/<int:pk>/data/", methods=("GET",))
     @protect()
@@ -363,75 +359,6 @@ class ChartDataRestApi(ChartRestApi):
             expected_rows=expected_rows,
         )
 
-    @expose("/data/<cache_key>", methods=("GET",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.data_from_cache"
-        ),
-        log_to_statsd=False,
-    )
-    def data_from_cache(self, cache_key: str) -> Response:
-        """
-        Take a query context cache key and return payload
-        data response for the given query.
-        ---
-        get:
-          summary: Return payload data response for the given query
-          description: >-
-            Takes a query context cache key and returns payload data
-            response for the given query.
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: cache_key
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/ChartDataResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            cached_data = self._load_query_context_form_from_cache(cache_key)
-            # Set form_data in Flask Global as it is used as a fallback
-            # for async queries with jinja context
-            set_form_data(cached_data)
-            query_context = self._create_query_context_from_form(cached_data)
-            # Mark as a cache replay so _sql_filters_modified skips the
-            # SQL-extras check.  The original request already passed the
-            # full security check, cache keys are opaque SHA-256 hashes
-            # (unguessable), and force_cached only serves pre-computed
-            # data — no new SQL is executed.
-            query_context._from_cache_replay = True
-            command = ChartDataCommand(query_context)
-            command.validate()
-        except ChartDataCacheLoadError:
-            return self.response_404()
-        except SupersetSecurityException:
-            return self.response_403()
-        except ValidationError as error:
-            return self.response_400(
-                message=_("Request is incorrect: %(error)s", error=error.messages)
-            )
-
-        return self._get_data_response(command, True)
-
     def _run_async(
         self,
         form_data: dict[str, Any],
@@ -454,18 +381,12 @@ class ChartDataRestApi(ChartRestApi):
                     return self._send_chart_response(result)
             except ChartDataCacheLoadError:
                 pass
-        # Otherwise, kick off a background job to run the chart query.
-        # Clients will either poll or be notified of query completion,
-        # at which point they will call the /data/<cache_key> endpoint
-        # to retrieve the results.
-        async_command = CreateAsyncChartDataJobCommand()
-        try:
-            async_command.validate(request)
-        except AsyncQueryTokenException:
-            return self.response_401()
-
-        async_result = async_command.run(form_data, get_user_id())
-        return self.response(202, **async_result)
+        # Otherwise, kick off background GTF tasks (one per QueryObject) to run the
+        # chart query. The client polls /api/v1/task/status_changes, aggregates the
+        # tasks' statuses, and on success re-issues this same request — now served
+        # synchronously from the per-query DATA cache the tasks populated.
+        job = submit_chart_data_query_tasks(command.query_context, get_user_id())
+        return self.response(202, **job)
 
     def _send_chart_response(  # noqa: C901
         self,
@@ -693,10 +614,6 @@ class ChartDataRestApi(ChartRestApi):
                 logger.warning("Invalid expected_rows value: %s", expected_rows_str)
 
         return filename, expected_rows
-
-    # pylint: disable=invalid-name
-    def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
-        return QueryContextCacheLoader.load(cache_key)
 
     def _map_form_data_datasource_to_dataset_id(
         self, form_data: dict[str, Any]

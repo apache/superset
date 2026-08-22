@@ -49,7 +49,7 @@ import { isEqual, isEqualWith } from 'lodash-es';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex } from '@superset-ui/core/components';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { waitForAsyncData, AsyncJob } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
@@ -278,11 +278,13 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      getChartDataRequest({
-        formData: newFormData,
-        force: shouldRefresh,
-        ownState: filterOwnState,
-      })
+      const requestFilterData = (fromCache = false) =>
+        getChartDataRequest({
+          formData: newFormData,
+          force: fromCache ? false : shouldRefresh,
+          ownState: filterOwnState,
+        });
+      requestFilterData()
         .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // deal with getChartDataRequest transforming the response data
@@ -292,7 +294,14 @@ const FilterValue: FC<FilterValueProps> = ({
               setError(undefined);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
-              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
+              // Await the query tasks, then re-issue the request to read the
+              // now-cached results.
+              waitForAsyncData(json as unknown as AsyncJob, () =>
+                requestFilterData(true).then(
+                  ({ json: cachedJson }) =>
+                    cachedJson.result as ChartDataResponseResult[],
+                ),
+              )
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setState(asyncResult);
                   setError(undefined);

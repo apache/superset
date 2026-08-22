@@ -53,26 +53,6 @@ def test_get_backend_none_when_distributed_coordination_unset(
     assert CoordinationService.is_backend_defined() is False
 
 
-def test_get_backend_ignores_legacy_gaq_config(
-    app_context: None, mocker: MockerFixture
-) -> None:
-    # The coordinator resolves DISTRIBUTED_COORDINATION_CONFIG only; the deprecated
-    # GAQ backend must never leak into locks/GTF, even with GAQ enabled.
-    _patch_distributed_coordination(mocker, None)
-    mocker.patch("superset.is_feature_enabled", return_value=True)
-    mocker.patch.dict(
-        "flask.current_app.config",
-        {"GLOBAL_ASYNC_QUERIES_CACHE_BACKEND": {"CACHE_TYPE": "RedisCache"}},
-    )
-    get_cache_backend = mocker.patch(
-        "superset.async_events.async_query_manager.get_cache_backend",
-    )
-
-    assert CoordinationService.get_backend() is None
-    assert CoordinationService.is_backend_defined() is False
-    get_cache_backend.assert_not_called()
-
-
 def test_backend_only_ops_raise_when_backend_unavailable(
     app_context: None, mocker: MockerFixture
 ) -> None:

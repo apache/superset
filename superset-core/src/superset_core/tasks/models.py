@@ -145,7 +145,9 @@ class TaskSubscriber(CoreModel):
 
     This model tracks task subscriptions for multi-user shared tasks. When a user
     schedules a shared task with the same parameters as an existing task,
-    they are subscribed to that task instead of creating a duplicate.
+    they are subscribed to that task instead of creating a duplicate. A subscriber
+    is identified by exactly one of ``user_id`` (authenticated) or ``guest_key``
+    (an embedded guest, which has no ``ab_user`` row).
     """
 
     __abstract__ = True
@@ -153,7 +155,8 @@ class TaskSubscriber(CoreModel):
     # Type hints for expected attributes (no actual field definitions)
     id: int
     task_id: int
-    user_id: int
+    user_id: int | None
+    guest_key: str | None
     subscribed_at: datetime
 
     # Audit fields from AuditMixinNullable

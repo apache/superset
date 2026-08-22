@@ -25,12 +25,12 @@ backend when one is configured and falls back to a database-backed lock otherwis
 
 Historically these were wired up independently: the Global Task Framework used
 ``DISTRIBUTED_COORDINATION_CONFIG`` (pub/sub and locking) while Global Async Queries
-used a separate ``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` for its streams, and each caller
-hand-rolled its own pub/sub-vs-poll wait loops. Consolidating them here keeps the
-architecture modular, gives other components (e.g. the extensions framework) a single
-reusable coordination surface, and reduces the number of moving parts. The legacy
-``GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`` is still honored as a fallback (with a
-deprecation warning) so existing deployments keep working during the transition.
+used a separate cache backend for their event streams, and each caller hand-rolled
+its own pub/sub-vs-poll wait loops. Consolidating them here keeps the architecture
+modular, gives other components (e.g. the extensions framework) a single reusable
+coordination surface, and reduces the number of moving parts. All coordination —
+including async chart-data queries, which now run on the Global Task Framework —
+uses ``DISTRIBUTED_COORDINATION_CONFIG`` exclusively.
 
 Import concrete classes directly from their modules:
 :class:`~superset.coordination.base.CoordinationService`,

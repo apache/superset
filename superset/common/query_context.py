@@ -133,6 +133,17 @@ class QueryContext:
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         return self._processor.query_cache_key(query_obj, **kwargs)
 
+    def prepare_contribution_totals(self) -> tuple[list[int], int | None]:
+        """Identify contribution queries and normalize the totals query.
+
+        Returns the indices of queries whose contribution post-processing needs a
+        shared totals row, and the index of the totals query itself (or ``None``).
+        As a side effect the totals query's ``row_limit`` is cleared so its cache
+        key matches the entry its dependents read — see the synchronous equivalent
+        in ``QueryContextProcessor.get_payload_result``.
+        """
+        return self._processor._prepare_contribution_totals()
+
     def get_df_payload(
         self,
         query_obj: QueryObject,

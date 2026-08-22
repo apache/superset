@@ -118,6 +118,9 @@ export default function ChartVersionPreview() {
     }
     fetchIdRef.current += 1;
     const fetchId = fetchIdRef.current;
+    // Abort the async chart-data wait (stop polling + cancel the GTF tasks) when
+    // the preview is superseded or unmounts, not just suppress the state update.
+    const controller = new AbortController();
     setIsLoading(true);
     setError(null);
     setQueriesData(null);
@@ -175,10 +178,20 @@ export default function ChartVersionPreview() {
         datasourceId,
         datasourceType,
       );
-      const { response, json } = await getChartDataRequest({
-        formData: previewFormData,
-      });
-      const result = await handleChartDataResponse(response, json);
+      const requestPreviewData = () =>
+        getChartDataRequest({
+          formData: previewFormData,
+        });
+      const { response, json } = await requestPreviewData();
+      const result = await handleChartDataResponse(
+        response,
+        json,
+        () =>
+          requestPreviewData().then(({ response: r, json: j }) =>
+            handleChartDataResponse(r, j),
+          ),
+        controller.signal,
+      );
       if (fetchId !== fetchIdRef.current) {
         return;
       }
@@ -216,6 +229,7 @@ export default function ChartVersionPreview() {
     // afterwards.
     return () => {
       fetchIdRef.current += 1;
+      controller.abort();
     };
   }, [dispatch, entityUuid, versionUuid]);
 
