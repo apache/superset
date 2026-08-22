@@ -793,8 +793,12 @@ export function getPadding(
     legendOrientation,
     margin,
     {
+      // The Y-axis title margin, whether it lands on the top or the left
+      // side, is only reserved when a title is actually rendered. Without
+      // that guard every chart pays for the default margin, which eats a
+      // large share of the plot area on narrow charts.
       top:
-        yAxisTitlePosition && yAxisTitlePosition === 'Top'
+        yAxisTitlePosition === 'Top' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
           : yAxisTitlePosition === 'Left'
             ? TIMESERIES_CONSTANTS.gridOffsetTop
@@ -804,7 +808,7 @@ export function getPadding(
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
           : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
       left:
-        yAxisTitlePosition === 'Left'
+        yAxisTitlePosition === 'Left' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetLeft +
             (Number(yAxisTitleMargin) || 0)
           : TIMESERIES_CONSTANTS.gridOffsetLeft,

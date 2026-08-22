@@ -250,10 +250,13 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       .second(time.second());
   }
 
+  const addYAxisTitleOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+
   const padding = getPadding(
     showLegend,
     legendOrientation,
-    false,
+    addYAxisTitleOffset,
     zoomable,
     legendMargin,
     !!xAxisTitle,
@@ -374,7 +377,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     const adjustedPadding = getPadding(
       showLegend,
       legendOrientation,
-      false,
+      addYAxisTitleOffset,
       zoomable,
       legendLayout.effectiveMargin,
       !!xAxisTitle,
