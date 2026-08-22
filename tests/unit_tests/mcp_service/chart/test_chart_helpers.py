@@ -258,6 +258,19 @@ def test_merge_form_data_filters_into_query_applies_regular_overrides():
     assert query["having"] == "(SUM(num) > 10) AND (COUNT(*) > 1)"
 
 
+def test_filter_helpers_copy_relative_time_extras():
+    """Relative time anchors reach both saved and freshly built queries."""
+    extras = {"relative_start": "now", "relative_end": "today"}
+
+    fresh_query = {"extras": {"where": "country = 'US'"}}
+    apply_form_data_filters_to_query(fresh_query, {"extras": extras})
+    assert fresh_query["extras"] == {"where": "country = 'US'", **extras}
+
+    saved_query = {"extras": {"having": "COUNT(*) > 1"}}
+    merge_form_data_filters_into_query(saved_query, {"extras": extras})
+    assert saved_query["extras"] == {"having": "COUNT(*) > 1", **extras}
+
+
 def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
     monkeypatch,
 ):
