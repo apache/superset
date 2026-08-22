@@ -230,6 +230,34 @@ def get_chart_configs_resource() -> str:
         },
     }
 
+    from superset.mcp_service.chart.registry import get_registry
+
+    interactive_pivot_configs = {}
+    if get_registry().get("interactive_pivot") is not None:
+        interactive_pivot_configs["ag_grid_interactive_pivot"] = {
+            "description": (
+                "Preset AG Grid pivot with explicit side-panel groups and totals"
+            ),
+            "config": {
+                "chart_type": "interactive_pivot",
+                "rows": [{"name": "region"}, {"name": "country"}],
+                "columns": [{"name": "quarter"}],
+                "metrics": [
+                    {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
+                    {"name": "margin", "aggregate": "AVG", "label": "Margin"},
+                ],
+                "temporal_column": "order_date",
+                "time_grain": "P1M",
+                "show_row_totals": True,
+                "show_column_totals": True,
+                "show_column_subtotals": True,
+            },
+            "use_cases": [
+                "Spreadsheet-style multidimensional analysis",
+                "Interactive regrouping and pivoting",
+            ],
+        }
+
     # Best practices
     best_practices = {
         "xy_charts": [
@@ -246,6 +274,11 @@ def get_chart_configs_resource() -> str:
             "Apply sort_by to highlight important data",
             "Use ag-grid-table viz_type for large interactive datasets",
         ],
+        "interactive_pivots": [
+            "Use rows for AG Grid row groups and columns for pivot labels",
+            "Metric aggregates also seed AG Grid's group aggregation model",
+            "This type appears only when the host enables its visualization plugin",
+        ],
         "general": [
             "Always verify column names with get_dataset_info before charting",
             "Set temporal_column when dashboard time filters should use a column "
@@ -259,6 +292,7 @@ def get_chart_configs_resource() -> str:
     resource_data = {
         "xy_chart_configs": xy_chart_configs,
         "table_chart_configs": table_chart_configs,
+        "interactive_pivot_configs": interactive_pivot_configs,
         "best_practices": best_practices,
         "usage_notes": [
             "All examples are valid ChartConfig objects that pass validation",
