@@ -2029,6 +2029,30 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
       });
 
+      test('keeps the configured page size when rowCount is smaller (#42243)', () => {
+        // With server pagination and a result set smaller than the configured
+        // page size, the selector used to drop the configured size from the
+        // options and fall back to rendering 0.
+        const props = {
+          ...transformProps(testData.basic),
+          serverPagination: true,
+          rowCount: 12,
+          pageSize: 20,
+          serverPaginationData: { currentPage: 0, pageSize: 20 },
+        };
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        const selected = container.querySelector(
+          '.dt-select-page-size .ant-select-content',
+        );
+        expect(selected).not.toBeNull();
+        expect(selected).toHaveTextContent('20');
+      });
+
       test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
