@@ -30,6 +30,7 @@ import { EditorHost } from 'src/core/editors';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';
+import LabelColorMapping from './LabelColorMapping';
 
 const StyledEditorHost = styled(EditorHost)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -84,6 +85,7 @@ interface StylingSectionProps {
   customCss: string;
   hasCustomLabelsColor: boolean;
   showChartTimestamps: boolean;
+  jsonMetadata: string;
   onThemeChange: (value: any) => void;
   onColorSchemeChange: (
     colorScheme: string,
@@ -91,6 +93,7 @@ interface StylingSectionProps {
   ) => void;
   onCustomCssChange: (css: string) => void;
   onShowChartTimestampsChange: (value: boolean) => void;
+  onJsonMetadataChange: (value: string) => void;
   addDangerToast?: (message: string) => void;
 }
 
@@ -101,10 +104,12 @@ const StylingSection = ({
   customCss,
   hasCustomLabelsColor,
   showChartTimestamps,
+  jsonMetadata,
   onThemeChange,
   onColorSchemeChange,
   onCustomCssChange,
   onShowChartTimestampsChange,
+  onJsonMetadataChange,
   addDangerToast,
 }: StylingSectionProps) => {
   const [cssTemplates, setCssTemplates] = useState<CssTemplate[]>([]);
@@ -200,6 +205,12 @@ const StylingSection = ({
           showWarning={hasCustomLabelsColor}
         />
       </ModalFormField>
+
+      <LabelColorMapping
+        jsonMetadata={jsonMetadata}
+        onJsonMetadataChange={onJsonMetadataChange}
+      />
+
       <StyledSwitchContainer data-test="dashboard-show-timestamps-field">
         <div className="switch-row">
           <Switch
