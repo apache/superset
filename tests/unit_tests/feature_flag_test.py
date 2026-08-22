@@ -63,3 +63,34 @@ def test_is_feature_enabled(mocker: MockerFixture) -> None:
     assert is_feature_enabled("True_Flag2") is True
     assert is_feature_enabled("Flag3") is False
     assert is_feature_enabled("Flag4") is True
+
+
+def _make_app(feature_flags: dict[str, bool]):
+    """Minimal object exposing the config keys FeatureFlagManager.init_app reads."""
+
+    class _App:
+        config = {
+            "GET_FEATURE_FLAGS_FUNC": None,
+            "IS_FEATURE_ENABLED_FUNC": None,
+            "DEFAULT_FEATURE_FLAGS": {},
+            "FEATURE_FLAGS": feature_flags,
+        }
+
+    return _App()
+
+
+def test_global_async_queries_force_enables_gtf() -> None:
+    """GLOBAL_ASYNC_QUERIES force-enables GLOBAL_TASK_FRAMEWORK (async runs on GTF)."""
+    from superset.utils.feature_flag_manager import FeatureFlagManager
+
+    manager = FeatureFlagManager()
+    manager.init_app(_make_app({"GLOBAL_ASYNC_QUERIES": True}))
+    assert manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK") is True
+
+
+def test_gtf_not_enabled_without_global_async_queries() -> None:
+    from superset.utils.feature_flag_manager import FeatureFlagManager
+
+    manager = FeatureFlagManager()
+    manager.init_app(_make_app({"GLOBAL_ASYNC_QUERIES": False}))
+    assert manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK") is False

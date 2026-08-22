@@ -40,6 +40,7 @@ from superset.common.chart_data_timing import (
 )
 from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.jinja_context import ExtraCache
 from superset.models.core import Database
 from superset.utils import json
@@ -72,6 +73,30 @@ def _json_execution_result(
         query_context=query_context,
         queries=(QueryDataResult(payload=query_payload, timing=_query_timing()),),
     )
+
+
+def test_should_run_async_requires_async_mode_flag() -> None:
+    """`async_mode` is opt-in: absent/false runs sync even with the flag on."""
+    api = ChartDataRestApi()
+    qc = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+
+    with patch("superset.charts.data.api.is_feature_enabled", return_value=True):
+        # Opted in → async.
+        assert api._should_run_async({"async_mode": True}, qc, 300) is True
+        # Absent or false → synchronous (programmatic clients keep the 200 flow).
+        assert api._should_run_async({}, qc, 300) is False
+        assert api._should_run_async({"async_mode": False}, qc, 300) is False
+        # Caching disabled → sync even when opted in (async reads from the cache).
+        cache_disabled = api._should_run_async(
+            {"async_mode": True}, qc, CACHE_DISABLED_TIMEOUT
+        )
+        assert cache_disabled is False
+
+    # Feature flag off → always sync.
+    with patch("superset.charts.data.api.is_feature_enabled", return_value=False):
+        assert api._should_run_async({"async_mode": True}, qc, 300) is False
 
 
 def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:
