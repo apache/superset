@@ -114,6 +114,23 @@ export const textStyleSchema = z.object({
 // Style Schemas
 // =============================================================================
 
+/** Repeating tile pattern painted over a fill, e.g. hatching */
+export const decalSchema = z.object({
+  symbol: z.union([symbolTypeSchema, z.array(symbolTypeSchema)]).optional(),
+  symbolSize: z.number().optional(),
+  symbolKeepAspect: z.boolean().optional(),
+  color: colorSchema.optional(),
+  backgroundColor: colorSchema.optional(),
+  dashArrayX: z
+    .union([z.number(), z.array(z.union([z.number(), z.array(z.number())]))])
+    .optional(),
+  dashArrayY: z.union([z.number(), z.array(z.number())]).optional(),
+  /** Radians, not degrees. */
+  rotation: z.number().optional(),
+  maxTileWidth: z.number().optional(),
+  maxTileHeight: z.number().optional(),
+});
+
 export const lineStyleSchema = z.object({
   color: colorSchema.optional(),
   width: z.number().optional(),
@@ -150,6 +167,7 @@ export const itemStyleSchema = z.object({
   shadowOffsetX: z.number().optional(),
   shadowOffsetY: z.number().optional(),
   opacity: z.number().min(0).max(1).optional(),
+  decal: decalSchema.optional(),
 });
 
 // =============================================================================
@@ -818,6 +836,7 @@ export type TextStyleOption = z.infer<typeof textStyleSchema>;
 export type LineStyleOption = z.infer<typeof lineStyleSchema>;
 export type AreaStyleOption = z.infer<typeof areaStyleSchema>;
 export type ItemStyleOption = z.infer<typeof itemStyleSchema>;
+export type DecalOption = z.infer<typeof decalSchema>;
 export type LabelOption = z.infer<typeof labelSchema>;
 export type TitleOption = z.infer<typeof titleSchema>;
 export type LegendOption = z.infer<typeof legendSchema>;
