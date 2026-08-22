@@ -34,7 +34,7 @@ import {
   getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
-  TotalsAggregate,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
@@ -349,8 +349,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
-      const totalsAggregate: TotalsAggregate =
-        formData.totals_aggregate === 'AVG' ? 'AVG' : 'SUM';
+      const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
       extraQueries.push({
         ...queryObject,
         columns: [],

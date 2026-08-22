@@ -38,7 +38,7 @@ import {
   getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
-  TotalsAggregate,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
@@ -696,13 +696,16 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate,
     );
-    const totalsAggregate: TotalsAggregate =
-      formData.totals_aggregate === 'AVG' ? 'AVG' : 'SUM';
+    const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
+    // Raw-mode summary columns have no metric of their own to preserve, so
+    // ORIGINAL has nothing to fall back to; sum them as before.
+    const rawSummaryAggregate =
+      totalsAggregate === 'ORIGINAL' ? 'SUM' : totalsAggregate;
     const totalsMetrics =
       rawSummaryColumns.length > 0
         ? rawSummaryColumns.map(columnName => ({
             expressionType: 'SIMPLE' as const,
-            aggregate: totalsAggregate,
+            aggregate: rawSummaryAggregate,
             column: { column_name: columnName },
             label: columnName,
           }))
