@@ -170,6 +170,7 @@ class TestTaskWrapperMergeOptions:
         merged = merge_task_1._merge_options(None)
         assert merged.task_key == "default_key"
         assert merged.task_name == "Default Name"
+        assert merged.depends_on is None
 
     def test_merge_options_override_task_key(self):
         """Test overriding task_key at call time"""
@@ -215,10 +216,12 @@ class TestTaskWrapperMergeOptions:
         override = TaskOptions(
             task_key="override_key",
             task_name="Override Name",
+            depends_on=[TEST_UUID],
         )
         merged = merge_task_4._merge_options(override)
         assert merged.task_key == "override_key"
         assert merged.task_name == "Override Name"
+        assert merged.depends_on == [TEST_UUID]
 
     def test_merge_options_depends_on_from_override(self):
         """Test depends_on is carried through from call-time options"""
@@ -276,10 +279,11 @@ class TestTaskWrapperSchedule:
 
         schedule_task_2.schedule(123)
 
-        # Verify PRIVATE scope was used (default)
+        # Verify PRIVATE scope was used (default) and no dependencies forwarded
         mock_submit.assert_called_once()
         call_args = mock_submit.call_args
         assert call_args[1]["scope"] == TaskScope.PRIVATE
+        assert call_args[1]["depends_on"] is None
 
     @patch("superset.tasks.decorators.TaskManager.submit_task")
     def test_schedule_with_custom_options(self, mock_submit):
@@ -290,18 +294,23 @@ class TestTaskWrapperSchedule:
         def schedule_task_3(arg1: int) -> None:
             pass
 
-        # Use custom task key and name
+        # Use custom task key, name, and a prerequisite dependency
         schedule_task_3.schedule(
             123,
-            options=TaskOptions(task_key="custom_key", task_name="Custom Task Name"),
+            options=TaskOptions(
+                task_key="custom_key",
+                task_name="Custom Task Name",
+                depends_on=[TEST_UUID],
+            ),
         )
 
-        # Verify scope from decorator and options from call time
+        # Verify scope from decorator and options from call time are forwarded
         mock_submit.assert_called_once()
         call_args = mock_submit.call_args
         assert call_args[1]["scope"] == TaskScope.SYSTEM
         assert call_args[1]["task_key"] == "custom_key"
         assert call_args[1]["task_name"] == "Custom Task Name"
+        assert call_args[1]["depends_on"] == [TEST_UUID]
 
     @patch("superset.tasks.decorators.TaskManager.submit_task")
     def test_schedule_with_no_decorator_options(self, mock_submit):
@@ -351,34 +360,6 @@ class TestTaskWrapperSchedule:
         # Should work without task_key (generates random UUID)
         private_task.schedule(123)
         mock_submit.assert_called_once()
-
-    @patch("superset.tasks.decorators.TaskManager.submit_task")
-    def test_schedule_forwards_depends_on(self, mock_submit):
-        """Test schedule() forwards depends_on to TaskManager.submit_task"""
-        mock_submit.return_value = MagicMock()
-
-        @task(name="test_schedule_depends_on", scope=TaskScope.PRIVATE)
-        def dependent_task(arg1: int) -> None:
-            pass
-
-        dependent_task.schedule(123, options=TaskOptions(depends_on=[TEST_UUID]))
-
-        mock_submit.assert_called_once()
-        assert mock_submit.call_args[1]["depends_on"] == [TEST_UUID]
-
-    @patch("superset.tasks.decorators.TaskManager.submit_task")
-    def test_schedule_without_depends_on_passes_none(self, mock_submit):
-        """Test schedule() passes depends_on=None when not provided"""
-        mock_submit.return_value = MagicMock()
-
-        @task(name="test_schedule_no_depends_on", scope=TaskScope.PRIVATE)
-        def standalone_task(arg1: int) -> None:
-            pass
-
-        standalone_task.schedule(123)
-
-        mock_submit.assert_called_once()
-        assert mock_submit.call_args[1]["depends_on"] is None
 
 
 class TestTaskWrapperCall:

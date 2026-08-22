@@ -338,16 +338,7 @@ test('shows "waiting on" indicator and chain icon for pending tasks with unmet p
 
   // The pending task depends on an in-progress (unmet) prerequisite
   expect(await screen.findByText('Waiting on 1')).toBeInTheDocument();
-  // The chain-link dependency icon is rendered (antd LinkOutlined -> name "link")
+  // The chain-link dependency icon is rendered (antd LinkOutlined -> name "link").
+  // Popover contents on hover are covered by TaskDependenciesPopover.test.tsx.
   expect(screen.getByRole('img', { name: 'link' })).toBeInTheDocument();
-});
-
-test('dependency popover lists prerequisite tasks on hover', async () => {
-  renderTaskList();
-  await screen.findByText('Shared Bulk Task');
-
-  const linkIcon = screen.getByRole('img', { name: 'link' });
-  fireEvent.mouseEnter(linkIcon.closest('span') as HTMLElement);
-
-  expect(await screen.findByText('Totals Query')).toBeInTheDocument();
 });

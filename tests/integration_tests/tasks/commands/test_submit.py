@@ -54,6 +54,8 @@ def test_submit_task_success(app_context, login_as, get_user) -> None:
         db.session.refresh(result)
         assert result.id is not None
         assert result.uuid is not None
+        # A task submitted without depends_on has no prerequisites
+        assert result.dependencies == []
     finally:
         # Cleanup
         db.session.delete(result)

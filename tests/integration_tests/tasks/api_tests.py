@@ -473,6 +473,9 @@ class TestTaskApi(SupersetTestCase):
             properties = result["properties"]
             assert isinstance(properties, dict)
 
+            # A task with no declared prerequisites serializes an empty depends_on
+            assert result["depends_on"] == []
+
     def test_task_depends_on_serialization(self):
         """
         Task API: Test depends_on serializes prerequisite tasks (uuid/name/status)
