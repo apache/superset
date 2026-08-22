@@ -38,6 +38,8 @@ import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
   richTooltipSection,
   truncateXAxis,
   xAxisBounds,
@@ -366,6 +368,8 @@ const config: ControlPanelConfig = {
         ...createCustomizeSection(t('Query B'), 'B'),
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],
