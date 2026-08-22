@@ -403,7 +403,7 @@ The prune job only removes tasks in terminal states (`SUCCESS`, `FAILURE`, `ABOR
 See `superset/config.py` for a complete example configuration.
 
 :::tip Distributed Coordination for Faster Notifications
-By default, abort detection and sync join-and-wait use database polling. Configure `DISTRIBUTED_COORDINATION_CONFIG` to enable Redis pub/sub for real-time notifications. See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
+By default, abort detection and sync join-and-wait poll the task row in the metadata database. Configure `DISTRIBUTED_COORDINATION_CONFIG` (Redis/Valkey) and these become event-driven: completion and abort are signalled over Redis **Streams**, so a waiter wakes the instant the signal lands and no longer polls the database. Streams give guaranteed delivery — a waiter that reads slightly late, reconnects, or survives a failover still receives the signal — so this is reliable, not just faster. The signal streams are short-lived and self-clean; tune retention with `DISTRIBUTED_COORDINATION_SIGNAL_TTL` (default 24h). See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
 :::
 
 ## API Reference

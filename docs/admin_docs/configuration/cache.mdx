@@ -295,13 +295,25 @@ high-performance distributed operations. This configuration enables:
 
 - **Distributed locking**: Moves lock operations from the metadata database to Redis, improving
   performance and reducing metastore load
-- **Real-time event notifications**: Enables instant pub/sub messaging for task abort signals and
-  completion notifications instead of polling-based approaches
+- **Reliable, event-driven notifications**: Task completion and abort signals are delivered over
+  Redis **Streams**, so waiters (sync join-and-wait, task-dependency DAGs, abort listeners) wake the
+  instant a signal lands instead of polling the metadata database. Streams provide guaranteed
+  delivery — a waiter that reads slightly late, reconnects, or survives a failover still receives the
+  signal — so it is reliable, not merely faster. Without this backend, these operations fall back to
+  reliable database polling.
 
 :::note
-This requires Redis or Valkey specifically—it uses Redis-specific features (pub/sub, `SET NX EX`)
-that are not available in general Flask-Caching backends.
+This requires Redis or Valkey specifically—it uses Redis-specific features (Streams, pub/sub,
+`SET NX EX`) that are not available in general Flask-Caching backends.
 :::
+
+Signal streams are capped to their latest entry and expire automatically so they cannot accumulate
+in Redis/Valkey. Tune the retention window with `DISTRIBUTED_COORDINATION_SIGNAL_TTL` (seconds,
+default 24 hours):
+
+```python
+DISTRIBUTED_COORDINATION_SIGNAL_TTL = 24 * 60 * 60
+```
 
 ### Configuration
 
