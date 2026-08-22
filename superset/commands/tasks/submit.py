@@ -150,17 +150,27 @@ class SubmitTaskCommand(BaseCommand):
 
     def _persist_dependencies(self, task: "Task", dao: type["TaskDAO"]) -> None:
         """
-        Resolve the declared ``depends_on`` UUIDs and write dependency edges.
+        Resolve the declared ``depends_on`` references and write dependency edges.
 
         Runs inside the submit transaction and lock, after the task row is
-        flushed (so ``task.id``/``task.uuid`` are available). Rejects
-        self-dependencies, unknown prerequisites, and edges that would introduce
-        a cycle in the DAG. Prerequisite UUIDs are de-duplicated, order-preserved.
+        flushed (so ``task.id``/``task.uuid`` are available), and only for a
+        freshly *created* task (never on a dedup join). Rejects self-dependencies
+        and unknown prerequisites. Prerequisite references are de-duplicated and
+        order-preserved.
+
+        No transitive cycle check is needed here: a brand-new task has no
+        incoming edges, so its new ``task -> prerequisite`` edges cannot close a
+        cycle (nothing points back to it). The only cycle a create can express is
+        a direct self-dependency, rejected in-memory below. A future API that
+        adds edges to *existing* tasks would need a transitive check.
+
+        This resolves all prerequisites in one query and inserts all edges in one
+        flush — 2 round-trips regardless of the number of dependencies.
 
         :param task: The newly created dependent task
         :param dao: TaskDAO (passed to avoid re-importing)
-        :raises TaskInvalidError: if a prerequisite UUID is malformed or unknown
-        :raises TaskCyclicDependencyError: if the edges would create a cycle
+        :raises TaskInvalidError: if a prerequisite reference is malformed/unknown
+        :raises TaskCyclicDependencyError: on a direct self-dependency
         """
         raw = self._properties.get("depends_on") or []
         if not raw:
@@ -201,40 +211,7 @@ class SubmitTaskCommand(BaseCommand):
                 f"Unknown prerequisite task(s): {', '.join(missing)}"
             )
 
-        prerequisite_ids = [prerequisites[u].id for u in uuids]
-        self._check_no_cycle(task.id, prerequisite_ids, dao)
-        for prerequisite_id in prerequisite_ids:
-            dao.add_dependency(task.id, prerequisite_id)
-
-    @staticmethod
-    def _check_no_cycle(
-        task_id: int, prerequisite_ids: list[int], dao: type["TaskDAO"]
-    ) -> None:
-        """
-        Guard against cycles before inserting edges.
-
-        A cycle would exist if the new task is reachable from any prerequisite by
-        following existing dependency edges (prerequisite -> its prerequisites).
-        Since a freshly created task has no incoming edges this cannot trigger on
-        the normal create path, but it defends the dedup-join and any future
-        edge-adding path. The submit lock is keyed on this task's dedup_key only
-        and does not serialize across prerequisite tasks, so this walk must not
-        assume cross-task mutual exclusion.
-
-        :raises TaskCyclicDependencyError: if a cycle is detected
-        """
-        visited: set[int] = set()
-        stack = list(prerequisite_ids)
-        while stack:
-            current = stack.pop()
-            if current == task_id:
-                raise TaskCyclicDependencyError(
-                    f"Dependencies would create a cycle involving task id={task_id}."
-                )
-            if current in visited:
-                continue
-            visited.add(current)
-            stack.extend(dao.get_prerequisite_ids(current))
+        dao.add_dependencies(task.id, [prerequisites[u].id for u in uuids])
 
     def validate(self) -> None:
         """Validate command parameters."""

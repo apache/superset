@@ -98,38 +98,13 @@ class TestResolveFailedPrerequisite:
         assert _resolve_failed_prerequisite(task) is prerequisite
 
 
-class TestCheckNoCycle:
-    """Tests for SubmitTaskCommand._check_no_cycle."""
-
-    def test_no_cycle_passes(self):
-        dao = MagicMock()
-        dao.get_prerequisite_ids.return_value = []
-        # Should not raise.
-        SubmitTaskCommand._check_no_cycle(10, [1, 2], dao)
-
-    def test_direct_self_reference_raises(self):
-        dao = MagicMock()
-        dao.get_prerequisite_ids.return_value = []
-        with pytest.raises(TaskCyclicDependencyError):
-            SubmitTaskCommand._check_no_cycle(10, [10], dao)
-
-    def test_transitive_cycle_raises(self):
-        dao = MagicMock()
-        # Prerequisite 1 depends on 2, which depends back on the new task (10).
-        dao.get_prerequisite_ids.side_effect = lambda tid: {1: [2], 2: [10]}.get(
-            tid, []
-        )
-        with pytest.raises(TaskCyclicDependencyError):
-            SubmitTaskCommand._check_no_cycle(10, [1], dao)
-
-
 class TestPersistDependencies:
     """Tests for SubmitTaskCommand._persist_dependencies."""
 
     def test_no_depends_on_is_noop(self):
         dao = MagicMock()
         SubmitTaskCommand({})._persist_dependencies(_task(id=1), dao)
-        dao.add_dependency.assert_not_called()
+        dao.add_dependencies.assert_not_called()
 
     def test_self_dependency_by_uuid_raises(self):
         dao = MagicMock()
@@ -145,49 +120,46 @@ class TestPersistDependencies:
         with pytest.raises(TaskInvalidError):
             cmd._persist_dependencies(_task(id=1), dao)
 
-    def test_happy_path_inserts_edges(self):
+    def test_happy_path_bulk_inserts_edges(self):
         u1, u2 = uuid4(), uuid4()
-        prereq1 = SimpleNamespace(uuid=u1, id=101)
-        prereq2 = SimpleNamespace(uuid=u2, id=102)
         dao = MagicMock()
-        dao.find_by_uuids.return_value = [prereq1, prereq2]
-        dao.get_prerequisite_ids.return_value = []
+        dao.find_by_uuids.return_value = [
+            SimpleNamespace(uuid=u1, id=101),
+            SimpleNamespace(uuid=u2, id=102),
+        ]
 
         cmd = SubmitTaskCommand({"depends_on": [u1, u2]})
         cmd._persist_dependencies(_task(id=1), dao)
 
-        assert dao.add_dependency.call_count == 2
-        dao.add_dependency.assert_any_call(1, 101)
-        dao.add_dependency.assert_any_call(1, 102)
+        # One bulk insert of all prerequisite ids (no per-edge round trips)
+        dao.add_dependencies.assert_called_once_with(1, [101, 102])
 
     def test_duplicate_uuids_deduped(self):
         u1 = uuid4()
-        prereq1 = SimpleNamespace(uuid=u1, id=101)
         dao = MagicMock()
-        dao.find_by_uuids.return_value = [prereq1]
-        dao.get_prerequisite_ids.return_value = []
+        dao.find_by_uuids.return_value = [SimpleNamespace(uuid=u1, id=101)]
 
         cmd = SubmitTaskCommand({"depends_on": [u1, u1]})
         cmd._persist_dependencies(_task(id=1), dao)
 
-        dao.add_dependency.assert_called_once_with(1, 101)
+        dao.add_dependencies.assert_called_once_with(1, [101])
 
     def test_accepts_task_entities_and_uuids(self):
         """depends_on accepts Task entities, UUIDs, and UUID strings."""
         u1, u2, u3 = uuid4(), uuid4(), uuid4()
-        prereq1 = SimpleNamespace(uuid=u1, id=101)  # referenced by entity
-        prereq2 = SimpleNamespace(uuid=u2, id=102)  # referenced by UUID
-        prereq3 = SimpleNamespace(uuid=u3, id=103)  # referenced by str
         dao = MagicMock()
-        dao.find_by_uuids.return_value = [prereq1, prereq2, prereq3]
-        dao.get_prerequisite_ids.return_value = []
+        dao.find_by_uuids.return_value = [
+            SimpleNamespace(uuid=u1, id=101),  # referenced by entity
+            SimpleNamespace(uuid=u2, id=102),  # referenced by UUID
+            SimpleNamespace(uuid=u3, id=103),  # referenced by str
+        ]
 
         # A Task-like entity (has .uuid), a raw UUID, and a UUID string.
         entity = SimpleNamespace(uuid=u1, id=101)
         cmd = SubmitTaskCommand({"depends_on": [entity, u2, str(u3)]})
         cmd._persist_dependencies(_task(id=1), dao)
 
-        assert dao.add_dependency.call_count == 3
+        dao.add_dependencies.assert_called_once_with(1, [101, 102, 103])
         # find_by_uuids received normalized UUIDs, not entities/strings
         (resolved,), _ = dao.find_by_uuids.call_args
         assert set(resolved) == {u1, u2, u3}

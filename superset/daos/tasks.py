@@ -355,50 +355,30 @@ class TaskDAO(BaseDAO[Task]):
         return db.session.query(Task).filter(Task.uuid.in_(uuids)).all()
 
     @classmethod
-    def add_dependency(cls, task_id: int, depends_on_task_id: int) -> bool:
+    def add_dependencies(cls, task_id: int, depends_on_task_ids: list[int]) -> None:
         """
-        Add a prerequisite edge: ``task_id`` depends on ``depends_on_task_id``.
+        Bulk-insert prerequisite edges: ``task_id`` depends on each id given.
+
+        Only ever called for a freshly created task (see ``SubmitTaskCommand``)
+        with already-deduplicated prerequisite ids, so no edge can pre-exist —
+        the per-row existence check that ``add_subscriber`` needs is unnecessary
+        here, and the edges are inserted in a single flush (one INSERT).
 
         :param task_id: ID of the dependent task
-        :param depends_on_task_id: ID of the prerequisite task
-        :returns: True if the edge was added, False if it already existed
+        :param depends_on_task_ids: IDs of the prerequisite tasks
         """
-        # Check first to avoid IntegrityError which invalidates the session
-        # in nested transaction contexts (mirrors add_subscriber).
-        existing = (
-            db.session.query(TaskDependency)
-            .filter_by(task_id=task_id, depends_on_task_id=depends_on_task_id)
-            .first()
-        )
-        if existing:
-            logger.debug(
-                "Dependency %s -> %s already exists", task_id, depends_on_task_id
-            )
-            return False
-
-        db.session.add(
-            TaskDependency(task_id=task_id, depends_on_task_id=depends_on_task_id)
+        if not depends_on_task_ids:
+            return
+        db.session.add_all(
+            TaskDependency(task_id=task_id, depends_on_task_id=prerequisite_id)
+            for prerequisite_id in depends_on_task_ids
         )
         db.session.flush()
         logger.info(
-            "Added dependency: task %s depends on %s", task_id, depends_on_task_id
+            "Added %d dependencies to task %s",
+            len(depends_on_task_ids),
+            task_id,
         )
-        return True
-
-    @classmethod
-    def get_prerequisite_ids(cls, task_id: int) -> list[int]:
-        """
-        Get the direct prerequisite task IDs of a task.
-
-        :param task_id: ID of the dependent task
-        :returns: IDs of the tasks it directly depends on
-        """
-        rows = (
-            db.session.query(TaskDependency.depends_on_task_id)
-            .filter(TaskDependency.task_id == task_id)
-            .all()
-        )
-        return [row[0] for row in rows]
 
     @classmethod
     def set_properties_and_payload(

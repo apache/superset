@@ -96,7 +96,7 @@ def test_find_by_task_key_active(session_with_task: Session) -> None:
     """Test finding active task by task_key"""
     from superset.daos.tasks import TaskDAO
 
-    task = create_task(session_with_task)
+    create_task(session_with_task)
 
     result = TaskDAO.find_by_task_key(
         task_type=TEST_TASK_TYPE,
@@ -111,7 +111,6 @@ def test_find_by_task_key_active(session_with_task: Session) -> None:
     assert result.status == TaskStatus.PENDING.value
     # A task with no declared prerequisites has empty dependencies
     assert result.dependencies == []
-    assert TaskDAO.get_prerequisite_ids(task.id) == []
 
 
 def test_find_by_task_key_not_found(session_with_task: Session) -> None:
@@ -515,20 +514,28 @@ def test_conditional_status_update_terminal_state_updates_dedup_key(
     )
 
 
-def test_add_dependency_and_get_prerequisite_ids(session_with_task: Session) -> None:
-    """add_dependency persists an edge (idempotently); reads resolve it."""
+def test_add_dependencies_bulk_inserts_edges(session_with_task: Session) -> None:
+    """add_dependencies bulk-inserts edges; Task.dependencies resolves them."""
     from superset.daos.tasks import TaskDAO
 
-    parent = create_task(session_with_task, task_key="parent")
+    parent1 = create_task(session_with_task, task_key="parent1")
+    parent2 = create_task(session_with_task, task_key="parent2")
     child = create_task(session_with_task, task_key="child")
 
-    assert TaskDAO.add_dependency(child.id, parent.id) is True
-    # Adding the same edge again is idempotent (skipped, returns False)
-    assert TaskDAO.add_dependency(child.id, parent.id) is False
+    TaskDAO.add_dependencies(child.id, [parent1.id, parent2.id])
 
-    assert TaskDAO.get_prerequisite_ids(child.id) == [parent.id]
     # Task.dependencies resolves to the prerequisite Task entities
     session_with_task.refresh(child)
-    assert [t.id for t in child.dependencies] == [parent.id]
-    # The prerequisite itself has no dependencies
-    assert parent.dependencies == []
+    assert {t.id for t in child.dependencies} == {parent1.id, parent2.id}
+    # Prerequisites themselves have no dependencies
+    assert parent1.dependencies == []
+
+
+def test_add_dependencies_empty_is_noop(session_with_task: Session) -> None:
+    """add_dependencies with no ids does nothing."""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(session_with_task, task_key="lonely")
+    TaskDAO.add_dependencies(task.id, [])
+    session_with_task.refresh(task)
+    assert task.dependencies == []
