@@ -26,9 +26,13 @@ import {
   Metric,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, Dataset, isColumnMeta } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDatasource,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
+import { ExplorePageState } from 'src/explore/types';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
 import ControlPopover from '../ControlPopover/ControlPopover';
@@ -52,7 +56,7 @@ interface ColumnSelectPopoverTriggerProps {
 }
 
 interface ColumnSelectPopoverTriggerInnerProps extends ColumnSelectPopoverTriggerProps {
-  datasource?: any;
+  datasource?: Dataset | null;
 }
 
 const ColumnSelectPopoverTriggerInner = ({
@@ -189,7 +193,9 @@ const ColumnSelectPopoverTriggerInner = ({
           modalDescription={t(
             'Save this query as a virtual dataset to continue exploring',
           )}
-          datasource={datasource}
+          // The explore datasource has always been forwarded here; the modal
+          // only reads the saveable subset of its fields.
+          datasource={datasource as unknown as ISaveableDatasource}
         />
       )}
       <ControlPopover
@@ -212,8 +218,8 @@ const ColumnSelectPopoverTriggerInner = ({
 const ColumnSelectPopoverTriggerWrapper = (
   props: ColumnSelectPopoverTriggerProps,
 ) => {
-  const datasource = useSelector(
-    (state: any) => state?.explore?.datasource || null,
+  const datasource = useSelector<ExplorePageState, Dataset | null>(
+    state => state?.explore?.datasource || null,
   );
 
   return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;

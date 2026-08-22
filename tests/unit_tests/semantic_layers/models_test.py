@@ -30,6 +30,7 @@ from superset_core.semantic_layers.types import (
     Grains,
     Metric,
 )
+from superset_core.semantic_layers.view import SemanticViewFeature
 
 from superset.semantic_layers.models import (
     ColumnMetadata,
@@ -321,6 +322,7 @@ def mock_implementation(
     impl.get_dimensions.return_value = mock_dimensions
     impl.get_metrics.return_value = mock_metrics
     impl.uid.return_value = "semantic_view_uid_123"
+    impl.features = frozenset()
     return impl
 
 
@@ -691,6 +693,41 @@ def test_semantic_view_supports_samples_is_false() -> None:
     assert SemanticView.supports_samples is False
 
 
+def test_semantic_view_data_features_empty(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """A view with no declared features serializes an empty feature list."""
+    mock_implementation.features = frozenset()
+
+    data = semantic_view.data
+
+    assert data["semantic_view_features"] == []
+
+
+def test_semantic_view_data_features_declared(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """Declared view features are serialized as their stable string values."""
+    mock_implementation.features = frozenset(
+        {
+            SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
+            SemanticViewFeature.GROUP_LIMIT,
+        }
+    )
+
+    data = semantic_view.data
+
+    assert data["semantic_view_features"] == [
+        "ADHOC_COLUMN_EXPRESSIONS",
+        "GROUP_LIMIT",
+    ]
+    # Declaring features must not change the expression-less dimension
+    # contract from #41456: semantic dimensions stay "physical" to the UI.
+    assert all(column["expression"] is None for column in data["columns"])
+
+
 @pytest.fixture
 def mock_grain_variant_dimensions() -> list[Dimension]:
     """Time column exposed as multiple Dimension variants, one per grain."""
@@ -773,6 +810,7 @@ def test_semantic_view_data_populates_time_grain_sqla(
     impl.get_dimensions.return_value = mock_grain_variant_dimensions
     impl.get_metrics.return_value = mock_metrics
     impl.uid.return_value = "semantic_view_uid_123"
+    impl.features = frozenset()
 
     layer = SemanticLayer()
     layer.name = "My Semantic Layer"
@@ -801,6 +839,11 @@ def test_semantic_view_data_populates_time_grain_sqla(
     # ``time_grain_sqla`` in ExplorableData is ``(duration, name)`` tuples.
     grain_durations = sorted(entry[0] for entry in data["time_grain_sqla"])
     assert grain_durations == sorted(["PT1H", "P1D", "P1M"])
+    # #41456 contract: temporal semantic dimensions keep ``expression=None``
+    # so the explore UI preserves the time-grain affordance, and the feature
+    # list serializes alongside without altering column metadata.
+    assert all(column["expression"] is None for column in data["columns"])
+    assert data["semantic_view_features"] == []
 
 
 def test_semantic_view_supports_drill_to_detail_is_false() -> None:

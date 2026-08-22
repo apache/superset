@@ -130,15 +130,9 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
     formData,
   } = props;
 
-  // Semantic views do not support arbitrary SQL expressions as dimensions.
-  // Merge 'sqlExpression' into disabledTabs so the Custom SQL tab is hidden.
-  const effectiveDisabledTabs = useMemo(
-    () =>
-      String(datasource?.type) === 'semantic_view'
-        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
-        : disabledTabs,
-    [datasource?.type, disabledTabs],
-  );
+  // Provider-specific mode rules (for example semantic views disabling
+  // Custom SQL) live in the picker-capability adapter consumed by
+  // ColumnSelectPopover; this wrapper only forwards caller-specified tabs.
 
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -312,7 +306,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
               }}
               editedColumn={column}
               isTemporal={isTemporal}
-              disabledTabs={effectiveDisabledTabs}
+              disabledTabs={disabledTabs}
             >
               <OptionWrapper
                 key={`column-${idx}`}
@@ -452,7 +446,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
         togglePopover={toggleColumnPopover}
         closePopover={closeColumnPopover}
         isTemporal={false}
-        disabledTabs={effectiveDisabledTabs}
+        disabledTabs={disabledTabs}
         metrics={savedMetrics}
         selectedMetrics={selectedMetrics}
       >

@@ -18,8 +18,9 @@
  */
 
 import exploreReducer, { ExploreState } from './exploreReducer';
-import { setStashFormData } from '../actions/exploreActions';
+import { setCompatibility, setStashFormData } from '../actions/exploreActions';
 import { QueryFormData } from '@superset-ui/core';
+import { CompatibilityResult } from '../types';
 
 test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
   const initialState: ExploreState = {
@@ -38,6 +39,46 @@ test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
   const newState2 = exploreReducer(newState, restoreAction);
   expect(newState2.form_data).toEqual({ c: 4 });
   expect(newState2.hiddenFormData).toEqual({ a: 3 });
+});
+
+test('SET_COMPATIBILITY stores each mutually exclusive request state', () => {
+  const initialState: ExploreState = {
+    form_data: {} as unknown as QueryFormData,
+    controls: {},
+  };
+
+  const states: CompatibilityResult[] = [
+    { status: 'loading' },
+    { status: 'verified', metrics: ['m1'], dimensions: ['d1'] },
+    { status: 'verified', metrics: [], dimensions: [] },
+    { status: 'failed' },
+    { status: 'idle' },
+  ];
+
+  states.forEach(compatibility => {
+    const newState = exploreReducer(
+      initialState,
+      setCompatibility(compatibility) as Parameters<typeof exploreReducer>[1],
+    );
+    expect(newState.compatibility).toEqual(compatibility);
+  });
+});
+
+test('SET_COMPATIBILITY replaces the previous result instead of merging', () => {
+  const initialState: ExploreState = {
+    form_data: {} as unknown as QueryFormData,
+    controls: {},
+    compatibility: { status: 'verified', metrics: ['m1'], dimensions: ['d1'] },
+  };
+
+  const newState = exploreReducer(
+    initialState,
+    setCompatibility({ status: 'failed' }) as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+
+  expect(newState.compatibility).toEqual({ status: 'failed' });
 });
 
 test('skips updates when the field is already updated on SET_STASH_FORM_DATA', () => {

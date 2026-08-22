@@ -35,6 +35,7 @@ class SemanticViewFeature(enum.Enum):
     Custom features supported by semantic layers.
     """
 
+    ADHOC_COLUMN_EXPRESSIONS = "ADHOC_COLUMN_EXPRESSIONS"
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
     GROUP_OTHERS = "GROUP_OTHERS"
