@@ -454,17 +454,17 @@ class ChartDataRestApi(ChartRestApi):
                     return self._send_chart_response(result)
             except ChartDataCacheLoadError:
                 pass
-        # Otherwise, kick off a background job to run the chart query.
-        # Clients will either poll or be notified of query completion,
-        # at which point they will call the /data/<cache_key> endpoint
-        # to retrieve the results.
+        # Otherwise, kick off background GTF tasks (one per QueryObject) to run the
+        # chart query. The client polls the coordinator task
+        # (GET /api/v1/task/<task_id>/status) and, on completion, re-issues this same
+        # request — now served from the per-query DATA cache the tasks populated.
         async_command = CreateAsyncChartDataJobCommand()
         try:
             async_command.validate(request)
         except AsyncQueryTokenException:
             return self.response_401()
 
-        async_result = async_command.run(form_data, get_user_id())
+        async_result = async_command.run(command.query_context, get_user_id())
         return self.response(202, **async_result)
 
     def _send_chart_response(  # noqa: C901

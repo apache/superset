@@ -19,14 +19,22 @@ from __future__ import annotations
 import dataclasses
 import logging
 from typing import Any, TYPE_CHECKING
+from uuid import UUID
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
+from superset_core.tasks.types import TaskOptions, TaskScope, TaskStatus
 
 from superset.charts.data.form_data import set_form_data
 from superset.charts.schemas import ChartDataQueryContextSchema
+from superset.common.query_serialization import (
+    load_serialized_query,
+    serialize_query,
+    SerializedQuery,
+)
+from superset.constants import CacheRegion
 from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
@@ -36,16 +44,206 @@ from superset.extensions import (
     celery_app,
     security_manager,
 )
+from superset.tasks.decorators import task
 from superset.utils.core import override_user
 from superset.utils.error_sanitization import sanitize_error_dicts
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
+    from superset.common.query_object import QueryObject
+    from superset.models.tasks import Task
+    from superset.security.guest_token import GuestToken
 
 logger = logging.getLogger(__name__)
 query_timeout = current_app.config[
     "SQLLAB_ASYNC_TIME_LIMIT_SEC"
 ]  # TODO: new config key
+
+# GTF task types for the chart-data fan-out. Each QueryObject runs as its own
+# SHARED task keyed by its query_cache_key (safe cross-user dedup — the key encodes
+# RLS/impersonation); a per-job coordinator joins them and emits the completion
+# event onto the async-events stream.
+CHART_QUERY_TASK = "superset.chart_data.query"
+CHART_DATA_COORDINATOR_TASK = "superset.chart_data.coordinator"
+
+
+def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User:
+    """Resolve the acting user for an async chart-data task.
+
+    The GTF executor does not impersonate on its own, so each task establishes the
+    request user itself (for RLS/impersonation), mirroring the legacy Celery path.
+    """
+    if user_id:
+        return security_manager.get_user_by_id(user_id)
+    if guest_token:
+        return security_manager.get_guest_user_from_token(guest_token)
+    return security_manager.get_anonymous_user()
+
+
+def _inject_contribution_totals(
+    query_obj: "QueryObject", totals_cache_key: str
+) -> None:
+    """Inject ``contribution_totals`` from the cached totals query into ``query_obj``.
+
+    A contribution query normalizes its metrics against column sums from a separate
+    "totals" query. In the per-query task model the totals query runs as its own
+    task (a ``depends_on`` prerequisite) and caches its dataframe; here we read that
+    cached dataframe and inject the sums into this query's contribution
+    post-processing before it runs — the same result the synchronous
+    ``ensure_totals_available`` produces, but reading the cache the prerequisite
+    populated instead of re-running the totals query. ``contribution_totals`` is
+    stripped from the cache key, so this affects only the result, not the key.
+    """
+    from superset.common.utils.query_cache_manager import QueryCacheManager
+
+    cache = QueryCacheManager.get(key=totals_cache_key, region=CacheRegion.DATA)
+    if not cache.is_loaded or cache.df is None:
+        # The depends_on prerequisite guarantees the totals task succeeded, so a
+        # miss here is unexpected; leave the query as-is (the contribution op will
+        # fall back to its own totals) rather than failing the whole chart.
+        logger.warning(
+            "Totals result not cached under %s; contribution left un-normalized",
+            totals_cache_key,
+        )
+        return
+    df = cache.df
+    totals = {col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"}
+    for post_processing in query_obj.post_processing or []:
+        if post_processing.get("operation") == "contribution":
+            post_processing.setdefault("options", {})["contribution_totals"] = totals
+
+
+@task(name=CHART_QUERY_TASK, scope=TaskScope.SHARED, timeout=query_timeout)
+def execute_chart_query(
+    serialized_query: SerializedQuery,
+    user_id: int | None = None,
+    guest_token: "GuestToken | None" = None,
+    totals_cache_key: str | None = None,
+) -> None:
+    """Execute a single chart-data query and cache it under its query_cache_key.
+
+    The atomic async unit: reconstruct the one query (canonical serialization),
+    optionally inject contribution totals from a prerequisite totals task, then run
+    the existing per-query execution/caching path so a re-request reads the same
+    DATA-cache entry.
+    """
+    with override_user(_resolve_user(user_id, guest_token), force=False):
+        query_context = load_serialized_query(serialized_query)
+        query_obj = query_context.queries[0]
+        if totals_cache_key:
+            _inject_contribution_totals(query_obj, totals_cache_key)
+        # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
+        query_context.get_df_payload_result(query_obj)
+
+
+@task(name=CHART_DATA_COORDINATOR_TASK, scope=TaskScope.PRIVATE, timeout=query_timeout)
+def chart_data_coordinator(
+    job_metadata: dict[str, Any],
+    query_task_uuids: list[str],
+) -> None:
+    """Join the per-query tasks and emit a single async-events completion event.
+
+    Unlike a ``depends_on`` prerequisite (which fails-fast and would leave a failure
+    unreported), the coordinator waits for every query task to reach a terminal
+    state and then emits ``STATUS_DONE`` if all succeeded, else ``STATUS_ERROR`` —
+    the client's single done/error signal on the firehose. On ``done`` the client
+    re-issues its original chart-data request, which now hits the per-query DATA
+    cache (no ``result_url`` / query-context descriptor).
+    """
+    from superset.tasks.manager import TaskManager
+
+    statuses = [
+        TaskManager.wait_for_completion(UUID(task_uuid)).status
+        for task_uuid in query_task_uuids
+    ]
+    if all(status == TaskStatus.SUCCESS.value for status in statuses):
+        async_query_manager.update_job(job_metadata, async_query_manager.STATUS_DONE)
+    else:
+        async_query_manager.update_job(
+            job_metadata,
+            async_query_manager.STATUS_ERROR,
+            errors=[{"message": "One or more chart-data queries failed"}],
+        )
+
+
+def _query_task_cache_key(query_context: "QueryContext", index: int) -> str | None:
+    """Compute a query's cache key exactly as its task will.
+
+    ``execute_chart_query`` validates each query before keying (see
+    ``get_df_payload_result``), so validate here too — otherwise the SHARED task's
+    ``task_key`` (used for cross-user dedup) could diverge from the key the task
+    actually caches under.
+    """
+    query_obj = query_context.queries[index]
+    query_obj.validate()
+    return query_context.query_cache_key(query_obj)
+
+
+def submit_chart_data_query_tasks(
+    channel_id: str,
+    query_context: "QueryContext",
+    user_id: int | None,
+) -> dict[str, Any]:
+    """Fan a chart-data request out into one GTF task per ``QueryObject`` + coordinator.
+
+    Each ``QueryObject`` runs as its own SHARED task keyed by its ``query_cache_key``
+    (safe cross-user dedup — the key encodes RLS/impersonation), writing the per-query
+    DATA cache a later re-request reads back. A contribution query ``depends_on`` the
+    totals query's task and reads its cached result to normalize. A per-job coordinator
+    joins every query task and emits the single async-events completion event onto the
+    firehose (so the websocket push keeps working); the client learns completion by
+    polling the coordinator task (``GET /api/v1/task/<uuid>/status``) and, on ``done``,
+    re-issues its original request — now served entirely from the per-query cache.
+
+    Returns the job metadata (the HTTP 202 body), carrying the coordinator task UUID as
+    ``task_id`` so the client can poll and cancel via the GTF task API.
+    """
+    guest_user = security_manager.get_current_guest_user_if_guest()
+    guest_token = guest_user.guest_token if guest_user else None
+    job_metadata = async_query_manager.init_job(channel_id, user_id)
+
+    queries = query_context.queries
+    # Contribution queries normalize against a shared totals row. Identify the coupling
+    # (this also clears the totals query's row_limit so its cache key matches the entry
+    # its dependents read) and compute the totals key up front.
+    needs_totals, totals_idx = query_context.prepare_contribution_totals()
+    totals_key: str | None = None
+    if needs_totals and totals_idx is not None:
+        # Mirror the row_limit normalization into the raw serialized dict so the totals
+        # task caches under the same key its dependents (and the re-request) compute.
+        query_context.cache_values["queries"][totals_idx]["row_limit"] = None
+        totals_key = _query_task_cache_key(query_context, totals_idx)
+
+    def _schedule(index: int, depends_on: list["Task"] | None = None) -> "Task":
+        return execute_chart_query.schedule(
+            serialize_query(query_context, index),
+            user_id,
+            guest_token,
+            totals_key if index in needs_totals else None,
+            options=TaskOptions(
+                task_key=_query_task_cache_key(query_context, index),
+                depends_on=depends_on,
+            ),
+        )
+
+    # Schedule the totals query first so contribution queries can depend on it.
+    tasks: dict[int, "Task"] = {}
+    if totals_idx is not None and needs_totals:
+        tasks[totals_idx] = _schedule(totals_idx)
+    for index in range(len(queries)):
+        if index not in tasks:
+            depends_on = (
+                [tasks[totals_idx]]
+                if index in needs_totals and totals_idx is not None
+                else None
+            )
+            tasks[index] = _schedule(index, depends_on=depends_on)
+
+    coordinator = chart_data_coordinator.schedule(
+        job_metadata, [str(tasks[index].uuid) for index in range(len(queries))]
+    )
+    job_metadata["task_id"] = str(coordinator.uuid)
+    return job_metadata
 
 
 def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:
