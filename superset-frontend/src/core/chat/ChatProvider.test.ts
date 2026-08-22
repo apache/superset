@@ -341,10 +341,48 @@ test('registerClientTool works the same regardless of call order relative to reg
   });
 
   expect(warn).not.toHaveBeenCalled();
-  expect(provider.getTools().map((tool) => tool.name)).toEqual([
+  expect(provider.getTools().map(tool => tool.name)).toEqual([
     'acme.dashboard__get_root',
   ]);
   warn.mockRestore();
+});
+
+test('registerChat with options.tools registers those tools too', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel, {
+    tools: [
+      { ...noopTool, name: 'acme.dashboard__get_root' },
+      { ...noopTool, name: 'acme.chart__do_thing' },
+    ],
+  });
+
+  expect(
+    provider
+      .getTools()
+      .map(tool => tool.name)
+      .sort(),
+  ).toEqual(['acme.chart__do_thing', 'acme.dashboard__get_root']);
+});
+
+test('disposing a registerChat() call also removes its options.tools', () => {
+  const provider = ChatProvider.getInstance();
+  provider.registerClientTool({
+    ...noopTool,
+    name: 'core.dashboard__unrelated',
+  });
+  const disposable = provider.registerChat(
+    { id: 'acme.chat', name: 'Acme' },
+    trigger,
+    panel,
+    { tools: [{ ...noopTool, name: 'acme.dashboard__get_root' }] },
+  );
+
+  disposable.dispose();
+
+  expect(provider.getChat()).toBeUndefined();
+  expect(provider.getTools().map(tool => tool.name)).toEqual([
+    'core.dashboard__unrelated',
+  ]);
 });
 
 test('getTools aggregates every registered tool', () => {

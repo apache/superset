@@ -391,6 +391,70 @@ test('each extension gets a chat.registerClientTool(s) rebind that prefixes its 
   cleanupWebpackSharing();
 });
 
+test('the chat.registerChat rebind also prefixes options.tools with its own id', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const registerChat = jest.fn();
+  window.superset = {
+    ...window.superset,
+    chat: { registerChat } as unknown,
+  } as Namespaces;
+
+  const capturedCoreModules: Array<typeof import('@apache-superset/core')> = [];
+  const makeContainer = () => ({
+    init: jest.fn().mockImplementation(async (scope: WebpackSharedScope) => {
+      const moduleFactory = await scope['@apache-superset/core']['0.1.0'].get();
+      capturedCoreModules.push(
+        moduleFactory() as typeof import('@apache-superset/core'),
+      );
+    }),
+    get: jest.fn().mockResolvedValue(() => {}),
+  });
+
+  const appendChildSpy = mockRemoteEntryLoad();
+  mockWebpackSharing({
+    '0.1.0': {
+      get: () => Promise.resolve(() => ({})),
+      loaded: true,
+      eager: true,
+    },
+  });
+
+  const ext1 = createMockExtension({
+    id: 'org.ext1',
+    remoteEntry: 'http://ext1/remoteEntry.js',
+  });
+  (window as any).airbnb_ext1 = makeContainer();
+  await loader.initializeExtension({
+    ...ext1,
+    moduleFederationName: 'airbnb_ext1',
+  });
+
+  const noopTool = {
+    description: 'test',
+    inputSchema: { type: 'object', properties: {} },
+    handler: () => ({ success: true }),
+  };
+  const trigger = () => null;
+  const panel = () => null;
+
+  capturedCoreModules[0].chat.registerChat(
+    { id: 'org.ext1.chat', name: 'Ext1 Chat' },
+    trigger,
+    panel,
+    { tools: [{ ...noopTool, name: 'dashboard__do_thing' }] },
+  );
+
+  expect(registerChat).toHaveBeenCalledWith(
+    { id: 'org.ext1.chat', name: 'Ext1 Chat' },
+    trigger,
+    panel,
+    { tools: [{ ...noopTool, name: 'org.ext1.dashboard__do_thing' }] },
+  );
+
+  appendChildSpy.mockRestore();
+  cleanupWebpackSharing();
+});
+
 test('throws when the container is missing from window', async () => {
   const loader = ExtensionsLoader.getInstance();
   const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
