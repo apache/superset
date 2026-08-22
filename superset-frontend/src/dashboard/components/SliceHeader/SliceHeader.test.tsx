@@ -559,6 +559,58 @@ test('Correct actions to "SliceHeaderControls"', () => {
   expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
 });
 
+test('Should show chart description info icon when description exists and is collapsed', () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(screen.getByTestId('chart-description-info-icon')).toBeInTheDocument();
+});
+
+test('Should hide chart description info icon when description is expanded', () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: 'Test chart description',
+    },
+    isExpanded: true,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(
+    screen.queryByTestId('chart-description-info-icon'),
+  ).not.toBeInTheDocument();
+});
+
+test('Should hide chart description info icon when chart has no description', () => {
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      description: '',
+    },
+    isExpanded: false,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(
+    screen.queryByTestId('chart-description-info-icon'),
+  ).not.toBeInTheDocument();
+});
+
 test('Add extension to SliceHeader', () => {
   const extensionsRegistry = getExtensionsRegistry();
   extensionsRegistry.set('dashboard.slice.header', () => (

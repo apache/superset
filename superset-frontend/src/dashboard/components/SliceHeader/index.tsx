@@ -40,7 +40,12 @@ import {
 } from '@apache-superset/core/theme';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
-import { Tooltip, EditableTitle, Icons } from '@superset-ui/core/components';
+import {
+  Tooltip,
+  EditableTitle,
+  Icons,
+  Popover,
+} from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
 import { useIsMobile } from 'src/hooks/useIsMobile';
@@ -52,6 +57,7 @@ import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip'
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Link } from 'react-router-dom';
+import SliceInfo from './SliceInfo';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -334,6 +340,19 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                 >
                   <CrossFilterIcon iconSize="m" />
                 </Tooltip>
+              )}
+              {slice.description && !isExpanded && (
+                <Popover
+                  trigger={['hover', 'click']}
+                  content={<SliceInfo slice={slice} />}
+                  placement="leftBottom"
+                >
+                  <Icons.InfoCircleOutlined
+                    iconSize="m"
+                    aria-label={t('Chart description')}
+                    data-test="chart-description-info-icon"
+                  />
+                </Popover>
               )}
               {!uiConfig.hideChartControls && (
                 <MemoizedCustomizationsBadge chartId={slice.slice_id} />
