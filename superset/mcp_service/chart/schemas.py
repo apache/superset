@@ -833,6 +833,41 @@ class AxisConfig(UnknownFieldCheckMixin):
     format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
 
 
+def _route_x_axis_key(data: Any, column_keys: tuple[str, ...]) -> Any:
+    """Route an ``x_axis`` payload to the column field or to axis styling.
+
+    Native ``form_data`` names the x-axis column ``x_axis``, and models that
+    accept it as a column alias also expose an ``x_axis`` styling field, so a
+    single input key would otherwise feed both. The payload's shape decides:
+    a bare string, or a non-empty mapping that names no styling field, is a
+    column reference and is moved to ``x``; anything else stays put and
+    configures the axis. Keying off the styling names rather than the column
+    names keeps a mistyped styling key ("sort_by") reported against
+    ``AxisConfig``, where the caller meant it, instead of against ``ColumnRef``.
+    """
+    if not isinstance(data, dict) or "x_axis" not in data:
+        return data
+    value = data["x_axis"]
+    is_column_ref = isinstance(value, str) or (
+        isinstance(value, dict)
+        and bool(value)
+        and not set(value) & set(AxisConfig.model_fields)
+    )
+    if not is_column_ref:
+        return data
+    data = dict(data)
+    column = data.pop("x_axis")
+    if any(data.get(key) is not None for key in column_keys):
+        raise ValueError(
+            "'x_axis' was read as the x-axis column, but "
+            f"{' / '.join(repr(key) for key in column_keys)} names it too. "
+            "Pass the column once, and use 'x_axis' only for axis styling "
+            "(title, scale, format)."
+        )
+    data["x"] = column
+    return data
+
+
 class LegendConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore")
 
@@ -1098,11 +1133,9 @@ class MixedTimeseriesChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["mixed_timeseries"] = "mixed_timeseries"
-    x: ColumnRef = Field(
-        ...,
-        description="Shared temporal X-axis column",
-        validation_alias=AliasChoices("x", "x_axis"),
-    )
+    # ``x_axis`` is also accepted for this field, but it arrives through
+    # ``disambiguate_x_axis`` rather than an alias -- see _route_x_axis_key.
+    x: ColumnRef = Field(..., description="Shared temporal X-axis column")
     time_grain: TimeGrain | None = Field(
         None,
         description="PT1H, P1D, P1W, P1M, P1Y",
@@ -1167,6 +1200,12 @@ class MixedTimeseriesChartConfig(BaseChartConfig):
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def disambiguate_x_axis(cls, data: Any) -> Any:
+        """Send an ``x_axis`` payload to ``x`` or to the styling field."""
+        return _route_x_axis_key(data, ("x",))
 
     @field_validator("group_by", "group_by_secondary", mode="before")
     @classmethod
@@ -1620,13 +1659,15 @@ class XYChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
+    # ``x_axis`` is also accepted for this field, but it arrives through
+    # ``disambiguate_x_axis`` rather than an alias -- see _route_x_axis_key.
     x: ColumnRef | None = Field(
         None,
         description=(
             "X-axis column. If omitted, defaults to the dataset's "
             "primary datetime column (main_dttm_col)."
         ),
-        validation_alias=AliasChoices("x", "x_axis", "x_column"),
+        validation_alias=AliasChoices("x", "x_column"),
     )
     y: List[ColumnRef] = Field(
         ...,
@@ -1700,6 +1741,12 @@ class XYChartConfig(BaseChartConfig):
         ge=1,
         le=10000,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def disambiguate_x_axis(cls, data: Any) -> Any:
+        """Send an ``x_axis`` payload to ``x`` or to the styling field."""
+        return _route_x_axis_key(data, ("x", "x_column"))
 
     @field_validator("group_by", mode="before")
     @classmethod
