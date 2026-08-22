@@ -345,6 +345,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
             cursor=next_cursor.isoformat() if next_cursor else None,
         )
 
+    @expose("/<task_uuid>/cancel", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
