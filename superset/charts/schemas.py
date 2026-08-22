@@ -1568,9 +1568,24 @@ class ChartDataQueryContextSchema(Schema):
 
     form_data = fields.Raw(allow_none=True, required=False)
 
+    async_mode = fields.Boolean(
+        metadata={
+            "description": "Opt this request into asynchronous execution on the "
+            "Global Task Framework (requires the GLOBAL_ASYNC_QUERIES feature "
+            "flag). When true the response is HTTP 202 with the query task ids to "
+            "poll; when absent or false the query runs synchronously (HTTP 200). "
+            "Default: `false`."
+        },
+        required=False,
+        allow_none=True,
+    )
+
     # pylint: disable=unused-argument
     @post_load
     def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
+        # ``async_mode`` is a request-level flag (read by the API to decide sync vs
+        # async), not part of the QueryContext, so drop it before building one.
+        data.pop("async_mode", None)
         query_context = self.get_query_context_factory().create(**data)
         return query_context
 
