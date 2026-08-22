@@ -61,6 +61,15 @@ _PANDAS_STRING_AGGREGATORS: frozenset[str] = frozenset(
     {"max", "mean", "median", "min", "prod", "std", "sum", "var"}
 )
 
+# Reverse lookup from the numpy callables above to their pandas string name, so a
+# bare callable operator (e.g. np.median) can be swapped for the string form before
+# reaching GroupBy.agg and avoid the same FutureWarning.
+_STRING_AGGREGATOR_BY_CALLABLE: dict[Callable[..., Any], str] = {
+    func: name
+    for name, func in NUMPY_FUNCTIONS.items()
+    if name in _PANDAS_STRING_AGGREGATORS
+}
+
 DENYLIST_ROLLING_FUNCTIONS = (
     "count",
     "corr",
@@ -177,7 +186,11 @@ def _get_aggregate_funcs(
             )
         operator = agg_obj["operator"]
         if callable(operator):
-            aggfunc: str | Callable[..., Any] = operator
+            # A bare numpy callable (e.g. np.median) that pandas maps to its own
+            # GroupBy method triggers a FutureWarning; use the string name instead.
+            aggfunc: str | Callable[..., Any] = _STRING_AGGREGATOR_BY_CALLABLE.get(
+                operator, operator
+            )
         else:
             func = NUMPY_FUNCTIONS.get(operator)
             if not func:
