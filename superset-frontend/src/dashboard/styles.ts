@@ -113,3 +113,9 @@ export const focusStyle = (theme: SupersetTheme) => css`
     }
   }
 `;
+
+export const dashboardTooltipStyles = (theme: SupersetTheme) => css`
+  .dashboard-header-tooltip .ant-tooltip-inner {
+    font-size: ${theme.fontSizeSM}px;
+  }
+`;
