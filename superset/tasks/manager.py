@@ -111,7 +111,9 @@ class TaskManager:
             logger.debug("Signalled abort on %s", channel)
             return True
         except redis.RedisError as ex:
-            logger.error("Failed to signal abort for task %s: %s", task_uuid, ex)
+            # Best-effort: listeners fall back to polling, so a transient Redis
+            # error here is not a correctness problem.
+            logger.warning("Failed to signal abort for task %s: %s", task_uuid, ex)
             return False
 
     @classmethod
@@ -150,7 +152,9 @@ class TaskManager:
             logger.debug("Signalled completion on %s (status=%s)", channel, status)
             return True
         except redis.RedisError as ex:
-            logger.error("Failed to signal completion for task %s: %s", task_uuid, ex)
+            # Best-effort: waiters fall back to polling, so a transient Redis
+            # error here is not a correctness problem.
+            logger.warning("Failed to signal completion for task %s: %s", task_uuid, ex)
             return False
 
     @classmethod

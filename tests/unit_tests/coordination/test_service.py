@@ -21,7 +21,7 @@ import threading
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.coordination.base import CoordinationService
+from superset.coordination.base import _SIGNAL_STREAM_MAXLEN, CoordinationService
 from superset.coordination.exceptions import CoordinationBackendUnavailableError
 from superset.coordination.types import SignalListener
 
@@ -174,7 +174,9 @@ def test_notify_appends_to_stream_with_ttl(
 
     CoordinationService.notify("ch", "done", ttl=60)
 
-    backend.xadd.assert_called_once_with("ch", {"m": "done"}, "*", 1)
+    backend.xadd.assert_called_once_with(
+        "ch", {"m": "done"}, "*", _SIGNAL_STREAM_MAXLEN
+    )
     backend.expire.assert_called_once_with("ch", 60)
 
 
@@ -271,6 +273,24 @@ def test_listen_does_not_fire_when_condition_never_met(
     )
     listener.stop()
     on_signal.assert_not_called()
+
+
+def test_listen_fires_via_stream(app_context: None, mocker: MockerFixture) -> None:
+    backend = mocker.MagicMock(name="backend")
+    backend.stream_last_id.return_value = "0-0"
+    backend.xread.return_value = [["ch", [("1-0", {"m": "abort"})]]]
+    mocker.patch.object(CoordinationService, "get_backend", return_value=backend)
+    fired = threading.Event()
+    # First check is False (so the loop reads the stream), then True after the signal.
+    checks = iter([False, True])
+
+    listener = CoordinationService.listen_for_signal(
+        "ch", check=lambda: next(checks), on_signal=fired.set, poll_interval=0.01
+    )
+    assert fired.wait(timeout=2.0) is True
+    listener.stop()
+    backend.stream_last_id.assert_called_once_with("ch")
+    backend.xread.assert_called()
 
 
 def test_signal_listener_stop_signals_and_joins(mocker: MockerFixture) -> None:
