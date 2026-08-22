@@ -23,7 +23,6 @@ import {
   PreviousCalendarMonth,
   PreviousCalendarQuarter,
   PreviousCalendarYear,
-  CommonRangeType,
   CalendarRangeType,
   CurrentRangeType,
   CurrentWeek,
@@ -45,15 +44,24 @@ export const FRAME_OPTIONS: SelectOptionType[] = [
 ];
 
 export const COMMON_RANGE_OPTIONS: CheckboxOptionType[] = [
+  { value: 'Last 5 minutes', label: t('Last 5 minutes') },
+  { value: 'Last 15 minutes', label: t('Last 15 minutes') },
+  { value: 'Last 30 minutes', label: t('Last 30 minutes') },
+  { value: 'Last 1 hour', label: t('Last 1 hour') },
   { value: 'Last day', label: t('Last day') },
   { value: 'Last week', label: t('Last week') },
   { value: 'Last month', label: t('Last month') },
   { value: 'Last quarter', label: t('Last quarter') },
   { value: 'Last year', label: t('Last year') },
 ];
-export const COMMON_RANGE_VALUES_SET = new Set(
-  COMMON_RANGE_OPTIONS.map(value => value.value),
-);
+/**
+ * Matches any "Last <N> <unit>(s)" time range string.
+ * Mirrors the backend regex in superset/utils/date_parser.py, so arbitrary
+ * values like "Last 4 hours" or "Last 24 hours" are recognised without
+ * needing to enumerate every possibility in a hardcoded list.
+ */
+export const COMMON_RANGE_REGEX =
+  /^[Ll]ast\s+(\d+\s+)?(second|minute|hour|day|week|month|quarter|year)s?$/
 
 export const CALENDAR_RANGE_OPTIONS: CheckboxOptionType[] = [
   { value: PreviousCalendarWeek, label: t('previous calendar week') },
@@ -111,13 +119,10 @@ export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] =
   SINCE_MODE_OPTIONS.slice();
 
-export const COMMON_RANGE_SET: Set<CommonRangeType> = new Set([
-  'Last day',
-  'Last week',
-  'Last month',
-  'Last quarter',
-  'Last year',
-]);
+/** @deprecated Use {@link COMMON_RANGE_REGEX} for open-ended pattern matching. */
+export const COMMON_RANGE_SET: Set<string> = new Set(
+  COMMON_RANGE_OPTIONS.map(option => option.value),
+);
 
 export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
   PreviousCalendarWeek,
