@@ -53,6 +53,27 @@ class TestResolveFailedPrerequisite:
         assert mock_wait.call_count == 2
 
     @patch("superset.tasks.scheduler.TaskManager.wait_for_completion")
+    def test_already_terminal_prerequisites_skip_wait(self, mock_wait):
+        """Prerequisites already terminal in the loaded snapshot need no DB wait."""
+        from superset.tasks.scheduler import _resolve_failed_prerequisite
+
+        # One already succeeded, one already failed → decided from the snapshot
+        succeeded = _task(status=TaskStatus.SUCCESS.value)
+        failed = _task(status=TaskStatus.FAILURE.value)
+        assert (
+            _resolve_failed_prerequisite(
+                SimpleNamespace(dependencies=[succeeded, failed])
+            )
+            is failed
+        )
+        # All-terminal snapshot → wait_for_completion is never called
+        assert (
+            _resolve_failed_prerequisite(SimpleNamespace(dependencies=[succeeded]))
+            is None
+        )
+        mock_wait.assert_not_called()
+
+    @patch("superset.tasks.scheduler.TaskManager.wait_for_completion")
     def test_first_non_success_is_returned(self, mock_wait):
         from superset.tasks.scheduler import _resolve_failed_prerequisite
 

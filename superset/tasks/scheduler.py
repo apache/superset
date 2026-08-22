@@ -285,10 +285,18 @@ def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
     Block until every direct prerequisite of ``task`` reaches a terminal state.
 
     Implements the ``all_success`` trigger rule for the task DAG: the task may
-    run only if *all* of its direct prerequisites ended in ``SUCCESS``. This
-    reuses ``TaskManager.wait_for_completion`` (wake-on-completion else poll) per
-    prerequisite. Transitive failure propagation is emergent — a dependent that
-    fails here is itself non-SUCCESS, so its own dependents fail in turn.
+    run only if *all* of its direct prerequisites ended in ``SUCCESS``.
+
+    ``task.dependencies`` is already ``selectin``-loaded (in one query) with the
+    task, so a prerequisite that is *already* terminal in that snapshot is
+    evaluated with **no extra database reads** — a terminal status never changes,
+    so the snapshot is authoritative for it (the common case under Model A, where
+    FIFO enqueue order means parents usually finish before the dependent runs).
+    Only prerequisites that are not yet terminal fall through to
+    ``TaskManager.wait_for_completion`` (wake-on-completion else poll), and they
+    are awaited one at a time (≈1 read/poll-interval total, not per-prerequisite).
+    Transitive failure propagation is emergent — a dependent that fails here is
+    itself non-SUCCESS, so its own dependents fail in turn.
 
     :param task: The dependent task about to run (with ``dependencies`` loaded)
     :returns: The first prerequisite that did not end in ``SUCCESS``, or ``None``
@@ -299,14 +307,17 @@ def _resolve_failed_prerequisite(task: "TaskModel") -> "TaskModel | None":
         return None
 
     for prerequisite in prerequisites:
-        try:
-            final = TaskManager.wait_for_completion(prerequisite.uuid)
-        except ValueError:
-            # Prerequisite no longer exists (e.g. pruned mid-wait) — treat as a
-            # failed prerequisite rather than blocking or crashing.
+        # Trust an already-terminal status from the loaded snapshot (no extra
+        # read); otherwise block on a fresh wait until it becomes terminal.
+        if prerequisite.status not in TERMINAL_STATES:
+            try:
+                prerequisite = TaskManager.wait_for_completion(prerequisite.uuid)
+            except ValueError:
+                # Prerequisite no longer exists (e.g. pruned mid-wait) — treat as
+                # a failed prerequisite rather than blocking or crashing.
+                return prerequisite
+        if prerequisite.status != TaskStatus.SUCCESS.value:
             return prerequisite
-        if final.status != TaskStatus.SUCCESS.value:
-            return final
 
     return None
 
