@@ -461,11 +461,20 @@ export default typedMemo(function DataTable<D extends object>({
       resultPageCount = 0;
     }
     resultCurrentPageSize = serverPageSize;
-    const foundPageSizeIndex = pageSizeOptions.findIndex(
-      ([option]) => option >= resultCurrentPageSize,
+    const exactMatch = pageSizeOptions.some(
+      ([option]) => option === resultCurrentPageSize,
     );
-    if (foundPageSizeIndex === -1) {
-      resultCurrentPageSize = 0;
+    if (!exactMatch) {
+      const nearestOption = pageSizeOptions.find(
+        ([option]) => option >= resultCurrentPageSize,
+      );
+      if (nearestOption) {
+        resultCurrentPageSize = nearestOption[0];
+      } else if (pageSizeOptions.length > 0) {
+        resultCurrentPageSize = pageSizeOptions[pageSizeOptions.length - 1][0];
+      } else {
+        resultCurrentPageSize = 0;
+      }
     }
     resultCurrentPage = serverPaginationData?.currentPage ?? 0;
     resultOnPageChange = (pageNumber: number) =>
