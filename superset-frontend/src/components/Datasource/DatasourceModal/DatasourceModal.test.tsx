@@ -135,6 +135,44 @@ describe('DatasourceModal', () => {
     expect(JSON.parse(putCall?.options?.body as string).editors).toEqual([1]);
   });
 
+  test('persists metric warning markdown as warning_text', async () => {
+    cleanup();
+    renderAndWait({
+      ...mockedProps,
+      datasource: {
+        ...mockedProps.datasource,
+        metrics: [
+          {
+            ...mockedProps.datasource.metrics[0],
+            warning_text: '',
+            extra: JSON.stringify({
+              warning_markdown: 'Use only for audited data.',
+            }),
+          },
+        ],
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'OK' }));
+
+    await waitFor(() => {
+      const putCall = fetchMock.callHistory
+        .calls()
+        .find(
+          call =>
+            call.url.includes('/api/v1/dataset/7') &&
+            call.options?.method === 'put',
+        );
+      expect(putCall).toBeDefined();
+      expect(JSON.parse(putCall?.options?.body as string).metrics[0]).toEqual(
+        expect.objectContaining({
+          warning_text: 'Use only for audited data.',
+        }),
+      );
+    });
+  });
+
   test('should render error dialog', async () => {
     const putSpy = jest
       .spyOn(SupersetClient, 'put')

@@ -147,7 +147,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             d3format: metric.d3format || null,
             currency: metric.currency,
             verbose_name: metric.verbose_name,
-            warning_text: metric.warning_text,
+            warning_text: metric.warning_markdown,
             uuid: metric.uuid,
             extra: buildExtraJsonObject(metric),
           };
