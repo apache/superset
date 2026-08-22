@@ -54,7 +54,7 @@ Session = sessionmaker()
 user_favorite_tag_table = Table(
     "user_favorite_tag",
     Model.metadata,  # pylint: disable=no-member
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
     Column("tag_id", Integer, ForeignKey("tag.id")),
 )
 
