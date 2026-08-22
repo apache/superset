@@ -37,7 +37,11 @@ from superset_core.queries.types import (
 )
 
 from superset.errors import SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetSecurityException,
+)
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     ColumnInfo,
@@ -154,13 +158,28 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 
-            if not security_manager.can_access_database(database):
+            # Mirror the SQL Lab UI's access check (CanAccessQueryValidatorImpl):
+            # a blanket `database_access` grant is sufficient, but in its
+            # absence a user who owns or has `datasource_access` on every
+            # dataset referenced by the SQL is also allowed through. Using
+            # the narrower can_access_database() check alone here previously
+            # rejected MCP callers that the web UI would have let through.
+            try:
+                security_manager.raise_for_access(
+                    database=database,
+                    sql=request.sql,
+                    schema=request.schema_name,
+                    catalog=request.catalog,
+                    template_params=request.template_params,
+                    force_dataset_match=True,
+                )
+            except SupersetSecurityException as security_exc:
                 await ctx.warning(
                     "Access denied to database: %s" % database.database_name
                 )
                 return ExecuteSqlResponse(
                     success=False,
-                    error=f"Access denied to database {database.database_name}",
+                    error=security_exc.error.message,
                     error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR.value,
                 )
 
