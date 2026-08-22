@@ -85,7 +85,7 @@ import {
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { waitForAsyncData, AsyncJob } from 'src/middleware/asyncEvent';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
@@ -526,10 +526,12 @@ const FiltersConfigForm = (
         defaultValueQueriesData: null,
         isDataDirty: false,
       });
-      getChartDataRequest({
-        formData,
-        force,
-      })
+      const requestDefaultValues = (fromCache = false) =>
+        getChartDataRequest({
+          formData,
+          force: fromCache ? false : force,
+        });
+      requestDefaultValues()
         .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // deal with getChartDataRequest transforming the response data
@@ -540,7 +542,14 @@ const FiltersConfigForm = (
                 defaultValueQueriesData: [result as ChartDataResponseResult],
               });
             } else if (response.status === 202) {
-              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
+              // Await the query tasks, then re-issue the request to read the
+              // now-cached results.
+              waitForAsyncData(json as unknown as AsyncJob, () =>
+                requestDefaultValues(true).then(
+                  ({ json: cachedJson }) =>
+                    cachedJson.result as ChartDataResponseResult[],
+                ),
+              )
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setNativeFilterFieldValuesWrapper({
                     defaultValueQueriesData: asyncResult,

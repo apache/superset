@@ -175,10 +175,16 @@ export default function ChartVersionPreview() {
         datasourceId,
         datasourceType,
       );
-      const { response, json } = await getChartDataRequest({
-        formData: previewFormData,
-      });
-      const result = await handleChartDataResponse(response, json);
+      const requestPreviewData = () =>
+        getChartDataRequest({
+          formData: previewFormData,
+        });
+      const { response, json } = await requestPreviewData();
+      const result = await handleChartDataResponse(response, json, () =>
+        requestPreviewData().then(({ response: r, json: j }) =>
+          handleChartDataResponse(r, j),
+        ),
+      );
       if (fetchId !== fetchIdRef.current) {
         return;
       }
