@@ -36,6 +36,9 @@ import { formatSeriesName } from './series';
 
 export type Event = {
   name: string;
+  data?: {
+    isOther?: boolean;
+  };
   event: { stop: () => void; event: PointerEvent };
 };
 
@@ -43,7 +46,7 @@ const getCrossFilterDataMask =
   (
     selectedValues: Record<number, string>,
     groupby: QueryFormColumn[],
-    labelMap: Record<string, string[]>,
+    labelMap: Record<string, string[] | string[][]>,
   ) =>
   (value: string) => {
     const selected = Object.values(selectedValues);
@@ -54,9 +57,18 @@ const getCrossFilterDataMask =
       values = [value];
     }
 
-    const groupbyValues = values
-      .map(value => labelMap[value])
-      .filter(Boolean) as string[][];
+    const groupbyValues = values.flatMap(value => {
+      const entry = labelMap[value];
+      if (entry && Array.isArray(entry[0])) {
+        return entry as string[][];
+      }
+      return entry ? [entry as string[]] : [];
+    });
+
+    // If any selected value has no labelMap entry (e.g. pie "Total" pseudo-element)
+    if (values.some(v => !labelMap[v])) {
+      return undefined;
+    }
 
     return {
       dataMask: {
@@ -98,11 +110,16 @@ export const clickEventHandler =
     setDataMask: (dataMask: DataMask) => void,
     emitCrossFilters?: boolean,
   ) =>
-  ({ name }: { name: string }) => {
+  ({ name, data }: { name: string; data?: { isOther?: boolean } }) => {
     if (!emitCrossFilters) {
       return;
     }
-    const dataMask = getCrossFilterDataMask(name)?.dataMask;
+    // Ignore clicks on pseudo-elements that carry no name (e.g. empty labels).
+    if (!name) {
+      return;
+    }
+    const key = data?.isOther ? `__other__${name}` : name;
+    const dataMask = getCrossFilterDataMask(key)?.dataMask;
     if (dataMask) {
       setDataMask(dataMask);
     }
@@ -113,7 +130,7 @@ export const contextMenuEventHandler =
     groupby: (BaseTransformedProps<any> &
       CrossFilterTransformedProps)['groupby'],
     onContextMenu: BaseTransformedProps<any>['onContextMenu'],
-    labelMap: Record<string, string[]>,
+    labelMap: Record<string, string[] | string[][]>,
     getCrossFilterDataMask: (
       value: string,
     ) => ContextMenuFilters['crossFilter'],
@@ -125,35 +142,46 @@ export const contextMenuEventHandler =
       e.event.stop();
       const pointerEvent = e.event.event;
       const drillFilters: BinaryQueryObjectFilterClause[] = [];
+      const key = e.data?.isOther ? `__other__${e.name}` : e.name;
       if (groupby.length > 0) {
-        const values = labelMap[e.name];
+        const values = labelMap[key];
         if (!values) {
           return;
         }
-        groupby.forEach((dimension, i) => {
-          drillFilters.push({
-            col: dimension,
-            op: '==',
-            val: values[i],
-            formattedVal: formatSeriesName(values[i], {
-              timeFormatter: getTimeFormatter(formData.dateFormat),
-              numberFormatter: getNumberFormatter(formData.numberFormat),
-              coltype: coltypeMapping?.[getColumnLabel(dimension)],
-            }),
+        const isMulti = Array.isArray(values[0]);
+        // For aggregated "Other" rows, drill-to-detail is ambiguous because the
+        // slice represents multiple underlying rows — emit empty drill filters
+        // and rely on crossFilter only.
+        if (!isMulti) {
+          groupby.forEach((dimension, i) => {
+            const val = (values as string[])[
+              (values as string[]).length - groupby.length + i
+            ];
+            drillFilters.push({
+              col: dimension,
+              op: '==',
+              val,
+              formattedVal: formatSeriesName(val as string, {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype: coltypeMapping?.[getColumnLabel(dimension)],
+              }),
+            });
           });
-        });
+        }
       }
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
         crossFilter:
-          groupby.length > 0 ? getCrossFilterDataMask(e.name) : undefined,
+          groupby.length > 0 ? getCrossFilterDataMask(key) : undefined,
         drillBy: { filters: drillFilters, groupbyFieldName: 'groupby' },
       });
     }
   };
 
 export const allEventHandlers = (
-  transformedProps: BaseTransformedProps<any> & CrossFilterTransformedProps,
+  transformedProps: BaseTransformedProps<QueryFormData> &
+    CrossFilterTransformedProps<string[] | string[][]>,
 ) => {
   const {
     groupby,
