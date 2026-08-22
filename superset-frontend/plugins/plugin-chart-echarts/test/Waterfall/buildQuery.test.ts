@@ -38,4 +38,50 @@ describe('Waterfall buildQuery', () => {
     );
     expect(query.columns?.[1]).toEqual('baz');
   });
+
+  test('orders by the x-axis ascending when no custom sort is set', () => {
+    const queryContext = buildQuery(formData as unknown as SqlaFormData);
+    const [query] = queryContext.queries;
+    expect(query.orderby).toEqual([
+      ['bar', true],
+      ['baz', true],
+    ]);
+    // no extra sort column is selected
+    expect(query.columns).toHaveLength(2);
+  });
+
+  test('sorts by a custom column and selects it so ORDER BY can reference it', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      x_axis_sort: 'sort_order',
+      x_axis_sort_asc: true,
+    } as unknown as SqlaFormData);
+    const [query] = queryContext.queries;
+    // custom sort leads, category grouping columns follow
+    expect(query.orderby?.[0]).toEqual(['sort_order', true]);
+    // the sort column is added to the selected columns
+    expect(query.columns).toContain('sort_order');
+  });
+
+  test('respects descending order', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      x_axis_sort: 'sort_order',
+      x_axis_sort_asc: false,
+    } as unknown as SqlaFormData);
+    const [query] = queryContext.queries;
+    expect(query.orderby?.[0]).toEqual(['sort_order', false]);
+  });
+
+  test('does not re-add a metric sort key to the selected columns', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      x_axis_sort: 'foo',
+      x_axis_sort_asc: false,
+    } as unknown as SqlaFormData);
+    const [query] = queryContext.queries;
+    expect(query.orderby?.[0]).toEqual(['foo', false]);
+    // 'foo' is a metric, not a column — columns stay at x_axis + breakdown
+    expect(query.columns).toHaveLength(2);
+  });
 });
