@@ -925,6 +925,81 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.mark.usefixtures(
         "load_birth_names_dashboard_with_slices", "create_report_schedules"
     )
+    def test_create_report_schedule_slack_v2_requires_channel_id(self):
+        """
+        ReportSchedule Api: SlackV2 recipients must carry a channel id
+        """
+        self.login(ADMIN_USERNAME)
+        chart = db.session.query(Slice).first()
+        example_db = get_example_database()
+
+        def payload(name: str, target: str) -> dict[str, Any]:
+            return {
+                "type": ReportScheduleType.ALERT,
+                "name": name,
+                "description": "description",
+                "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+                "crontab": "0 9 * * *",
+                "working_timeout": 3600,
+                "chart": chart.id,
+                "database": example_db.id,
+                "recipients": [
+                    {
+                        "type": ReportRecipientType.SLACKV2,
+                        "recipient_config_json": {"target": target},
+                    }
+                ],
+            }
+
+        uri = "api/v1/report/"
+
+        # A channel name is refused: the upload API SlackV2 sends with only
+        # accepts an id, so this would save and then never deliver.
+        rv = self.post_assert_metric(
+            uri, payload("slack_v2_name", "some-channel-name"), "post"
+        )
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "some-channel-name" in str(data["message"])
+
+        # Mixing an id with a name is refused, and only the name is reported.
+        rv = self.post_assert_metric(
+            uri, payload("slack_v2_mixed", "C08CSCSDCSY,some-channel-name"), "post"
+        )
+        assert rv.status_code == 400
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "some-channel-name" in str(data["message"])
+        assert "C08CSCSDCSY" not in str(data["message"])
+
+        # An empty target is refused.
+        rv = self.post_assert_metric(uri, payload("slack_v2_empty", "   "), "post")
+        assert rv.status_code == 400
+
+        # Channel ids are accepted.
+        rv = self.post_assert_metric(
+            uri, payload("slack_v2_ids", "C08CSCSDCSY,C04BY4U57M3"), "post"
+        )
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        created_model = db.session.query(ReportSchedule).get(data.get("id"))
+        db.session.delete(created_model)
+        db.session.commit()
+
+        # The deprecated Slack v1 type still accepts a channel name: it sends
+        # with files_upload/chat_postMessage, which resolve a name, and existing
+        # v1 recipients are upgraded to SlackV2 on first send.
+        legacy = payload("slack_v1_name", "some-channel-name")
+        legacy["recipients"][0]["type"] = ReportRecipientType.SLACK
+        rv = self.post_assert_metric(uri, legacy, "post")
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        created_model = db.session.query(ReportSchedule).get(data.get("id"))
+        db.session.delete(created_model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_report_schedules"
+    )
     def test_unsaved_report_schedule_schema(self):
         """
         ReportSchedule Api: Test create report schedule with unsaved chart

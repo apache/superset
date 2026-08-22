@@ -571,3 +571,86 @@ def test_include_cta_rejects_non_boolean(
     with pytest.raises(ValidationError) as exc:
         schema.load({**payload_base, "include_cta": "not-a-boolean"})
     assert "include_cta" in exc.value.messages
+
+
+def test_report_recipient_schema_slack_channel_id_valid() -> None:
+    """A Slack channel id is accepted."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "SlackV2",
+            "recipient_config_json": {"target": "C08CSCSDCSY"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "C08CSCSDCSY"
+
+
+def test_report_recipient_schema_slack_multiple_channel_ids_valid() -> None:
+    """Several channel ids in one target are accepted."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "SlackV2",
+            "recipient_config_json": {"target": "C04BY4U57M3,C06GXKAQNMS"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "C04BY4U57M3,C06GXKAQNMS"
+
+
+def test_report_recipient_schema_slack_channel_name_invalid() -> None:
+    """A channel name is rejected, since it would save and never deliver."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "data-alerts"},
+            }
+        )
+    assert "target" in excinfo.value.messages
+    assert "data-alerts" in str(excinfo.value.messages["target"])
+
+
+def test_report_recipient_schema_slack_mixed_target_invalid() -> None:
+    """A target mixing an id with a name is rejected, and names the bad part."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "C08CSCSDCSY,data-alerts"},
+            }
+        )
+    assert "data-alerts" in str(excinfo.value.messages["target"])
+    assert "C08CSCSDCSY" not in str(excinfo.value.messages["target"])
+
+
+def test_report_recipient_schema_slack_empty_target_invalid() -> None:
+    """An empty Slack target is rejected."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "   "},
+            }
+        )
+    assert "target" in excinfo.value.messages
+
+
+def test_report_recipient_schema_legacy_slack_channel_name_allowed() -> None:
+    """The deprecated Slack v1 type still accepts a channel name.
+
+    v1 sends with files_upload/chat_postMessage, both of which resolve a name,
+    and existing v1 recipients are auto-upgraded to SlackV2 on first send by
+    update_report_schedule_slack_v2. Validating names away here would break that
+    upgrade path.
+    """
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Slack",
+            "recipient_config_json": {"target": "data-alerts"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "data-alerts"

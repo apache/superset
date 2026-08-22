@@ -132,6 +132,8 @@ class ValidatorConfigJSONSchema(Schema):
 
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+# A Slack channel id: C public, G private, D direct message.
+SLACK_CHANNEL_ID_REGEX = re.compile(r"^[CGD][A-Z0-9]{6,}$")
 
 
 class ReportRecipientConfigJSONSchema(Schema):
@@ -178,6 +180,45 @@ class ReportRecipientSchema(Schema):
         validate_addresses("target", config.get("target"), required=True)
         validate_addresses("ccTarget", config.get("ccTarget"), required=False)
         validate_addresses("bccTarget", config.get("bccTarget"), required=False)
+
+    @validates_schema
+    def validate_slack_recipients(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """SlackV2 recipients must be channel ids, because a name never delivers."""
+        # SlackV2 only. The deprecated Slack v1 path still accepts channel names:
+        # it sends with files_upload/chat_postMessage, which resolve a name, and
+        # existing v1 recipients are auto-upgraded to SlackV2 on first send by
+        # update_report_schedule_slack_v2. Rejecting names here would break that
+        # upgrade path and the v1 contract.
+        if data.get("type") != ReportRecipientType.SLACKV2.value:
+            return
+
+        target = ((data.get("recipient_config_json") or {}).get("target") or "").strip()
+        # Superset splits a target on commas, semicolons and whitespace, so each
+        # part has to be a channel id on its own.
+        channels = [channel for channel in re.split(r"[,;\s]+", target) if channel]
+        if not channels:
+            raise ValidationError(
+                {"target": [_("A Slack channel is required for Slack recipients")]}
+            )
+
+        invalid = [c for c in channels if not SLACK_CHANNEL_ID_REGEX.match(c)]
+        if invalid:
+            raise ValidationError(
+                {
+                    "target": [
+                        _(
+                            "Not a Slack channel id: %(invalid)s. Superset uploads "
+                            "report attachments with files_upload_v2, which accepts "
+                            "a channel id and rejects a channel name, so a name is "
+                            "saved successfully and then never delivers. Choose the "
+                            "channel from the dropdown, or copy its id from Slack "
+                            "(channel name, View channel details, the id is at the "
+                            "bottom).",
+                            invalid=", ".join(invalid),
+                        )
+                    ]
+                }
+            )
 
 
 class ReportSchedulePostSchema(Schema):
