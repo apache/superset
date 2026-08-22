@@ -31,7 +31,7 @@
 import { useSyncExternalStore } from 'react';
 import memoizeOne from 'memoize-one';
 import type { chat as chatApi } from '@apache-superset/core';
-import ChatProvider, { ClientToolsFormat } from './ChatProvider';
+import ChatProvider from './ChatProvider';
 
 export { ChatFloatingHost, ChatPanelHost } from './ChatHost';
 
@@ -81,9 +81,5 @@ export const chat: typeof chatApi = {
   onDidResizePanel: provider.onDidResizePanel,
   registerClientTool: provider.registerClientTool.bind(provider),
   registerClientTools: provider.registerClientTools.bind(provider),
-  getTools: ((format?: chatApi.ClientToolsFormat) =>
-    format
-      ? provider.getTools(format)
-      : provider.getTools()) as typeof chatApi.getTools,
-  ClientToolsFormat,
+  getTools: provider.getTools.bind(provider),
 };

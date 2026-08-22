@@ -18,7 +18,7 @@
  */
 import { createElement } from 'react';
 import { logging } from '@apache-superset/core/utils';
-import ChatProvider, { ClientToolsFormat } from './ChatProvider';
+import ChatProvider from './ChatProvider';
 
 const trigger = () => createElement('button', null, 'Bubble');
 const panel = () => createElement('div', null, 'Panel');
@@ -427,76 +427,4 @@ test('reset clears registered tools', () => {
   provider.reset();
 
   expect(provider.getTools()).toEqual([]);
-});
-
-test('getTools(Claude) converts inputSchema to input_schema and drops handler', () => {
-  const provider = ChatProvider.getInstance();
-  provider.registerClientTool({
-    ...noopTool,
-    name: 'acme.widgets.dashboard__get_root',
-    description: 'gets the root',
-    inputSchema: { type: 'object', properties: { x: { type: 'string' } } },
-  });
-
-  const [tool] = provider.getTools(ClientToolsFormat.Claude);
-
-  expect(tool).toEqual({
-    name: 'acme.widgets.dashboard__get_root',
-    description: 'gets the root',
-    input_schema: { type: 'object', properties: { x: { type: 'string' } } },
-  });
-  expect(tool).not.toHaveProperty('handler');
-  expect(tool).not.toHaveProperty('inputSchema');
-});
-
-test('getTools() and getTools(Claude) reflect the same underlying registry', () => {
-  const provider = ChatProvider.getInstance();
-  provider.registerClientTool({
-    ...noopTool,
-    name: 'core.dashboard__get_root',
-  });
-  provider.registerClientTool({
-    ...noopTool,
-    name: 'acme.widgets.chart__do_thing',
-  });
-
-  const nativeNames = provider.getTools().map(tool => tool.name);
-  const claudeNames = provider
-    .getTools(ClientToolsFormat.Claude)
-    .map(tool => tool.name);
-
-  expect(claudeNames.sort()).toEqual(nativeNames.sort());
-});
-
-test.each([
-  ['AgUi', ClientToolsFormat.AgUi],
-  ['CopilotKit', ClientToolsFormat.CopilotKit],
-  ['Codex', ClientToolsFormat.Codex],
-])(
-  'getTools(%s) throws — placeholder with no verified target shape yet',
-  (name, format) => {
-    const provider = ChatProvider.getInstance();
-    provider.registerClientTool({
-      ...noopTool,
-      name: 'core.dashboard__get_root',
-    });
-
-    expect(() => provider.getTools(format)).toThrow(
-      `chat.ClientToolsFormat.${name}`,
-    );
-  },
-);
-
-test('getTools() throws a named error for an unknown format instead of an opaque TypeError', () => {
-  const provider = ChatProvider.getInstance();
-  provider.registerClientTool({
-    ...noopTool,
-    name: 'core.dashboard__get_root',
-  });
-
-  expect(() =>
-    provider.getTools(
-      'not-a-real-format' as unknown as typeof ClientToolsFormat.Claude,
-    ),
-  ).toThrow('unknown format "not-a-real-format"');
 });

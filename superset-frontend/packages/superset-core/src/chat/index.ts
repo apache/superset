@@ -246,81 +246,23 @@ export declare function registerClientTool(tool: ClientTool): Disposable;
 export declare function registerClientTools(tools: ClientTool[]): Disposable;
 
 /**
- * A target AI-service wire format `getTools()` can convert to — see
- * {@link getTools}'s overloads. Each member's transform lives alongside
- * `ChatProvider.getTools()`'s implementation
- * (`superset-frontend/src/core/chat/ChatProvider.ts`); adding a new member
- * here means adding one case there, not redesigning anything.
- *
- * A plain `const` object + derived union, not a TS `enum` — this file only
- * ever *declares* values (the real object lives in host code and is
- * attached to `window.superset.chat`, same as every function below), and a
- * real `enum`'s nominal typing doesn't structurally match a differently-built
- * object the way this does, which would make the two copies incompatible.
- *
- * `Claude` is the only member with a real, verified transform —
- * `devaigateway-provider`'s Anthropic SDK call, and `chat`'s own backend
- * `ToolSpec`, both expect exactly {@link ClaudeToolSpec}'s shape.
- * `AgUi`/`CopilotKit`/`Codex` are placeholders: nothing in this codebase
- * talks to any of those frameworks today, so there is no real tool-spec
- * shape here to convert to yet, and `getTools()` throws if one of them is
- * passed (see its own docs) rather than guessing at an unverified shape.
- * Replace a placeholder's `ChatProvider.ts` case with a real transform once
- * that framework's actual expected shape is known.
- */
-export declare const ClientToolsFormat: {
-  readonly Claude: 'claude';
-  readonly AgUi: 'ag-ui';
-  readonly CopilotKit: 'copilot-kit';
-  readonly Codex: 'codex';
-};
-export type ClientToolsFormat =
-  (typeof ClientToolsFormat)[keyof typeof ClientToolsFormat];
-
-/**
- * `ClientTool` reduced to what Anthropic's Messages API `tools` parameter
- * expects — `name`/`description` unchanged, `inputSchema` renamed to
- * `input_schema`, and `handler` dropped (a wire format sent to an external
- * API has no business carrying a callable). Look the tool back up via a
- * plain `getTools()` call (no format argument) to actually invoke it by
- * name — this type's whole point is to be JSON-serializable, so it
- * intentionally can't do that itself.
- */
-export interface ClaudeToolSpec {
-  name: string;
-  description: string;
-  input_schema: Record<string, unknown>;
-}
-
-/**
  * Returns every client-side tool currently available — the host's own
  * built-in ("core") tools plus every loaded extension's
  * {@link registerClientTool} calls. Call this once tools are needed (e.g.
  * when starting a chat turn) rather than caching the result, since it can
  * grow as extensions finish loading.
  *
- * Called with no argument, returns `ClientTool[]` as registered — each entry
- * keeps its `handler`, so this is what a tool-call dispatcher should look
- * tools up from by name. Called with {@link ClientToolsFormat}'s `Claude`,
- * returns the same tools converted to {@link ClaudeToolSpec} instead — this
- * is what should actually be sent to an LLM API, since it can't serialize a
- * `handler` function. Called with any other `ClientToolsFormat` member,
- * throws: those are placeholders for frameworks nothing here talks to yet
- * (see that type's own docs), not real, verified conversions.
+ * Each entry keeps its `handler`, so this is what a tool-call dispatcher
+ * should look tools up from by name.
  *
  * @example
  * ```typescript
  * import { chat } from '@apache-superset/core';
  *
  * const tools = chat.getTools(); // for dispatching a tool call by name
- * const toolSpecs = chat.getTools(chat.ClientToolsFormat.Claude); // for the API request
  * ```
  */
 export declare function getTools(): ClientTool[];
-export declare function getTools(
-  format: typeof ClientToolsFormat.Claude,
-): ClaudeToolSpec[];
-export declare function getTools(format: ClientToolsFormat): never;
 
 /**
  * Authoring convenience for building a list of tools to hand to
