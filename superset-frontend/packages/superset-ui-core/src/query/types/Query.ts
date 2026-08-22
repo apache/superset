@@ -492,5 +492,3 @@ export enum ContributionType {
 export type DatasourceSamplesQuery = {
   filters?: QueryObjectFilterClause[];
 };
-
-export default {};

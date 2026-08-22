@@ -24,5 +24,3 @@ export interface LegacyChartDataResponse extends Omit<
 > {
   data: Record<string, unknown>[] | Record<string, unknown>;
 }
-
-export default {};
