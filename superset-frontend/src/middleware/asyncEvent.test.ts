@@ -138,3 +138,22 @@ test('aborting cancels the tasks and rejects with AbortError', async () => {
   expect(refetch).not.toHaveBeenCalled();
   expect(fetchMock.callHistory.calls(CANCEL_ENDPOINT)).toHaveLength(1);
 });
+
+test('settles every request awaiting a deduplicated shared task', async () => {
+  // Two concurrent chart requests share the same (deduplicated) task uuid; both
+  // must resolve when it completes — the later waiter must not overwrite the first.
+  queueStatuses({ shared: { status: 'success' } });
+  asyncEvent.init(config);
+
+  const refetchA = jest.fn().mockResolvedValue([{ chart: 'a' }]);
+  const refetchB = jest.fn().mockResolvedValue([{ chart: 'b' }]);
+  const [a, b] = await Promise.all([
+    asyncEvent.waitForAsyncData({ task_ids: ['shared'] }, refetchA),
+    asyncEvent.waitForAsyncData({ task_ids: ['shared'] }, refetchB),
+  ]);
+
+  expect(refetchA).toHaveBeenCalledTimes(1);
+  expect(refetchB).toHaveBeenCalledTimes(1);
+  expect(a).toEqual([{ chart: 'a' }]);
+  expect(b).toEqual([{ chart: 'b' }]);
+});

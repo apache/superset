@@ -52,6 +52,7 @@ export type AsyncJob = { task_ids: string[] };
 type AppConfig = Record<string, any>;
 
 type Waiter = {
+  taskIds: string[];
   pending: Set<string>;
   failed: boolean;
   // Re-issue the original chart-data request once every task has succeeded; the
@@ -66,8 +67,10 @@ let config: AppConfig;
 let pollingDelayMs: number;
 let pollingTimeoutId: number;
 // Registry of in-flight waiters keyed by every task uuid they await, so a single
-// shared poll loop fans status changes out to whichever request is awaiting them.
-let waitersByTaskId: Map<string, Waiter>;
+// shared poll loop fans status changes out to whichever requests are awaiting them.
+// A SHARED task can be deduplicated across concurrent chart requests, so each task
+// id maps to a *set* of waiters (never overwrite an earlier subscriber).
+let waitersByTaskId: Map<string, Set<Waiter>>;
 // Server-issued watermark: fetched as a baseline at init (before any chart query
 // is triggered) so no task created afterwards is missed, then advanced by each
 // poll. Always the server's own clock, never the browser's.
@@ -96,7 +99,19 @@ const cancelTask = (taskId: string) => {
   });
 };
 
+// Drop a waiter from the registry entry of every task it was awaiting, so a
+// settled/aborted waiter never leaks and completion of one task can't re-touch it.
+const unregister = (waiter: Waiter) => {
+  waiter.taskIds.forEach(taskId => {
+    const waiters = waitersByTaskId.get(taskId);
+    if (!waiters) return;
+    waiters.delete(waiter);
+    if (waiters.size === 0) waitersByTaskId.delete(taskId);
+  });
+};
+
 const settle = (waiter: Waiter) => {
+  unregister(waiter);
   if (waiter.signal && waiter.onAbort) {
     waiter.signal.removeEventListener('abort', waiter.onAbort);
   }
@@ -110,12 +125,15 @@ const settle = (waiter: Waiter) => {
 };
 
 const applyStatus = (taskId: string, status: string) => {
-  const waiter = waitersByTaskId.get(taskId);
-  if (!waiter || !TERMINAL_STATUSES.has(status)) return;
+  const waiters = waitersByTaskId.get(taskId);
+  if (!waiters || !TERMINAL_STATUSES.has(status)) return;
+  // Settle every request awaiting this task, not just the most recent one.
+  [...waiters].forEach(waiter => {
+    waiter.pending.delete(taskId);
+    if (status !== STATUS_SUCCESS) waiter.failed = true;
+    if (waiter.pending.size === 0) settle(waiter);
+  });
   waitersByTaskId.delete(taskId);
-  waiter.pending.delete(taskId);
-  if (status !== STATUS_SUCCESS) waiter.failed = true;
-  if (waiter.pending.size === 0) settle(waiter);
 };
 
 const loadStatusChanges = async (generation: number) => {
@@ -167,6 +185,7 @@ export const waitForAsyncData = async <T = unknown[]>(
       return;
     }
     const waiter: Waiter = {
+      taskIds,
       pending: new Set(taskIds),
       failed: false,
       resolve,
@@ -175,7 +194,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     };
     if (signal) {
       waiter.onAbort = () => {
-        waiter.pending.forEach(taskId => waitersByTaskId.delete(taskId));
+        unregister(waiter);
         taskIds.forEach(cancelTask);
         reject(new DOMException('Aborted', 'AbortError'));
       };
@@ -185,7 +204,14 @@ export const waitForAsyncData = async <T = unknown[]>(
       settle(waiter);
       return;
     }
-    taskIds.forEach(taskId => waitersByTaskId.set(taskId, waiter));
+    taskIds.forEach(taskId => {
+      let waiters = waitersByTaskId.get(taskId);
+      if (!waiters) {
+        waiters = new Set();
+        waitersByTaskId.set(taskId, waiters);
+      }
+      waiters.add(waiter);
+    });
   });
 
   return refetch();
