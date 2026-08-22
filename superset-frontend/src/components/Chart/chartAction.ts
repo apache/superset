@@ -49,6 +49,7 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { AsyncJob, waitForAsyncData } from 'src/middleware/asyncEvent';
+import { resolveAsyncMode, AsyncModeOverride } from 'src/utils/asyncMode';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -71,6 +72,9 @@ export interface CommonState {
 
 export interface DashboardInfoState {
   common: CommonState;
+  // Parsed dashboard json_metadata (when rendering within a dashboard); its
+  // `async_mode` is the per-dashboard async override.
+  metadata?: { async_mode?: AsyncModeOverride } & JsonObject;
 }
 
 export interface DataMaskState {
@@ -247,6 +251,9 @@ export interface RequestParams {
   dashboard_id?: number;
   mode?: string;
   credentials?: RequestCredentials;
+  // Per-dashboard async-mode override (from json_metadata.async_mode), used to
+  // resolve whether this render requests async execution.
+  async_mode_override?: AsyncModeOverride;
   [key: string]: unknown;
 }
 
@@ -441,11 +448,22 @@ const v1ChartDataRequest = async (
     allowDomainSharding,
   }).toString();
 
+  // Opt full JSON chart-data renders into async execution per the resolved policy
+  // (feature flag + deployment default + optional per-dashboard override). The
+  // server treats an absent async_mode as synchronous, so this is additive.
+  const asyncMode =
+    resultFormat === 'json' &&
+    resultType === 'full' &&
+    resolveAsyncMode(requestParams.async_mode_override);
+  const body = JSON.stringify(
+    asyncMode ? { ...payload, async_mode: true } : payload,
+  );
+
   const querySettings: QuerySettings = {
     ...requestParams,
     url,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body,
     parseMethod,
   };
 
@@ -695,6 +713,10 @@ export function exploreJSON(
       timeout: queryTimeout * 1000,
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
+    // Honor the per-dashboard async override when rendering within a dashboard.
+    const asyncModeOverride = state.dashboardInfo?.metadata?.async_mode;
+    if (asyncModeOverride)
+      requestParams.async_mode_override = asyncModeOverride;
 
     const setDataMask = (dataMask: DataMask): void => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
