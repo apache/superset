@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Create task_dependencies table for Global Task Framework (GTF) task DAG
+"""Create task_dependencies table and add task_subscribers.guest_key (GTF)
 
 Revision ID: 7e2c9a4f1b83
 Revises: 1072de5ed955
@@ -22,6 +22,8 @@ Create Date: 2026-08-21 12:00:00.000000
 
 """
 
+import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import (
     Column,
     DateTime,
@@ -30,9 +32,11 @@ from sqlalchemy import (
 )
 
 from superset.migrations.shared.utils import (
+    add_columns,
     create_fks_for_table,
     create_index,
     create_table,
+    drop_columns,
     drop_fks_for_table,
     drop_index,
     drop_table,
@@ -44,17 +48,23 @@ down_revision = "1072de5ed955"
 
 TASKS_TABLE = "tasks"
 TASK_DEPENDENCIES_TABLE = "task_dependencies"
+TASK_SUBSCRIBERS_TABLE = "task_subscribers"
 
 
 def upgrade():
     """
-    Create the task_dependencies junction table for the task dependency graph.
+    Create the task_dependencies junction table and add task_subscribers.guest_key.
 
-    Each row is a directed edge: ``task_id`` (the dependent) depends on
-    ``depends_on_task_id`` (the prerequisite). Both foreign keys reference
-    ``tasks.id`` with ``ON DELETE CASCADE`` so edges are removed when either
-    endpoint task is pruned (task pruning uses a bulk core DELETE that bypasses
-    the ORM cascade, so the database-level cascade is required for cleanup).
+    ``task_dependencies``: each row is a directed edge — ``task_id`` (the
+    dependent) depends on ``depends_on_task_id`` (the prerequisite). Both foreign
+    keys reference ``tasks.id`` with ``ON DELETE CASCADE`` so edges are removed
+    when either endpoint task is pruned (task pruning uses a bulk core DELETE that
+    bypasses the ORM cascade, so the database-level cascade is required for
+    cleanup).
+
+    ``task_subscribers.guest_key``: lets embedded guests (which have no
+    ``ab_user`` row) subscribe to tasks by a stable, token-derived key so the task
+    filter can grant them visibility of their own async work.
     """
     create_table(
         TASK_DEPENDENCIES_TABLE,
@@ -119,9 +129,37 @@ def upgrade():
         ondelete="SET NULL",
     )
 
+    # Let embedded guests subscribe to tasks by a token-derived ``guest_key``.
+    # Guests have no ``ab_user`` row, so a subscription is identified by exactly
+    # one of ``user_id`` (authenticated) or ``guest_key`` (guest): add the
+    # nullable ``guest_key`` column, relax ``user_id`` to nullable, and add a
+    # unique ``(task_id, guest_key)`` index mirroring the existing
+    # ``(task_id, user_id)`` uniqueness so a guest subscribes at most once.
+    # (NULLs are distinct in unique constraints, so user rows and guest rows do
+    # not collide.)
+    add_columns(
+        TASK_SUBSCRIBERS_TABLE,
+        Column("guest_key", sa.String(length=64), nullable=True),
+    )
+    with op.batch_alter_table(TASK_SUBSCRIBERS_TABLE) as batch_op:
+        batch_op.alter_column("user_id", existing_type=sa.Integer(), nullable=True)
+        batch_op.create_index("ix_task_subscribers_guest_key", ["guest_key"])
+        batch_op.create_unique_constraint(
+            "uq_task_subscribers_task_guest", ["task_id", "guest_key"]
+        )
+
 
 def downgrade():
-    """Drop the task_dependencies table and its indexes and foreign keys."""
+    """Drop task_dependencies and revert the task_subscribers.guest_key change."""
+    # Guest subscriptions cannot be represented without the column; drop those
+    # rows first so restoring user_id NOT NULL does not fail on NULL user_id.
+    op.execute(sa.text("DELETE FROM task_subscribers WHERE user_id IS NULL"))
+    with op.batch_alter_table(TASK_SUBSCRIBERS_TABLE) as batch_op:
+        batch_op.drop_constraint("uq_task_subscribers_task_guest", type_="unique")
+        batch_op.drop_index("ix_task_subscribers_guest_key")
+        batch_op.alter_column("user_id", existing_type=sa.Integer(), nullable=False)
+    drop_columns(TASK_SUBSCRIBERS_TABLE, "guest_key")
+
     drop_fks_for_table(
         TASK_DEPENDENCIES_TABLE,
         [
