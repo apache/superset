@@ -48,8 +48,9 @@ class TaskManager:
     3. Handling deduplication (returning existing active task if duplicate)
     4. Managing real-time abort notifications (optional)
 
-    Redis pub/sub is opt-in via DISTRIBUTED_COORDINATION_CONFIG configuration. When not
-    configured, tasks use database polling for abort detection.
+    Signal delivery is opt-in via DISTRIBUTED_COORDINATION_CONFIG. When configured,
+    completion/abort are delivered over Redis Streams; when not, tasks use database
+    polling for abort detection and completion waits.
     """
 
     # Class-level state (initialized once via init_app)
@@ -89,10 +90,15 @@ class TaskManager:
     @classmethod
     def publish_abort(cls, task_uuid: UUID) -> bool:
         """
-        Publish an abort message to the task's channel.
+        Signal that the task should abort so any abort listener wakes and re-checks.
+
+        Emits the abort signal through the coordination service (Redis Streams when
+        a backend is configured), so an abort listener wakes and re-checks. Best-effort:
+        no-op (returns False) when no coordination backend is configured, in which case
+        listeners poll the task row instead.
 
         :param task_uuid: UUID of the task to abort
-        :returns: True if message was published, False if Redis unavailable
+        :returns: True if the signal was emitted, False if no backend / Redis error
         """
         from superset.coordination.base import CoordinationService
 
@@ -101,15 +107,13 @@ class TaskManager:
 
         try:
             channel = cls.get_abort_channel(task_uuid)
-            subscriber_count = CoordinationService.publish(channel, "abort")
-            logger.debug(
-                "Published abort to channel %s (%d subscribers)",
-                channel,
-                subscriber_count,
-            )
+            CoordinationService.notify(channel, "abort")
+            logger.debug("Signalled abort on %s", channel)
             return True
         except redis.RedisError as ex:
-            logger.error("Failed to publish abort for task %s: %s", task_uuid, ex)
+            # Best-effort: listeners fall back to polling, so a transient Redis
+            # error here is not a correctness problem.
+            logger.warning("Failed to signal abort for task %s: %s", task_uuid, ex)
             return False
 
     @classmethod
@@ -125,14 +129,17 @@ class TaskManager:
     @classmethod
     def publish_completion(cls, task_uuid: UUID, status: str) -> bool:
         """
-        Publish a completion message to the task's channel.
+        Signal task completion so any waiter wakes and re-checks.
 
-        Called when task reaches terminal state (SUCCESS, FAILURE, ABORTED, TIMED_OUT).
-        This notifies any waiters (e.g., sync callers waiting for an existing task).
+        Called when the task reaches a terminal state (SUCCESS, FAILURE, ABORTED,
+        TIMED_OUT); wakes waiters (e.g. sync join-and-wait, DAG dependents) through
+        the coordination service (Redis Streams when a backend is configured).
+        Best-effort: no-op (returns False) when no coordination backend is configured,
+        in which case waiters poll the task row instead.
 
         :param task_uuid: UUID of the completed task
         :param status: Final status of the task
-        :returns: True if message was published, False if Redis unavailable
+        :returns: True if the signal was emitted, False if no backend / Redis error
         """
         from superset.coordination.base import CoordinationService
 
@@ -141,16 +148,13 @@ class TaskManager:
 
         try:
             channel = cls.get_completion_channel(task_uuid)
-            subscriber_count = CoordinationService.publish(channel, status)
-            logger.debug(
-                "Published completion to channel %s (status=%s, %d subscribers)",
-                channel,
-                status,
-                subscriber_count,
-            )
+            CoordinationService.notify(channel, status)
+            logger.debug("Signalled completion on %s (status=%s)", channel, status)
             return True
         except redis.RedisError as ex:
-            logger.error("Failed to publish completion for task %s: %s", task_uuid, ex)
+            # Best-effort: waiters fall back to polling, so a transient Redis
+            # error here is not a correctness problem.
+            logger.warning("Failed to signal completion for task %s: %s", task_uuid, ex)
             return False
 
     @classmethod
@@ -164,7 +168,7 @@ class TaskManager:
         """
         Block until task reaches terminal state.
 
-        Delegates the pub/sub-wake-else-poll orchestration to
+        Delegates the wake-else-poll orchestration to
         :meth:`CoordinationService.wait_for_signal`; here we only supply the
         completion channel and a metastore predicate that returns the task once it is
         terminal.

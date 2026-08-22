@@ -26,9 +26,11 @@ import threading
 import time
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
+from flask import current_app
+from redis.exceptions import TimeoutError as RedisTimeoutError
+
 from superset.coordination.exceptions import CoordinationBackendUnavailableError
 from superset.coordination.types import SignalListener
-from superset.coordination.utils import close_pubsub
 
 if TYPE_CHECKING:
     from superset.coordination.types import CoordinationBackend
@@ -37,10 +39,21 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-# Poll cadence for the pub/sub wait loop: how long each ``get_message`` blocks
-# before the loop re-checks the predicate, the timeout, and the stop flag. Keeps
-# stop latency and missed-message recovery bounded to ~1s.
-_PUBSUB_TICK_SECONDS = 1.0
+# Reliable signalling uses Redis Streams: entries are persisted and replayable, so a
+# waiter still receives a signal if it subscribes slightly late, reconnects, or
+# survives a failover. A signal is a single stream entry; the caller-supplied
+# predicate stays the source of truth, so the stream only needs to retain its latest
+# entry briefly.
+_SIGNAL_STREAM_MAXLEN = 1
+# Fallback signal-stream retention (seconds) when the app config is unavailable;
+# operators tune it via ``DISTRIBUTED_COORDINATION_SIGNAL_TTL`` (default 24h).
+_DEFAULT_SIGNAL_STREAM_TTL_SECONDS = 86400
+# Blocking-XREAD chunk: how long each read parks before the loop re-checks the
+# deadline. The read returns as soon as an entry lands, so this only bounds the
+# no-signal wakeup cadence and can be generous.
+_STREAM_BLOCK_MS = 5000
+# Shorter chunk for background listeners so stop() and signal detection stay prompt.
+_LISTEN_BLOCK_MS = 1000
 
 
 class CoordinationService:
@@ -48,19 +61,21 @@ class CoordinationService:
 
     Two layers of API:
 
-    - **Raw primitives** — ``publish``, ``get`` / ``set`` / ``delete``,
-      ``stream_add`` / ``stream_range``. These are backend-only and have no fallback:
-      they raise :class:`CoordinationBackendUnavailableError` when no backend is
-      available, rather than silently doing nothing. Each accepts an optional
-      ``backend`` so a caller with its own connection (Global Async Queries, during
-      the deprecation window) can run against it instead of the shared coordinator.
-    - **Higher-level await/notify** — ``wait_for_signal`` (blocking) and
-      ``listen_for_signal`` (background). These combine a pub/sub channel with a
-      caller-supplied predicate:
-      when a backend is defined they wake promptly on a published message and
-      re-check the predicate each tick; without a backend they poll the predicate.
-      This keeps the pub/sub-vs-poll boilerplate in one place; callers just supply a
-      channel and a check.
+    - **Raw primitives** — ``publish`` (best-effort, at-most-once pub/sub),
+      ``get`` / ``set`` / ``delete``, ``stream_add`` / ``stream_range``. These are
+      backend-only and have no fallback: they raise
+      :class:`CoordinationBackendUnavailableError` when no backend is available,
+      rather than silently doing nothing. Each accepts an optional ``backend`` so a
+      caller with its own connection (Global Async Queries, during the deprecation
+      window) can run against it instead of the shared coordinator.
+    - **Await / notify** — ``notify`` (signal) plus ``wait_for_signal``
+      (blocking) and ``listen_for_signal`` (background), combining a channel with a
+      caller-supplied predicate. Signals ride Redis Streams; because stream entries
+      are persisted, a waiter that reads slightly late, reconnects, or fails over
+      still receives them. With a backend the waiter blocks on the stream and wakes
+      when a signal lands (event-driven, no polling); without a backend it polls the
+      predicate. The predicate is the source of truth, so a duplicate or already-seen
+      signal is harmless.
 
     All methods are class-level: the service is app-global. Calls resolve the shared
     coordination backend from ``DISTRIBUTED_COORDINATION_CONFIG`` on each call, except
@@ -132,11 +147,15 @@ class CoordinationService:
         message: str,
         backend: "CoordinationBackend | None" = None,
     ) -> int:
-        """Publish a message to a channel; returns the subscriber count.
+        """Best-effort pub/sub publish (**at-most-once** — may be lost).
 
-        Only publishing is offered here — subscribing needs the native connection
-        (a long-lived subscription with its own receive loop), so consumers that
-        subscribe should obtain it via :meth:`get_backend`.
+        Redis pub/sub does not persist messages: if no subscriber is connected at
+        publish time, or one disconnects/reconnects/fails over, the message is
+        *forever lost*. Use this **only** for loss-tolerant nudges. For any signal a
+        receiver must not miss (task completion, abort), use :meth:`notify` (backed by
+        Redis Streams) instead.
+
+        Only publishing is offered here — subscribing needs the native connection.
 
         :param backend: optional explicit backend (see :meth:`_require_backend`).
         :raises CoordinationBackendUnavailableError: if no backend is available.
@@ -226,6 +245,39 @@ class CoordinationService:
     # -- Await / notify ------------------------------------------------------
 
     @classmethod
+    def notify(
+        cls,
+        channel: str,
+        message: str = "1",
+        *,
+        ttl: int | None = None,
+        backend: "CoordinationBackend | None" = None,
+    ) -> None:
+        """Signal ``channel`` so waiters wake and re-check.
+
+        Appends an entry to the channel's Redis Stream. Because stream entries are
+        persisted, a waiter that reads slightly late, reconnects, or fails over still
+        receives it. The stream is capped to its latest entry and given a TTL, so
+        signal streams for tasks that are never awaited do not accumulate in
+        Redis/Valkey. Pair with :meth:`wait_for_signal` / :meth:`listen_for_signal`.
+
+        :param message: small marker stored on the entry; the caller's predicate is
+            the source of truth, so this is only a wake-up nudge.
+        :param ttl: seconds to retain the signal stream; defaults to
+            ``DISTRIBUTED_COORDINATION_SIGNAL_TTL``.
+        :param backend: optional explicit backend (see :meth:`_require_backend`).
+        :raises CoordinationBackendUnavailableError: if no backend is available.
+        """
+        backend = cls._require_backend(backend)
+        if ttl is None:
+            ttl = current_app.config.get(
+                "DISTRIBUTED_COORDINATION_SIGNAL_TTL",
+                _DEFAULT_SIGNAL_STREAM_TTL_SECONDS,
+            )
+        backend.xadd(channel, {"m": message}, "*", _SIGNAL_STREAM_MAXLEN)
+        backend.expire(channel, ttl)
+
+    @classmethod
     def wait_for_signal(
         cls,
         channel: str,
@@ -236,62 +288,100 @@ class CoordinationService:
     ) -> T:
         """Block until ``check()`` returns a non-``None`` value; return that value.
 
-        ``check`` is the source of truth (typically a metastore read). When a
-        coordination backend is defined, this subscribes to ``channel`` and re-runs
-        ``check`` promptly whenever a message is published; otherwise it polls
-        ``check`` every ``poll_interval`` seconds. ``check`` is also re-evaluated on
-        every tick even in pub/sub mode, so a signal published before the subscription
-        (or a dropped message) is still caught.
+        ``check`` is the source of truth (typically a metastore read). With a
+        coordination backend, this waits on ``channel``'s Redis Stream and re-runs
+        ``check`` when a signal (:meth:`notify`) lands — event-driven, no
+        polling. Without a backend it polls ``check`` every ``poll_interval``
+        seconds.
 
-        :param channel: pub/sub channel that peers publish to when the awaited state
-            is reached (used only as a low-latency wake-up; correctness relies on
-            ``check``).
-        :param check: returns a truthy result once the wait is satisfied, else
-            ``None``.
+        :param channel: stream that peers :meth:`notify` when the awaited state is
+            reached.
+        :param check: returns a truthy result once satisfied, else ``None``.
         :param timeout: max seconds to wait; ``None`` waits indefinitely.
-        :param poll_interval: poll cadence when no backend is defined.
+        :param poll_interval: poll cadence for the no-backend fallback.
         :raises TimeoutError: if ``timeout`` elapses before ``check`` is satisfied.
         """
         deadline = None if timeout is None else time.monotonic() + timeout
-        # Check first, before touching the backend: if the awaited state is already
-        # reached (e.g. the task is already terminal), return straight from the
-        # source of truth so the fast path never requires the backend to be reachable.
+        # Fast path: already satisfied → return without touching the backend.
         if (result := check()) is not None:
             return result
         backend = cls.get_backend()
-        pubsub = backend.pubsub() if backend is not None else None
-        try:
-            if pubsub is not None:
-                pubsub.subscribe(channel)
-            while True:
-                # Re-check every tick even in pub/sub mode, so a signal published
-                # before the subscription (or a dropped message) is still caught.
-                if (result := check()) is not None:
-                    return result
-                remaining = (
-                    None if deadline is None else max(0.0, deadline - time.monotonic())
-                )
-                if remaining is not None and remaining <= 0:
-                    raise TimeoutError(f"Timed out waiting on channel {channel}")
-                cls._wait_tick(pubsub, poll_interval, remaining)
-        finally:
-            if pubsub is not None:
-                close_pubsub(pubsub)
+        if backend is None:
+            return cls._poll_until(channel, check, deadline, poll_interval)
+        # Capture the stream position, then re-check: a signal that lands between the
+        # fast-path check and now is caught here (peers write the authoritative state
+        # before they notify); anything after is delivered by the blocking read.
+        last_id = backend.stream_last_id(channel)
+        if (result := check()) is not None:
+            return result
+        while True:
+            remaining = cls._remaining(deadline, channel)
+            last_id = cls._read_stream(
+                backend,
+                channel,
+                last_id,
+                cls._bounded_block_ms(_STREAM_BLOCK_MS, remaining),
+            )
+            if (result := check()) is not None:
+                return result
 
     @staticmethod
-    def _wait_tick(pubsub: Any, poll_interval: float, remaining: float | None) -> None:
-        """Block for one wait tick: a pub/sub message (nudge) or a poll sleep."""
-        if pubsub is not None:
-            wait = (
-                _PUBSUB_TICK_SECONDS
-                if remaining is None
-                else min(_PUBSUB_TICK_SECONDS, remaining)
-            )
-            pubsub.get_message(ignore_subscribe_messages=True, timeout=wait)
-        else:
+    def _remaining(deadline: float | None, channel: str) -> float | None:
+        """Seconds left before ``deadline``; raise ``TimeoutError`` if already past."""
+        if deadline is None:
+            return None
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(f"Timed out waiting on {channel}")
+        return remaining
+
+    @classmethod
+    def _poll_until(
+        cls,
+        channel: str,
+        check: Callable[[], T | None],
+        deadline: float | None,
+        poll_interval: float,
+    ) -> T:
+        """No-backend fallback: poll ``check`` every ``poll_interval`` seconds."""
+        while True:
+            remaining = cls._remaining(deadline, channel)
             time.sleep(
                 poll_interval if remaining is None else min(poll_interval, remaining)
             )
+            if (result := check()) is not None:
+                return result
+
+    @staticmethod
+    def _bounded_block_ms(block_ms: int, remaining: float | None) -> int:
+        """Clamp a blocking-read duration (ms) to the time left before the deadline."""
+        if remaining is None:
+            return block_ms
+        return max(1, min(block_ms, int(remaining * 1000)))
+
+    @classmethod
+    def _read_stream(
+        cls,
+        backend: "CoordinationBackend",
+        channel: str,
+        last_id: str,
+        block_ms: int,
+    ) -> str:
+        """Block for the next entry on ``channel``; return the new last-seen id.
+
+        A socket timeout mid-block means "nothing arrived yet": the caller re-checks
+        the predicate and reads again, so a short ``socket_timeout`` only affects
+        cadence, never correctness.
+        """
+        try:
+            entries = backend.xread({channel: last_id}, block_ms=block_ms)
+        except (RedisTimeoutError, OSError):
+            return last_id
+        for _stream, items in entries:
+            if items:
+                new_id = items[-1][0]
+                last_id = new_id.decode() if isinstance(new_id, bytes) else new_id
+        return last_id
 
     @classmethod
     def listen_for_signal(
@@ -305,36 +395,26 @@ class CoordinationService:
     ) -> SignalListener:
         """Run a background daemon that invokes ``on_signal`` once ``check`` is true.
 
-        Same wake-vs-poll model as :meth:`wait_for_signal`: a published message on
-        ``channel`` wakes the loop when a backend is defined, otherwise it polls
-        ``check`` every ``poll_interval`` seconds. The thread stops after firing
-        ``on_signal`` once, or when :meth:`SignalListener.stop` is called.
+        Same model as :meth:`wait_for_signal`: with a backend it waits on
+        ``channel``'s Redis Stream (event-driven); without one it polls ``check``
+        every ``poll_interval`` seconds. The thread stops after firing ``on_signal``
+        once, or when :meth:`SignalListener.stop` is called.
 
-        :param channel: pub/sub channel peers publish to when the condition is met.
+        :param channel: stream peers :meth:`notify` when the condition is met.
         :param check: returns ``True`` once ``on_signal`` should fire.
         :param on_signal: invoked (once) when ``check`` becomes true.
-        :param poll_interval: poll cadence when no backend is defined.
+        :param poll_interval: poll cadence for the no-backend fallback.
         :param name: optional thread name suffix for logging.
         """
         stop_event = threading.Event()
-        backend = cls.get_backend()
-        pubsub = backend.pubsub() if backend is not None else None
-        if pubsub is not None:
-            # Subscribe in the caller's thread so a connection failure surfaces here
-            # (fail-fast) rather than dying silently in the daemon thread.
-            try:
-                pubsub.subscribe(channel)
-            except Exception:
-                close_pubsub(pubsub)
-                raise
         thread = threading.Thread(
             target=cls._run_listen_loop,
-            args=(channel, check, on_signal, stop_event, poll_interval, pubsub),
+            args=(channel, check, on_signal, stop_event, poll_interval),
             daemon=True,
             name=f"coord-listen-{name or channel}",
         )
         thread.start()
-        return SignalListener(thread, stop_event, pubsub)
+        return SignalListener(thread, stop_event)
 
     @classmethod
     def _run_listen_loop(
@@ -344,37 +424,23 @@ class CoordinationService:
         on_signal: Callable[[], None],
         stop_event: threading.Event,
         poll_interval: float,
-        pubsub: Any,
     ) -> None:
         """Body of the background listener thread (see :meth:`listen_for_signal`)."""
+        backend = cls.get_backend()
+        # Baseline before the first check (see wait_for_signal), so a signal that
+        # lands between capturing it and the first check is not missed.
+        last_id = backend.stream_last_id(channel) if backend is not None else "0-0"
         try:
             while not stop_event.is_set():
-                try:
-                    if check():
-                        on_signal()
-                        return
-                    if pubsub is not None:
-                        # Blocks up to a tick; the message is just a wake-up nudge.
-                        pubsub.get_message(
-                            ignore_subscribe_messages=True,
-                            timeout=_PUBSUB_TICK_SECONDS,
-                        )
-                    else:
-                        stop_event.wait(timeout=poll_interval)
-                except (ValueError, OSError) as ex:
-                    # Connection torn down (e.g. stop() closing the subscription, or
-                    # shutdown). Expected when stopping; otherwise surface it and bail.
-                    if not stop_event.is_set():
-                        logger.error(
-                            "Signal listener on %s failed: %s",
-                            channel,
-                            ex,
-                            exc_info=True,
-                        )
+                if check():
+                    on_signal()
                     return
+                if backend is not None:
+                    last_id = cls._read_stream(
+                        backend, channel, last_id, _LISTEN_BLOCK_MS
+                    )
+                else:
+                    stop_event.wait(timeout=poll_interval)
         except Exception:  # pylint: disable=broad-except
             if not stop_event.is_set():
                 logger.exception("Signal listener on %s crashed", channel)
-        finally:
-            if pubsub is not None:
-                close_pubsub(pubsub)

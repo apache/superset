@@ -20,9 +20,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Any, TYPE_CHECKING
-
-from superset.coordination.utils import close_pubsub
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from superset.async_events.cache_backend import (
@@ -40,28 +38,22 @@ class SignalListener:
     """Handle for a background listener started by
     :meth:`~superset.coordination.base.CoordinationService.listen_for_signal`.
 
-    Wraps the daemon thread, its stop flag, and (in pub/sub mode) the subscription.
-    :meth:`stop` sets the flag and closes the subscription so a thread blocked in
-    ``get_message`` wakes immediately, then joins.
+    Wraps the daemon thread and its stop flag. :meth:`stop` sets the flag and joins;
+    the listener's bounded blocking read means it notices the flag within one short
+    tick.
     """
 
     def __init__(
         self,
         thread: threading.Thread,
         stop_event: threading.Event,
-        pubsub: Any = None,
     ) -> None:
         self._thread = thread
         self._stop_event = stop_event
-        self._pubsub = pubsub
 
     def stop(self) -> None:
         """Signal the listener to stop and wait briefly for the thread to finish."""
         self._stop_event.set()
-        # Closing the subscription unblocks a thread parked in get_message so
-        # teardown is near-immediate rather than waiting a full poll tick.
-        if self._pubsub is not None:
-            close_pubsub(self._pubsub)
         if self._thread.is_alive():
             self._thread.join(timeout=2.0)
             if self._thread.is_alive():

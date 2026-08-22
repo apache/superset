@@ -3289,6 +3289,13 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # }
 DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 
+# Retention (seconds) for the Redis Streams the coordination service uses to deliver
+# signals (e.g. task completion/abort). Each signal is one short-lived stream entry
+# that a waiter consumes almost immediately; the TTL is a safety net so signal
+# streams for tasks that never get awaited cannot accumulate in Redis/Valkey
+# indefinitely. Defaults to 24 hours.
+DISTRIBUTED_COORDINATION_SIGNAL_TTL = int(timedelta(hours=24).total_seconds())
+
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.
 # After TTL expires, the lock is automatically released to prevent deadlocks.

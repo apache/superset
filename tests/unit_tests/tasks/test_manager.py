@@ -114,16 +114,19 @@ class TestTaskManagerPublish:
     @patch(GET_BACKEND)
     def test_publish_abort_success(self, mock_get_backend):
         backend = MagicMock()
-        backend.publish.return_value = 1
+        backend.xadd.return_value = "1-0"
         mock_get_backend.return_value = backend
 
         assert TaskManager.publish_abort("test-uuid") is True
-        backend.publish.assert_called_once_with("gtf:abort:test-uuid", "abort")
+        backend.xadd.assert_called_once_with(
+            "gtf:abort:test-uuid", {"m": "abort"}, "*", 1
+        )
+        backend.expire.assert_called_once()
 
     @patch(GET_BACKEND)
     def test_publish_abort_redis_error(self, mock_get_backend):
         backend = MagicMock()
-        backend.publish.side_effect = redis.RedisError("Connection lost")
+        backend.xadd.side_effect = redis.RedisError("Connection lost")
         mock_get_backend.return_value = backend
 
         assert TaskManager.publish_abort("test-uuid") is False
@@ -135,16 +138,19 @@ class TestTaskManagerPublish:
     @patch(GET_BACKEND)
     def test_publish_completion_success(self, mock_get_backend):
         backend = MagicMock()
-        backend.publish.return_value = 1
+        backend.xadd.return_value = "1-0"
         mock_get_backend.return_value = backend
 
         assert TaskManager.publish_completion("test-uuid", "success") is True
-        backend.publish.assert_called_once_with("gtf:complete:test-uuid", "success")
+        backend.xadd.assert_called_once_with(
+            "gtf:complete:test-uuid", {"m": "success"}, "*", 1
+        )
+        backend.expire.assert_called_once()
 
     @patch(GET_BACKEND)
     def test_publish_completion_redis_error(self, mock_get_backend):
         backend = MagicMock()
-        backend.publish.side_effect = redis.RedisError("Connection lost")
+        backend.xadd.side_effect = redis.RedisError("Connection lost")
         mock_get_backend.return_value = backend
 
         assert TaskManager.publish_completion("test-uuid", "success") is False
@@ -242,23 +248,29 @@ class TestTaskManagerWaitForCompletion:
 
     @patch(GET_BACKEND)
     @patch("superset.daos.tasks.TaskDAO")
-    def test_pubsub_success_subscribes_and_cleans_up(self, mock_dao, mock_get_backend):
+    def test_stream_success_reads_and_returns(self, mock_dao, mock_get_backend):
         pending = MagicMock()
         pending.status = "pending"
         complete = MagicMock()
         complete.status = "success"
-        # find_one_or_none is called for: the existence check, the pre-subscribe fast
-        # path (still pending → we subscribe), then the post-subscribe check (success).
-        mock_dao.find_one_or_none.side_effect = [pending, pending, complete]
+        # find_one_or_none: existence check, fast-path (pending), post-baseline
+        # re-check (pending), then after the stream read (success).
+        mock_dao.find_one_or_none.side_effect = [
+            pending,
+            pending,
+            pending,
+            complete,
+        ]
 
         backend = MagicMock()
-        pubsub = MagicMock()
-        backend.pubsub.return_value = pubsub
+        backend.stream_last_id.return_value = "0-0"
+        backend.xread.return_value = [
+            ["gtf:complete:test-uuid", [("1-0", {"m": "success"})]]
+        ]
         mock_get_backend.return_value = backend
 
         result = TaskManager.wait_for_completion("test-uuid", timeout=5.0)
 
         assert result.status == "success"
-        pubsub.subscribe.assert_called_once_with("gtf:complete:test-uuid")
-        pubsub.unsubscribe.assert_called_once()
-        pubsub.close.assert_called_once()
+        backend.stream_last_id.assert_called_once_with("gtf:complete:test-uuid")
+        backend.xread.assert_called_once()

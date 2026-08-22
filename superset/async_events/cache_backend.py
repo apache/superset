@@ -154,6 +154,47 @@ class RedisCacheBackend(RedisCache):
         count = count or self.MAX_EVENT_COUNT
         return self._cache.xrange(stream_name, start, end, count)
 
+    def xread(
+        self,
+        streams: dict[str, str],
+        count: int | None = None,
+        block_ms: int | None = None,
+    ) -> list[Any]:
+        """
+        Read new entries from one or more streams, optionally blocking.
+
+        Reliable, event-driven delivery: pass the last id already seen per stream
+        and this returns only entries added *after* it — so a signal is never
+        missed, even across reconnects (unlike pub/sub). ``block_ms`` blocks up to
+        that many milliseconds waiting for a new entry (``None``/``0`` returns
+        immediately).
+
+        :param streams: mapping of ``{stream_name: last_id_seen}``
+        :param count: max entries to return
+        :param block_ms: milliseconds to block for a new entry (``None`` = no block)
+        :returns: redis-py XREAD reply — ``[[stream, [(id, {field: value}), ...]]]``
+            — or an empty list when nothing arrived before the block elapsed
+        """
+        return self._cache.xread(streams, count=count, block=block_ms) or []
+
+    def stream_last_id(self, stream_name: str) -> str:
+        """
+        Return the id of the last entry in a stream, or ``"0-0"`` if it is empty.
+
+        Used to capture a baseline before waiting so a subsequent blocking
+        :meth:`xread` from that id catches every entry added afterwards — closing
+        the publish-before-subscribe race that pub/sub cannot.
+        """
+        entries = self._cache.xrevrange(stream_name, count=1)
+        if not entries:
+            return "0-0"
+        last_id = entries[0][0]
+        return last_id.decode() if isinstance(last_id, bytes) else last_id
+
+    def expire(self, name: str, seconds: int) -> bool:
+        """Set a TTL (seconds) on a key; used to bound signal-stream growth."""
+        return bool(self._cache.expire(name, seconds))
+
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> RedisCacheBackend:
         kwargs = {
@@ -346,6 +387,29 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
     ) -> list[Any]:
         count = count or self.MAX_EVENT_COUNT
         return self._cache.xrange(stream_name, start, end, count)
+
+    def xread(
+        self,
+        streams: dict[str, str],
+        count: int | None = None,
+        block_ms: int | None = None,
+    ) -> list[Any]:
+        """Reliable, optionally-blocking stream read (see
+        :meth:`RedisCacheBackend.xread`)."""
+        return self._cache.xread(streams, count=count, block=block_ms) or []
+
+    def stream_last_id(self, stream_name: str) -> str:
+        """Return the last entry id, or ``"0-0"`` if empty (see
+        :meth:`RedisCacheBackend.stream_last_id`)."""
+        entries = self._cache.xrevrange(stream_name, count=1)
+        if not entries:
+            return "0-0"
+        last_id = entries[0][0]
+        return last_id.decode() if isinstance(last_id, bytes) else last_id
+
+    def expire(self, name: str, seconds: int) -> bool:
+        """Set a TTL (seconds) on a key; used to bound signal-stream growth."""
+        return bool(self._cache.expire(name, seconds))
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> RedisSentinelCacheBackend:

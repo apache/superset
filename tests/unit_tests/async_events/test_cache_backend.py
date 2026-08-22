@@ -146,3 +146,57 @@ def test_redis_sentinel_cache_backend_from_config_reads_timeout_keys(
     assert master_kwargs["protocol"] == 2
     assert master_kwargs["socket_timeout"] == 20
     assert master_kwargs["socket_connect_timeout"] == 4
+
+
+def test_redis_cache_backend_stream_helpers(mocker: MockerFixture) -> None:
+    """xread / stream_last_id / expire delegate to the redis client correctly."""
+    from superset.async_events.cache_backend import RedisCacheBackend
+
+    redis_mock = mocker.patch("superset.async_events.cache_backend.redis")
+    client = redis_mock.Redis.return_value
+    backend = RedisCacheBackend(host="localhost", port=6379)
+
+    # xread passes block/count through and coalesces a None reply to []
+    client.xread.return_value = [["s", [(b"1-0", {})]]]
+    assert backend.xread({"s": "0-0"}, count=5, block_ms=100) == [["s", [(b"1-0", {})]]]
+    client.xread.assert_called_once_with({"s": "0-0"}, count=5, block=100)
+    client.xread.return_value = None
+    assert backend.xread({"s": "0-0"}) == []
+
+    # stream_last_id decodes the bytes id, and returns "0-0" for an empty stream
+    client.xrevrange.return_value = [(b"5-0", {b"m": b"x"})]
+    assert backend.stream_last_id("s") == "5-0"
+    client.xrevrange.return_value = []
+    assert backend.stream_last_id("s") == "0-0"
+
+    # expire delegates and coerces the reply to bool
+    client.expire.return_value = 1
+    assert backend.expire("s", 60) is True
+    client.expire.assert_called_once_with("s", 60)
+
+
+def test_redis_sentinel_cache_backend_stream_helpers(mocker: MockerFixture) -> None:
+    """Sentinel backend routes the new stream helpers through its master client."""
+    from superset.async_events.cache_backend import RedisSentinelCacheBackend
+
+    sentinel_mock = mocker.patch("superset.async_events.cache_backend.Sentinel")
+    master = mock.Mock()
+    sentinel_mock.return_value.master_for.return_value = master
+    backend = RedisSentinelCacheBackend(
+        sentinels=[("sentinel1", 26379)], master="mymaster"
+    )
+
+    master.xread.return_value = [["s", [(b"1-0", {})]]]
+    assert backend.xread({"s": "0-0"}, count=5, block_ms=100) == [["s", [(b"1-0", {})]]]
+    master.xread.assert_called_once_with({"s": "0-0"}, count=5, block=100)
+    master.xread.return_value = None
+    assert backend.xread({"s": "0-0"}) == []
+
+    master.xrevrange.return_value = [(b"5-0", {b"m": b"x"})]
+    assert backend.stream_last_id("s") == "5-0"
+    master.xrevrange.return_value = []
+    assert backend.stream_last_id("s") == "0-0"
+
+    master.expire.return_value = 1
+    assert backend.expire("s", 60) is True
+    master.expire.assert_called_once_with("s", 60)
