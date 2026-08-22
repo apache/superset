@@ -17,9 +17,10 @@
 """Task REST API"""
 
 import logging
+from datetime import datetime
 from uuid import UUID
 
-from flask import Response
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -66,6 +67,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "cancel": "write",
         "status": "read",
+        "status_changes": "read",
     }
 
     # Only allow read operations - no create/update/delete through REST API
@@ -76,6 +78,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         RouteMethod.INFO,
         "cancel",
         "status",
+        "status_changes",
         "related_subscribers",
         "related",
     }
@@ -257,7 +260,74 @@ class TaskRestApi(BaseSupersetModelRestApi):
         except (ValueError, TypeError):
             return self.response_404()
 
-    @expose("/<task_uuid>/cancel", methods=("POST",))
+    @expose("/status_changes", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        ".status_changes",
+        log_to_statsd=False,
+    )
+    def status_changes(self) -> Response:
+        """Poll status of accessible tasks changed since a cursor.
+        ---
+        get:
+          summary: Poll changed task statuses
+          description: >
+            Minimal-IO polling primitive for clients awaiting async work (e.g. a
+            chart-data coordinator task) or rendering a live task list. Returns a
+            ``{uuid: status}`` map for tasks the caller can access (subscribed
+            tasks for regular users, all tasks for admins) that changed since the
+            ``cursor``, plus the next cursor to poll with. Omit ``cursor`` on the
+            first call to establish a baseline.
+          parameters:
+          - in: query
+            name: cursor
+            schema:
+              type: string
+            required: false
+            description: >
+              Opaque watermark returned by a previous call. Omit to establish a
+              baseline (returns the current watermark and no statuses).
+          responses:
+            200:
+              description: Changed task statuses since the cursor
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      statuses:
+                        type: object
+                        additionalProperties:
+                          type: string
+                        description: Map of task UUID to current status
+                      cursor:
+                        type: string
+                        nullable: true
+                        description: Cursor to pass to the next poll
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+        """
+        from superset.daos.tasks import TaskDAO
+
+        cursor: datetime | None = None
+        if cursor_arg := request.args.get("cursor"):
+            try:
+                cursor = datetime.fromisoformat(cursor_arg)
+            except ValueError:
+                return self.response_400(message="Invalid cursor")
+
+        statuses, next_cursor = TaskDAO.get_statuses_changed_since(cursor)
+        return self.response(
+            200,
+            statuses=statuses,
+            cursor=next_cursor.isoformat() if next_cursor else None,
+        )
+
     @protect()
     @safe
     @statsd_metrics

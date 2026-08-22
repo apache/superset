@@ -69,6 +69,35 @@ class TaskDAO(BaseDAO[Task]):
         return result[0] if result else None
 
     @classmethod
+    def get_statuses_changed_since(
+        cls, cursor: datetime | None
+    ) -> tuple[dict[str, str], datetime | None]:
+        """Return ``{uuid: status}`` for accessible tasks changed since ``cursor``.
+
+        The minimal-IO polling primitive: the base filter (``TaskFilter``) scopes
+        results to tasks the caller can see (subscribed tasks for regular users,
+        all tasks for admins), so callers never pass an explicit id list. Only the
+        ``uuid`` and ``status`` columns are read.
+
+        ``cursor`` is a ``changed_on`` watermark; ``changed_on >= cursor`` (not
+        ``>``) so no transition straddling the boundary is missed — re-delivery of
+        an already-seen status is idempotent for the client, a miss would hang it.
+
+        Returns the ``{uuid: status}`` map plus the next cursor to poll with (the
+        max ``changed_on`` in this batch, or the input ``cursor`` when empty), so
+        the client always advances using a server-observed watermark rather than
+        its own clock.
+        """
+        query = cls._apply_base_filter(db.session.query(Task))
+        if cursor is not None:
+            query = query.filter(Task.changed_on >= cursor)
+
+        rows = query.with_entities(Task.uuid, Task.status, Task.changed_on).all()
+        statuses = {str(uuid): status for uuid, status, _ in rows}
+        next_cursor = max((changed_on for *_, changed_on in rows), default=cursor)
+        return statuses, next_cursor
+
+    @classmethod
     def find_by_task_key(
         cls,
         task_type: str,
