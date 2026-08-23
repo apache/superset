@@ -21,9 +21,12 @@ on:
   #schedule:
   #  - cron: '0 0 * * *'  # Runs daily at midnight UTC
 
+permissions:
+  contents: read
+
 jobs:
   bump-python-package:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: write
       contents: write
@@ -40,12 +43,15 @@ jobs:
         uses: ./.github/actions/setup-supersetbot/
 
       - name: Set up Python ${{ inputs.python-version }}
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
 
       - name: Install uv
-        run: pip install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.11"
+          enable-cache: true
 
       - name: supersetbot bump-python -p "${{ github.event.inputs.package }}"
         env:

@@ -210,21 +210,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 "template_params supplied but ENABLE_TEMPLATE_PROCESSING is off"
             )
 
-        # Log successful execution
-        if response.success:
-            await ctx.info(
-                "SQL execution completed successfully: rows_returned=%s, "
-                "execution_time=%s"
-                % (
-                    response.row_count,
-                    response.execution_time,
-                )
-            )
-        else:
-            await ctx.info(
-                "SQL execution failed: error=%s, error_type=%s"
-                % (response.error, response.error_type)
-            )
+        await _log_execution_result(response, ctx)
 
         return response
 
@@ -256,6 +242,27 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             )
         )
         raise
+
+
+async def _log_execution_result(
+    response: ExecuteSqlResponse,
+    ctx: Context,
+) -> None:
+    """Log the outcome of an SQL execution."""
+    if response.success:
+        await ctx.info(
+            "SQL execution completed successfully: rows_returned=%s, "
+            "execution_time=%s"
+            % (
+                response.row_count,
+                response.execution_time,
+            )
+        )
+    else:
+        await ctx.info(
+            "SQL execution failed: error=%s, error_type=%s"
+            % (response.error, response.error_type)
+        )
 
 
 def _sanitize_row_values(rows: list[dict[str, Any]]) -> None:

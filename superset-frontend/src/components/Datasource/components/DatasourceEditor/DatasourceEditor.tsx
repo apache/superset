@@ -867,7 +867,7 @@ function DatasourceEditor({
       return {
         ...metric,
         certification_details: certificationDetails || details,
-        warning_markdown: warningMarkdown || '',
+        warning_markdown: warningMarkdown || metric.warning_markdown || '',
         certified_by: certifiedBy || certifiedByMetric,
       };
     }),
@@ -1627,9 +1627,7 @@ function DatasourceEditor({
               {t(
                 'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as',
               )}{' '}
-              <Typography.Text code>
-                /superset/dashboard/{'{id}'}/
-              </Typography.Text>
+              <Typography.Text code>/dashboard/{'{id}'}/</Typography.Text>
             </>
           }
           control={<TextControl controlId="default_endpoint" />}
@@ -1995,7 +1993,6 @@ function DatasourceEditor({
                           col => col.column_name,
                         )}
                         height={300}
-                        allowHTML
                       />
                     </>
                   )}
