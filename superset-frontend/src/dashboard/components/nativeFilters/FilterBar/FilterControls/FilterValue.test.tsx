@@ -156,6 +156,30 @@ test('renders SuperChart after data loads successfully', async () => {
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
 
+test('forwards the dashboard async override + enableAsyncMode to the request', async () => {
+  mockGetChartDataRequest.mockResolvedValue({
+    response: { status: 200 },
+    json: { result: [{ data: [{ country: 'US' }] }] },
+  });
+
+  renderFilterValue(
+    {},
+    { dashboardInfo: { id: 1, metadata: { async_mode: 'force_off' } } },
+  );
+
+  await waitFor(() => {
+    expect(mockGetChartDataRequest).toHaveBeenCalled();
+  });
+  // Filter requests opt into async handling and carry the dashboard's override so
+  // they follow the same async policy as the dashboard's charts.
+  expect(mockGetChartDataRequest).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      enableAsyncMode: true,
+      requestParams: { async_mode_override: 'force_off' },
+    }),
+  );
+});
+
 test('renders error state when API call fails', async () => {
   mockGetChartDataRequest.mockRejectedValue(
     new Response(JSON.stringify({ message: 'Server Error' }), { status: 500 }),

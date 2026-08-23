@@ -181,6 +181,8 @@ export default function ChartVersionPreview() {
       const requestPreviewData = () =>
         getChartDataRequest({
           formData: previewFormData,
+          // 202 is handled below via handleChartDataResponse.
+          enableAsyncMode: true,
         });
       const { response, json } = await requestPreviewData();
       const result = await handleChartDataResponse(

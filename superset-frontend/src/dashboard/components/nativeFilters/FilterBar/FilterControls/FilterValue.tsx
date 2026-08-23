@@ -50,6 +50,7 @@ import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex } from '@superset-ui/core/components';
 import { waitForAsyncData, AsyncJob } from 'src/middleware/asyncEvent';
+import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
@@ -150,6 +151,12 @@ const FilterValue: FC<FilterValueProps> = ({
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+  // Per-dashboard async override so filter requests honor the same policy
+  // (force on/off) as the dashboard's charts.
+  const asyncModeOverride = useSelector<
+    RootState,
+    AsyncModeOverride | undefined
+  >(state => state.dashboardInfo?.metadata?.async_mode);
 
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
@@ -283,6 +290,9 @@ const FilterValue: FC<FilterValueProps> = ({
           formData: newFormData,
           force: fromCache ? false : shouldRefresh,
           ownState: filterOwnState,
+          // 202 is handled below via waitForAsyncData.
+          enableAsyncMode: true,
+          requestParams: { async_mode_override: asyncModeOverride },
         });
       requestFilterData()
         .then(({ response, json }) => {
@@ -345,6 +355,7 @@ const FilterValue: FC<FilterValueProps> = ({
     setHasDepsFilterValue,
     transitiveParentIds,
     parentDefaultToFirstItem,
+    asyncModeOverride,
   ]);
 
   useEffect(() => {

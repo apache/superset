@@ -86,6 +86,7 @@ import DateFilterControl from 'src/explore/components/controls/DateFilterControl
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { waitForAsyncData, AsyncJob } from 'src/middleware/asyncEvent';
+import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
@@ -319,6 +320,10 @@ const FiltersConfigForm = (
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+  const asyncModeOverride = useSelector<
+    RootState,
+    AsyncModeOverride | undefined
+  >(state => state.dashboardInfo?.metadata?.async_mode);
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -530,6 +535,9 @@ const FiltersConfigForm = (
         getChartDataRequest({
           formData,
           force: fromCache ? false : force,
+          // 202 is handled below via waitForAsyncData.
+          enableAsyncMode: true,
+          requestParams: { async_mode_override: asyncModeOverride },
         });
       requestDefaultValues()
         .then(({ response, json }) => {

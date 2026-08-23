@@ -2921,6 +2921,16 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
 
+# Deployment default for whether the UI runs chart-data queries asynchronously when
+# GLOBAL_ASYNC_QUERIES is enabled. This is a FRONTEND-ONLY policy input: async is
+# opt-in per request via an ``async_mode`` flag on ``/chart/data`` (an absent flag is
+# treated as synchronous, so programmatic API clients keep the synchronous 200 flow),
+# and the frontend resolves the flag it sends via a policy chain — per-dashboard
+# override → this default → the feature-flag gate. Default ``True`` preserves the UI's
+# existing async behavior; set ``False`` to make the UI synchronous by default and roll
+# async out per dashboard.
+GLOBAL_ASYNC_QUERIES_DEFAULT = True
+
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
 GUEST_TOKEN_JWT_SECRET = CHANGE_ME_GUEST_TOKEN_JWT_SECRET

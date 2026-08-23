@@ -234,12 +234,7 @@ class ChartDataRestApi(ChartRestApi):
         # Don't use async queries when cache is disabled (cache_timeout=-1)
         # as async queries depend on caching to retrieve results
         cache_timeout = query_context.get_cache_timeout()
-        use_async = (
-            is_feature_enabled("GLOBAL_ASYNC_QUERIES")
-            and query_context.result_format == ChartDataResultFormat.JSON
-            and query_context.result_type == ChartDataResultType.FULL
-            and cache_timeout != CACHE_DISABLED_TIMEOUT
-        )
+        use_async = self._should_run_async(json_body, query_context, cache_timeout)
         if use_async:
             return self._run_async(json_body, command, add_extra_log_payload)
 
@@ -338,12 +333,7 @@ class ChartDataRestApi(ChartRestApi):
         # Don't use async queries when cache is disabled (cache_timeout=-1)
         # as async queries depend on caching to retrieve results
         cache_timeout = query_context.get_cache_timeout()
-        use_async = (
-            is_feature_enabled("GLOBAL_ASYNC_QUERIES")
-            and query_context.result_format == ChartDataResultFormat.JSON
-            and query_context.result_type == ChartDataResultType.FULL
-            and cache_timeout != CACHE_DISABLED_TIMEOUT
-        )
+        use_async = self._should_run_async(json_body, query_context, cache_timeout)
         if use_async:
             return self._run_async(json_body, command, add_extra_log_payload)
 
@@ -357,6 +347,28 @@ class ChartDataRestApi(ChartRestApi):
             add_extra_log_payload=add_extra_log_payload,
             filename=filename,
             expected_rows=expected_rows,
+        )
+
+    def _should_run_async(
+        self,
+        json_body: dict[str, Any],
+        query_context: QueryContext,
+        cache_timeout: int,
+    ) -> bool:
+        """Whether this chart-data request should run asynchronously.
+
+        Async is opt-in per request: the client sets ``async_mode`` (an absent flag
+        is treated as synchronous, so programmatic API clients keep the synchronous
+        200 flow). It is only available when ``GLOBAL_ASYNC_QUERIES`` is enabled, the
+        result is a full JSON payload, and caching is on (async delivery reads the
+        result back from the DATA cache).
+        """
+        return (
+            bool(json_body.get("async_mode"))
+            and is_feature_enabled("GLOBAL_ASYNC_QUERIES")
+            and query_context.result_format == ChartDataResultFormat.JSON
+            and query_context.result_type == ChartDataResultType.FULL
+            and cache_timeout != CACHE_DISABLED_TIMEOUT
         )
 
     def _run_async(

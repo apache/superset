@@ -765,6 +765,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.login(ADMIN_USERNAME)
         # Introducing time.sleep to make test less flaky with MySQL
         time.sleep(1)
+        # Async is opt-in per request; an absent async_mode runs synchronously.
+        self.query_context_payload["async_mode"] = True
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         time.sleep(1)
         assert rv.status_code == 202
@@ -802,6 +804,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataCommand, "execute", return_value=cmd_execute_val
         ) as patched_execute:
             self.query_context_payload["result_type"] = ChartDataResultType.FULL
+            self.query_context_payload["async_mode"] = True
             rv = self.post_assert_metric(
                 CHART_DATA_URI, self.query_context_payload, "data"
             )
@@ -883,6 +886,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         # Test without force - should return cached data synchronously
         self.query_context_payload["result_type"] = ChartDataResultType.FULL
+        self.query_context_payload["async_mode"] = True
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
         mock_execute.assert_called_once_with(force_cached=True)
@@ -906,6 +910,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query non-JSON format (async)
         """
+        # Even with async requested, a non-FULL result type runs synchronously.
+        self.query_context_payload["async_mode"] = True
         self.query_context_payload["result_type"] = "results"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200

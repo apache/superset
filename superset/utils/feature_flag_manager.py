@@ -14,9 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from copy import deepcopy
 
 from flask import Flask
+
+logger = logging.getLogger(__name__)
 
 
 class FeatureFlagManager:
@@ -31,6 +34,20 @@ class FeatureFlagManager:
         self._is_feature_enabled_func = app.config["IS_FEATURE_ENABLED_FUNC"]
         self._feature_flags = app.config["DEFAULT_FEATURE_FLAGS"]
         self._feature_flags.update(app.config["FEATURE_FLAGS"])
+
+        # Async chart-data queries run on the Global Task Framework, so enabling
+        # GLOBAL_ASYNC_QUERIES force-enables GLOBAL_TASK_FRAMEWORK. (A deployment
+        # using IS_FEATURE_ENABLED_FUNC/GET_FEATURE_FLAGS_FUNC can still override
+        # the final decision there.)
+        if self._feature_flags.get(
+            "GLOBAL_ASYNC_QUERIES"
+        ) and not self._feature_flags.get("GLOBAL_TASK_FRAMEWORK"):
+            logger.info(
+                "GLOBAL_ASYNC_QUERIES is enabled; force-enabling "
+                "GLOBAL_TASK_FRAMEWORK (async chart data runs on the Global Task "
+                "Framework)."
+            )
+            self._feature_flags["GLOBAL_TASK_FRAMEWORK"] = True
 
     def get_feature_flags(self) -> dict[str, bool]:
         if self._get_feature_flags_func:
