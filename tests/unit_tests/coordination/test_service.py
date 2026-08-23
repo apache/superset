@@ -116,6 +116,45 @@ def test_ops_delegate_to_backend(app_context: None, mocker: MockerFixture) -> No
     backend.xrange.assert_called_once_with("stream", "-", "+", 10)
 
 
+def test_kv_ops_accept_a_callable_key(app_context: None, mocker: MockerFixture) -> None:
+    """A key may be a ``() -> str`` generator, resolved at call time."""
+    backend = mocker.MagicMock(name="coordination_backend")
+    backend.get.return_value = b"v"
+    backend.set.return_value = True
+    backend.delete.return_value = 2
+    _patch_distributed_coordination(mocker, backend)
+
+    calls = {"n": 0}
+
+    def key_gen() -> str:
+        calls["n"] += 1
+        return "generated-key"
+
+    CoordinationService.get_value(key_gen)
+    CoordinationService.set_value(key_gen, "v")
+    # A mix of literal and callable keys resolves each independently.
+    CoordinationService.delete_value("literal-key", key_gen)
+
+    backend.get.assert_called_once_with("generated-key")
+    backend.set.assert_called_once_with(
+        "generated-key", "v", ex=None, nx=False, xx=False
+    )
+    backend.delete.assert_called_once_with("literal-key", "generated-key")
+    # The generator was invoked once per op (resolved lazily, not cached).
+    assert calls["n"] == 3
+
+
+def test_kv_key_generator_returning_non_string_raises(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    backend = mocker.MagicMock(name="coordination_backend")
+    _patch_distributed_coordination(mocker, backend)
+
+    with pytest.raises(TypeError):
+        CoordinationService.get_value(lambda: 123)  # type: ignore[arg-type, return-value]
+    backend.get.assert_not_called()
+
+
 # -- wait_for_signal / listen --------------------------------------------------
 
 
