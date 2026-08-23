@@ -42,8 +42,6 @@ type ConfigType = {
     globalTags: Array<string>;
   };
   redis: RedisConfig;
-  entityChangesChannelPrefix: string;
-  perPrincipalChannelPrefix: string;
   jwtAlgorithms: string[];
   jwtSecret: string;
   jwtCookieName: string;
@@ -64,10 +62,6 @@ function defaultConfig(): ConfigType {
     logLevel: 'info',
     logToFile: false,
     logFilename: 'app.log',
-    // Redis Pub/Sub channel prefixes; must match the Superset Flask app's
-    // TaskManager (ENTITY_CHANGES_CHANNEL_PREFIX / REALTIME_CHANNEL_PREFIX).
-    entityChangesChannelPrefix: 'entity-changes:',
-    perPrincipalChannelPrefix: 'realtime:',
     jwtAlgorithms: ['HS256'],
     jwtSecret: '',
     jwtCookieName: 'superset-ws-token',
@@ -144,10 +138,6 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     LOG_LEVEL: val => (config.logLevel = val),
     LOG_TO_FILE: val => (config.logToFile = toBoolean(val)),
     LOG_FILENAME: val => (config.logFilename = val),
-    ENTITY_CHANGES_CHANNEL_PREFIX: val =>
-      (config.entityChangesChannelPrefix = val),
-    PER_PRINCIPAL_CHANNEL_PREFIX: val =>
-      (config.perPrincipalChannelPrefix = val),
     JWT_SECRET: val => (config.jwtSecret = val),
     JWT_COOKIE_NAME: val => (config.jwtCookieName = val),
     ALLOWED_ORIGINS: val => (config.allowedOrigins = toStringArray(val)),

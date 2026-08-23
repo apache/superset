@@ -141,9 +141,9 @@ The following values must match between the Flask app config and this server's
 | `WEBSOCKET_JWT_COOKIE_NAME`   | `jwtCookieName` / `JWT_COOKIE_NAME` |
 
 The Redis connection (`redis` / `REDIS_*`) must point at the same Redis instance
-Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The channel prefixes
-(`entityChangesChannelPrefix`, `perPrincipalChannelPrefix`) default to match the
-backend and rarely need changing.
+Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The Pub/Sub channel
+prefixes (`entity-changes:`, `realtime:`) are a fixed wire-protocol contract with
+the backend producer and are not configurable.
 
 ## StatsD monitoring
 

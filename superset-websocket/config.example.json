@@ -15,8 +15,6 @@
     "db": 0,
     "ssl": false
   },
-  "entityChangesChannelPrefix": "entity-changes:",
-  "perPrincipalChannelPrefix": "realtime:",
   "jwtAlgorithms": ["HS256"],
   "jwtSecret": "CHANGE-ME",
   "jwtCookieName": "superset-ws-token",

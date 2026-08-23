@@ -144,13 +144,26 @@ export const wss = new WebSocketServer({
 
 const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
 
-// The Pub/Sub channel patterns the server tails. Tier-1 entity-change nudges
-// are public and broadcast to every socket; tier-2 per-principal channels are
-// routed to the matching principal only (see routeRedisMessage). Both are lossy
-// (Pub/Sub is fire-and-forget); the browser's interval poll is the correctness
-// backstop, so no stream replay / reconnection catch-up is needed.
-const ENTITY_CHANGES_PATTERN = `${opts.entityChangesChannelPrefix}*`;
-const PER_PRINCIPAL_PATTERN = `${opts.perPrincipalChannelPrefix}*`;
+// The Pub/Sub channel prefixes the server tails. These are a wire-protocol
+// contract with the Superset producer (superset/tasks/manager.py:
+// ENTITY_CHANGES_CHANNEL_PREFIX / REALTIME_CHANNEL_PREFIX), NOT a deployment
+// knob — an independent override on this side with no matching producer config
+// would silently subscribe to channels nothing publishes to, so they are fixed
+// constants that must stay in lockstep with the producer.
+//
+// Tier-1 entity-change nudges are public and broadcast to every socket; tier-2
+// per-principal channels are routed to the matching principal only (see
+// routeRedisMessage). Both are lossy (Pub/Sub is fire-and-forget); the browser's
+// interval poll is the correctness backstop, so no stream replay / reconnection
+// catch-up is needed.
+const ENTITY_CHANGES_CHANNEL_PREFIX = 'entity-changes:';
+const PER_PRINCIPAL_CHANNEL_PREFIX = 'realtime:';
+const ENTITY_CHANGES_PATTERN = `${ENTITY_CHANGES_CHANNEL_PREFIX}*`;
+const PER_PRINCIPAL_PATTERN = `${PER_PRINCIPAL_CHANNEL_PREFIX}*`;
+
+// Backoff before retrying an initial Pub/Sub subscription that failed (e.g.
+// Redis unreachable at startup); see subscribeToChannels.
+const SUBSCRIBE_RETRY_MS = 5000;
 
 // initialize internal registries
 export let channels: Record<string, ChannelValue> = {};
@@ -304,7 +317,7 @@ export const broadcastToAll = (message: OutboundMessage): void => {
 /**
  * Routes a raw Redis Pub/Sub message to the appropriate sockets.
  *
- * Per-principal messages (`<perPrincipalChannelPrefix><principalChannel>`, e.g.
+ * Per-principal messages (`realtime:<principalChannel>`, e.g.
  * `realtime:user:5`) are delivered only to sockets whose JWT bound that
  * principal channel. Entity-change messages (`entity-changes:<type>`) are
  * broadcast to all sockets. The full Redis channel name is forwarded to the
@@ -323,11 +336,10 @@ export const routeRedisMessage = (
   }
   const message: OutboundMessage = { channel, payload };
 
-  const { perPrincipalChannelPrefix, entityChangesChannelPrefix } = opts;
-  if (channel.startsWith(perPrincipalChannelPrefix)) {
-    const principalChannel = channel.slice(perPrincipalChannelPrefix.length);
+  if (channel.startsWith(PER_PRINCIPAL_CHANNEL_PREFIX)) {
+    const principalChannel = channel.slice(PER_PRINCIPAL_CHANNEL_PREFIX.length);
     sendToChannel(principalChannel, message);
-  } else if (channel.startsWith(entityChangesChannelPrefix)) {
+  } else if (channel.startsWith(ENTITY_CHANGES_CHANNEL_PREFIX)) {
     broadcastToAll(message);
   } else {
     logger.debug(`Ignoring message on unrecognized channel ${channel}`);
@@ -337,21 +349,43 @@ export const routeRedisMessage = (
 /**
  * Subscribes the Redis connection to the tier-1 (broadcast) and tier-2
  * (per-principal) channel patterns and routes each received message.
+ *
+ * Failure is observable and self-healing rather than silent: if the initial
+ * ``psubscribe`` rejects (e.g. Redis unreachable at startup) it is logged and
+ * retried, so the transport can't end up running with no subscription. ioredis
+ * additionally re-establishes these subscriptions automatically across
+ * reconnects once they exist. Delivery is best-effort regardless — the browser's
+ * interval poll is the correctness backstop.
  */
+let pmessageBound = false;
+
 export const subscribeToChannels = async (): Promise<void> => {
-  redisSubscriber.on(
-    'pmessage',
-    (_pattern: string, channel: string, message: string) => {
-      routeRedisMessage(channel, message);
-    },
-  );
-  await redisSubscriber.psubscribe(
-    ENTITY_CHANGES_PATTERN,
-    PER_PRINCIPAL_PATTERN,
-  );
-  logger.info(
-    `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${PER_PRINCIPAL_PATTERN}`,
-  );
+  // Bind the router exactly once; retries must not stack duplicate listeners
+  // (which would route every message N times).
+  if (!pmessageBound) {
+    redisSubscriber.on(
+      'pmessage',
+      (_pattern: string, channel: string, message: string) => {
+        routeRedisMessage(channel, message);
+      },
+    );
+    pmessageBound = true;
+  }
+  try {
+    await redisSubscriber.psubscribe(
+      ENTITY_CHANGES_PATTERN,
+      PER_PRINCIPAL_PATTERN,
+    );
+    logger.info(
+      `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${PER_PRINCIPAL_PATTERN}`,
+    );
+  } catch (err) {
+    logger.error(
+      `Failed to subscribe to Redis channels; retrying in ` +
+        `${SUBSCRIBE_RETRY_MS}ms: ${err}`,
+    );
+    setTimeout(subscribeToChannels, SUBSCRIBE_RETRY_MS);
+  }
 };
 
 /**
@@ -616,4 +650,5 @@ if (startServer) {
 export const resetState = () => {
   channels = {};
   sockets = {};
+  pmessageBound = false;
 };
