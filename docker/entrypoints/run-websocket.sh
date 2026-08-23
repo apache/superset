@@ -22,12 +22,19 @@
 #
 #   docker run <superset-image> /app/docker/entrypoints/run-websocket.sh
 #
-# Configure via environment variables (see superset-websocket/src/config.ts for
-# the full set), which must match the Flask app's WEBSOCKET_* config:
-#   PORT, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_SSL,
-#   JWT_SECRET (== WEBSOCKET_JWT_SECRET),
-#   JWT_COOKIE_NAME (== WEBSOCKET_JWT_COOKIE_NAME, default superset-ws-token),
-#   ALLOWED_ORIGINS.
+# Configure via environment variables — see superset-websocket/src/config.ts for
+# the authoritative, complete set (Redis connection, logging, connection limits,
+# StatsD, etc.). The values that MUST match the Flask app's config are:
+#   JWT_SECRET      == WEBSOCKET_JWT_SECRET
+#   JWT_COOKIE_NAME == WEBSOCKET_JWT_COOKIE_NAME (default superset-ws-token)
+# and the Redis connection (REDIS_HOST/REDIS_PORT/...) must point at the same
+# instance as the app's DISTRIBUTED_COORDINATION_CONFIG.
 set -e
+
+# Run from a writable directory so that opting into file logging with the
+# default relative LOG_FILENAME (LOG_TO_FILE=true) writes somewhere the
+# unprivileged `superset` user can create files, rather than the read-only /app.
+# The config.json lookup is unaffected (it resolves relative to the bundle).
+cd "${SUPERSET_HOME:-/app/superset_home}"
 
 exec node /app/superset-websocket/dist/index.cjs start
