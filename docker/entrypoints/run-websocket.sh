@@ -30,4 +30,4 @@
 #   ALLOWED_ORIGINS.
 set -e
 
-exec node /app/superset-websocket/dist/index.js start
+exec node /app/superset-websocket/dist/index.cjs start

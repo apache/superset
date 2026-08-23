@@ -25,6 +25,10 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
+  // Global ignores (a config object with only `ignores` applies everywhere,
+  // unlike a block-scoped `ignores` next to `files`). Excludes the esbuild
+  // bundle in dist/ and other generated/vendored files from linting.
+  { ignores: ['node_modules', 'dist', 'coverage', '**/*.min.js'] },
   js.configs.recommended,
   ...typescriptEslint.configs.recommended,
   eslintConfigPrettier,

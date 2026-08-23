@@ -118,12 +118,14 @@ ENV npm_config_fetch_retries=5 \
 
 WORKDIR /app/superset-websocket
 
-# Install against the lockfile first (cached until it changes), then compile the
-# TypeScript server and prune to production dependencies only.
+# Install against the lockfile first (cached until it changes), then bundle the
+# TypeScript server into a single self-contained CJS file (esbuild inlines every
+# dependency), so the runtime image needs only the Node binary and dist/ — no
+# node_modules to ship.
 COPY superset-websocket/package.json superset-websocket/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY superset-websocket/ ./
-RUN npm run build && npm prune --omit=dev
+RUN npm run build
 
 
 ######################################################################
@@ -266,18 +268,14 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 RUN python -m compileall /app/superset
 
 # --- Realtime WebSocket server (part of the official image) ---------------
-# The realtime transport (superset-websocket) is a Node service. Bundle the
-# Node runtime plus the built server and its production dependencies so the
-# official image can launch it via an alternate entrypoint
+# The realtime transport (superset-websocket) is a Node service, bundled by
+# esbuild into a single self-contained file. Copy the Node runtime plus that
+# bundle so the official image can launch it via an alternate entrypoint
 # (docker/entrypoints/run-websocket.sh) rather than needing a separate image.
 RUN /app/docker/apt-install.sh libstdc++6
 COPY --from=superset-websocket /usr/local/bin/node /usr/local/bin/node
 COPY --from=superset-websocket --chown=superset:superset \
     /app/superset-websocket/dist /app/superset-websocket/dist
-COPY --from=superset-websocket --chown=superset:superset \
-    /app/superset-websocket/node_modules /app/superset-websocket/node_modules
-COPY --from=superset-websocket --chown=superset:superset \
-    /app/superset-websocket/package.json /app/superset-websocket/package.json
 
 USER superset
 
