@@ -18,6 +18,8 @@ import logging
 from functools import partial
 from typing import Any
 
+from jinja2.exceptions import TemplateError
+
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.tag.exceptions import (
@@ -107,7 +109,26 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
             elif object_type == ObjectType.chart:
                 security_manager.raise_for_access(chart=target_object)
             elif object_type == ObjectType.query:
-                security_manager.raise_for_access(query=target_object)
+                # Authorizing a query without blanket database access parses its
+                # Jinja-templated SQL, which can raise ``TemplateError`` for
+                # malformed templates. Convert that into a validation error
+                # rather than letting it surface as an opaque 500.
+                try:
+                    security_manager.raise_for_access(query=target_object)
+                except TemplateError as ex:
+                    logger.warning(
+                        "Failed to render Jinja SQL while validating access "
+                        "for %s %s: %s",
+                        object_type,
+                        object_id,
+                        ex,
+                    )
+                    exceptions.append(
+                        TaggedObjectDeleteFailedError(
+                            f"Access validation failed for {object_type} "
+                            f"{object_id}: {ex}"
+                        )
+                    )
             elif object_type == ObjectType.dataset:
                 security_manager.raise_for_access(datasource=target_object)
             else:
