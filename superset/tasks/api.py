@@ -131,6 +131,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         "status",
         "created_by",
         "created_on",
+        "uuid",
     ]
 
     base_order = ("created_on", "desc")

@@ -46,10 +46,18 @@ import { getShareableUrl } from 'src/utils/navigationUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
 import {
+  subscribeRealtime,
+  type RealtimeMessage,
+} from 'src/middleware/realtime';
+import {
   FavoriteStatus,
   FileEncryptedExtraFields,
   ImportResourceName,
 } from './types';
+
+// Realtime list views coalesce a burst of entity-change nudges into at most one
+// batched row fetch per this window, bounding backend load under heavy churn.
+const REALTIME_REFETCH_DEBOUNCE_MS = 500;
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -86,6 +94,13 @@ export function useListViewResource<D extends object = any>(
   baseFilters?: FilterValue[], // must be memoized
   initialLoadingState = true,
   selectColumns?: string[],
+  // Realtime: when enabled, the list subscribes to the entity-change nudge
+  // channel and live-patches only its currently-displayed rows (see the
+  // realtime effect below). `realtimeIdField` is the row identity used both to
+  // match nudges against the collection and to filter the batched refetch
+  // (default the integer `id`; UUID-facing resources like tasks pass `uuid`).
+  enableRealtime = false,
+  realtimeIdField = 'id',
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -238,6 +253,77 @@ export function useListViewResource<D extends object = any>(
     },
     [fetchData],
   );
+
+  // Realtime list updates: on an entity-change nudge for a row currently on
+  // screen, debounce-collect the ids and batch-refetch just those rows through
+  // the normal authorized list endpoint (authz/RLS still apply), merging them in
+  // place. Update-only — no new-row insertion — and best-effort, so a downed
+  // socket just defers the update to the next normal fetch.
+  const collectionRef = useRef(state.collection);
+  collectionRef.current = state.collection;
+
+  useEffect(() => {
+    if (!enableRealtime) return undefined;
+
+    const channel = `entity-changes:${resource}`;
+    const pendingIds = new Set<string>();
+    let debounceId: ReturnType<typeof setTimeout> | undefined;
+
+    const rowId = (row: D): string =>
+      String((row as Record<string, unknown>)[realtimeIdField]);
+    const isDisplayed = (id: string): boolean =>
+      collectionRef.current.some(row => rowId(row) === id);
+
+    const flush = () => {
+      debounceId = undefined;
+      // Re-check membership: the collection may have changed (paged/filtered)
+      // since the nudges arrived, so only fetch rows still on screen.
+      const ids = [...pendingIds].filter(isDisplayed);
+      pendingIds.clear();
+      if (!ids.length) return;
+
+      const query = rison.encode_uri({
+        filters: [{ col: realtimeIdField, opr: 'in', value: ids }],
+        page: 0,
+        page_size: ids.length,
+      });
+      SupersetClient.get({ endpoint: `/api/v1/${resource}/?q=${query}` })
+        .then(({ json = {} }) => {
+          const fetched: D[] = json.result ?? [];
+          if (!fetched.length) return;
+          const byId = new Map(fetched.map(row => [rowId(row), row]));
+          // Replace matched rows in place; keep order, count, and every
+          // untouched row reference (so React only re-renders changed rows).
+          setState(current => ({
+            ...current,
+            collection: current.collection.map(
+              row => byId.get(rowId(row)) ?? row,
+            ),
+          }));
+        })
+        .catch(() => {
+          // Best-effort: a failed patch just leaves the stale rows until the
+          // next normal fetch; never surface a toast for a background refresh.
+        });
+    };
+
+    const unsubscribe = subscribeRealtime((message: RealtimeMessage) => {
+      if (message.channel !== channel) return;
+      const id = message.payload?.id;
+      if (id == null) return;
+      const idStr = String(id);
+      if (!isDisplayed(idStr)) return;
+      pendingIds.add(idStr);
+      if (debounceId === undefined) {
+        debounceId = setTimeout(flush, REALTIME_REFETCH_DEBOUNCE_MS);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (debounceId !== undefined) clearTimeout(debounceId);
+    };
+  }, [enableRealtime, resource, realtimeIdField]);
 
   return {
     state: {
