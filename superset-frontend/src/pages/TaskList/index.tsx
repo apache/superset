@@ -128,7 +128,6 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     true, // initialLoadingState
     undefined, // selectColumns
     true, // enableRealtime
-    'uuid', // realtimeIdField (tasks are keyed by uuid)
   );
 
   // Get full user with roles to check admin status

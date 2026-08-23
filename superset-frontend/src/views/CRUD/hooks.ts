@@ -57,7 +57,7 @@ import {
 
 // Realtime list views coalesce a burst of entity-change nudges into at most one
 // batched row fetch per this window, bounding backend load under heavy churn.
-const REALTIME_REFETCH_DEBOUNCE_MS = 500;
+const REALTIME_REFETCH_DEBOUNCE_MS = 1000;
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;

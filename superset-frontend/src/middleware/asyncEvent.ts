@@ -75,7 +75,11 @@ let pollingTimeoutId: number;
 // shared poll loop fans status changes out to whichever requests are awaiting them.
 // A SHARED task can be deduplicated across concurrent chart requests, so each task
 // id maps to a *set* of waiters (never overwrite an earlier subscriber).
-let waitersByTaskId: Map<string, Set<Waiter>>;
+// Initialized eagerly (not just in init()): the shared realtime socket connects
+// whenever WEBSOCKET_ENABLED — independent of GLOBAL_ASYNC_QUERIES — so the
+// subscribed handler may run applyStatus even when async queries are off, and
+// must find a map rather than undefined.
+let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
 // Server-issued watermark: fetched as a baseline at init (before any chart query
 // is triggered) so no task created afterwards is missed, then advanced by each
 // poll. Always the server's own clock, never the browser's.

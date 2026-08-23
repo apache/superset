@@ -454,12 +454,15 @@ test('useListViewResource: realtime nudge live-patches a displayed row in place'
     );
   });
 
-  await waitFor(() => {
-    expect(result.current.state.resourceCollection).toEqual([
-      { id: 1, name: 'A-updated' },
-      { id: 2, name: 'B' },
-    ]);
-  });
+  await waitFor(
+    () => {
+      expect(result.current.state.resourceCollection).toEqual([
+        { id: 1, name: 'A-updated' },
+        { id: 2, name: 'B' },
+      ]);
+    },
+    { timeout: 3000 },
+  );
   const endpoint = findEndpoint(getSpy, 'col:id');
   expect(endpoint).toContain('opr:in');
 });

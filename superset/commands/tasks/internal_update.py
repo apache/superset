@@ -43,6 +43,19 @@ from superset.utils.decorators import on_error, transaction
 logger = logging.getLogger(__name__)
 
 
+def _publish_entity_change(task_uuid: UUID) -> None:
+    """Best-effort realtime nudge for a committed task change.
+
+    Emitted after the transaction commits (so a client that re-fetches sees the
+    new state), on every status transition and throttled progress/payload write
+    — not just terminal completion — so realtime list views reflect intermediate
+    states (e.g. IN_PROGRESS, progress) live.
+    """
+    from superset.tasks.manager import TaskManager
+
+    TaskManager.publish_entity_change(task_uuid)
+
+
 class InternalUpdateTaskCommand(BaseCommand):
     """
     Zero-read task update command for properties/payload.
@@ -82,8 +95,15 @@ class InternalUpdateTaskCommand(BaseCommand):
         """No validation needed for internal command."""
         pass
 
-    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def run(self) -> bool:
+        """Write, then nudge realtime consumers of the change (post-commit)."""
+        updated = self._run_in_transaction()
+        if updated:
+            _publish_entity_change(self._task_uuid)
+        return updated
+
+    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
+    def _run_in_transaction(self) -> bool:
         """
         Execute zero-read update.
 
@@ -167,8 +187,15 @@ class InternalStatusTransitionCommand(BaseCommand):
         """No validation needed for internal command."""
         pass
 
-    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def run(self) -> bool:
+        """Transition, then nudge realtime consumers of the change (post-commit)."""
+        updated = self._run_in_transaction()
+        if updated:
+            _publish_entity_change(self._task_uuid)
+        return updated
+
+    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
+    def _run_in_transaction(self) -> bool:
         """
         Execute atomic conditional status update.
 

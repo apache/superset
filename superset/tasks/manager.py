@@ -81,37 +81,43 @@ class TaskManager:
     # channel per entity type (``entity-changes:task``, later ``:dashboard``,
     # ``:chart``, ``:dataset`` etc.) so consumers subscribe only to the types they
     # care about. The contract is general across all entity types: a nudge carries
-    # ONLY ``{entity_type, id}`` — no status or payload (status is task-specific and
-    # would not generalize). It's published once to the type's channel (not fanned
-    # out per subscriber). Id existence is intentionally public; anything sensitive
-    # (including a task's status/result) is delivered on the per-principal channel
-    # or fetched through the authorized REST API (``TaskFilter``/RLS), so this
-    # channel never carries authz-sensitive data.
+    # ONLY ``{entity_type, id}`` (the integer primary key) — no status or payload
+    # (status is task-specific and would not generalize). It's published once to
+    # the type's channel (not fanned out per subscriber). Id existence is
+    # intentionally public; anything sensitive (including a task's status/result)
+    # is delivered on the per-principal channel or fetched through the authorized
+    # REST API (``TaskFilter``/RLS), so this channel never carries authz-sensitive
+    # data.
     ENTITY_CHANGES_CHANNEL_PREFIX = "entity-changes:"
 
     @classmethod
     def publish_entity_change(cls, task_uuid: UUID) -> bool:
         """Publish a lossy, opaque, public "entity changed" nudge for realtime UIs.
 
-        Best-effort pub/sub (may be dropped) carrying only ``{entity_type, id}`` —
-        no status or payload — published once to the per-type channel
+        Best-effort pub/sub (may be dropped) carrying only ``{entity_type, id}``
+        (the integer primary key, which a realtime list view matches and refetches
+        by) — no status or payload — published once to the per-type channel
         (``entity-changes:task``). A browser transport (superset-websocket) forwards
         it to subscribed clients, which then re-fetch the actual (authz-scoped)
-        state through the authorized REST API (``/api/v1/task/status_changes``,
-        etc.). No-op when no coordination backend is configured.
+        state through the authorized REST API. No-op when no coordination backend
+        is configured or the task no longer exists.
 
         :param task_uuid: UUID of the changed task
         :returns: True if the nudge was published, False otherwise
         """
         from superset.coordination.base import CoordinationService
+        from superset.daos.tasks import TaskDAO
         from superset.utils import json
 
         if not CoordinationService.is_backend_defined():
             return False
         try:
+            task_id = TaskDAO.get_id(task_uuid)
+            if task_id is None:
+                return False
             CoordinationService.publish(
                 f"{cls.ENTITY_CHANGES_CHANNEL_PREFIX}task",
-                json.dumps({"entity_type": "task", "id": str(task_uuid)}),
+                json.dumps({"entity_type": "task", "id": task_id}),
             )
             return True
         except Exception as ex:  # noqa: BLE001 pylint: disable=broad-except
@@ -252,12 +258,11 @@ class TaskManager:
             channel = cls.get_completion_channel(task_uuid)
             CoordinationService.notify(channel, status)
             logger.debug("Signalled completion on %s (status=%s)", channel, status)
-            # Also emit a lossy opaque nudge for realtime UI transports (separate
-            # from the guaranteed completion signal above).
-            cls.publish_entity_change(task_uuid)
-            # And push the terminal status to each subscriber's per-principal
-            # channel (tier-2), so a chart-data client learns completion detail
-            # over the socket instead of re-polling the REST API.
+            # The tier-1 entity-change nudge for the terminal transition is emitted
+            # by InternalStatusTransitionCommand (post-commit), so it is not
+            # repeated here. Push the terminal status to each subscriber's
+            # per-principal channel (tier-2) so a chart-data client learns
+            # completion detail over the socket instead of re-polling the REST API.
             cls.publish_task_status(task_uuid, status)
             return True
         except redis.RedisError as ex:
