@@ -169,30 +169,39 @@ class TestTaskManagerEntityChange:
 
     IS_DEFINED = "superset.coordination.base.CoordinationService.is_backend_defined"
     PUBLISH = "superset.coordination.base.CoordinationService.publish"
+    GET_ID = "superset.daos.tasks.TaskDAO.get_id"
 
     @patch(IS_DEFINED, return_value=False)
     def test_no_backend(self, mock_defined):
         assert TaskManager.publish_entity_change(uuid.uuid4()) is False
 
+    @patch(GET_ID, return_value=42)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
     def test_publishes_opaque_nudge_to_per_type_channel(
-        self, mock_defined, mock_publish
+        self, mock_defined, mock_publish, mock_get_id
     ):
-        task_uuid = uuid.uuid4()
+        assert TaskManager.publish_entity_change(uuid.uuid4()) is True
 
-        assert TaskManager.publish_entity_change(task_uuid) is True
-
-        # One publish to the task type's channel, carrying ONLY opaque ids — no
-        # status or payload (the contract is general across all entity types).
+        # One publish to the task type's channel, carrying ONLY opaque ids (the
+        # integer primary key) — no status or payload (the contract is general
+        # across all entity types).
         mock_publish.assert_called_once()
         channel, message = mock_publish.call_args.args[:2]
         assert channel == "entity-changes:task"
-        assert json.loads(message) == {"entity_type": "task", "id": str(task_uuid)}
+        assert json.loads(message) == {"entity_type": "task", "id": 42}
 
+    @patch(GET_ID, return_value=None)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_missing_task_is_noop(self, mock_defined, mock_publish, mock_get_id):
+        assert TaskManager.publish_entity_change(uuid.uuid4()) is False
+        mock_publish.assert_not_called()
+
+    @patch(GET_ID, return_value=42)
     @patch(PUBLISH, side_effect=redis.RedisError("boom"))
     @patch(IS_DEFINED, return_value=True)
-    def test_redis_error_is_swallowed(self, mock_defined, mock_publish):
+    def test_redis_error_is_swallowed(self, mock_defined, mock_publish, mock_get_id):
         assert TaskManager.publish_entity_change(uuid.uuid4()) is False
 
 

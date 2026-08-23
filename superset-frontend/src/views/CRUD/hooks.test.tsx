@@ -27,6 +27,10 @@ import {
   useChartEditModal,
 } from './hooks';
 import type Chart from 'src/types/Chart';
+import {
+  dispatchRealtimeMessage,
+  resetRealtimeForTests,
+} from 'src/middleware/realtime';
 
 /** Find the endpoint string from a spy's mock calls that matches a substring. */
 function findEndpoint(spy: jest.SpyInstance, substring: string): string {
@@ -45,6 +49,12 @@ function findEndpoint(spy: jest.SpyInstance, substring: string): string {
 
 beforeEach(() => {
   jest.restoreAllMocks();
+});
+
+afterEach(() => {
+  // Clear the shared realtime client's module-level handlers/socket so a
+  // realtime-enabled hook from one test can't leak into the next.
+  resetRealtimeForTests();
 });
 
 // useListViewResource
@@ -393,6 +403,109 @@ test('useListViewResource: uses desc sort direction when desc is true', async ()
 
   const endpoint = findEndpoint(getSpy, '/api/v1/chart/?q=');
   expect(endpoint).toContain('order_direction:desc');
+});
+
+test('useListViewResource: realtime nudge live-patches a displayed row in place', async () => {
+  const initial = [
+    { id: 1, name: 'A' },
+    { id: 2, name: 'B' },
+  ];
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValueOnce({
+      json: { permissions: [] },
+    } as unknown as JsonResponse) // _info
+    .mockResolvedValueOnce({
+      json: { result: initial, count: 2 },
+    } as unknown as JsonResponse) // fetchData
+    .mockResolvedValueOnce({
+      json: { result: [{ id: 1, name: 'A-updated' }] },
+    } as unknown as JsonResponse); // batched realtime refetch
+
+  const { result } = renderHook(() =>
+    useListViewResource(
+      'chart',
+      'Charts',
+      jest.fn(),
+      true,
+      [],
+      undefined,
+      true,
+      undefined,
+      true, // enableRealtime
+    ),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'id', desc: false }],
+      filters: [],
+    });
+  });
+  expect(result.current.state.resourceCollection).toEqual(initial);
+
+  // A nudge for a displayed row triggers one batched refetch (col:id op:in),
+  // and the fetched row is merged in place; the untouched row is unchanged.
+  act(() => {
+    dispatchRealtimeMessage(
+      JSON.stringify({ channel: 'entity-changes:chart', payload: { id: 1 } }),
+    );
+  });
+
+  await waitFor(
+    () => {
+      expect(result.current.state.resourceCollection).toEqual([
+        { id: 1, name: 'A-updated' },
+        { id: 2, name: 'B' },
+      ]);
+    },
+    { timeout: 3000 },
+  );
+  const endpoint = findEndpoint(getSpy, 'col:id');
+  expect(endpoint).toContain('opr:in');
+});
+
+test('useListViewResource: realtime ignores nudges for rows not on screen', async () => {
+  const initial = [{ id: 1, name: 'A' }];
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: initial, count: 1 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource(
+      'chart',
+      'Charts',
+      jest.fn(),
+      true,
+      [],
+      undefined,
+      true,
+      undefined,
+      true,
+    ),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'id', desc: false }],
+      filters: [],
+    });
+  });
+
+  const callsBefore = getSpy.mock.calls.length;
+  act(() => {
+    dispatchRealtimeMessage(
+      JSON.stringify({ channel: 'entity-changes:chart', payload: { id: 999 } }),
+    );
+  });
+
+  // No id=999 row is displayed, so no batched refetch is scheduled.
+  await new Promise(resolve => setTimeout(resolve, 600));
+  expect(getSpy.mock.calls.length).toBe(callsBefore);
 });
 
 // useSingleViewResource

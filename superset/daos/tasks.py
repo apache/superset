@@ -69,6 +69,17 @@ class TaskDAO(BaseDAO[Task]):
         return result[0] if result else None
 
     @classmethod
+    def get_id(cls, task_uuid: UUID) -> int | None:
+        """Return a task's integer primary key by UUID, or None if not found.
+
+        Lightweight scalar lookup (no entity load, no base filter): used to carry
+        the primary id in the realtime entity-change nudge, which the list view
+        matches and refetches by. Internal plumbing on a task the caller already
+        owns, not a user-facing lookup.
+        """
+        return db.session.query(Task.id).filter(Task.uuid == task_uuid).scalar()
+
+    @classmethod
     def get_statuses_changed_since(
         cls, cursor: datetime | None, task_type: str | None = None
     ) -> tuple[dict[str, dict[str, Any]], datetime]:

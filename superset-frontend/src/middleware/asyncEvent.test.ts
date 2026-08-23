@@ -159,11 +159,10 @@ test('settles every request awaiting a deduplicated shared task', async () => {
 });
 
 describe('realtime WebSocket acceleration', () => {
-  const realtime = (taskId: string, status: string) =>
-    JSON.stringify({
-      channel: `realtime:user:1`,
-      payload: { task_id: taskId, status },
-    });
+  const realtime = (taskId: string, status: string) => ({
+    channel: `realtime:user:1`,
+    payload: { task_id: taskId, status },
+  });
 
   // waitForAsyncData registers its waiter only after the baseline cursor fetch
   // resolves; wait a tick so a one-shot socket message isn't delivered before
@@ -206,7 +205,7 @@ describe('realtime WebSocket acceleration', () => {
     expect(refetch).not.toHaveBeenCalled();
   });
 
-  test('ignores non-realtime channels and malformed data', async () => {
+  test('ignores non-realtime channels', async () => {
     queueStatuses();
     asyncEvent.init(config);
 
@@ -218,18 +217,26 @@ describe('realtime WebSocket acceleration', () => {
 
     await afterRegistered();
     // A public entity-change nudge carries no status and must not settle a chart.
-    asyncEvent.handleRealtimeMessage(
-      JSON.stringify({
-        channel: 'entity-changes:task',
-        payload: { entity_type: 'task', id: 'task-1' },
-      }),
-    );
-    // Malformed data must be swallowed, not thrown.
-    expect(() => asyncEvent.handleRealtimeMessage('not json')).not.toThrow();
+    asyncEvent.handleRealtimeMessage({
+      channel: 'entity-changes:task',
+      payload: { entity_type: 'task', id: 'task-1' },
+    });
     expect(refetch).not.toHaveBeenCalled();
 
     // The task is still pending; complete it so the test doesn't leak a waiter.
     asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
     await promise;
+  });
+
+  test('a tier-2 message is a no-op when async queries are disabled', () => {
+    // The shared socket connects whenever WEBSOCKET_ENABLED, independent of the
+    // GLOBAL_ASYNC_QUERIES flag, so a realtime message can arrive with no active
+    // async flow — it must not throw (waiter registry stays an empty map).
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    asyncEvent.init(config);
+
+    expect(() =>
+      asyncEvent.handleRealtimeMessage(realtime('task-1', 'success')),
+    ).not.toThrow();
   });
 });
