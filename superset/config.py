@@ -55,6 +55,7 @@ from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import (
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
     CHANGE_ME_SECRET_KEY,
+    CHANGE_ME_WEBSOCKET_JWT_SECRET,
 )
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
@@ -2930,6 +2931,27 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
 # existing async behavior; set ``False`` to make the UI synchronous by default and roll
 # async out per dashboard.
 GLOBAL_ASYNC_QUERIES_DEFAULT = True
+
+# Realtime websocket transport (the `superset-websocket` server) config.
+# When enabled, GTF task changes are pushed to the browser so charts and list
+# views update without waiting for the interval poll (which stays as the
+# fallback). Requires the superset-websocket server and a Redis coordination
+# backend (DISTRIBUTED_COORDINATION_CONFIG). Two channel tiers:
+#   - a public per-entity-type pub/sub (e.g. entity-changes:task) for lossy
+#     list-view activity (opaque id + status), and
+#   - a per-principal channel (user:<id> / guest:<hmac>) for the dashboard
+#     chart-data path, authenticated by the JWT cookie below.
+# The JWT authenticates the socket connection and binds it to its channel; the
+# server delivers a per-principal channel's events only to that principal's
+# sockets. Set a strong random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
+WEBSOCKET_ENABLED = False
+WEBSOCKET_URL = "ws://127.0.0.1:8080/"
+WEBSOCKET_JWT_SECRET = CHANGE_ME_WEBSOCKET_JWT_SECRET
+WEBSOCKET_JWT_COOKIE_NAME = "superset-ws-token"  # noqa: S105
+WEBSOCKET_JWT_COOKIE_SECURE = False
+WEBSOCKET_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = None
+WEBSOCKET_JWT_COOKIE_DOMAIN = None
+WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
