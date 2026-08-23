@@ -196,6 +196,77 @@ class TestTaskManagerEntityChange:
         assert TaskManager.publish_entity_change(uuid.uuid4()) is False
 
 
+class TestTaskManagerPublishTaskStatus:
+    """publish_task_status fans a task's status out to subscriber channels (tier-2)."""
+
+    def setup_method(self):
+        _reset_prefixes()
+
+    def teardown_method(self):
+        _reset_prefixes()
+
+    IS_DEFINED = "superset.coordination.base.CoordinationService.is_backend_defined"
+    PUBLISH = "superset.coordination.base.CoordinationService.publish"
+    DAO = "superset.daos.tasks.TaskDAO"
+
+    @patch(IS_DEFINED, return_value=False)
+    def test_no_backend(self, mock_defined):
+        assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
+
+    @patch(DAO)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_publishes_status_to_each_subscriber_channel(
+        self, mock_defined, mock_publish, mock_dao
+    ):
+        task_uuid = uuid.uuid4()
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7)
+        mock_dao.get_subscriber_channels.return_value = ["user:1", "guest-abc"]
+
+        assert TaskManager.publish_task_status(task_uuid, "success") is True
+
+        mock_dao.get_subscriber_channels.assert_called_once_with(7)
+        # One publish per distinct subscriber channel, each on realtime:<channel>
+        # carrying the task uuid + status (delivery is per-principal, so status is
+        # allowed here — unlike the public tier-1 nudge).
+        assert mock_publish.call_count == 2
+        channels = {call.args[0] for call in mock_publish.call_args_list}
+        assert channels == {"realtime:user:1", "realtime:guest-abc"}
+        for call in mock_publish.call_args_list:
+            assert json.loads(call.args[1]) == {
+                "task_id": str(task_uuid),
+                "status": "success",
+            }
+
+    @patch(DAO)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_no_subscribers_is_noop(self, mock_defined, mock_publish, mock_dao):
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7)
+        mock_dao.get_subscriber_channels.return_value = []
+
+        assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
+        mock_publish.assert_not_called()
+
+    @patch(DAO)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_task_not_found_is_noop(self, mock_defined, mock_publish, mock_dao):
+        mock_dao.find_one_or_none.return_value = None
+
+        assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
+        mock_publish.assert_not_called()
+
+    @patch(DAO)
+    @patch(PUBLISH, side_effect=redis.RedisError("boom"))
+    @patch(IS_DEFINED, return_value=True)
+    def test_redis_error_is_swallowed(self, mock_defined, mock_publish, mock_dao):
+        mock_dao.find_one_or_none.return_value = MagicMock(id=7)
+        mock_dao.get_subscriber_channels.return_value = ["user:1"]
+
+        assert TaskManager.publish_task_status(uuid.uuid4(), "success") is False
+
+
 class TestTaskManagerListenForAbort:
     """listen_for_abort delegates to CoordinationService.listen_for_signal()."""
 

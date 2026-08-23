@@ -359,6 +359,39 @@ def test_add_subscriber_idempotent(session_with_task: Session) -> None:
     assert len(task.subscribers) == 1
 
 
+def test_get_subscriber_channels(session_with_task: Session) -> None:
+    """get_subscriber_channels maps each subscriber to its per-principal channel."""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="shared-channels",
+        scope=TaskScope.SHARED,
+        user_id=None,
+    )
+    TaskDAO.add_subscriber(task.id, user_id=7)
+    TaskDAO.add_guest_subscriber(task.id, guest_key="guest-abc")
+
+    channels = TaskDAO.get_subscriber_channels(task.id)
+
+    # A user subscriber → user:<id>; a guest subscriber → its token-derived key.
+    assert set(channels) == {"user:7", "guest-abc"}
+
+
+def test_get_subscriber_channels_empty(session_with_task: Session) -> None:
+    """get_subscriber_channels returns [] for a task with no subscribers."""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="no-subs",
+        scope=TaskScope.SHARED,
+        user_id=None,
+    )
+
+    assert TaskDAO.get_subscriber_channels(task.id) == []
+
+
 def test_remove_subscriber(session_with_task: Session) -> None:
     """Test removing a subscriber from a task"""
     from superset.daos.tasks import TaskDAO

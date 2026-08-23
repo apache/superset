@@ -42,9 +42,8 @@ type ConfigType = {
     globalTags: Array<string>;
   };
   redis: RedisConfig;
-  redisStreamPrefix: string;
-  redisStreamReadCount: number;
-  redisStreamReadBlockMs: number;
+  entityChangesChannelPrefix: string;
+  perPrincipalChannelPrefix: string;
   jwtAlgorithms: string[];
   jwtSecret: string;
   jwtCookieName: string;
@@ -65,12 +64,13 @@ function defaultConfig(): ConfigType {
     logLevel: 'info',
     logToFile: false,
     logFilename: 'app.log',
-    redisStreamPrefix: 'async-events-',
-    redisStreamReadCount: 100,
-    redisStreamReadBlockMs: 5000,
+    // Redis Pub/Sub channel prefixes; must match the Superset Flask app's
+    // TaskManager (ENTITY_CHANGES_CHANNEL_PREFIX / REALTIME_CHANNEL_PREFIX).
+    entityChangesChannelPrefix: 'entity-changes:',
+    perPrincipalChannelPrefix: 'realtime:',
     jwtAlgorithms: ['HS256'],
     jwtSecret: '',
-    jwtCookieName: 'async-token',
+    jwtCookieName: 'superset-ws-token',
     jwtChannelIdKey: 'channel',
     allowedOrigins: [],
     socketResponseTimeoutMs: 60 * 1000,
@@ -144,11 +144,10 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     LOG_LEVEL: val => (config.logLevel = val),
     LOG_TO_FILE: val => (config.logToFile = toBoolean(val)),
     LOG_FILENAME: val => (config.logFilename = val),
-    REDIS_STREAM_PREFIX: val => (config.redisStreamPrefix = val),
-    REDIS_STREAM_READ_COUNT: val =>
-      (config.redisStreamReadCount = toNumber(val)),
-    REDIS_STREAM_READ_BLOCK_MS: val =>
-      (config.redisStreamReadBlockMs = toNumber(val)),
+    ENTITY_CHANGES_CHANNEL_PREFIX: val =>
+      (config.entityChangesChannelPrefix = val),
+    PER_PRINCIPAL_CHANNEL_PREFIX: val =>
+      (config.perPrincipalChannelPrefix = val),
     JWT_SECRET: val => (config.jwtSecret = val),
     JWT_COOKIE_NAME: val => (config.jwtCookieName = val),
     ALLOWED_ORIGINS: val => (config.allowedOrigins = toStringArray(val)),

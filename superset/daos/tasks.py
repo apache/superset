@@ -315,6 +315,36 @@ class TaskDAO(BaseDAO[Task]):
     # Subscription management methods
 
     @classmethod
+    def get_subscriber_channels(cls, task_id: int) -> list[str]:
+        """Return the per-principal realtime channels of a task's subscribers.
+
+        Maps each subscriber row (a user or an embedded guest) to its channel id
+        via the shared :func:`superset.websocket.channel.channel_id_for`
+        formatter, so a tier-2 completion event published to one of these
+        channels reaches exactly the socket whose cookie bound the same channel
+        (see ``TaskManager.publish_completion``). Skips the base filter: this is
+        internal plumbing for a task the executor already owns, not a user-facing
+        listing.
+
+        :param task_id: internal id of the task
+        :returns: distinct channel ids (``user:<id>`` / ``guest-<hmac>``); empty
+            when the task has no resolvable subscribers
+        """
+        from superset.websocket.channel import channel_id_for
+
+        rows = (
+            db.session.query(TaskSubscriber.user_id, TaskSubscriber.guest_key)
+            .filter(TaskSubscriber.task_id == task_id)
+            .all()
+        )
+        channels: list[str] = []
+        for user_id, guest_key in rows:
+            channel = channel_id_for(user_id, guest_key)
+            if channel is not None and channel not in channels:
+                channels.append(channel)
+        return channels
+
+    @classmethod
     def add_subscriber(cls, task_id: int, user_id: int) -> bool:
         """
         Add a user as a subscriber to a task.

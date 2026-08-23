@@ -16,6 +16,8 @@
 # under the License.
 """Task API schemas"""
 
+from datetime import datetime
+
 from marshmallow import fields, Schema
 from marshmallow.fields import Method
 
@@ -160,19 +162,45 @@ class TaskResponseSchema(Schema):
         return obj.subscriber_count  # type: ignore[attr-defined]
 
     def get_subscribers(self, obj: object) -> list[dict[str, object]]:
-        """Get list of subscribers with user info"""
+        """Get list of subscribers with user info.
+
+        Authenticated subscribers are returned with their user profile. Embedded
+        guests have no ``ab_user`` profile, so they are returned as anonymized
+        entries (``is_guest`` with a stable per-task ``label`` ``G1``/``G2``/…,
+        ordered by subscription time) — the Task List renders them as ``G1``/``G2``
+        avatars rather than nameless blanks.
+        """
+        all_subs = list(obj.subscribers)  # type: ignore[attr-defined]
+        # Assign stable G-ordinals to guest subscribers, ordered by subscription
+        # time (then id) so the labels don't shuffle between requests.
+        guest_subs = sorted(
+            (s for s in all_subs if s.user_id is None),
+            key=lambda s: (s.subscribed_at or datetime.min, s.id),
+        )
+        guest_ordinal = {s.id: i + 1 for i, s in enumerate(guest_subs)}
+
         subscribers = []
-        for sub in obj.subscribers:  # type: ignore[attr-defined]
-            subscribers.append(
-                {
-                    "user_id": sub.user_id,
-                    "first_name": sub.user.first_name if sub.user else None,
-                    "last_name": sub.user.last_name if sub.user else None,
-                    "subscribed_at": sub.subscribed_at.isoformat()
-                    if sub.subscribed_at
-                    else None,
-                }
-            )
+        for sub in all_subs:
+            subscribed_at = sub.subscribed_at.isoformat() if sub.subscribed_at else None
+            if sub.user_id is not None:
+                subscribers.append(
+                    {
+                        "user_id": sub.user_id,
+                        "is_guest": False,
+                        "first_name": sub.user.first_name if sub.user else None,
+                        "last_name": sub.user.last_name if sub.user else None,
+                        "subscribed_at": subscribed_at,
+                    }
+                )
+            else:
+                subscribers.append(
+                    {
+                        "user_id": None,
+                        "is_guest": True,
+                        "label": f"G{guest_ordinal[sub.id]}",
+                        "subscribed_at": subscribed_at,
+                    }
+                )
         return subscribers
 
     def get_depends_on(self, obj: object) -> list[dict[str, object]]:

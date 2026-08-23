@@ -18,9 +18,13 @@
  */
 
 export interface TaskSubscriber {
-  user_id: number;
-  first_name: string;
-  last_name: string;
+  // Authenticated subscribers carry a user_id + profile; embedded guests have
+  // no ab_user, so they arrive as is_guest with an anonymized label (G1/G2/…).
+  user_id: number | null;
+  first_name?: string;
+  last_name?: string;
+  is_guest?: boolean;
+  label?: string;
   subscribed_at: string;
 }
 

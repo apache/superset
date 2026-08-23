@@ -34,43 +34,26 @@ import { WebSocket } from 'ws';
 import * as server from '../src/index';
 import { statsd } from '../src/index';
 
-const { mockRedisXrange } = vi.hoisted(() => {
-  return { mockRedisXrange: vi.fn() };
+const { mockPsubscribe, mockOn } = vi.hoisted(() => {
+  return { mockPsubscribe: vi.fn(), mockOn: vi.fn() };
 });
 
 vi.mock('ws');
 vi.mock('ioredis', () => {
   return {
     Redis: vi.fn().mockImplementation(function () {
-      return { xrange: mockRedisXrange, on: vi.fn() };
+      return { psubscribe: mockPsubscribe, on: mockOn };
     }),
   };
 });
 
 const wsMock = WebSocket as unknown as Mock<typeof WebSocket>;
-const channelId = 'bc9e040c-7b4a-4817-99b9-292832d97ec7';
-const streamReturnValue: server.StreamResult[] = [
-  [
-    '1615426152415-0',
-    [
-      'data',
-      `{"channel_id": "${channelId}", "job_id": "c9b99965-8f1e-4ce5-aa43-d6fc94d6a510", "user_id": "1", "status": "done", "errors": [], "result_url": "/superset/explore_json/data/ejr-37281682b1282cdb8f25e0de0339b386"}`,
-    ],
-  ],
-  [
-    '1615426152516-0',
-    [
-      'data',
-      `{"channel_id": "${channelId}", "job_id": "f1e5bb1f-f2f1-4f21-9b2f-c9b91dcc9b59", "user_id": "1", "status": "done", "errors": [], "result_url": "/api/v1/chart/data/qc-64e8452dc9907dd77746cb75a19202de"}`,
-    ],
-  ],
-];
+const channelId = 'user:5';
 
 describe('server', () => {
   let statsdIncrementMock: Mock<typeof statsd.increment>;
 
   beforeEach(() => {
-    mockRedisXrange.mockClear();
     server.resetState();
     statsdIncrementMock = vi.spyOn(statsd, 'increment').mockReturnValue();
   });
@@ -139,53 +122,6 @@ describe('server', () => {
     });
   });
 
-  describe('incrementId', () => {
-    test('it increments a valid Redis stream ID', () => {
-      expect(server.incrementId('1607477697866-0')).toEqual('1607477697866-1');
-    });
-
-    test('it handles an invalid Redis stream ID', () => {
-      expect(server.incrementId('foo')).toEqual('foo');
-    });
-  });
-
-  describe('getLastId', () => {
-    const requestWithUrl = (url: string): http.IncomingMessage => {
-      const request = new http.IncomingMessage(new net.Socket());
-      request.url = url;
-      return request;
-    };
-
-    test('returns null when last_id is absent', () => {
-      expect(server.getLastId(requestWithUrl('http://localhost'))).toBeNull();
-    });
-
-    test('returns a well-formed Redis stream ID', () => {
-      expect(
-        server.getLastId(
-          requestWithUrl('http://localhost?last_id=1607477697866-0'),
-        ),
-      ).toEqual('1607477697866-0');
-    });
-
-    test.each([
-      'abc-xyz',
-      '1607477697866',
-      '1607477697866-',
-      '-0',
-      '1607477697866-0; DROP TABLE',
-      '1607477697866-0-0',
-    ])('returns null for malformed last_id %p', value => {
-      expect(
-        server.getLastId(
-          requestWithUrl(
-            `http://localhost?last_id=${encodeURIComponent(value)}`,
-          ),
-        ),
-      ).toBeNull();
-    });
-  });
-
   describe('redisUrlFromConfig', () => {
     test('it builds a valid Redis URL from defaults', () => {
       expect(
@@ -239,127 +175,115 @@ describe('server', () => {
     });
   });
 
-  describe('processStreamResults', () => {
-    test('sends data to channel', async () => {
-      const ws = new wsMock('localhost');
-      const sendMock = vi.spyOn(ws, 'send');
-      const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
-
-      expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
-      server.trackClient(channelId, socketInstance);
-      expect(statsdIncrementMock).toHaveBeenCalledTimes(1);
-      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
-        1,
-        'ws_connected_client',
-      );
-
-      server.processStreamResults(streamReturnValue);
-      expect(statsdIncrementMock).toHaveBeenCalledTimes(1);
-
-      const message1 = `{"id":"1615426152415-0","channel_id":"${channelId}","job_id":"c9b99965-8f1e-4ce5-aa43-d6fc94d6a510","user_id":"1","status":"done","errors":[],"result_url":"/superset/explore_json/data/ejr-37281682b1282cdb8f25e0de0339b386"}`;
-      const message2 = `{"id":"1615426152516-0","channel_id":"${channelId}","job_id":"f1e5bb1f-f2f1-4f21-9b2f-c9b91dcc9b59","user_id":"1","status":"done","errors":[],"result_url":"/api/v1/chart/data/qc-64e8452dc9907dd77746cb75a19202de"}`;
-      expect(sendMock).toHaveBeenCalledWith(message1);
-      expect(sendMock).toHaveBeenCalledWith(message2);
-    });
-
-    test('channel not present', async () => {
-      const ws = new wsMock('localhost');
-      const sendMock = vi.spyOn(ws, 'send');
-
-      expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
-      server.processStreamResults(streamReturnValue);
-      expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
-
-      expect(sendMock).not.toHaveBeenCalled();
-    });
-
-    test('error sending data to client', async () => {
-      const ws = new wsMock('localhost');
-      const sendMock = vi.spyOn(ws, 'send').mockImplementation(() => {
-        throw new Error();
-      });
-      const socketInstance = { ws: ws, channel: channelId, pongTs: Date.now() };
-
-      expect(statsdIncrementMock).toHaveBeenCalledTimes(0);
-      server.trackClient(channelId, socketInstance);
-      expect(statsdIncrementMock).toHaveBeenCalledTimes(1);
-      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
-        1,
-        'ws_connected_client',
-      );
-
-      server.processStreamResults(streamReturnValue);
-      expect(statsdIncrementMock).toHaveBeenCalledTimes(2);
-      expect(statsdIncrementMock).toHaveBeenNthCalledWith(
-        2,
-        'ws_client_send_error',
-      );
-
-      expect(sendMock).toHaveBeenCalled();
-      expect(Object.keys(server.channels)).toHaveLength(0);
-    });
-
-    const makeItem = (i: number): server.StreamResult =>
-      [
-        `161542615${i}-0`,
-        [
-          'data',
-          JSON.stringify({
-            channel_id: channelId,
-            job_id: `job-${i}`,
-            status: 'done',
-          }),
-        ],
-      ] as server.StreamResult;
-
-    afterEach(() => {
-      server.opts.eventYieldBatchSize = 100;
-    });
-
-    test('yields to the event loop for large batches', async () => {
-      server.opts.eventYieldBatchSize = 2;
-      const ws = new wsMock('localhost');
-      server.trackClient(channelId, {
-        ws,
-        channel: channelId,
+  describe('routeRedisMessage', () => {
+    test('routes a per-principal message to the matching channel only', () => {
+      // Two principals connected; a realtime:user:5 message reaches only user:5.
+      const wsA = new wsMock('localhost');
+      const sendA = vi.spyOn(wsA, 'send');
+      server.trackClient('user:5', {
+        ws: wsA,
+        channel: 'user:5',
         pongTs: Date.now(),
       });
-      const sendMock = vi.spyOn(ws, 'send');
-      const setImmediateSpy = vi.spyOn(global, 'setImmediate');
 
-      const results = [0, 1, 2, 3, 4].map(makeItem);
-      await server.processStreamResults(results);
-
-      // every event is still delivered
-      expect(sendMock).toHaveBeenCalledTimes(5);
-      // and the loop yielded at least at indexes 2 and 4
-      expect(setImmediateSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
-      setImmediateSpy.mockRestore();
-    });
-
-    test('processes the whole batch when yielding is disabled', async () => {
-      server.opts.eventYieldBatchSize = 0;
-      const ws = new wsMock('localhost');
-      server.trackClient(channelId, {
-        ws,
-        channel: channelId,
+      const wsB = new wsMock('localhost');
+      const sendB = vi.spyOn(wsB, 'send');
+      server.trackClient('user:9', {
+        ws: wsB,
+        channel: 'user:9',
         pongTs: Date.now(),
       });
-      const sendMock = vi.spyOn(ws, 'send');
 
-      const results = [0, 1, 2, 3, 4].map(makeItem);
-      await server.processStreamResults(results);
+      const payload = { task_id: 'abc', status: 'success' };
+      server.routeRedisMessage('realtime:user:5', JSON.stringify(payload));
 
-      expect(sendMock).toHaveBeenCalledTimes(5);
+      expect(sendA).toHaveBeenCalledTimes(1);
+      expect(sendA).toHaveBeenCalledWith(
+        JSON.stringify({ channel: 'realtime:user:5', payload }),
+      );
+      expect(sendB).not.toHaveBeenCalled();
+    });
+
+    test('routes a per-principal message to a guest channel', () => {
+      const ws = new wsMock('localhost');
+      const send = vi.spyOn(ws, 'send');
+      server.trackClient('guest-abc', {
+        ws,
+        channel: 'guest-abc',
+        pongTs: Date.now(),
+      });
+
+      const payload = { task_id: 'xyz', status: 'failure' };
+      server.routeRedisMessage('realtime:guest-abc', JSON.stringify(payload));
+
+      expect(send).toHaveBeenCalledWith(
+        JSON.stringify({ channel: 'realtime:guest-abc', payload }),
+      );
+    });
+
+    test('broadcasts an entity-change nudge to every socket', () => {
+      const wsA = new wsMock('localhost');
+      const sendA = vi.spyOn(wsA, 'send');
+      server.trackClient('user:5', {
+        ws: wsA,
+        channel: 'user:5',
+        pongTs: Date.now(),
+      });
+
+      const wsB = new wsMock('localhost');
+      const sendB = vi.spyOn(wsB, 'send');
+      server.trackClient('guest-abc', {
+        ws: wsB,
+        channel: 'guest-abc',
+        pongTs: Date.now(),
+      });
+
+      const payload = { entity_type: 'task', id: 'abc' };
+      server.routeRedisMessage('entity-changes:task', JSON.stringify(payload));
+
+      const expected = JSON.stringify({
+        channel: 'entity-changes:task',
+        payload,
+      });
+      expect(sendA).toHaveBeenCalledWith(expected);
+      expect(sendB).toHaveBeenCalledWith(expected);
+    });
+
+    test('ignores a message on an unrecognized channel', () => {
+      const ws = new wsMock('localhost');
+      const send = vi.spyOn(ws, 'send');
+      server.trackClient('user:5', {
+        ws,
+        channel: 'user:5',
+        pongTs: Date.now(),
+      });
+
+      server.routeRedisMessage('some-other:channel', JSON.stringify({ a: 1 }));
+
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    test('swallows a malformed (non-JSON) message', () => {
+      const ws = new wsMock('localhost');
+      const send = vi.spyOn(ws, 'send');
+      server.trackClient('user:5', {
+        ws,
+        channel: 'user:5',
+        pongTs: Date.now(),
+      });
+
+      // Must not throw; simply drops the unparseable message.
+      expect(() =>
+        server.routeRedisMessage('realtime:user:5', 'not json'),
+      ).not.toThrow();
+      expect(send).not.toHaveBeenCalled();
     });
   });
 
   describe('backpressure', () => {
-    const fakeEvent = {
-      id: '1615426152415-0',
-      channel_id: channelId,
-      job_id: 'c9b99965-8f1e-4ce5-aa43-d6fc94d6a510',
-      status: 'done',
+    const message: server.OutboundMessage = {
+      channel: 'realtime:user:5',
+      payload: { task_id: 'abc', status: 'success' },
     };
 
     afterEach(() => {
@@ -382,7 +306,7 @@ describe('server', () => {
         pongTs: Date.now(),
       });
 
-      server.sendToChannel(channelId, fakeEvent);
+      server.sendToChannel(channelId, message);
 
       expect(terminateMock).not.toHaveBeenCalled();
       expect(sendMock).toHaveBeenCalled();
@@ -400,7 +324,7 @@ describe('server', () => {
         pongTs: Date.now(),
       });
 
-      server.sendToChannel(channelId, fakeEvent);
+      server.sendToChannel(channelId, message);
 
       expect(terminateMock).toHaveBeenCalled();
       expect(sendMock).not.toHaveBeenCalled();
@@ -422,75 +346,28 @@ describe('server', () => {
         pongTs: Date.now(),
       });
 
-      server.sendToChannel(channelId, fakeEvent);
+      server.sendToChannel(channelId, message);
 
       expect(terminateMock).not.toHaveBeenCalled();
       expect(sendMock).toHaveBeenCalled();
     });
-  });
 
-  describe('fetchRangeFromStream', () => {
-    beforeEach(() => {
-      mockRedisXrange.mockClear();
-    });
-
-    test('success with results', async () => {
-      mockRedisXrange.mockResolvedValueOnce(streamReturnValue);
-      const cb = vi.fn() as Mock<
-        (results: server.StreamResult[]) => void | Promise<void>
-      >;
-      await server.fetchRangeFromStream({
-        sessionId: '123',
-        startId: '-',
-        endId: '+',
-        listener: cb,
+    test('error sending data to client cleans the channel', () => {
+      const ws = new wsMock('localhost');
+      const sendMock = vi.spyOn(ws, 'send').mockImplementation(() => {
+        throw new Error();
+      });
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
       });
 
-      expect(mockRedisXrange).toHaveBeenCalledWith(
-        'test-async-events-123',
-        '-',
-        '+',
-      );
-      expect(cb).toHaveBeenCalledWith(streamReturnValue);
-    });
+      server.sendToChannel(channelId, message);
 
-    test('success no results', async () => {
-      const cb = vi.fn() as Mock<
-        (results: server.StreamResult[]) => void | Promise<void>
-      >;
-      await server.fetchRangeFromStream({
-        sessionId: '123',
-        startId: '-',
-        endId: '+',
-        listener: cb,
-      });
-
-      expect(mockRedisXrange).toHaveBeenCalledWith(
-        'test-async-events-123',
-        '-',
-        '+',
-      );
-      expect(cb).not.toHaveBeenCalled();
-    });
-
-    test('error', async () => {
-      const cb = vi.fn() as Mock<
-        (results: server.StreamResult[]) => void | Promise<void>
-      >;
-      mockRedisXrange.mockRejectedValueOnce(new Error());
-      await server.fetchRangeFromStream({
-        sessionId: '123',
-        startId: '-',
-        endId: '+',
-        listener: cb,
-      });
-
-      expect(mockRedisXrange).toHaveBeenCalledWith(
-        'test-async-events-123',
-        '-',
-        '+',
-      );
-      expect(cb).not.toHaveBeenCalled();
+      expect(sendMock).toHaveBeenCalled();
+      expect(statsdIncrementMock).toHaveBeenCalledWith('ws_client_send_error');
+      expect(Object.keys(server.channels)).toHaveLength(0);
     });
   });
 
@@ -537,7 +414,7 @@ describe('server', () => {
       }).toThrow();
     });
 
-    test('valid JWT, no lastId', async () => {
+    test('valid JWT binds the socket to its channel', async () => {
       const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
       const request = getRequest(validToken, 'http://localhost');
 
@@ -550,79 +427,6 @@ describe('server', () => {
       expect(channelSockets.sockets).toHaveLength(1);
       const socketId = channelSockets.sockets[0];
       expect(server.sockets[socketId]).toEqual(socketInstanceExpected);
-      expect(mockRedisXrange).not.toHaveBeenCalled();
-      expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
-    });
-
-    test('valid JWT, malformed lastId is ignored', async () => {
-      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
-      const request = getRequest(
-        validToken,
-        'http://localhost?last_id=abc-xyz',
-      );
-
-      server.wsConnection(ws, request);
-
-      const channelSockets = server.channels[channelId];
-      expect(channelSockets).toEqual({
-        sockets: expect.any(Array<string>),
-      });
-      expect(channelSockets.sockets).toHaveLength(1);
-
-      // Malformed last_id must not trigger a stream range fetch.
-      const socketId = channelSockets.sockets[0];
-      expect(server.sockets[socketId]).toEqual(socketInstanceExpected);
-    });
-
-    test('valid JWT, with lastId', async () => {
-      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
-      const lastId = '1615426152415-0';
-      const request = getRequest(
-        validToken,
-        `http://localhost?last_id=${lastId}`,
-      );
-
-      server.wsConnection(ws, request);
-
-      const channelSockets = server.channels[channelId];
-      expect(channelSockets).toEqual({
-        sockets: expect.any(Array<string>),
-      });
-      expect(channelSockets.sockets).toHaveLength(1);
-      const socketId = channelSockets.sockets[0];
-      expect(server.sockets[socketId]).toEqual(socketInstanceExpected);
-      expect(mockRedisXrange).toHaveBeenCalledWith(
-        expect.stringContaining(channelId),
-        '1615426152415-1',
-        '+',
-      );
-      expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
-    });
-
-    test('valid JWT, with lastId and lastFirehoseId', async () => {
-      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
-      const lastId = '1615426152415-0';
-      const lastFirehoseId = '1715426152415-0';
-      const request = getRequest(
-        validToken,
-        `http://localhost?last_id=${lastId}`,
-      );
-
-      server.setLastFirehoseId(lastFirehoseId);
-      server.wsConnection(ws, request);
-
-      const channelSockets = server.channels[channelId];
-      expect(channelSockets).toEqual({
-        sockets: expect.any(Array<string>),
-      });
-      expect(channelSockets.sockets).toHaveLength(1);
-      const socketId = channelSockets.sockets[0];
-      expect(server.sockets[socketId]).toEqual(socketInstanceExpected);
-      expect(mockRedisXrange).toHaveBeenCalledWith(
-        expect.stringContaining(channelId),
-        '1615426152415-1',
-        lastFirehoseId,
-      );
       expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
     });
 

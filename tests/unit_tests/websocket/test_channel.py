@@ -18,6 +18,18 @@ import jwt
 from pytest_mock import MockerFixture
 
 
+def test_channel_id_for_maps_principal_identity() -> None:
+    from superset.websocket.channel import channel_id_for
+
+    # A user id wins and maps to user:<id>; a guest key is returned verbatim
+    # (already namespaced); neither identity → None (anonymous).
+    assert channel_id_for(7, None) == "user:7"
+    assert channel_id_for(None, "guest-abc") == "guest-abc"
+    assert channel_id_for(None, None) is None
+    # A user id takes precedence over any stray guest key.
+    assert channel_id_for(7, "guest-abc") == "user:7"
+
+
 def test_channel_id_for_logged_in_user(app_context, mocker: MockerFixture) -> None:
     from superset.websocket import channel
 

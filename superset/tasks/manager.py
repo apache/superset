@@ -123,6 +123,62 @@ class TaskManager:
             )
             return False
 
+    # Per-principal (tier-2) realtime channels. Unlike the public tier-1
+    # entity-change nudge above, a tier-2 message is fanned out to each of a
+    # task's *subscribers'* channels and MAY carry task-specific detail
+    # (``status``) because delivery is scoped to principals already entitled to
+    # see the task. The channel id is the principal's own channel
+    # (``user:<id>`` / ``guest-<hmac>``, see ``superset.websocket.channel``);
+    # the superset-websocket server routes a ``realtime:<channel_id>`` message
+    # to the socket whose JWT cookie bound that channel. This lets the chart-data
+    # client learn each status transition without re-polling the REST API on
+    # every intermediate change.
+    REALTIME_CHANNEL_PREFIX = "realtime:"
+
+    @classmethod
+    def publish_task_status(cls, task_uuid: UUID, status: str) -> bool:
+        """Publish a task's ``status`` to each subscriber's per-principal channel.
+
+        Best-effort tier-2 delivery: for every distinct subscriber channel of the
+        task (see ``TaskDAO.get_subscriber_channels``), publish
+        ``{task_id, status}`` to ``realtime:<channel_id>``. The superset-websocket
+        server forwards it to sockets whose JWT cookie bound that channel, so the
+        submitter (and any SHARED-dedup joiners) sees the transition immediately.
+        No-op when no coordination backend is configured or the task has no
+        resolvable subscribers; callers must never let a failure here disrupt
+        completion signalling (the interval poll is the backstop).
+
+        :param task_uuid: public UUID of the task (also carried in the payload)
+        :param status: the task's current status
+        :returns: True if at least one message was published, False otherwise
+        """
+        from superset.coordination.base import CoordinationService
+        from superset.daos.tasks import TaskDAO
+        from superset.utils import json
+
+        if not CoordinationService.is_backend_defined():
+            return False
+        try:
+            task = TaskDAO.find_one_or_none(uuid=task_uuid, skip_base_filter=True)
+            if task is None:
+                return False
+            channels = TaskDAO.get_subscriber_channels(task.id)
+            if not channels:
+                return False
+            message = json.dumps({"task_id": str(task_uuid), "status": status})
+            for channel in channels:
+                CoordinationService.publish(
+                    f"{cls.REALTIME_CHANNEL_PREFIX}{channel}", message
+                )
+            return True
+        except Exception as ex:  # noqa: BLE001 pylint: disable=broad-except
+            # Strictly best-effort (mirrors publish_entity_change): a Redis or
+            # serialization hiccup must never disrupt completion signalling.
+            logger.warning(
+                "Failed to publish task status for task %s: %s", task_uuid, ex
+            )
+            return False
+
     @classmethod
     def get_abort_channel(cls, task_uuid: UUID) -> str:
         """
@@ -199,6 +255,10 @@ class TaskManager:
             # Also emit a lossy opaque nudge for realtime UI transports (separate
             # from the guaranteed completion signal above).
             cls.publish_entity_change(task_uuid)
+            # And push the terminal status to each subscriber's per-principal
+            # channel (tier-2), so a chart-data client learns completion detail
+            # over the socket instead of re-polling the REST API.
+            cls.publish_task_status(task_uuid, status)
             return True
         except redis.RedisError as ex:
             # Best-effort: waiters fall back to polling, so a transient Redis

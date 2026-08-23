@@ -19,40 +19,68 @@ under the License.
 
 # Superset WebSocket Server
 
-A Node.js WebSocket server for sending async event data to the Superset web application frontend.
+A Node.js WebSocket server that pushes realtime events from the Superset backend
+to the web frontend. It is a **generic, feature-agnostic transport**: it routes
+messages by Redis channel name and never interprets their contents, so any
+Superset feature (async chart data, background tasks, and future producers such
+as thumbnails, reports, or exports) can push over it without a server change.
 
 ## Requirements
 
 - Node.js 12+ (not tested with older versions)
 - Redis 5+
 
-To use this feature, Superset needs to be configured to enable global async queries and to use WebSockets as the transport (see below).
+To use realtime push, enable it in the Superset backend (`WEBSOCKET_ENABLED`,
+`WEBSOCKET_URL`, `WEBSOCKET_JWT_SECRET`; see below) and run this server on the
+same host.
 
 ## Architecture
 
-This implementation is based on the architecture defined in [SIP-39](https://github.com/apache/superset/issues/9190).
+### Redis Pub/Sub channels and the two tiers
 
-### Streams
+Realtime events are published to Redis **Pub/Sub** by the Superset Flask app
+(`superset/tasks/manager.py`). Pub/Sub is intentionally lossy (fire-and-forget):
+a missed message is reconciled by the frontend's interval poll of the authorized
+REST API, so no message is authoritative and none needs to be replayed.
 
-Async events are pushed to [Redis Streams](https://redis.io/topics/streams-intro) from the [Superset Flask app](https://github.com/preset-io/superset/blob/master/superset/async_events/async_query_manager.py). An event for a particular user is published to two streams: 1) the global event stream that includes events for all users, and 2) a channel/session-specific stream only for the user. This approach provides a good balance of performance (reading off of a single global stream) and fault tolerance (dropped connections can "catch up" by reading from the channel-specific stream).
+The server tails two channel-prefix patterns and routes by name only:
 
-Note that Redis Stream [consumer groups](https://redis.io/topics/streams-intro#consumer-groups) are not used here due to the fact that each group receives a subset of the data for a stream, and WebSocket clients have a persistent connection to each app instance, requiring access to all data in a stream. Horizontal scaling of the WebSocket app requires having multiple WebSocket servers, each with full access to the Redis Stream data.
+1. **Tier 1 — public entity-change nudges** (`entity-changes:<type>`, e.g.
+   `entity-changes:task`). Broadcast to **every** connected socket. The payload
+   carries only opaque ids (`{entity_type, id}`) — no status or sensitive data —
+   so a list view can learn "an entity of this type changed" and re-fetch just
+   the affected rows through the authorized API. Each client filters to the ids
+   it renders.
+2. **Tier 2 — per-principal messages** (`realtime:<channel_id>`, where
+   `channel_id` is `user:<id>` or `guest-<hmac>`). Delivered **only** to sockets
+   whose JWT bound that principal channel. Because delivery is scoped to a
+   principal already entitled to see the entity, the payload may carry
+   feature-specific detail (e.g. a task's `{task_id, status}`).
+
+The server forwards each message to the browser in a generic envelope
+`{ channel, payload }` (the full Redis channel name plus the parsed payload), so
+the client routes on `channel` exactly as the server does.
 
 ### Connection
 
-When a user's browser initially connects to the WebSocket server, it does so over HTTP, which includes the JWT authentication cookie, set by the Flask app, in the request. _Note that due to the cookie-based authentication method, the WebSocket server must be run on the same host as the web application._ The server validates the JWT token by using the shared secret (config: `jwtSecret`), and if valid, proceeds to upgrade the connection to a WebSocket. The user's session-based "channel" ID is contained in the JWT, and serves as the basis for sending received events to the user's connected socket(s).
-
-A user may have multiple WebSocket connections under a single channel (session) ID. This would be the case if the user has multiple browser tabs open, for example. In this scenario, **all events received for a specific channel are sent to all connected sockets**, leaving it to the consumer to decide which events are relevant to the current application context.
-
-### Reconnection
-
-It is expected that a user's WebSocket connection may be dropped or interrupted due to fluctuating network conditions. The Superset frontend code keeps track of the last received async event ID, and attempts to reconnect to the WebSocket server with a `last_id` query parameter in the initial HTTP request. If a connection includes a valid `last_id` value, events that may have already been received and sent unsuccessfully are read from the channel-based Redis Stream and re-sent to the new WebSocket connection. The global event stream flow then assumes responsibility for sending subsequent events to the connected socket(s).
+When a user's browser connects, it does so over HTTP, including the JWT
+authentication cookie set by the Flask app (`WEBSOCKET_JWT_COOKIE_NAME`, default
+`superset-ws-token`). _Because authentication is cookie-based, the WebSocket
+server must run on the same host as the web application._ The server verifies
+the JWT with the shared secret (`jwtSecret` / `WEBSOCKET_JWT_SECRET`) and binds
+the socket to the `channel` claim (the principal channel), which is how tier-2
+messages are routed to it. A principal may have multiple sockets (e.g. several
+browser tabs); all matching messages are sent to all of them.
 
 ### Connection Management
 
-The server utilizes the standard WebSocket [ping/pong functionality](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#pings_and_pongs_the_heartbeat_of_websockets) to determine if active WebSocket connections are still alive. Active sockets are sent a _ping_ regularly (config: `pingSocketsIntervalMs`), and the internal _sockets_ registry is updated with a timestamp when a _pong_ response is received. If a _pong_ response has not been received before the timeout period (config: `socketResponseTimeoutMs`), the socket is terminated and removed from the internal registry.
-
-In addition to periodic socket connection cleanup, the internal _channels_ registry is regularly "cleaned" (config: `gcChannelsIntervalMs`) to remove stale references and prevent excessive memory consumption over time.
+The server uses standard WebSocket
+[ping/pong](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#pings_and_pongs_the_heartbeat_of_websockets)
+to detect dead connections. Active sockets are pinged regularly (config:
+`pingSocketsIntervalMs`) and the internal registry records the last _pong_
+timestamp; a socket that has not responded within `socketResponseTimeoutMs` is
+terminated. The channel registry is periodically cleaned
+(`gcChannelsIntervalMs`) to release stale references.
 
 ## Install
 
@@ -89,35 +117,33 @@ the JWT cookie uses `SameSite=None`.
 
 ## Superset Configuration
 
-Configure the Superset Flask app to enable global async queries (in `superset_config.py`):
-
-Enable the `GLOBAL_ASYNC_QUERIES` feature flag:
+Enable realtime push in the Superset Flask app (in `superset_config.py`):
 
 ```python
-"GLOBAL_ASYNC_QUERIES": True
+WEBSOCKET_ENABLED = True
+WEBSOCKET_URL = "ws://<host>:<port>/"
+WEBSOCKET_JWT_SECRET = "<a strong random secret, >= 32 bytes>"
 ```
 
-Configure the following Superset values:
+Note that the WebSocket server must be run on the same hostname (different port)
+for the JWT cookie to be shared between the Flask app and the WebSocket server.
 
-```python
-GLOBAL_ASYNC_QUERIES_TRANSPORT = "ws"
-GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://<host>:<port>/"
-```
+Note also that `localhost` and `127.0.0.1` are not considered the same host. For
+example, if you're pointing your browser to `localhost:<port>` for Superset,
+then the WebSocket url will need to be configured as `localhost:<port>`.
 
-Note that the WebSocket server must be run on the same hostname (different port) for cookies to be shared between the Flask app and the WebSocket server.
+The following values must match between the Flask app config and this server's
+`config.json` (or its environment-variable overrides):
 
-Note also that `localhost` and `127.0.0.1` are not considered the same host. For example, if you're pointing your browser to `localhost:<port>` for Superset, then the WebSocket url will need to be configured as `localhost:<port>`.
+| Flask app config              | WebSocket server config       |
+| ----------------------------- | ----------------------------- |
+| `WEBSOCKET_JWT_SECRET`        | `jwtSecret` / `JWT_SECRET`    |
+| `WEBSOCKET_JWT_COOKIE_NAME`   | `jwtCookieName` / `JWT_COOKIE_NAME` |
 
-The following config values must contain the same values in both the Flask app config and `config.json`:
-
-```text
-GLOBAL_ASYNC_QUERIES_CACHE_BACKEND
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME
-GLOBAL_ASYNC_QUERIES_JWT_SECRET
-```
-
-More info on Superset configuration values for async queries: https://superset.apache.org/docs/contributing/misc#async-chart-queries
+The Redis connection (`redis` / `REDIS_*`) must point at the same Redis instance
+Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The channel prefixes
+(`entityChangesChannelPrefix`, `perPrincipalChannelPrefix`) default to match the
+backend and rarely need changing.
 
 ## StatsD monitoring
 
