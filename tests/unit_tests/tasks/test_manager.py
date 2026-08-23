@@ -181,27 +181,14 @@ class TestTaskManagerEntityChange:
     ):
         task_uuid = uuid.uuid4()
 
-        assert TaskManager.publish_entity_change(task_uuid, "success") is True
+        assert TaskManager.publish_entity_change(task_uuid) is True
 
-        # One publish to the task type's channel, carrying only non-sensitive fields.
+        # One publish to the task type's channel, carrying ONLY opaque ids — no
+        # status or payload (the contract is general across all entity types).
         mock_publish.assert_called_once()
         channel, message = mock_publish.call_args.args[:2]
         assert channel == "entity-changes:task"
-        assert json.loads(message) == {
-            "entity_type": "task",
-            "id": str(task_uuid),
-            "status": "success",
-        }
-
-    @patch(PUBLISH)
-    @patch(IS_DEFINED, return_value=True)
-    def test_omits_status_when_unknown(self, mock_defined, mock_publish):
-        task_uuid = uuid.uuid4()
-        assert TaskManager.publish_entity_change(task_uuid) is True
-        assert json.loads(mock_publish.call_args.args[1]) == {
-            "entity_type": "task",
-            "id": str(task_uuid),
-        }
+        assert json.loads(message) == {"entity_type": "task", "id": str(task_uuid)}
 
     @patch(PUBLISH, side_effect=redis.RedisError("boom"))
     @patch(IS_DEFINED, return_value=True)
