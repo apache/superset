@@ -22,12 +22,14 @@ the tests here cover TaskManager's thin GTF-facing layer: channel naming, publis
 task signals through the service, and delegating waits/abort-listens to it.
 """
 
+import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
 import redis
 
 from superset.tasks.manager import TaskManager
+from superset.utils import json
 
 GET_BACKEND = "superset.coordination.base.CoordinationService.get_backend"
 
@@ -154,6 +156,57 @@ class TestTaskManagerPublish:
         mock_get_backend.return_value = backend
 
         assert TaskManager.publish_completion("test-uuid", "success") is False
+
+
+class TestTaskManagerEntityChange:
+    """publish_entity_change emits one opaque, public nudge to the per-type channel."""
+
+    def setup_method(self):
+        _reset_prefixes()
+
+    def teardown_method(self):
+        _reset_prefixes()
+
+    IS_DEFINED = "superset.coordination.base.CoordinationService.is_backend_defined"
+    PUBLISH = "superset.coordination.base.CoordinationService.publish"
+
+    @patch(IS_DEFINED, return_value=False)
+    def test_no_backend(self, mock_defined):
+        assert TaskManager.publish_entity_change(uuid.uuid4()) is False
+
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_publishes_opaque_nudge_to_per_type_channel(
+        self, mock_defined, mock_publish
+    ):
+        task_uuid = uuid.uuid4()
+
+        assert TaskManager.publish_entity_change(task_uuid, "success") is True
+
+        # One publish to the task type's channel, carrying only non-sensitive fields.
+        mock_publish.assert_called_once()
+        channel, message = mock_publish.call_args.args[:2]
+        assert channel == "entity-changes:task"
+        assert json.loads(message) == {
+            "entity_type": "task",
+            "id": str(task_uuid),
+            "status": "success",
+        }
+
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_omits_status_when_unknown(self, mock_defined, mock_publish):
+        task_uuid = uuid.uuid4()
+        assert TaskManager.publish_entity_change(task_uuid) is True
+        assert json.loads(mock_publish.call_args.args[1]) == {
+            "entity_type": "task",
+            "id": str(task_uuid),
+        }
+
+    @patch(PUBLISH, side_effect=redis.RedisError("boom"))
+    @patch(IS_DEFINED, return_value=True)
+    def test_redis_error_is_swallowed(self, mock_defined, mock_publish):
+        assert TaskManager.publish_entity_change(uuid.uuid4()) is False
 
 
 class TestTaskManagerListenForAbort:
