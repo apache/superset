@@ -43,7 +43,7 @@ params:
     subject: country_code
   color_scheme: supersetColors
   entity: country_name
-  granularity_sqla: year
+  granularity: year
   legendOrientation: top
   legendType: scroll
   max_bubble_size: '50'
