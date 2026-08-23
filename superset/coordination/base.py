@@ -24,7 +24,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Any, Callable, TYPE_CHECKING, TypeVar
+from typing import Any, Callable, TYPE_CHECKING, TypeVar, Union
 
 from flask import current_app
 from redis.exceptions import TimeoutError as RedisTimeoutError
@@ -38,6 +38,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+# A coordinator KV key may be a literal string or a zero-argument generator
+# resolved at call time, for parity with Superset's other cache-key helpers
+# (e.g. ``memoized_func(key=...)``). Callers that build a key lazily (or want a
+# single shared key-derivation callable) can pass the callable directly.
+KeyLike = Union[str, Callable[[], str]]
 
 # Reliable signalling uses Redis Streams: entries are persisted and replayable, so a
 # waiter still receives a signal if it subscribes slightly late, reconnects, or
@@ -160,19 +166,40 @@ class CoordinationService:
 
     # -- Key/Value -----------------------------------------------------------
 
+    @staticmethod
+    def _resolve_key(key: KeyLike) -> str:
+        """Resolve a KV key that may be a literal string or a ``() -> str`` generator.
+
+        Lets callers pass a key generator (resolved here, at call time) for parity
+        with Superset's other cache-key helpers, while a plain string passes through
+        unchanged.
+
+        :raises TypeError: if a generator returns a non-string.
+        """
+        resolved = key() if callable(key) else key
+        if not isinstance(resolved, str):
+            raise TypeError(
+                f"Coordinator KV key must resolve to str, got {type(resolved).__name__}"
+            )
+        return resolved
+
     @classmethod
-    def get_value(cls, key: str, backend: "CoordinationBackend | None" = None) -> Any:
+    def get_value(
+        cls, key: KeyLike, backend: "CoordinationBackend | None" = None
+    ) -> Any:
         """Return the raw (bytes) value at ``key``, or ``None`` if absent.
 
+        :param key: a literal key string, or a ``() -> str`` generator (see
+            :meth:`_resolve_key`).
         :param backend: optional explicit backend (see :meth:`_require_backend`).
         :raises CoordinationBackendUnavailableError: if no backend is available.
         """
-        return cls._require_backend(backend).get(key)
+        return cls._require_backend(backend).get(cls._resolve_key(key))
 
     @classmethod
     def set_value(
         cls,
-        key: str,
+        key: KeyLike,
         value: Any,
         ttl: int | None = None,
         if_absent: bool = False,
@@ -181,6 +208,8 @@ class CoordinationService:
     ) -> bool | None:
         """Store ``value`` at ``key``.
 
+        :param key: a literal key string, or a ``() -> str`` generator (see
+            :meth:`_resolve_key`).
         :param ttl: optional expiry, in seconds.
         :param if_absent: only set if the key does not already exist.
         :param if_present: only set if the key already exists.
@@ -190,19 +219,23 @@ class CoordinationService:
         :raises CoordinationBackendUnavailableError: if no backend is available.
         """
         return cls._require_backend(backend).set(
-            key, value, ex=ttl, nx=if_absent, xx=if_present
+            cls._resolve_key(key), value, ex=ttl, nx=if_absent, xx=if_present
         )
 
     @classmethod
     def delete_value(
-        cls, *keys: str, backend: "CoordinationBackend | None" = None
+        cls, *keys: KeyLike, backend: "CoordinationBackend | None" = None
     ) -> int:
         """Delete one or more keys; returns the number deleted.
 
+        :param keys: literal key strings and/or ``() -> str`` generators (see
+            :meth:`_resolve_key`).
         :param backend: optional explicit backend (see :meth:`_require_backend`).
         :raises CoordinationBackendUnavailableError: if no backend is available.
         """
-        return cls._require_backend(backend).delete(*keys)
+        return cls._require_backend(backend).delete(
+            *(cls._resolve_key(key) for key in keys)
+        )
 
     # -- Streams -------------------------------------------------------------
 
