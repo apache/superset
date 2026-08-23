@@ -24,6 +24,71 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Global Async Queries re-platformed onto the Global Task Framework (breaking)
+
+Global Async Queries (GAQ) no longer runs on its own bespoke async-events
+plumbing. Async chart data is now executed as Global Task Framework (GTF) tasks
+(one task per `QueryObject`), the browser learns of completion by polling
+`GET /api/v1/task/status_changes` (optionally accelerated by the WebSocket
+transport below) and re-issuing the original `/chart/data` request against the
+now-warm per-query cache, and the realtime WebSocket server is a generic,
+feature-agnostic task push transport rather than a GAQ-specific event tail.
+
+Breaking removals (no deprecation window):
+
+- The `/api/v1/async_event/` REST API, `AsyncQueryManager`, and the
+  `qc-<hash>` query-context descriptor replay endpoint
+  (`GET /api/v1/chart/data/<cache_key>`) are removed. Any client that consumed a
+  `result_url` from a `202` response must move to the re-request model (the
+  built-in frontend already does).
+- The following config keys are removed: `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`,
+  `GLOBAL_ASYNC_QUERIES_TRANSPORT`, `GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL`,
+  `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX`, `GLOBAL_ASYNC_QUERIES_JWT_*`, and
+  `GLOBAL_ASYNC_QUERY_MANAGER_CLASS`. The coordinator (locks, GTF, and now GAQ)
+  uses `DISTRIBUTED_COORDINATION_CONFIG` exclusively.
+
+Enabling async chart data in the new flow:
+
+```python
+# feature flag: makes async chart data available (auto-enables GLOBAL_TASK_FRAMEWORK)
+FEATURE_FLAGS = {"GLOBAL_ASYNC_QUERIES": True}
+
+# a Redis connection for distributed coordination (locks, GTF signalling,
+# and the realtime pub/sub); required for async execution in production
+DISTRIBUTED_COORDINATION_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_DB": 0,
+}
+```
+
+Async is now **opt-in per request**: `GLOBAL_ASYNC_QUERIES` only makes async
+*available*; whether a given `/chart/data` request runs async is decided by an
+`async_mode` request flag (endpoint default `false`, so programmatic API clients
+keep the synchronous `200` flow unless they opt in). The built-in frontend
+resolves the `async_mode` it sends from a policy chain — per-dashboard override →
+deployment default `GLOBAL_ASYNC_QUERIES_DEFAULT` (default `true`) → the feature
+flag — so the UI keeps its existing async behavior by default.
+
+Enabling the realtime WebSocket transport (optional; accelerates completion, the
+`status_changes` interval poll remains the correctness backstop):
+
+```python
+WEBSOCKET_ENABLED = True
+WEBSOCKET_URL = "ws://<same-host>:8080/"
+WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
+```
+
+Run the `superset-websocket` Node server on the **same host** (so its JWT
+channel cookie is shared) and point its `redis` config at the same instance as
+`DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` / `jwtCookieName` matching
+the Flask config (`WEBSOCKET_JWT_SECRET` / `WEBSOCKET_JWT_COOKIE_NAME`, default
+`superset-ws-token`). The server now consumes Redis Pub/Sub channels
+(`entity-changes:*` broadcast nudges, `realtime:<channel_id>` per-principal
+messages) instead of the removed async-events streams; see
+`superset-websocket/README.md`.
+
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 
 ### MCP tool results preserve stored string values
@@ -61,7 +126,6 @@ the old counter to use the outcome-specific replacements.
 - [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
 - [42300](https://github.com/apache/superset/pull/42300): Timeseries charts (line/area/bar) with a Y-axis bound in effect — either an explicit `yAxisBounds` or one derived from `truncateYAxis` — now clamp out-of-range data points to that bound instead of letting ECharts drop the point (and the line segments around it) entirely. Any existing chart with a configured Y-axis bound and data outside it will look different after upgrading: a gap becomes a point pinned to the boundary. The clamp also rewrites the value ECharts reads for that point's tooltip and data label, so the displayed value is the bound rather than the true observation.
 - [42087](https://github.com/apache/superset/pull/42087): Stored calculated-column and metric expressions are validated when a query is built, under the same sub-query policy already applied to adhoc expressions. Previously only the dataset update path checked them on save, so expressions written by v1 import, by dataset duplication, or before that check existed were never validated. Since `ALLOW_ADHOC_SUBQUERY` defaults to `False` (see [19242](https://github.com/apache/superset/pull/19242)), a dataset whose stored expression contains a sub-query works before upgrading and afterwards fails at chart render with `Custom SQL fields cannot contain sub-queries.` There is no migration step, and the error does not name the offending dataset column, so audit stored expressions before upgrading: either rewrite them without the sub-query, or set `ALLOW_ADHOC_SUBQUERY = True` to keep the previous behaviour for both stored and adhoc expressions.
-- The `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` config key is **deprecated** in favor of the shared coordination backend `DISTRIBUTED_COORDINATION_CONFIG`, which powers a single Redis connection for distributed locks, pub/sub, and the async-events streams (the GAQ firehose). All parameters previously accepted by `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` are supported identically under `DISTRIBUTED_COORDINATION_CONFIG` (they use the same `RedisCache`/`RedisSentinelCache` backend). During the deprecation window the two backends stay scoped: distributed locks and the Global Task Framework use `DISTRIBUTED_COORDINATION_CONFIG` exclusively (falling back to the metadata database when it is unset, unchanged from before), and Global Async Queries use `DISTRIBUTED_COORDINATION_CONFIG` whenever it is set — falling back to the dedicated `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` (with a one-time deprecation warning) only when it is not. Configuring `DISTRIBUTED_COORDINATION_CONFIG` therefore lets a deployment retire the separate `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` rather than maintain two configs. This dual-backend arrangement is removed in Superset 8.0, when GAQ moves onto `DISTRIBUTED_COORDINATION_CONFIG`; migrate now by configuring it.
 
 ### Selenium support removed — Playwright is now required for screenshots
 
