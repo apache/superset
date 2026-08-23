@@ -52,6 +52,7 @@ from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import (
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
     CHANGE_ME_SECRET_KEY,
+    CHANGE_ME_WEBSOCKET_JWT_SECRET,
 )
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
@@ -1134,6 +1135,28 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         sys.exit(1)
 
+    def check_websocket_secret(self) -> None:
+        """Refuse to start with a default/weak websocket JWT secret when enabled."""
+        if not self.config.get("WEBSOCKET_ENABLED"):
+            return
+        secret = self.config.get("WEBSOCKET_JWT_SECRET") or ""
+        if secret != CHANGE_ME_WEBSOCKET_JWT_SECRET and len(secret) >= 32:
+            return
+        self._log_config_warning(
+            "WEBSOCKET_ENABLED is on but WEBSOCKET_JWT_SECRET is the default "
+            "placeholder or shorter than 32 bytes.\n"
+            "The default is publicly known; a weak secret lets an attacker forge "
+            "channel tokens and subscribe to another user's private channel.\n"
+            "Set a strong random value in superset_config.py:\n"
+            "  WEBSOCKET_JWT_SECRET = '<output of: openssl rand -base64 42>'"
+        )
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure WEBSOCKET_JWT_SECRET with WEBSOCKET_ENABLED"
+        )
+        sys.exit(1)
+
     def check_encryption_engine(self) -> None:
         """Warn when app-encrypted fields use the legacy AES-CBC engine.
 
@@ -1317,6 +1340,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # conditionally
         self.configure_feature_flags()
         self.check_guest_token_secret()
+        self.check_websocket_secret()
         self.check_encryption_engine()
         self.configure_db_encrypt()
         self.setup_db()

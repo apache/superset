@@ -63,3 +63,67 @@ def test_mint_channel_token_encodes_channel(app_context) -> None:
     )
     assert decoded["channel"] == "user:5"
     assert "exp" in decoded
+
+
+def _make_ws_app():
+    """A minimal Flask app carrying the WEBSOCKET_* config the hook reads."""
+    from flask import Flask, jsonify
+
+    from superset.websocket.channel import register_ws_channel_cookie
+
+    app = Flask(__name__)
+    app.config.update(
+        WEBSOCKET_ENABLED=True,
+        WEBSOCKET_JWT_SECRET="x" * 40,
+        WEBSOCKET_JWT_COOKIE_NAME="superset-ws-token",
+        WEBSOCKET_JWT_COOKIE_SECURE=False,
+        WEBSOCKET_JWT_COOKIE_SAMESITE=None,
+        WEBSOCKET_JWT_COOKIE_DOMAIN=None,
+        WEBSOCKET_JWT_EXPIRATION_SECONDS=3600,
+    )
+    register_ws_channel_cookie(app)
+
+    @app.route("/_ws_probe")
+    def _ws_probe():  # pragma: no cover - trivial
+        return jsonify(ok=True)
+
+    return app
+
+
+def _ws_set_cookies(response):
+    return [c for c in response.headers.getlist("Set-Cookie") if "ws-token" in c]
+
+
+def test_cookie_reminted_when_principal_changes(mocker) -> None:
+    from superset.websocket import channel
+
+    client = _make_ws_app().test_client()
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+
+    mocker.patch.object(channel, "get_user_id", return_value=1)
+    assert _ws_set_cookies(client.get("/_ws_probe"))  # minted for user:1
+
+    # A different principal on the same client must re-mint (not keep user:1).
+    mocker.patch.object(channel, "get_user_id", return_value=2)
+    assert _ws_set_cookies(client.get("/_ws_probe"))
+
+
+def test_cookie_cleared_for_anonymous(mocker) -> None:
+    from superset.websocket import channel
+
+    client = _make_ws_app().test_client()
+    mocker.patch.object(
+        channel.security_manager, "get_current_guest_user_if_guest", return_value=None
+    )
+    mocker.patch.object(channel, "get_user_id", return_value=None)
+
+    client.set_cookie("superset-ws-token", "stale")
+    resp = client.get("/_ws_probe")
+    cleared = [
+        c
+        for c in resp.headers.getlist("Set-Cookie")
+        if "superset-ws-token" in c and ("Expires" in c or "Max-Age=0" in c)
+    ]
+    assert cleared, "stale cookie must be cleared when there is no principal"

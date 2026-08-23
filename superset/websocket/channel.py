@@ -74,29 +74,55 @@ def mint_channel_token(channel_id: str) -> str:
     )
 
 
-def register_ws_channel_cookie(app: Flask) -> None:
-    """Set the websocket channel-token cookie on responses for channel-bearing users.
+def _cookie_channel(token: str) -> str | None:
+    """Return the ``channel`` claim of a valid, unexpired channel token, else None."""
+    from flask import current_app
 
-    Mirrors the connection-auth handshake of the legacy async-events transport:
-    an ``httponly`` JWT cookie the browser sends when opening the socket, which
-    the ``superset-websocket`` server verifies. Refreshed only when missing so it
-    is not re-signed on every request.
+    try:
+        payload = jwt.decode(
+            token, current_app.config["WEBSOCKET_JWT_SECRET"], algorithms=["HS256"]
+        )
+    except jwt.InvalidTokenError:
+        return None
+    return payload.get("channel")
+
+
+def register_ws_channel_cookie(app: Flask) -> None:
+    """Keep the websocket channel-token cookie in sync with the request principal.
+
+    Sets an ``httponly`` JWT cookie (which the ``superset-websocket`` server
+    verifies) bound to the current principal's channel. Critically, it re-mints
+    the cookie whenever the bound channel no longer matches the current principal
+    — e.g. after a logout/login in the same browser — and deletes it when there is
+    no principal (anonymous / logged out), so a stale token can never bind a new
+    session to a previous user's channel.
     """
     cookie_name = app.config["WEBSOCKET_JWT_COOKIE_NAME"]
+    cookie_domain = app.config["WEBSOCKET_JWT_COOKIE_DOMAIN"]
 
     @app.after_request
     def set_ws_channel_cookie(response: Response) -> Response:
         channel_id = get_channel_id()
+        existing = request.cookies.get(cookie_name)
+
         if channel_id is None:
+            # No channel for this principal (anonymous / just logged out): drop any
+            # stale cookie so it can't be reused by a later session.
+            if existing:
+                response.delete_cookie(cookie_name, domain=cookie_domain)
             return response
-        if request.cookies.get(cookie_name):
+
+        # Leave a cookie that already binds the current channel; re-mint when it is
+        # missing, invalid/expired, or bound to a different principal's channel.
+        if existing and _cookie_channel(existing) == channel_id:
             return response
+
         response.set_cookie(
             cookie_name,
             value=mint_channel_token(channel_id),
             httponly=True,
             secure=app.config["WEBSOCKET_JWT_COOKIE_SECURE"],
-            domain=app.config["WEBSOCKET_JWT_COOKIE_DOMAIN"],
+            domain=cookie_domain,
             samesite=app.config["WEBSOCKET_JWT_COOKIE_SAMESITE"],
             max_age=app.config["WEBSOCKET_JWT_EXPIRATION_SECONDS"],
         )
