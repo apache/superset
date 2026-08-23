@@ -118,4 +118,5 @@ export interface DateFilterControlProps {
   hovered?: boolean;
   description?: ReactNode;
   label?: ReactNode;
+  tooltipOnClick?: () => void;
 }

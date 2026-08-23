@@ -99,24 +99,34 @@ const ControlHeader: FC<ControlHeaderProps> = ({
         `}
       >
         {description && (
-          <span
-            data-test={`${name}-description-icon`}
-            onMouseEnter={() => onDescriptionHoverChange?.(true)}
-            onMouseLeave={() => onDescriptionHoverChange?.(false)}
-          >
+          <>
             <Tooltip
               id="description-tooltip"
               title={description}
               placement="top"
               mouseLeaveDelay={0}
+              trigger={['hover', 'focus']}
             >
-              <Icons.InfoCircleOutlined
-                css={iconStyles}
-                onClick={tooltipOnClick}
+              {/* Same role="button" pattern as the label text: a real <button>
+                  is not valid inside FormLabel's <label>. */}
+              <span
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+                role="button"
+                tabIndex={0}
+                data-test={`${name}-description-icon`}
                 aria-label={t('Show info tooltip')}
-              />
+                onMouseEnter={() => onDescriptionHoverChange?.(true)}
+                onMouseLeave={() => onDescriptionHoverChange?.(false)}
+                onClick={tooltipOnClick}
+                onKeyDown={handleKeyboardActivation(tooltipOnClick)}
+                css={css`
+                  cursor: pointer;
+                `}
+              >
+                <Icons.InfoCircleOutlined css={iconStyles} />
+              </span>
             </Tooltip>{' '}
-          </span>
+          </>
         )}
         {renderTrigger && (
           <span>

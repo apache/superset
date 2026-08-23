@@ -25,7 +25,7 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
+  fireEvent,
 } from 'spec/helpers/testing-library';
 
 import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
@@ -162,6 +162,7 @@ test('DateFilter should properly handle isOverflowingFilterBar prop changes', ()
 });
 
 test('hovering the description icon does not show the date range tooltip', async () => {
+  const tooltipOnClick = jest.fn();
   render(
     setup({
       ...defaultProps,
@@ -169,6 +170,7 @@ test('hovering the description icon does not show the date range tooltip', async
       label: 'Date Range',
       description: DESCRIPTION_TOOLTIP,
       hovered: true,
+      tooltipOnClick,
     }),
   );
 
@@ -184,13 +186,21 @@ test('hovering the description icon does not show the date range tooltip', async
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  const descriptionIcon = within(
-    screen.getByTestId('time_range-description-icon'),
-  ).getByRole('button', { name: 'Show info tooltip' });
+  const descriptionIcon = screen.getByRole('button', {
+    name: 'Show info tooltip',
+  });
   await userEvent.hover(descriptionIcon);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toHaveTextContent(DESCRIPTION_TOOLTIP);
   expect(tooltip).not.toHaveTextContent(FIELD_TOOLTIP);
   expect(screen.getAllByRole('tooltip')).toHaveLength(1);
+
+  await userEvent.unhover(descriptionIcon);
+  await waitFor(() => {
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  fireEvent.keyDown(descriptionIcon, { key: 'Enter' });
+  expect(tooltipOnClick).toHaveBeenCalled();
 });
