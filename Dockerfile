@@ -105,6 +105,28 @@ RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
 
 
 ######################################################################
+# superset-websocket builds the realtime WebSocket (Node) server that
+# ships in the official image, launched via docker/entrypoints/run-websocket.sh
+######################################################################
+FROM node:24-trixie-slim AS superset-websocket
+
+# Harden `npm ci` against transient npm-registry network blips (e.g. ECONNRESET).
+ENV npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_timeout=600000
+
+WORKDIR /app/superset-websocket
+
+# Install against the lockfile first (cached until it changes), then compile the
+# TypeScript server and prune to production dependencies only.
+COPY superset-websocket/package.json superset-websocket/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
+COPY superset-websocket/ ./
+RUN npm run build && npm prune --omit=dev
+
+
+######################################################################
 # Base python layer
 ######################################################################
 FROM python:${PY_VER} AS python-base
@@ -242,6 +264,20 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install -e .
 RUN python -m compileall /app/superset
+
+# --- Realtime WebSocket server (part of the official image) ---------------
+# The realtime transport (superset-websocket) is a Node service. Bundle the
+# Node runtime plus the built server and its production dependencies so the
+# official image can launch it via an alternate entrypoint
+# (docker/entrypoints/run-websocket.sh) rather than needing a separate image.
+RUN /app/docker/apt-install.sh libstdc++6
+COPY --from=superset-websocket /usr/local/bin/node /usr/local/bin/node
+COPY --from=superset-websocket --chown=superset:superset \
+    /app/superset-websocket/dist /app/superset-websocket/dist
+COPY --from=superset-websocket --chown=superset:superset \
+    /app/superset-websocket/node_modules /app/superset-websocket/node_modules
+COPY --from=superset-websocket --chown=superset:superset \
+    /app/superset-websocket/package.json /app/superset-websocket/package.json
 
 USER superset
 
