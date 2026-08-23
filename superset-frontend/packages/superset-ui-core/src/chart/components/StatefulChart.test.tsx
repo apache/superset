@@ -749,6 +749,71 @@ test('resolves async (202) responses via the injected handleAsyncChartData hook'
   });
 });
 
+test('requests async_mode when resolveAsyncMode opts in and 202 is handled', async () => {
+  mockChartClient.client.post.mockResolvedValue({
+    response: { status: 200 } as Response,
+    json: [{ data: 'sync-from-cache' }],
+  });
+  const handleAsyncChartData = jest.fn().mockResolvedValue([{ data: 'x' }]);
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{ handleAsyncChartData, resolveAsyncMode: () => true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  expect(jsonPayload.async_mode).toBe(true);
+});
+
+test('omits async_mode when resolveAsyncMode opts out', async () => {
+  mockChartClient.client.post.mockResolvedValue({
+    response: { status: 200 } as Response,
+    json: [{ data: 'sync' }],
+  });
+  const handleAsyncChartData = jest.fn();
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{ handleAsyncChartData, resolveAsyncMode: () => false }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  expect(jsonPayload.async_mode).toBeUndefined();
+});
+
+test('omits async_mode when no async handler is wired even if resolveAsyncMode opts in', async () => {
+  mockChartClient.client.post.mockResolvedValue({
+    response: { status: 200 } as Response,
+    json: [{ data: 'sync' }],
+  });
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{ resolveAsyncMode: () => true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  expect(jsonPayload.async_mode).toBeUndefined();
+});
+
 test('errors on async (202) response when no async handler is provided', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,

@@ -57,6 +57,7 @@ import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
 import { handleChartDataResponse } from './chartAction';
+import { resolveAsyncMode } from 'src/utils/asyncMode';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -172,6 +173,9 @@ interface ChartHooks {
     refetch?: () => Promise<QueryData[]>,
     signal?: AbortSignal,
   ) => Promise<QueryData[]> | QueryData[];
+  // Whether self-contained charts (e.g. StatefulChart) should request async
+  // chart-data execution, per the resolved policy.
+  resolveAsyncMode?: () => boolean;
 }
 
 const BLANK = {};
@@ -399,6 +403,9 @@ function ChartRendererComponent({
       // StatefulChart) resolve async (202) chart-data responses without
       // depending on app-level async-event middleware.
       handleAsyncChartData: handleChartDataResponse,
+      // Shares the async opt-in policy (feature flag + deployment default) with
+      // those self-contained producers so they don't always run synchronously.
+      resolveAsyncMode: () => resolveAsyncMode(),
     }),
     [
       handleAddFilter,

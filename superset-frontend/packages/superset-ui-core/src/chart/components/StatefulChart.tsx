@@ -303,6 +303,12 @@ export default function StatefulChart(props: StatefulChartProps) {
         jsonPayload: {
           ...queryContext,
           ...(force && { force: true }),
+          // Opt into async execution per the injected policy (feature flag +
+          // deployment default + dashboard override). We handle the 202 below via
+          // handleAsyncChartData; without the hook we stay synchronous.
+          ...(hooks?.handleAsyncChartData && hooks?.resolveAsyncMode?.()
+            ? { async_mode: true }
+            : {}),
         },
       };
 
