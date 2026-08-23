@@ -30,40 +30,30 @@ import { createLogger } from './logger.js';
 import { buildConfig, RedisConfig } from './config.js';
 import { checkServerIdentity, PeerCertificate } from 'tls';
 
-export type StreamResult = [
-  recordId: string,
-  record: [label: 'data', data: string],
-];
-
-// sync with superset-frontend/src/components/ErrorMessage/types
-export type ErrorLevel = 'info' | 'warning' | 'error';
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
-export type SupersetError<ExtraType = Record<string, any> | null> = {
-  error_type: string;
-  extra: ExtraType;
-  level: ErrorLevel;
-  message: string;
-};
-
-type ListenerFunction = (results: StreamResult[]) => void | Promise<void>;
-interface EventValue {
-  id: string;
-  channel_id: string;
-  job_id: string;
-  user_id?: string;
-  status: string;
-  errors?: SupersetError[];
-  result_url?: string;
-}
 interface JwtPayload {
   [key: string]: string;
 }
-interface FetchRangeFromStreamParams {
-  sessionId: string;
-  startId: string;
-  endId: string;
-  listener: ListenerFunction;
+
+/**
+ * The generic, feature-agnostic message the server forwards to browsers. The
+ * server does not understand any feature's payload — it only routes by Redis
+ * `channel` name — so `payload` is passed through verbatim. A browser client
+ * routes on `channel`:
+ *   - `entity-changes:<type>` — a lossy, public "an entity of this type
+ *     changed" nudge, broadcast to every connected socket; `payload` carries
+ *     opaque ids only (`{entity_type, id}`).
+ *   - `<realtimeChannelPrefix><principalChannel>` — a per-principal message
+ *     (e.g. a task's status), delivered only to sockets whose JWT bound that
+ *     principal channel; `payload` is feature-defined (e.g. `{task_id, status}`).
+ * Any future feature (thumbnails, reports, exports, …) reuses this envelope
+ * without a server change: its specifics live entirely in `payload`.
+ */
+export interface OutboundMessage {
+  channel: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any;
 }
+
 export interface SocketInstance {
   ws: WebSocket;
   channel: string;
@@ -139,9 +129,11 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
   return redisOpts;
 };
 
-// initialize servers
-const redis = new Redis(buildRedisOpts(opts.redis));
-redis.on('error', (err: Error) => {
+// A Redis connection dedicated to Pub/Sub: once a connection enters subscriber
+// mode it can no longer issue ordinary commands, so this is kept separate from
+// any future command connection.
+const redisSubscriber = new Redis(buildRedisOpts(opts.redis));
+redisSubscriber.on('error', (err: Error) => {
   logger.error(`Redis connection error: ${err.message}`);
 });
 const httpServer = http.createServer();
@@ -151,17 +143,31 @@ export const wss = new WebSocketServer({
 });
 
 const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
-const GLOBAL_EVENT_STREAM_NAME = `${opts.redisStreamPrefix}full`;
-const DEFAULT_STREAM_LAST_ID = '$';
+
+// The Pub/Sub channel prefixes the server tails. These are a wire-protocol
+// contract with the Superset producer (superset/tasks/manager.py:
+// ENTITY_CHANGES_CHANNEL_PREFIX / REALTIME_CHANNEL_PREFIX), NOT a deployment
+// knob — an independent override on this side with no matching producer config
+// would silently subscribe to channels nothing publishes to, so they are fixed
+// constants that must stay in lockstep with the producer.
+//
+// Tier-1 entity-change nudges are public and broadcast to every socket; tier-2
+// per-principal channels are routed to the matching principal only (see
+// routeRedisMessage). Both are lossy (Pub/Sub is fire-and-forget); the browser's
+// interval poll is the correctness backstop, so no stream replay / reconnection
+// catch-up is needed.
+const ENTITY_CHANGES_CHANNEL_PREFIX = 'entity-changes:';
+const PER_PRINCIPAL_CHANNEL_PREFIX = 'realtime:';
+const ENTITY_CHANGES_PATTERN = `${ENTITY_CHANGES_CHANNEL_PREFIX}*`;
+const PER_PRINCIPAL_PATTERN = `${PER_PRINCIPAL_CHANNEL_PREFIX}*`;
+
+// Backoff before retrying an initial Pub/Sub subscription that failed (e.g.
+// Redis unreachable at startup); see subscribeToChannels.
+const SUBSCRIBE_RETRY_MS = 5000;
 
 // initialize internal registries
 export let channels: Record<string, ChannelValue> = {};
 export let sockets: Record<string, SocketInstance> = {};
-let lastFirehoseId: string = DEFAULT_STREAM_LAST_ID;
-
-export const setLastFirehoseId = (id: string): void => {
-  lastFirehoseId = id;
-};
 
 // WebSocket close code used when a connection is refused because a configured
 // connection limit has been reached (1013 = "Try Again Later").
@@ -246,12 +252,16 @@ export const trackClient = (
 };
 
 /**
- * Sends a single async event payload to a single channel.
- * A channel may have multiple connected sockets, this emits
- * the event to all connected sockets within a channel.
+ * Sends a single message to every socket registered on a channel.
+ * A channel may have multiple connected sockets (e.g. one browser tab each);
+ * this emits the message to all of them, leaving it to the client to decide
+ * which are relevant to its current context.
  */
-export const sendToChannel = (channel: string, value: EventValue): void => {
-  const strData = JSON.stringify(value);
+export const sendToChannel = (
+  channel: string,
+  message: OutboundMessage,
+): void => {
+  const strData = JSON.stringify(message);
   if (!channels[channel]) {
     logger.debug(`channel ${channel} is unknown, skipping`);
     return;
@@ -293,94 +303,88 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
 };
 
 /**
- * Reads a range of events from a channel-specific Redis event stream.
- * Invoked in the client re-connection flow.
+ * Sends a message to every connected socket, regardless of channel. Used for
+ * the public, lossy tier-1 entity-change nudges (`entity-changes:*`), which
+ * carry only opaque ids — each client filters to the ids it renders. Reuses
+ * `sendToChannel` per channel so backpressure and cleanup apply uniformly.
  */
-export const fetchRangeFromStream = async ({
-  sessionId,
-  startId,
-  endId,
-  listener,
-}: FetchRangeFromStreamParams) => {
-  const streamName = `${opts.redisStreamPrefix}${sessionId}`;
-  try {
-    const reply = await redis.xrange(streamName, startId, endId);
-    if (!reply || !reply.length) return;
-    await listener(reply as StreamResult[]);
-  } catch (e) {
-    logger.error(e);
+export const broadcastToAll = (message: OutboundMessage): void => {
+  for (const channel in channels) {
+    sendToChannel(channel, message);
   }
 };
 
 /**
- * Reads from the global Redis event stream continuously.
- * Utilizes a blocking connection to Redis to wait for data to
- * be returned from the stream.
- */
-export const subscribeToGlobalStream = async (
-  stream: string,
-  listener: ListenerFunction,
-) => {
-  /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
-  while (true) {
-    try {
-      const reply = await redis.xread(
-        'COUNT',
-        opts.redisStreamReadCount,
-        'BLOCK',
-        opts.redisStreamReadBlockMs,
-        'STREAMS',
-        stream,
-        lastFirehoseId,
-      );
-      if (!reply) {
-        continue;
-      }
-      const results = reply[0][1];
-      const { length } = results;
-      if (!results.length) {
-        continue;
-      }
-      // Await the listener before advancing so that batches are processed
-      // sequentially. processStreamResults yields to the event loop mid-batch
-      // for large bursts; without awaiting here a subsequent xread could start
-      // a concurrent batch and interleave out-of-order sends to clients.
-      await listener(results as StreamResult[]);
-      setLastFirehoseId(results[length - 1][0]);
-    } catch (e) {
-      logger.error(e);
-      continue;
-    }
-  }
-};
-
-/**
- * Callback function to process events received from a Redis Stream.
+ * Routes a raw Redis Pub/Sub message to the appropriate sockets.
  *
- * For large batches the loop periodically yields to the Node.js event loop
- * (via setImmediate) so that connection management, health checks and
- * ping/pong handling are not starved while a burst of events is processed.
- * The yield cadence is controlled by `eventYieldBatchSize` (0 disables it).
+ * Per-principal messages (`realtime:<principalChannel>`, e.g.
+ * `realtime:user:5`) are delivered only to sockets whose JWT bound that
+ * principal channel. Entity-change messages (`entity-changes:<type>`) are
+ * broadcast to all sockets. The full Redis channel name is forwarded to the
+ * browser in the envelope so the client can route by it too.
  */
-export const processStreamResults = async (
-  results: StreamResult[],
-): Promise<void> => {
-  // Log only the batch size, not the raw payloads, which carry user and
-  // job identifiers.
-  logger.debug(`events received: count=${results.length}`);
-  const { eventYieldBatchSize } = opts;
-  for (let i = 0; i < results.length; i += 1) {
-    if (eventYieldBatchSize > 0 && i > 0 && i % eventYieldBatchSize === 0) {
-      await new Promise(resolve => setImmediate(resolve));
-    }
-    try {
-      const item = results[i];
-      const id = item[0];
-      const data = JSON.parse(item[1][1]);
-      sendToChannel(data.channel_id, { id, ...data });
-    } catch (err) {
-      logger.error(err);
-    }
+export const routeRedisMessage = (
+  channel: string,
+  rawMessage: string,
+): void => {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawMessage);
+  } catch (err) {
+    logger.error(`Failed to parse message on channel ${channel}: ${err}`);
+    return;
+  }
+  const message: OutboundMessage = { channel, payload };
+
+  if (channel.startsWith(PER_PRINCIPAL_CHANNEL_PREFIX)) {
+    const principalChannel = channel.slice(PER_PRINCIPAL_CHANNEL_PREFIX.length);
+    sendToChannel(principalChannel, message);
+  } else if (channel.startsWith(ENTITY_CHANGES_CHANNEL_PREFIX)) {
+    broadcastToAll(message);
+  } else {
+    logger.debug(`Ignoring message on unrecognized channel ${channel}`);
+  }
+};
+
+/**
+ * Subscribes the Redis connection to the tier-1 (broadcast) and tier-2
+ * (per-principal) channel patterns and routes each received message.
+ *
+ * Failure is observable and self-healing rather than silent: if the initial
+ * ``psubscribe`` rejects (e.g. Redis unreachable at startup) it is logged and
+ * retried, so the transport can't end up running with no subscription. ioredis
+ * additionally re-establishes these subscriptions automatically across
+ * reconnects once they exist. Delivery is best-effort regardless — the browser's
+ * interval poll is the correctness backstop.
+ */
+let pmessageBound = false;
+
+export const subscribeToChannels = async (): Promise<void> => {
+  // Bind the router exactly once; retries must not stack duplicate listeners
+  // (which would route every message N times).
+  if (!pmessageBound) {
+    redisSubscriber.on(
+      'pmessage',
+      (_pattern: string, channel: string, message: string) => {
+        routeRedisMessage(channel, message);
+      },
+    );
+    pmessageBound = true;
+  }
+  try {
+    await redisSubscriber.psubscribe(
+      ENTITY_CHANGES_PATTERN,
+      PER_PRINCIPAL_PATTERN,
+    );
+    logger.info(
+      `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${PER_PRINCIPAL_PATTERN}`,
+    );
+  } catch (err) {
+    logger.error(
+      `Failed to subscribe to Redis channels; retrying in ` +
+        `${SUBSCRIBE_RETRY_MS}ms: ${err}`,
+    );
+    setTimeout(subscribeToChannels, SUBSCRIBE_RETRY_MS);
   }
 };
 
@@ -405,36 +409,6 @@ const readChannelId = (request: http.IncomingMessage): string => {
   return channelId;
 };
 
-// Redis stream IDs have the form '<millisecondsTime>-<sequenceNumber>',
-// e.g. '1607477697866-0'.
-const REDIS_STREAM_ID_REGEX = /^\d{1,15}-\d{1,10}$/;
-
-/**
- * Extracts the `last_id` query param value from an HTTP request, returning it
- * only when it is a well-formed Redis stream ID. Malformed values are ignored
- * (returns null) rather than being passed through to incrementId / Redis.
- */
-export const getLastId = (request: http.IncomingMessage): string | null => {
-  const url = new URL(String(request.url), 'http://0.0.0.0');
-  const lastId = url.searchParams.get('last_id');
-  if (lastId === null) return null;
-  if (!REDIS_STREAM_ID_REGEX.test(lastId)) {
-    logger.warn(`Ignoring malformed last_id query param: ${lastId}`);
-    return null;
-  }
-  return lastId;
-};
-
-/**
- * Increments a Redis Stream ID
- */
-export const incrementId = (id: string): string => {
-  // redis stream IDs are in this format: '1607477697866-0'
-  const parts = id.split('-');
-  if (parts.length < 2) return id;
-  return parts[0] + '-' + (Number(parts[1]) + 1);
-};
-
 /**
  * WebSocket `connection` event handler, called via wss
  */
@@ -457,20 +431,8 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   const socketId = trackClient(channel, socketInstance);
   logger.debug(`socket ${socketId} connected on channel ${channel}`);
 
-  // reconnection logic
-  const lastId = getLastId(request);
-  if (lastId) {
-    // fetch range of events from lastId to most recent event received on
-    // via global event stream
-    const endId =
-      lastFirehoseId === DEFAULT_STREAM_LAST_ID ? '+' : lastFirehoseId;
-    fetchRangeFromStream({
-      sessionId: channel,
-      startId: incrementId(lastId), // inclusive
-      endId, // inclusive
-      listener: processStreamResults,
-    });
-  }
+  // Pub/Sub is lossy and not replayable, so there is no server-side catch-up on
+  // reconnect: the browser's interval poll reconciles any missed nudges.
 
   // init event handler for `pong` events (connection management)
   ws.on('pong', function pong(data: Buffer) {
@@ -670,8 +632,8 @@ if (startServer) {
   httpServer.listen(opts.port);
   logger.info(`Server started on port ${opts.port}`);
 
-  // start reading from event stream
-  subscribeToGlobalStream(GLOBAL_EVENT_STREAM_NAME, processStreamResults);
+  // start receiving realtime messages from Redis Pub/Sub
+  subscribeToChannels();
 
   // init garbage collection routines
   setInterval(checkSockets, opts.pingSocketsIntervalMs);
@@ -688,5 +650,5 @@ if (startServer) {
 export const resetState = () => {
   channels = {};
   sockets = {};
-  lastFirehoseId = DEFAULT_STREAM_LAST_ID;
+  pmessageBound = false;
 };

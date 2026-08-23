@@ -44,6 +44,24 @@ from superset.utils.core import get_user_id
 logger = logging.getLogger(__name__)
 
 
+def channel_id_for(user_id: int | None, guest_key: str | None) -> str | None:
+    """Derive a principal's realtime channel from its identity, or ``None``.
+
+    The single source of truth for the channel-id format, shared by the
+    request-scoped :func:`get_channel_id` (cookie minting) and the task layer's
+    per-subscriber publish (``TaskDAO.get_subscriber_channels``) so a message
+    published to a subscriber's channel lands on the socket whose cookie bound
+    that same channel. ``user:<id>`` for an authenticated user; the guest's
+    token-derived key (already namespaced ``guest-…``) for an embedded guest;
+    ``None`` when neither identifies a principal.
+    """
+    if user_id is not None:
+        return f"user:{user_id}"
+    if guest_key:
+        return guest_key
+    return None
+
+
 def get_channel_id() -> str | None:
     """Return the realtime channel for the current request principal, or ``None``.
 
@@ -52,10 +70,8 @@ def get_channel_id() -> str | None:
     and ``None`` for an anonymous request (no channel, no cookie).
     """
     if security_manager.get_current_guest_user_if_guest():
-        return get_current_guest_subscriber_key()
-    if (user_id := get_user_id()) is not None:
-        return f"user:{user_id}"
-    return None
+        return channel_id_for(None, get_current_guest_subscriber_key())
+    return channel_id_for(get_user_id(), None)
 
 
 def mint_channel_token(channel_id: str) -> str:

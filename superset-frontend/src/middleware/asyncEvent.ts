@@ -80,6 +80,19 @@ let baselineReady: Promise<void> | null;
 // stop instead of scheduling a second loop or mutating fresh state.
 let pollingGeneration = 0;
 
+// Optional realtime WebSocket transport (superset-websocket). It merely
+// accelerates completion: a per-principal tier-2 message carries a task's
+// terminal status so a waiting chart settles immediately instead of at the next
+// poll tick. The interval poll below is the correctness backstop, so the socket
+// is strictly best-effort — if it is down or a message is lost, nothing breaks.
+let ws: WebSocket | undefined;
+let wsReconnectTimeoutId: number;
+let wsReconnectDelayMs: number;
+// Per-principal channel prefix (mirrors superset-websocket routing and
+// TaskManager.REALTIME_CHANNEL_PREFIX). The browser socket is JWT-bound to its
+// own principal channel, so it only ever receives its own realtime messages.
+const REALTIME_CHANNEL_PREFIX = 'realtime:';
+
 const fetchStatusChanges = makeApi<
   { cursor?: string | null; task_type: string },
   StatusChangesResponse
@@ -162,6 +175,83 @@ const loadStatusChanges = async (generation: number) => {
 };
 
 /**
+ * Apply a realtime message received over the WebSocket.
+ *
+ * The server forwards a generic ``{channel, payload}`` envelope. For a
+ * per-principal (tier-2) chart-data message the payload is ``{task_id, status}``;
+ * because delivery is scoped to this principal's own JWT-bound channel, the
+ * status is authoritative enough to settle the waiter immediately (the ensuing
+ * ``refetch`` reads the authorized per-query cache anyway). Any other channel
+ * (e.g. the public ``entity-changes:*`` nudges) is ignored here — chart-data
+ * only cares about its own tasks. Strictly best-effort: malformed data is
+ * dropped, never thrown.
+ */
+export const handleRealtimeMessage = (rawData: string) => {
+  try {
+    const { channel, payload } = JSON.parse(rawData) ?? {};
+    if (typeof channel !== 'string') return;
+    if (!channel.startsWith(REALTIME_CHANNEL_PREFIX)) return;
+    const taskId = payload?.task_id;
+    const status = payload?.status;
+    if (typeof taskId === 'string' && typeof status === 'string') {
+      applyStatus(taskId, status);
+    }
+  } catch (err) {
+    logging.warn('Failed to handle realtime message', err);
+  }
+};
+
+const teardownWebSocket = () => {
+  if (wsReconnectTimeoutId) clearTimeout(wsReconnectTimeoutId);
+  if (ws) {
+    // Detach handlers first so the in-flight socket's close doesn't schedule a
+    // reconnect against the superseded generation.
+    ws.onmessage = null;
+    ws.onclose = null;
+    ws.onerror = null;
+    try {
+      ws.close();
+    } catch {
+      // ignore: closing an already-closed/broken socket is harmless
+    }
+    ws = undefined;
+  }
+};
+
+// Open the realtime WebSocket (if enabled) and route its messages. The JWT
+// channel cookie (set by the Flask app) rides the handshake automatically since
+// the server runs on the same host. On close we reconnect after a delay; the
+// interval poll keeps completions flowing meanwhile, so a socket outage only
+// costs latency, not correctness.
+const connectWebSocket = (generation: number) => {
+  if (generation !== pollingGeneration) return;
+  const url = config?.WEBSOCKET_URL;
+  if (!config?.WEBSOCKET_ENABLED || !url || typeof WebSocket === 'undefined') {
+    return;
+  }
+  try {
+    ws = new WebSocket(url);
+  } catch (err) {
+    logging.warn('Failed to open realtime WebSocket', err);
+    return;
+  }
+  ws.onmessage = (event: MessageEvent) => {
+    if (generation !== pollingGeneration) return;
+    handleRealtimeMessage(String(event.data));
+  };
+  ws.onclose = () => {
+    if (generation !== pollingGeneration) return;
+    wsReconnectTimeoutId = window.setTimeout(
+      () => connectWebSocket(generation),
+      wsReconnectDelayMs,
+    );
+  };
+  // Errors surface as a subsequent close; let onclose own the reconnect and
+  // avoid logging the (payload-free) error event on every transient blip.
+  ws.onerror = () => {};
+};
+
+/**
  * Await completion of an async chart-data job's query tasks, then re-issue the
  * original request to read the now-cached results.
  *
@@ -220,6 +310,7 @@ export const waitForAsyncData = async <T = unknown[]>(
 export const init = (appConfig?: AppConfig) => {
   pollingGeneration += 1;
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
+  teardownWebSocket();
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
   const generation = pollingGeneration;
@@ -228,6 +319,12 @@ export const init = (appConfig?: AppConfig) => {
 
   config = appConfig || getBootstrapData().common.conf;
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
+  wsReconnectDelayMs =
+    config.GLOBAL_ASYNC_QUERIES_WEBSOCKET_RECONNECT_DELAY || 5000;
+
+  // Open the realtime socket (no-op unless WEBSOCKET_ENABLED); it only
+  // accelerates the poll loop below.
+  connectWebSocket(generation);
 
   // Establish a baseline cursor before any chart query is triggered, so tasks
   // created afterwards are all caught by the changed-since poll, then start the

@@ -348,12 +348,25 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             return '-';
           }
 
-          // Convert subscribers to SubjectPile format
-          const subjects = subscribers.map((sub: TaskSubscriber) => ({
-            id: sub.user_id,
-            label: `${sub.first_name} ${sub.last_name}`.trim(),
-            type: 1,
-          }));
+          // Convert subscribers to SubjectPile format. Authenticated users show
+          // their name initials; embedded guests (no profile) show their
+          // anonymized G1/G2 label under a synthetic negative id (there is no
+          // user_id to key on, and negatives can't collide with real user ids).
+          const subjects = subscribers.map(
+            (sub: TaskSubscriber, index: number) =>
+              sub.is_guest
+                ? {
+                    id: -(index + 1),
+                    label: sub.label ?? t('Guest'),
+                    type: 1,
+                  }
+                : {
+                    id: sub.user_id as number,
+                    label:
+                      `${sub.first_name ?? ''} ${sub.last_name ?? ''}`.trim(),
+                    type: 1,
+                  },
+          );
 
           return <SubjectPile subjects={subjects} maxCount={3} />;
         },

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, TYPE_CHECKING
+from uuid import UUID
 
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
@@ -37,6 +38,8 @@ from superset.tasks.decorators import task
 from superset.utils.core import override_user
 
 if TYPE_CHECKING:
+    from superset_core.tasks.models import Task as CoreTask
+
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
     from superset.models.tasks import Task
@@ -174,7 +177,10 @@ def submit_chart_data_query_tasks(
         query_context.cache_values["queries"][totals_idx]["row_limit"] = None
         totals_key = _query_task_cache_key(query_context, totals_idx)
 
-    def _schedule(index: int, depends_on: list["Task"] | None = None) -> "Task":
+    def _schedule(
+        index: int,
+        depends_on: "list[CoreTask | UUID | str] | None" = None,
+    ) -> "Task":
         return execute_chart_query.schedule(
             serialize_query(query_context, index),
             user_id,
@@ -192,7 +198,7 @@ def submit_chart_data_query_tasks(
         tasks[totals_idx] = _schedule(totals_idx)
     for index in range(len(queries)):
         if index not in tasks:
-            depends_on = (
+            depends_on: "list[CoreTask | UUID | str] | None" = (
                 [tasks[totals_idx]]
                 if index in needs_totals and totals_idx is not None
                 else None

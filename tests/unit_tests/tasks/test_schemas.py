@@ -67,3 +67,39 @@ def test_get_properties_exposes_debug_fields_when_show_stacktrace(
 
     assert properties["exception_type"] == "KeyError"
     assert str(properties["stack_trace"]).startswith("Traceback")
+
+
+def test_get_subscribers_mixes_users_and_anonymized_guests() -> None:
+    """User subscribers keep their profile; guests get anonymized G1/G2 labels."""
+    from datetime import datetime
+
+    def _sub(id_, user_id, user, subscribed_at):
+        return SimpleNamespace(
+            id=id_, user_id=user_id, user=user, subscribed_at=subscribed_at
+        )
+
+    alice = SimpleNamespace(first_name="Alice", last_name="Smith")
+    task = SimpleNamespace(
+        subscribers=[
+            _sub(1, 7, alice, datetime(2020, 1, 1, 0, 0, 0)),
+            # Two guests, deliberately out of subscription order to prove the
+            # G-ordinals are assigned by subscribed_at, not list order.
+            _sub(2, None, None, datetime(2020, 1, 1, 0, 0, 2)),
+            _sub(3, None, None, datetime(2020, 1, 1, 0, 0, 1)),
+        ]
+    )
+
+    result = TaskResponseSchema().get_subscribers(task)
+
+    assert result[0] == {
+        "user_id": 7,
+        "is_guest": False,
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "subscribed_at": "2020-01-01T00:00:00",
+    }
+    # Guest ordinals follow subscription time: id=3 (earlier) → G1, id=2 → G2.
+    guests = {r["subscribed_at"]: r for r in result if r["is_guest"]}
+    assert guests["2020-01-01T00:00:01"]["label"] == "G1"
+    assert guests["2020-01-01T00:00:02"]["label"] == "G2"
+    assert all(g["user_id"] is None for g in guests.values())

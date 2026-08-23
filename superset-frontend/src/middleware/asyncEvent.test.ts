@@ -157,3 +157,79 @@ test('settles every request awaiting a deduplicated shared task', async () => {
   expect(a).toEqual([{ chart: 'a' }]);
   expect(b).toEqual([{ chart: 'b' }]);
 });
+
+describe('realtime WebSocket acceleration', () => {
+  const realtime = (taskId: string, status: string) =>
+    JSON.stringify({
+      channel: `realtime:user:1`,
+      payload: { task_id: taskId, status },
+    });
+
+  // waitForAsyncData registers its waiter only after the baseline cursor fetch
+  // resolves; wait a tick so a one-shot socket message isn't delivered before
+  // the task is being awaited.
+  const afterRegistered = () => new Promise(resolve => setTimeout(resolve, 50));
+
+  test('a tier-2 message settles a waiting chart without a poll', async () => {
+    // No status batches queued (only the baseline), so completion can ONLY come
+    // from the socket message — proving the WS path settles on its own.
+    queueStatuses();
+    asyncEvent.init(config);
+
+    const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+    const promise = asyncEvent.waitForAsyncData(
+      { task_ids: ['task-1'] },
+      refetch,
+    );
+
+    await afterRegistered();
+    asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+
+    expect(await promise).toEqual([{ rows: 1 }]);
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('a tier-2 failure message rejects the waiting chart', async () => {
+    queueStatuses();
+    asyncEvent.init(config);
+
+    const refetch = jest.fn();
+    const promise = asyncEvent.waitForAsyncData(
+      { task_ids: ['task-1'] },
+      refetch,
+    );
+
+    await afterRegistered();
+    asyncEvent.handleRealtimeMessage(realtime('task-1', 'failure'));
+
+    await expect(promise).rejects.toThrow();
+    expect(refetch).not.toHaveBeenCalled();
+  });
+
+  test('ignores non-realtime channels and malformed data', async () => {
+    queueStatuses();
+    asyncEvent.init(config);
+
+    const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+    const promise = asyncEvent.waitForAsyncData(
+      { task_ids: ['task-1'] },
+      refetch,
+    );
+
+    await afterRegistered();
+    // A public entity-change nudge carries no status and must not settle a chart.
+    asyncEvent.handleRealtimeMessage(
+      JSON.stringify({
+        channel: 'entity-changes:task',
+        payload: { entity_type: 'task', id: 'task-1' },
+      }),
+    );
+    // Malformed data must be swallowed, not thrown.
+    expect(() => asyncEvent.handleRealtimeMessage('not json')).not.toThrow();
+    expect(refetch).not.toHaveBeenCalled();
+
+    // The task is still pending; complete it so the test doesn't leak a waiter.
+    asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
+    await promise;
+  });
+});
