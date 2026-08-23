@@ -68,6 +68,12 @@ repos:
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+      - id: oxfmt-websocket
+        name: oxfmt (websocket)
+        entry: bash -c 'cd superset-websocket && files=(); for f in "$@"; do files+=("${f#superset-websocket/}"); done; npx oxfmt --write --no-error-on-unmatched-pattern -- "${files[@]}"' --
+        language: system
+        pass_filenames: true
+        files: ^superset-websocket/.*\.(js|ts|json)$
   - repo: local
     hooks:
       - id: oxlint-frontend

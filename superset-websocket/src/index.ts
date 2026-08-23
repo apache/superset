@@ -310,7 +310,10 @@ export const broadcastToAll = (message: OutboundMessage): void => {
  * broadcast to all sockets. The full Redis channel name is forwarded to the
  * browser in the envelope so the client can route by it too.
  */
-export const routeRedisMessage = (channel: string, rawMessage: string): void => {
+export const routeRedisMessage = (
+  channel: string,
+  rawMessage: string,
+): void => {
   let payload: unknown;
   try {
     payload = JSON.parse(rawMessage);
@@ -342,7 +345,10 @@ export const subscribeToChannels = async (): Promise<void> => {
       routeRedisMessage(channel, message);
     },
   );
-  await redisSubscriber.psubscribe(ENTITY_CHANGES_PATTERN, PER_PRINCIPAL_PATTERN);
+  await redisSubscriber.psubscribe(
+    ENTITY_CHANGES_PATTERN,
+    PER_PRINCIPAL_PATTERN,
+  );
   logger.info(
     `Subscribed to Redis channels: ${ENTITY_CHANGES_PATTERN}, ${PER_PRINCIPAL_PATTERN}`,
   );
