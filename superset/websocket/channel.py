@@ -53,8 +53,7 @@ def get_channel_id() -> str | None:
     """
     if security_manager.get_current_guest_user_if_guest():
         return get_current_guest_subscriber_key()
-    user_id = get_user_id()
-    if user_id is not None:
+    if (user_id := get_user_id()) is not None:
         return f"user:{user_id}"
     return None
 
