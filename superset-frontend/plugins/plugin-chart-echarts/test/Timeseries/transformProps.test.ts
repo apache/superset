@@ -2882,3 +2882,187 @@ test('boundary label alignment is dropped when the orientation moves the time ax
   expect(horizontal.axisLabel.showMinLabel).toBe(true);
   expect(horizontal.axisLabel.showMaxLabel).toBe(true);
 });
+
+test('tooltip formats each series with its own metric format instead of the default formatter', () => {
+  // Two saved metrics with different formats: `pct_change` carries a percentage
+  // D3 format, `count` carries a currency format. The series labels already
+  // honor each metric's format; the tooltip must do the same.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ count: 1000, pct_change: 0.1234, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { count: ['count'], pct_change: ['pct_change'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    { seriesId: 'count', seriesName: 'count', value: [BASE_TIMESTAMP, 1000] },
+    {
+      seriesId: 'pct_change',
+      seriesName: 'pct_change',
+      value: [BASE_TIMESTAMP, 0.1234],
+    },
+  ]);
+
+  expect(result).toContain('12.34%');
+  expect(result).toContain('$');
+});
+
+test('tooltip resolves per-metric formats for series renamed by verbose_name', () => {
+  // With a verbose_name configured, the rendered series name (and so the
+  // tooltip key) is the verbose label, while `label_map` stays keyed by the
+  // raw metric label. The formatter lookup has to bridge that gap.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ count: 1000, pct_change: 0.1234, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { count: ['count'], pct_change: ['pct_change'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: { count: 'Total Count', pct_change: 'Percent Change' },
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'Total Count',
+      seriesName: 'Total Count',
+      value: [BASE_TIMESTAMP, 1000],
+    },
+    {
+      seriesId: 'Percent Change',
+      seriesName: 'Percent Change',
+      value: [BASE_TIMESTAMP, 0.1234],
+    },
+  ]);
+
+  expect(result).toContain('12.34%');
+  expect(result).toContain('$');
+});
+
+test('tooltip keeps per-metric formats on time-comparison (time-shifted) series', () => {
+  // A time-shifted series renders under a name carrying the offset, and its
+  // `label_map` entry leads with that offset rather than the metric. The
+  // formatter lookup has to land on the underlying metric so the shifted row is
+  // formatted like the series it is compared against.
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['count', 'pct_change'],
+      richTooltip: true,
+      timeCompare: ['1 year ago'],
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            count: 1000,
+            pct_change: 0.1234,
+            'count, 1 year ago': 900,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            count: ['count'],
+            pct_change: ['pct_change'],
+            'count, 1 year ago': ['1 year ago', 'count'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: { pct_change: '.2%' },
+      currencyFormats: { count: { symbol: 'USD', symbolPosition: 'prefix' } },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    { seriesId: 'count', seriesName: 'count', value: [BASE_TIMESTAMP, 1000] },
+    {
+      seriesId: 'count, 1 year ago',
+      seriesName: 'count, 1 year ago',
+      value: [BASE_TIMESTAMP, 900],
+    },
+  ]);
+
+  // The base series and its time-shifted counterpart keep the currency format.
+  expect(result).toContain('$ 1k');
+  expect(result).toContain('$ 900');
+});
+
+test('tooltip does not apply a metric currency format to a Percentage time comparison', () => {
+  // Reported on #33757: a Time Comparison set to Percentage change on a
+  // currency metric kept rendering the derived row in dollars. That row holds a
+  // ratio rather than a value in the metric's units, so it must not inherit the
+  // metric's saved CurrencyFormatter.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ sum__num: 100, '1 week ago': 0.25, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { sum__num: ['sum__num'], '1 week ago': ['1 week ago'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num',
+      seriesName: 'sum__num',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago',
+      seriesName: '1 week ago',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  // The source metric keeps its currency; the percentage-change row does not.
+  expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
