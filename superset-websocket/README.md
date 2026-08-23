@@ -175,6 +175,29 @@ Running in production:
 npm run build && npm start
 ```
 
+### From the official Superset image (recommended)
+
+The WebSocket server is bundled in the official Superset image and launched via
+an alternate entrypoint, so no separate image is required:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e JWT_SECRET="<same value as the app's WEBSOCKET_JWT_SECRET, >= 32 bytes>" \
+  -e REDIS_HOST=<redis-host> \
+  apache/superset:<tag> /app/docker/entrypoints/run-websocket.sh
+```
+
+Configure it with the same environment variables as the standalone server (see
+`src/config.ts`); `JWT_SECRET` / `JWT_COOKIE_NAME` must match the Flask app's
+`WEBSOCKET_JWT_SECRET` / `WEBSOCKET_JWT_COOKIE_NAME`, and the Redis connection
+must point at the same instance as `DISTRIBUTED_COORDINATION_CONFIG`.
+
+With `docker compose`, start it via the opt-in `websocket` profile:
+
+```bash
+docker compose --profile websocket up superset-websocket
+```
+
 ## Health check
 
 The WebSocket server supports health checks via one of:
@@ -191,4 +214,7 @@ HEAD /health
 
 ## Containerization
 
-_TODO: containerize websocket server_
+The server ships in the official Superset image (launched via
+`/app/docker/entrypoints/run-websocket.sh`, see "Running" above). A standalone
+`Dockerfile` is also provided in this directory for building the server on its
+own during development.

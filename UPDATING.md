@@ -84,9 +84,12 @@ Run the `superset-websocket` Node server on the **same host** (so its JWT
 channel cookie is shared) and point its `redis` config at the same instance as
 `DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` / `jwtCookieName` matching
 the Flask config (`WEBSOCKET_JWT_SECRET` / `WEBSOCKET_JWT_COOKIE_NAME`, default
-`superset-ws-token`). The server now consumes Redis Pub/Sub channels
-(`entity-changes:*` broadcast nudges, `realtime:<channel_id>` per-principal
-messages) instead of the removed async-events streams; see
+`superset-ws-token`). The server is bundled in the official Superset image and
+launched via an alternate entrypoint — no separate image is required:
+`docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
+opt-in `websocket` profile in `docker compose`). It now consumes Redis Pub/Sub
+channels (`entity-changes:*` broadcast nudges, `realtime:<channel_id>`
+per-principal messages) instead of the removed async-events streams; see
 `superset-websocket/README.md`.
 
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
