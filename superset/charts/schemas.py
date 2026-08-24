@@ -368,6 +368,30 @@ class ChartPutSchema(Schema):
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
+    normalization_changes: fields.Raw = fields.Raw(
+        load_only=True,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional advisory Explore hydration transitions used only to "
+                "remove exact automatic normalization changes from human-readable "
+                "version history. Invalid metadata is ignored."
+            ),
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+                "type": "object",
+                "required": ["control", "from_present", "to_present"],
+                "properties": {
+                    "control": {"type": "string", "maxLength": 256},
+                    "from_present": {"type": "boolean"},
+                    "from_value": {},
+                    "to_present": {"type": "boolean"},
+                    "to_value": {},
+                },
+            },
+        },
+    )
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):

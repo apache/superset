@@ -142,7 +142,10 @@ from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
-from superset.security.manager import get_extra_editor_subject_ids
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -432,6 +435,15 @@ class DashboardRestApi(
               $ref: '#/components/responses/500'
         """
         return super().get_list(**kwargs)
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Dashboard, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [

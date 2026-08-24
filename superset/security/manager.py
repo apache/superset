@@ -170,6 +170,36 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     return subject_ids
 
 
+def get_extra_editors_by_pk(
+    model_cls: type[Model], primary_keys: list[Any]
+) -> dict[Any, list[int]]:
+    """
+    Resolve extra editor subject IDs for a batch of resources, keyed by
+    primary key. List responses only have serialized rows, not model
+    instances, so this re-queries the page's rows in one batched query.
+    """
+    if not primary_keys or not (
+        has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER")
+    ):
+        return {}
+
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+
+    pk_col = inspect(model_cls).primary_key[0]
+    resources = (
+        db.session.query(model_cls)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
+        .filter(pk_col.in_(primary_keys))
+        .all()
+    )
+    return {
+        getattr(resource, pk_col.name): get_extra_editor_subject_ids(resource)
+        for resource in resources
+    }
+
+
 def _render_permission_instructions_link(
     *,
     datasource_id: str = "",
@@ -1698,6 +1728,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "CssTemplate",
         "Dataset",
         "Datasource",
+        "Theme",
     } | READ_ONLY_MODEL_VIEWS
 
     GAMMA_EXCLUDED_PVMS = {
@@ -1722,6 +1753,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Security",
         "SQL Lab",
         "User Registrations",
+        # REST counterpart of the FAB "User Registrations" views. FAB derives
+        # the view-menu name from the class name; without this entry
+        # _is_gamma_pvm grants its permissions to stock Gamma and Alpha.
+        "UserRegistrationsRestAPI",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
         "RoleRestAPI",
