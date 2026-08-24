@@ -54,80 +54,38 @@ def _tag_delete_listener_declarations() -> tuple[DeleteListenerDeclaration, ...]
 
 
 def register_sqla_event_listeners() -> None:
+    """Register cleanup of ``tagged_object`` rows on object deletion.
+
+    Only deletion is handled here: Superset no longer auto-generates
+    ``type:``/``editor:``/``favorited_by:`` tags (see ``TagType``'s docstring),
+    so there's nothing left to do on insert/update. Deletion cleanup stays,
+    since it applies to every tag on the object, custom tags included, and
+    ``tagged_object.object_id`` has no foreign key to cascade on its own.
+    """
     import sqlalchemy as sqla
 
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import FavStar
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
     from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import (
-        ChartUpdater,
-        DashboardUpdater,
-        DatasetUpdater,
-        FavStarUpdater,
-        QueryUpdater,
-    )
+    from superset.tags.models import QueryUpdater
 
-    declarations: tuple[DeleteListenerDeclaration, ...] = (
-        _tag_delete_listener_declarations()
-    )
+    declarations = _tag_delete_listener_declarations()
 
-    sqla.event.listen(SqlaTable, "after_insert", DatasetUpdater.after_insert)
-    sqla.event.listen(SqlaTable, "after_update", DatasetUpdater.after_update)
-    register_delete_listener(declarations[0])
+    register_delete_listener(declarations[0])  # dataset
+    register_delete_listener(declarations[1])  # chart
+    register_delete_listener(declarations[2])  # dashboard
 
-    sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
-    sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
-    register_delete_listener(declarations[1])
-
-    sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
-    sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
-    register_delete_listener(declarations[2])
-
-    sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
-    sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)
-
-    sqla.event.listen(SavedQuery, "after_insert", QueryUpdater.after_insert)
-    sqla.event.listen(SavedQuery, "after_update", QueryUpdater.after_update)
     sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)
 
 
 def clear_sqla_event_listeners() -> None:
     import sqlalchemy as sqla
 
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import FavStar
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
     from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import (
-        ChartUpdater,
-        DashboardUpdater,
-        DatasetUpdater,
-        FavStarUpdater,
-        QueryUpdater,
-    )
+    from superset.tags.models import QueryUpdater
 
-    declarations: tuple[DeleteListenerDeclaration, ...] = (
-        _tag_delete_listener_declarations()
-    )
+    declarations = _tag_delete_listener_declarations()
 
-    sqla.event.remove(SqlaTable, "after_insert", DatasetUpdater.after_insert)
-    sqla.event.remove(SqlaTable, "after_update", DatasetUpdater.after_update)
-    remove_delete_listener(declarations[0])
+    remove_delete_listener(declarations[0])  # dataset
+    remove_delete_listener(declarations[1])  # chart
+    remove_delete_listener(declarations[2])  # dashboard
 
-    sqla.event.remove(Slice, "after_insert", ChartUpdater.after_insert)
-    sqla.event.remove(Slice, "after_update", ChartUpdater.after_update)
-    remove_delete_listener(declarations[1])
-
-    sqla.event.remove(Dashboard, "after_insert", DashboardUpdater.after_insert)
-    sqla.event.remove(Dashboard, "after_update", DashboardUpdater.after_update)
-    remove_delete_listener(declarations[2])
-
-    sqla.event.remove(FavStar, "after_insert", FavStarUpdater.after_insert)
-    sqla.event.remove(FavStar, "after_delete", FavStarUpdater.after_delete)
-
-    sqla.event.remove(SavedQuery, "after_insert", QueryUpdater.after_insert)
-    sqla.event.remove(SavedQuery, "after_update", QueryUpdater.after_update)
     sqla.event.remove(SavedQuery, "after_delete", QueryUpdater.after_delete)
