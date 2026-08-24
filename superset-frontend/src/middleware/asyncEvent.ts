@@ -51,8 +51,10 @@ type StatusChangesResponse = {
   cursor: string | null;
 };
 
-// The 202 body from POST /chart/data when async: the query tasks to await.
-export type AsyncJob = { task_ids: string[] };
+// The 202 body from POST /chart/data when async: the query tasks to await, plus
+// a status-poll cursor captured server-side *before* the tasks were created, so
+// polling from it can never skip a task's terminal transition.
+export type AsyncJob = { task_ids: string[]; cursor?: string | null };
 
 type AppConfig = Record<string, any>;
 
@@ -84,7 +86,6 @@ let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
 // is triggered) so no task created afterwards is missed, then advanced by each
 // poll. Always the server's own clock, never the browser's.
 let cursor: string | null;
-let baselineReady: Promise<void> | null;
 // Incremented on every init() so an in-flight poll can detect it is stale and
 // stop instead of scheduling a second loop or mutating fresh state.
 let pollingGeneration = 0;
@@ -217,8 +218,10 @@ export const waitForAsyncData = async <T = unknown[]>(
   signal?: AbortSignal,
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
-  if (baselineReady) await baselineReady;
 
+  // Register the waiter synchronously, in the same tick the 202 was received —
+  // NOT after an await — so a completion socket event can't arrive before the
+  // waiter exists and be dropped.
   await new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
       taskIds.forEach(cancelTask);
@@ -244,6 +247,19 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (!taskIds.length) {
       settle(waiter);
       return;
+    }
+    // Rewind the shared poll cursor to this request's server-captured cursor
+    // (from the 202), taken *before* its tasks existed. This guarantees the poll
+    // starts no later than the tasks' creation, so their terminal transitions
+    // can't be skipped — regardless of the async init baseline's timestamp or a
+    // concurrent chart having advanced the cursor. ISO-8601 strings compare
+    // chronologically. The poll is the correctness backstop; the socket only
+    // accelerates it.
+    if (
+      typeof asyncJob.cursor === 'string' &&
+      (cursor === null || asyncJob.cursor < cursor)
+    ) {
+      cursor = asyncJob.cursor;
     }
     taskIds.forEach(taskId => {
       let waiters = waitersByTaskId.get(taskId);
@@ -281,9 +297,12 @@ export const init = (appConfig?: AppConfig) => {
   // Establish a baseline cursor before any chart query is triggered, so tasks
   // created afterwards are all caught by the changed-since poll, then start the
   // shared poll loop from that watermark.
-  baselineReady = fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
+  fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
     .then(({ cursor: baseline }) => {
-      if (generation === pollingGeneration) cursor = baseline;
+      // Seed the initial cursor only; never overwrite a value a waiter already
+      // rewound to its (older) pre-task cursor, or the poll could skip its tasks.
+      if (generation === pollingGeneration && cursor === null)
+        cursor = baseline;
     })
     .catch(err => {
       // A missing baseline just means the first poll starts from "everything

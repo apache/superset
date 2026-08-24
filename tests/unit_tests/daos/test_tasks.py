@@ -378,6 +378,28 @@ def test_get_subscriber_channels(session_with_task: Session) -> None:
     assert set(channels) == {"user:7", "guest-abc"}
 
 
+def test_add_guest_subscriber_full_length_key(session_with_task: Session) -> None:
+    """A realistic guest key (``guest-`` + 64-char SHA256 hex = 70 chars) persists.
+
+    Regression guard for the guest_key column width: the real key from
+    superset.tasks.guest is 70 chars, so a String(64) column would error/truncate.
+    """
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="shared-guest-len",
+        scope=TaskScope.SHARED,
+        user_id=None,
+    )
+    guest_key = "guest-" + "a" * 64  # mirrors superset.tasks.guest (70 chars)
+
+    assert TaskDAO.add_guest_subscriber(task.id, guest_key=guest_key) is True
+
+    session_with_task.refresh(task)
+    assert task.subscribers[0].guest_key == guest_key
+
+
 def test_get_subscriber_channels_empty(session_with_task: Session) -> None:
     """get_subscriber_channels returns [] for a task with no subscribers."""
     from superset.daos.tasks import TaskDAO

@@ -158,16 +158,30 @@ test('settles every request awaiting a deduplicated shared task', async () => {
   expect(b).toEqual([{ chart: 'b' }]);
 });
 
+test('polls from the pre-task cursor returned in the 202', async () => {
+  // The 202 carries a cursor captured before the tasks existed; the poll must
+  // use it (rewinding past the newer init baseline) so an early terminal can't
+  // be skipped.
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(config);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  await asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'], cursor: '2019-06-06T00:00:00' },
+    refetch,
+  );
+
+  const polled = fetchMock.callHistory
+    .calls(STATUS_CHANGES_ENDPOINT)
+    .some(call => decodeURIComponent(call.url).includes('2019-06-06T00:00:00'));
+  expect(polled).toBe(true);
+});
+
 describe('realtime WebSocket acceleration', () => {
   const realtime = (taskId: string, status: string) => ({
     channel: `realtime:user:1`,
     payload: { task_id: taskId, status },
   });
-
-  // waitForAsyncData registers its waiter only after the baseline cursor fetch
-  // resolves; wait a tick so a one-shot socket message isn't delivered before
-  // the task is being awaited.
-  const afterRegistered = () => new Promise(resolve => setTimeout(resolve, 50));
 
   test('a tier-2 message settles a waiting chart without a poll', async () => {
     // No status batches queued (only the baseline), so completion can ONLY come
@@ -181,7 +195,10 @@ describe('realtime WebSocket acceleration', () => {
       refetch,
     );
 
-    await afterRegistered();
+    // Deliver the completion in the SAME tick, with no wait: waitForAsyncData
+    // registers its waiter synchronously (before any await), so a fast task
+    // whose event arrives immediately after the 202 is never missed. (Regression
+    // guard: registration must not sit behind an awaited baseline fetch.)
     asyncEvent.handleRealtimeMessage(realtime('task-1', 'success'));
 
     expect(await promise).toEqual([{ rows: 1 }]);
@@ -198,7 +215,6 @@ describe('realtime WebSocket acceleration', () => {
       refetch,
     );
 
-    await afterRegistered();
     asyncEvent.handleRealtimeMessage(realtime('task-1', 'failure'));
 
     await expect(promise).rejects.toThrow();
@@ -215,7 +231,6 @@ describe('realtime WebSocket acceleration', () => {
       refetch,
     );
 
-    await afterRegistered();
     // A public entity-change nudge carries no status and must not settle a chart.
     asyncEvent.handleRealtimeMessage({
       channel: 'entity-changes:task',

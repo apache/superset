@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
@@ -165,6 +166,14 @@ def submit_chart_data_query_tasks(
     guest_user = security_manager.get_current_guest_user_if_guest()
     guest_token = guest_user.guest_token if guest_user else None
 
+    # Capture a status-poll cursor BEFORE any task is created. Because it
+    # predates every task's creation (and therefore every terminal transition),
+    # the client can poll `status_changes` from it and is guaranteed to observe
+    # each task's completion — closing the race where a task finishes before the
+    # client's waiter/poll is established. Returned in the 202 (one small value,
+    # unlike echoing every task id back).
+    poll_cursor = datetime.now()
+
     queries = query_context.queries
     # Contribution queries normalize against a shared totals row. Identify the coupling
     # (this also clears the totals query's row_limit so its cache key matches the entry
@@ -205,4 +214,7 @@ def submit_chart_data_query_tasks(
             )
             tasks[index] = _schedule(index, depends_on=depends_on)
 
-    return {"task_ids": [str(tasks[index].uuid) for index in range(len(queries))]}
+    return {
+        "task_ids": [str(tasks[index].uuid) for index in range(len(queries))],
+        "cursor": poll_cursor.isoformat(),
+    }
