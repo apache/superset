@@ -1013,7 +1013,12 @@ export function getTemporalTickValues(
   data.forEach(row => {
     const value = row[xAxisLabel];
     const timestamp =
-      value instanceof Date ? value.getTime() : Number(value ?? NaN);
+      // eslint-disable-next-line no-nested-ternary
+      value instanceof Date
+        ? value.getTime()
+        : typeof value === 'string'
+          ? new Date(value).getTime()
+          : Number(value ?? NaN);
     if (Number.isFinite(timestamp)) {
       values.add(timestamp);
     }

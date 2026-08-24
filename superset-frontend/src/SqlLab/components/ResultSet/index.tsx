@@ -390,7 +390,7 @@ const ResultSet = ({
               // provides.
               redirect(getExportCsvUrl(query.id));
             },
-            confirmText: t('OK'),
+            confirmText: t('Confirm'),
             cancelText: t('Close'),
           });
         }
@@ -719,7 +719,7 @@ const ResultSet = ({
     if (data && data.length > 0) {
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
-        true,
+        false,
       );
 
       const tableProps = {

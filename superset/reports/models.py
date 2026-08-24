@@ -20,7 +20,6 @@ import logging
 from typing import Any, Optional
 
 import rison
-from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from sqlalchemy import (
@@ -44,6 +43,7 @@ from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.subjects.models import report_schedule_editors, Subject
+from superset.tasks.cron_util import get_cron_description
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
 
@@ -197,7 +197,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
 
     @renders("crontab")
     def crontab_humanized(self) -> str:
-        return get_description(self.crontab)
+        return get_cron_description(self.crontab)
 
     def get_native_filters_params(self) -> tuple[str, list[str]]:
         """
