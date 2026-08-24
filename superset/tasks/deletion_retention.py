@@ -38,7 +38,7 @@ import sqlalchemy as sa
 from flask import current_app
 
 from superset import db
-from superset.commands.deletion_retention import audit
+from superset.commands.deletion_retention import audit, prune_audit
 from superset.commands.deletion_retention.purge_cascade import (
     cascade_hard_delete,
     CascadeResult,
@@ -299,6 +299,59 @@ def _purge_one(
     else:
         audit.fail(record_id)
     return result
+
+
+#: The prune task's metric family deliberately nests under the deletion
+#: retention prefix so audit-subsystem dashboards share one namespace.
+_PRUNE_METRIC_PREFIX: str = "deletion_retention.prune_audit"
+
+
+@celery_app.task(name="deletion_retention.prune_purge_audit")
+def prune_purge_audit() -> dict[str, Any]:
+    """Beat entry point: apply the purge-audit retention policy once.
+
+    Honors the master switch (a disabled run reports itself rather than
+    silently doing nothing), isolates failures so one bad run does not
+    poison the schedule, and mirrors the per-category removal counts into
+    metrics plus one structured completion log line. Deliberately not gated
+    on the SOFT_DELETE flag: audit rows persist even after the flag is
+    turned off, and pruning an empty table is a no-op.
+    """
+    if not current_app.config.get("PURGE_AUDIT_PRUNING_ENABLED", True):
+        logger.info(
+            "prune_audit: disabled by PURGE_AUDIT_PRUNING_ENABLED; removing nothing"
+        )
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.skipped_disabled")
+        return {"skipped_disabled": 1}
+    try:
+        result = prune_audit.run_prune()
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("deletion_retention.prune_purge_audit: task failed")
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.failed")
+        return {"error": 1}
+    stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.success")
+    stats_logger_manager.instance.gauge(
+        f"{_PRUNE_METRIC_PREFIX}.removed.blocked_duplicates",
+        result.blocked_duplicates,
+    )
+    stats_logger_manager.instance.gauge(
+        f"{_PRUNE_METRIC_PREFIX}.removed.operational_expired",
+        result.operational_expired,
+    )
+    stats_logger_manager.instance.gauge(
+        f"{_PRUNE_METRIC_PREFIX}.removed.evidence_expired",
+        result.evidence_expired,
+    )
+    logger.info(
+        "prune_audit: removed blocked_duplicates=%d operational_expired=%d "
+        "evidence_expired=%d carried_over=%s invalid_config_keys=%s",
+        result.blocked_duplicates,
+        result.operational_expired,
+        result.evidence_expired,
+        result.carried_over,
+        result.invalid_config_keys,
+    )
+    return result.as_dict()
 
 
 @celery_app.task(name="deletion_retention.purge_soft_deleted")

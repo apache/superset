@@ -806,6 +806,79 @@ class TestRetentionBeatWarning:
         )
 
     @patch("superset.initialization.logger")
+    def test_warn_when_soft_delete_on_and_prune_audit_entry_missing(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """With ``SOFT_DELETE`` on and a schedule carrying the purge entry
+        but not the audit-prune entry, a WARNING naming
+        ``deletion_retention.prune_purge_audit`` fires — otherwise a
+        hand-rolled ``CeleryConfig`` lets the audit table grow unbounded."""
+
+        class _NoPruneAuditCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+                "deletion_retention.purge_soft_deleted": {
+                    "task": "deletion_retention.purge_soft_deleted",
+                },
+            }
+
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoPruneAuditCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        assert any(
+            "deletion_retention.prune_purge_audit" in str(call)
+            for call in mock_logger.warning.call_args_list
+        ), (
+            "Expected a WARNING naming the missing audit-prune entry; "
+            f"got {mock_logger.warning.call_args_list}"
+        )
+
+    @patch("superset.initialization.logger")
+    def test_no_warn_when_soft_delete_on_and_all_entries_present(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """The default-config shape — all three retention entries present —
+        MUST NOT warn even with ``SOFT_DELETE`` on."""
+
+        class _CompleteCeleryConfig:
+            imports: tuple[str, ...] = (
+                "superset.tasks.version_history_retention",
+                "superset.tasks.deletion_retention",
+            )
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+                "deletion_retention.purge_soft_deleted": {
+                    "task": "deletion_retention.purge_soft_deleted",
+                },
+                "deletion_retention.prune_purge_audit": {
+                    "task": "deletion_retention.prune_purge_audit",
+                },
+            }
+
+        initializer = self._initializer(
+            {
+                "CELERY_CONFIG": _CompleteCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": True},
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.initialization.logger")
     def test_no_purge_warn_when_soft_delete_off(self, mock_logger: MagicMock) -> None:
         """With ``SOFT_DELETE`` off, a missing purge entry MUST NOT warn:
         the purge task itself no-ops while the flag is off, so the
@@ -1007,6 +1080,9 @@ class TestRetentionBeatWarning:
                 },
                 "purge_archived": {
                     "task": "deletion_retention.purge_soft_deleted",
+                },
+                "prune_audit": {
+                    "task": "deletion_retention.prune_purge_audit",
                 },
             }
 

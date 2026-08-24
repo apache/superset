@@ -905,6 +905,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
     _PURGE_TASK_NAME: str = "deletion_retention.purge_soft_deleted"
+    _PRUNE_AUDIT_TASK_NAME: str = "deletion_retention.prune_purge_audit"
     #: Module each task lives in. A beat entry alone is not enough — a worker
     #: that never imported the module answers ``NotRegistered`` when the task
     #: fires, which is the same silent non-execution one layer down.
@@ -1029,6 +1030,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "Either inherit from the default CeleryConfig or add the "
                 "module to your override.",
                 self._PURGE_TASK_MODULE,
+            )
+        # The audit-prune task shares _PURGE_TASK_MODULE, so the imports
+        # half above already covers its worker registration; only the beat
+        # entry needs its own check. Gated like the purge task: audit rows
+        # are only written while SOFT_DELETE purging is in use.
+        if soft_delete_enabled and (
+            not beat_schedule or self._PRUNE_AUDIT_TASK_NAME not in registered_tasks
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — the purge audit log will never be pruned and "
+                "will grow without bound. Either inherit from the default "
+                "CeleryConfig or add the entry to your override.",
+                self._PRUNE_AUDIT_TASK_NAME,
             )
 
     def init_app_in_ctx(self) -> None:
