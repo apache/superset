@@ -332,7 +332,15 @@ body.print-mode {
    * The walk stops at .grid-row so it doesn't collapse the whole page.
    */
 
-  /* Release the chain: resizable-container → chart-holder → column */
+  /* Release the full ancestor chain:
+   *   resizable-container → chart-holder → column → grid-row →
+   *   with-popover-menu → dragdroppable-row
+   *
+   * Every level must release height so the flex layout allocates
+   * auto height to the table's cell instead of the authored px height.
+   * Without releasing .with-popover-menu and .dragdroppable-row the
+   * expanded table overflows its slot and overlaps the next row.
+   */
   .resizable-container:has(.superset-chart-table),
   .resizable-container:has([data-test-viz-type="table"]) {
     height: auto !important;
@@ -364,10 +372,27 @@ body.print-mode {
     max-height: none !important;
     min-height: 0 !important;
   }
-  /* Also release the grid-row that contains a table column so it grows
-     to fit the expanded table instead of clipping at the authored height */
+  /* Release the grid-row that contains a table column */
   .grid-row:has(.superset-chart-table),
   .grid-row:has([data-test-viz-type="table"]) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  /* Release .with-popover-menu which sits between .grid-row and
+     .dragdroppable-row — also has an authored height in some themes */
+  .with-popover-menu:has(.superset-chart-table),
+  .with-popover-menu:has([data-test-viz-type="table"]) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  /* Release the outermost row wrapper (.dragdroppable-row).
+     re-resizable sets an inline style.height on this element that
+     clips the expanded table — releasing it here lets the row grow
+     to accommodate the full table without overlapping the next row. */
+  .dragdroppable-row:has(.superset-chart-table),
+  .dragdroppable-row:has([data-test-viz-type="table"]) {
     height: auto !important;
     max-height: none !important;
     overflow: visible !important;
@@ -386,13 +411,22 @@ body.print-mode {
   /* ── 5. Page breaks ──────────────────────────────────────────────── */
   /*
    * Avoid splitting a single chart card across a page break.
-   * Tables are excluded from break-inside:avoid because they can be very
-   * tall and forcing them onto one page would cause an almost-blank page
-   * followed by a page consisting entirely of table rows.
+   * Non-table chart holders get break-inside:avoid so charts are not
+   * split across pages. Table rows get break-inside:avoid at the
+   * .dragdroppable-row level so the entire table block (title + table)
+   * is not split — but individual table rows can still paginate naturally.
+   * Tables are NOT given break-inside:avoid on the holder itself because
+   * a 100-row table forced onto one page produces an almost-blank page.
    */
   .dashboard-component-chart-holder:not(:has(.superset-chart-table)):not(:has([data-test-viz-type="table"])) {
     page-break-inside: avoid;
     break-inside: avoid;
+  }
+  /* Keep the chart title and the start of the table together on one page */
+  .dashboard-component-chart-holder:has(.superset-chart-table),
+  .dashboard-component-chart-holder:has([data-test-viz-type="table"]) {
+    break-before: auto;
+    page-break-before: auto;
   }
 }
 `;

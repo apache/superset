@@ -309,18 +309,18 @@ EXPAND_TABLE_CONTAINERS_JS = """
             }
         }
 
-        // 2. Walk all the way up to .dragdroppable-row and release any inline
+        // 2. Walk up to .grid-content/.dashboard-grid and release any inline
         //    height/overflow on every ancestor so the flex layout chain
-        //    (resizable-container → chart-holder → dragdroppable-column → grid-row)
+        //    (resizable-container → chart-holder → dragdroppable-column →
+        //     grid-row → with-popover-menu → dragdroppable-row)
         //    allocates auto height instead of the authored pixel height.
-        //    Stop at .grid-content/.dashboard-grid to avoid collapsing the page.
-        const STOP_CLASSES = new Set([
-            'dashboard-grid', 'grid-content',
-        ]);
+        //    Every level must be cleared: re-resizable writes inline style.height
+        //    on both .resizable-container AND .dragdroppable-row. If the outer
+        //    wrapper keeps its authored px height the expanded table overflows
+        //    and physically overlaps the next dashboard row in the PDF.
         let el = root.parentElement;
         while (el) {
-            if (STOP_CLASSES.has(el.className.split(' ')[0]) ||
-                el.classList.contains('dashboard-grid') ||
+            if (el.classList.contains('dashboard-grid') ||
                 el.classList.contains('grid-content')) {
                 break;
             }
@@ -329,11 +329,19 @@ EXPAND_TABLE_CONTAINERS_JS = """
                     el.style.height = 'auto';
                     el.style.maxHeight = 'none';
                 }
-                if (el.style.overflow === 'hidden' || el.style.overflow === 'auto') {
+                // Release all overflow constraints — hidden, auto, and scroll
+                // can all clip the expanded table at different ancestor levels.
+                const ov = el.style.overflow;
+                if (ov === 'hidden' || ov === 'auto' || ov === 'scroll') {
                     el.style.overflow = 'visible';
                 }
-                if (el.style.overflowY === 'hidden' || el.style.overflowY === 'auto') {
+                const ovY = el.style.overflowY;
+                if (ovY === 'hidden' || ovY === 'auto' || ovY === 'scroll') {
                     el.style.overflowY = 'visible';
+                }
+                const ovX = el.style.overflowX;
+                if (ovX === 'hidden' || ovX === 'auto' || ovX === 'scroll') {
+                    el.style.overflowX = 'visible';
                 }
             }
             el = el.parentElement;
