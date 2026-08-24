@@ -155,10 +155,9 @@ class TestPruneAudit(SupersetTestCase):
                 if not result.carried_over:
                     break
 
-        # A run that exhausts its budget reports carryover conservatively —
-        # the remaining categories were never examined — so convergence ends
-        # with one confirming zero-removal run that finds everything drained.
-        assert removed_per_run == [20, 20, 15, 0]
+        assert sum(removed_per_run) == 55  # every duplicate, none of the survivor
+        assert all(n <= 20 for n in removed_per_run)  # never exceeds the budget
+        assert removed_per_run[-1] > 0  # carryover is not reported spuriously
         assert len(self.remaining_ids("e1")) == 1  # the survivor
 
     def test_dedup_never_crosses_entities(self) -> None:
@@ -305,6 +304,54 @@ class TestPruneAudit(SupersetTestCase):
         assert second.evidence_expired == 1
         assert self.remaining_ids("bd") == []
 
+    def test_a_block_after_an_unresolved_attempt_is_not_treated_as_a_duplicate(
+        self,
+    ) -> None:
+        """An in-flight attempt is a boundary waiting to happen.
+
+        Finalizing a ``pending`` row resolves it *in place*, keeping its
+        original timestamp — the one way a boundary can appear in the middle
+        of history. The blocked row after it would become the new streak's
+        survivor, so it must not be classified as a duplicate while the
+        attempt is unresolved. Deleting it would destroy the only record
+        that the entity was still blocked after that attempt.
+        """
+        blocked_since = self.add_row(STATUS_BLOCKED, entity="ua", age_days=100)
+        attempt = self.add_row(STATUS_PENDING, entity="ua", age_days=50)
+        later_block = self.add_row(STATUS_BLOCKED, entity="ua", age_days=10)
+
+        result = self.run_prune()
+
+        assert result.blocked_duplicates == 0
+        assert set(self.remaining_ids("ua")) == {blocked_since, attempt, later_block}
+
+        # Once the attempt finalizes, the boundary is real: the later block
+        # is the new streak's survivor and stays; the older block is now a
+        # resolved-streak row that ages out on the normal window.
+        db.session.execute(
+            sa.update(PurgeAuditLog.__table__)
+            .where(PurgeAuditLog.__table__.c.id == attempt)
+            .values(status=STATUS_CONFIRMED)
+        )
+        db.session.commit()
+
+        after = self.run_prune()
+
+        assert after.blocked_duplicates == 0
+        assert after.operational_expired == 1  # the pre-attempt block
+        assert set(self.remaining_ids("ua")) == {attempt, later_block}
+
+    def test_evidence_guard_also_defers_to_an_unresolved_older_attempt(self) -> None:
+        """A pending row can finalize to ``blocked``, so it counts as an
+        older blocked row for the boundary guard's purposes."""
+        attempt = self.add_row(STATUS_PENDING, entity="ug", age_days=400)
+        boundary = self.add_row(STATUS_CONFIRMED, entity="ug", age_days=300)
+
+        result = self.run_prune(**{EVIDENCE_RETENTION_KEY: 200})
+
+        assert result.evidence_expired == 0
+        assert set(self.remaining_ids("ug")) == {attempt, boundary}
+
     def test_blocked_rows_without_an_entity_uuid_are_never_aged_out(self) -> None:
         """A uuid-less blocked row belongs to no streak, so it can never be
         proven a duplicate — pruning keeps it rather than deleting the only
@@ -358,6 +405,26 @@ class TestPruneAudit(SupersetTestCase):
         second = self.run_prune()
         assert second.total_removed == 0
         assert len(self.remaining_ids("cc")) == 1
+
+    def test_a_duplicate_backlog_cannot_starve_the_age_based_categories(self) -> None:
+        """Strict priority over a shared budget would let a permanent
+        duplicate backlog block age-out forever — reintroducing the very
+        unbounded growth this feature exists to stop. Every category is
+        guaranteed at least one batch."""
+        for _ in range(20):
+            self.add_row(STATUS_BLOCKED, entity="st", age_days=2)
+        old_failed = self.add_row(STATUS_FAILED, entity="st", age_days=1000)
+
+        with (
+            patch.object(prune_audit, "BATCH_SIZE", 1),
+            patch.object(prune_audit, "MAX_BATCHES_PER_RUN", 2),
+        ):
+            result = self.run_prune()
+
+        assert result.blocked_duplicates == 1  # budget-limited, as expected
+        assert result.operational_expired == 1  # but age-out still progressed
+        assert result.carried_over is True
+        assert old_failed not in self.remaining_ids("st")
 
     def test_a_status_change_between_selection_and_delete_spares_the_row(self) -> None:
         """The conditional delete's status re-check is the mechanism that

@@ -37,21 +37,31 @@ per-run batch budget:
 future timestamps (clock skew) are excluded from every category *and* from
 streak classification, so a skewed writer cannot reclassify a live streak.
 
-Two invariants keep the survivor safe without a distributed lock, which
-matters because runs can overlap and ``reconcile_pending`` finalizes rows
-concurrently:
+Three invariants keep the survivor safe without a distributed lock, which
+matters because runs can overlap and both ``reconcile_pending`` and the
+purge path finalize rows concurrently. A duplicate is only ever deleted
+when no concurrent transition could turn it into a survivor first:
 
-* **A streak boundary is never removed while it still bounds anything.**
-  Only ``confirmed``/``target_absent`` rows break streaks, and evidence
-  expiry refuses to delete one while any older ``blocked`` row for the same
-  entity survives. The boundary therefore never recedes, so a row selected
-  as a duplicate cannot be promoted to survivor between its selection and
-  its deletion. (A boundary moving *forward* — reconciliation finalizing a
-  stale ``pending`` row — can only demote rows to resolved-streak status,
-  which at worst removes an already-doomed duplicate ahead of its window.)
+* **A boundary is never removed while it still bounds anything.** Evidence
+  expiry refuses to delete a row while an older ``blocked`` or ``pending``
+  row for the same entity survives. Boundaries therefore never *recede*,
+  which would otherwise promote resolved rows into a current streak.
+* **A boundary is never inserted into history.** Every write lands at
+  ``now``, newer than every existing row — except the finalization of a
+  ``pending`` row, which resolves in place and keeps its original
+  timestamp. A pending row is therefore a boundary that may appear
+  mid-history at any moment, so blocked rows preceded by one are not
+  eligible for deduplication until it resolves. Without this, a boundary
+  moving *forward* would demote the current survivor and promote the next
+  row into its place — possibly a row already selected for deletion.
 * **Deletes are conditional and counted from rowcounts.** A row whose
   status changed since selection is not matched, so overlapping runs can
   neither double-remove nor double-report.
+
+Boundaries moving forward past *all* of an entity's blocked rows leave no
+survivor to promote, so a selected duplicate may be removed slightly ahead
+of its retention window in that case. It was redundant either way and the
+streak's earliest row is untouched.
 """
 
 from __future__ import annotations
@@ -74,6 +84,7 @@ from superset.models.purge_audit_log import (
     STATUS_BLOCKED,
     STATUS_CONFIRMED,
     STATUS_FAILED,
+    STATUS_PENDING,
     STATUS_TARGET_ABSENT,
 )
 
@@ -264,12 +275,44 @@ def _survivor_subquery(now: datetime) -> sa.Subquery:
     )
 
 
+def _preceded_by_unresolved_attempt(table: sa.Table) -> sa.ColumnElement[bool]:
+    """Whether an unresolved (``pending``) attempt precedes this row.
+
+    A ``pending`` row is the only thing that can insert a streak boundary
+    into *history*: every other write lands at ``now``, newer than every
+    existing row, whereas reconciliation and the purge path finalize a
+    pending row **in place**, keeping its original ``created_on``. So a
+    pending row sitting between two blocked rows is a boundary that may
+    appear at any moment, and the blocked row after it would become the new
+    streak's survivor — the very row pruning must never delete.
+    """
+    pending = table.alias("unresolved_attempt")
+    return sa.exists(
+        sa.select(sa.literal(1))
+        .select_from(pending)
+        .where(
+            sa.and_(
+                pending.c.status == STATUS_PENDING,
+                pending.c.entity_type == table.c.entity_type,
+                pending.c.entity_uuid == table.c.entity_uuid,
+                pending.c.created_on < table.c.created_on,
+            )
+        )
+    )
+
+
 def _duplicate_candidate_ids(now: datetime, limit: int) -> list[UUID]:
     """Ids of current-streak blocked rows that are not the streak survivor.
 
     Age-independent by design (FR-003): a duplicate is prunable the moment a
     streak has a survivor, regardless of the retention window. Trigger is not
     a discriminator — ``scheduled`` and ``force`` blocked rows share streaks.
+
+    Rows preceded by an unresolved attempt are skipped: their classification
+    is not stable, because that attempt can finalize into a boundary and
+    promote them to survivor between selection and deletion. Pending rows are
+    transient (reconciliation finalizes them within the hour), so the skipped
+    rows are picked up by a later run.
     """
     table = PurgeAuditLog.__table__
     survivor = _survivor_subquery(now)
@@ -287,6 +330,7 @@ def _duplicate_candidate_ids(now: datetime, limit: int) -> list[UUID]:
         .where(table.c.status == STATUS_BLOCKED)
         .where(table.c.created_on > survivor.c.survivor_created_on)
         .where(table.c.created_on <= now)
+        .where(sa.not_(_preceded_by_unresolved_attempt(table)))
         .order_by(table.c.created_on)
         .limit(limit)
     )
@@ -328,10 +372,10 @@ def _operational_candidate_ids(
         .where(table.c.created_on <= now)
         .where(sa.not_(sa.and_(table.c.status == STATUS_BLOCKED, is_survivor)))
         .where(sa.not_(unidentified_block))
-        # Ascending order is load-bearing beyond fairness: within a resolved
-        # streak the blocked rows are always removed no later than the
-        # boundary that resolved them, so a budget-truncated run can never
-        # leave blocked rows behind a deleted boundary.
+        # Oldest first, so a budget-truncated run makes progress on the
+        # rows closest to expiry. (Blocked rows never outlive the boundary
+        # that resolved them, but that is enforced by the boundary guard in
+        # _evidence_candidate_ids, not by this ordering.)
         .order_by(table.c.created_on)
         .limit(limit)
     )
@@ -352,12 +396,15 @@ def _evidence_candidate_ids(now: datetime, cutoff: datetime, limit: int) -> list
     """
     table = PurgeAuditLog.__table__
     older = table.alias("older_blocked")
+    # ``pending`` counts alongside ``blocked``: the purge path finalizes a
+    # pending row in place to ``blocked``, so an older pending row is a
+    # blocked row that has not announced itself yet.
     bounds_surviving_blocks = sa.exists(
         sa.select(sa.literal(1))
         .select_from(older)
         .where(
             sa.and_(
-                older.c.status == STATUS_BLOCKED,
+                older.c.status.in_((STATUS_BLOCKED, STATUS_PENDING)),
                 older.c.entity_type == table.c.entity_type,
                 older.c.entity_uuid == table.c.entity_uuid,
                 older.c.created_on < table.c.created_on,
@@ -406,23 +453,25 @@ class _Category(NamedTuple):
     select_ids: Callable[[int], list[UUID]]
 
 
-def _drain(category: _Category, budget: int) -> tuple[int, int, bool]:
-    """Delete one category in batches. Returns (removed, budget_left, drained).
+def _drain(category: _Category, allowance: int) -> tuple[int, int, bool]:
+    """Delete one category in batches. Returns (removed, unused, drained).
 
     Candidates are re-selected per batch rather than paged from one snapshot:
     each delete changes the streak picture, and re-selecting is what keeps a
     budget-truncated run's view consistent with the rows still present.
     """
     removed = 0
-    while budget > 0:
+    while allowance > 0:
         ids = category.select_ids(BATCH_SIZE)
         if not ids:
-            return removed, budget, True
+            return removed, allowance, True
         removed += _delete_batch(ids, category.expected_statuses)
-        budget -= 1
+        allowance -= 1
         if len(ids) < BATCH_SIZE:
-            return removed, budget, True
-    return removed, budget, False
+            return removed, allowance, True
+    # Out of allowance. Distinguish "nothing left anyway" from a real
+    # backlog, so the carried_over signal only fires when rows remain.
+    return removed, 0, not category.select_ids(1)
 
 
 def run_prune() -> PruneRunResult:
@@ -431,8 +480,11 @@ def run_prune() -> PruneRunResult:
     Categories drain in priority order — blocked duplicates, then
     operational expiry, then evidence expiry — so the bounding rule that
     motivated the feature makes progress first when the budget is tight.
-    ``pending`` rows are structurally excluded (no candidate query selects
-    them).
+    Each category is guaranteed at least one batch: strict priority over a
+    shared budget would otherwise let a permanent duplicate backlog starve
+    the age-based categories forever, which is the same unbounded growth
+    this feature exists to stop. ``pending`` rows are structurally excluded
+    (no candidate query selects them).
     """
     now = utc_now()
     result = PruneRunResult()
@@ -476,8 +528,12 @@ def run_prune() -> PruneRunResult:
             )
         )
 
-    for category in categories:
-        removed, budget, drained = _drain(category, budget)
+    for index, category in enumerate(categories):
+        # Reserve one batch for each category still to come.
+        reserved = len(categories) - index - 1
+        allowance = max(1, budget - reserved)
+        removed, unused, drained = _drain(category, allowance)
+        budget -= allowance - unused
         setattr(result, category.field_name, removed)
         result.carried_over = result.carried_over or not drained
 
