@@ -46,14 +46,17 @@ when no concurrent transition could turn it into a survivor first:
   expiry refuses to delete a row while an older ``blocked`` or ``pending``
   row for the same entity survives. Boundaries therefore never *recede*,
   which would otherwise promote resolved rows into a current streak.
-* **A boundary is never inserted into history.** Every write lands at
-  ``now``, newer than every existing row — except the finalization of a
-  ``pending`` row, which resolves in place and keeps its original
-  timestamp. A pending row is therefore a boundary that may appear
-  mid-history at any moment, so blocked rows preceded by one are not
-  eligible for deduplication until it resolves. Without this, a boundary
-  moving *forward* would demote the current survivor and promote the next
-  row into its place — possibly a row already selected for deletion.
+* **A blocked row whose classification is unstable is never deleted.**
+  Finalizing a ``pending`` row resolves it *in place*, keeping its original
+  timestamp, so an unresolved attempt is a boundary that may appear
+  mid-history at any moment — and the blocked row after it would become its
+  streak's survivor. Blocked rows preceded by an unresolved attempt are
+  therefore skipped by **both** the duplicate and the operational category.
+  Age does not stabilize the classification: an old blocked row inside a
+  live streak is exactly the "blocked for years" case FR-009 protects.
+  Without this, a boundary moving *forward* would demote the current
+  survivor and promote the next row into its place — possibly a row already
+  selected for deletion.
 * **Deletes are conditional and counted from rowcounts.** A row whose
   status changed since selection is not matched, so overlapping runs can
   neither double-remove nor double-report.
@@ -62,6 +65,19 @@ Boundaries moving forward past *all* of an entity's blocked rows leave no
 survivor to promote, so a selected duplicate may be removed slightly ahead
 of its retention window in that case. It was redundant either way and the
 streak's earliest row is untouched.
+
+Known limitation — these guards are evaluated when candidates are selected,
+not when they are deleted, so they cover rows that exist at selection time.
+``created_on`` is stamped by the writing process rather than the database
+(:func:`audit.utc_now`), and ``_recover_retention_blocked`` re-inserts a row
+at its original timestamp, so a row *can* become visible with a timestamp in
+the past. A pending row appearing between an entity's survivor and an
+already-selected row, in the window between this module's SELECT and its
+DELETE, would evade the guard. Closing that completely requires evaluating
+candidacy inside the DELETE statement, serializing pruning against the audit
+writers, or a database-assigned ``created_on``; the exposure is bounded by
+the writers' clock spread and by how closely spaced an entity's blocked rows
+are, so it is tracked as follow-up rather than solved here.
 """
 
 from __future__ import annotations
@@ -310,9 +326,11 @@ def _duplicate_candidate_ids(now: datetime, limit: int) -> list[UUID]:
 
     Rows preceded by an unresolved attempt are skipped: their classification
     is not stable, because that attempt can finalize into a boundary and
-    promote them to survivor between selection and deletion. Pending rows are
-    transient (reconciliation finalizes them within the hour), so the skipped
-    rows are picked up by a later run.
+    promote them to survivor between selection and deletion. Such rows are
+    collected once the attempt resolves. Note that pruning does not depend on
+    that happening promptly — reconciliation runs from the purge task, which
+    a deployment may have disabled or left in dry-run — so a long-lived
+    pending row defers its successors indefinitely rather than risking them.
     """
     table = PurgeAuditLog.__table__
     survivor = _survivor_subquery(now)
@@ -348,6 +366,14 @@ def _operational_candidate_ids(
     when it began. A ``blocked`` row with no ``entity_uuid`` has no streak to
     belong to and so can never be *proven* redundant — it is kept rather
     than aged out, matching the fail-closed posture everywhere else here.
+
+    Blocked rows preceded by an unresolved attempt are skipped for the same
+    reason they are skipped for deduplication: the attempt can finalize into
+    a mid-history boundary and make such a row its streak's survivor. Age
+    does not make that classification any more stable — an old row in a live
+    streak is exactly the "blocked for years" case FR-009 protects — so this
+    category needs the guard as much as the duplicate category does.
+    ``failed`` rows neither join nor break streaks, so they are unaffected.
     """
     table = PurgeAuditLog.__table__
     survivor = _survivor_subquery(now)
@@ -362,16 +388,22 @@ def _operational_candidate_ids(
             )
         )
     )
-    unidentified_block = sa.and_(
-        table.c.status == STATUS_BLOCKED, table.c.entity_uuid.is_(None)
+    unstable_block = sa.and_(
+        table.c.status == STATUS_BLOCKED,
+        sa.or_(
+            # No identity, so no streak to be proven redundant against.
+            table.c.entity_uuid.is_(None),
+            # Classification could change when the attempt resolves.
+            _preceded_by_unresolved_attempt(table),
+            is_survivor,
+        ),
     )
     stmt = (
         sa.select(table.c.id)
         .where(table.c.status.in_(OPERATIONAL_STATUSES))
         .where(table.c.created_on < cutoff)
         .where(table.c.created_on <= now)
-        .where(sa.not_(sa.and_(table.c.status == STATUS_BLOCKED, is_survivor)))
-        .where(sa.not_(unidentified_block))
+        .where(sa.not_(unstable_block))
         # Oldest first, so a budget-truncated run makes progress on the
         # rows closest to expiry. (Blocked rows never outlive the boundary
         # that resolved them, but that is enforced by the boundary guard in
@@ -529,9 +561,12 @@ def run_prune() -> PruneRunResult:
         )
 
     for index, category in enumerate(categories):
-        # Reserve one batch for each category still to come.
+        # Reserve one batch for each category still to come, but never spend
+        # past the run's budget — the floor exists to prevent starvation, not
+        # to license overrun if the budget is ever set below the category
+        # count.
         reserved = len(categories) - index - 1
-        allowance = max(1, budget - reserved)
+        allowance = max(1, budget - reserved) if budget > 0 else 0
         removed, unused, drained = _drain(category, allowance)
         budget -= allowance - unused
         setattr(result, category.field_name, removed)
