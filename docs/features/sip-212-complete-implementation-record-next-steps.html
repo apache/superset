@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -5,7 +6,7 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; background: #fff; color: #1f2328; }
-  .page { max-width: 860px; margin: 0 auto; padding: 40px 28px 60px; }
+  .page { max-width: 880px; margin: 0 auto; padding: 40px 28px 60px; }
   h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
   .subtitle { color: #57606a; font-size: 13px; margin-bottom: 32px; }
   h2 { font-size: 16px; font-weight: 700; margin: 36px 0 10px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #1f2328; }
@@ -47,41 +48,40 @@
 <div class="page">
 
 <h1>SIP-212: Browser-Print PDF Dashboard Reports</h1>
-<div class="subtitle">Active branch: <code>feature/sip-212-session4-polish</code> &nbsp;|&nbsp; Last updated: Session 6 &nbsp;|&nbsp; Status: 11 commits above upstream — visual polish + PR remaining</div>
+<div class="subtitle">Active branch: <code>feature/sip-212-session4-polish</code> &nbsp;|&nbsp; Last updated: Session 6 &nbsp;|&nbsp; Status: 12 commits above upstream — visual polish + pre-commit + PR remaining</div>
 
-<div class="callout-green"><strong>Session 3 accomplishments:</strong> PDF layout polish committed (scale+grid stacking), table-expand JS committed, 15 frontend Jest tests (all pass), Python unit tests written, UPDATING.md entry added, dashboard 10 ("Large Table PDF Test") extended with 4 new charts.</div>
+<div class="callout-green"><strong>Sessions 1–3 accomplishments:</strong> Core pipeline, PDF layout polish (scale+grid stacking), table-expand JS, 15 frontend Jest tests (all pass), 23 Python unit tests, UPDATING.md entry, dashboard 10 ("Large Table PDF Test") extended with 4 new charts.</div>
 
-<div class="callout-green"><strong>Session 4 accomplishments — committed on <code>feature/sip-212-session4-polish</code>:</strong>
+<div class="callout-green"><strong>Session 4 accomplishments — committed <code>d64017cc7f</code>:</strong>
 <ul style="margin-top:6px;">
-  <li><strong>Font-size tiers</strong> (<code>?print_font_size=small|medium|large</code>): small=no override (React defaults), medium=26px titles/20px table, large=38px titles/30px table. Big Number patched via <code>SET_PRINT_FONT_SIZE_JS</code>: medium=64px, large=96px.</li>
+  <li><strong>Font-size tiers</strong> (<code>?print_font_size=small|medium|large</code>): small=no override, medium=26px titles/20px table, large=38px titles/30px table. Big Number patched via <code>SET_PRINT_FONT_SIZE_JS</code>: medium=64px, large=96px.</li>
   <li><strong>Per-page header &amp; footer</strong>: Playwright <code>display_header_footer</code> API — title left, date right, blue underline; "Confidential" left, "Apache Superset" center, "Page N of M" right.</li>
-  <li><strong>Test script</strong>: <code>scripts/test_pdf_font_sizes.sh</code> — generates all 3 tiers, opens on Desktop.</li>
+  <li><strong>Test script</strong>: <code>scripts/test_pdf_font_sizes.sh</code> — generates all 3 tiers.</li>
 </ul>
 </div>
 
-<div class="callout-green"><strong>Session 5 accomplishments — committed on same branch:</strong>
+<div class="callout-green"><strong>Session 5 accomplishments — committed <code>4fb7825117</code>:</strong>
 <ul style="margin-top:6px;">
-  <li><strong>Customizable header/footer content</strong>: <code>BROWSER_PRINT_PDF_HEADER_CONTENT</code> and <code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code> config keys in <code>config.py</code>. Operators set plain-text strings with <code>{title}</code> and <code>{date}</code> token support. Footer right (page numbers) is fixed and not overridable.</li>
-  <li><strong>Overflow protection</strong>: every slot capped at 200px with <code>overflow:hidden; text-overflow:ellipsis; white-space:nowrap</code>.</li>
-  <li><strong>HTML injection prevention</strong>: all user content is HTML-escaped before insertion; only the Chromium <code>&lt;span class="date"&gt;</code> is allowed through.</li>
-  <li><strong>17 new unit tests</strong> covering defaults, custom slots, token expansion, HTML injection, overflow, and fixed page numbers.</li>
-  <li><strong>DashboardBuilder.tsx bug fix</strong>: URL param validation now accepts <code>'medium'</code> as a valid tier (previously only <code>small|large</code> were accepted, causing medium to silently fall back to the no-override path).</li>
-  <li><strong>10 total commits</strong> above upstream. All work committed.</li>
+  <li><strong>Customizable header/footer</strong>: <code>BROWSER_PRINT_PDF_HEADER_CONTENT</code> and <code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code> config dicts. Supports <code>{title}</code> and <code>{date}</code> tokens. HTML-escaped. 200px overflow protection per slot. Footer right (page numbers) fixed.</li>
+  <li><strong>17 new unit tests</strong> for header/footer builders, <code>_resolve_slot</code>, HTML injection prevention.</li>
+  <li><strong>DashboardBuilder.tsx bug fix</strong>: URL param validation now accepts <code>'medium'</code>.</li>
+  <li>10 total commits above upstream at this point.</li>
 </ul>
 </div>
 
-<div class="callout-green"><strong>Session 6 accomplishments — committed as <code>0885b96f3c</code>:</strong>
+<div class="callout-green"><strong>Session 6 accomplishments — committed <code>0885b96f3c</code> + <code>1be20d6a16</code>:</strong>
 <ul style="margin-top:6px;">
-  <li><strong>2-col layout fix:</strong> <code>ANNOTATE_PRINT_COLUMNS_JS</code> now supports 2 AND 3-column rows; threshold changed from 0.55 → 0.90 (skip only if any column ≥ 90% viewport width). Uses <code>flex-grow</code> weights normalised to 100 so columns always fill the row regardless of authored gaps.</li>
-  <li><strong>Table height overflow fix:</strong> <code>EXPAND_TABLE_CONTAINERS_JS</code> walk-up now goes all the way to <code>.grid-content</code> stop boundary. Full <code>:has(.superset-chart-table)</code> CSS chain releases <code>height: auto</code> at every ancestor level. <code>break-inside: avoid</code> now excludes table holders.</li>
-  <li><strong>Multi-tab PDF merge:</strong> <code>get_print_pdf</code> accepts <code>tab_ids: list[str] | None</code>; navigates <code>url#TAB-ID</code> per tab; merges sub-PDFs via <code>pypdf</code>; falls back to single-URL render if pypdf unavailable. <code>pypdf==6.16.2</code> added to <code>requirements/base.txt</code>.</li>
-  <li><strong>Timeout fix:</strong> <code>page.goto()</code> and <code>locator(".standalone").wait_for()</code> now receive explicit <code>timeout=effective_wait * 1000</code> — large dashboards (World Bank 18-chart, dash2) no longer time out at the 60s context default. All 11 PDFs generate and open in ≤ 8s each.</li>
-  <li><strong>Lint fixes:</strong> <code>C901</code> suppressed with <code># noqa: C901</code> (complexity inherent to function); <code>I001</code> import sort fixed; <code>ruff format</code> applied to all 4 Python files. All clean.</li>
-  <li><strong>Test script:</strong> <code>scripts/test_pdf_font_sizes.sh</code> generates 11 PDFs across 4 dashboards, copies to <code>~/Desktop</code>, and opens them. Run after every change for visual inspection.</li>
-  <li><strong>11 commits above upstream.</strong> All ruff checks pass. 23/23 Python tests + 15/15 Jest tests.</li>
+  <li><strong>2-col layout fix:</strong> <code>ANNOTATE_PRINT_COLUMNS_JS</code> now supports 2 AND 3-column rows. Threshold changed 0.55 → 0.90 (skip only if any column ≥ 90% viewport width). Uses <code>flex-grow</code> weights normalised to 100 (proportional to authored px widths) so columns always fill 100% of the row even when authored widths don't sum to viewport width.</li>
+  <li><strong>getPrintLayoutCSS rewrite:</strong> Uses <code>flex-grow: var(--print-col-weight)</code> + <code>flex-basis: 0</code> instead of fixed widths — guarantees proportional, gap-free columns.</li>
+  <li><strong>Table height overflow fix:</strong> <code>EXPAND_TABLE_CONTAINERS_JS</code> walk-up now goes all the way to <code>.grid-content</code> stop boundary, releasing <code>height: auto</code> at every ancestor in the flex chain. Full <code>:has(.superset-chart-table)</code> CSS chain in <code>PRINT_MODE_CSS</code> at every level. <code>break-inside: avoid</code> now excludes table holders to prevent almost-blank pages.</li>
+  <li><strong>Multi-tab PDF merge:</strong> <code>get_print_pdf</code> accepts <code>tab_ids: list[str] | None</code>. Navigates <code>url#TAB-ID</code> per tab, each navigation activates that tab so its charts mount. Merges sub-PDFs via <code>pypdf</code>. Falls back gracefully if pypdf unavailable. <code>pypdf==6.16.2</code> added to <code>requirements/base.txt</code>.</li>
+  <li><strong>Timeout fix (critical):</strong> <code>page.goto()</code> and <code>locator(".standalone").wait_for()</code> now receive explicit <code>timeout=effective_wait * 1000</code>. Previously these used the Playwright context default (60s), which was insufficient for large dashboards (World Bank's Data with 18 charts timed out every time). Now all 11 PDFs generate in ≤ 8s each.</li>
+  <li><strong>Lint fixes:</strong> <code>C901</code> suppressed on <code>get_print_pdf</code> with <code># noqa: C901</code>; <code>I001</code> import sort fixed in test file; <code>ruff format</code> applied to all 4 Python files.</li>
+  <li><strong>12 commits above upstream.</strong> All ruff checks pass. 23/23 Python tests. 15/15 Jest tests. 11/11 PDFs open.</li>
 </ul>
 </div>
 
+<hr class="divider" />
 
 <h2>0. Project Conventions &amp; Environment (must follow)</h2>
 <div class="callout-blue">
@@ -92,198 +92,254 @@
 <li>Jest tests: use <code>test()</code>, not <code>describe()</code> (avoid-nesting principle).</li>
 <li>Docker Compose: <code>./superset:/app/superset</code> is volume-mounted into <code>superset-superset-1</code> — Python changes are live instantly. Frontend changes require <code>npm run build</code> on the Mac host before they take effect.</li>
 <li><code>docker/pythonpath_dev/superset_config_docker.py</code> is gitignored (catch-all <code>*</code> in <code>docker/pythonpath_dev/.gitignore</code>) — never goes into the PR, no revert needed.</li>
-<li>pre-commit is NOT available on the Mac host PATH — must run inside Docker: <code>docker exec superset-superset-1 bash -c "cd /app &amp;&amp; /app/.venv/bin/pre-commit run --files ..."</code></li>
+<li>pre-commit is NOT available on the Mac host PATH — run inside Docker: <code>docker exec superset-superset-1 bash -c "cd /app &amp;&amp; /app/.venv/bin/pre-commit run --files ..."</code></li>
+<li>The Docker venv has <code>ruff</code> and <code>isort</code> but NOT <code>black</code> — formatting is <code>.venv/bin/ruff format</code>.</li>
 <li>The worker container (<code>superset-superset-worker-1</code>) runs its own <code>.venv</code> pip install, NOT the source mount — run all test scripts from <code>superset-superset-1</code> (the web container).</li>
 <li>Playwright test scripts must use <code>http://superset:8088</code> as the base URL (Docker internal hostname). <code>localhost</code> from inside the container resolves to the container's own loopback — the web server is NOT there.</li>
 <li>After any <code>npm run build</code> failure or stale-manifest issue: check that every JS hash in <code>superset/static/assets/manifest.json</code> has a matching file in <code>superset/static/assets/</code>. A mismatch means the bundle is from a different build session and the SPA will silently fail to mount.</li>
+<li><strong>Visual testing loop:</strong> After any Python change → run <code>bash scripts/test_pdf_font_sizes.sh</code> immediately (no build needed). After any TypeScript change → run <code>bash scripts/test_pdf_font_sizes.sh --build</code>. PDFs are copied to <code>~/Desktop</code> and opened automatically.</li>
 </ul>
 </div>
 
 <hr class="divider" />
 
-
 <h2>1. What the Feature Does (End-to-End Flow)</h2>
 
-<p>Replaces raster-screenshot-stitched PDFs with Playwright's native <code>page.pdf()</code> — a real vector PDF with selectable text. The new path is strictly additive; any failure falls back silently to the existing screenshot path.</p>
+<p>Replaces raster-screenshot-stitched PDFs with Playwright's native <code>page.pdf()</code> — a real vector PDF with selectable text. The new path is strictly additive; any failure falls back silently to the existing screenshot path. Gated by feature flag <code>DASHBOARD_REPORTS_BROWSER_PRINT_PDF</code> (default: False).</p>
 
 <div class="chain">
   <div class="chain-step"><strong>1.</strong> Celery worker → <code>execute.py::_get_pdf()</code></div>
   <div class="chain-arrow">↓</div>
   <div class="chain-step"><strong>2.</strong> Flag check: <code>DASHBOARD_REPORTS_BROWSER_PRINT_PDF=True</code> AND dashboard report AND single-URL → <code>_get_browser_print_pdf()</code></div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>3.</strong> <code>DashboardPrintScreenshot.__init__</code> builds URL: base URL + <code>?standalone=3&amp;print=1</code> (+ <code>&amp;print_font_size=medium|large</code> if non-small tier)</div>
+  <div class="chain-step"><strong>3.</strong> <code>DashboardPrintScreenshot.__init__</code> builds URL: base URL + <code>?standalone=3&amp;print=1</code> (+ <code>&amp;print_font_size=medium|large</code> if non-small) (+ <code>&amp;print_layout=2col</code> if 2col)</div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>4.</strong> Playwright navigates (viewport=1600px wide), authenticates via <code>machine_auth_provider_factory</code>, waits for <code>.standalone</code></div>
+  <div class="chain-step"><strong>4.</strong> Playwright navigates (viewport=1600px wide), authenticates via <code>machine_auth_provider_factory</code>. <code>page.goto()</code> uses explicit <code>timeout=effective_wait*1000</code> (not context default). Waits 3s headstart. <code>locator(".standalone").wait_for(timeout=effective_wait*1000)</code>.</div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>5.</strong> Frontend sees <code>?print=1</code>: DashboardBuilder adds <code>body.print-mode</code> + injects <code>PRINT_MODE_CSS + getPrintFontSizeCSS(tier)</code> as a single style tag. Row.tsx bypasses IntersectionObserver. Tabs.tsx sets <code>forceRender:true</code>. SliceHeader disables chart-title links.</div>
+  <div class="chain-step"><strong>5.</strong> Frontend sees <code>?print=1</code>: DashboardBuilder adds <code>body.print-mode</code> + injects <code>PRINT_MODE_CSS + getPrintFontSizeCSS(tier) + getPrintLayoutCSS(layout)</code> as a single style tag. Row.tsx bypasses IntersectionObserver. Tabs.tsx sets <code>forceRender:true</code>. SliceHeader disables chart-title links.</div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>6.</strong> <code>UNHIDE_TAB_PANELS_JS</code>: strips inline <code>style="display:none"</code> from all <code>[role="tabpanel"]</code> elements</div>
+  <div class="chain-step"><strong>6.</strong> <code>UNHIDE_TAB_PANELS_JS</code>: strips inline <code>style="display:none"</code> from all <code>[role="tabpanel"]</code> elements (CSSMotion renders them hidden even with forceRender).</div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>7.</strong> <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> waits until ALL chart holders (not just viewport-visible) reach terminal state</div>
+  <div class="chain-step"><strong>7.</strong> <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code> waits until ALL chart holders (not just viewport-visible) reach terminal state. Uses <code>timeout=effective_wait*1000</code>.</div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>8.</strong> <code>UNHIDE_TAB_PANELS_JS</code> again (safety net). <code>EXPAND_TABLE_CONTAINERS_JS</code> removes inline height/overflow from table scroll containers. <code>SET_PRINT_FONT_SIZE_JS(px)</code> patches inline <code>font-size</code> on <code>.header-line</code> elements for medium (64px) and large (96px) tiers.</div>
+  <div class="chain-step"><strong>8.</strong> <code>EXPAND_TABLE_CONTAINERS_JS</code>: (a) removes inline height+overflow from table scroll containers; (b) walks up the ancestor chain to <code>.grid-content</code> releasing height:auto at every level. <code>SET_PRINT_FONT_SIZE_JS(px)</code> patches inline font-size on <code>.header-line</code> elements for medium (64px) and large (96px) tiers.</div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>9.</strong> Reads <code>BROWSER_PRINT_PDF_HEADER_CONTENT</code> and <code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code> from app config. Builds header/footer templates with token-expanded, HTML-escaped slot content.</div>
+  <div class="chain-step"><strong>9.</strong> If <code>print_layout="2col"</code>: <code>ANNOTATE_PRINT_COLUMNS_JS</code> tags qualifying <code>.grid-row</code> elements with <code>data-print-2col="true"</code> and sets <code>--print-col-weight</code> CSS variable on each column (proportional flex-grow weight, normalised to 100).</div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>10.</strong> <code>page.pdf(format="A4", scale=794/1600, margins=18mm/15mm/10mm/10mm, display_header_footer=True, header_template=..., footer_template=...)</code></div>
+  <div class="chain-step"><strong>10.</strong> Reads <code>BROWSER_PRINT_PDF_HEADER_CONTENT</code> and <code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code> from app config. Builds header/footer templates with HTML-escaped, token-expanded slot content.</div>
   <div class="chain-arrow">↓</div>
-  <div class="chain-step"><strong>11.</strong> Return bytes → caller. Any exception → return None → fall back to screenshot path</div>
+  <div class="chain-step"><strong>11.</strong> <code>page.pdf(format="A4", scale=794/1600, margins=18mm/15mm/10mm/10mm, display_header_footer=True, ...)</code></div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>12.</strong> If <code>tab_ids</code> provided (&gt;1 tabs): steps 4–11 repeat per tab at <code>url#TAB-ID</code>; sub-PDFs merged via <code>pypdf.PdfWriter</code>. Falls back to single-URL render if pypdf unavailable.</div>
+  <div class="chain-arrow">↓</div>
+  <div class="chain-step"><strong>13.</strong> Return bytes → caller. Any exception → return None → fall back to screenshot path.</div>
 </div>
 
 <hr class="divider" />
 
-
 <h2>2. Every File Changed</h2>
 
-<h3>Branch <code>feature/sip-212-implementation</code> — base commits (3 commits above upstream)</h3>
+<h3>Base commits — Sessions 1–3 (8 commits)</h3>
 <table>
 <tr><th>File</th><th>Change</th><th>Status</th></tr>
-<tr><td class="file">superset/config.py</td><td>Added <code>"DASHBOARD_REPORTS_BROWSER_PRINT_PDF": False</code> to <code>DEFAULT_FEATURE_FLAGS</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
-<tr><td class="file">superset/utils/screenshot_utils.py</td><td>Added <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code>, <code>UNHIDE_TAB_PANELS_JS</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
-<tr><td class="file">superset/utils/screenshots.py</td><td>Added <code>DashboardPrintScreenshot</code>, <code>get_print_pdf()</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
-<tr><td class="file">superset/utils/webdriver.py</td><td>Added <code>WebDriverPlaywright.get_print_pdf()</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
-<tr><td class="file">superset/commands/report/execute.py</td><td>Modified <code>_get_pdf()</code> with browser-print fallback. Added <code>_get_browser_print_pdf()</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset/config.py</td><td>Added <code>"DASHBOARD_REPORTS_BROWSER_PRINT_PDF": False</code> to <code>DEFAULT_FEATURE_FLAGS</code>. Added <code>BROWSER_PRINT_PDF_HEADER_CONTENT</code> and <code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code> config dicts with full docstring.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset/utils/screenshot_utils.py</td><td>Added JS constants: <code>PRINT_ALL_CHART_HOLDERS_READY_JS</code>, <code>UNHIDE_TAB_PANELS_JS</code>, <code>EXPAND_TABLE_CONTAINERS_JS</code>, <code>ANNOTATE_PRINT_COLUMNS_JS</code>, <code>SET_PRINT_FONT_SIZE_JS</code>, <code>EXTRACT_TAB_HASH_IDS_JS</code>, <code>COUNT_TAB_BUTTONS_JS</code>, <code>SHOW_ALL_TAB_PANELS_JS</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset/utils/screenshots.py</td><td>Added <code>DashboardPrintScreenshot</code> class: extends <code>DashboardScreenshot</code>, appends <code>?print=1</code> + optional <code>?print_font_size=</code> + <code>?print_layout=</code>. <code>get_print_pdf()</code> checks feature flags, delegates to <code>WebDriverPlaywright.get_print_pdf()</code> passing <code>tab_ids</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset/utils/webdriver.py</td><td>Added to <code>WebDriverPlaywright</code>: <code>_escape_html()</code>, <code>_resolve_slot()</code>, <code>_slot_span()</code>, <code>_build_pdf_header_template()</code>, <code>_build_pdf_footer_template()</code>, <code>get_print_pdf()</code> (with inner <code>_render_page()</code>, multi-tab merge, explicit timeouts, <code># noqa: C901</code>).</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset/commands/report/execute.py</td><td>Modified <code>_get_pdf()</code> with browser-print flag check + fallback. Added <code>_get_browser_print_pdf()</code> that reads <code>BROWSER_PRINT_PDF_FONT_SIZE</code> + <code>BROWSER_PRINT_PDF_LAYOUT</code> + dashboard title; returns None for multi-URL dashboards.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">requirements/base.txt</td><td>Added <code>pypdf==6.16.2</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
 <tr><td class="file">superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts</td><td>Added <code>DashboardReportsBrowserPrintPdf</code> enum entry.</td><td><span class="tag tag-done">committed</span></td></tr>
-<tr><td class="file">superset-frontend/src/constants.ts</td><td>Added <code>print</code> to URL_PARAMS.</td><td><span class="tag tag-done">committed</span></td></tr>
-<tr><td class="file">superset-frontend/src/dashboard/styles/printMode.ts</td><td><strong>New file.</strong> Exports <code>PRINT_MODE_CSS</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
-<tr><td class="file">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</td><td>Reads <code>?print=1</code>. Injects PRINT_MODE_CSS style tag.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset-frontend/src/constants.ts</td><td>Added <code>print: { name: 'print', type: 'number' }</code> and <code>printFontSize: { name: 'print_font_size', type: 'string' }</code> to <code>URL_PARAMS</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset-frontend/src/dashboard/styles/printMode.ts</td><td><strong>New file.</strong> Exports <code>PRINT_MODE_CSS</code>, <code>PrintFontSize</code> type, <code>PrintLayout</code> type, <code>getPrintFontSizeCSS()</code>, <code>getPrintLayoutCSS()</code>. See Section 3 for full details.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</td><td>Reads <code>?print=1</code> and <code>?print_font_size=small|medium|large</code> and <code>?print_layout=2col</code>. Adds <code>body.print-mode</code> and <code>body.print-layout-2col</code> classes. Injects combined CSS style tag. Validates <code>'medium'</code> as valid tier (bug fix).</td><td><span class="tag tag-done">committed</span></td></tr>
 <tr><td class="file">superset-frontend/src/dashboard/components/gridComponents/Row/Row.tsx</td><td><code>isInView=isPrintMode</code>, IntersectionObserver guarded by <code>!isPrintMode</code>.</td><td><span class="tag tag-done">committed</span></td></tr>
 <tr><td class="file">superset-frontend/src/dashboard/components/SliceHeader/index.tsx</td><td><code>canExplore=false</code> in print mode.</td><td><span class="tag tag-done">committed</span></td></tr>
 <tr><td class="file">superset-frontend/src/dashboard/components/gridComponents/Tabs/Tabs.tsx</td><td><code>forceRender:true</code> per item, <code>isComponentVisible=true</code> for all tabs in print mode.</td><td><span class="tag tag-done">committed</span></td></tr>
 <tr><td class="file">superset-frontend/src/dashboard/components/gridComponents/TabsRenderer/TabsRenderer.tsx</td><td>Added <code>forceRender?: boolean</code> to TabItem interface.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">tests/unit_tests/utils/test_browser_print_pdf.py</td><td>23 unit tests across 6 classes: URL construction, feature-flag routing, multi-URL guard, header template, footer template, <code>_resolve_slot</code>. All mocked — no browser required. Fixed <code>_execution_id</code> attribute, removed unused import, fixed import sort (I001).</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">superset-frontend/src/dashboard/components/__tests__/printModeLogic.test.ts</td><td>15 Jest tests for Row, Tabs, SliceHeader print-mode behaviour and URL_PARAMS.print.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">UPDATING.md</td><td>Breaking-change entry for SIP-212 feature flag.</td><td><span class="tag tag-done">committed</span></td></tr>
+<tr><td class="file">scripts/test_pdf_font_sizes.sh</td><td>Generates 11 PDFs across 4 dashboards, copies to ~/Desktop, opens them. Accepts <code>--build</code> flag to rebuild frontend first. Extracts tab_ids from dashboard layout JSON. See Section 5.</td><td><span class="tag tag-done">committed</span></td></tr>
 </table>
 
-<h3>Sessions 2 &amp; 3 — polish + tests (4 commits on top of base)</h3>
+<hr class="divider" />
+
+<h2>3. printMode.ts — Full Detail</h2>
+<p>File: <code>superset-frontend/src/dashboard/styles/printMode.ts</code></p>
+
+<h3>Exports</h3>
+<ul>
+  <li><code>PrintFontSize</code> — <code>'small' | 'medium' | 'large'</code></li>
+  <li><code>PrintLayout</code> — <code>'1col' | '2col'</code></li>
+  <li><code>PRINT_FONT_SIZE_SMALL/MEDIUM/LARGE</code>, <code>PRINT_LAYOUT_1COL/2COL</code> — typed constants</li>
+  <li><code>getPrintFontSizeCSS(fontSize)</code> — returns CSS string for tier overrides</li>
+  <li><code>getPrintLayoutCSS(layout)</code> — returns CSS string for 2-col flex layout</li>
+  <li><code>PRINT_MODE_CSS</code> — base print-mode stylesheet</li>
+</ul>
+
+<h3>PRINT_MODE_CSS sections</h3>
+<ol>
+  <li><strong>Hide interactive chrome</strong>: header, filter bar, drag handles, dropzones, anchor links, slice descriptions.</li>
+  <li><strong>Single-column stacking</strong>: <code>.dragdroppable-row</code>, <code>.grid-row</code> → <code>flex-direction:column</code>. <code>.dragdroppable-column</code>, <code>.resizable-container</code> → <code>width:100%</code>. Does NOT touch heights (needed for canvas/SVG resolution).</li>
+  <li><strong>Markdown height release</strong>: <code>.dashboard-markdown</code> → <code>height:auto</code>.</li>
+  <li><strong>Table height overflow fix</strong>: Full <code>:has(.superset-chart-table)</code> chain at every ancestor level (<code>.resizable-container</code>, <code>.dashboard-component-chart-holder</code>, <code>.dragdroppable-column</code>, <code>.chart-slice</code>, <code>.dashboard-chart</code>, <code>.chart-container</code>, <code>.grid-row</code>) → <code>height:auto; overflow:visible</code>. Hides pagination. Inner scroll containers handled by <code>EXPAND_TABLE_CONTAINERS_JS</code>.</li>
+  <li><strong>Page breaks</strong>: <code>break-inside:avoid</code> on chart holders that do NOT contain a table (tables excluded — a 10k-row table on one page would break layout).</li>
+</ol>
+
+<h3>getPrintLayoutCSS('2col')</h3>
+<p>Targets <code>body.print-layout-2col</code>. On <code>.grid-row[data-print-2col="true"]</code>: restores <code>flex-direction:row</code>. On child <code>.dragdroppable-column</code>: <code>flex-grow:var(--print-col-weight,50); flex-basis:0; flex-shrink:0; width:0</code> — proportional columns that always fill 100%. On <code>.resizable-container</code>: <code>width:100%</code>.</p>
+
+<h3>Font tier values (CSS px at 1600px viewport, ×0.496 scale to A4)</h3>
 <table>
-<tr><th>File(s)</th><th>What Changed</th></tr>
-<tr><td class="file">printMode.ts, webdriver.py</td><td>Viewport 1600px; page.pdf(scale=794/1600). <code>.grid-row { flex-direction: column }</code>.</td></tr>
-<tr><td class="file">printMode.ts, screenshot_utils.py, webdriver.py</td><td>EXPAND_TABLE_CONTAINERS_JS. :has(.superset-chart-table) CSS rules. page-break-inside:avoid.</td></tr>
-<tr><td class="file">test_browser_print_pdf.py, printModeLogic.test.ts, UPDATING.md</td><td>Python unit tests. 15 Jest tests (all passing). UPDATING.md entry.</td></tr>
+<tr><th>Element</th><th>small (no override)</th><th>medium</th><th>large</th><th>Mechanism</th></tr>
+<tr><td>Chart title (<code>.header-title</code>)</td><td>~16px React default</td><td>26px</td><td>38px</td><td>CSS <code>!important</code></td></tr>
+<tr><td>Table cell (<code>.superset-chart-table td/th</code>)</td><td>~12px browser default</td><td>20px, padding 8px 14px</td><td>30px, padding 10px 18px</td><td>CSS <code>!important</code></td></tr>
+<tr><td>Markdown (<code>.dashboard-markdown</code>)</td><td>browser default</td><td>20px, h1=32/h2=28/h3=24px</td><td>30px, h1=48/h2=42/h3=36px</td><td>CSS <code>!important</code></td></tr>
+<tr><td>Big Number (<code>.header-line</code>)</td><td>32px React default (no JS)</td><td>64px inline patch</td><td>96px inline patch</td><td><code>SET_PRINT_FONT_SIZE_JS</code></td></tr>
 </table>
 
-<h3>Session 4 — font-size tiers + header/footer (commit <code>d64017cc7f</code>)</h3>
+<hr class="divider" />
+
+<h2>4. Config Keys (superset/config.py)</h2>
 <table>
-<tr><th>File</th><th>What Changed</th></tr>
-<tr><td class="file">superset-frontend/src/constants.ts</td><td>Added <code>printFontSize: { name: 'print_font_size', type: 'string' }</code> to URL_PARAMS.</td></tr>
-<tr><td class="file">superset-frontend/src/dashboard/styles/printMode.ts</td><td>Added <code>PrintFontSize</code> type, <code>getPrintFontSizeCSS()</code>. Three tiers. <code>small</code>=no override. <code>medium</code>=26px titles/20px table. <code>large</code>=38px titles/30px table.</td></tr>
-<tr><td class="file">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</td><td>Reads <code>?print_font_size=</code>, validates to <code>PrintFontSize</code> (defaults 'small'). Concatenates font CSS into style tag.</td></tr>
-<tr><td class="file">superset/utils/screenshot_utils.py</td><td>Added <code>SET_PRINT_FONT_SIZE_JS</code>: patches inline font-size on every <code>.header-line</code> element.</td></tr>
-<tr><td class="file">superset/utils/webdriver.py</td><td>Added <code>_build_pdf_header_template(title)</code> and <code>_build_pdf_footer_template()</code>. Per-page H/F via <code>display_header_footer</code>. Big-number JS: medium=64px, large=96px.</td></tr>
-<tr><td class="file">superset/utils/screenshots.py</td><td><code>DashboardPrintScreenshot</code>: appends <code>?print_font_size=</code> for medium or large tiers.</td></tr>
-<tr><td class="file">superset/commands/report/execute.py</td><td><code>_get_browser_print_pdf()</code>: reads <code>BROWSER_PRINT_PDF_FONT_SIZE</code> + <code>dashboard_title</code>, passes both through.</td></tr>
-<tr><td class="file">scripts/test_pdf_font_sizes.sh</td><td>New script. Generates 3 tiers + 1 custom-header PDF, copies to Desktop, opens all.</td></tr>
+<tr><th>Key</th><th>Type</th><th>Default</th><th>Purpose</th></tr>
+<tr><td><code>DASHBOARD_REPORTS_BROWSER_PRINT_PDF</code></td><td>feature flag (bool)</td><td><code>False</code></td><td>Master switch. Off = existing screenshot path, no change.</td></tr>
+<tr><td><code>BROWSER_PRINT_PDF_FONT_SIZE</code></td><td><code>str | None</code></td><td><code>None</code> (= 'small')</td><td>Tier: <code>'small'|'medium'|'large'</code>. Read by <code>_get_browser_print_pdf()</code>.</td></tr>
+<tr><td><code>BROWSER_PRINT_PDF_LAYOUT</code></td><td><code>str | None</code></td><td><code>None</code> (= '1col')</td><td>Layout: <code>'2col'</code> or None. Read by <code>_get_browser_print_pdf()</code>.</td></tr>
+<tr><td><code>BROWSER_PRINT_PDF_VIEWPORT_WIDTH</code></td><td><code>int</code></td><td>window[0] = 1600</td><td>Override the Playwright viewport width for the print render.</td></tr>
+<tr><td><code>BROWSER_PRINT_PDF_HEADER_FOOTER</code></td><td><code>bool</code></td><td><code>True</code></td><td>Set False to disable header/footer band entirely.</td></tr>
+<tr><td><code>BROWSER_PRINT_PDF_HEADER_CONTENT</code></td><td><code>dict[str,str]</code></td><td>See below</td><td>Slots: <code>left</code>, <code>center</code>, <code>right</code>. Tokens: <code>{title}</code>, <code>{date}</code>.</td></tr>
+<tr><td><code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code></td><td><code>dict[str,str]</code></td><td>See below</td><td>Slots: <code>left</code>, <code>center</code>. Right (page N of M) is fixed.</td></tr>
 </table>
 
-<h3>Session 5 — customizable header/footer content (commit <code>4fb7825117</code>)</h3>
-<table>
-<tr><th>File</th><th>What Changed</th></tr>
-<tr><td class="file">superset/config.py</td><td>Added <code>BROWSER_PRINT_PDF_HEADER_CONTENT</code> and <code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code> config dicts with full docstring explaining tokens, constraints, and slot layout.</td></tr>
-<tr><td class="file">superset/utils/webdriver.py</td><td>Three new static helpers: <code>_escape_html()</code>, <code>_resolve_slot(raw, title)</code>, <code>_slot_span(content, extra_style)</code>. Refactored builders to accept <code>content</code> dict. <code>get_print_pdf()</code> reads both config keys and passes to builders. Overflow protection (200px max-width, ellipsis) on every slot.</td></tr>
-<tr><td class="file">superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</td><td>Bug fix: URL param validation now accepts <code>'medium'</code> as a valid <code>PrintFontSize</code> (previously only <code>small|large</code> were explicitly checked, causing medium to silently fall back to the no-override default).</td></tr>
-<tr><td class="file">tests/unit_tests/utils/test_browser_print_pdf.py</td><td>17 new unit tests: <code>TestBuildPdfHeaderTemplate</code>, <code>TestBuildPdfFooterTemplate</code>, <code>TestResolveSlot</code>. Cover defaults, custom slots, {title}/{date} tokens, HTML injection prevention, overflow protection, fixed page numbers.</td></tr>
-</table>
-
-<h3>2b — Font-size tier values (after Session 5 rebalance)</h3>
-<p>All CSS px values at 1600px viewport. PDF scale = 0.496. Rule: <code>CSS px × 0.186 ≈ pt on paper</code>.</p>
-<table>
-<tr><th>Element</th><th>small (no override)</th><th>medium</th><th>large (XL)</th><th>Mechanism</th></tr>
-<tr><td>Chart title</td><td>~16px React default → ~3pt</td><td>26px → ~5pt</td><td>38px → ~7pt</td><td>CSS override</td></tr>
-<tr><td>Table cell</td><td>~12px browser default → ~2pt</td><td>20px → ~4pt, padding 8px 14px</td><td>30px → ~6pt, padding 10px 18px</td><td>CSS override</td></tr>
-<tr><td>Markdown</td><td>browser default</td><td>20px, h1=32/h2=28/h3=24px</td><td>30px, h1=48/h2=42/h3=36px</td><td>CSS override</td></tr>
-<tr><td>Big Number (.header-line)</td><td>32px React default (no JS)</td><td>64px inline patch</td><td>96px inline patch</td><td><code>SET_PRINT_FONT_SIZE_JS</code></td></tr>
-</table>
-
-<h3>2c — Header/footer slot layout</h3>
+<h3>Header/footer slot defaults</h3>
 <table>
 <tr><th>Band</th><th>Left</th><th>Center</th><th>Right</th><th>Border</th></tr>
-<tr><td><strong>Header</strong></td><td>Default: <code>{title}</code> bold 11px</td><td>Default: empty</td><td>Default: <code>Apache Superset | {date}</code> 8px muted</td><td>1.5px solid #3b82d4 bottom</td></tr>
-<tr><td><strong>Footer</strong></td><td>Default: <code>Confidential</code> 8px</td><td>Default: <code>Generated by Apache Superset</code> 8px</td><td><strong>Fixed:</strong> Page N of M — not overridable</td><td>1px solid #e5e7eb top</td></tr>
+<tr><td><strong>Header</strong></td><td><code>{title}</code> bold 11px</td><td>empty</td><td><code>Apache Superset | {date}</code> 8px muted</td><td>1.5px solid #3b82d4 bottom</td></tr>
+<tr><td><strong>Footer</strong></td><td><code>Confidential</code> 8px</td><td><code>Generated by Apache Superset</code> 8px</td><td><strong>Fixed:</strong> Page N of M</td><td>1px solid #e5e7eb top</td></tr>
 </table>
-<p>Supported tokens: <code>{title}</code> → dashboard title (HTML-escaped); <code>{date}</code> → Chromium print date span. Overflow protection: 200px max-width per slot, <code>overflow:hidden; text-overflow:ellipsis; white-space:nowrap</code>. HTML not accepted — all values are escaped before insertion.</p>
-<p>To customise in <code>superset_config.py</code>:</p>
+
 <pre>BROWSER_PRINT_PDF_HEADER_CONTENT = {
     "left":   "{title}",
-    "center": "Your Org Name",
+    "center": "ACME Corp — Internal Use Only",
     "right":  "Printed: {date}",
 }
 BROWSER_PRINT_PDF_FOOTER_CONTENT = {
-    "left":   "Confidential — Internal Use Only",
-    "center": "analytics.yourcompany.com",
-    # right is always Page N of M
+    "left":   "CONFIDENTIAL · Do not distribute",
+    "center": "analytics.acme.com",
+    # right is always Page N of M — not overridable
 }</pre>
 
 <hr class="divider" />
 
+<h2>5. All Technical Discoveries</h2>
 
-<h2>3. All Technical Discoveries (D1–D20 — unchanged from Session 4)</h2>
-<p>Discoveries D1–D20 are unchanged. See prior session record or the context prompt below for the full list. Key ones for header/footer work:</p>
-<ul>
-  <li><strong>D13</strong> — <code>position:fixed</code> does NOT produce repeating H/F in Chromium PDF. Only <code>display_header_footer</code> + <code>header_template</code>/<code>footer_template</code> API works.</li>
-  <li><strong>D14</strong> — Playwright template rules: single root element, all styles inline, <code>font-size</code> defaults to 0px (invisible unless set), Chromium classes: <code>date</code>, <code>pageNumber</code>, <code>totalPages</code>. Template rendered at full paper width — independent of <code>page.pdf(scale)</code>.</li>
-  <li><strong>D15</strong> — Big Number <code>.header-line</code> has inline React style. CSS <code>!important</code> cannot override. Fix: <code>SET_PRINT_FONT_SIZE_JS</code>.</li>
-</ul>
+<h3>DOM Structure (confirmed via live inspection)</h3>
+<pre>.grid-content
+  .dragdroppable-row           ← flex item per dashboard row
+    .with-popover-menu
+      .grid-row                ← flex container with sibling columns
+        .dragdroppable-column  ← one per chart
+          .resizable-container ← re-resizable sets inline style.width here
+            .dashboard-component-chart-holder
+              .chart-slice
+                .dashboard-chart
+                  .chart-container
+                    .superset-chart-table (if table viz)</pre>
+
+<h3>D1 — Width source</h3>
+<p><code>.resizable-container</code> inline <code>style.width</code> holds the authored px width (e.g. <code>776px</code>). At 1600px viewport: 4-col≈380px, 6-col≈776px, full≈1568px.</p>
+
+<h3>D2 — Table height overflow (root cause confirmed)</h3>
+<p>After <code>EXPAND_TABLE_CONTAINERS_JS</code>, the table expands to its full scrollHeight (e.g. 10,935px). But the flex layout chain (<code>resizable-container → dragdroppable-column → grid-row</code>) still allocates the authored pixel height (~746px) to that cell. The table overflows its container and physically overlaps the next row in the PDF. Fix: <code>:has(.superset-chart-table)</code> CSS rules releasing <code>height:auto</code> at every ancestor level, PLUS the JS walk-up going all the way to <code>.grid-content</code>/<code>.dashboard-grid</code>.</p>
+
+<h3>D3 — Tab rendering (antd v6)</h3>
+<p>antd v6 with <code>animated: { tabPane: false }</code> completely suppresses inactive tab rendering even with <code>forceRender: true</code>. In <code>standalone=3</code> mode, the tab NAV BAR is not rendered at all (<code>ant-tabs-tab</code> count = 0). Fix: pass <code>tab_ids</code> (list of <code>TAB-xxx</code> component IDs extracted from dashboard layout JSON) to <code>get_print_pdf</code>; navigate to <code>url#TAB-ID</code> for each tab, capture per-tab PDF, merge with <code>pypdf</code>. Hash URL navigation works: <code>#TAB-4fthLQmdX</code> activates that tab's content.</p>
+
+<h3>D4 — 2-col layout threshold</h3>
+<p>Old threshold 0.55 was too strict — blocked 776+380 and 512+1040 rows. New threshold: skip only if any column has ratio ≥ 0.90 (genuinely full-width chart). Supports 2 AND 3-column rows. Uses <code>flex-grow</code> with <code>--print-col-weight</code> (proportional weight out of 100) instead of fixed <code>width</code> — guarantees columns always fill 100% of row.</p>
+
+<h3>D5 — Playwright context timeout vs. explicit timeout (critical)</h3>
+<p><code>context.set_default_timeout(60000)</code> is the context-level default for ALL Playwright calls. <code>page.goto()</code>, <code>locator().wait_for()</code>, and <code>page.wait_for_function()</code> all share this budget. For World Bank's Data (18 charts), <code>page.goto(wait_until=domcontentloaded)</code> + 3s headstart + <code>locator(".standalone").wait_for()</code> burned through the full 60s before chart readiness was even checked. Fix: pass <code>timeout=effective_wait * 1000</code> explicitly to <code>page.goto()</code> and <code>locator.wait_for()</code> — they override the context default independently. <code>page.wait_for_function()</code> already had an explicit timeout.</p>
+
+<h3>D6 — .standalone CSS class source</h3>
+<p><code>.standalone</code> is set by the Flask template <code>superset/templates/superset/spa.html</code> on <code>&lt;body&gt;</code> when <code>standalone_mode=True</code> is passed. It is a server-rendered class present in the initial HTML, not set by React. Its <code>wait_for()</code> is only slow when the entire page navigation exceeds the context timeout.</p>
+
+<h3>D7 — CSS !important cannot override inline React styles</h3>
+<p><code>UNHIDE_TAB_PANELS_JS</code> (tab panels) and <code>SET_PRINT_FONT_SIZE_JS</code> (big number font-size) are the correct JS-based fixes. CSS <code>!important</code> loses to inline <code>style=</code> attributes set by React.</p>
+
+<h3>D8 — position:fixed does NOT produce repeating H/F in Chromium PDF</h3>
+<p>Only <code>display_header_footer</code> + <code>header_template</code>/<code>footer_template</code> in Playwright's <code>page.pdf()</code> API works. Playwright template rules: single root element, all styles inline, <code>font-size</code> defaults to 0px (invisible unless set explicitly), Chromium special classes: <code>date</code>, <code>pageNumber</code>, <code>totalPages</code>. Template is rendered at full paper width — independent of <code>page.pdf(scale)</code>.</p>
+
+<h3>D9 — Table CSS selectors</h3>
+<p><code>.dataTable</code> and <code>.table-viz</code> CSS classes do NOT exist in the live DOM. Use <code>.superset-chart-table td/th</code>. JS targets: <code>.superset-chart-table</code>, <code>[data-test-viz-type="table"]</code>, <code>[data-test-viz-type="TableChartTransformed"]</code>.</p>
+
+<h3>D10 — ECharts SVG/canvas labels</h3>
+<p>ECharts renders axis ticks, legend, pie labels onto SVG/canvas with inline font attributes. CSS cannot reach them; JS cannot patch them post-render without re-rendering. Font-size tiers only affect DOM elements.</p>
+
+<h3>D11 — ruff tooling in Docker</h3>
+<p>Docker venv has <code>ruff</code> and <code>isort</code> but NOT <code>black</code>. Formatting is <code>.venv/bin/ruff format</code>. Linting is <code>.venv/bin/ruff check</code>. Run both before committing.</p>
+
+<h3>D12 — Sales Dashboard (dash6) tab structure</h3>
+<p><code>TABS-e5Ruro0cjP</code> has children <code>['TAB-d-E0Zc1cTH', 'TAB-4fthLQmdX']</code>. TAB-d-E0Zc1cTH (first): 3-col rows. TAB-4fthLQmdX (second, inactive): 776px+776px rows → qualify for 2col. Both tabs render correctly in the merged PDF via hash navigation.</p>
+
+<h3>D13 — World Bank dashboard (dash2) 2col structure</h3>
+<p>Row 0: 1172px + 380px table → SKIPPED (hasTable=true). Row 1: 248px + 908px → QUALIFIES. Row 2: 776px + 380px → QUALIFIES. Row 3: 512px + 1040px → QUALIFIES. Row 4: 1040px + 512px → QUALIFIES.</p>
 
 <hr class="divider" />
 
+<h2>6. Compromises &amp; Known Gaps</h2>
 
-<h2>4. All Compromises &amp; Path to Final Implementation</h2>
-
-<div class="callout-red"><strong>The feature is working for single-URL dashboards. The gaps below are known.</strong></div>
-
-<h3>C1 — Multi-URL dashboards silently fall back <span class="tag tag-partial">deferred</span></h3>
-<p>Dashboards with top-level tabs produce multiple URLs. <code>_get_browser_print_pdf()</code> returns None if <code>len(urls) != 1</code>. Phase 5 fix: iterate all URLs, merge PDFs with <code>pypdf.PdfWriter</code>.</p>
+<h3>C1 — Multi-URL dashboards in report pipeline <span class="tag tag-partial">deferred</span></h3>
+<p><code>_get_browser_print_pdf()</code> returns None if <code>len(urls) != 1</code> (logs <code>browser_print_pdf_skipped_multi_tab</code>). Note: the test script passes <code>tab_ids</code> directly and handles multi-tab merging correctly at the Python level. The gap is only in the Celery report pipeline — it does not yet extract and pass tab_ids from the dashboard layout JSON.</p>
 
 <h3>C2 — JS DOM mutation is fragile <span class="tag tag-partial">works but not ideal</span></h3>
 <p><code>UNHIDE_TAB_PANELS_JS</code> mutates the DOM from outside React. Definitive fix: pass a React context signal to CSSMotion so it never enters the <code>forceRender+display:none</code> branch in print mode.</p>
 
 <h3>C3 — No chart-type safety limits <span class="tag tag-todo">not started</span></h3>
-<p>No block-list for chart types that may not render headlessly (DeckGL WebGL). No page-count cap. Add <code>BROWSER_PRINT_PDF_CHART_TYPE_BLOCKLIST</code> and <code>BROWSER_PRINT_PDF_MAX_PAGES</code> config keys.</p>
+<p>No block-list for chart types that may not render headlessly (DeckGL WebGL). No page-count cap.</p>
 
-<h3>C4 — Python unit tests need a venv to run <span class="tag tag-partial">tests written, runner on host missing</span></h3>
-<p>Tests at <code>tests/unit_tests/utils/test_browser_print_pdf.py</code> can be run inside Docker: <code>docker exec superset-superset-1 python3 -m pytest tests/unit_tests/utils/test_browser_print_pdf.py -v</code>.</p>
+<h3>C4 — ECharts font sizes <span class="tag tag-partial">known limitation</span></h3>
+<p>ECharts SVG/canvas labels cannot be controlled by CSS or JS post-render. Font-size tiers only affect DOM elements.</p>
 
-<h3>C5 — pre-commit must be run before PR <span class="tag tag-todo">pending</span></h3>
-<p>Per AGENTS.md this is mandatory. See Section 5 for the exact command.</p>
-
-<h3>C6 — ECharts SVG/canvas labels not font-size-controllable <span class="tag tag-partial">known limitation</span></h3>
-<p>ECharts renders axis ticks, legend, pie labels onto SVG/canvas with inline font attributes. CSS cannot reach them; JS cannot patch them post-render without re-rendering. Font-size tiers only affect DOM elements: chart titles, table cells, markdown, Big Number values.</p>
+<h3>C5 — pre-commit must pass before PR <span class="tag tag-todo">pending</span></h3>
+<p>ruff check + ruff format both pass. mypy and isort (via pre-commit) not yet verified inside Docker.</p>
 
 <hr class="divider" />
 
+<h2>7. Ordered Next Steps</h2>
 
-<h2>5. Ordered Next Steps</h2>
-
-<div class="callout-purple"><strong>Execute these in order. Do not hallucinate — read every file before editing it. Start by running <code>git log --oneline -10</code> to confirm branch state.</strong></div>
+<div class="callout-purple"><strong>Execute in order. Do not hallucinate — read every file before editing it. Start with <code>git log --oneline -15</code>.</strong></div>
 
 <div class="step-block">
-  <div class="step-header"><span class="step-num step-num-done">✓</span> (DONE) Session 6 committed — 11 commits above upstream</div>
+  <div class="step-header"><span class="step-num step-num-done">✓</span> (DONE) 12 commits above upstream, all lint/tests pass</div>
   <div class="step-body">
-    <p><code>git log --oneline -12</code> should show <code>0885b96f3c</code> at the top (session 6), then <code>cac2f24095</code> (session 5 docs), <code>4fb7825117</code> (session 5), <code>d64017cc7f</code> (session 4).</p>
-    <p>All ruff checks pass. 23/23 Python tests. 15/15 Jest tests. All 11 PDFs generate and open.</p>
+    <p>Top commits: <code>1be20d6a16</code> (docs session 6), <code>0885b96f3c</code> (session 6 feat), <code>cac2f24095</code> (docs session 5), <code>4fb7825117</code> (session 5 feat), <code>d64017cc7f</code> (session 4 feat).</p>
+    <p>ruff check + ruff format: all pass. 23/23 Python tests. 15/15 Jest tests. 11/11 PDFs generate and open in ≤ 8s each.</p>
   </div>
 </div>
 
 <div class="step-block">
   <div class="step-header"><span class="step-num">1</span> Visual PDF review &amp; layout polish <span class="tag tag-todo">next step</span></div>
   <div class="step-body">
-    <p>Run <code>bash scripts/test_pdf_font_sizes.sh</code> — generates and opens 11 PDFs across 4 dashboards. Check visually:</p>
+    <p>Run <code>bash scripts/test_pdf_font_sizes.sh</code> — generates and opens 11 PDFs. Check each one visually:</p>
     <ul>
-      <li><strong>dash10_small/medium/large:</strong> font tiers visible; table rows not overlapping next chart; header/footer present</li>
-      <li><strong>dash10_2col:</strong> small charts side-by-side; table full-width; columns fill 100% width</li>
-      <li><strong>dash10_custom:</strong> "ACME Corp" header center, "CONFIDENTIAL" footer left, "analytics.acme.com" footer center</li>
-      <li><strong>dash2_small / dash2_2col:</strong> World Bank 18-chart dashboard renders correctly; 2col shows proportional columns</li>
-      <li><strong>dash6_small / dash6_2col:</strong> Sales Dashboard both tabs present in merged PDF</li>
-      <li><strong>dash8_small / dash8_2col:</strong> Misc Charts renders correctly</li>
+      <li><strong>dash10_small/medium/large:</strong> font tiers visible; table rows NOT overlapping next chart; header/footer band present; page numbers correct</li>
+      <li><strong>dash10_2col:</strong> 4-col charts appear side-by-side; table is full-width; no whitespace gap between columns</li>
+      <li><strong>dash10_custom:</strong> "ACME Corp — Internal Use Only" in header center; "CONFIDENTIAL · Do not distribute" in footer left; "analytics.acme.com" in footer center</li>
+      <li><strong>dash2_small / dash2_2col:</strong> World Bank 18-chart dashboard — all charts visible; 2col rows show proportional columns</li>
+      <li><strong>dash6_small / dash6_2col:</strong> Sales Dashboard — BOTH tabs present in merged PDF (Tab 1 then Tab 2)</li>
+      <li><strong>dash8_small / dash8_2col:</strong> Misc Charts — all chart types render</li>
     </ul>
-    <p>After changes to Python files: changes are live immediately (volume-mounted). Re-run test script.<br/>
-    After changes to TypeScript: run <code>cd superset-frontend &amp;&amp; npm run build</code> first, then re-run test script.</p>
+    <p><strong>Python changes</strong> are live immediately (volume-mounted) — re-run test script to see.<br/>
+    <strong>TypeScript changes</strong> require: <code>cd superset-frontend &amp;&amp; npm run build</code> then re-run test script, or use <code>bash scripts/test_pdf_font_sizes.sh --build</code>.</p>
   </div>
 </div>
 
 <div class="step-block">
   <div class="step-header"><span class="step-num">2</span> Run pre-commit inside Docker <span class="tag tag-todo">before PR</span></div>
   <div class="step-body">
-    <p>Run on all changed files. Note: <code>ruff check</code> and <code>ruff format</code> were already run and pass. Pre-commit will also run mypy and isort.</p>
+    <p>ruff check + ruff format already pass. Pre-commit will also run mypy and isort.</p>
     <pre>docker exec superset-superset-1 bash -c "cd /app && /app/.venv/bin/pre-commit run --files \
   superset/config.py \
   superset/utils/screenshot_utils.py \
@@ -302,7 +358,7 @@ BROWSER_PRINT_PDF_FOOTER_CONTENT = {
   superset-frontend/src/dashboard/components/gridComponents/Tabs/Tabs.tsx \
   superset-frontend/src/dashboard/components/gridComponents/TabsRenderer/TabsRenderer.tsx \
   superset-frontend/src/dashboard/components/__tests__/printModeLogic.test.ts"</pre>
-    <p>If pre-commit auto-fixes anything: <code>git add . &amp;&amp; git commit --amend --no-edit</code> (or new commit).</p>
+    <p>If pre-commit auto-fixes anything: <code>git add . &amp;&amp; git commit --amend --no-edit</code> or new commit.</p>
   </div>
 </div>
 
@@ -310,131 +366,145 @@ BROWSER_PRINT_PDF_FOOTER_CONTENT = {
   <div class="step-header"><span class="step-num">3</span> Open the PR <span class="tag tag-todo">after pre-commit passes</span></div>
   <div class="step-body">
     <p>Read <code>.github/PULL_REQUEST_TEMPLATE.md</code> first. PR title: <code>feat(reports): native browser-print PDF for dashboard reports (SIP-212)</code></p>
-    <p>Key points for PR body:</p>
     <ul>
       <li>Default flag is False — no behavior change for existing deployments.</li>
-      <li>Three font-size tiers via <code>BROWSER_PRINT_PDF_FONT_SIZE</code> config key.</li>
-      <li>Per-page header/footer; content customizable via <code>BROWSER_PRINT_PDF_HEADER_CONTENT</code> / <code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code> dicts. Footer right (page numbers) is fixed.</li>
+      <li>Three font-size tiers via <code>BROWSER_PRINT_PDF_FONT_SIZE</code>.</li>
+      <li>Per-page header/footer; customizable via <code>BROWSER_PRINT_PDF_HEADER_CONTENT</code> / <code>BROWSER_PRINT_PDF_FOOTER_CONTENT</code>. Footer right (page numbers) is fixed.</li>
       <li>Multi-tab dashboards: tab IDs extracted from layout JSON, per-tab PDFs merged via pypdf.</li>
-      <li>2-col adaptive layout: <code>?print_layout=2col</code> places small charts side-by-side using proportional flex-grow weights.</li>
-      <li>Timeout fix: explicit timeout on <code>page.goto()</code> and <code>locator.wait_for()</code> so large dashboards don't time out.</li>
+      <li>2-col adaptive layout via <code>BROWSER_PRINT_PDF_LAYOUT='2col'</code>.</li>
+      <li>Timeout fix: explicit timeouts on <code>page.goto()</code> and <code>locator.wait_for()</code>.</li>
     </ul>
   </div>
 </div>
 
 <hr class="divider" />
 
-
-<h2>6. Verification Commands</h2>
+<h2>8. Verification Commands</h2>
 
 <table>
 <tr><th>What</th><th>Command</th></tr>
-<tr><td>Confirm branch + commits</td><td><code>git log --oneline -12</code></td></tr>
-<tr><td>Run Python tests (in Docker)</td><td><code>docker exec superset-superset-1 bash -c "cd /app &amp;&amp; python3 -m pytest tests/unit_tests/utils/test_browser_print_pdf.py -v"</code></td></tr>
-<tr><td>Run frontend tests</td><td><code>cd superset-frontend &amp;&amp; npx jest "src/dashboard/components/__tests__/printModeLogic.test.ts" --no-coverage</code></td></tr>
+<tr><td>Confirm branch + commits</td><td><code>git log --oneline -15</code></td></tr>
+<tr><td>Run Python tests</td><td><code>docker exec superset-superset-1 bash -c "cd /app &amp;&amp; python3 -m pytest tests/unit_tests/utils/test_browser_print_pdf.py -v"</code></td></tr>
+<tr><td>Run Jest tests</td><td><code>cd superset-frontend &amp;&amp; npx jest "src/dashboard/components/__tests__/printModeLogic.test.ts" --no-coverage</code></td></tr>
 <tr><td>Generate all 11 PDFs + open</td><td><code>bash scripts/test_pdf_font_sizes.sh</code></td></tr>
 <tr><td>Generate PDFs + rebuild TS first</td><td><code>bash scripts/test_pdf_font_sizes.sh --build</code></td></tr>
 <tr><td>Rebuild frontend bundle only</td><td><code>cd superset-frontend &amp;&amp; npm run build</code></td></tr>
-<tr><td>ruff check all Python files</td><td><code>docker exec superset-superset-1 bash -c "cd /app &amp;&amp; .venv/bin/ruff check superset/utils/webdriver.py superset/utils/screenshot_utils.py superset/utils/screenshots.py superset/commands/report/execute.py tests/unit_tests/utils/test_browser_print_pdf.py"</code></td></tr>
+<tr><td>ruff lint all Python files</td><td><code>docker exec superset-superset-1 bash -c "cd /app &amp;&amp; .venv/bin/ruff check superset/utils/webdriver.py superset/utils/screenshot_utils.py superset/utils/screenshots.py superset/commands/report/execute.py tests/unit_tests/utils/test_browser_print_pdf.py"</code></td></tr>
 <tr><td>ruff format check</td><td><code>docker exec superset-superset-1 bash -c "cd /app &amp;&amp; .venv/bin/ruff format --check superset/utils/webdriver.py superset/utils/screenshots.py superset/commands/report/execute.py tests/unit_tests/utils/test_browser_print_pdf.py"</code></td></tr>
-<tr><td>Worker logs for latest run</td><td><code>docker logs superset-superset-worker-1 --tail 100 | grep -E "browser_print_pdf|expand_tables|font_size"</code></td></tr>
-<tr><td>pre-commit (in Docker)</td><td>See Step 2 of Section 5</td></tr>
+<tr><td>Worker logs</td><td><code>docker logs superset-superset-worker-1 --tail 100 | grep -E "browser_print_pdf|expand_tables|font_size"</code></td></tr>
+<tr><td>oxlint frontend</td><td><code>cd superset-frontend &amp;&amp; npx oxlint --config oxlint.json --quiet src/dashboard/styles/printMode.ts src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx</code></td></tr>
 </table>
 
 <hr class="divider" />
 
+<h2>9. Context Prompt for the Next Chat</h2>
 
-<h2>7. Context Prompt for the Next Chat</h2>
-
-<div class="callout"><strong>Paste this as your first message in the next chat. It gives the AI full context.</strong></div>
+<div class="callout"><strong>Paste this as your first message in the next chat.</strong></div>
 
 <div class="prompt-box">I am working on SIP-212: native browser-print PDF for dashboard reports in the Apache Superset repository at `/Users/shauryasingh/Desktop/main project/superset`.
 
 ## Project Conventions (must follow)
 - Do not hallucinate — read every file before editing it.
-- Always run `pre-commit run` before pushing commits (AGENTS.md requirement) — CI fails otherwise.
+- Always run pre-commit before pushing (AGENTS.md). CI fails otherwise.
 - No `any` TypeScript types, no JavaScript files.
-- Jest tests: use `test()`, not `describe()` (avoid-nesting principle).
-- Docker Compose: `./superset:/app/superset` is volume-mounted — Python changes are live instantly in `superset-superset-1`; frontend changes require `npm run build` on the Mac host.
-- `docker/pythonpath_dev/superset_config_docker.py` is gitignored — never goes into the PR, no revert needed.
-- pre-commit is NOT on the Mac host PATH — run inside Docker: `docker exec superset-superset-1 bash -c "cd /app && /app/.venv/bin/pre-commit run --files ..."`
-- Playwright test scripts must use `http://superset:8088` as the base URL. `localhost` from inside the container does NOT resolve to the web server.
-- After any partial build, run `npm run build` from scratch — a manifest/chunk hash mismatch will silently prevent React from mounting.
+- Jest tests: use `test()`, not `describe()`.
+- Docker Compose: `./superset:/app/superset` volume-mounted — Python changes live instantly in superset-superset-1; TypeScript changes require `npm run build` on Mac host.
+- `docker/pythonpath_dev/superset_config_docker.py` is gitignored — never in PR.
+- pre-commit NOT on Mac host PATH — run inside Docker: `docker exec superset-superset-1 bash -c "cd /app && /app/.venv/bin/pre-commit run --files ..."`
+- Docker venv has ruff + isort but NOT black. Formatting: `.venv/bin/ruff format`. Lint: `.venv/bin/ruff check`.
+- Playwright test scripts must use `http://superset:8088` (Docker service hostname). `localhost` inside container does NOT reach the web server.
+- Visual testing: `bash scripts/test_pdf_font_sizes.sh` — generates 11 PDFs across 4 dashboards, copies to ~/Desktop, opens them. Use `--build` flag to rebuild frontend first.
 
 ## Branch State
-
-Branch `feature/sip-212-session4-polish` has 11 commits above upstream master.
-Run `git log --oneline -12` to confirm. Top commit:
+Branch `feature/sip-212-session4-polish` — 12 commits above upstream master.
+Run `git log --oneline -15` to confirm. Top commits:
+  1be20d6a16 docs: update SIP-212 implementation record — Session 6 complete
   0885b96f3c feat(reports): 2col layout, tab-merge PDF, table-height fix, timeout fix (SIP-212 session 6)
   cac2f24095 docs: update SIP-212 implementation record — Session 5 complete
   4fb7825117 feat(reports): customizable header/footer content for browser-print PDF
+  d64017cc7f feat(reports): font-size tiers and per-page header/footer for browser-print PDF
 
-## What Is Fully Implemented and Committed
+## Status
+- ruff check + ruff format: ALL PASS on all changed Python files
+- 23/23 Python unit tests pass
+- 15/15 Jest tests pass
+- 11/11 PDFs generate and open in ≤ 8s each (all dashboards)
+- Remaining: visual PDF review/polish, pre-commit (mypy/isort), PR
 
-### Backend Python:
+## All Files Changed (committed)
+### Python backend:
 - `superset/config.py` — DASHBOARD_REPORTS_BROWSER_PRINT_PDF: False in DEFAULT_FEATURE_FLAGS; BROWSER_PRINT_PDF_HEADER_CONTENT and BROWSER_PRINT_PDF_FOOTER_CONTENT config dicts
-- `superset/utils/screenshot_utils.py` — PRINT_ALL_CHART_HOLDERS_READY_JS, UNHIDE_TAB_PANELS_JS, EXPAND_TABLE_CONTAINERS_JS, SET_PRINT_FONT_SIZE_JS
-- `superset/utils/screenshots.py` — DashboardPrintScreenshot(url, digest, font_size=None); appends ?print_font_size= for medium or large tiers; get_print_pdf(user, header_title=None, font_size=None)
-- `superset/utils/webdriver.py` — get_print_pdf(url, header_title=None, font_size=None); _escape_html(); _resolve_slot(raw, title); _slot_span(content, extra_style); _build_pdf_header_template(title, content=None); _build_pdf_footer_template(content=None); reads BROWSER_PRINT_PDF_HEADER/FOOTER_CONTENT from app.config
-- `superset/commands/report/execute.py` — _get_browser_print_pdf() reads BROWSER_PRINT_PDF_FONT_SIZE + dashboard_title, passes both through
+- `superset/utils/screenshot_utils.py` — PRINT_ALL_CHART_HOLDERS_READY_JS, UNHIDE_TAB_PANELS_JS, EXPAND_TABLE_CONTAINERS_JS, ANNOTATE_PRINT_COLUMNS_JS, SET_PRINT_FONT_SIZE_JS, EXTRACT_TAB_HASH_IDS_JS, COUNT_TAB_BUTTONS_JS, SHOW_ALL_TAB_PANELS_JS
+- `superset/utils/screenshots.py` — DashboardPrintScreenshot(url, digest, window_size, thumb_size, font_size, print_layout); appends ?print=1 + ?print_font_size= + ?print_layout=; get_print_pdf() passes tab_ids to webdriver
+- `superset/utils/webdriver.py` — WebDriverPlaywright.get_print_pdf(url, user, log_context, report_execution_context, header_title, font_size, print_layout, tab_ids); _escape_html(); _resolve_slot(raw, title); _slot_span(content, extra_style); _build_pdf_header_template(title, content); _build_pdf_footer_template(content); inner _render_page() with explicit goto/wait timeouts; multi-tab pypdf merge; # noqa: C901
+- `superset/commands/report/execute.py` — _get_pdf() with flag check + fallback; _get_browser_print_pdf() reads BROWSER_PRINT_PDF_FONT_SIZE + BROWSER_PRINT_PDF_LAYOUT + dashboard title; returns None for multi-URL
+- `requirements/base.txt` — pypdf==6.16.2
 
 ### Frontend TypeScript:
 - `superset-frontend/src/constants.ts` — URL_PARAMS.print (number) + URL_PARAMS.printFontSize (string)
-- `superset-frontend/src/dashboard/styles/printMode.ts` — PRINT_MODE_CSS + PrintFontSize type + getPrintFontSizeCSS(tier): small=no override, medium=26px/20px, large=38px/30px
-- `superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx` — reads ?print=1 and ?print_font_size=small|medium|large; injects combined CSS; IMPORTANT: 'small' is the no-override default (no ?print_font_size param appended for small)
-- Row.tsx, SliceHeader/index.tsx, Tabs.tsx, TabsRenderer.tsx — all print-mode aware
+- `superset-frontend/src/dashboard/styles/printMode.ts` — PRINT_MODE_CSS (5 sections); PrintFontSize type; PrintLayout type; getPrintFontSizeCSS(tier); getPrintLayoutCSS(layout) with flex-grow proportional columns
+- `superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx` — reads ?print=1, ?print_font_size=, ?print_layout=; injects combined CSS; body.print-mode + body.print-layout-2col classes; 'medium' bug fix
+- Row.tsx, SliceHeader/index.tsx, Tabs.tsx, TabsRenderer.tsx — print-mode aware
 
 ### Tests:
-- `tests/unit_tests/utils/test_browser_print_pdf.py` — Python unit tests including 17 new tests for header/footer builders, _resolve_slot, _slot_span
-- `superset-frontend/src/dashboard/components/__tests__/printModeLogic.test.ts` — 15 Jest tests (all passing)
+- `tests/unit_tests/utils/test_browser_print_pdf.py` — 23 tests; 6 classes; all mocked
+- `superset-frontend/src/dashboard/components/__tests__/printModeLogic.test.ts` — 15 Jest tests
 
-### Test script:
-- `scripts/test_pdf_font_sizes.sh` — generates 11 PDFs across 4 dashboards (dash10×5, dash2×2, dash6×2, dash8×2), copies to ~/Desktop, opens them. Accepts `--build` to rebuild frontend first.
-
-## Font Tier Mapping (IMPORTANT — shifted in Session 5)
-- small  = no CSS/JS overrides (React/browser defaults; no ?print_font_size param in URL)
-- medium = 26px chart titles, 20px table (param: ?print_font_size=medium), 64px big-number via JS
-- large  = 38px chart titles, 30px table (param: ?print_font_size=large), 96px big-number via JS
-- Default (no param / None) behaves as small
-
-## Header/Footer Customization
-Config keys in superset_config.py (optional — defaults shown):
-  BROWSER_PRINT_PDF_HEADER_CONTENT = {"left": "{title}", "center": "", "right": "Apache Superset | {date}"}
-  BROWSER_PRINT_PDF_FOOTER_CONTENT = {"left": "Confidential", "center": "Generated by Apache Superset"}
-Footer right ("Page N of M") is fixed and cannot be overridden.
-Tokens: {title} = dashboard title (HTML-escaped), {date} = Chromium date span.
-Overflow protection: 200px max-width per slot, overflow:hidden + text-overflow:ellipsis.
-
-## Test Dashboard (Docker, live)
-Dashboard id=10, slug=large-table-pdf-test, title="Large Table PDF Test"
-Report schedule id=2 points to dashboard 10.
-
-## Dev-Only Config (gitignored)
-`docker/pythonpath_dev/superset_config_docker.py` sets:
-- DASHBOARD_REPORTS_BROWSER_PRINT_PDF: True
-- PLAYWRIGHT_REPORTS_AND_THUMBNAILS: True
-- ALERT_REPORTS_NOTIFICATION_DRY_RUN: False
+### Script:
+- `scripts/test_pdf_font_sizes.sh` — 11 PDFs (dash10×5, dash2×2, dash6×2, dash8×2); --build flag; tab_ids extracted from layout JSON
 
 ## Critical Technical Notes
-- CSS !important cannot override inline React styles. UNHIDE_TAB_PANELS_JS (tab panels) and SET_PRINT_FONT_SIZE_JS (big number font-size) are the correct JS-based fixes.
-- CSS position:fixed does NOT produce repeating header/footer in Chromium PDF. Only display_header_footer + header_template/footer_template works.
-- page.pdf(scale=0.496) halves all CSS pixel values on paper. Font tiers are widely spaced to compensate.
+- CSS !important CANNOT override inline React styles. UNHIDE_TAB_PANELS_JS (tab panels) and SET_PRINT_FONT_SIZE_JS (big number font-size) are the JS-based fixes.
+- position:fixed does NOT produce repeating H/F in Chromium PDF. Only display_header_footer + header_template/footer_template works.
+- page.pdf(scale=0.496) halves all CSS pixel values on paper.
+- Viewport=1600px, scale=794/1600. Do NOT set viewport to 794px — ECharts/canvas draw tiny.
 - .dataTable and .table-viz CSS classes do NOT exist in the live DOM. Use .superset-chart-table td/th.
-- Viewport=1600px, scale=794/1600=0.496. Do NOT set viewport to 794px — ECharts/canvas draw tiny.
+- Playwright context default timeout (60s) applies to page.goto() and locator.wait_for(). Must pass explicit timeout=effective_wait*1000 to both or large dashboards time out.
+- antd v6 with tabPane animation disabled: inactive tab content does NOT mount even with forceRender:true. Only reliable fix: navigate to url#TAB-ID per tab, merge PDFs.
+- Tab nav bar is NOT rendered in standalone=3 mode. Extract tab IDs from dashboard.position_json (layout JSON) in Python, not from the DOM.
+- EXPAND_TABLE_CONTAINERS_JS walk-up stops at .grid-content/.dashboard-grid class names.
 - ECharts SVG/canvas labels cannot be font-size controlled by CSS or JS post-render.
 - Test scripts must use http://superset:8088 (Docker service hostname), not localhost.
-- Always write test Python scripts to a temp file and docker cp — do not inject via stdin heredoc.
+- Always write test Python scripts to /tmp file and docker cp — do not inject via stdin heredoc.
+- ruff format must be run after ruff check — formatting is separate from linting.
+
+## DOM Structure (confirmed live inspection)
+.grid-content
+  .dragdroppable-row
+    .with-popover-menu
+      .grid-row                ← flex container
+        .dragdroppable-column  ← one per chart; JS sets --print-col-weight
+          .resizable-container ← inline style.width = authored px width
+            .dashboard-component-chart-holder
+              .chart-slice
+                .dashboard-chart
+                  .chart-container
+                    .superset-chart-table (if table viz)
+
+## Font Tier Mapping
+- small  = no CSS/JS overrides (React/browser defaults; no ?print_font_size param)
+- medium = 26px chart titles, 20px table (param: ?print_font_size=medium), 64px big-number via JS
+- large  = 38px chart titles, 30px table (param: ?print_font_size=large), 96px big-number via JS
+
+## Header/Footer Config
+BROWSER_PRINT_PDF_HEADER_CONTENT = {"left": "{title}", "center": "", "right": "Apache Superset | {date}"}
+BROWSER_PRINT_PDF_FOOTER_CONTENT = {"left": "Confidential", "center": "Generated by Apache Superset"}
+Footer right ("Page N of M") is fixed. Tokens: {title} = dashboard title (HTML-escaped), {date} = Chromium date span.
+
+## 2-col Layout Detail
+- ANNOTATE_PRINT_COLUMNS_JS: supports 2+3-col rows; threshold 0.90 (skip if any col >= 90% viewport); sets data-print-2col="true" on qualifying .grid-row; sets --print-col-weight on each column (weight = rcW/totalW*100)
+- getPrintLayoutCSS: .grid-row[data-print-2col="true"] → flex-direction:row; .dragdroppable-column → flex-grow:var(--print-col-weight,50) + flex-basis:0
 
 ## What Still Needs to Be Done
-1. Visual PDF review: `bash scripts/test_pdf_font_sizes.sh` — opens 11 PDFs. Polish any layout issues.
-2. Run pre-commit inside Docker on all changed files (see Section 5 of the implementation record).
+1. Visual PDF review and polish: `bash scripts/test_pdf_font_sizes.sh` — opens 11 PDFs. Fix any issues found.
+2. Run pre-commit inside Docker (ruff already passes; need mypy + isort verified).
 3. Open the PR targeting master (read .github/PULL_REQUEST_TEMPLATE.md first).
 
-Do not hallucinate. Read every file before editing it. Start with `git log --oneline -12`.</div>
+Do not hallucinate. Read every file before editing it. Start with `git log --oneline -15`.</div>
 
 <hr class="divider" />
 
-<footer style="margin-top:48px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a;">Made with IBM Bob &nbsp;|&nbsp; SIP-212 implementation record &nbsp;|&nbsp; feature/sip-212-session4-polish &nbsp;|&nbsp; 11 commits above upstream &nbsp;|&nbsp; visual polish + pre-commit + PR remaining</footer>
+<footer>Made with IBM Bob &nbsp;|&nbsp; SIP-212 implementation record &nbsp;|&nbsp; feature/sip-212-session4-polish &nbsp;|&nbsp; 12 commits above upstream &nbsp;|&nbsp; visual polish + pre-commit + PR remaining</footer>
 </div>
 </body>
 </html>
