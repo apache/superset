@@ -30,7 +30,7 @@ params:
   compare_suffix: o10Y
   comparison_type: values
   granularity_sqla: ds
-  groupby:
+  columns:
   - name
   limit: 10
   markup_type: markdown

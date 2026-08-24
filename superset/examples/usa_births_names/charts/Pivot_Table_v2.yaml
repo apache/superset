@@ -23,7 +23,7 @@ params:
   compare_lag: '10'
   compare_suffix: o10Y
   granularity_sqla: ds
-  groupby: []
+  columns: []
   groupbyColumns:
   - state
   groupbyRows:

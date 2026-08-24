@@ -29,7 +29,7 @@ params:
   compare_lag: '10'
   compare_suffix: o10Y
   granularity_sqla: ds
-  groupby: []
+  columns: []
   limit: '100'
   markup_type: markdown
   metric: sum__num

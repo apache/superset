@@ -25,7 +25,7 @@ params:
   country_fieldtype: cca3
   entity: country_code
   granularity_sqla: year
-  groupby:
+  columns:
   - region
   - country_code
   limit: '25'
