@@ -30,7 +30,6 @@ locking via DistributedLock.
 from __future__ import annotations
 
 import logging
-import time
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -42,12 +41,14 @@ logger = logging.getLogger(__name__)
 # Task operations use a shorter TTL than the global default since
 # they complete quickly (just DB operations, no external calls)
 TASK_LOCK_TTL_SECONDS = 10
-# Wait (block-and-retry) for a held lock rather than failing fast: concurrent
-# submits of the SAME task must serialize so all-but-one JOIN the task the winner
-# creates. Wait past the TTL so a lock orphaned by a crashed holder is waited out
-# (it auto-expires) instead of erroring.
-TASK_LOCK_WAIT_SECONDS = TASK_LOCK_TTL_SECONDS + 2
-TASK_LOCK_RETRY_INTERVAL_SECONDS = 0.05
+# Wait for a held lock rather than failing fast: concurrent submits of the SAME
+# task must serialize so all-but-one JOIN the task the winner creates. Give the
+# wait comfortable headroom over the TTL (plus the stream block interval) so a
+# lock orphaned by a crashed holder is still waited out — the lock auto-expires
+# at the TTL and the next re-check acquires it — rather than timing out first.
+TASK_LOCK_WAIT_SECONDS = TASK_LOCK_TTL_SECONDS * 3
+# Poll cadence for the no-coordination-backend fallback (see wait_for_signal).
+TASK_LOCK_POLL_INTERVAL_SECONDS = 0.05
 
 
 @contextmanager
@@ -62,14 +63,20 @@ def task_lock(dedup_key: str) -> Iterator[None]:
     - Subscribe racing with cancel
     - Multiple concurrent cancel requests
 
-    When DISTRIBUTED_COORDINATION_CONFIG is configured, uses Redis SET NX EX
-    for efficient single-command locking. Otherwise falls back to
-    database-backed DistributedLock.
+    Waits for a held lock rather than failing fast — several charts can resolve
+    to the same query_cache_key (hence the same SHARED task and dedup_key) and
+    submit at once; the winner creates the task and the rest wait here, then join
+    it. The wait is delegated to ``CoordinationService.wait_for_signal``, which is
+    **event-driven** when a coordination backend is configured (it parks on the
+    lock's release-signal Redis Stream and retries the ``SET NX`` when the holder
+    releases — or on the periodic re-check that also covers a crashed holder,
+    whose lock auto-expires at the TTL) and **polls** the acquire otherwise. On
+    release we ``notify`` that stream so a waiter wakes immediately.
 
     :param dedup_key: Task deduplication key (from get_active_dedup_key)
     :yields: Nothing; used as context manager
-    :raises AcquireDistributedLockFailedException: If the lock is still held after
-        waiting out the TTL (only when a holder is genuinely stuck)
+    :raises TimeoutError: If the lock is still held after ``TASK_LOCK_WAIT_SECONDS``
+        (only when a holder is genuinely stuck)
 
     Example:
         dedup_key = get_active_dedup_key(TaskScope.SHARED, "report", "monthly")
@@ -80,28 +87,35 @@ def task_lock(dedup_key: str) -> Iterator[None]:
     # pylint: disable=import-outside-toplevel
     from superset.commands.distributed_lock.acquire import AcquireDistributedLock
     from superset.commands.distributed_lock.release import ReleaseDistributedLock
+    from superset.coordination.base import CoordinationService
 
     params = {"key": dedup_key}
+    release_channel = f"gtf:task:lock-released:{dedup_key}"
     acquire = AcquireDistributedLock("gtf:task", params, TASK_LOCK_TTL_SECONDS)
 
-    # Block-and-wait rather than fail fast. Several charts can resolve to the same
-    # query_cache_key (hence the same SHARED task and dedup_key) and submit at
-    # once; the winner creates the task and the rest must WAIT here, then join it —
-    # failing fast would surface a spurious "Lock already taken" error. Bounded by
-    # the TTL so a crashed holder's lock is waited out (auto-expiry), never forever.
-    deadline = time.monotonic() + TASK_LOCK_WAIT_SECONDS
-    while True:
+    def _try_acquire() -> AcquireDistributedLock | None:
+        # SET NX: acquire the lock, or None while another submit still holds it.
+        # (Re-runs reuse this acquisition's token, so release stays ownership-safe.)
         try:
             acquire.run()
-            break
+            return acquire
         except LockAlreadyHeldException:
-            if time.monotonic() >= deadline:
-                raise
-            time.sleep(TASK_LOCK_RETRY_INTERVAL_SECONDS)
+            return None
+
+    CoordinationService.wait_for_signal(
+        release_channel,
+        _try_acquire,
+        timeout=TASK_LOCK_WAIT_SECONDS,
+        poll_interval=TASK_LOCK_POLL_INTERVAL_SECONDS,
+    )
 
     logger.debug("Acquired task lock for key: %s", dedup_key)
     try:
         yield
     finally:
+        # Release (delete) BEFORE notifying, so a woken waiter sees the freed lock.
+        # notify() needs a backend; without one, waiters are on the poll fallback.
         ReleaseDistributedLock("gtf:task", params, token=acquire.token).run()
+        if CoordinationService.is_backend_defined():
+            CoordinationService.notify(release_channel)
         logger.debug("Released task lock for key: %s", dedup_key)
