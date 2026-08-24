@@ -317,14 +317,24 @@ def prune_purge_audit() -> dict[str, Any]:
     on the SOFT_DELETE flag: audit rows persist even after the flag is
     turned off, and pruning an empty table is a no-op.
     """
-    if not current_app.config.get("PURGE_AUDIT_PRUNING_ENABLED", True):
+    enabled: Any = current_app.config.get("PURGE_AUDIT_PRUNING_ENABLED", False)
+    if enabled is not True:
+        if enabled is not False:
+            logger.warning(
+                "prune_audit: invalid PURGE_AUDIT_PRUNING_ENABLED=%r; removing nothing",
+                enabled,
+            )
+            stats_logger_manager.instance.incr(
+                f"{_PRUNE_METRIC_PREFIX}.skipped_invalid_config"
+            )
+            return {"skipped_invalid_config": 1}
         logger.info(
             "prune_audit: disabled by PURGE_AUDIT_PRUNING_ENABLED; removing nothing"
         )
         stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.skipped_disabled")
         return {"skipped_disabled": 1}
     try:
-        result = prune_audit.run_prune()
+        result: prune_audit.PruneRunResult = prune_audit.run_prune()
     except Exception:  # pylint: disable=broad-except
         # The session may be mid-transaction after a failed DELETE; leaving it
         # dirty would fail the next statement on a reused session rather than
@@ -333,8 +343,13 @@ def prune_purge_audit() -> dict[str, Any]:
         logger.exception("deletion_retention.prune_purge_audit: task failed")
         stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.failed")
         return {"error": 1}
-    stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.success")
-    for category, count in result.as_dict()["removed"].items():
+    if result.invalid_config_keys:
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.invalid_config")
+    else:
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.success")
+    result_dict: dict[str, Any] = result.as_dict()
+    removed_counts: dict[str, int] = result_dict["removed"]
+    for category, count in removed_counts.items():
         stats_logger_manager.instance.gauge(
             f"{_PRUNE_METRIC_PREFIX}.removed.{category}", count
         )
@@ -354,7 +369,7 @@ def prune_purge_audit() -> dict[str, Any]:
         result.carried_over,
         result.invalid_config_keys,
     )
-    return result.as_dict()
+    return result_dict
 
 
 @celery_app.task(name="deletion_retention.purge_soft_deleted")

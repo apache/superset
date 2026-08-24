@@ -1034,9 +1034,10 @@ SOFT_DELETE_PURGE_DRY_RUN: bool = False
 # Retention policy for the purge audit log itself (the durable evidence the
 # purge task writes). Pruning is deletion-only and scheduled
 # (``deletion_retention.prune_purge_audit``); it never mutates surviving rows.
-# The master switch turns automatic pruning off entirely; a disabled run
+# Automatic deletion is opt-in so operators can validate retention policy and
+# workload characteristics before the first irreversible run. A disabled run
 # reports itself rather than silently doing nothing.
-PURGE_AUDIT_PRUNING_ENABLED: bool = True
+PURGE_AUDIT_PRUNING_ENABLED: bool = False
 # How long operational audit records (``blocked``, ``failed``) are kept.
 # Duplicate blocked records within a current blockage streak are removed
 # regardless of age (the streak's earliest record always survives); this

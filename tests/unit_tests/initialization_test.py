@@ -604,7 +604,8 @@ class TestRetentionBeatWarning:
         static feature-flag dictionaries from this config."""
         config.setdefault("DEFAULT_FEATURE_FLAGS", {"SOFT_DELETE": False})
         config.setdefault("FEATURE_FLAGS", {})
-        app = MagicMock()
+        config.setdefault("PURGE_AUDIT_PRUNING_ENABLED", False)
+        app: MagicMock = MagicMock()
         app.config = config
         return SupersetAppInitializer(app)
 
@@ -703,7 +704,7 @@ class TestRetentionBeatWarning:
         ``config_from_object``. The warn-log MUST discriminate by
         ``isinstance(dict)`` so an operator who supplies a dict with the
         entry doesn't see a false-positive warning."""
-        initializer = self._initializer(
+        initializer: SupersetAppInitializer = self._initializer(
             {
                 "CELERY_CONFIG": {
                     "broker_url": "redis://localhost",
@@ -728,7 +729,7 @@ class TestRetentionBeatWarning:
     ) -> None:
         """The dict-shape symmetry of the previous test: a dict without
         the entry MUST emit the warning, same as a class without it."""
-        initializer = self._initializer(
+        initializer: SupersetAppInitializer = self._initializer(
             {
                 "CELERY_CONFIG": {
                     "broker_url": "redis://localhost",
@@ -809,10 +810,7 @@ class TestRetentionBeatWarning:
     def test_warn_when_soft_delete_on_and_prune_audit_entry_missing(
         self, mock_logger: MagicMock
     ) -> None:
-        """With ``SOFT_DELETE`` on and a schedule carrying the purge entry
-        but not the audit-prune entry, a WARNING naming
-        ``deletion_retention.prune_purge_audit`` fires — otherwise a
-        hand-rolled ``CeleryConfig`` lets the audit table grow unbounded."""
+        """Warn when enabled audit pruning is absent from the schedule."""
 
         class _NoPruneAuditCeleryConfig:
             imports: tuple[str, ...] = (
@@ -828,10 +826,11 @@ class TestRetentionBeatWarning:
                 },
             }
 
-        initializer = self._initializer(
+        initializer: SupersetAppInitializer = self._initializer(
             {
                 "CELERY_CONFIG": _NoPruneAuditCeleryConfig,
                 "FEATURE_FLAGS": {"SOFT_DELETE": True},
+                "PURGE_AUDIT_PRUNING_ENABLED": True,
             }
         )
         initializer._warn_if_retention_beat_missing()
@@ -845,11 +844,39 @@ class TestRetentionBeatWarning:
         )
 
     @patch("superset.initialization.logger")
+    def test_warn_for_enabled_audit_pruning_when_soft_delete_is_off(
+        self, mock_logger: MagicMock
+    ) -> None:
+        """Diagnose audit-prune scheduling independently of soft delete."""
+
+        class _NoAuditPruningCeleryConfig:
+            imports: tuple[str, ...] = ("superset.tasks.version_history_retention",)
+            beat_schedule: dict[str, dict[str, str]] = {
+                "version_history.prune_old_versions": {
+                    "task": "version_history.prune_old_versions",
+                },
+            }
+
+        initializer: SupersetAppInitializer = self._initializer(
+            {
+                "CELERY_CONFIG": _NoAuditPruningCeleryConfig,
+                "FEATURE_FLAGS": {"SOFT_DELETE": False},
+                "PURGE_AUDIT_PRUNING_ENABLED": True,
+            }
+        )
+        initializer._warn_if_retention_beat_missing()
+
+        warning_text: str = " ".join(
+            str(call) for call in mock_logger.warning.call_args_list
+        )
+        assert "deletion_retention.prune_purge_audit" in warning_text
+        assert "superset.tasks.deletion_retention" in warning_text
+
+    @patch("superset.initialization.logger")
     def test_no_warn_when_soft_delete_on_and_all_entries_present(
         self, mock_logger: MagicMock
     ) -> None:
-        """The default-config shape — all three retention entries present —
-        MUST NOT warn even with ``SOFT_DELETE`` on."""
+        """Do not warn when all default-config retention entries are present."""
 
         class _CompleteCeleryConfig:
             imports: tuple[str, ...] = (
@@ -868,7 +895,7 @@ class TestRetentionBeatWarning:
                 },
             }
 
-        initializer = self._initializer(
+        initializer: SupersetAppInitializer = self._initializer(
             {
                 "CELERY_CONFIG": _CompleteCeleryConfig,
                 "FEATURE_FLAGS": {"SOFT_DELETE": True},

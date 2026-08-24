@@ -63,7 +63,7 @@ payload. Clients must display the new impact and obtain renewed confirmation
 before retrying. Preview or recheck failures fail closed rather than treating
 unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
-- The purge audit log is now pruned automatically. The new
+- The purge audit log can now be pruned automatically. The new
   `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30, in the
   default `CeleryConfig.beat_schedule`) removes duplicate `blocked` records
   within an entity's current blockage streak (the earliest — "blocked since" —
@@ -75,13 +75,18 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
   evidence (`confirmed`, `target_absent`) is **never touched** unless the
   separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set,
   which is the operator's assertion that an approved compliance policy
-  permits expiring destruction evidence. Set
-  `PURGE_AUDIT_PRUNING_ENABLED = False` to restore the previous
-  unbounded-growth behavior. Deployments that replace the default
+  permits expiring destruction evidence. Automatic deletion is disabled by
+  default; set `PURGE_AUDIT_PRUNING_ENABLED = True` after reviewing these
+  policies to enable it. Deployments that replace the default
   `CELERY_CONFIG` must carry the new beat entry forward (the task shares
   `superset.tasks.deletion_retention` with the purge task, so no new worker
-  import is needed); while `SOFT_DELETE` is statically enabled, a missing entry
-  logs a startup warning.
+  import is needed). When audit pruning is enabled, a missing schedule or
+  worker import logs a startup warning even if `SOFT_DELETE` is disabled,
+  because historical audit rows remain eligible for pruning. Audit creation,
+  recovery, and pruning batches use a shared database coordination row held
+  through commit. This serializes timestamp assignment with candidate deletion
+  so an uncommitted writer cannot later publish a row into pruning's logical
+  past. A missing coordination row fails pruning closed.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 
