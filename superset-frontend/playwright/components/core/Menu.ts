@@ -96,16 +96,57 @@ export class Menu {
     itemText: string,
     options?: { timeout?: number },
   ): Promise<void> {
+    const popup = await this.openSubmenu(submenuText, {
+      timeout: options?.timeout,
+      itemText,
+    });
+
+    // Use dispatchEvent instead of click to bypass viewport and pointer interception
+    // issues. Ant Design renders submenu popups in a portal that can be positioned
+    // outside the viewport or behind chart content (e.g., large tables with z-index).
+    await popup.getByText(itemText, { exact: true }).dispatchEvent('click');
+  }
+
+  /**
+   * Opens a submenu and returns its popup locator, without selecting an item.
+   * Useful when the caller needs to read the popup's contents (e.g. the set of
+   * offered items) rather than clicking a known item.
+   *
+   * Uses hover as primary approach, falls back to keyboard then dispatchEvent -
+   * same fallback chain as {@link selectSubmenuItem}.
+   *
+   * @param submenuText - The text of the submenu to open (e.g., "Download")
+   * @param options - Optional timeout, an `itemText` to scope the popup lookup
+   *   to (useful when multiple submenu popups could otherwise match), and a
+   *   `popupSelector` override for submenus that render with an additional,
+   *   more specific class than the generic Ant Design popup class.
+   */
+  async openSubmenu(
+    submenuText: string,
+    options?: { timeout?: number; itemText?: string; popupSelector?: string },
+  ): Promise<Locator> {
     const timeout = options?.timeout ?? TIMEOUT.FORM_LOAD;
+    const matchPopup = (): Locator => {
+      const base = this.page.locator(
+        options?.popupSelector ?? Menu.SELECTORS.SUBMENU_POPUP,
+      );
+      return options?.itemText
+        ? base.filter({ hasText: options.itemText })
+        : base;
+    };
 
     // Try hover first (most natural user interaction)
-    let popup = await this.openSubmenuWithHover(submenuText, itemText, timeout);
+    let popup = await this.openSubmenuWithHover(
+      submenuText,
+      matchPopup,
+      timeout,
+    );
 
     // Fallback to keyboard navigation
     if (!popup) {
       popup = await this.openSubmenuWithKeyboard(
         submenuText,
-        itemText,
+        matchPopup,
         timeout,
       );
     }
@@ -114,7 +155,7 @@ export class Menu {
     if (!popup) {
       popup = await this.openSubmenuWithDispatchEvent(
         submenuText,
-        itemText,
+        matchPopup,
         timeout,
       );
     }
@@ -125,10 +166,7 @@ export class Menu {
       );
     }
 
-    // Use dispatchEvent instead of click to bypass viewport and pointer interception
-    // issues. Ant Design renders submenu popups in a portal that can be positioned
-    // outside the viewport or behind chart content (e.g., large tables with z-index).
-    await popup.getByText(itemText, { exact: true }).dispatchEvent('click');
+    return popup;
   }
 
   /**
@@ -137,17 +175,14 @@ export class Menu {
    */
   private async openSubmenuWithHover(
     submenuText: string,
-    itemText: string,
+    matchPopup: () => Locator,
     timeout: number,
   ): Promise<Locator | null> {
     try {
       const submenuTitle = this.getSubmenuTitle(submenuText);
       await submenuTitle.hover();
 
-      // Find the popup that contains the expected item (scopes to correct popup)
-      const popup = this.page
-        .locator(Menu.SELECTORS.SUBMENU_POPUP)
-        .filter({ hasText: itemText });
+      const popup = matchPopup();
       await popup.waitFor({ state: 'visible', timeout });
 
       // Allow Ant Design's slide-in animation to complete before clicking.
@@ -166,7 +201,7 @@ export class Menu {
    */
   private async openSubmenuWithKeyboard(
     submenuText: string,
-    itemText: string,
+    matchPopup: () => Locator,
     timeout: number,
   ): Promise<Locator | null> {
     try {
@@ -174,9 +209,7 @@ export class Menu {
       await submenuTitle.focus();
       await this.page.keyboard.press('ArrowRight');
 
-      const popup = this.page
-        .locator(Menu.SELECTORS.SUBMENU_POPUP)
-        .filter({ hasText: itemText });
+      const popup = matchPopup();
       await popup.waitFor({ state: 'visible', timeout });
 
       return popup;
@@ -191,7 +224,7 @@ export class Menu {
    */
   private async openSubmenuWithDispatchEvent(
     submenuText: string,
-    itemText: string,
+    matchPopup: () => Locator,
     timeout: number,
   ): Promise<Locator | null> {
     try {
@@ -214,9 +247,7 @@ export class Menu {
         );
       });
 
-      const popup = this.page
-        .locator(Menu.SELECTORS.SUBMENU_POPUP)
-        .filter({ hasText: itemText });
+      const popup = matchPopup();
       await popup.waitFor({ state: 'visible', timeout });
 
       return popup;

@@ -639,7 +639,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
           ('optionName' in column && column.optionName) ||
           undefined,
         label: renderSubjectOptionLabel(column),
+        column_name: 'column_name' in column ? column.column_name : undefined,
+        verbose_name:
+          'verbose_name' in column ? column.verbose_name : undefined,
       }))}
+      optionFilterProps={['column_name', 'verbose_name']}
       {...subjectSelectProps}
     />
   );

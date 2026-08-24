@@ -60,7 +60,7 @@ export default function DndAdhocFilterOption({
       <OptionWrapper
         key={index}
         index={index}
-        label={actualTimeRange ?? adhocFilter.getDefaultLabel()}
+        label={actualTimeRange ?? adhocFilter.getDefaultLabel(options)}
         tooltipTitle={title ?? adhocFilter.getTooltipTitle()}
         clickClose={onClickClose}
         onShiftOptions={onShiftOptions}

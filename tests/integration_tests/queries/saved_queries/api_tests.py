@@ -605,9 +605,6 @@ class TestSavedQueryApi(SupersetTestCase):
             db.session.query(SavedQuery).filter(SavedQuery.label == "label1").all()[0]
         )
         self.login(ADMIN_USERNAME)
-        # Freeze relative to the persisted timestamp so database-specific
-        # timestamp precision cannot make the humanized value age into the
-        # next bucket while the request is being handled.
         with freeze_time(saved_query.changed_on):
             uri = f"api/v1/saved_query/{saved_query.id}"
             rv = self.get_assert_metric(uri, "get")
