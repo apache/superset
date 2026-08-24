@@ -168,6 +168,42 @@ def test_csv_generation_with_special_characters(mocker: MockerFixture) -> None:
     assert '"Comma,Value"' in csv_data
 
 
+def test_csv_generation_escapes_formula_prefixes(mocker: MockerFixture) -> None:
+    """Streaming CSV must escape formula prefixes like the batch export path."""
+    mock_db, query_context, datasource = _setup_chart_mocks(mocker)
+
+    mock_result = mocker.MagicMock()
+    mock_result.keys.return_value = ["=header", "name"]
+    mock_result.fetchmany.side_effect = [
+        [("=cmd|' /C calc'!A0", "safe"), ("+SUM(A1:A2)", "@evil")],
+        [],
+    ]
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = mocker.MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingCSVExportCommand(query_context, chunk_size=10)
+    csv_generator_callable = command.run()
+    csv_data = "".join(csv_generator_callable())
+
+    lines = [line.strip() for line in csv_data.strip().split("\n")]
+    # Header cell is escaped too
+    assert lines[0] == "'=header,name"
+    # Formula-prefixed cells are neutralized ('-prefixed, pipe escaped)
+    assert "'=cmd\\|' /C calc'!A0" in csv_data
+    assert "\n=cmd" not in csv_data
+    assert "'+SUM(A1:A2)" in csv_data
+    assert "'@evil" in csv_data
+
+
 def test_streaming_with_null_values(mocker: MockerFixture) -> None:
     """Test CSV generation handles NULL values correctly."""
     mock_db, query_context, datasource = _setup_chart_mocks(mocker)

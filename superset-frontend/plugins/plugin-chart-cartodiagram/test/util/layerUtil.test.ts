@@ -17,19 +17,64 @@
  * under the License.
  */
 
-import { WfsLayerConf } from '../../src/types';
+import { WfsLayerConf, WmsLayerConf, XyzLayerConf } from '../../src/types';
 import {
   createLayer,
   createWfsLayer,
   createWmsLayer,
   createXyzLayer,
+  escapeAttribution,
 } from '../../src/util/layerUtil';
 
 describe('layerUtil', () => {
+  describe('escapeAttribution', () => {
+    test('escapes HTML markup in attribution strings', () => {
+      expect(escapeAttribution('(c) OSM <img src=x onerror=alert(1)>')).toBe(
+        '(c) OSM &lt;img src=x onerror=alert(1)&gt;',
+      );
+      expect(escapeAttribution('a & "b" \'c\'')).toBe(
+        'a &amp; &quot;b&quot; &#039;c&#039;',
+      );
+      expect(escapeAttribution(undefined)).toBeUndefined();
+    });
+  });
+
   describe('createWmsLayer', () => {
     test('exists', () => {
       // function is trivial
       expect(createWmsLayer).toBeDefined();
+    });
+
+    test('escapes HTML in the layer attribution', () => {
+      const wmsLayerConf: WmsLayerConf = {
+        title: 'wms',
+        type: 'WMS',
+        url: 'https://ows-demo.terrestris.de/geoserver/osm/wms',
+        version: '1.3.0',
+        layersParam: 'osm:osm-fuel',
+        attribution: '(c) OSM <img src=x onerror=alert(1)>',
+      };
+      const layer = createWmsLayer(wmsLayerConf);
+      const attributions = layer.getSource()?.getAttributions();
+      expect(attributions?.(undefined as never)).toEqual([
+        '(c) OSM &lt;img src=x onerror=alert(1)&gt;',
+      ]);
+    });
+  });
+
+  describe('createXyzLayer', () => {
+    test('escapes HTML in the layer attribution', () => {
+      const xyzLayerConf: XyzLayerConf = {
+        title: 'osm',
+        type: 'XYZ',
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '(c) OSM <img src=x onerror=alert(1)>',
+      };
+      const layer = createXyzLayer(xyzLayerConf);
+      const attributions = layer.getSource()?.getAttributions();
+      expect(attributions?.(undefined as never)).toEqual([
+        '(c) OSM &lt;img src=x onerror=alert(1)&gt;',
+      ]);
     });
   });
 

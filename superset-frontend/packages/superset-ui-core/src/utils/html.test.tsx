@@ -123,6 +123,25 @@ describe('isProbablyHTML', () => {
     expect(isProbablyHTML('<canvas></canvas>')).toBe(true);
     expect(isProbablyHTML('<iframe src="page.html"></iframe>')).toBe(true);
   });
+
+  test('should return true for script-capable and foreign-content tags', () => {
+    expect(isProbablyHTML('<svg onload="alert(1)"></svg>')).toBe(true);
+    expect(isProbablyHTML('<math><mi>x</mi></math>')).toBe(true);
+    expect(
+      isProbablyHTML('<details open ontoggle="alert(1)">x</details>'),
+    ).toBe(true);
+    expect(isProbablyHTML('<summary>x</summary>')).toBe(true);
+    expect(isProbablyHTML('<object data="x"></object>')).toBe(true);
+    expect(isProbablyHTML('<embed src="x">')).toBe(true);
+    expect(isProbablyHTML('<marquee>x</marquee>')).toBe(true);
+    expect(isProbablyHTML('<template>x</template>')).toBe(true);
+    expect(isProbablyHTML('<dialog open>x</dialog>')).toBe(true);
+  });
+
+  test('should return true for elements that parse into document.head', () => {
+    expect(isProbablyHTML('<style>body { display: none; }</style>')).toBe(true);
+    expect(isProbablyHTML('<title>injected</title>')).toBe(true);
+  });
 });
 
 describe('sanitizeHtmlIfNeeded', () => {
@@ -136,6 +155,24 @@ describe('sanitizeHtmlIfNeeded', () => {
     const plainText = 'Just a plain text';
     const sanitizedString = sanitizeHtmlIfNeeded(plainText);
     expect(sanitizedString).toEqual(plainText);
+  });
+
+  test('should sanitize svg/details/style payloads instead of passing them through', () => {
+    const svgPayload = '<svg onload="alert(document.cookie)"></svg>';
+    const sanitizedSvg = sanitizeHtmlIfNeeded(svgPayload);
+    expect(sanitizedSvg).not.toContain('<svg');
+    expect(sanitizedSvg).not.toContain('onload');
+
+    // `details` (with its `open` attribute) is in js-xss's default
+    // whitelist, so the tag itself survives sanitization; the fix is that
+    // the payload is now routed through FilterXSS at all, which strips the
+    // non-whitelisted `ontoggle` handler instead of returning it verbatim.
+    const detailsPayload = '<details open ontoggle="alert(1)">x</details>';
+    const sanitizedDetails = sanitizeHtmlIfNeeded(detailsPayload);
+    expect(sanitizedDetails).toEqual('<details open>x</details>');
+
+    const stylePayload = '<style>body { display: none; }</style>';
+    expect(sanitizeHtmlIfNeeded(stylePayload)).not.toContain('<style');
   });
 });
 

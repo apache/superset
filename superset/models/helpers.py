@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import ast
 import builtins
 import copy
 import dataclasses
@@ -130,6 +131,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     FilterOperator,
     GenericDataType,
+    get_base_axis_columns,
     get_base_axis_labels,
     get_column_name,
     get_column_names,
@@ -207,6 +209,189 @@ def _as_wall_clock(series: pd.Series) -> pd.Series:
     if isinstance(series.dtype, pd.DatetimeTZDtype):
         return series.dt.tz_localize(None)
     return series
+
+
+class _TemporalColumnMetadata(NamedTuple):
+    """Temporal metadata resolved from a physical dataset column."""
+
+    is_temporal: bool = False
+    python_date_format: str | None = None
+
+
+def _get_temporal_physical_column_metadata(
+    datasource: Any, column_name: str | None
+) -> _TemporalColumnMetadata:
+    """Resolve temporal metadata using the physical column's precedence rules."""
+    if not column_name or not hasattr(datasource, "get_column"):
+        return _TemporalColumnMetadata()
+    column = datasource.get_column(column_name.strip())
+    if not column:
+        return _TemporalColumnMetadata()
+    if isinstance(column, dict):
+        declared_is_dttm = column.get("is_dttm")
+        is_temporal = (
+            bool(declared_is_dttm)
+            if declared_is_dttm is not None
+            else column.get("type_generic") == GenericDataType.TEMPORAL
+        )
+        python_date_format = column.get("python_date_format")
+    else:
+        is_temporal_property = getattr(column, "is_temporal", None)
+        if is_temporal_property is not None:
+            is_temporal = bool(is_temporal_property)
+        else:
+            declared_is_dttm = getattr(column, "is_dttm", None)
+            is_temporal = (
+                bool(declared_is_dttm)
+                if declared_is_dttm is not None
+                else getattr(column, "type_generic", None) == GenericDataType.TEMPORAL
+            )
+        python_date_format = getattr(column, "python_date_format", None)
+    return _TemporalColumnMetadata(
+        is_temporal=is_temporal,
+        python_date_format=(str(python_date_format) if python_date_format else None),
+    )
+
+
+def _temporal_axis_parse_error(column_name: str) -> QueryObjectValidationError:
+    """Build the user-facing error for an unparseable temporal join axis."""
+    return QueryObjectValidationError(
+        _(
+            "Unable to align time comparison because temporal axis "
+            "'%(column)s' contains values that cannot be parsed as datetimes. "
+            "Update the column's datetime format or choose a valid temporal "
+            "column.",
+            column=column_name,
+        )
+    )
+
+
+def _apply_temporal_join_format(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None,
+) -> pd.Series:
+    """Apply a dataset column's declared datetime format to working values."""
+    if not datetime_format:
+        return series
+    working_df = pd.DataFrame({column_name: series.copy()})
+    normalize_dttm_col(
+        working_df,
+        (
+            DateColumn(
+                col_label=column_name,
+                timestamp_format=datetime_format,
+            ),
+        ),
+    )
+    return working_df[column_name]
+
+
+def _parse_temporal_join_values(series: pd.Series, column_name: str) -> pd.Series:
+    """Parse working temporal values and wrap pandas parser-policy errors."""
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return series
+    try:
+        return pd.to_datetime(series, errors="coerce", format="mixed")
+    except (TypeError, ValueError) as ex:
+        raise _temporal_axis_parse_error(column_name) from ex
+
+
+def _retry_temporal_join_values_at_wider_resolution(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None,
+) -> pd.Series:
+    """Retry valid values outside pandas' nanosecond datetime range."""
+    resolution = "ms" if datetime_format == "epoch_ms" else "s"
+    try:
+        if datetime_format and datetime_format not in {"epoch_s", "epoch_ms"}:
+            parsed_values = [
+                datetime.strptime(str(value), datetime_format)
+                if pd.notna(value)
+                else None
+                for value in series
+            ]
+        else:
+            parsed_values = series
+        converted = pd.Series(
+            pd.array(parsed_values, dtype=f"datetime64[{resolution}]"),
+            index=series.index,
+            name=series.name,
+        )
+    except (OverflowError, TypeError, ValueError) as ex:
+        raise _temporal_axis_parse_error(column_name) from ex
+    if (series.notna() & converted.isna()).any():
+        raise _temporal_axis_parse_error(column_name)
+    return converted
+
+
+def _coerce_temporal_join_series(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None = None,
+) -> pd.Series:
+    """Parse a temporal join series losslessly and normalize it to wall clocks."""
+    if series.isna().all():
+        return series
+
+    converted = _apply_temporal_join_format(series, column_name, datetime_format)
+    converted = _parse_temporal_join_values(converted, column_name)
+    if (series.notna() & converted.isna()).any():
+        converted = _retry_temporal_join_values_at_wider_resolution(
+            series, column_name, datetime_format
+        )
+
+    if isinstance(converted.dtype, pd.DatetimeTZDtype):
+        return converted.dt.tz_localize(None)
+    if pd.api.types.is_datetime64_any_dtype(converted):
+        return converted
+
+    def as_wall_clock(value: Any) -> pd.Timestamp:
+        if pd.isna(value):
+            return pd.NaT
+        timestamp = pd.Timestamp(value)
+        return timestamp.tz_localize(None) if timestamp.tzinfo else timestamp
+
+    return converted.map(as_wall_clock)
+
+
+def _has_multiple_utc_offsets(series: pd.Series) -> bool:
+    """Return whether every value is timezone-aware and offsets differ."""
+    utc_offsets: set[timedelta | None] = set()
+    for value in series.dropna():
+        try:
+            timestamp = pd.Timestamp(value)
+        except (TypeError, ValueError):
+            return False
+        if timestamp.tzinfo is None:
+            return False
+        utc_offsets.add(timestamp.utcoffset())
+    return len(utc_offsets) > 1
+
+
+def _shift_grainless_temporal_source(
+    source: pd.Series,
+    offset: str,
+    delta: DateOffset | None,
+) -> pd.Series:
+    """Shift a temporal join source after validating free-form anchors."""
+    if delta is None and not is_constant_human_timedelta(offset):
+        raise QueryObjectValidationError(
+            _("Time Grain must be specified when using Time Comparison.")
+        )
+    if source.isna().all():
+        return source.map(lambda value: pd.NaT)
+    if delta is not None:
+        return source + delta
+
+    def shift(value: pd.Timestamp) -> pd.Timestamp:
+        if pd.isna(value):
+            return value
+        truncated = value.floor("s").to_pydatetime()
+        return value + (get_past_or_future(offset, truncated) - truncated)
+
+    return source.map(shift)
 
 
 class CachedTimeOffset(TypedDict):
@@ -415,6 +600,52 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
     r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
 )
+
+
+def parse_array_literal(value: Any) -> list[Any]:
+    """
+    Parse a user-entered array literal (e.g. ``['a', 'b']`` or ``[1, 2]``) into a
+    list of elements, for the whole-array (column-level) array operators.
+
+    Accepts either an actual list/tuple, a bracketed literal string (parsed with
+    ``ast.literal_eval``), or a plain scalar (wrapped into a single-element list).
+    Falls back to a single-element list when the string is not a valid literal.
+    """
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            try:
+                parsed = ast.literal_eval(stripped)
+            except (ValueError, SyntaxError):
+                parsed = None
+            if isinstance(parsed, (list, tuple)):
+                return list(parsed)
+    return [value]
+
+
+def coerce_array_values(
+    values: list[Any], element_type: Optional[utils.GenericDataType]
+) -> list[Any]:
+    """
+    Coerce array-element ``values`` to the array column's element type so the
+    emitted literal matches the column. Array columns map to a SQLAlchemy
+    ``String`` type, so values arrive as strings and would otherwise build
+    string literals (e.g. ``array('5')``) that fail against a numeric array on
+    the server. Numeric elements are cast to numbers and boolean elements to
+    booleans; every other element type (string, temporal, enum, unknown) is left
+    untouched.
+
+    :param values: element values entered for an array filter
+    :param element_type: the array's element :class:`GenericDataType`, or None
+    :return: the coerced values
+    """
+    if element_type == utils.GenericDataType.NUMERIC:
+        return [utils.cast_to_num(v) if isinstance(v, str) else v for v in values]
+    if element_type == utils.GenericDataType.BOOLEAN:
+        return [utils.cast_to_boolean(v) if isinstance(v, str) else v for v in values]
+    return values
 
 
 def is_uuid_native_type(native_type: Optional[str]) -> bool:
@@ -2524,6 +2755,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             offset_dfs[offset] = offset_metrics_df
 
         if offset_dfs:
+            x_axis_columns = get_base_axis_columns(query_object.columns)
+            x_axis_expression = (
+                x_axis_columns[0].get("sqlExpression")
+                if x_axis_columns and isinstance(x_axis_columns[0], dict)
+                else None
+            )
+            x_axis_metadata = _get_temporal_physical_column_metadata(
+                self,
+                x_axis_expression if isinstance(x_axis_expression, str) else None,
+            )
             df = self.join_offset_dfs(
                 df,
                 offset_dfs,
@@ -2531,6 +2772,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 join_keys,
                 full_range=getattr(query_object, "time_compare_full_range", False),
                 x_axis_label=get_x_axis_label(query_object.columns),
+                x_axis_is_temporal=x_axis_metadata.is_temporal,
+                x_axis_datetime_format=x_axis_metadata.python_date_format,
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
@@ -2705,6 +2948,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         is_date_range_offset: bool,
         join_column_producer: Any,
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
@@ -2734,7 +2979,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         else:
             return self._align_offset_without_time_grain(
-                df, offset_df, offset, join_keys, x_axis_label
+                df,
+                offset_df,
+                offset,
+                join_keys,
+                x_axis_label,
+                x_axis_is_temporal,
+                x_axis_datetime_format,
             )
 
     def _align_offset_without_time_grain(
@@ -2744,6 +2995,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         offset: str,
         join_keys: list[str],
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """
         Determine join keys for a relative offset when no time grain is set.
@@ -2763,9 +3016,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         -- so the rows it returns carry the source wall clock, and matching on
         it is what aligns the two series. Re-localizing the result would only
         reintroduce the DST edge cases that wall-clock arithmetic sidesteps:
-        shifting onto a skipped or repeated local hour raises out of pandas.
-        Both sides are normalized identically, so the two readings of a
-        repeated hour still align with each other.
+        shifting onto a skipped or repeated local hour raises out of pandas. A
+        single reading of a repeated hour aligns by wall clock. Distinct raw
+        values that normalize to the same working key are rejected because
+        they would fan out the merge; the error identifies a daylight-saving
+        fold when their UTC offsets differ.
+
+        A string-backed x-axis is parsed only when its physical dataset column
+        declares temporal metadata. Its configured datetime format is applied
+        to working join values without changing the displayed columns.
 
         Month, quarter, and year offsets shift via ``DateOffset``, which clamps
         to a valid calendar day (e.g. Mar 29, 30, and 31 all shift back one
@@ -2783,14 +3042,46 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for key in candidate_keys
                 if key in df.columns
                 and key in offset_df.columns
-                and pd.api.types.is_datetime64_any_dtype(df[key])
+                and (
+                    pd.api.types.is_datetime64_any_dtype(df[key])
+                    or (key == x_axis_label and x_axis_is_temporal)
+                )
             ),
             None,
         )
         if not temporal_join_key:
             return offset_df, join_keys
 
-        source = _as_wall_clock(df[temporal_join_key])
+        source_values = df[temporal_join_key]
+        offset_values = offset_df[temporal_join_key]
+        raw_offset_values = offset_values.copy()
+        remaining_keys = [key for key in join_keys if key != temporal_join_key]
+        raw_duplicate_mask = offset_df.duplicated(
+            subset=[temporal_join_key, *remaining_keys], keep=False
+        )
+        if x_axis_is_temporal and (
+            not pd.api.types.is_datetime64_any_dtype(source_values)
+            or not pd.api.types.is_datetime64_any_dtype(offset_values)
+        ):
+            if x_axis_datetime_format is None and any(
+                pd.api.types.is_numeric_dtype(values) and values.notna().any()
+                for values in (source_values, offset_values)
+            ):
+                # A numeric temporal axis without a declared format cannot be
+                # interpreted, so retain the pre-alignment raw-key join.
+                return offset_df, join_keys
+            source_values = _coerce_temporal_join_series(
+                source_values,
+                temporal_join_key,
+                x_axis_datetime_format,
+            )
+            offset_values = _coerce_temporal_join_series(
+                offset_values,
+                temporal_join_key,
+                x_axis_datetime_format,
+            )
+
+        source = _as_wall_clock(source_values)
 
         try:
             delta: DateOffset | None = DateOffset(**normalize_time_delta(offset))
@@ -2798,44 +3089,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             delta = None
 
         column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
-        if delta is not None:
-            # DateOffset addition is vectorized over the datetime column; NaT
-            # rows shift to NaT (they join to the offset series' NaT rows).
-            shifted = source + delta
-        else:
-            # Free-form offsets (e.g. "one year ago") don't match the
-            # normalize_time_delta grammar; shift with the same parser that
-            # shifted the offset query's time range. parsedatetime resolves
-            # second resolution only, so compute each row's delta from a
-            # truncated copy and apply it to the original value, preserving
-            # sub-second precision.
-            if not is_constant_human_timedelta(offset):
-                # Anchors such as "yesterday" resolve every source time within
-                # a day onto one timestamp rather than shifting each by a
-                # fixed amount, so they cannot align two series row by row:
-                # distinct timestamps would collapse onto a single join key.
-                # A time grain gives the join a truncated column to match on
-                # instead of a shifted one.
-                raise QueryObjectValidationError(
-                    _("Time Grain must be specified when using Time Comparison.")
-                )
-
-            def shift(value: pd.Timestamp) -> pd.Timestamp:
-                if pd.isna(value):
-                    return value
-                truncated = value.floor("s").to_pydatetime()
-                return value + (get_past_or_future(offset, truncated) - truncated)
-
-            shifted = source.map(shift)
+        shifted = _shift_grainless_temporal_source(source, offset, delta)
 
         # Join on string values so that mismatched key dtypes (e.g. an empty
         # offset series materializes its join keys as NaN floats) cannot break
         # the merge.
         df[column_name] = shifted.map(str)
-        offset_df[column_name] = _as_wall_clock(offset_df[temporal_join_key]).map(str)
+        offset_df[column_name] = _as_wall_clock(offset_values).map(str)
 
-        remaining_keys = [key for key in join_keys if key != temporal_join_key]
-        return offset_df, [column_name, *remaining_keys]
+        actual_join_keys = [column_name, *remaining_keys]
+        normalized_duplicate_mask = offset_df.duplicated(
+            subset=actual_join_keys, keep=False
+        )
+        introduced_duplicate_mask = normalized_duplicate_mask & ~raw_duplicate_mask
+        if introduced_duplicate_mask.any():
+            if _has_multiple_utc_offsets(raw_offset_values[normalized_duplicate_mask]):
+                message = _(
+                    "Unable to align time comparison because the offset series "
+                    "contains an ambiguous daylight-saving fold for the same "
+                    "dimensions and local time. Add a Time Grain or filter the "
+                    "source to one UTC offset."
+                )
+            else:
+                message = _(
+                    "Unable to align time comparison because the temporal axis "
+                    "contains distinct values that normalize to the same instant "
+                    "for the same dimensions. Standardize the source values or "
+                    "add a Time Grain."
+                )
+            raise QueryObjectValidationError(message)
+        return offset_df, actual_join_keys
 
     def _perform_join(
         self,
@@ -2881,6 +3164,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         join_keys: list[str],
         full_range: bool = False,
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
     ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
@@ -2895,6 +3180,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             the current day is still in progress) are preserved.
         :param x_axis_label: The query's temporal x-axis label, used to pick the
             temporal join key when no time grain is set.
+        :param x_axis_is_temporal: Whether physical-column metadata declares the
+            x-axis temporal.
+        :param x_axis_datetime_format: The physical x-axis column's configured
+            Python datetime format.
         """
         join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
@@ -2917,6 +3206,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 is_date_range_offset,
                 join_column_producer,
                 x_axis_label,
+                x_axis_is_temporal,
+                x_axis_datetime_format,
             )
 
             # The full-range option is only meaningful for relative offsets aligned
@@ -3227,15 +3518,30 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             aggregate: Any = metric.get("aggregate")
-            if (
-                not isinstance(aggregate, str)
-                or aggregate not in self.sqla_aggregations
-            ):
-                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
             sqla_column = sa.column(column_name)
-            sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
+
+            if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
+                sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
+            elif isinstance(aggregate, str) and (
+                extended_func := self.db_engine_spec.get_extended_aggregation_func(
+                    aggregate
+                )
+            ):
+                sqla_metric = extended_func(sqla_column)
+            elif (
+                isinstance(aggregate, str)
+                and aggregate in utils.EXTENDED_METRIC_AGGREGATES
+            ):
+                raise QueryObjectValidationError(
+                    _(
+                        "The %(aggregate)s aggregate is not supported on this database",
+                        aggregate=aggregate,
+                    )
+                )
+            else:
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             expression: Any = metric.get("sqlExpression")
             if not isinstance(expression, str) or not expression.strip():
@@ -3652,6 +3958,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_name: str,
         limit: int = 10000,
         denormalize_column: bool = False,
+        array_elements: bool = False,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -3666,13 +3973,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
+        db_engine_spec = self.database.db_engine_spec
+        value_expr = target_col.get_sqla_col(template_processor=tp)
+        # For element-level operators (Contains any / Contains all) on a
+        # multi-value (array) column, suggest the distinct **elements** rather
+        # than distinct whole arrays by expanding the array first (e.g. ClickHouse
+        # arrayJoin). Only when the engine supports arrays and the column is
+        # actually an array column; otherwise fall back to whole-value suggestions.
+        if array_elements and db_engine_spec.supports_multivalue_columns:
+            col_spec = db_engine_spec.get_column_spec(native_type=target_col.type)
+            if col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE:
+                value_expr = db_engine_spec.array_explode(value_expr)
+
         qry = (
             sa.select(
                 # The alias (label) here is important because some dialects will
                 # automatically add a random alias to the projection because of the
                 # call to DISTINCT; others will uppercase the column names. This
                 # gives us a deterministic column name in the dataframe.
-                target_col.get_sqla_col(template_processor=tp).label("column_values")
+                value_expr.label("column_values")
             )
             .select_from(tbl)
             .distinct()
@@ -4359,7 +4678,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif is_adhoc_column(flt_col):
                 try:
                     sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
-                        flt_col,
+                        cast("AdhocColumn", flt_col),
                         force_type_check=True,
                         template_processor=template_processor,
                     )
@@ -4433,9 +4752,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col = Grouping(sqla_col)
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
+                is_multivalue_col = bool(
+                    col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE
+                )
+                # Element type of an array column (e.g. Array(Int32) -> NUMERIC),
+                # used to coerce filter values before building array expressions.
+                array_element_type = (
+                    db_engine_spec.get_array_element_type(col_type)
+                    if is_multivalue_col
+                    else None
+                )
                 is_list_target = op in (
                     utils.FilterOperator.IN,
                     utils.FilterOperator.NOT_IN,
+                    utils.FilterOperator.CONTAINS_ANY,
+                    utils.FilterOperator.CONTAINS_ALL,
                 )
 
                 col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
@@ -4490,7 +4821,56 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             sqla_col, op, bus_resp["values"]
                         )
                     )
-                elif is_list_target:
+                elif is_multivalue_col and op in {
+                    utils.FilterOperator.EQUALS,
+                    utils.FilterOperator.NOT_EQUALS,
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                }:
+                    # Whole-array (column-level) comparison against array
+                    # literal(s). The value is a pasted array literal like
+                    # ``['a', 'b']`` (parsed into elements): ``col = ['a', 'b']``
+                    # for = / !=; for IN / NOT IN each entered value is one such
+                    # array literal (``col IN (['a'], ['b'])``).
+                    if op in {
+                        utils.FilterOperator.EQUALS,
+                        utils.FilterOperator.NOT_EQUALS,
+                    }:
+                        literal = db_engine_spec.array_literal(
+                            coerce_array_values(
+                                parse_array_literal(val), array_element_type
+                            )
+                        )
+                        cond = (
+                            sqla_col != literal
+                            if op == utils.FilterOperator.NOT_EQUALS
+                            else sqla_col == literal
+                        )
+                    else:
+                        candidates: list[Any] = (
+                            list(val) if isinstance(val, (list, tuple)) else [val]
+                        )
+                        cond = sqla_col.in_(
+                            [
+                                db_engine_spec.array_literal(
+                                    coerce_array_values(
+                                        parse_array_literal(candidate),
+                                        array_element_type,
+                                    )
+                                )
+                                for candidate in candidates
+                            ]
+                        )
+                        if op == utils.FilterOperator.NOT_IN:
+                            cond = ~cond
+                    target_clause_list.append(cond)
+                elif op in {
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                }:
+                    # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
+                    # are in ``is_list_target``), but are element-level array ops
+                    # handled by their own branch below — not IN.
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
@@ -4529,6 +4909,57 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_clause_list.append(
                         db_engine_spec.handle_null_filter(sqla_col, op)
                     )
+                elif op in {
+                    utils.FilterOperator.IS_EMPTY,
+                    utils.FilterOperator.IS_NOT_EMPTY,
+                }:
+                    # Element-level array operators: length(col) == 0 / > 0.
+                    if target_generic_type != GenericDataType.MULTI_VALUE:
+                        raise QueryObjectValidationError(
+                            _(
+                                "The %(op)s operator is only supported for "
+                                "multi-value (array) columns.",
+                                op=op,
+                            )
+                        )
+                    length_expr = db_engine_spec.array_length(sqla_col)
+                    if op == utils.FilterOperator.IS_EMPTY:
+                        target_clause_list.append(length_expr == 0)
+                    else:
+                        target_clause_list.append(length_expr > 0)
+                elif op in {
+                    utils.FilterOperator.LENGTH_EQUALS,
+                    utils.FilterOperator.LENGTH_GREATER_THAN,
+                    utils.FilterOperator.LENGTH_LESS_THAN,
+                    utils.FilterOperator.LENGTH_GREATER_THAN_OR_EQUALS,
+                    utils.FilterOperator.LENGTH_LESS_THAN_OR_EQUALS,
+                }:
+                    # Length filter: compare the array's element count to a
+                    # number, e.g. length(col) > 2.
+                    if target_generic_type != GenericDataType.MULTI_VALUE:
+                        raise QueryObjectValidationError(
+                            _(
+                                "The %(op)s operator is only supported for "
+                                "multi-value (array) columns.",
+                                op=op,
+                            )
+                        )
+                    number = utils.cast_to_num(eq)  # type: ignore[arg-type]
+                    if number is None:
+                        raise QueryObjectValidationError(
+                            _("The Length filter requires a numeric value.")
+                        )
+                    length_expr = db_engine_spec.array_length(sqla_col)
+                    length_comparisons = {
+                        utils.FilterOperator.LENGTH_EQUALS: length_expr == number,
+                        utils.FilterOperator.LENGTH_GREATER_THAN: length_expr > number,
+                        utils.FilterOperator.LENGTH_LESS_THAN: length_expr < number,
+                        utils.FilterOperator.LENGTH_GREATER_THAN_OR_EQUALS: length_expr
+                        >= number,
+                        utils.FilterOperator.LENGTH_LESS_THAN_OR_EQUALS: length_expr
+                        <= number,
+                    }
+                    target_clause_list.append(length_comparisons[op])
                 elif op == utils.FilterOperator.IS_TRUE:
                     target_clause_list.append(
                         db_engine_spec.handle_boolean_filter(sqla_col, op, True)
@@ -4586,6 +5017,38 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             target_clause_list.append(sqla_col.not_like(eq))
                         else:
                             target_clause_list.append(sqla_col.not_ilike(eq))
+                    elif op in {
+                        utils.FilterOperator.CONTAINS_ANY,
+                        utils.FilterOperator.CONTAINS_ALL,
+                    }:
+                        # Element-level array membership. Enforce the target is
+                        # actually a multi-value (array) column (only classified
+                        # MULTI_VALUE on an array-capable engine), guarding against
+                        # payloads that bypass the UI gating.
+                        if target_generic_type != GenericDataType.MULTI_VALUE:
+                            raise QueryObjectValidationError(
+                                _(
+                                    "The %(op)s operator is only supported for "
+                                    "multi-value (array) columns.",
+                                    op=op,
+                                )
+                            )
+                        array_values: list[Any] = coerce_array_values(
+                            list(eq) if isinstance(eq, (list, tuple)) else [eq],
+                            array_element_type,
+                        )
+                        if op == utils.FilterOperator.CONTAINS_ANY:
+                            target_clause_list.append(
+                                db_engine_spec.array_contains_any(
+                                    sqla_col, array_values
+                                )
+                            )
+                        else:
+                            target_clause_list.append(
+                                db_engine_spec.array_contains_all(
+                                    sqla_col, array_values
+                                )
+                            )
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)

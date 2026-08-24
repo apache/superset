@@ -24,6 +24,31 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
+
+### MCP tool results preserve stored string values
+
+Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or
+rewrite delimiter-looking text inside string fields. Tool-result content remains
+user-controlled data, but clients must convey that trust boundary outside domain
+values instead of recognizing or removing marker strings.
+
+Clients that handled the former delimiter convention should stop stripping marker
+text: the same text can be legitimate stored content. Response models and content
+types are unchanged, and no metadata-database migration is required. Automated
+read-modify-write workflows should be paused or pinned away from older instances
+until every serving instance is upgraded; a mixed-version response has no reliable
+signal that tells a client whether its text is decorated. Redis-backed MCP response
+caches use a new internal namespace after the upgrade, so upgraded instances do not
+reuse older cached results.
+
+Values that a client already wrote back with presentation wrappers cannot be
+distinguished safely from intentional content. Operators should review possible
+`<UNTRUSTED-CONTENT>` / `</UNTRUSTED-CONTENT>` wrappers and
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` /
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]` substitutions rather than applying an automatic
+marker-removal migration.
+
 ### OAuth2 database callback metrics include their outcome
 
 The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with
@@ -31,6 +56,7 @@ The unqualified `DatabaseRestApi.oauth2` StatsD counter has been replaced with
 `DatabaseRestApi.oauth2.error`. Update monitoring rules and dashboards that consume
 the old counter to use the outcome-specific replacements.
 
+- [42930](https://github.com/apache/superset/pull/42930): Dataset import data-URI fetches no longer honor an HTTP(S) proxy when `DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS` is `False` (the default): the connection is now made directly to the destination so the peer-address check validates the real target instead of a proxy's. Deployments that require an egress proxy to reach legitimate external data URLs for dataset import should set `DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS = True` or otherwise ensure those URLs resolve without one.
 - [42935](https://github.com/apache/superset/pull/42935): The MCP service now refuses to start (`MCPAuthConfigError`) when `MCP_JWT_ISSUER` trusts more than one issuer and no `MCP_USER_RESOLVER` is configured, instead of only logging a warning. This was already a documented misconfiguration (the default resolver isn't issuer-scoped, so distinct trusted issuers minting the same username/email would resolve to the same Superset user); deployments trusting multiple issuers must configure an `MCP_USER_RESOLVER` that derives its identity from the token's `iss` claim before upgrading. Single-issuer deployments are unaffected.
 - [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
 - [42300](https://github.com/apache/superset/pull/42300): Timeseries charts (line/area/bar) with a Y-axis bound in effect — either an explicit `yAxisBounds` or one derived from `truncateYAxis` — now clamp out-of-range data points to that bound instead of letting ECharts drop the point (and the line segments around it) entirely. Any existing chart with a configured Y-axis bound and data outside it will look different after upgrading: a gap becomes a point pinned to the boundary. The clamp also rewrites the value ECharts reads for that point's tooltip and data label, so the displayed value is the bound rather than the true observation.
@@ -98,6 +124,23 @@ dialect; each package's constraint in `pyproject.toml` documents why.
 
 No application-level configuration changes are required for deployments
 that don't touch SQLAlchemy directly.
+
+### New metric aggregates: MEDIAN, Sample Standard Deviation, Sample Variance
+
+`MEDIAN`, `STDDEV_SAMP`, and `VAR_SAMP` are now available anywhere a metric
+aggregate is chosen (every chart type, SQL Lab, MCP), not only in Pivot
+Table's controls. Support is opt-in per database engine *spec class*,
+verified against a live instance before being enabled: Postgres, MySQL
+(`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and Redshift (inherits
+Postgres's support, not yet separately verified) ship enabled in this
+release. Engine specs that subclass one of those (e.g. MariaDB, Aurora
+MySQL/Postgres, TimescaleDB) inherit the same support, on the same
+not-yet-independently-verified basis. Picking one of these aggregates on a
+database that has not opted in returns a clear "not supported on this
+database" error rather than a failed query. See
+`docs/sip/median-stddev-variance-aggregates.md` for the full design
+rationale, including why this is safe to add without reintroducing the
+totals/subtotals correctness bug fixed by #41184 (SIP-216).
 
 ### Soft delete is on by default, and purging is live
 
