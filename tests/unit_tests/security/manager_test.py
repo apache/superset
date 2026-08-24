@@ -36,7 +36,6 @@ from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
     _collect_sortable_identifiers,
-    _sql_filters_modified,
     freeze_value,
     query_context_modified,
     SupersetSecurityManager,
