@@ -429,6 +429,8 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           const hasPayload = payload && Object.keys(payload).length > 0;
           const hasStackTrace = !!properties?.stack_trace;
           const hasDependencies = !!depends_on && depends_on.length > 0;
+          const dedupeCount = properties?.dedupe_count ?? 0;
+          const hasDedupe = dedupeCount > 0;
 
           // Show warning if timeout is set but no abort handler during execution
           // Only show for IN_PROGRESS (abort handler registers at runtime, not during PENDING)
@@ -441,7 +443,8 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             !hasPayload &&
             !hasStackTrace &&
             !hasTimeoutWithoutHandler &&
-            !hasDependencies
+            !hasDependencies &&
+            !hasDedupe
           ) {
             return null;
           }
@@ -483,6 +486,27 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   dependencies={depends_on}
                   waitingOn={waitingOn}
                 />
+              )}
+              {hasDedupe && (
+                <Tooltip
+                  title={t(
+                    'Deduplicated %s time(s): other submissions reused this ' +
+                      "task's result instead of running a new query.",
+                    dedupeCount,
+                  )}
+                  placement="top"
+                >
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: theme.sizeUnit,
+                    }}
+                  >
+                    <Icons.PlusOutlined iconSize="l" />
+                    {dedupeCount}
+                  </span>
+                </Tooltip>
               )}
             </div>
           );

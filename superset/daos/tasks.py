@@ -230,9 +230,10 @@ class TaskDAO(BaseDAO[Task]):
 
         task = cls.create(attributes=task_data)
 
-        # Set properties after creation via update_properties (handles caching)
-        if properties:
-            task.update_properties(properties)
+        # Set properties after creation via update_properties (handles caching).
+        # Seed dedupe_count so every task carries it from the start (bumped each
+        # time a later submit joins this task instead of creating a new one).
+        task.update_properties({"dedupe_count": 0, **(properties or {})})
 
         # Flush to get the task ID (auto-incremented primary key)
         db.session.flush()

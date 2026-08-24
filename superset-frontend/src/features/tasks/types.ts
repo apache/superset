@@ -62,6 +62,10 @@ export interface TaskProperties {
   error_message: string | null;
   exception_type: string | null;
   stack_trace: string | null;
+
+  // Dedup tracking - times a submit joined this task instead of creating a new
+  // one (a new subscriber or an existing subscriber's resubmit); 0 when unique.
+  dedupe_count: number | null;
 }
 
 export interface Task {

@@ -83,6 +83,7 @@ const mockTasks = [
       exception_type: null,
       stack_trace: null,
       timeout: null,
+      dedupe_count: 2,
     },
   },
   {
@@ -341,4 +342,13 @@ test('renders the dependency chain icon in Details for tasks with prerequisites'
   // "waiting on N" state is folded into that icon's warning color + popover
   // title — covered by TaskDependenciesPopover.test.tsx.
   expect(screen.getByRole('img', { name: 'link' })).toBeInTheDocument();
+});
+
+test('surfaces the dedupe count in Details for a reused task', async () => {
+  renderTaskList();
+  await screen.findByText('Export Data Task');
+
+  // The reused task (dedupe_count: 2) renders the plus icon + count in Details;
+  // unique tasks show nothing. (antd PlusOutlined -> role "img" name "plus".)
+  expect(screen.getByRole('img', { name: 'plus' })).toBeInTheDocument();
 });
