@@ -64,9 +64,8 @@ export default function createSmartNumberFormatter(
     description,
     formatFunc: value => `${getSign(value)}${formatValue(value)}`,
     id:
-      id || signed
-        ? NumberFormats.SMART_NUMBER_SIGNED
-        : NumberFormats.SMART_NUMBER,
+      id ??
+      (signed ? NumberFormats.SMART_NUMBER_SIGNED : NumberFormats.SMART_NUMBER),
     label: label ?? 'Adaptive formatter',
   });
 }
