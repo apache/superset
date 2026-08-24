@@ -772,7 +772,11 @@ test('re-renders an ECharts canvas at PNG_SCALE pixel ratio so the export is cri
   const hiRes = document.createElement('canvas');
   hiRes.width = 800;
   hiRes.height = 600;
-  const renderToCanvas = jest.fn(() => hiRes);
+  let renderOpts: Record<string, unknown> | undefined;
+  const renderToCanvas = jest.fn((opts?: Record<string, unknown>) => {
+    renderOpts = opts;
+    return hiRes;
+  });
   mockGetInstanceByDom.mockReturnValue({ renderToCanvas });
 
   // Capture the cloned canvas backing store handed to dom-to-image
@@ -797,11 +801,10 @@ test('re-renders an ECharts canvas at PNG_SCALE pixel ratio so the export is cri
   // Instance recovered from the canvas's echarts-host ancestor...
   expect(mockGetInstanceByDom).toHaveBeenCalledWith(host);
   // ...and re-rendered at PNG_SCALE (2). No backgroundColor is forced, so the chart keeps its
-  // own background (matching the on-screen canvas).
-  expect(renderToCanvas).toHaveBeenCalledWith(
-    expect.objectContaining({ pixelRatio: 2 }),
-  );
-  expect(renderToCanvas.mock.calls[0][0]).not.toHaveProperty('backgroundColor');
+  // own configured background (matching the on-screen canvas).
+  expect(renderToCanvas).toHaveBeenCalled();
+  expect(renderOpts).toEqual(expect.objectContaining({ pixelRatio: 2 }));
+  expect(renderOpts).not.toHaveProperty('backgroundColor');
   // The cloned canvas dom-to-image serializes is the 2× high-res source
   expect(clonedCanvasWidth).toBe(800);
   expect(clonedCanvasHeight).toBe(600);

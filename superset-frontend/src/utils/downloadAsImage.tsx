@@ -268,6 +268,9 @@ const preserveCanvasContent = (
         : undefined;
     if (host && instance) {
       try {
+        // No `backgroundColor` is passed, so renderToCanvas inherits the chart's own configured
+        // background (transparent when unset) — matching the on-screen canvas. The overall export
+        // background is applied separately via the dom-to-image `bgcolor` option.
         const hiResCanvas = instance.renderToCanvas({
           pixelRatio: EXPORT_CANVAS_PIXEL_RATIO,
         });
