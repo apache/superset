@@ -2510,18 +2510,17 @@ describe('plugin-chart-table', () => {
 
     // Open dropdown to check options
     const selectTrigger = container.querySelector('.ant-select-selector');
-    if (selectTrigger) {
-      fireEvent.mouseDown(selectTrigger);
+    expect(selectTrigger).not.toBeNull();
+    fireEvent.mouseDown(selectTrigger!);
 
-      await waitFor(() => {
-        const options = screen.getAllByRole('option');
-        const optionTexts = options.map(opt => opt.textContent);
-        expect(optionTexts).toContain('10');
-        expect(optionTexts).toContain('20');
-        expect(optionTexts).not.toContain('0');
-        expect(optionTexts).not.toContain('All');
-      });
-    }
+    await waitFor(() => {
+      const options = screen.getAllByRole('option');
+      const optionTexts = options.map(opt => opt.textContent);
+      expect(optionTexts).toContain('10');
+      expect(optionTexts).toContain('20');
+      expect(optionTexts).not.toContain('0');
+      expect(optionTexts).not.toContain('All');
+    });
   });
 });
 

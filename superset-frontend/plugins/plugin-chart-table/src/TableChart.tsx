@@ -1186,17 +1186,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               valueRange &&
               typeof value === 'number' &&
               valueRangeFlag &&
-              css`
-                width: ${cellWidth({
+              `
+                width: ${`${cellWidth({
                   value: value as number,
                   valueRange,
                   alignPositiveNegative,
-                })}%;
-                left: ${cellOffset({
+                })}%`};
+                left: ${`${cellOffset({
                   value: value as number,
                   valueRange,
                   alignPositiveNegative,
-                })}%;
+                })}%`};
                 background-color: ${
                   (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
                   cellBackground({
