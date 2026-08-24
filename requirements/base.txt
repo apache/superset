@@ -381,7 +381,7 @@ six==1.17.0
     #   wtforms-json
 slack-sdk==3.43.0
     # via apache-superset (pyproject.toml)
-sqlalchemy==2.0.51
+sqlalchemy==2.0.52
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
