@@ -16,6 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GenericDataType } from "@apache-superset/core/common";
+import { Alert } from "@apache-superset/core/components";
+import { css, useTheme } from "@apache-superset/core/theme";
+import { t } from "@apache-superset/core/translation";
+import {
+  BinaryQueryObjectFilterClause,
+  DatasourceType,
+  ensureIsArray,
+  JsonObject,
+  QueryFormData,
+  SupersetClient,
+} from "@superset-ui/core";
+import { EmptyState, Loading } from "@superset-ui/core/components";
+import Table, {
+  ColumnsType,
+  TableSize,
+} from "@superset-ui/core/components/Table";
+import BooleanCell from "@superset-ui/core/components/Table/cell-renderers/BooleanCell";
+import NullCell from "@superset-ui/core/components/Table/cell-renderers/NullCell";
+import TimeCell from "@superset-ui/core/components/Table/cell-renderers/TimeCell";
+import HeaderWithRadioGroup from "@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup";
 import {
   cloneElement,
   ReactElement,
@@ -24,43 +45,25 @@ import {
   useMemo,
   useRef,
   useState,
-} from 'react';
-import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core/translation';
-import {
-  BinaryQueryObjectFilterClause,
-  DatasourceType,
-  ensureIsArray,
-  JsonObject,
-  QueryFormData,
-  SupersetClient,
-} from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/theme';
-import { GenericDataType } from '@apache-superset/core/common';
-import { useResizeDetector } from 'react-resize-detector';
-import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
-import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
-import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
-import { EmptyState, Loading } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/components';
-import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import Table, {
-  ColumnsType,
-  TableSize,
-} from '@superset-ui/core/components/Table';
-import { RootState } from 'src/dashboard/types';
-import { usePermissions } from 'src/hooks/usePermissions';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { safeStringify } from 'src/utils/safeStringify';
-import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
-import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
-import { Dataset } from '../types';
-import TableControls from './DrillDetailTableControls';
-import { getDrillPayload } from './utils';
-import { ResultsPage } from './types';
-import { datasetLabelLower } from 'src/features/semanticLayers/label';
+} from "react";
+import { useSelector } from "react-redux";
+import { useResizeDetector } from "react-resize-detector";
+import { getDatasourceSamples } from "src/components/Chart/chartAction";
+import { useToasts } from "src/components/MessageToasts/withToasts";
+import { RootState } from "src/dashboard/types";
+import { useDatasetMetadataBar } from "src/features/datasets/metadataBar/useDatasetMetadataBar";
+import { datasetLabelLower } from "src/features/semanticLayers/label";
+import { usePermissions } from "src/hooks/usePermissions";
+import { safeStringify } from "src/utils/safeStringify";
+import { Dataset } from "../types";
+import TableControls from "./DrillDetailTableControls";
+import { ResultsPage } from "./types";
+import { getDrillPayload } from "./utils";
 
 const DEFAULT_PAGE_SIZE = 50;
+// Used until the modal body has a measured height. Avoids rendering the table
+// at unbounded content height (which causes a visible grow-then-shrink).
+const TABLE_HEIGHT_FALLBACK = 400;
 
 interface DataType {
   [key: string]: any;
@@ -70,10 +73,21 @@ interface DataType {
 // react-resize-detector with conditional rendering
 // https://github.com/maslianok/react-resize-detector/issues/178
 function Resizable({ children }: { children: ReactElement }) {
-  const { ref, height } = useResizeDetector();
+  const { ref, height } = useResizeDetector({
+    handleWidth: false,
+  });
+  const tableHeight = height && height > 0 ? height : TABLE_HEIGHT_FALLBACK;
+
   return (
-    <div ref={ref} css={{ flex: 1 }}>
-      {cloneElement(children, { height })}
+    <div
+      ref={ref}
+      css={css`
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+      `}
+    >
+      {cloneElement(children, { height: tableHeight })}
     </div>
   );
 }
@@ -98,7 +112,7 @@ export default function DrillDetailPane({
   const lastPageIndex = useRef(pageIndex);
   const [filters, setFilters] = useState(initialFilters);
   const [isLoading, setIsLoading] = useState(false);
-  const [responseError, setResponseError] = useState('');
+  const [responseError, setResponseError] = useState("");
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
     new Map(),
   );
@@ -124,7 +138,7 @@ export default function DrillDetailPane({
 
   // Extract datasource ID/type from string ID
   const [datasourceId, datasourceType] = useMemo(
-    () => formData.datasource.split('__'),
+    () => formData.datasource.split("__"),
     [formData.datasource],
   );
 
@@ -145,18 +159,26 @@ export default function DrillDetailPane({
 
   const mappedColumns: ColumnsType<DataType> = useMemo(
     () =>
-      resultsPage?.colNames.map((column, index) => ({
-        key: column,
-        dataIndex: column,
-        title:
-          resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
+      resultsPage?.colNames.map((column, index) => {
+        const isTemporal =
+          resultsPage?.colTypes[index] === GenericDataType.Temporal;
+        const headerLabel = dataset?.verbose_map?.[column] || column;
+
+        return {
+          key: column,
+          dataIndex: column,
+          ellipsis: true,
+          title: isTemporal ? (
             <HeaderWithRadioGroup
-              headerTitle={dataset?.verbose_map?.[column] || column}
-              groupTitle={t('Formatting')}
+              headerTitle={headerLabel}
+              groupTitle={t("Formatting")}
               groupOptions={[
-                { label: t('Original value'), value: TimeFormatting.Original },
                 {
-                  label: t('Formatted value'),
+                  label: t("Original value"),
+                  value: TimeFormatting.Original,
+                },
+                {
+                  label: t("Formatted value"),
                   value: TimeFormatting.Formatted,
                 },
               ]}
@@ -165,34 +187,36 @@ export default function DrillDetailPane({
                   ? TimeFormatting.Original
                   : TimeFormatting.Formatted
               }
-              onChange={value =>
-                setTimeFormatting(state => ({
+              onChange={(value) =>
+                setTimeFormatting((state) => ({
                   ...state,
                   [column]: parseInt(value, 10) as TimeFormatting,
                 }))
               }
             />
           ) : (
-            dataset?.verbose_map?.[column] || column
+            headerLabel
           ),
-        render: value => {
-          if (value === true || value === false) {
-            return <BooleanCell value={value} />;
-          }
-          if (value === null) {
-            return <NullCell />;
-          }
-          if (
-            resultsPage?.colTypes[index] === GenericDataType.Temporal &&
-            timeFormatting[column] !== TimeFormatting.Original &&
-            (typeof value === 'number' || value instanceof Date)
-          ) {
-            return <TimeCell value={value} />;
-          }
-          return String(value);
-        },
-        width: 150,
-      })) || [],
+          render: (value: unknown) => {
+            if (value === true || value === false) {
+              return <BooleanCell value={value} />;
+            }
+            if (value === null) {
+              return <NullCell />;
+            }
+            if (
+              isTemporal &&
+              timeFormatting[column] !== TimeFormatting.Original &&
+              (typeof value === "number" || value instanceof Date)
+            ) {
+              return <TimeCell value={value} />;
+            }
+            return String(value);
+          },
+          // Temporal headers include a settings control; give them more room.
+          width: isTemporal ? 200 : 150,
+        };
+      }) || [],
     [
       resultsPage?.colNames,
       resultsPage?.colTypes,
@@ -216,16 +240,16 @@ export default function DrillDetailPane({
 
   // Clear cache on reload button click
   const handleReload = useCallback(() => {
-    setResponseError('');
+    setResponseError("");
     setResultsPages(new Map());
     setPageIndex(0);
   }, []);
 
   const handleDownload = useCallback(
-    (exportType: 'csv' | 'xlsx') => {
+    (exportType: "csv" | "xlsx") => {
       const drillPayload = getDrillPayload(formData, filters);
       if (!drillPayload) {
-        addDangerToast(t('Unable to generate download payload'));
+        addDangerToast(t("Unable to generate download payload"));
         return;
       }
       const payload: JsonObject = {
@@ -243,18 +267,18 @@ export default function DrillDetailPane({
             row_offset: 0,
           },
         ],
-        result_type: 'drill_detail',
+        result_type: "drill_detail",
         result_format: exportType,
         force: false,
       };
       if (dashboardId) {
         payload.form_data = { dashboardId };
       }
-      SupersetClient.postForm('/api/v1/chart/data', {
+      SupersetClient.postForm("/api/v1/chart/data", {
         form_data: safeStringify(payload),
-      }).catch(error => {
+      }).catch((error) => {
         addDangerToast(
-          t('Failed to generate download: %s', error.message || error),
+          t("Failed to generate download: %s", error.message || error),
         );
       });
     },
@@ -270,18 +294,18 @@ export default function DrillDetailPane({
   );
 
   const handleDownloadCSV = useCallback(
-    () => handleDownload('csv'),
+    () => handleDownload("csv"),
     [handleDownload],
   );
 
   const handleDownloadXLSX = useCallback(
-    () => handleDownload('xlsx'),
+    () => handleDownload("xlsx"),
     [handleDownload],
   );
 
   // Clear cache and reset page index if filters change
   useEffect(() => {
-    setResponseError('');
+    setResponseError("");
     setResultsPages(new Map());
     setPageIndex(0);
   }, [filters]);
@@ -318,7 +342,7 @@ export default function DrillDetailPane({
         pageIndex + 1,
         dashboardId,
       )
-        .then(response => {
+        .then((response) => {
           setResultsPages(
             new Map([
               ...[...resultsPages.entries()].slice(-cachePageLimit + 1),
@@ -333,9 +357,9 @@ export default function DrillDetailPane({
               ],
             ]),
           );
-          setResponseError('');
+          setResponseError("");
         })
-        .catch(error => {
+        .catch((error) => {
           setResponseError(`${error.name}: ${error.message}`);
         })
         .finally(() => {
@@ -371,7 +395,7 @@ export default function DrillDetailPane({
         <Alert
           type="error"
           showIcon
-          message={t('Failed to load drill-to-detail rows')}
+          message={t("Failed to load drill-to-detail rows")}
           description={responseError}
         />
       </div>
@@ -381,10 +405,14 @@ export default function DrillDetailPane({
     tableContent = <Loading />;
   } else if (resultsPage?.total === 0) {
     // Render empty state if no results are returned for page
-    const title = t('No rows were returned for this %s', datasetLabelLower());
+    const title = t("No rows were returned for this %s", datasetLabelLower());
     tableContent = <EmptyState image="document.svg" title={title} />;
   } else {
-    // Render table if at least one page has successfully loaded
+    // Render table if at least one page has successfully loaded.
+    // Avoid `virtualize` here: VirtualTable (antd header + react-window body)
+    // desyncs column headers from cells in the drill modal. Page size is small
+    // enough for the standard table. Skip experimental `resizable` for the same
+    // reason.
     tableContent = (
       <Resizable>
         <Table
@@ -395,7 +423,7 @@ export default function DrillDetailPane({
           recordCount={resultsPage?.total}
           usePagination
           loading={isLoading}
-          onChange={pagination => {
+          onChange={(pagination) => {
             const newPageSize = pagination.pageSize ?? pageSize;
             if (newPageSize !== pageSize) {
               setPageSize(newPageSize);
@@ -405,8 +433,7 @@ export default function DrillDetailPane({
               setPageIndex(pagination.current ? pagination.current - 1 : 0);
             }
           }}
-          resizable
-          virtualize
+          sticky
           allowHTML={allowHTML}
         />
       </Resizable>
@@ -414,7 +441,15 @@ export default function DrillDetailPane({
   }
 
   return (
-    <>
+    <div
+      css={css`
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+      `}
+    >
       {!bootstrapping && metadataBarComponent}
       {!bootstrapping && (
         <TableControls
@@ -431,6 +466,6 @@ export default function DrillDetailPane({
         />
       )}
       {tableContent}
-    </>
+    </div>
   );
 }

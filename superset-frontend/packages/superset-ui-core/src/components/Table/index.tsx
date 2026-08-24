@@ -16,45 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useRef, Key, FC } from 'react';
+import { FC, Key, useEffect, useRef, useState } from "react";
 
-import { Table as AntTable } from 'antd';
-import { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
-import { PaginationProps } from 'antd/es/pagination';
-import { t } from '@apache-superset/core/translation';
-import { logging } from '@apache-superset/core/utils';
-import { useTheme, styled } from '@apache-superset/core/theme';
-import { Loading } from '@superset-ui/core/components';
-import { RowSelectionType } from 'antd/es/table/interface';
-import InteractiveTableUtils from './utils/InteractiveTableUtils';
-import VirtualTable, { VirtualTableProps } from './VirtualTable';
+import { styled, useTheme } from "@apache-superset/core/theme";
+import { t } from "@apache-superset/core/translation";
+import { logging } from "@apache-superset/core/utils";
+import { Loading } from "@superset-ui/core/components";
+import { Table as AntTable } from "antd";
+import { PaginationProps } from "antd/es/pagination";
+import { TableProps as AntTableProps, ColumnsType } from "antd/es/table";
+import { RowSelectionType } from "antd/es/table/interface";
+import InteractiveTableUtils from "./utils/InteractiveTableUtils";
+import VirtualTable, { VirtualTableProps } from "./VirtualTable";
 
-export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
+export const SUPERSET_TABLE_COLUMN = "superset/table-column";
 
 export enum SelectionType {
-  Disabled = 'disabled',
-  Single = 'single',
-  Multi = 'multi',
+  Disabled = "disabled",
+  Single = "single",
+  Multi = "multi",
 }
 
-export type SortOrder = 'descend' | 'ascend' | null;
+export type SortOrder = "descend" | "ascend" | null;
 
 export enum ETableAction {
-  Paginate = 'paginate',
-  Sort = 'sort',
-  Filter = 'filter',
+  Paginate = "paginate",
+  Sort = "sort",
+  Filter = "filter",
 }
 
+export type { TablePaginationConfig } from "antd/es/table";
+export type { SorterResult } from "antd/es/table/interface";
 export type { ColumnsType };
-export type { TablePaginationConfig } from 'antd/es/table';
-export type { SorterResult } from 'antd/es/table/interface';
 export type OnChangeFunction<RecordType> =
-  AntTableProps<RecordType>['onChange'];
+  AntTableProps<RecordType>["onChange"];
 
 export enum TableSize {
-  Small = 'small',
-  Middle = 'middle',
-  Large = 'large',
+  Small = "small",
+  Middle = "middle",
+  Large = "large",
 }
 
 export interface TableProps<RecordType> extends AntTableProps<RecordType> {
@@ -122,7 +122,7 @@ export interface TableProps<RecordType> extends AntTableProps<RecordType> {
   /**
    * Enables setting the text displayed in various components and tooltips within the Table UI.
    */
-  locale?: Partial<AntTableProps<RecordType>['locale']>;
+  locale?: Partial<AntTableProps<RecordType>["locale"]>;
   /**
    * Restricts the visible height of the table and allows for internal scrolling within the table
    * when the number of rows exceeds the visible space.
@@ -144,7 +144,7 @@ export interface TableProps<RecordType> extends AntTableProps<RecordType> {
   /**
    * Returns props that should be applied to each row component.
    */
-  onRow?: AntTableProps<RecordType>['onRow'];
+  onRow?: AntTableProps<RecordType>["onRow"];
   /**
    * Will render html safely if set to true, anchor tags and such. Currently
    * only supported for virtualize == true
@@ -242,28 +242,28 @@ const StyledVirtualTable = styled(
 );
 
 const defaultLocale = {
-  filterTitle: t('Filter menu'),
-  filterConfirm: t('OK'),
-  filterReset: t('Reset'),
-  filterEmptyText: t('No filters'),
-  filterCheckall: t('Select all items'),
-  filterSearchPlaceholder: t('Search in filters'),
-  emptyText: t('No data'),
-  selectAll: t('Select current page'),
-  selectInvert: t('Invert current page'),
-  selectNone: t('Clear all data'),
-  selectionAll: t('Select all data'),
-  sortTitle: t('Sort'),
-  expand: t('Expand row'),
-  collapse: t('Collapse row'),
-  triggerDesc: t('Click to sort descending'),
-  triggerAsc: t('Click to sort ascending'),
-  cancelSort: t('Click to cancel sorting'),
+  filterTitle: t("Filter menu"),
+  filterConfirm: t("OK"),
+  filterReset: t("Reset"),
+  filterEmptyText: t("No filters"),
+  filterCheckall: t("Select all items"),
+  filterSearchPlaceholder: t("Search in filters"),
+  emptyText: t("No data"),
+  selectAll: t("Select current page"),
+  selectInvert: t("Invert current page"),
+  selectNone: t("Clear all data"),
+  selectionAll: t("Select all data"),
+  sortTitle: t("Sort"),
+  expand: t("Expand row"),
+  collapse: t("Collapse row"),
+  triggerDesc: t("Click to sort descending"),
+  triggerAsc: t("Click to sort ascending"),
+  cancelSort: t("Click to cancel sorting"),
 };
 
 const selectionMap = {
-  [SelectionType.Multi]: 'checkbox',
-  [SelectionType.Single]: 'radio',
+  [SelectionType.Multi]: "checkbox",
+  [SelectionType.Single]: "radio",
   [SelectionType.Disabled]: null,
 };
 const noop = () => {};
@@ -285,7 +285,7 @@ export function Table<RecordType extends object>(
     reorderable = false,
     usePagination = true,
     defaultPageSize = 15,
-    pageSizeOptions = ['5', '15', '25', '50', '100'],
+    pageSizeOptions = ["5", "15", "25", "50", "100"],
     hideData = false,
     locale,
     height,
@@ -303,7 +303,7 @@ export function Table<RecordType extends object>(
   const [derivedColumns, setDerivedColumns] = useState(columns);
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [mergedLocale, setMergedLocale] = useState<
-    Required<AntTableProps<RecordType>>['locale']
+    Required<AntTableProps<RecordType>>["locale"]
   >({ ...defaultLocale });
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>(selectedRows);
   const interactiveTableUtils = useRef<InteractiveTableUtils | null>(null);
@@ -351,7 +351,7 @@ export function Table<RecordType extends object>(
     if (interactiveTableUtils.current) {
       interactiveTableUtils.current?.clearListeners();
     }
-    const table = wrapperRef.current?.getElementsByTagName('table')[0];
+    const table = wrapperRef.current?.getElementsByTagName("table")[0];
     if (table) {
       interactiveTableUtils.current = new InteractiveTableUtils(
         table,
@@ -439,6 +439,7 @@ export function Table<RecordType extends object>(
           {...sharedProps}
           rowSelection={selectionTypeValue !== null ? rowSelection : undefined}
           sticky={sticky}
+          scroll={bodyHeight ? { y: bodyHeight, x: true } : { x: true }}
           {...rest}
         />
       )}
@@ -446,10 +447,12 @@ export function Table<RecordType extends object>(
         <StyledVirtualTable
           {...sharedProps}
           scroll={{
-            y: 300,
-            x: '100vw',
+            // Use measured body height; a fixed 300px diverges from the Grid.
+            // Prefer content-based width over `100vw`, which breaks alignment in modals.
+            y: bodyHeight || 300,
+            x: true,
             // To avoid jest failure by scrollTo
-            ...(process.env.WEBPACK_MODE === 'test' && {
+            ...(process.env.WEBPACK_MODE === "test" && {
               scrollToFirstRowOnChange: false,
             }),
           }}
