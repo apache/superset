@@ -2390,10 +2390,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The error message
         """
 
-        return (
-            f"This endpoint requires the datasource {datasource.data['id']}, "
-            "database or `all_datasource_access` permission"
-        )
+        return "You do not have permission to access this datasource"
 
     @staticmethod
     def get_datasource_access_link(
@@ -2411,7 +2408,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return _render_permission_instructions_link(
             datasource_id=str(datasource.data["id"]),
-            datasource_name=str(datasource.data["name"]),
+            # datasource_name intentionally omitted to prevent name disclosure
         )
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
@@ -2429,8 +2426,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
-                "datasource": datasource.data["id"],
-                "datasource_name": datasource.data["name"],
+                # is_access_denial lets the frontend show the "Request access"
+                # UI without receiving the dataset name or id.
+                "is_access_denial": True,
                 # Owner display names give the viewer someone to contact for
                 # access; sorted for a deterministic payload.
                 "owners": sorted(

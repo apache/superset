@@ -95,7 +95,9 @@ def test_unsupplied_placeholders_render_empty() -> None:
     assert out == "https://acme.example.com/req?id=9&t="
 
 
-def test_get_datasource_access_link_pulls_from_datasource_data() -> None:
+def test_get_datasource_access_link_omits_datasource_name() -> None:
+    # datasource_name is intentionally not forwarded to prevent name disclosure
+    # to users who lack access; the {datasource_name} placeholder renders empty.
     ds = MagicMock()
     ds.data = {"id": 12, "name": "Quarterly Sales"}
     with (
@@ -113,7 +115,7 @@ def test_get_datasource_access_link_pulls_from_datasource_data() -> None:
         g_mock.user.is_anonymous = False
         g_mock.user.username = "alice"
         out = SupersetSecurityManager.get_datasource_access_link(ds)
-    assert out == "https://acme.example.com/req?id=12&name=Quarterly%20Sales"
+    assert out == "https://acme.example.com/req?id=12&name="
 
 
 def test_get_table_access_link_joins_table_names() -> None:
@@ -157,6 +159,19 @@ def test_datasource_error_object_includes_sorted_owner_names() -> None:
         error = sm.get_datasource_access_error_object(ds)
     assert error.extra is not None
     assert error.extra["owners"] == ["Amir Patel", "Zoe Chen"]
+    # Dataset name and id must not be present — they would reveal a resource
+    # the user is not authorized to see.
+    assert "datasource_name" not in error.extra
+    assert "datasource" not in error.extra
+    assert error.extra["is_access_denial"] is True
+
+
+def test_datasource_access_error_msg_is_generic() -> None:
+    ds = MagicMock()
+    ds.data = {"id": 12, "name": "Quarterly Sales"}
+    msg = SupersetSecurityManager.get_datasource_access_error_msg(ds)
+    assert "12" not in msg
+    assert "Quarterly Sales" not in msg
 
 
 def test_table_access_link_is_single_encoded_and_sorted() -> None:

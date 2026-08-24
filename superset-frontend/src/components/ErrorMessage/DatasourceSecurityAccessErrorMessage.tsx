@@ -29,6 +29,7 @@ interface DatasourceSecurityAccessExtra {
   link?: string;
   datasource?: number | string;
   datasource_name?: string;
+  is_access_denial?: boolean;
   tables?: string[];
   issue_codes?: {
     code: number;
@@ -55,7 +56,10 @@ export function DatasourceSecurityAccessErrorMessage({
   // (e.g. virtual-dataset SQL validation: "Only SELECT statements are
   // allowed"). Those errors carry no access payload — render them plainly
   // rather than misleading the user with request-access guidance.
-  const isAccessDenial = !!extra?.datasource_name || !!extra?.tables?.length;
+  const isAccessDenial =
+    !!extra?.datasource_name ||
+    !!extra?.tables?.length ||
+    !!extra?.is_access_denial;
   if (!isAccessDenial) {
     return (
       <ErrorAlert
@@ -81,17 +85,22 @@ export function DatasourceSecurityAccessErrorMessage({
             'permission to view.',
           extra.datasource_name,
         );
-  } else {
+  } else if (extra?.tables?.length) {
     explanation = isVisualization
       ? t(
           'You do not have access to the data behind this chart ' +
             '(tables: %s).',
-          extra?.tables?.join(', '),
+          extra.tables.join(', '),
         )
       : t(
           'You do not have access to the following tables: %s.', // sqllab
-          extra?.tables?.join(', '),
+          extra.tables.join(', '),
         );
+  } else {
+    // Access denial without identifying the dataset to the unauthorized user.
+    explanation = isVisualization
+      ? t('You do not have permission to view this chart\u2019s data.')
+      : t('You do not have permission to view this data.');
   }
 
   const owners = extra?.owners;
