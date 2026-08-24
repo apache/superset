@@ -395,14 +395,8 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     />
   );
 
-  const createSuggestionsPlaceholder = () => {
-    if (optionsTruncated) {
-      // The list is capped server-side, so "no match" in the dropdown does not
-      // mean "not in the data". Say so, and point at the way out.
-      return t('First %s values, type to search', loadedOptionCount);
-    }
-    return loadedOptionCount ? t('%s option(s)', loadedOptionCount) : '';
-  };
+  const createSuggestionsPlaceholder = () =>
+    loadedOptionCount ? t('%s option(s)', loadedOptionCount) : '';
 
   const handleSubjectChange = (subject: string) => {
     setComparator(undefined);
@@ -473,6 +467,16 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     allowClear: true,
     allowNewOptions: true,
     ariaLabel: t('Comparator option'),
+    // A capped list reads as the whole set unless it says otherwise, so an
+    // absent value looks like a value that does not exist. Only shown when the
+    // list is actually cut short.
+    helperText: optionsTruncated
+      ? t(
+          'Only the first %s values are listed. Type to search all of them, ' +
+            'or enter a value that is not listed.',
+          loadedOptionCount,
+        )
+      : undefined,
     mode:
       operatorId && MULTI_OPERATORS.has(operatorId as Operators)
         ? ('multiple' as const)

@@ -1048,3 +1048,18 @@ test('does not query for values when the dataset disables them', async () => {
   await openComparator();
   expect(fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT)).toHaveLength(0);
 });
+
+test('says the list is partial when the server capped it', async () => {
+  setupWithFilterValues(['alpha', 'beta'], 2);
+  await openComparator();
+  expect(
+    await screen.findByText(/Only the first 2 values are listed/),
+  ).toBeInTheDocument();
+});
+
+test('does not say the list is partial when it is complete', async () => {
+  setupWithFilterValues(['alpha', 'beta'], 10000);
+  await openComparator();
+  expect(await screen.findByTitle('alpha')).toBeInTheDocument();
+  expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
+});
