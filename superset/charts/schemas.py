@@ -17,12 +17,19 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    Schema,
+    validate,
+    validates,
+    ValidationError,
+)
 from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
@@ -35,6 +42,7 @@ from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
     DatasourceType,
+    EXTENDED_METRIC_AGGREGATES,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -360,6 +368,30 @@ class ChartPutSchema(Schema):
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
+    normalization_changes: fields.Raw = fields.Raw(
+        load_only=True,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional advisory Explore hydration transitions used only to "
+                "remove exact automatic normalization changes from human-readable "
+                "version history. Invalid metadata is ignored."
+            ),
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+                "type": "object",
+                "required": ["control", "from_present", "to_present"],
+                "properties": {
+                    "control": {"type": "string", "maxLength": 256},
+                    "from_present": {"type": "boolean"},
+                    "from_value": {},
+                    "to_present": {"type": "boolean"},
+                    "to_value": {},
+                },
+            },
+        },
+    )
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -427,7 +459,15 @@ class ChartDataAdhocMetricSchema(Schema):
             "Only required for simple expression types."
         },
         validate=validate.OneOf(
-            choices=("AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM")
+            choices=(
+                "AVG",
+                "COUNT",
+                "COUNT_DISTINCT",
+                "MAX",
+                "MIN",
+                "SUM",
+                *sorted(EXTENDED_METRIC_AGGREGATES),
+            )
         ),
     )
     column = fields.Nested(ChartDataColumnSchema)
@@ -972,21 +1012,37 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
+    _builtin_ops = pandas_postprocessing.__all__
+
     operation = fields.String(
         metadata={
             "description": "Post processing operation type",
             "example": "aggregate",
         },
         required=True,
-        validate=validate.OneOf(
-            choices=[
-                name
-                for name, value in inspect.getmembers(
-                    pandas_postprocessing, inspect.isfunction
-                )
-            ]
-        ),
     )
+
+    @validates("operation")
+    def validate_operation(self, value: str, **kwargs: object) -> None:
+        # Built-in operations validate without reading the config, so schemas can
+        # still be loaded outside of an app context.
+        if value in self._builtin_ops:
+            return
+
+        try:
+            extra = current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        except RuntimeError:
+            # Outside app context, only built-in operations are known
+            extra = []
+
+        allowed = set(self._builtin_ops) | set(
+            pandas_postprocessing.build_extra_ops_map(extra)
+        )
+        if value not in allowed:
+            raise ValidationError(
+                f"Must be one of: {sorted(allowed)!r}.",
+            )
+
     options = fields.Dict(
         metadata={
             "description": "Options specifying how to perform the operation. Please "

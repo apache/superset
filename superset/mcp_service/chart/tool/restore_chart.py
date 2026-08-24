@@ -36,10 +36,6 @@ from superset.mcp_service.chart.schemas import (
     RestoreChartRequest,
     RestoreChartResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -115,14 +111,60 @@ async def restore_chart(
             error_type="LookupFailed",
         )
     if not chart:
-        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
-        msg = f"No chart found with identifier: {safe_id}."
+        display_id = str(request.identifier)[:200]
+        msg = f"No chart found with identifier: {display_id}."
         return RestoreChartResponse(success=False, error=msg, error_type="NotFound")
 
     chart_id = chart.id
-    # Chart names are user-controlled; wrap before composing response text so
-    # a hostile name cannot inject prompt content into the tool output.
-    chart_name = sanitize_for_llm_context(chart.slice_name, field_path=("slice_name",))
+
+    # The lookup above deliberately bypasses the RBAC base filter (see
+    # _find_chart_for_restore), so enforce the restore audience *before*
+    # composing any response that embeds the chart's name: without this gate,
+    # iterating identifiers would disclose the existence and exact title of
+    # charts the caller cannot see (the web API answers 404 for those).
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    try:
+        try:
+            security_manager.raise_for_editorship(chart)
+        except SupersetSecurityException:
+            from superset.daos.chart import ChartDAO
+
+            # Distinguish "visible but not an editor" from "outside the
+            # caller's RBAC scope": the latter must be indistinguishable
+            # from a chart that does not exist.
+            visible = ChartDAO.find_by_id_or_uuid(
+                str(request.identifier), skip_visibility_filter=True
+            )
+            if visible is None:
+                display_id = str(request.identifier)[:200]
+                return RestoreChartResponse(
+                    success=False,
+                    error=f"No chart found with identifier: {display_id}.",
+                    error_type="NotFound",
+                )
+            await ctx.warning("Permission denied restoring chart id=%s" % (chart_id,))
+            return RestoreChartResponse(
+                success=False,
+                permission_denied=True,
+                error=(
+                    f"You do not have permission to restore chart id={chart_id}. "
+                    "Ask the user to restore it or grant access; do not retry."
+                ),
+                error_type="Forbidden",
+            )
+    except SQLAlchemyError:
+        _rollback()
+        logger.exception("Editorship check failed during restore_chart")
+        return RestoreChartResponse(
+            success=False,
+            error="Chart lookup failed due to a database error.",
+            error_type="LookupFailed",
+        )
+
+    # Chart names are user-controlled and must remain exact in response text.
+    chart_name = chart.slice_name
 
     if chart.deleted_at is None:
         return RestoreChartResponse(

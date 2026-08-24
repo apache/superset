@@ -607,12 +607,19 @@ def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
         "MIN",
         "MAX",
         "COUNT_DISTINCT",
-        "STDDEV",
-        "VAR",
+        "STDDEV_SAMP",
+        "VAR_SAMP",
         "MEDIAN",
         "PERCENTILE",
     }
-    aggregate = col.aggregate or "SUM"
+    # Accept the pre-SIP shorthand names too, mapped onto the real,
+    # unambiguous aggregate names Superset actually supports (bare
+    # "STDDEV"/"VAR" are ambiguous between sample and population statistics,
+    # and differ by engine -- see docs/sip/median-stddev-variance-aggregates.md).
+    aggregate_aliases = {"STDDEV": "STDDEV_SAMP", "VAR": "VAR_SAMP"}
+    aggregate = aggregate_aliases.get(
+        (col.aggregate or "SUM").upper(), col.aggregate or "SUM"
+    )
 
     # Validate aggregate function (final safety check)
     if aggregate.upper() not in valid_aggregates:
