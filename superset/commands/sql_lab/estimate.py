@@ -32,7 +32,6 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
-    SupersetParseError,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -189,24 +188,7 @@ class QueryEstimationCommand(BaseCommand):
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
         # probe disallowed functions/tables, bypass the DML guard, or confirm
         # the existence of rows hidden by row-level security.
-        try:
-            sql = self._apply_sql_security(sql)
-        except SupersetParseError as ex:
-            # An unprovided parameter is left in place by `DebugUndefined`
-            # rather than raising, and in some positions the leftover then
-            # fails to parse. Reported as written, that reads as a typo in the
-            # SQL; name the actual cause instead.
-            if template_processor.has_template(sql):
-                raise SupersetParseError(
-                    sql,
-                    self._database.db_engine_spec.engine,
-                    message=__(
-                        "The query has template parameters that were not "
-                        "provided, so its cost cannot be estimated. Provide "
-                        "them, or replace them with literal values."
-                    ),
-                ) from ex
-            raise
+        sql = self._apply_sql_security(sql)
 
         timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
