@@ -21,11 +21,7 @@ from flask import g
 from sqlalchemy.exc import NoResultFound
 
 from superset.commands.tag.exceptions import TagNotFoundError
-from superset.commands.tag.utils import (
-    current_user_can_modify_object,
-    to_object_model,
-    to_object_type,
-)
+from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.daos.base import BaseDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
@@ -349,6 +345,12 @@ class TagDAO(BaseDAO[Tag]):
         Returns:
             None.
         """
+        # Deferred: superset.commands.utils imports TagDAO, so a module-level
+        # import here would be circular.
+        from superset.commands.utils import (  # pylint: disable=import-outside-toplevel
+            current_user_can_modify_object,
+        )
+
         tagged_objects = []
         if not tag:
             raise TagNotFoundError()
