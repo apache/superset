@@ -136,6 +136,12 @@ export const SamplesPane = ({
 
   const columns = useGridColumns(colnames, coltypes, data);
   const keywordFilter = useKeywordFilter(filterText);
+  // Samples aren't capped by a chart's row_limit, just this pane's own
+  // page-size selector, so RowCountLabel's default "chart" wording is wrong here.
+  const limitReachedMessage = t(
+    'The sample row limit was reached. This %s may contain more rows.',
+    datasetLabelLower(),
+  );
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),
@@ -161,6 +167,7 @@ export const SamplesPane = ({
           canDownload={canDownload}
           rowLimit={rowLimit}
           rowLimitOptions={ROW_LIMIT_OPTIONS}
+          limitReachedMessage={limitReachedMessage}
           onRowLimitChange={handleRowLimitChange}
         />
         <ErrorAlertWrapper>
@@ -197,6 +204,7 @@ export const SamplesPane = ({
         canDownload={canDownload}
         rowLimit={rowLimit}
         rowLimitOptions={ROW_LIMIT_OPTIONS}
+        limitReachedMessage={limitReachedMessage}
         onRowLimitChange={handleRowLimitChange}
       />
       <GridContainer>

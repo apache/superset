@@ -69,6 +69,7 @@ export const TableControls = ({
   rowLimit,
   rowLimitOptions,
   effectiveRowLimit,
+  limitReachedMessage,
   onRowLimitChange,
   onDownloadCSV,
   onDownloadXLSX,
@@ -122,6 +123,7 @@ export const TableControls = ({
         <RowCountLabel
           rowcount={rowcount}
           limit={effectiveRowLimit ?? rowLimit}
+          limitReachedMessage={limitReachedMessage}
           loading={isLoading}
         />
         {canDownload && onDownloadCSV && onDownloadXLSX && (

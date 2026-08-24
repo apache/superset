@@ -87,6 +87,9 @@ export interface TableControlsProps extends DrillControlsProps {
   // Effective result limit, capped by the chart's row limit.
   // Defaults to `rowLimit` and controls the "row limit reached" warning.
   effectiveRowLimit?: number;
+  // Overrides RowCountLabel's default "chart" wording for panes (e.g.
+  // samples) where the limit reached isn't the chart's own row_limit.
+  limitReachedMessage?: React.ReactNode;
   onRowLimitChange?: (limit: number) => void;
 }
 

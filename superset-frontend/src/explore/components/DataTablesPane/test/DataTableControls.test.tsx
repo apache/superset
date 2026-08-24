@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  screen,
+  sleep,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   TableControls,
@@ -58,11 +64,16 @@ test('warns that the row limit was reached when the result fills it', async () =
   );
 });
 
-test('does not warn when the result is smaller than the selected row limit', () => {
+test('does not warn when the result is smaller than the selected row limit', async () => {
   setup({ rowcount: 42, rowLimit: 100 });
 
   expect(screen.getByTestId('row-count-label')).toHaveTextContent('42 rows');
   userEvent.hover(screen.getByTestId('row-count-label'));
+
+  // Wait past antd's 0.1s mouseEnterDelay so a regression that made the
+  // tooltip appear would be caught here instead of racing the delay.
+  await act(() => sleep(150));
+
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
