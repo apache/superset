@@ -332,13 +332,13 @@ test('displays empty state when no tasks', async () => {
   });
 });
 
-test('shows "waiting on" indicator and chain icon for pending tasks with unmet prerequisites', async () => {
+test('renders the dependency chain icon in Details for tasks with prerequisites', async () => {
   renderTaskList();
   await screen.findByText('Shared Bulk Task');
 
-  // The pending task depends on an in-progress (unmet) prerequisite
-  expect(await screen.findByText('Waiting on 1')).toBeInTheDocument();
-  // The chain-link dependency icon is rendered (antd LinkOutlined -> name "link").
-  // Popover contents on hover are covered by TaskDependenciesPopover.test.tsx.
+  // Dependencies live behind the chain-link icon in the Details column (antd
+  // LinkOutlined -> role "img" name "link"), no longer a standalone column. The
+  // "waiting on N" state is folded into that icon's warning color + popover
+  // title — covered by TaskDependenciesPopover.test.tsx.
   expect(screen.getByRole('img', { name: 'link' })).toBeInTheDocument();
 });

@@ -43,3 +43,26 @@ test('lists prerequisite tasks in the popover on hover', async () => {
   expect(await screen.findByText('Totals Query')).toBeInTheDocument();
   expect(screen.getByText('prereq-2')).toBeInTheDocument();
 });
+
+test('surfaces the waiting-on state in the popover title', async () => {
+  render(
+    <TaskDependenciesPopover dependencies={dependencies} waitingOn={1} />,
+    { useRedux: true },
+  );
+
+  fireEvent.mouseEnter(screen.getByRole('img', { name: 'link' }));
+
+  expect(
+    await screen.findByText('Waiting on 1 prerequisite task(s) to finish'),
+  ).toBeInTheDocument();
+});
+
+test('uses the neutral "Depends on" title when not waiting', async () => {
+  render(<TaskDependenciesPopover dependencies={dependencies} />, {
+    useRedux: true,
+  });
+
+  fireEvent.mouseEnter(screen.getByRole('img', { name: 'link' }));
+
+  expect(await screen.findByText('Depends on')).toBeInTheDocument();
+});

@@ -423,55 +423,12 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { depends_on, status },
-          },
-        }: TaskCellProps) => {
-          if (!depends_on || depends_on.length === 0) {
-            return null;
-          }
-          // "waiting on N" surfaces the block-and-wait gate: a PENDING task
-          // parked until its unmet (non-SUCCESS) prerequisites finish.
-          const unmet = depends_on.filter(
-            dep => dep.status !== TaskStatus.Success,
-          ).length;
-          const showWaiting = status === TaskStatus.Pending && unmet > 0;
-          return (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.sizeUnit * 2,
-              }}
-            >
-              <TaskDependenciesPopover dependencies={depends_on} />
-              {showWaiting && (
-                <Tooltip
-                  title={t(
-                    'Waiting on %s prerequisite task(s) to finish',
-                    unmet,
-                  )}
-                  placement="top"
-                >
-                  <Label type="warning">{t('Waiting on %s', unmet)}</Label>
-                </Tooltip>
-              )}
-            </div>
-          );
-        },
-        accessor: 'depends_on',
-        Header: t('Dependencies'),
-        size: 'sm',
-        id: 'depends_on',
-        disableSortBy: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { payload, properties, status },
+            original: { payload, properties, status, depends_on },
           },
         }: TaskCellProps) => {
           const hasPayload = payload && Object.keys(payload).length > 0;
           const hasStackTrace = !!properties?.stack_trace;
+          const hasDependencies = !!depends_on && depends_on.length > 0;
 
           // Show warning if timeout is set but no abort handler during execution
           // Only show for IN_PROGRESS (abort handler registers at runtime, not during PENDING)
@@ -480,9 +437,23 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             properties?.timeout &&
             !properties?.is_abortable;
 
-          if (!hasPayload && !hasStackTrace && !hasTimeoutWithoutHandler) {
+          if (
+            !hasPayload &&
+            !hasStackTrace &&
+            !hasTimeoutWithoutHandler &&
+            !hasDependencies
+          ) {
             return null;
           }
+
+          // "Waiting on N" surfaces the block-and-wait gate: a PENDING task
+          // parked until its unmet (non-SUCCESS) prerequisites finish. Folded
+          // into the dependency chain icon (warning color + popover title).
+          const unmet = hasDependencies
+            ? depends_on.filter(dep => dep.status !== TaskStatus.Success).length
+            : 0;
+          const waitingOn =
+            status === TaskStatus.Pending && unmet > 0 ? unmet : 0;
 
           return (
             <div style={{ display: 'flex', gap: theme.sizeUnit * 2 }}>
@@ -507,12 +478,18 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               {hasStackTrace && properties.stack_trace && (
                 <TaskStackTracePopover stackTrace={properties.stack_trace} />
               )}
+              {hasDependencies && (
+                <TaskDependenciesPopover
+                  dependencies={depends_on}
+                  waitingOn={waitingOn}
+                />
+              )}
             </div>
           );
         },
         accessor: 'payload',
         Header: t('Details'),
-        size: 'xs',
+        size: 'sm',
         id: 'payload',
         disableSortBy: true,
       },
