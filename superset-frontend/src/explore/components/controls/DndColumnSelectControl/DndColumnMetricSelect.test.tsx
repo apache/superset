@@ -396,6 +396,38 @@ test('folder drop replaces (not appends) the existing value for a single-value c
   expect(onChange).toHaveBeenCalledWith('metric_a');
 });
 
+test('folder drop deduplicates a column and same-named metric within the batch', () => {
+  // Regression test: canDrop gates each folder item against the pre-drop
+  // value, so a column and a same-named metric both pass individually. If
+  // onDropFolder doesn't dedupe as it builds the batch, the value ends up
+  // with two identical strings, both rendered as the column.
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      selectedMetrics={[
+        ...defaultProps.selectedMetrics,
+        {
+          metric_name: 'column_a',
+          expression: 'expression_column_a',
+          verbose_name: 'column_a',
+        },
+      ]}
+      value={[]}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'column_a' } as any },
+    { type: DndItemType.Metric, value: { metric_name: 'column_a' } as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledWith(['column_a']);
+});
+
 test('folder drop is a no-op when no item is accepted', () => {
   const onChange = jest.fn();
   render(

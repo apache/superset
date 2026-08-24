@@ -263,13 +263,21 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
 
   const onDropFolder = useCallback(
     (items: DatasourcePanelDndItem[]) => {
-      // Items already passed `canDrop` (valid, not already selected).
+      // Items are gated against `canDrop` before the whole batch is added, so
+      // a column and a same-named metric can both pass individually. Track
+      // names added so far in this batch to avoid adding the same string twice.
+      const seen = new Set(coercedValue.filter(isString));
       const additions: string[] = [];
       items.forEach(item => {
+        let itemName: string | undefined;
         if (item.type === DndItemType.Column) {
-          additions.push((item.value as ColumnMeta).column_name);
+          itemName = (item.value as ColumnMeta).column_name;
         } else if (item.type === DndItemType.Metric) {
-          additions.push((item.value as Metric).metric_name);
+          itemName = (item.value as Metric).metric_name;
+        }
+        if (itemName && !seen.has(itemName)) {
+          seen.add(itemName);
+          additions.push(itemName);
         }
       });
       if (additions.length === 0) {
