@@ -570,7 +570,15 @@ class QueryContextProcessor:
              :meth:`QueryContext.get_cache_timeout`.
           4. ``DATA_CACHE_CONFIG["CACHE_DEFAULT_TIMEOUT"]``.
           5. ``CACHE_DEFAULT_TIMEOUT`` — global fallback.
+
+        For an async execution the result is cached then read back by a follow-up
+        request, so the resolved timeout is finally floored to
+        ``GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL`` to prevent a short TTL from evicting
+        the result before it is fetched (see :meth:`_apply_async_min_cache_ttl`).
         """
+        return self._apply_async_min_cache_ttl(self._resolve_cache_timeout())
+
+    def _resolve_cache_timeout(self) -> int:
         # Step 1: Request-level custom timeout (e.g., Force refresh bypass)
         if self._query_context.custom_cache_timeout is not None:
             return self._query_context.custom_cache_timeout
@@ -598,6 +606,21 @@ class QueryContextProcessor:
 
         # Step 5: Global fallback.
         return current_app.config["CACHE_DEFAULT_TIMEOUT"]
+
+    def _apply_async_min_cache_ttl(self, timeout: int) -> int:
+        """Floor an async execution's result-cache TTL (no-op otherwise).
+
+        Only applies when this query context runs on the async path; a longer
+        timeout is kept as-is, and ``0`` (flask-caching "cache forever") is already
+        above any floor so it is left untouched. Synchronous requests are never
+        floored, even when GLOBAL_ASYNC_QUERIES is enabled.
+        """
+        if self._query_context.is_async_execution is not True:
+            return timeout
+        min_ttl: int = current_app.config.get("GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL", 0)
+        if 0 < timeout < min_ttl:
+            return min_ttl
+        return timeout
 
     @staticmethod
     def _is_native_filter_options_query(form_data: dict[str, Any]) -> bool:

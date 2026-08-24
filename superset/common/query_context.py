@@ -57,6 +57,13 @@ class QueryContext:
     force: bool
     custom_cache_timeout: int | None
 
+    # Set by the async chart-data execution path (see
+    # superset.tasks.async_queries.execute_chart_query). The async flow caches a
+    # result and a follow-up request reads it back, so the result cache TTL is
+    # floored to GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL (see
+    # QueryContextProcessor.get_cache_timeout). Never set on the synchronous path.
+    is_async_execution: bool = False
+
     cache_values: dict[str, Any]
 
     _processor: QueryContextProcessor
