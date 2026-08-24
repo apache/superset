@@ -30,8 +30,13 @@ test('formatDuration returns null for invalid inputs', () => {
   expect(formatDuration(-5)).toBeNull();
 });
 
+test('formatDuration collapses sub-second durations to <1s', () => {
+  expect(formatDuration(0.283)).toBe('<1s');
+  expect(formatDuration(0.999)).toBe('<1s');
+});
+
 test('formatDuration formats seconds correctly', () => {
-  expect(formatDuration(37.5)).toBe('37s 500ms');
+  expect(formatDuration(37.5)).toBe('38s'); // rounded to whole seconds
   expect(formatDuration(1)).toBe('1s');
   expect(formatDuration(30)).toBe('30s');
 });

@@ -52,9 +52,12 @@ function getCachedDurationFormatter(locale?: string): Intl.DurationFormat {
 /**
  * Format a duration in seconds to a human-readable string.
  *
+ * Rendered at second granularity — sub-second precision (ms/μs/ns) is noise for
+ * task tracking, so anything under a second collapses to "<1s".
+ *
  * @param seconds - Duration in seconds
  * @param locale - Current locale
- * @returns Formatted string like "1m 30s" or "2h 15m", or null if invalid
+ * @returns Formatted string like "1m 30s" or "2h 15m", "<1s", or null if invalid
  */
 export function formatDuration(
   seconds: number | null | undefined,
@@ -64,17 +67,14 @@ export function formatDuration(
     return null;
   }
 
-  const durObject = parseMilliseconds(seconds * 1000);
-  const unitOrder = [
-    'years',
-    'days',
-    'hours',
-    'minutes',
-    'seconds',
-    'milliseconds',
-    'microseconds',
-    'nanoseconds',
-  ] as const;
+  // Below a second there's nothing useful to show at second granularity.
+  if (seconds < 1) {
+    return '<1s';
+  }
+
+  // Round to whole seconds so no ms/μs/ns units are ever emitted.
+  const durObject = parseMilliseconds(Math.round(seconds) * 1000);
+  const unitOrder = ['years', 'days', 'hours', 'minutes', 'seconds'] as const;
   const nonZeroUnits = unitOrder
     .filter(unit => durObject[unit] > 0)
     .slice(0, 2)

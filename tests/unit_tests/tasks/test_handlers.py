@@ -240,7 +240,7 @@ class TestTaskDuration:
 
     @freeze_time("2024-01-01 10:00:15")
     def test_duration_seconds_pending_task(self):
-        """Test duration for pending task returns queue time."""
+        """A pending (not-yet-started) task has no duration to show."""
         from superset.models.tasks import Task
 
         task = Task()
@@ -248,8 +248,8 @@ class TestTaskDuration:
         task.started_at = None
         task.ended_at = None
 
-        # 15 seconds since creation
-        assert task.duration_seconds == 15.0
+        # Not started yet → None (queue time is not execution time).
+        assert task.duration_seconds is None
 
     def test_duration_seconds_no_timestamps(self):
         """Test duration returns None when no timestamps available."""

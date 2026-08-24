@@ -72,7 +72,16 @@ type Waiter = {
 
 let config: AppConfig;
 let pollingDelayMs: number;
+// Backoff state: the poll starts eager (`pollingDelayMs`), degrades — doubling up
+// to `pollBackoffMaxMs` — while awaited tasks are quiet, and snaps back to eager
+// the moment an awaited task changes or a new waiter registers. Capped so a very
+// slow task is still noticed within `pollBackoffMaxMs`.
+let currentPollDelayMs: number;
+let pollBackoffMaxMs: number;
 let pollingTimeoutId: number;
+// Whether the poll loop is running. It stops entirely when no waiters remain (no
+// idle heartbeat) and is restarted by ``ensurePolling`` when a waiter registers.
+let pollingActive = false;
 // Registry of in-flight waiters keyed by every task uuid they await, so a single
 // shared poll loop fans status changes out to whichever requests are awaiting them.
 // A SHARED task can be deduplicated across concurrent chart requests, so each task
@@ -155,28 +164,64 @@ const applyStatus = (taskId: string, status: string) => {
 };
 
 const loadStatusChanges = async (generation: number) => {
-  if (generation !== pollingGeneration) return;
+  if (generation !== pollingGeneration) {
+    pollingActive = false;
+    return;
+  }
   if (waitersByTaskId.size) {
     try {
       const { statuses, cursor: next } = await fetchStatusChanges({
         cursor,
         task_type: CHART_QUERY_TASK_TYPE,
       });
-      if (generation !== pollingGeneration) return;
+      if (generation !== pollingGeneration) {
+        pollingActive = false;
+        return;
+      }
       cursor = next;
-      Object.entries(statuses).forEach(([taskId, { status }]) =>
-        applyStatus(taskId, status),
-      );
+      // "Progress" = the batch carried a change for a task we're awaiting; check
+      // membership before applyStatus, which deletes a settled task's waiters.
+      let progressed = false;
+      Object.entries(statuses).forEach(([taskId, { status }]) => {
+        if (waitersByTaskId.has(taskId)) progressed = true;
+        applyStatus(taskId, status);
+      });
+      // Reset to eager on an awaited-task change; otherwise back off (bounded).
+      currentPollDelayMs = progressed
+        ? pollingDelayMs
+        : Math.min(currentPollDelayMs * 2, pollBackoffMaxMs);
     } catch (err) {
-      if (generation !== pollingGeneration) return;
+      if (generation !== pollingGeneration) {
+        pollingActive = false;
+        return;
+      }
       logging.warn(err);
     }
   }
   // Reschedule from the tail so a slow request never overlaps the next tick.
+  // Nothing left to await → stop the loop entirely (no idle heartbeat); the next
+  // waiter restarts it from the eager interval via ensurePolling.
+  if (!waitersByTaskId.size) {
+    pollingActive = false;
+    currentPollDelayMs = pollingDelayMs;
+    return;
+  }
+  pollingActive = true;
   pollingTimeoutId = window.setTimeout(
     () => loadStatusChanges(generation),
-    pollingDelayMs,
+    currentPollDelayMs,
   );
+};
+
+// Start (or wake) the poll loop for a freshly registered waiter: poll eagerly
+// again, and kick the loop if it had gone idle. Idempotent — a no-op while the
+// loop is already running or when async queries are disabled.
+const ensurePolling = () => {
+  currentPollDelayMs = pollingDelayMs;
+  if (!pollingActive && isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
+    pollingActive = true;
+    loadStatusChanges(pollingGeneration);
+  }
 };
 
 /**
@@ -269,6 +314,8 @@ export const waitForAsyncData = async <T = unknown[]>(
       }
       waiters.add(waiter);
     });
+    // Wake the poll loop (eager again) now that there's something to await.
+    ensurePolling();
   });
 
   return refetch();
@@ -291,12 +338,18 @@ export const init = (appConfig?: AppConfig) => {
   const generation = pollingGeneration;
   waitersByTaskId = new Map();
   cursor = null;
+  pollingActive = false;
 
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
+  // Cap the backoff at 8× the eager interval so even a very slow task is noticed
+  // within that bound (the socket, when enabled, accelerates it further).
+  pollBackoffMaxMs = pollingDelayMs * 8;
+  currentPollDelayMs = pollingDelayMs;
 
   // Establish a baseline cursor before any chart query is triggered, so tasks
-  // created afterwards are all caught by the changed-since poll, then start the
-  // shared poll loop from that watermark.
+  // created afterwards are all caught by the changed-since poll. The loop itself
+  // stays idle until the first waiter registers (ensurePolling), then stops again
+  // once every awaited task settles.
   fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
     .then(({ cursor: baseline }) => {
       // Seed the initial cursor only; never overwrite a value a waiter already
@@ -308,9 +361,6 @@ export const init = (appConfig?: AppConfig) => {
       // A missing baseline just means the first poll starts from "everything
       // changed so far"; the >= cursor semantics still catch our tasks.
       logging.warn('Failed to fetch async baseline cursor', err);
-    })
-    .finally(() => {
-      loadStatusChanges(generation);
     });
 };
 

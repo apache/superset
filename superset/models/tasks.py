@@ -268,14 +268,15 @@ class Task(CoreTask, AuditMixinNullable, Model):
     @property
     def duration_seconds(self) -> float | None:
         """
-        Get task duration in seconds.
+        Get task duration in seconds (execution time), or ``None`` before a task
+        has started.
 
         - Finished tasks: Time from started_at to ended_at (None if never started)
         - Running/aborting tasks: Time from started_at to now
-        - Pending tasks: Time from created_on to now (queue time)
+        - Pending tasks: None — a task that hasn't started has no duration to show
+          (queue time is not execution time)
 
-        Note: started_at/ended_at are stored in UTC, but created_on from
-        AuditMixinNullable is stored as naive local time. We handle both cases.
+        Note: started_at/ended_at are stored in UTC.
         """
         if self.is_finished:
             # Task has completed - use fixed timestamps, never increment
@@ -295,16 +296,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
                 else self.started_at
             )
             return (now - started).total_seconds()
-        elif self.created_on:
-            # Pending - created_on is naive LOCAL time (from AuditMixinNullable)
-            # Use naive local time for comparison
-            now = datetime.now()  # Local time, no timezone
-            created = (
-                self.created_on.replace(tzinfo=None)
-                if self.created_on.tzinfo is not None
-                else self.created_on
-            )
-            return (now - created).total_seconds()
+        # Pending (not yet started) - no duration.
         return None
 
     # Scope-related properties
