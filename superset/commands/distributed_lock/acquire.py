@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -78,6 +79,11 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
     ) -> None:
         super().__init__(namespace, params)
         self.ttl_seconds = ttl_seconds or get_default_lock_ttl()
+        # A per-acquisition token stored as the lock's value, so release can
+        # verify ownership (compare-and-delete) and never delete a lock a
+        # *different* holder acquired after this one's TTL expired. Exposed to
+        # the DistributedLock context manager, which threads it to release.
+        self.token = uuid.uuid4().hex
 
     def run(self) -> None:
         if CoordinationService.is_backend_defined():
@@ -88,11 +94,12 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
     def _acquire_redis(self) -> None:
         """Acquire lock using the coordination backend's SET NX EX (atomic)."""
         try:
-            # SET NX EX: Set if not exists, with expiration
+            # SET NX EX: Set if not exists, with expiration. The value is this
+            # acquisition's ownership token (see release's compare-and-delete).
             # Returns True if lock acquired, None if already exists
             acquired = CoordinationService.set_value(
                 self.redis_lock_key,
-                "1",
+                self.token,
                 ttl=self.ttl_seconds,
                 if_absent=True,
             )
@@ -119,10 +126,11 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
         # Delete expired entries first to prevent stale locks from blocking
         KeyValueDAO.delete_expired_entries(self.resource)
 
-        # Create entry - unique constraint will raise if lock already exists
+        # Create entry - unique constraint will raise if lock already exists.
+        # The value carries this acquisition's ownership token (see release).
         KeyValueDAO.create_entry(
             resource=KeyValueResource.LOCK,
-            value={"value": True},
+            value={"token": self.token},
             codec=self.codec,
             key=self.key,
             expires_on=datetime.now(timezone.utc) + timedelta(seconds=self.ttl_seconds),

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 from functools import partial
+from typing import Any
 
 import redis
 from sqlalchemy.exc import SQLAlchemyError
@@ -37,9 +38,24 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
     """
     Release a distributed lock with automatic backend selection.
 
-    Uses Redis DELETE when DISTRIBUTED_COORDINATION_CONFIG is configured,
-    otherwise deletes from KeyValue table.
+    Uses Redis when DISTRIBUTED_COORDINATION_CONFIG is configured, otherwise the
+    KeyValue table. Release is **ownership-checked**: it only removes the lock if
+    the stored value still matches this acquisition's ``token``. Without that
+    check, a holder whose TTL expired (letting another holder acquire the same
+    key) would delete the *new* holder's lock on its own release.
     """
+
+    def __init__(
+        self,
+        namespace: str,
+        params: dict[str, Any] | None = None,
+        token: str | None = None,
+    ) -> None:
+        super().__init__(namespace, params)
+        # The acquisition token to match on release (see AcquireDistributedLock).
+        # None means "delete unconditionally" — only for callers that did not
+        # acquire via the token-aware path.
+        self.token = token
 
     def run(self) -> None:
         if CoordinationService.is_backend_defined():
@@ -48,8 +64,26 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
             self._release_kv()
 
     def _release_redis(self) -> None:
-        """Release lock using the coordination backend's DELETE."""
+        """Release the lock only if we still own it (compare-and-delete)."""
         try:
+            if self.token is not None:
+                stored = CoordinationService.get_value(self.redis_lock_key)
+                if stored is None:
+                    # Already gone (expired or released) — nothing to do.
+                    return
+                stored_token = stored.decode() if isinstance(stored, bytes) else stored
+                if stored_token != self.token:
+                    # A different acquisition owns the key now (ours expired);
+                    # deleting it would drop the current holder's lock.
+                    logger.warning(
+                        "Not releasing Redis lock %s: owned by another acquisition",
+                        self.redis_lock_key,
+                    )
+                    return
+            # NOTE: the get-then-delete above is not atomic; the residual window
+            # (ours expires and is re-acquired between the get and the delete) is
+            # bounded by the round-trip and vastly smaller than an unconditional
+            # delete's exposure. A Lua compare-and-delete would close it fully.
             CoordinationService.delete_value(self.redis_lock_key)
             logger.debug("Released Redis lock: %s", self.redis_lock_key)
         except redis.RedisError as ex:
@@ -71,7 +105,18 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
         ),
     )
     def _release_kv(self) -> None:
-        """Release lock using KeyValue table (database)."""
+        """Release the KV lock only if we still own it (ownership-checked)."""
+        if self.token is not None:
+            stored = KeyValueDAO.get_value(self.resource, self.key, self.codec)
+            if not isinstance(stored, dict) or stored.get("token") != self.token:
+                # Missing/expired, or re-acquired by another holder — leave it.
+                logger.warning(
+                    "Not releasing KV lock namespace=%s key=%s: not owned by "
+                    "this acquisition",
+                    self.namespace,
+                    self.key,
+                )
+                return
         KeyValueDAO.delete_entry(self.resource, self.key)
         logger.debug(
             "Released KV lock: namespace=%s key=%s",
