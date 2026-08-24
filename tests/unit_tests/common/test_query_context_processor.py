@@ -1162,7 +1162,7 @@ def test_processing_time_offsets_quarter_offset_shifts_query_window(
 
     datasource.query = fake_query
     datasource.normalize_df = MagicMock(
-        side_effect=lambda offset_df, _query_object: offset_df
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
     )
 
     with (
@@ -1256,7 +1256,7 @@ def test_processing_time_offsets_accepts_zero_shift_offset(
 
     datasource.query = fake_query
     datasource.normalize_df = MagicMock(
-        side_effect=lambda offset_df, _query_object: offset_df
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
     )
 
     with (
@@ -2364,7 +2364,7 @@ def test_relative_offset_preserves_inner_bounds(
 
     datasource.query = fake_query
     datasource.normalize_df = MagicMock(
-        side_effect=lambda offset_df, _query_object: offset_df
+        side_effect=lambda offset_df, _query_object, _labels=None: offset_df
     )
 
     with (
