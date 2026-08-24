@@ -51,7 +51,10 @@ async def find_users(request: FindUsersRequest, ctx: Context) -> FindUsersRespon
     list_charts, or list_datasets.
 
     Matches case-insensitively against username, first_name, and last_name.
-    Email is deliberately not matched: an email lookup would confirm whether
+    Email is deliberately not matched, and an email-shaped query is rejected
+    outright rather than falling through to the username column: since
+    usernames are frequently email addresses under OAuth provisioning, a
+    plain column exclusion would still let an email lookup confirm whether
     an address has an account (and resolve it to a person), a directory
     capability the web API reserves for admins. The query is required and
     non-empty; this tool does not enumerate the full user directory.

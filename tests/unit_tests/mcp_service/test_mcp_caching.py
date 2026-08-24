@@ -19,6 +19,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from superset.mcp_service.caching import (
     _build_caching_settings,
     _version_cache_prefix,
@@ -248,3 +250,34 @@ def test_create_response_caching_middleware_fails_closed_without_principal_optin
             )
 
             assert create_response_caching_middleware() is None
+
+
+@pytest.mark.asyncio
+async def test_excluded_tools_covers_every_mutating_tool():
+    """Every registered tool without readOnlyHint=True must be listed in
+    MCP_CACHE_CONFIG["excluded_tools"].
+
+    Caching is keyed on tool name + arguments and served ahead of
+    per-request auth/RBAC, so a mutating tool left off this list can
+    silently replay a stale create/update/delete result to a caller who
+    repeats an identical call expecting it to actually run again. This
+    list is maintained by hand (FastMCP's caching middleware only accepts
+    a static exclusion list); this test is what keeps it complete as new
+    tools are added, by failing with the specific tool name(s) missing.
+    """
+    from superset.mcp_service.app import mcp
+    from superset.mcp_service.mcp_config import MCP_CACHE_CONFIG
+
+    tools = await mcp.list_tools()
+    mutating_tool_names = {
+        tool.name
+        for tool in tools
+        if tool.annotations is None or tool.annotations.readOnlyHint is not True
+    }
+
+    excluded = set(MCP_CACHE_CONFIG["excluded_tools"])
+    missing = mutating_tool_names - excluded
+    assert not missing, (
+        f"These mutating tools are cacheable because they're missing from "
+        f"MCP_CACHE_CONFIG['excluded_tools']: {sorted(missing)}"
+    )

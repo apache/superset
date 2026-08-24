@@ -343,12 +343,38 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
     "get_prompt_ttl": 60 * 60,  # 1 hour
     "call_tool_ttl": 60 * 60,  # 1 hour
     "max_item_size": 1024 * 1024,  # 1MB
-    "excluded_tools": [  # Tools that should never be cached (side effects, dynamic)
-        "execute_sql",
-        "generate_dashboard",
+    # Every tool whose ToolAnnotations set readOnlyHint=False, i.e. every tool
+    # with a side effect. A cache hit is served ahead of per-request
+    # auth/RBAC, so caching a mutating tool can replay a stale create/update/
+    # delete result -- including to a caller who repeats an identical call
+    # expecting it to run again. This list is enforced complete by
+    # test_mcp_caching.py::test_excluded_tools_covers_every_mutating_tool,
+    # which fails with the specific missing tool name(s) if a new
+    # non-read-only tool is added without also being added here.
+    "excluded_tools": [
+        "add_chart_to_existing_dashboard",
+        "create_dataset",
+        "create_theme",
+        "create_virtual_dataset",
+        "delete_chart",
+        "delete_dashboard",
         "duplicate_dashboard",
+        "execute_sql",
         "generate_chart",
+        "generate_dashboard",
+        "generate_explore_link",
+        "manage_dashboard_certification",
+        "manage_dashboard_owners",
+        "manage_dashboard_roles",
+        "manage_native_filters",
+        "remove_chart_from_dashboard",
+        "restore_chart",
+        "restore_dashboard",
+        "save_sql_query",
         "update_chart",
+        "update_chart_preview",
+        "update_dashboard",
+        "update_dataset_metric",
     ],
 }
 

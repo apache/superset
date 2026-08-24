@@ -24,6 +24,7 @@ system-level info.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Annotated, Any, List
 
@@ -31,6 +32,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.subjects.types import SubjectType
+
+# Shape-only check, not RFC validation: just enough to catch "local@domain.tld"
+# so an email-shaped query can be rejected before it reaches the username
+# column, since usernames are frequently email addresses under OAuth
+# provisioning.
+_EMAIL_SHAPE_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class HealthCheckResponse(BaseModel):
@@ -191,9 +198,9 @@ class FindUsersRequest(BaseModel):
             max_length=200,
             description=(
                 "Substring to match (case-insensitive) against username, "
-                "first_name, and last_name (never email). Required and "
-                "non-empty: this tool does not enumerate the full user "
-                "directory."
+                "first_name, and last_name (never email; email-shaped "
+                "queries are rejected). Required and non-empty: this tool "
+                "does not enumerate the full user directory."
             ),
         ),
     ]
@@ -217,6 +224,20 @@ class FindUsersRequest(BaseModel):
         if not stripped:
             raise ValueError("query must contain at least one non-whitespace character")
         return stripped
+
+    @field_validator("query")
+    @classmethod
+    def _reject_email_shaped_query(cls, value: str) -> str:
+        # Email isn't a searchable column here, but usernames are commonly
+        # email addresses under OAuth provisioning, so an email-shaped query
+        # would still confirm an account's existence via the username column.
+        # Reject the shape outright rather than relying on the column
+        # exclusion alone.
+        if _EMAIL_SHAPE_RE.match(value):
+            raise ValueError(
+                "query must not be an email address; search by name or username instead"
+            )
+        return value
 
 
 class UserMatch(BaseModel):

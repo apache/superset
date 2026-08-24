@@ -23,6 +23,7 @@ autouse mock_auth fixture, matching the other dashboard tool test files.
 
 from collections.abc import Iterator
 from datetime import datetime
+from typing import Any
 from unittest.mock import Mock, patch
 from uuid import UUID
 
@@ -289,14 +290,25 @@ async def test_restore_dashboard_inaccessible_dashboard_reads_as_not_found(
     """A dashboard outside the caller's RBAC scope must not leak its
     existence or title: the unfiltered restore lookup finds it, the
     base-filtered re-lookup does not, so the tool must answer exactly as if it
-    does not exist."""
+    does not exist.
+
+    The mock's return value is keyed on the actual ``skip_base_filter`` kwarg
+    of each call rather than call order, so a regression that accidentally
+    keeps ``skip_base_filter=True`` on the re-lookup (turning the intended
+    NotFound response into a disclosure) is caught by a call-order-based
+    mock returning the dashboard on both calls, not masked by it."""
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import SupersetSecurityException
 
-    mock_find.side_effect = [
-        _mock_dashboard(dashboard_id=10, title="Secret Board"),
-        None,  # base-filtered re-lookup
-    ]
+    def _find_side_effect(*args: Any, **kwargs: Any) -> Any | None:
+        # Mirrors the real DAO contract: only an explicit skip_base_filter=True
+        # (the initial unfiltered restore lookup) sees the dashboard; the
+        # re-lookup omits it, so it defaults to False and must see nothing.
+        if kwargs.get("skip_base_filter"):
+            return _mock_dashboard(dashboard_id=10, title="Secret Board")
+        return None
+
+    mock_find.side_effect = _find_side_effect
     forbidden = SupersetSecurityException(
         SupersetError(
             message="forbidden",
