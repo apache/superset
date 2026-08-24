@@ -53,7 +53,7 @@ export class DashboardV2Page {
     CANVAS: '[data-test="canvas"]',
     GRID_CONTAINER: '[data-test="grid-container"]',
     GRID_DROP_GHOST: '[data-test="grid-drop-ghost"]',
-    BUILDING_BLOCKS_TAB: 'text=Building blocks',
+    WIDGETS_TAB: 'text=Widgets',
     GRID_STACK_ITEM: '.grid-stack-item',
   } as const;
 
@@ -115,15 +115,13 @@ export class DashboardV2Page {
   }
 
   /**
-   * Switches back to the "Building blocks" palette tab. Placing (or
-   * selecting) a block switches the editor panel to Properties, so a test
-   * that places one block via `placeBlockByClick` and then wants to drag a
-   * second one from the palette needs this in between.
+   * Switches back to the "Widgets" palette tab. Placing (or selecting) a
+   * block switches the editor panel to Properties, so a test that places
+   * one block via `placeBlockByClick` and then wants to drag a second one
+   * from the palette needs this in between.
    */
   async showPalette(): Promise<void> {
-    await this.page
-      .locator(DashboardV2Page.SELECTORS.BUILDING_BLOCKS_TAB)
-      .click();
+    await this.page.locator(DashboardV2Page.SELECTORS.WIDGETS_TAB).click();
   }
 
   /**
