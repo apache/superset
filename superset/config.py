@@ -2922,6 +2922,23 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
 
+# Ceiling (milliseconds) for the status-poll interval. The client polls eagerly at
+# GLOBAL_ASYNC_QUERIES_POLLING_DELAY, then backs off exponentially while the tasks
+# it is awaiting stay quiet — up to this maximum — snapping back to eager the moment
+# an awaited task changes.
+GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY = int(
+    timedelta(seconds=30).total_seconds() * 1000
+)
+
+# How long (milliseconds) the client keeps polling with no progress on the tasks it
+# is awaiting before it gives up and surfaces an error. Guards against a stuck or
+# orphaned task (e.g. a worker killed mid-execution) keeping a chart spinning — and
+# the poll running — forever. The clock resets whenever an awaited task changes, so
+# steady progress is never interrupted.
+GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT = int(
+    timedelta(minutes=10).total_seconds() * 1000
+)
+
 # Minimum cache TTL (seconds) for chart-data results produced by an *async*
 # request. The async flow caches each query's result and the client then
 # re-issues the request to read it back, so a cache TTL shorter than the round

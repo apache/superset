@@ -21,7 +21,6 @@ from datetime import datetime
 from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
-from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from superset_core.tasks.types import TaskOptions, TaskScope
 
@@ -47,9 +46,6 @@ if TYPE_CHECKING:
     from superset.security.guest_token import GuestToken
 
 logger = logging.getLogger(__name__)
-query_timeout = current_app.config[
-    "SQLLAB_ASYNC_TIME_LIMIT_SEC"
-]  # TODO: new config key
 
 # GTF task type for the chart-data fan-out. Each QueryObject runs as its own SHARED
 # task keyed by its query_cache_key (safe cross-user dedup — the key encodes
@@ -107,7 +103,11 @@ def _inject_contribution_totals(
             post_processing.setdefault("options", {})["contribution_totals"] = totals
 
 
-@task(name=CHART_QUERY_TASK, scope=TaskScope.SHARED, timeout=query_timeout)
+# No timeout is set on these tasks yet: GTF enforces a timeout by aborting the
+# task, but chart-data queries have no abort handler to cancel the underlying
+# warehouse query, so a timeout would only mark the task failed while the query
+# kept running. Restore a timeout once query cancellation is implemented.
+@task(name=CHART_QUERY_TASK, scope=TaskScope.SHARED)
 def execute_chart_query(
     serialized_query: SerializedQuery,
     user_id: int | None = None,
@@ -189,6 +189,24 @@ def submit_chart_data_query_tasks(
         query_context.cache_values["queries"][totals_idx]["row_limit"] = None
         totals_key = _query_task_cache_key(query_context, totals_idx)
 
+    def _task_name(index: int) -> str | None:
+        """A human-friendly Task List label from the in-memory QueryContext.
+
+        Prefer the chart (slice) name, falling back to the dataset name — both are
+        already loaded on the QueryContext, so this adds no metastore round trip.
+        A multi-query chart (e.g. contribution + totals) disambiguates with a
+        ``(1)``/``(2)`` suffix. Returns ``None`` when neither is available,
+        leaving the task_key hash.
+        """
+        slice_ = getattr(query_context, "slice_", None)
+        name = getattr(slice_, "slice_name", None) if slice_ else None
+        if not name:
+            datasource = getattr(query_context, "datasource", None)
+            name = getattr(datasource, "name", None) if datasource else None
+        if not name:
+            return None
+        return f"{name} ({index + 1})" if len(queries) > 1 else name
+
     def _schedule(
         index: int,
         depends_on: "list[CoreTask | UUID | str] | None" = None,
@@ -200,6 +218,7 @@ def submit_chart_data_query_tasks(
             totals_key if index in needs_totals else None,
             options=TaskOptions(
                 task_key=_query_task_cache_key(query_context, index),
+                task_name=_task_name(index),
                 depends_on=depends_on,
             ),
         )

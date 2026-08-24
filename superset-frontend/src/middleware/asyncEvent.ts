@@ -72,7 +72,21 @@ type Waiter = {
 
 let config: AppConfig;
 let pollingDelayMs: number;
+// Backoff state: the poll starts eager (`pollingDelayMs`), degrades — doubling up
+// to `pollBackoffMaxMs` — while awaited tasks are quiet, and snaps back to eager
+// the moment an awaited task changes or a new waiter registers.
+let currentPollDelayMs: number;
+let pollBackoffMaxMs: number;
+// Give-up guard: if no awaited task makes progress for `pollStaleTimeoutMs`, the
+// poll abandons its waiters (rejecting them) so a stuck/orphaned task can't spin a
+// chart — or the poll — forever. `lastProgressAt` is the epoch ms of the last
+// progress (or waiter registration); it resets on any awaited-task change.
+let pollStaleTimeoutMs: number;
+let lastProgressAt: number;
 let pollingTimeoutId: number;
+// Whether the poll loop is running. It stops entirely when no waiters remain (no
+// idle heartbeat) and is restarted by ``ensurePolling`` when a waiter registers.
+let pollingActive = false;
 // Registry of in-flight waiters keyed by every task uuid they await, so a single
 // shared poll loop fans status changes out to whichever requests are awaiting them.
 // A SHARED task can be deduplicated across concurrent chart requests, so each task
@@ -128,18 +142,32 @@ const unregister = (waiter: Waiter) => {
   });
 };
 
-const settle = (waiter: Waiter) => {
+const settle = (waiter: Waiter, error?: unknown) => {
   unregister(waiter);
   if (waiter.signal && waiter.onAbort) {
     waiter.signal.removeEventListener('abort', waiter.onAbort);
   }
-  if (waiter.failed) {
+  if (error !== undefined) {
+    waiter.reject(error);
+  } else if (waiter.failed) {
     waiter.reject(
       new Error('One or more chart-data queries failed'), // surfaced via getClientErrorObject
     );
   } else {
     waiter.resolve();
   }
+};
+
+// Give up on every still-pending waiter (rejecting them), so a stuck/orphaned
+// task surfaces an error instead of spinning forever. Collect first — settle()
+// mutates waitersByTaskId as it unregisters. Emptying the registry lets the poll
+// loop stop on its next tick.
+const abandonPolling = () => {
+  const stranded = new Set<Waiter>();
+  waitersByTaskId.forEach(waiters => waiters.forEach(w => stranded.add(w)));
+  stranded.forEach(waiter =>
+    settle(waiter, new Error('Timed out waiting for chart-data query results')),
+  );
 };
 
 const applyStatus = (taskId: string, status: string) => {
@@ -155,28 +183,75 @@ const applyStatus = (taskId: string, status: string) => {
 };
 
 const loadStatusChanges = async (generation: number) => {
-  if (generation !== pollingGeneration) return;
+  if (generation !== pollingGeneration) {
+    pollingActive = false;
+    return;
+  }
   if (waitersByTaskId.size) {
     try {
       const { statuses, cursor: next } = await fetchStatusChanges({
         cursor,
         task_type: CHART_QUERY_TASK_TYPE,
       });
-      if (generation !== pollingGeneration) return;
+      if (generation !== pollingGeneration) {
+        pollingActive = false;
+        return;
+      }
       cursor = next;
-      Object.entries(statuses).forEach(([taskId, { status }]) =>
-        applyStatus(taskId, status),
-      );
+      // "Progress" = the batch carried a change for a task we're awaiting; check
+      // membership before applyStatus, which deletes a settled task's waiters.
+      let progressed = false;
+      Object.entries(statuses).forEach(([taskId, { status }]) => {
+        if (waitersByTaskId.has(taskId)) progressed = true;
+        applyStatus(taskId, status);
+      });
+      if (progressed) {
+        // Reset to eager polling and restart the give-up clock on any change.
+        currentPollDelayMs = pollingDelayMs;
+        lastProgressAt = Date.now();
+      } else {
+        // No progress: give up if we've been stale too long (a stuck/orphaned
+        // task), else back off (bounded).
+        if (Date.now() - lastProgressAt >= pollStaleTimeoutMs) {
+          abandonPolling();
+          pollingActive = false;
+          return;
+        }
+        currentPollDelayMs = Math.min(currentPollDelayMs * 2, pollBackoffMaxMs);
+      }
     } catch (err) {
-      if (generation !== pollingGeneration) return;
+      if (generation !== pollingGeneration) {
+        pollingActive = false;
+        return;
+      }
       logging.warn(err);
     }
   }
   // Reschedule from the tail so a slow request never overlaps the next tick.
+  // Nothing left to await → stop the loop entirely (no idle heartbeat); the next
+  // waiter restarts it from the eager interval via ensurePolling.
+  if (!waitersByTaskId.size) {
+    pollingActive = false;
+    currentPollDelayMs = pollingDelayMs;
+    return;
+  }
+  pollingActive = true;
   pollingTimeoutId = window.setTimeout(
     () => loadStatusChanges(generation),
-    pollingDelayMs,
+    currentPollDelayMs,
   );
+};
+
+// Start (or wake) the poll loop for a freshly registered waiter: poll eagerly
+// again, and kick the loop if it had gone idle. Idempotent — a no-op while the
+// loop is already running or when async queries are disabled.
+const ensurePolling = () => {
+  currentPollDelayMs = pollingDelayMs;
+  lastProgressAt = Date.now(); // a fresh request restarts the give-up clock
+  if (!pollingActive && isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
+    pollingActive = true;
+    loadStatusChanges(pollingGeneration);
+  }
 };
 
 /**
@@ -269,6 +344,8 @@ export const waitForAsyncData = async <T = unknown[]>(
       }
       waiters.add(waiter);
     });
+    // Wake the poll loop (eager again) now that there's something to await.
+    ensurePolling();
   });
 
   return refetch();
@@ -291,12 +368,24 @@ export const init = (appConfig?: AppConfig) => {
   const generation = pollingGeneration;
   waitersByTaskId = new Map();
   cursor = null;
+  pollingActive = false;
 
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
+  // Backoff ceiling (never below the eager interval) and the no-progress give-up
+  // window, both operator-configurable (ms).
+  pollBackoffMaxMs = Math.max(
+    pollingDelayMs,
+    config.GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY || 30_000,
+  );
+  pollStaleTimeoutMs =
+    config.GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT || 600_000;
+  currentPollDelayMs = pollingDelayMs;
+  lastProgressAt = Date.now();
 
   // Establish a baseline cursor before any chart query is triggered, so tasks
-  // created afterwards are all caught by the changed-since poll, then start the
-  // shared poll loop from that watermark.
+  // created afterwards are all caught by the changed-since poll. The loop itself
+  // stays idle until the first waiter registers (ensurePolling), then stops again
+  // once every awaited task settles.
   fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
     .then(({ cursor: baseline }) => {
       // Seed the initial cursor only; never overwrite a value a waiter already
@@ -308,9 +397,6 @@ export const init = (appConfig?: AppConfig) => {
       // A missing baseline just means the first poll starts from "everything
       // changed so far"; the >= cursor semantics still catch our tasks.
       logging.warn('Failed to fetch async baseline cursor', err);
-    })
-    .finally(() => {
-      loadStatusChanges(generation);
     });
 };
 

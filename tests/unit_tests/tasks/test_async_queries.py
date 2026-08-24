@@ -119,3 +119,42 @@ def test_guest_token_forwarded(mocker: MockerFixture) -> None:
 
     # The guest token is passed to the task so the worker can impersonate.
     assert scheduled[0]["args"][2] == guest.guest_token
+
+
+def test_task_name_prefers_slice_name(mocker: MockerFixture) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
+
+    scheduled = _patch_schedule(mocker)
+    ctx = _fake_query_context(1)
+    ctx.slice_.slice_name = "Sales by Region"
+
+    submit_chart_data_query_tasks(ctx, user_id=1)
+
+    assert scheduled[0]["kwargs"]["options"].task_name == "Sales by Region"
+
+
+def test_task_name_falls_back_to_dataset_name(mocker: MockerFixture) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
+
+    scheduled = _patch_schedule(mocker)
+    ctx = _fake_query_context(1)
+    ctx.slice_ = None  # ad-hoc / unsaved chart → no slice name
+    ctx.datasource.name = "cleaned_sales_data"
+
+    submit_chart_data_query_tasks(ctx, user_id=1)
+
+    assert scheduled[0]["kwargs"]["options"].task_name == "cleaned_sales_data"
+
+
+def test_task_name_disambiguates_multiple_queries(mocker: MockerFixture) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
+
+    scheduled = _patch_schedule(mocker)
+    ctx = _fake_query_context(2)
+    ctx.slice_ = None
+    ctx.datasource.name = "births"
+
+    submit_chart_data_query_tasks(ctx, user_id=1)
+
+    names = [s["kwargs"]["options"].task_name for s in scheduled]
+    assert names == ["births (1)", "births (2)"]

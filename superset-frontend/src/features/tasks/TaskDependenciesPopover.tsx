@@ -46,9 +46,10 @@ const DependencyName = styled.span`
   white-space: nowrap;
 `;
 
-const LinkIconWrapper = styled.span`
+const LinkIconWrapper = styled.span<{ $waiting?: boolean }>`
   cursor: pointer;
-  color: ${({ theme }) => theme.colorIcon};
+  color: ${({ theme, $waiting }) =>
+    $waiting ? theme.colorWarningText : theme.colorIcon};
 
   &:hover {
     color: ${({ theme }) => theme.colorPrimary};
@@ -57,10 +58,14 @@ const LinkIconWrapper = styled.span`
 
 interface TaskDependenciesPopoverProps {
   dependencies: TaskDependency[];
+  // Unmet prerequisites while this task is still pending (blocked). When > 0 the
+  // chain icon turns warning-colored and the popover title reflects the wait.
+  waitingOn?: number;
 }
 
 export default function TaskDependenciesPopover({
   dependencies,
+  waitingOn = 0,
 }: TaskDependenciesPopoverProps) {
   const [visible, setVisible] = useState(false);
 
@@ -79,14 +84,18 @@ export default function TaskDependenciesPopover({
 
   return (
     <Popover
-      title={t('Depends on')}
+      title={
+        waitingOn > 0
+          ? t('Waiting on %s prerequisite task(s) to finish', waitingOn)
+          : t('Depends on')
+      }
       content={content}
       trigger="hover"
       placement="leftTop"
       open={visible}
       onOpenChange={setVisible}
     >
-      <LinkIconWrapper>
+      <LinkIconWrapper $waiting={waitingOn > 0}>
         <Icons.LinkOutlined iconSize="l" />
       </LinkIconWrapper>
     </Popover>

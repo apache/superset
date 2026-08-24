@@ -177,6 +177,63 @@ test('polls from the pre-task cursor returned in the 202', async () => {
   expect(polled).toBe(true);
 });
 
+test('stops polling once all awaited tasks settle', async () => {
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(config);
+
+  await asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn().mockResolvedValue([]),
+  );
+
+  // The loop must go fully idle — no heartbeat polling after everything settled.
+  const pollsAtSettle = fetchMock.callHistory.calls(
+    STATUS_CHANGES_ENDPOINT,
+  ).length;
+  await new Promise(resolve => {
+    setTimeout(resolve, config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY * 12);
+  });
+  expect(fetchMock.callHistory.calls(STATUS_CHANGES_ENDPOINT).length).toBe(
+    pollsAtSettle,
+  );
+});
+
+test('restarts polling for a new job after going idle', async () => {
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(config);
+
+  await asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn().mockResolvedValue([]),
+  );
+  // Loop is idle now. A second job must wake it and resolve.
+  statusResponses.push({
+    statuses: { 'task-2': { status: 'success' } },
+    cursor: '2020-01-01T00:00:09',
+  });
+  const refetch = jest.fn().mockResolvedValue([{ rows: 9 }]);
+  const result = await asyncEvent.waitForAsyncData(
+    { task_ids: ['task-2'] },
+    refetch,
+  );
+
+  expect(result).toEqual([{ rows: 9 }]);
+});
+
+test('gives up (rejects) after the stale timeout with no progress', async () => {
+  queueStatuses(); // only the baseline — the awaited task never changes
+  asyncEvent.init({
+    ...config,
+    GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 40, // ms
+  });
+
+  const refetch = jest.fn();
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['stuck-task'] }, refetch),
+  ).rejects.toThrow('Timed out waiting for chart-data query results');
+  expect(refetch).not.toHaveBeenCalled();
+});
+
 describe('realtime WebSocket acceleration', () => {
   const realtime = (taskId: string, status: string) => ({
     channel: `realtime:user:1`,
