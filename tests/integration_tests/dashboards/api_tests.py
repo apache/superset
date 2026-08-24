@@ -21,8 +21,10 @@ import uuid
 from datetime import datetime, timedelta
 from io import BytesIO
 from time import sleep
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 from zipfile import is_zipfile, ZipFile
+
+from flask import current_app
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
@@ -3581,6 +3583,43 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_sign.assert_called_once_with(
             "exports", "dashboard-exports/1/job.xlsx", ANY
         )
+
+    def test_download_xlsx_uses_configured_storage_backend(self):
+        """Dashboard API: EXCEL_EXPORT_STORAGE (e.g. GCSExportStorage()) takes
+        over minting the download URL entirely; the default boto3/S3 helper
+        must not also run."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+        )
+        db.session.commit()
+        mock_storage = MagicMock()
+        mock_storage.generate_download_url.return_value = (
+            "https://storage.googleapis.com/signed"
+        )
+        current_app.config["EXCEL_EXPORT_STORAGE"] = mock_storage
+        try:
+            with patch(
+                "superset.dashboards.api.s3.generate_presigned_url"
+            ) as mock_sign:
+                rv = self.client.get(
+                    f"/api/v1/dashboard/export_xlsx/download/{job_id}/"
+                )
+        finally:
+            current_app.config["EXCEL_EXPORT_STORAGE"] = None
+        assert rv.status_code == 302
+        assert rv.headers["Location"] == "https://storage.googleapis.com/signed"
+        mock_storage.generate_download_url.assert_called_once_with(
+            "exports", "dashboard-exports/1/job.xlsx", ANY
+        )
+        mock_sign.assert_not_called()
 
     def test_download_xlsx_410_for_unknown_key(self):
         rv = self.client.get(f"/api/v1/dashboard/export_xlsx/download/{uuid.uuid4()}/")

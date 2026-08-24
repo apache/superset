@@ -1944,9 +1944,16 @@ class DashboardRestApi(
         if resolved is None:
             return self.response(410, message="This download link has expired.")
         bucket, key = resolved
-        return redirect(
-            s3.generate_presigned_url(bucket, key, PRESIGNED_URL_TTL_SECONDS)
-        )
+        storage = current_app.config.get("EXCEL_EXPORT_STORAGE")
+        if storage is not None:
+            download_url = storage.generate_download_url(
+                bucket, key, PRESIGNED_URL_TTL_SECONDS
+            )
+        else:
+            download_url = s3.generate_presigned_url(
+                bucket, key, PRESIGNED_URL_TTL_SECONDS
+            )
+        return redirect(download_url)
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])

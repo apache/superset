@@ -184,6 +184,12 @@ excel = ["xlrd>=2.0.2, <2.1"]
 # emails a pre-signed link. boto3 is imported lazily by superset.utils.s3, so
 # installing this extra is only required to actually run exports.
 excel-export = ["boto3"]
+# Alternate dashboard Excel export storage backend (EXCEL_EXPORT_STORAGE =
+# GCSExportStorage()) for a deployment whose export bucket is a native Google
+# Cloud Storage bucket rather than S3. google-cloud-storage is imported lazily
+# by superset.utils.gcs, so this extra is an alternative to excel-export, not
+# an addition to it -- pick whichever matches your bucket's provider.
+excel-export-gcs = ["google-cloud-storage"]
 fastmcp = [
     "fastmcp>=3.4.6,<4.0",
     # tiktoken backs the response-size-guard token estimator. Without
