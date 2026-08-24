@@ -122,6 +122,8 @@ def test_submit_task_joins_existing(app_context, login_as, get_user) -> None:
     )
     task1 = command1.run()
     assert task1.user_id == admin.id
+    # dedupe_count is seeded on creation and bumped when a submit joins this task.
+    assert task1.properties_dict.get("dedupe_count") == 0
 
     try:
         # Submit second task with same task_key and type
@@ -137,6 +139,8 @@ def test_submit_task_joins_existing(app_context, login_as, get_user) -> None:
         task2 = command2.run()
         assert task2.id == task1.id
         assert task2.uuid == task1.uuid
+        # The resubmit joined the existing task → counted as a dedupe.
+        assert task2.properties_dict.get("dedupe_count") == 1
     finally:
         # Cleanup
         db.session.delete(task1)

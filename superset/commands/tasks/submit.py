@@ -114,6 +114,15 @@ class SubmitTaskCommand(BaseCommand):
             stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
 
             if existing:
+                # Finding an existing task is itself a dedupe (work reused, not
+                # re-created), whether the caller becomes a new subscriber or
+                # resubmits as an existing one. Count it on the task's properties.
+                existing.update_properties(
+                    {
+                        "dedupe_count": existing.properties_dict.get("dedupe_count", 0)
+                        + 1
+                    }
+                )
                 # Join existing task - add subscriber if not already subscribed
                 if user_id and not existing.has_subscriber(user_id):
                     TaskDAO.add_subscriber(existing.id, user_id)
@@ -129,7 +138,7 @@ class SubmitTaskCommand(BaseCommand):
                     TaskDAO.add_guest_subscriber(existing.id, guest_key)
                     stats_logger.incr("gtf.task.subscribe")
                 else:
-                    # Same user submitted the same task - deduplication hit
+                    # Same subscriber resubmitted the same task - deduplication hit
                     stats_logger.incr("gtf.task.dedupe")
                     logger.debug(
                         "Deduplication hit for task: %s (user_id=%s)",
