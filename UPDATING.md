@@ -602,6 +602,30 @@ substitution is deliberately not blanked so the broken link is visible rather th
 silently truncated. Use `{datasource_id}` (still supported) to identify the dataset
 to your access-request system, and resolve the name there.
 
+### Superset no longer auto-generates `type:`/`editor:`/`favorited_by:` tags
+
+With `TAGGING_SYSTEM` enabled, Superset used to auto-tag every chart,
+dashboard, saved query, and dataset with implicit tags derived from
+metadata (object type, editors, and who favorited it), and generate a
+`favorited_by:<user id>` tag on every favorite/unfavorite. Nothing in the
+UI ever surfaced these tags to users — every tags list and filter in the
+frontend explicitly excluded them — so the generation added continuous
+write overhead (13 SQLAlchemy event listeners across 5 models) with no
+user-visible benefit. That generation is removed.
+
+Manually-created (custom) tags are unaffected: creating, editing,
+listing, and filtering tags still works exactly as before, including the
+`custom_tag` API filter used to distinguish custom from implicit tags.
+
+Deployments already running with `TAGGING_SYSTEM` enabled keep any
+`type:`/`editor:`/`favorited_by:` tag rows created before upgrading — they
+remain queryable via the API and MCP's `list_tags`/`get_tag_info` tools,
+and are still exempt from bulk tag deletion — but no new ones are created,
+and the `superset sync_tags` CLI command that backfilled them has been
+removed. The `DASHBOARD_LIST_CUSTOM_TAGS_ONLY` config flag and the
+dashboard-list optimization it enabled are also removed, since every tag
+returned is now a custom tag by default.
+
 ### MCP tool results preserve stored string values
 
 Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or
