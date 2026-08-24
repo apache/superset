@@ -80,6 +80,11 @@ updates:
         patterns:
           - "ag-grid-react"
           - "ag-grid-community"
+      swc:
+        patterns:
+          - "@swc/core"
+          - "@swc/plugin-emotion"
+          - "@swc/plugin-transform-imports"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
