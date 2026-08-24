@@ -196,13 +196,26 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        def is_str_or_adhoc(metric: Metric) -> bool:
-            return isinstance(metric, str) or is_adhoc_metric(metric)
+        # Keys that only ever appear on an ad-hoc metric definition. A dict
+        # carrying one of these but missing `expressionType` is a malformed
+        # ad-hoc metric, not a legacy predefined-metric reference, and must
+        # not be silently collapsed to its label, which would later be
+        # misread as a request for a saved metric of that name.
+        adhoc_metric_keys = {"sqlExpression", "aggregate", "column"}
 
-        self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
-        ]
+        def normalize_metric(metric: Metric) -> Metric:
+            if isinstance(metric, str) or is_adhoc_metric(metric):
+                return metric
+            if adhoc_metric_keys & metric.keys():
+                raise QueryObjectValidationError(
+                    _(
+                        "Invalid ad-hoc metric %(label)s: `expressionType` is missing",
+                        label=metric.get("label"),
+                    )
+                )
+            return metric["label"]  # type: ignore
+
+        self.metrics = metrics and [normalize_metric(x) for x in metrics]
 
     def _set_post_processing(
         self, post_processing: list[dict[str, Any] | None] | None
