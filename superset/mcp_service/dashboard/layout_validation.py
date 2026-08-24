@@ -27,46 +27,71 @@ _GRID_ID = "GRID_ID"
 _HEADER_ID = "HEADER_ID"
 _VERSION_KEY = "DASHBOARD_VERSION_KEY"
 _CHART_TYPE = "CHART"
+# Chart IDs are database integers; a decimal string longer than a 64-bit value
+# is malformed input rather than an ID that could ever resolve.
+_MAX_CHART_ID_DIGITS = 19
 
 # Keep in sync with the frontend's parent/child contract in
-# superset-frontend/src/dashboard/util/isValidChild.ts. The frontend also uses
-# depth limits for drag-and-drop; validation is iterative so deeply nested input
-# cannot overflow Python's call stack.
-_ALLOWED_CHILD_TYPES: dict[str, frozenset[str]] = {
-    "ROOT": frozenset({"GRID", "TABS"}),
-    "GRID": frozenset(
-        {
-            "CHART",
-            "COLUMN",
-            "DIVIDER",
-            "DYNAMIC",
-            "HEADER",
-            "MARKDOWN",
-            "ROW",
-            "TABS",
-        }
-    ),
-    "ROW": frozenset({"CHART", "COLUMN", "DYNAMIC", "MARKDOWN"}),
-    "TABS": frozenset({"TAB"}),
-    "TAB": frozenset(
-        {
-            "CHART",
-            "COLUMN",
-            "DIVIDER",
-            "DYNAMIC",
-            "HEADER",
-            "MARKDOWN",
-            "ROW",
-            "TABS",
-        }
-    ),
-    "COLUMN": frozenset({"CHART", "DIVIDER", "HEADER", "MARKDOWN", "ROW", "TABS"}),
-    "CHART": frozenset(),
-    "DIVIDER": frozenset(),
-    "DYNAMIC": frozenset(),
-    "HEADER": frozenset(),
-    "MARKDOWN": frozenset(),
+# superset-frontend/src/dashboard/util/isValidChild.ts, which admits a child
+# only when both its type and its parent's nesting depth are allowed. The
+# values below are that file's ``parentMaxDepthLookup``; traversal is iterative
+# so deeply nested input cannot overflow Python's call stack.
+_ROOT_DEPTH = 0
+_DEPTH_ONE = _ROOT_DEPTH + 1
+_DEPTH_THREE = _ROOT_DEPTH + 3
+_DEPTH_FOUR = _ROOT_DEPTH + 4
+_DEPTH_FIVE = _ROOT_DEPTH + 5
+
+_PARENT_MAX_DEPTH: dict[str, dict[str, int]] = {
+    "ROOT": {"GRID": _ROOT_DEPTH, "TABS": _ROOT_DEPTH},
+    "GRID": {
+        "CHART": _DEPTH_ONE,
+        "COLUMN": _DEPTH_ONE,
+        "DIVIDER": _DEPTH_ONE,
+        "DYNAMIC": _DEPTH_ONE,
+        "HEADER": _DEPTH_ONE,
+        "MARKDOWN": _DEPTH_ONE,
+        "ROW": _DEPTH_ONE,
+        "TABS": _DEPTH_ONE,
+    },
+    "ROW": {
+        "CHART": _DEPTH_FOUR,
+        "COLUMN": _DEPTH_FOUR,
+        "DYNAMIC": _DEPTH_FOUR,
+        "MARKDOWN": _DEPTH_FOUR,
+    },
+    "TABS": {"TAB": _DEPTH_THREE},
+    "TAB": {
+        "CHART": _DEPTH_FIVE,
+        "COLUMN": _DEPTH_THREE,
+        "DIVIDER": _DEPTH_FIVE,
+        "DYNAMIC": _DEPTH_FIVE,
+        "HEADER": _DEPTH_FIVE,
+        "MARKDOWN": _DEPTH_FIVE,
+        "ROW": _DEPTH_THREE,
+        "TABS": _DEPTH_THREE,
+    },
+    "COLUMN": {
+        "CHART": _DEPTH_FIVE,
+        "DIVIDER": _DEPTH_THREE,
+        "HEADER": _DEPTH_FIVE,
+        "MARKDOWN": _DEPTH_FIVE,
+        "ROW": _DEPTH_THREE,
+        "TABS": _DEPTH_THREE,
+    },
+    "CHART": {},
+    "DIVIDER": {},
+    "DYNAMIC": {},
+    "HEADER": {},
+    "MARKDOWN": {},
 }
+_ALLOWED_CHILD_TYPES: dict[str, frozenset[str]] = {
+    parent_type: frozenset(child_depths)
+    for parent_type, child_depths in _PARENT_MAX_DEPTH.items()
+}
+# TABS and TAB deliberately render their children at their own depth; every
+# other container increments it. See the worked examples in isValidChild.ts.
+_DEPTH_TRANSPARENT_TYPES = frozenset({"TABS", "TAB"})
 _CONTAINER_TYPES = frozenset(
     component_type
     for component_type, child_types in _ALLOWED_CHILD_TYPES.items()
@@ -76,14 +101,29 @@ _META_REQUIRED_TYPES = frozenset(_ALLOWED_CHILD_TYPES) - {"ROOT", "GRID"}
 
 
 def normalize_chart_id(value: Any) -> int | None:
-    """Normalize an integer or canonical decimal-string chart ID."""
+    """Normalize an integer or canonical decimal-string chart ID.
+
+    Only canonical decimal strings are accepted. Leading-zero forms such as
+    ``"007"`` are rejected so that layout lookups and the ``json_metadata``
+    cleanup in ``remove_chart_from_dashboard`` — which keys off
+    ``str(chart_id)`` — cannot disagree about whether a reference matches and
+    leave stale references behind. The digit bound keeps ``int()`` away from
+    CPython's integer string conversion limit, which would otherwise raise
+    ``ValueError`` out of the validator instead of returning a structured
+    error; no real chart ID approaches it.
+    """
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
         return value if value > 0 else None
-    if isinstance(value, str) and value.isascii() and value.isdecimal():
-        normalized = int(value)
-        return normalized if normalized > 0 else None
+    if (
+        isinstance(value, str)
+        and value.isascii()
+        and value.isdecimal()
+        and len(value) <= _MAX_CHART_ID_DIGITS
+        and not value.startswith("0")
+    ):
+        return int(value)
     return None
 
 
@@ -219,13 +259,16 @@ def validate_dashboard_layout(  # noqa: C901
     # The frontend treats ``parents`` as derived metadata and recomputes it
     # during hydration. Saved layouts can therefore omit it or retain stale
     # values after drag-and-drop; the validated child edges are authoritative.
-    stack = [_ROOT_ID]
+    # Depth is likewise derived here rather than trusted, and is only defined
+    # for reachable nodes, so the nesting limits are checked on this walk.
+    stack: list[tuple[str, int]] = [(_ROOT_ID, _ROOT_DEPTH)]
     while stack:
-        component_id = stack.pop()
+        component_id, depth = stack.pop()
         component = components[component_id]
+        component_type = component["type"]
         visited.add(component_id)
 
-        if component["type"] == _CHART_TYPE:
+        if component_type == _CHART_TYPE:
             chart_id = normalize_chart_id(component["meta"].get("chartId"))
             if chart_id is None:
                 return (
@@ -234,8 +277,16 @@ def validate_dashboard_layout(  # noqa: C901
                 )
             reachable_chart_ids.add(chart_id)
 
+        child_depth = depth if component_type in _DEPTH_TRANSPARENT_TYPES else depth + 1
         for child_id in reversed(component.get("children") or []):
-            stack.append(child_id)
+            # ``_validate_edges`` already accepted this parent/child type pair,
+            # so a missing entry here is impossible.
+            if depth > _PARENT_MAX_DEPTH[component_type][components[child_id]["type"]]:
+                return (
+                    f"Layout component {child_id} is nested too deeply under "
+                    f"{component_id}."
+                )
+            stack.append((child_id, child_depth))
 
     top_level_type = components[root_children[0]]["type"]
     for component_id, component in components.items():

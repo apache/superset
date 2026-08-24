@@ -297,3 +297,105 @@ def test_rejects_malformed_string_chart_id() -> None:
         "Chart component CHART-1 must have a positive integer or "
         "decimal-string chartId."
     )
+
+
+def test_rejects_leading_zero_string_chart_id() -> None:
+    # ``remove_chart_from_dashboard`` cleans json_metadata by ``str(chart_id)``,
+    # so accepting "001" here would let a chart be detached while stale "001"
+    # references survive in expanded_slices and timed_refresh_immune_slices.
+    layout = _grid_layout()
+    layout["CHART-1"]["meta"]["chartId"] = "001"
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "Chart component CHART-1 must have a positive integer or "
+        "decimal-string chartId."
+    )
+
+
+def test_rejects_oversized_string_chart_id() -> None:
+    # Guards CPython's integer string conversion limit: an unbounded int()
+    # would raise ValueError out of the tool instead of returning an error.
+    layout = _grid_layout()
+    layout["CHART-1"]["meta"]["chartId"] = "9" * 10_000
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "Chart component CHART-1 must have a positive integer or "
+        "decimal-string chartId."
+    )
+
+
+def test_rejects_nesting_beyond_frontend_depth_limit() -> None:
+    # isValidChild.ts caps COLUMN > ROW at a parent depth of three. Nesting
+    # ROW > COLUMN > ROW > COLUMN > ROW pushes the innermost COLUMN past it.
+    layout = _grid_layout()
+    layout["ROW-1"]["children"] = ["COLUMN-1"]
+    layout["COLUMN-1"] = {
+        "children": ["ROW-2"],
+        "id": "COLUMN-1",
+        "meta": {},
+        "type": "COLUMN",
+    }
+    layout["ROW-2"] = {
+        "children": ["COLUMN-2"],
+        "id": "ROW-2",
+        "meta": {},
+        "type": "ROW",
+    }
+    layout["COLUMN-2"] = {
+        "children": ["ROW-3"],
+        "id": "COLUMN-2",
+        "meta": {},
+        "type": "COLUMN",
+    }
+    layout["ROW-3"] = {
+        "children": ["CHART-1"],
+        "id": "ROW-3",
+        "meta": {},
+        "type": "ROW",
+    }
+
+    assert validate_dashboard_layout(layout, {1}) == (
+        "Layout component ROW-3 is nested too deeply under COLUMN-2."
+    )
+
+
+def test_accepts_maximum_supported_nesting_depth() -> None:
+    # The deepest arrangement isValidChild.ts documents as valid:
+    # root > grid > row > column > row > chart.
+    layout = _grid_layout()
+    layout["ROW-1"]["children"] = ["COLUMN-1"]
+    layout["COLUMN-1"] = {
+        "children": ["ROW-2"],
+        "id": "COLUMN-1",
+        "meta": {},
+        "type": "COLUMN",
+    }
+    layout["ROW-2"] = {
+        "children": ["CHART-1"],
+        "id": "ROW-2",
+        "meta": {},
+        "type": "ROW",
+    }
+
+    assert validate_dashboard_layout(layout, {1}) is None
+
+
+def test_accepts_tabs_without_consuming_depth() -> None:
+    # TABS and TAB render children at their own depth, so a tab-wrapped row
+    # must remain valid at the depth its enclosing container already had.
+    layout = _grid_layout()
+    layout["GRID_ID"]["children"] = ["TABS-1"]
+    layout["TABS-1"] = {
+        "children": ["TAB-1"],
+        "id": "TABS-1",
+        "meta": {},
+        "type": "TABS",
+    }
+    layout["TAB-1"] = {
+        "children": ["ROW-1"],
+        "id": "TAB-1",
+        "meta": {},
+        "type": "TAB",
+    }
+
+    assert validate_dashboard_layout(layout, {1}) is None
