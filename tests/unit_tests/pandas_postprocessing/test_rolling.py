@@ -107,6 +107,23 @@ def test_rolling():
         )
 
 
+def test_rolling_rejects_window_over_max():
+    """
+    ``window`` comes from the unvalidated post-processing options dict; the
+    documented schema range (1-10000) is enforced at the point ``window`` is
+    consumed, since a huge integer window combined with ``win_type`` makes
+    scipy allocate a weights array proportional to it.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="must not exceed"):
+        pp.rolling(
+            df=timeseries_df,
+            columns={"y": "y"},
+            rolling_type="sum",
+            window=10001,
+            min_periods=0,
+        )
+
+
 def test_rolling_min_periods_trims_correctly():
     pivot_df = pp.pivot(
         df=single_metric_df,

@@ -196,6 +196,54 @@ interface DatasourceObject {
   folders?: DatasourceFolder[];
 }
 
+/**
+ * Lift the certification and warning fields a metric keeps inside its `extra`
+ * JSON blob onto the metric itself, which is the shape the editor's fields bind
+ * to.
+ *
+ * Two entry points feed the editor two different metric shapes: the dataset
+ * list hands over the API payload, where `extra` is still a JSON string, while
+ * Explore hands over its bootstrap payload, where `SqlMetric.data` has already
+ * flattened `extra` into `warning_markdown` and dropped the raw string. The
+ * parsed blob is therefore only authoritative when `extra` is actually present;
+ * otherwise the already-flattened value stands, instead of being reset to an
+ * empty field.
+ *
+ * A malformed `extra` string is treated the same as an absent one (falls
+ * through to the already-flattened value) rather than throwing, mirroring
+ * the backend's own tolerance for bad `extra` JSON in
+ * `CertificationMixin.get_extra_dict()`.
+ */
+export function hydrateMetricExtra(metric: Metric): Metric {
+  const {
+    certified_by: certifiedByMetric,
+    certification_details: certificationDetails,
+  } = metric;
+  let parsedExtra;
+  if (metric.extra) {
+    try {
+      parsedExtra = JSON.parse(metric.extra) || {};
+    } catch {
+      parsedExtra = undefined;
+    }
+  }
+  const {
+    certification: {
+      details = undefined,
+      certified_by: certifiedBy = undefined,
+    } = {},
+  } = parsedExtra || {};
+  const warningMarkdown = parsedExtra
+    ? parsedExtra.warning_markdown
+    : metric.warning_markdown;
+  return {
+    ...metric,
+    certification_details: certificationDetails || details,
+    warning_markdown: warningMarkdown || '',
+    certified_by: certifiedBy || certifiedByMetric,
+  };
+}
+
 interface DatasourceEditorOwnProps {
   datasource: DatasourceObject;
   onChange?: (datasource: DatasourceObject, errors: string[]) => void;
@@ -852,25 +900,7 @@ function DatasourceEditor({
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
     editors: normalizeSubjectsToPickerValues(propsDatasource.editors || []),
-    metrics: propsDatasource.metrics?.map(metric => {
-      const {
-        certified_by: certifiedByMetric,
-        certification_details: certificationDetails,
-      } = metric;
-      const {
-        certification: {
-          details = undefined,
-          certified_by: certifiedBy = undefined,
-        } = {},
-        warning_markdown: warningMarkdown,
-      } = JSON.parse(metric.extra || '{}') || {};
-      return {
-        ...metric,
-        certification_details: certificationDetails || details,
-        warning_markdown: warningMarkdown || metric.warning_markdown || '',
-        certified_by: certifiedBy || certifiedByMetric,
-      };
-    }),
+    metrics: propsDatasource.metrics?.map(hydrateMetricExtra),
   }));
 
   const [errors, setErrors] = useState<string[]>([]);
@@ -1993,7 +2023,6 @@ function DatasourceEditor({
                           col => col.column_name,
                         )}
                         height={300}
-                        allowHTML
                       />
                     </>
                   )}

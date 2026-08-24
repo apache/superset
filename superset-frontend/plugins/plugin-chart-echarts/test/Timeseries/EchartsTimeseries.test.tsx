@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from '@testing-library/react';
-import { AxisType } from '@superset-ui/core';
+import { render, waitFor } from '@testing-library/react';
+import { AxisType, DTTM_ALIAS, TimeGranularity } from '@superset-ui/core';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
+import { logging } from '@apache-superset/core/utils';
+import type { ECElementEvent } from 'echarts/types/src/util/types';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
-import { TimeseriesChartTransformedProps } from '../../src/Timeseries/types';
+import {
+  OrientationType,
+  TimeseriesChartTransformedProps,
+} from '../../src/Timeseries/types';
+import type { EchartsProps } from '../../src/types';
 
 // Percent-change draggable baseline: this is the one piece of the ECharts
 // rebuilds with zero prior test coverage despite six separate production
@@ -40,12 +46,14 @@ let mockChart: {
   convertFromPixel: jest.Mock;
   getModel: jest.Mock;
 };
+const mockEchart = jest.fn();
 
 jest.mock('../../src/components/Echart', () => {
   const { forwardRef, useImperativeHandle } = jest.requireActual('react');
   return {
     __esModule: true,
-    default: forwardRef((_props: unknown, ref: unknown) => {
+    default: forwardRef((props: unknown, ref: unknown) => {
+      mockEchart(props);
       useImperativeHandle(ref, () => ({
         getEchartInstance: () => mockChart,
       }));
@@ -115,6 +123,17 @@ function renderTimeseries(
   );
 }
 
+function getLatestEchartProps() {
+  const lastCall = mockEchart.mock.calls.at(-1);
+  expect(lastCall).toBeDefined();
+  const [props] = lastCall as [EchartsProps];
+  return props;
+}
+
+function advanceClickTimer() {
+  jest.advanceTimersByTime(300);
+}
+
 // Pulls the graphic descriptor for the draggable baseline handle out of the
 // most recent setOption call, mirroring how ECharts itself would read it.
 function getBaselineGraphic() {
@@ -126,6 +145,7 @@ function getBaselineGraphic() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockEchart.mockReset();
   setupChartMock();
   jest.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
     cb(0);
@@ -134,6 +154,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  jest.useRealTimers();
   jest.restoreAllMocks();
 });
 
@@ -244,4 +265,401 @@ test('does not touch the chart instance when rebase is disabled', () => {
   renderTimeseries({ formData: { rebasePercentChange: false } as any });
 
   expect(mockChart.setOption).not.toHaveBeenCalled();
+});
+
+test('emits TEMPORAL_RANGE cross-filter from time axis label click on day bucket', () => {
+  const setDataMask = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.DAY,
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.DAY,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  const labelClickHandler = getLatestEchartProps().queryEventHandlers?.find(
+    ({ query }) => query === 'xAxis',
+  )?.handler;
+  expect(labelClickHandler).toBeDefined();
+  labelClickHandler?.({
+    targetType: 'axisLabel',
+    value: '2021-01-01',
+  } as unknown as ECElementEvent);
+
+  expect(setDataMask.mock.calls[0][0]).toEqual({
+    extraFormData: {
+      filters: [
+        {
+          col: 'ds',
+          op: 'TEMPORAL_RANGE',
+          val: '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
+        },
+      ],
+    },
+    filterState: {
+      label: ['2021-01-01T00:00:00 : 2021-01-02T00:00:00'],
+      value: ['2021-01-01T00:00:00 : 2021-01-02T00:00:00'],
+      selectedValues: ['2021-01-01T00:00:00 : 2021-01-02T00:00:00'],
+    },
+  });
+});
+
+test('emits upper-exclusive TEMPORAL_RANGE from time point click on month bucket', () => {
+  jest.useFakeTimers();
+  const setDataMask = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.MONTH,
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  getLatestEchartProps().eventHandlers?.click?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2021, 0, 1), 100],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+  advanceClickTimer();
+
+  expect(setDataMask.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
+});
+
+test('uses resolved time grain for temporal point-click cross-filter', () => {
+  jest.useFakeTimers();
+  const setDataMask = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.MONTH,
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.DAY,
+      extraFormData: {
+        time_grain_sqla: TimeGranularity.MONTH,
+      },
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  getLatestEchartProps().eventHandlers?.click?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2021, 0, 1), 100],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+  advanceClickTimer();
+
+  expect(setDataMask.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
+});
+
+test('emits TEMPORAL_RANGE from string-typed time point click value', () => {
+  jest.useFakeTimers();
+  const setDataMask = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.MONTH,
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  getLatestEchartProps().eventHandlers?.click?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: ['2021-01-01T00:00:00Z', 100],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+  advanceClickTimer();
+
+  expect(setDataMask.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
+});
+
+test('emits TEMPORAL_RANGE from horizontal time point click using timestamp, not metric', () => {
+  jest.useFakeTimers();
+  const setDataMask = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.MONTH,
+    formData: {
+      orientation: OrientationType.Horizontal,
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  getLatestEchartProps().eventHandlers?.click?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [129, Date.UTC(2021, 0, 1)],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+  advanceClickTimer();
+
+  expect(setDataMask.mock.calls[0][0].extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
+});
+
+test('clears temporal X-axis cross-filter when clicking selected bucket again', () => {
+  jest.useFakeTimers();
+  const setDataMask = jest.fn();
+  const selectedRange = '2021-01-01T00:00:00 : 2021-02-01T00:00:00';
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    selectedValues: { 0: selectedRange },
+    resolvedTimeGrain: TimeGranularity.MONTH,
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  getLatestEchartProps().eventHandlers?.click?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2021, 0, 1), 100],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+  advanceClickTimer();
+
+  expect(setDataMask.mock.calls[0][0]).toEqual({
+    extraFormData: {
+      filters: [],
+    },
+    filterState: {
+      label: undefined,
+      value: null,
+      selectedValues: null,
+    },
+  });
+});
+
+test('emits empty temporal X-axis data mask when filter grain is missing', () => {
+  jest.useFakeTimers();
+  const setDataMask = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: undefined,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  getLatestEchartProps().eventHandlers?.click?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2021, 0, 1), 100],
+    name: '2021-01-01',
+    dataIndex: 0,
+  });
+  advanceClickTimer();
+
+  expect(setDataMask.mock.calls[0][0]).toEqual({
+    extraFormData: {
+      filters: [],
+    },
+    filterState: {
+      label: undefined,
+      value: null,
+      selectedValues: null,
+    },
+  });
+});
+
+test('warns and skips temporal cross-filter when string value cannot be parsed', () => {
+  jest.useFakeTimers();
+  const setDataMask = jest.fn();
+  const warn = jest.spyOn(logging, 'warn').mockImplementation();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.MONTH,
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  getLatestEchartProps().eventHandlers?.click?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: ['not-a-date', 100],
+    name: 'not-a-date',
+    dataIndex: 0,
+  });
+  advanceClickTimer();
+
+  expect(setDataMask).not.toHaveBeenCalled();
+  expect(warn).toHaveBeenCalledWith(
+    'Unable to parse time axis value for cross-filtering',
+    'not-a-date',
+  );
+});
+
+test('does not emit temporal X-axis label cross-filter when dimensions are set', () => {
+  const setDataMask = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    setDataMask,
+    groupby: ['country'],
+    formData: {
+      groupby: ['country'],
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  const labelClickHandler = getLatestEchartProps().queryEventHandlers?.find(
+    ({ query }) => query === 'xAxis',
+  )?.handler;
+  expect(labelClickHandler).toBeDefined();
+  labelClickHandler?.({
+    targetType: 'axisLabel',
+    value: '2021-01-01',
+  } as unknown as ECElementEvent);
+
+  expect(setDataMask).not.toHaveBeenCalled();
+});
+
+test('context menu cross-filter is available for a temporal bar point', async () => {
+  const onContextMenu = jest.fn();
+
+  renderTimeseries({
+    emitCrossFilters: true,
+    onContextMenu,
+    groupby: [],
+    resolvedTimeGrain: TimeGranularity.MONTH,
+    formData: {
+      granularitySqla: 'ds',
+      timeGrainSqla: TimeGranularity.DAY,
+      extraFormData: {
+        time_grain_sqla: TimeGranularity.MONTH,
+      },
+      vizType: 'echarts_timeseries_line',
+    } as any,
+    xAxis: {
+      label: DTTM_ALIAS,
+      type: AxisType.Time,
+    },
+  });
+
+  await getLatestEchartProps().eventHandlers?.contextmenu?.({
+    componentType: 'series',
+    seriesName: 'Sales',
+    data: [Date.UTC(2021, 0, 1), 100],
+    name: '2021-01-01',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  await waitFor(() => {
+    expect(onContextMenu).toHaveBeenCalled();
+  });
+
+  const { crossFilter } = onContextMenu.mock.calls[0][2];
+  expect(crossFilter.dataMask.extraFormData.filters).toEqual([
+    {
+      col: 'ds',
+      op: 'TEMPORAL_RANGE',
+      val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    },
+  ]);
 });

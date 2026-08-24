@@ -1165,6 +1165,110 @@ test('x-axis dedup keeps the forced min label when the endpoints format identica
   expect(formatter(min)).toBe('May');
 });
 
+test('#39899 - x-axis dates do not overlap and last label stays visible at 0° rotation (mixed)', () => {
+  // When showMaxLabel is active on a time axis with 0° rotation,
+  // hideOverlap must be off so ECharts cannot suppress the forced
+  // max label (the end-of-axis date).
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+    ],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['sum__num'],
+      metricsB: ['sum__num'],
+      groupby: [],
+      groupbyB: [],
+      xAxisLabelRotation: 0,
+      // showMaxLabel (and therefore hideOverlap: false) only activates when
+      // a time grain resolves, so this needs one set to actually exercise
+      // the #39899 fix rather than silently no-op.
+      timeGrainSqla: TimeGranularity.MONTH,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+      createTestQueryData(
+        [
+          {
+            __timestamp: Date.UTC(2026, 0, 1),
+            sum__num: 100,
+          },
+          {
+            __timestamp: Date.UTC(2026, 6, 1),
+            sum__num: 200,
+          },
+        ],
+        {
+          colnames: ['__timestamp', 'sum__num'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { axisLabel } = echartOptions.xAxis as Record<string, any>;
+
+  expect(axisLabel.showMaxLabel).toBe(true);
+  expect(axisLabel.alignMaxLabel).toBe('right');
+  expect(axisLabel.hideOverlap).toBe(false);
+});
+
 test('regression #37921: multi-metric Query A with groupby does not duplicate first metric in series names', () => {
   // Regression test for https://github.com/apache/superset/issues/37921
   // ("Residual" follow-up to #37055).

@@ -21,6 +21,8 @@ import { Dispatch } from 'redux';
 import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
+  FeatureFlag,
+  isFeatureEnabled,
   type QueryFormData,
   SimpleAdhocFilter,
   SupersetClient,
@@ -30,11 +32,25 @@ import { isEmpty } from 'lodash-es';
 import { Slice } from 'src/dashboard/types';
 import { Operators } from '../constants';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { nanoid } from 'nanoid';
+import {
+  beginChartNormalizationSave,
+  completeChartNormalizationSave,
+} from 'src/features/versionHistory/reducer';
+import type {
+  AutomaticNormalizationTransitions,
+  ChartNormalizationTrackingState,
+} from 'src/features/versionHistory/types';
+import {
+  matchingAutomaticNormalizationTransitions,
+  stashDropNormalizationTransitions,
+} from 'src/features/versionHistory/normalization';
 
 export interface PayloadSlice extends Slice {
   params: string;
   dashboards: number[];
   query_context: string;
+  normalization_changes?: AutomaticNormalizationTransitions[string][];
 }
 const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
@@ -233,21 +249,84 @@ export const updateSlice =
       new?: boolean;
     },
   ) =>
-  async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
+  async (
+    dispatch: Dispatch,
+    getState: () => Partial<QueryFormData> & {
+      versionHistory?: {
+        chartNormalization?: ChartNormalizationTrackingState | null;
+      };
+      explore?: {
+        form_data?: QueryFormData;
+        hiddenFormData?: Record<string, unknown>;
+      };
+    },
+  ) => {
     const { slice_id: sliceId, editors, form_data: formDataFromSlice } = slice;
-    const formData = getState().explore?.form_data;
+    const initialState = getState();
+    const formData = JSON.parse(
+      JSON.stringify(initialState.explore?.form_data ?? {}),
+    ) as QueryFormData;
+    const tracking = initialState.versionHistory?.chartNormalization;
+    const saveAttemptId = nanoid();
+    const shouldAttachNormalization =
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      tracking?.chartId === sliceId;
+    if (shouldAttachNormalization) {
+      dispatch(
+        beginChartNormalizationSave(
+          sliceId,
+          tracking.hydrationSessionId,
+          saveAttemptId,
+        ),
+      );
+    }
     try {
+      const payload = await getSlicePayload(
+        sliceName,
+        formData,
+        dashboards,
+        editors as [],
+        formDataFromSlice,
+      );
+      const savedFormData = JSON.parse(payload.params ?? '{}') as QueryFormData;
+      // Hydration-time transitions that still hold, plus save-time drops of
+      // keys the stash removed (mutually exclusive per control: a surviving
+      // hydration transition implies the key is present in the payload, a
+      // stash drop implies it is absent).
+      const matchingTransitions = shouldAttachNormalization
+        ? {
+            ...matchingAutomaticNormalizationTransitions(
+              tracking,
+              savedFormData,
+            ),
+            ...stashDropNormalizationTransitions(
+              (formDataFromSlice ?? {}) as Record<string, unknown>,
+              initialState.explore?.hiddenFormData,
+              savedFormData,
+            ),
+          }
+        : {};
+      if (
+        shouldAttachNormalization &&
+        Object.keys(matchingTransitions).length
+      ) {
+        payload.normalization_changes = Object.values(matchingTransitions);
+      }
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        jsonPayload: await getSlicePayload(
-          sliceName,
-          formData,
-          dashboards,
-          editors as [],
-          formDataFromSlice,
-        ),
+        jsonPayload: payload,
       });
 
+      if (shouldAttachNormalization) {
+        dispatch(
+          completeChartNormalizationSave(
+            sliceId,
+            tracking.hydrationSessionId,
+            saveAttemptId,
+            {},
+          ),
+        );
+      }
       dispatch(saveSliceSuccess(response.json));
       addToasts(false, sliceName, addedToDashboard).map(dispatch);
       return response.json;
