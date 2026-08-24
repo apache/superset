@@ -123,6 +123,9 @@ def execute_chart_query(
     """
     with override_user(_resolve_user(user_id, guest_token), force=False):
         query_context = load_serialized_query(serialized_query)
+        # Floor the result-cache TTL: async caches the result for a follow-up
+        # request to read back (see get_cache_timeout).
+        query_context.is_async_execution = True
         query_obj = query_context.queries[0]
         if totals_cache_key:
             _inject_contribution_totals(query_obj, totals_cache_key)

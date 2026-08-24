@@ -2922,6 +2922,16 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
 
+# Minimum cache TTL (seconds) for chart-data results produced by an *async*
+# request. The async flow caches each query's result and the client then
+# re-issues the request to read it back, so a cache TTL shorter than the round
+# trip could evict the result before it is fetched, hanging the chart. When a
+# query runs async, its result-cache TTL is floored to this value (a longer
+# slice/dataset/deployment TTL is kept as-is, and 0 — "cache forever" — is left
+# untouched). This floor applies ONLY to async execution; synchronous
+# ``/chart/data`` requests are unaffected even when GLOBAL_ASYNC_QUERIES is on.
+GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL = int(timedelta(minutes=5).total_seconds())
+
 # Deployment default for whether the UI runs chart-data queries asynchronously when
 # GLOBAL_ASYNC_QUERIES is enabled. This is a FRONTEND-ONLY policy input: async is
 # opt-in per request via an ``async_mode`` flag on ``/chart/data`` (an absent flag is
