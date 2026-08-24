@@ -194,7 +194,8 @@ class SupersetApp(Flask):
 
             logger.info("Syncing configuration to database...")
 
-            # Register SQLA event listeners for tagging system
+            # Register the tagged_object cleanup listeners for the tagging system
+            # (deletion only; see superset.tags.core.register_sqla_event_listeners)
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 from superset.tags.core import register_sqla_event_listeners
 
