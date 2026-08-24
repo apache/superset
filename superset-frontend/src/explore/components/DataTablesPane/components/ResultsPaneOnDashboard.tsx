@@ -88,7 +88,12 @@ export const ResultsPaneOnDashboard = ({
 
   return (
     <Wrapper>
-      <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={items} />
+      <Tabs
+        fullHeight
+        activeKey={activeTabKey}
+        onChange={setActiveTabKey}
+        items={items}
+      />
     </Wrapper>
   );
 };
