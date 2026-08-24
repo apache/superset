@@ -102,9 +102,7 @@ class InternalUpdateTaskCommand(BaseCommand):
             _publish_entity_change(self._task_uuid)
         return updated
 
-    @transaction(
-        on_error=partial(on_error, reraise=TaskUpdateFailedError, preserve_message=True)
-    )
+    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def _run_in_transaction(self) -> bool:
         """
         Execute zero-read update.
@@ -196,9 +194,7 @@ class InternalStatusTransitionCommand(BaseCommand):
             _publish_entity_change(self._task_uuid)
         return updated
 
-    @transaction(
-        on_error=partial(on_error, reraise=TaskUpdateFailedError, preserve_message=True)
-    )
+    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def _run_in_transaction(self) -> bool:
         """
         Execute atomic conditional status update.

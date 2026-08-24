@@ -743,22 +743,23 @@ export function exploreJSON(
       setTimeout(() => prevController.abort(), 0);
     }
 
-    // Re-issue the chart-data request. On the async path this runs after every
-    // query task has succeeded, so `force` is dropped — the per-query DATA cache
-    // is warm and this returns synchronously (200) from cache. `forceSync` opts
-    // out of async entirely (used as the fallback below when the result could
-    // not be cached), so the server returns the payload inline rather than a 202.
-    const requestChartData = (fromCache = false, forceSync = false) =>
+    // Re-issue the chart-data request. `sync` opts out of async execution: the
+    // initial request runs async (per policy); the post-completion re-issue below
+    // runs synchronously so the server serves it inline (from the warm per-query
+    // cache, or by computing once if the result wasn't cached) instead of
+    // scheduling a second background task. `force` is always the caller's own, so
+    // a forced refresh never reads a stale cached entry.
+    const requestChartData = (sync = false) =>
       getChartDataRequest({
         setDataMask,
         formData,
         resultFormat: 'json',
         resultType: 'full',
-        force: fromCache ? false : force,
+        force,
         requestParams,
         ownState,
         // exploreJSON handles 202 via handleChartDataResponse.
-        enableAsyncMode: !forceSync,
+        enableAsyncMode: !sync,
       });
 
     const chartDataRequest = requestChartData();
@@ -768,21 +769,15 @@ export function exploreJSON(
         handleChartDataResponse(
           response,
           json,
+          // After every query task has succeeded, re-issue the request
+          // synchronously: it reads the warm per-query DATA cache (200), or — if
+          // the result wasn't cached (oversized value / per-query disabled
+          // timeout; NullCache is refused server-side) — computes it inline once.
+          // Never schedules another async task, and never returns a 202.
           () =>
-            requestChartData(true).then(({ response: r, json: j }) => {
-              // Tasks succeeded, but if the result was never cached the
-              // re-request returns another 202 (NullCache is refused server-side,
-              // yet an oversized result or a per-query disabled timeout still
-              // skips the write). Fall back to a synchronous fetch, which returns
-              // the payload inline, instead of looping on an uncacheable request.
-              if (r.status === 202) {
-                return requestChartData(true, true).then(
-                  ({ response: sr, json: sj }) =>
-                    handleChartDataResponse(sr, sj),
-                ) as Promise<QueryData[]>;
-              }
-              return handleChartDataResponse(r, j);
-            }) as Promise<QueryData[]>,
+            requestChartData(true).then(({ response: r, json: j }) =>
+              handleChartDataResponse(r, j),
+            ) as Promise<QueryData[]>,
           controller.signal,
         ),
       )

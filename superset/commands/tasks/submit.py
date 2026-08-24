@@ -60,9 +60,7 @@ class SubmitTaskCommand(BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
-    @transaction(
-        on_error=partial(on_error, reraise=TaskCreateFailedError, preserve_message=True)
-    )
+    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
     def run(self) -> "Task":
         """
         Execute the command with distributed locking.
@@ -75,9 +73,7 @@ class SubmitTaskCommand(BaseCommand):
         task, _ = self.run_with_info()
         return task
 
-    @transaction(
-        on_error=partial(on_error, reraise=TaskCreateFailedError, preserve_message=True)
-    )
+    @transaction(on_error=partial(on_error, reraise=TaskCreateFailedError))
     def run_with_info(self) -> tuple["Task", bool]:
         """
         Execute the command and return (task, is_new) tuple.
