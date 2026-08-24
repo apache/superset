@@ -877,10 +877,13 @@ describe('SelectFilterPlugin', () => {
     expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
   });
 
-  test('does not show create option when searchAllOptions is true', () => {
+  test('shows create option when searchAllOptions is true', async () => {
+    // Server-side search returns a bounded page, so a value that exists in the
+    // data can still be missing from the dropdown. Suppressing the create
+    // option there leaves the user with no way to apply it at all.
     getWrapper({ creatable: true, searchAllOptions: true });
     userEvent.type(screen.getByRole('combobox'), 'brand-new');
-    expect(screen.queryByTitle('brand-new')).not.toBeInTheDocument();
+    expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
   });
 });
 

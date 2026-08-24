@@ -272,7 +272,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             type: 'ownState',
             ownState: {
               coltypeMap: initialColtypeMap,
-              search,
+              // The dropdown offers `stripSurroundingQuotes(search)` as the
+              // creatable option, so the server has to be asked for the same
+              // string or the two disagree about what was searched for.
+              search: stripSurroundingQuotes(search).trim(),
             },
           });
         }
@@ -282,8 +285,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleBlur = useCallback(() => {
     unsetFocusedFilter();
-    onSearch('');
-  }, [onSearch, unsetFocusedFilter]);
+    if (search) {
+      onSearch('');
+    }
+  }, [onSearch, search, unsetFocusedFilter]);
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
@@ -337,7 +342,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     const unquotedSearch = stripSurroundingQuotes(search);
     if (
       unquotedSearch &&
-      !searchAllOptions &&
       creatable !== false &&
       !hasOption(unquotedSearch, uniqueOptions, true)
     ) {
@@ -347,7 +351,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ];
     }
     return uniqueOptions;
-  }, [search, uniqueOptions, creatable, searchAllOptions]);
+  }, [search, uniqueOptions, creatable]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
@@ -634,7 +638,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               name={formData.nativeFilterId}
               allowClear
               autoClearSearchValue
-              allowNewOptions={!searchAllOptions && creatable !== false}
+              allowNewOptions={creatable !== false}
               allowNewOptionsOnPaste={multiSelect && searchAllOptions}
               allowSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}

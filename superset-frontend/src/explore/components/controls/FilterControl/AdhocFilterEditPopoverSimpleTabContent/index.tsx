@@ -16,13 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ChangeEvent, useEffect, useState, useRef } from 'react';
+import {
+  FC,
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+} from 'react';
 
 import {
+  AsyncSelect,
   Input,
   InputRef,
   Select,
   Tooltip,
+  type AsyncSelectRef,
+  type SelectOptionsTypePage,
   type SelectValue,
 } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
@@ -57,7 +67,7 @@ import { useDatePickerInAdhocFilter } from '../utils';
 import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
 import { Clauses, ExpressionTypes } from '../types';
 
-const SelectWithLabel = styled(Select)<{ labelText: string }>`
+const SelectWithLabel = styled(AsyncSelect)<{ labelText: string }>`
   .ant-select-content::after {
     content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
@@ -347,11 +357,9 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   } = useSimpleTabFilterProps(props);
   const [comparator, setComparator] = useState(props.adhocFilter.comparator);
   const comparatorInputRef = useRef<InputRef | null>(null);
-  const [suggestions, setSuggestions] = useState<
-    Record<'label' | 'value', any>[]
-  >([]);
-  const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
-    useState<boolean>(false);
+  const comparatorSelectRef = useRef<AsyncSelectRef>(null);
+  const [loadedOptionCount, setLoadedOptionCount] = useState(0);
+  const [optionsTruncated, setOptionsTruncated] = useState(false);
   const [hasFocusedComparator, setHasFocusedComparator] =
     useState<boolean>(false);
 
@@ -387,17 +395,13 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     />
   );
 
-  const getOptionsRemaining = () => {
-    // if select is multi/value is array, we show the options not selected
-    const valuesFromSuggestionsLength = Array.isArray(comparator)
-      ? comparator.filter(v => suggestions.includes(v)).length
-      : 0;
-    return suggestions ? suggestions.length - valuesFromSuggestionsLength : 0;
-  };
   const createSuggestionsPlaceholder = () => {
-    const optionsRemaining = getOptionsRemaining();
-    const placeholder = t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
+    if (optionsTruncated) {
+      // The list is capped server-side, so "no match" in the dropdown does not
+      // mean "not in the data". Say so, and point at the way out.
+      return t('First %s values, type to search', loadedOptionCount);
+    }
+    return loadedOptionCount ? t('%s option(s)', loadedOptionCount) : '';
   };
 
   const handleSubjectChange = (subject: string) => {
@@ -455,9 +459,15 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     operatorId !== undefined &&
     DISABLE_INPUT_OPERATORS.includes(operatorId as Operators);
 
+  const canSuggestComparatorValues = Boolean(
+    subjectString &&
+    props.datasource?.filter_select &&
+    props.adhocFilter.clause !== Clauses.Having,
+  );
+
   const hasComparatorOptions =
     (operatorId && MULTI_OPERATORS.has(operatorId as Operators)) ||
-    suggestions.length > 0;
+    canSuggestComparatorValues;
 
   const comparatorSelectProps = {
     allowClear: true,
@@ -467,10 +477,9 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       operatorId && MULTI_OPERATORS.has(operatorId as Operators)
         ? ('multiple' as const)
         : ('single' as const),
-    loading: loadingComparatorSuggestions,
     value: comparator as SelectValue,
     onChange: onComparatorChange,
-    notFoundContent: t('Type a value here'),
+    notFoundContent: t('No match in the data. Type a value to use it anyway.'),
     placeholder: createSuggestionsPlaceholder(),
   };
 
@@ -495,76 +504,85 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     onChange: onDatePickerChange,
   });
 
-  useEffect(() => {
-    const refreshComparatorSuggestions = () => {
+  // Element-level array operators (Contains any / Contains all) search inside
+  // the array, so suggest individual elements; whole-array operators (=, In, …)
+  // keep the default distinct-array suggestions.
+  const arrayElements =
+    props.adhocFilter.operatorId === Operators.ContainsAny ||
+    props.adhocFilter.operatorId === Operators.ContainsAll;
+
+  const loadComparatorOptions = useCallback(
+    async (search: string): Promise<SelectOptionsTypePage> => {
       const { datasource } = props;
       const col = props.adhocFilter.subject;
-      const having = props.adhocFilter.clause === Clauses.Having;
-
-      if (col && datasource && datasource.filter_select && !having) {
-        const controller = new AbortController();
-        const { signal } = controller;
-        if (loadingComparatorSuggestions) {
-          controller.abort();
-        }
-        // Element-level array operators (Contains any / Contains all) search
-        // inside the array, so suggest individual elements; whole-array
-        // operators (=, In, …) keep the default distinct-array suggestions.
-        const { operatorId } = props.adhocFilter;
-        const arrayElements =
-          operatorId === Operators.ContainsAny ||
-          operatorId === Operators.ContainsAll;
-        setLoadingComparatorSuggestions(true);
-        SupersetClient.get({
-          signal,
-          endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/${
-            arrayElements ? '?array_elements=true' : ''
-          }`,
-        })
-          .then(({ json }) => {
-            setSuggestions(
-              json.result.map((suggestion: unknown) => {
-                // Complex column values arrive as JS arrays or objects: whole
-                // arrays for MULTI_VALUE columns (e.g. [5, 6, 7]) and Map/Tuple
-                // objects for nested-container columns (e.g. {"a": ["x","y"]}).
-                // A raw array/object is neither a valid single-select value
-                // (antd collapses an array to its first element) nor renderable
-                // as a React child (an object throws). Render it as its literal
-                // string, which is also exactly what the backend's
-                // parse_array_literal expects for the whole-array operators.
-                if (suggestion !== null && typeof suggestion === 'object') {
-                  const literal = JSON.stringify(suggestion);
-                  return { value: literal, label: literal };
-                }
-                return {
-                  value: suggestion as null | number | boolean | string,
-                  label: optionLabel(
-                    suggestion as null | number | boolean | string,
-                  ),
-                };
-              }),
-            );
-            setLoadingComparatorSuggestions(false);
-          })
-          .catch(() => {
-            setSuggestions([]);
-            setLoadingComparatorSuggestions(false);
-          });
+      if (
+        !col ||
+        typeof col !== 'string' ||
+        !datasource?.filter_select ||
+        props.adhocFilter.clause === Clauses.Having
+      ) {
+        return { data: [], totalCount: 0 };
       }
-    };
 
-    if (!datePicker) {
-      refreshComparatorSuggestions();
-    }
-    // loadingComparatorSuggestions intentionally omitted - set inside effect, would cause infinite loop
+      const params = new URLSearchParams();
+      if (arrayElements) {
+        params.set('array_elements', 'true');
+      }
+      if (search) {
+        params.set('q', search);
+      }
+      const query = params.toString();
+
+      try {
+        const { json } = await SupersetClient.get({
+          endpoint:
+            `/api/v1/datasource/${datasource.type}/${datasource.id}` +
+            `/column/${encodeURIComponent(col)}/values/${query ? `?${query}` : ''}`,
+        });
+        const data = json.result.map((suggestion: unknown) => {
+          // Complex column values arrive as JS arrays or objects: whole arrays
+          // for MULTI_VALUE columns (e.g. [5, 6, 7]) and Map/Tuple objects for
+          // nested-container columns (e.g. {"a": ["x","y"]}). A raw
+          // array/object is neither a valid single-select value (antd collapses
+          // an array to its first element) nor renderable as a React child (an
+          // object throws). Render it as its literal string, which is also
+          // exactly what the backend's parse_array_literal expects for the
+          // whole-array operators.
+          if (suggestion !== null && typeof suggestion === 'object') {
+            const literal = JSON.stringify(suggestion);
+            return { value: literal, label: literal };
+          }
+          return {
+            value: suggestion as null | number | boolean | string,
+            label: optionLabel(suggestion as null | number | boolean | string),
+          };
+        });
+
+        setLoadedOptionCount(data.length);
+        setOptionsTruncated(isDefined(json.limit) && data.length >= json.limit);
+
+        // The server returns a single bounded page rather than an offset
+        // window: paging would need a stable ORDER BY, and ordering a
+        // high-cardinality column is exactly the full scan this search is
+        // meant to avoid. Reporting the page size as the total stops
+        // AsyncSelect from asking for a second page that cannot be answered
+        // consistently.
+        return { data, totalCount: data.length };
+      } catch {
+        setLoadedOptionCount(0);
+        setOptionsTruncated(false);
+        return { data: [], totalCount: 0 };
+      }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    props.adhocFilter.subject,
-    props.adhocFilter.clause,
-    props.adhocFilter.operatorId,
-    props.datasource,
-    datePicker,
-  ]);
+    [props.datasource, props.adhocFilter.subject, arrayElements],
+  );
+
+  // Options are cached per search term inside AsyncSelect; a different column
+  // or a switch to element-level suggestions invalidates all of them.
+  useEffect(() => {
+    comparatorSelectRef.current?.clearCache();
+  }, [props.adhocFilter.subject, arrayElements]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
@@ -670,11 +688,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             }
           >
             <SelectWithLabel
+              ref={comparatorSelectRef}
               css={css`
                 margin-top: ${theme.marginXS}px;
               `}
               labelText={labelText}
-              options={suggestions}
+              options={loadComparatorOptions}
               {...comparatorSelectProps}
             />
           </Tooltip>
