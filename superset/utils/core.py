@@ -626,9 +626,21 @@ def sanitize_svg_content(svg_content: str) -> str:
         return ""
 
     # Minimal protection: remove obvious malicious content, preserve all SVG features
+    # The closing tag pattern tolerates attributes/whitespace after "script"
+    # (e.g. "</script foo>"), which browsers still parse as a valid closer.
     content = re.sub(
-        r"<script[^>]*>.*?</script>", "", svg_content, flags=re.IGNORECASE | re.DOTALL
+        r"<script\b[^>]*>.*?</script\b[^>]*>",
+        "",
+        svg_content,
+        flags=re.IGNORECASE | re.DOTALL,
     )
+    # Second pass: an unterminated <script ...> opener has no matching
+    # closer, so browsers treat everything after it as script content
+    # through end-of-file. Drop the opener and the remainder of the
+    # content with it, rather than leaving the payload text behind.
+    content = re.sub(r"<script\b[^>]*>.*", "", content, flags=re.IGNORECASE | re.DOTALL)
+    # Drop any orphaned closing </script ...> fragment too.
+    content = re.sub(r"</script\b[^>]*>?", "", content, flags=re.IGNORECASE)
     content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
     content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
 
