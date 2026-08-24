@@ -241,11 +241,11 @@ def _retention_predecessor(
 ) -> PurgeAuditLog | None:
     """Return the latest row that could unambiguously precede ``current``.
 
-    The latest same-entity retention row *overall* — deliberately not
-    bounded by ``current.created_on``: under clock skew or an overlapping
-    run a newer-than-current row must surface here so the caller's
-    strictly-older check fails safe (retain), rather than suppressing
-    against a non-latest row and leaving the latest reason stale.
+    The latest same-entity retention row by ``created_on`` — deliberately not
+    bounded by ``current.created_on``. If another visible row has a later
+    timestamp, it surfaces here so the caller's strictly-older check retains
+    the current row. Timestamps provide database ordering for this predicate,
+    not causal ordering across workers.
     """
     predecessor: PurgeAuditLog | None = session.execute(
         sa.select(PurgeAuditLog)
@@ -335,7 +335,7 @@ def _retain_blocked(session: Session, record_id: UUID, reason: str | None) -> No
 
 
 def _recover_retention_blocked(
-    record_id: UUID, snapshot: _AuditRecoverySnapshot | None, reason: str | None
+    record_id: UUID, snapshot: _AuditRecoverySnapshot | None
 ) -> RetentionBlockedDisposition:
     """Retain blocked evidence on a fresh session after persistence uncertainty."""
     recovery_session: Session = _dedicated_session()
@@ -343,7 +343,11 @@ def _recover_retention_blocked(
         current: PurgeAuditLog | None = recovery_session.get(PurgeAuditLog, record_id)
         if current is not None:
             if current.status == STATUS_PENDING:
-                _retain_blocked(recovery_session, record_id, reason)
+                _retain_blocked(
+                    recovery_session,
+                    record_id,
+                    snapshot.reason if snapshot else None,
+                )
                 recovery_session.commit()
             return "fallback"
         if snapshot is None:
@@ -383,8 +387,8 @@ def finalize_retention_blocked(
     """Finalize a scheduled blocker, suppressing only proven redundant evidence.
 
     ``reason`` is the stable machine code for the block (see
-    :func:`block`); it is persisted on retained rows and carried through the
-    crash-recovery path as a parameter.
+    :func:`block`); it is persisted on retained rows and captured in the
+    snapshot used by the crash-recovery path.
     """
     if record_id is None:
         return "fallback"
@@ -417,7 +421,7 @@ def finalize_retention_blocked(
         )
     finally:
         session.close()
-    return _recover_retention_blocked(record_id, snapshot, reason)
+    return _recover_retention_blocked(record_id, snapshot)
 
 
 def _entity_exists(session: Session, record: PurgeAuditLog) -> bool | None:

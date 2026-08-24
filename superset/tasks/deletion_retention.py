@@ -208,7 +208,7 @@ def _purge_model(
 
 def _finalize_blocked(record_id: UUID | None, result: CascadeResult) -> None:
     """Finalize a blocked retention outcome and count suppression metrics."""
-    if result.blocked_reason_code is None:
+    if result.blocker is None:
         # Fail open: never let a reason-threading gap block the purge audit.
         # The row is finalized blocked with a NULL reason, and the
         # suppression path both refuses to suppress on it and logs the
@@ -218,7 +218,7 @@ def _finalize_blocked(record_id: UUID | None, result: CascadeResult) -> None:
             f"{_METRIC_PREFIX}.blocked_audit_missing_reason"
         )
     disposition: audit.RetentionBlockedDisposition = audit.finalize_retention_blocked(
-        record_id, result.blocked_reason_code
+        record_id, result.blocker.code if result.blocker else None
     )
     if disposition == "suppressed":
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.blocked_audit_suppressed")

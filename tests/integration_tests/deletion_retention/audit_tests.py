@@ -30,8 +30,8 @@ from superset import db
 from superset.commands.deletion_retention import audit
 from superset.commands.deletion_retention.audit import PurgeAuditLog
 from superset.commands.deletion_retention.purge_policy import (
+    REASON_CASCADE_INTEGRITY_FAILURE,
     REASON_REPORT_SCHEDULE,
-    REASON_UNHANDLED_REFERENCE,
 )
 from superset.models.slice import Slice
 from superset.tasks.deletion_retention import _purge_impl
@@ -267,7 +267,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         nights suppress; the night the reason changes is retained with the
         new code and becomes the new anchor.
         """
-        entity = "reason-change"
+        entity: str = "reason-change"
         first_id: UUID = self._write_retention_record(entity_uuid=entity)
         assert (
             audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
@@ -280,22 +280,27 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         )
         changed_id: UUID = self._write_retention_record(entity_uuid=entity)
         assert (
-            audit.finalize_retention_blocked(changed_id, REASON_UNHANDLED_REFERENCE)
+            audit.finalize_retention_blocked(
+                changed_id, REASON_CASCADE_INTEGRITY_FAILURE
+            )
             == "retained"
         )
         repeat_id: UUID = self._write_retention_record(entity_uuid=entity)
         assert (
-            audit.finalize_retention_blocked(repeat_id, REASON_UNHANDLED_REFERENCE)
+            audit.finalize_retention_blocked(
+                repeat_id, REASON_CASCADE_INTEGRITY_FAILURE
+            )
             == "suppressed"
         )
 
         rows: list[PurgeAuditLog] = (
             db.session.query(PurgeAuditLog).filter_by(entity_uuid=entity).all()
         )
-        assert sorted(row.reason for row in rows) == [
+        assert {row.reason for row in rows} == {
             REASON_REPORT_SCHEDULE,
-            REASON_UNHANDLED_REFERENCE,
-        ]
+            REASON_CASCADE_INTEGRITY_FAILURE,
+        }
+        assert len(rows) == 2
         assert all(row.status == audit.STATUS_BLOCKED for row in rows)
 
     def test_mixed_reason_timestamp_tie_is_ambiguous_and_retains(self) -> None:
@@ -308,7 +313,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         second_id: UUID = self._write_retention_record(
             entity_uuid="mixed-reason-tie", created_on=timestamp
         )
-        audit.finalize_retention_blocked(second_id, REASON_UNHANDLED_REFERENCE)
+        audit.finalize_retention_blocked(second_id, REASON_CASCADE_INTEGRITY_FAILURE)
         current_id: UUID = self._write_retention_record(
             entity_uuid="mixed-reason-tie", created_on=timestamp + timedelta(seconds=1)
         )
@@ -328,7 +333,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         code, so the entity anchors once with its code and same-code nights
         suppress against the new anchor.
         """
-        entity = "null-historical"
+        entity: str = "null-historical"
         prior_id: UUID = self._write_retention_record(entity_uuid=entity)
         audit.finalize(prior_id, audit.STATUS_BLOCKED)
         prior: PurgeAuditLog = self._get_audit_record(prior_id)
@@ -350,7 +355,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
 
     def test_none_current_code_never_suppresses_and_warns(self) -> None:
         """A missing current code fails safe: retained, with a warning."""
-        entity = "none-current-code"
+        entity: str = "none-current-code"
         first_id: UUID = self._write_retention_record(entity_uuid=entity)
         audit.finalize_retention_blocked(first_id, REASON_REPORT_SCHEDULE)
         current_id: UUID = self._write_retention_record(entity_uuid=entity)
@@ -371,11 +376,10 @@ class TestPurgeAudit(DeletionRetentionTestBase):
     def test_predecessor_is_the_latest_row_overall(self) -> None:
         """A newer same-entity row forbids suppressing against an older one.
 
-        Under clock skew or an overlapping run the latest row is the only
-        valid anchor: with rows both older and newer than the current
-        attempt, the newer row is the predecessor, fails the strictly-older
-        check, and the attempt is retained — never suppressed against the
-        stale older row.
+        With rows timestamped both before and after the current attempt, the
+        later-timestamped row is selected, fails the strictly-older check, and
+        causes retention. This verifies timestamp ordering, not causal order
+        across workers.
         """
         timestamp: datetime = datetime.utcnow()
         older_id: UUID = self._write_retention_record(
@@ -572,7 +576,7 @@ class TestPurgeAudit(DeletionRetentionTestBase):
         record: PurgeAuditLog = self._get_audit_record(record_id)
         assert disposition == "fallback"
         assert record.status == audit.STATUS_BLOCKED
-        # The recovery retain branch carries the reason as a parameter.
+        # The recovery retain branch carries the argument-sourced snapshot reason.
         assert record.reason == REASON_REPORT_SCHEDULE
 
     def test_uncertain_suppression_commit_recreates_absent_evidence(self) -> None:

@@ -24,6 +24,7 @@ guarantee under FK enforcement OFF, and the version-tables-absent no-op.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any
@@ -45,8 +46,8 @@ from superset.commands.deletion_retention.purge_cascade import (
 from superset.commands.deletion_retention.purge_policy import (
     get_purge_policy,
     PurgeEntityPolicy,
+    REASON_CASCADE_INTEGRITY_FAILURE,
     REASON_REPORT_SCHEDULE,
-    REASON_UNHANDLED_REFERENCE,
     REASON_USER_ATTRIBUTE,
 )
 from superset.connectors.sqla.models import (
@@ -817,20 +818,23 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
             db.session.commit()
 
         assert result.purged is False
-        assert result.blocked_reason == "blocked by database references"
+        assert (
+            result.blocked_reason
+            == "cascade blocked by a database integrity constraint"
+        )
         assert "SQL:" not in result.blocked_reason
-        assert result.blocked_reason_code == REASON_UNHANDLED_REFERENCE
+        assert result.blocked_reason_code == REASON_CASCADE_INTEGRITY_FAILURE
         assert self.exists(Slice, chart_id)
 
     def test_three_way_distinction_is_readable_from_the_audit_alone(self) -> None:
-        """Report block, welcome block, and unhandled FK write distinct codes.
+        """Report, welcome, and database-integrity blocks write distinct codes.
 
         The audit table is the durable record: each of the three
         non-completing outcomes must be identifiable from its row alone,
-        with no SQL fragments and the FK case keeping blocked status.
+        with no SQL fragments and the integrity case keeping blocked status.
         """
-        chart = self.make_chart("threeway_report")
-        report = ReportSchedule(
+        chart: Slice = self.make_chart("threeway_report")
+        report: ReportSchedule = ReportSchedule(
             type="Report",
             name="retention_it_threeway",
             crontab="0 0 * * *",
@@ -838,19 +842,22 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
         )
         db.session.add(report)
         db.session.commit()
-        chart_uuid = str(chart.uuid)
+        chart_uuid: str = str(chart.uuid)
         self.soft_delete(chart, days_ago=90)
 
-        dashboard = self.make_dashboard("threeway_welcome")
-        dashboard_uuid = str(dashboard.uuid)
+        dashboard: Dashboard = self.make_dashboard("threeway_welcome")
+        dashboard_uuid: str = str(dashboard.uuid)
         self.soft_delete(dashboard, days_ago=90)
+        attribute: UserAttribute
+        created: bool
+        previous: int | None
         attribute, created, previous = self._set_welcome(dashboard.id)
 
-        fk_chart = self.make_chart("threeway_fk")
-        fk_uuid = str(fk_chart.uuid)
+        fk_chart: Slice = self.make_chart("threeway_fk")
+        fk_uuid: str = str(fk_chart.uuid)
         self.soft_delete(fk_chart, days_ago=90)
 
-        real_get_policy = get_purge_policy
+        real_get_policy: Callable[[type[Any]], PurgeEntityPolicy] = get_purge_policy
 
         def fail_fk_chart_cleanup(
             session: Session, policy: PurgeEntityPolicy, entity_id: int
@@ -872,7 +879,7 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
             ):
                 _purge(window=30)
 
-            rows = {
+            rows: dict[str, audit.PurgeAuditLog] = {
                 uuid: db.session.query(audit.PurgeAuditLog)
                 .filter_by(entity_uuid=uuid)
                 .one()
@@ -880,7 +887,7 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
             }
             assert rows[chart_uuid].reason == REASON_REPORT_SCHEDULE
             assert rows[dashboard_uuid].reason == REASON_USER_ATTRIBUTE
-            assert rows[fk_uuid].reason == REASON_UNHANDLED_REFERENCE
+            assert rows[fk_uuid].reason == REASON_CASCADE_INTEGRITY_FAILURE
             assert len({row.reason for row in rows.values()}) == 3
             for row in rows.values():
                 assert row.status == audit.STATUS_BLOCKED
@@ -897,8 +904,8 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
         report-referenced and someone's welcome page records
         REASON_REPORT_SCHEDULE.
         """
-        dashboard = self.make_dashboard("firstmatch")
-        report = ReportSchedule(
+        dashboard: Dashboard = self.make_dashboard("firstmatch")
+        report: ReportSchedule = ReportSchedule(
             type="Report",
             name="retention_it_firstmatch",
             crontab="0 0 * * *",
@@ -906,13 +913,16 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
         )
         db.session.add(report)
         db.session.commit()
-        dashboard_uuid = str(dashboard.uuid)
+        dashboard_uuid: str = str(dashboard.uuid)
         self.soft_delete(dashboard, days_ago=90)
+        attribute: UserAttribute
+        created: bool
+        previous: int | None
         attribute, created, previous = self._set_welcome(dashboard.id)
         try:
             _purge(window=30)
 
-            row = (
+            row: audit.PurgeAuditLog = (
                 db.session.query(audit.PurgeAuditLog)
                 .filter_by(entity_uuid=dashboard_uuid)
                 .one()

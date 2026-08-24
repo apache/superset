@@ -183,7 +183,7 @@ class ForcePurgeCommand:
                 removed_dashboard_slices=result.removed_dashboard_slices,
             )
         elif result.blocked_reason is not None:
-            audit.block(record_id, result.blocked_reason_code)
+            audit.block(record_id, result.blocker.code if result.blocker else None)
         else:
             audit.fail(record_id)
         if result.purged:

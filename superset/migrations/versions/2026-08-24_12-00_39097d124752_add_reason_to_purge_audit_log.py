@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add reason to purge_audit_log
+"""Add a reason to purge_audit_log.
 
 Adds a nullable ``reason`` column to ``purge_audit_log`` holding a stable
 machine code identifying which policy rule blocked a purge (or the
-unhandled-reference cascade-failure class). Written at finalization for
+cascade-integrity failure class). Written at finalization for
 blocked outcomes only; NULL for confirmed, failed, non-blocked, and
 pre-existing rows. No backfill: the information was never captured for
 historical records, and readers treat the column as optional.
@@ -43,8 +43,8 @@ import sqlalchemy as sa
 from superset.migrations.shared.utils import add_columns, drop_columns
 
 # revision identifiers, used by Alembic.
-revision = "39097d124752"
-down_revision = "1072de5ed955"
+revision: str = "39097d124752"
+down_revision: str = "1072de5ed955"
 
 
 def upgrade() -> None:

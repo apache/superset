@@ -26,11 +26,13 @@ import pytest
 from superset.commands.deletion_retention.purge_policy import (
     ALL_REASON_CODES,
     DependencyClassification,
+    DependencyPolicy,
     get_purge_policy,
     purge_policy_registry,
     PurgeBlockedError,
+    PurgeEntityPolicy,
+    REASON_CASCADE_INTEGRITY_FAILURE,
     REASON_REPORT_SCHEDULE,
-    REASON_UNHANDLED_REFERENCE,
     REASON_USER_ATTRIBUTE,
     validate_deletion_allowed,
 )
@@ -46,17 +48,21 @@ def test_reason_code_literals_are_frozen() -> None:
     """
     assert REASON_REPORT_SCHEDULE == "report_schedule"
     assert REASON_USER_ATTRIBUTE == "user_attribute"
-    assert REASON_UNHANDLED_REFERENCE == "unhandled_reference"
+    assert REASON_CASCADE_INTEGRITY_FAILURE == "cascade_integrity_failure"
     assert ALL_REASON_CODES == {
         "report_schedule",
         "user_attribute",
-        "unhandled_reference",
+        "cascade_integrity_failure",
     }
 
 
 def test_reason_codes_are_distinct_and_column_sized() -> None:
     """Codes are mutually distinct and fit the String(64) audit column."""
-    codes = [REASON_REPORT_SCHEDULE, REASON_USER_ATTRIBUTE, REASON_UNHANDLED_REFERENCE]
+    codes: list[str] = [
+        REASON_REPORT_SCHEDULE,
+        REASON_USER_ATTRIBUTE,
+        REASON_CASCADE_INTEGRITY_FAILURE,
+    ]
     assert len(set(codes)) == len(codes)
     assert all(0 < len(code) <= 64 for code in ALL_REASON_CODES)
 
@@ -67,19 +73,22 @@ def test_every_declared_blocker_code_is_in_the_closed_set() -> None:
     for policy in purge_policy_registry().values():
         for dependency in policy.dependencies:
             if dependency.classification is DependencyClassification.BLOCK:
-                assert dependency.blocked_reason_code is not None, (
+                assert dependency.blocker is not None, (
                     f"blocker {dependency.key.describe()} has no reason code"
                 )
-                blocker_codes.add(dependency.blocked_reason_code)
+                blocker_codes.add(dependency.blocker.code)
     assert blocker_codes <= ALL_REASON_CODES
     assert blocker_codes == {REASON_REPORT_SCHEDULE, REASON_USER_ATTRIBUTE}
 
 
-def test_unhandled_reference_code_is_reserved_for_the_cascade() -> None:
+def test_cascade_integrity_failure_code_is_reserved_for_the_cascade() -> None:
     """No declared policy blocker may claim the cascade-failure code."""
     for policy in purge_policy_registry().values():
         for dependency in policy.dependencies:
-            assert dependency.blocked_reason_code != REASON_UNHANDLED_REFERENCE
+            assert (
+                dependency.blocker is None
+                or dependency.blocker.code != REASON_CASCADE_INTEGRITY_FAILURE
+            )
 
 
 def _session_matching_blockers(*matches: bool) -> MagicMock:
@@ -89,7 +98,7 @@ def _session_matching_blockers(*matches: bool) -> MagicMock:
     contract under test, so these cases are coupled to the order (and the
     count) of the queries ``validate_deletion_allowed`` issues.
     """
-    session = MagicMock()
+    session: MagicMock = MagicMock()
     session.execute.side_effect = [
         MagicMock(first=MagicMock(return_value=(1,) if match else None))
         for match in matches
@@ -104,6 +113,7 @@ def test_report_block_raises_with_the_report_schedule_code() -> None:
     # in a partial-collection unit run with no Flask app active.
     from superset.models.slice import Slice
 
+    info: pytest.ExceptionInfo[PurgeBlockedError]
     with pytest.raises(PurgeBlockedError) as info:
         validate_deletion_allowed(
             _session_matching_blockers(True), get_purge_policy(Slice), 1
@@ -119,6 +129,7 @@ def test_welcome_dashboard_block_raises_with_the_user_attribute_code() -> None:
     # in a partial-collection unit run with no Flask app active.
     from superset.models.dashboard import Dashboard
 
+    info: pytest.ExceptionInfo[PurgeBlockedError]
     with pytest.raises(PurgeBlockedError) as info:
         validate_deletion_allowed(
             _session_matching_blockers(False, True), get_purge_policy(Dashboard), 1
@@ -139,20 +150,21 @@ def test_reason_code_survives_a_related_table_rename() -> None:
     # in a partial-collection unit run with no Flask app active.
     from superset.models.slice import Slice
 
-    policy = get_purge_policy(Slice)
-    renamed = tuple(
+    policy: PurgeEntityPolicy = get_purge_policy(Slice)
+    renamed: tuple[DependencyPolicy, ...] = tuple(
         replace(dependency, key=replace(dependency.key, related_table="reports_v2"))
         if dependency.classification is DependencyClassification.BLOCK
         else dependency
         for dependency in policy.dependencies
     )
-    blocker = next(
+    blocker: DependencyPolicy = next(
         dependency
         for dependency in renamed
         if dependency.classification is DependencyClassification.BLOCK
     )
     assert blocker.key.related_table == "reports_v2"
-    assert blocker.blocked_reason_code == REASON_REPORT_SCHEDULE
+    assert blocker.blocker is not None
+    assert blocker.blocker.code == REASON_REPORT_SCHEDULE
 
 
 def test_first_declared_blocker_wins_when_several_match() -> None:
@@ -162,6 +174,7 @@ def test_first_declared_blocker_wins_when_several_match() -> None:
     # in a partial-collection unit run with no Flask app active.
     from superset.models.dashboard import Dashboard
 
+    info: pytest.ExceptionInfo[PurgeBlockedError]
     with pytest.raises(PurgeBlockedError) as info:
         validate_deletion_allowed(
             _session_matching_blockers(True, True), get_purge_policy(Dashboard), 1

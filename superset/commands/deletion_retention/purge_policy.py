@@ -38,19 +38,19 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 # Stable machine-readable reason codes persisted on purge audit records.
 # The values are frozen identifiers pinned by a golden-set test: they equal
-# today's related-table names by coincidence of naming, never by derivation,
+# the related-table names at introduction by coincidence, never by derivation,
 # so a physical table rename changes only the blocker mapping's key and
 # leaves the persisted code untouched — audit history and the suppression
 # predicate compare these literals.
 REASON_REPORT_SCHEDULE: str = "report_schedule"
 REASON_USER_ATTRIBUTE: str = "user_attribute"
-REASON_UNHANDLED_REFERENCE: str = "unhandled_reference"
+REASON_CASCADE_INTEGRITY_FAILURE: str = "cascade_integrity_failure"
 
 ALL_REASON_CODES: frozenset[str] = frozenset(
     {
         REASON_REPORT_SCHEDULE,
         REASON_USER_ATTRIBUTE,
-        REASON_UNHANDLED_REFERENCE,
+        REASON_CASCADE_INTEGRITY_FAILURE,
     }
 )
 
@@ -65,9 +65,14 @@ class BlockerReason(NamedTuple):
 class PurgeBlockedError(Exception):
     """Raised when ordinary deletion policy forbids purging an entity."""
 
-    def __init__(self, message: str, reason_code: str) -> None:
-        super().__init__(message)
-        self.reason_code = reason_code
+    def __init__(self, reason: BlockerReason) -> None:
+        super().__init__(reason.phrase)
+        self.reason: BlockerReason = reason
+
+    @property
+    def reason_code(self) -> str:
+        """Return the stable machine-readable blocker code."""
+        return self.reason.code
 
 
 class DependencyClassification(str, Enum):
@@ -135,11 +140,20 @@ class DependencyPolicy:
     key: DependencyKey
     classification: DependencyClassification
     phase: ExecutionPhase | None = None
-    blocked_reason: str | None = None
-    blocked_reason_code: str | None = None
+    blocker: BlockerReason | None = None
     optional_listener: bool = False
     listener_action: ListenerAction | None = None
     version_column: str | None = None
+
+    @property
+    def blocked_reason(self) -> str | None:
+        """Return the operator-facing blocker phrase, if this policy blocks."""
+        return self.blocker.phrase if self.blocker else None
+
+    @property
+    def blocked_reason_code(self) -> str | None:
+        """Return the stable audit code, if this policy blocks."""
+        return self.blocker.code if self.blocker else None
 
 
 @dataclass(frozen=True)
@@ -467,8 +481,7 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                 key,
                 classification,
                 phases[classification],
-                blocked_reason=blocker.phrase if blocker else None,
-                blocked_reason_code=blocker.code if blocker else None,
+                blocker=blocker,
                 version_column=version_columns.get(key.related_table),
             )
 
@@ -942,14 +955,9 @@ def validate_deletion_allowed(
         if session.execute(
             sa.select(sa.literal(1)).select_from(table).where(*predicates).limit(1)
         ).first():
-            if (
-                dependency.blocked_reason is None
-                or dependency.blocked_reason_code is None
-            ):
+            if dependency.blocker is None:
                 raise RuntimeError(f"Missing blocker reason for {key.describe()}")
-            raise PurgeBlockedError(
-                dependency.blocked_reason, dependency.blocked_reason_code
-            )
+            raise PurgeBlockedError(dependency.blocker)
 
 
 def count_dashboard_slices(
