@@ -220,6 +220,20 @@ test('restarts polling for a new job after going idle', async () => {
   expect(result).toEqual([{ rows: 9 }]);
 });
 
+test('gives up (rejects) after the stale timeout with no progress', async () => {
+  queueStatuses(); // only the baseline — the awaited task never changes
+  asyncEvent.init({
+    ...config,
+    GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 40, // ms
+  });
+
+  const refetch = jest.fn();
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['stuck-task'] }, refetch),
+  ).rejects.toThrow('Timed out waiting for chart-data query results');
+  expect(refetch).not.toHaveBeenCalled();
+});
+
 describe('realtime WebSocket acceleration', () => {
   const realtime = (taskId: string, status: string) => ({
     channel: `realtime:user:1`,
