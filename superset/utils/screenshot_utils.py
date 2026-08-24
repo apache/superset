@@ -144,22 +144,81 @@ TERMINAL_MARKER_SELECTOR = (
 )
 CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 
-# Shared body for holder readiness and timeout diagnostics. A holder is ready
-# only after a terminal marker appears and its loading marker disappears.
-UNREADY_CHART_HOLDERS_JS_BODY = f"""
+# ECharts paint marker. The frontend
+# (plugins/plugin-chart-echarts/src/components/Echart.tsx) tags the canvas host
+# ``.echarts-host`` and adds ``.echarts-render-finished`` only in the ECharts
+# ``finished`` event -- the sole signal that the canvas is fully painted.
+# ``.slice_container`` alone is a pre-paint signal (it mounts when data arrives,
+# before the canvas is drawn; chartStatus/onRenderSuccess fire pre-paint too), so
+# a holder that still contains an unpainted host is treated as not-yet-rendered and
+# the report screenshot waits for it instead of capturing a blank chart. Only
+# ECharts hosts are gated; DOM/SVG vizzes paint on commit and non-ECharts canvas
+# vizzes (deck.gl/mapbox/etc.) have no ``.echarts-host`` so they are unaffected.
+ECHARTS_UNPAINTED_HOST_SELECTOR = r".echarts-host:not(.echarts-render-finished)"
+CHART_ERROR_OR_EMPTY_SELECTOR = (
+    f"{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}"
+)
+
+# Runtime contract with the dashboard frontend. Dispatching this window event
+# forces every DashboardVirtualization row to render regardless of whether it
+# intersects the headless viewport, mirroring the client-side "Download as
+# Image/PDF" path (see FORCE_IN_VIEW_EVENT in
+# superset-frontend/src/dashboard/constants.ts and forceLoadAllCharts in
+# superset-frontend/src/utils/downloadUtils.ts). The non-tiled report capture
+# takes a single full-page screenshot that includes below-the-fold holders, so
+# those holders must be forced to render before the readiness wait -- otherwise
+# a virtualized (or still-loading) off-screen holder is captured blank. A plain
+# Event with no `detail.rowIds` means "force every row", matching the frontend's
+# single-pass branch.
+FORCE_ALL_CHART_HOLDERS_IN_VIEW_EVENT = "superset-force-all-in-view"
+FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS = (
+    f"() => window.dispatchEvent(new Event('{FORCE_ALL_CHART_HOLDERS_IN_VIEW_EVENT}'))"
+)
+
+
+def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
+    """Return the shared holder-readiness scan body.
+
+    A holder is ready only after a terminal marker appears and its loading
+    marker disappears. When ``viewport_only`` is True the scan skips holders
+    that do not intersect the current viewport: correct for the tiled path,
+    which scrolls every region into view before capturing it, and for
+    thumbnails, which only ever capture the viewport. The non-tiled *report*
+    capture takes a single full-page screenshot that includes below-the-fold
+    holders, so it must scan every mounted holder (``viewport_only=False``) --
+    otherwise an off-screen holder that never rendered is captured blank and
+    silently delivered as a Success.
+    """
+    viewport_skip = (
+        """
+        const r = holder.getBoundingClientRect();
+        if (!(r.top < window.innerHeight && r.bottom > 0)) {
+            continue;
+        }"""
+        if viewport_only
+        else ""
+    )
+    return f"""
     const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     const unready = [];
-    for (const holder of holders) {{
-        const r = holder.getBoundingClientRect();
-        if (!(r.top < window.innerHeight && r.bottom > 0)) {{
-            continue;
-        }}
+    for (const holder of holders) {{{viewport_skip}
         const hasSliceContainer = holder.querySelector(
             '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
         const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
-        const isReady = holder.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
-        if (stillLoading || !isReady) {{
+        const hasErrorOrEmpty = holder.querySelector(
+            '{CHART_ERROR_OR_EMPTY_SELECTOR}'
+        ) !== null;
+        const hasUnpaintedEchart = holder.querySelector(
+            '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        // Ready = a settled error/empty/missing state, or a slice container
+        // whose ECharts canvas has finished painting. An unpainted ECharts host
+        // keeps the holder unready so a blank chart is never captured.
+        const isReady = !stillLoading && (
+            hasErrorOrEmpty || (hasSliceContainer && !hasUnpaintedEchart)
+        );
+        if (!isReady) {{
             const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
             const chartId = chartIdMatch ? chartIdMatch[1] : null;
             let state;
@@ -167,6 +226,8 @@ UNREADY_CHART_HOLDERS_JS_BODY = f"""
                 state = 'spinner_mounted';
             }} else if (stillLoading) {{
                 state = 'waiting_on_database';
+            }} else if (hasSliceContainer && hasUnpaintedEchart) {{
+                state = 'mounted_unpainted';
             }} else {{
                 state = 'nothing_mounted';
             }}
@@ -177,6 +238,13 @@ UNREADY_CHART_HOLDERS_JS_BODY = f"""
         }}
     }}
 """
+
+
+# Viewport-scoped scan (tiled path + thumbnails).
+UNREADY_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=True)
+# Full-dashboard scan (non-tiled report capture, which screenshots the whole
+# element in one shot and therefore cannot ignore below-the-fold holders).
+UNREADY_ALL_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=False)
 
 # Diagnostic query for every chart holder, including terminal and virtualized
 # states. It interpolates the same selector constants as the predicates.
@@ -208,6 +276,11 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         ) !== null) {{
             return {{ chartId, state: 'empty' }};
         }}
+        if (hasSliceContainer && holder.querySelector(
+            '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
+        ) !== null) {{
+            return {{ chartId, state: 'mounted_unpainted' }};
+        }}
         if (hasSliceContainer) {{
             return {{ chartId, state: 'rendered' }};
         }}
@@ -223,11 +296,23 @@ REPORT_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
 )
+# Report readiness for the non-tiled full-page capture: every mounted holder --
+# including below-the-fold ones -- must be terminally rendered. Off-screen
+# holders are forced to render first (FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS); if any
+# still fails to render within budget the wait times out and the report fails
+# loudly rather than shipping a blank/partial screenshot as a Success.
+REPORT_ALL_CHART_HOLDERS_READY_JS = (
+    f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
+    "return holders.length > 0 && unready.length === 0; }"
+)
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )
 FIND_UNREADY_CHART_HOLDERS_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
+)
+FIND_ALL_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
 
 # A chart capture has one target rather than dashboard holders, but needs the
@@ -237,7 +322,8 @@ CHART_CONTAINER_READY_JS = f"""
     const chart = document.querySelector('.chart-container');
     return chart !== null
         && chart.querySelector('{LOADING_SELECTOR}') === null
-        && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null;
+        && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null
+        && chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null;
 }}
 """
 
@@ -249,6 +335,9 @@ CHART_CONTAINER_STATE_JS = f"""
     const chart = document.querySelector('.chart-container');
     if (chart === null) {{ return 'missing'; }}
     if (chart.querySelector('{LOADING_SELECTOR}') !== null) {{ return 'loading'; }}
+    if (chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') !== null) {{
+        return 'mounted_unpainted';
+    }}
     if (chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null) {{
         return 'terminal';
     }}

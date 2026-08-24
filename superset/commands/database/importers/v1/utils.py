@@ -21,8 +21,10 @@ from typing import Any
 from flask import current_app as app
 
 from superset import db, security_manager
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
+from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
@@ -35,6 +37,73 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+def _connection_identity_changed(existing: Database, config: dict[str, Any]) -> bool:
+    """Whether the import points the database at a different endpoint."""
+    try:
+        stored = make_url_safe(existing.sqlalchemy_uri)._replace(password=None)
+        incoming = make_url_safe(config["sqlalchemy_uri"])._replace(password=None)
+    except DatabaseInvalidError:
+        # An unparseable URI cannot be compared: treat it as a change so
+        # stored secrets never survive onto it.
+        return True
+    return stored != incoming
+
+
+def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> None:
+    """
+    Refuse an overwrite that changes the connection endpoint without fresh
+    credentials.
+
+    Database UUIDs are not secrets -- they appear in every exported bundle --
+    so an import must not be able to repoint an existing connection at a new
+    host while the stored password (or SSH tunnel key) is silently kept: the
+    next connection would hand the real credential to the new endpoint.
+    """
+    if _connection_identity_changed(existing, config):
+        try:
+            uri_password = make_url_safe(config["sqlalchemy_uri"]).password
+        except DatabaseInvalidError:
+            uri_password = None
+        if config.get("password") in (None, PASSWORD_MASK) and uri_password in (
+            None,
+            PASSWORD_MASK,
+        ):
+            raise ImportFailedError(
+                f"Import would change the connection of database "
+                f"'{existing.database_name}' without providing new "
+                "credentials. Re-enter the database password for the new "
+                "connection to confirm the change."
+            )
+
+    if ssh_tunnel := config.get("ssh_tunnel"):
+        existing_tunnel = existing.ssh_tunnel
+        if existing_tunnel and (
+            ssh_tunnel.get("server_address") != existing_tunnel.server_address
+            or ssh_tunnel.get("server_port") != existing_tunnel.server_port
+        ):
+            has_fresh_credential = any(
+                ssh_tunnel.get(field) not in (None, PASSWORD_MASK)
+                for field in ("password", "private_key")
+            )
+            # A passphrase-protected private key's stored passphrase is a
+            # secret in its own right: if the existing tunnel had one, a
+            # repoint that supplies a fresh private_key but leaves
+            # private_key_password masked/absent would keep the old
+            # passphrase attached to the new key rather than requiring the
+            # importer to confirm it too.
+            stale_private_key_password = (
+                existing_tunnel.private_key_password is not None
+                and ssh_tunnel.get("private_key_password") in (None, PASSWORD_MASK)
+            )
+            if not has_fresh_credential or stale_private_key_password:
+                raise ImportFailedError(
+                    f"Import would change the SSH tunnel endpoint of database "
+                    f"'{existing.database_name}' without providing new tunnel "
+                    "credentials. Re-enter the SSH tunnel credentials to "
+                    "confirm the change."
+                )
 
 
 def import_database(  # noqa: C901
@@ -51,6 +120,11 @@ def import_database(  # noqa: C901
         if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+        # Stored secrets must not be rebound to a different endpoint: without
+        # fresh credentials, an overwrite that changes where the database (or
+        # its SSH tunnel) connects would exfiltrate the stored secret to the
+        # new endpoint on the next connection.
+        _refuse_stored_secret_reuse(existing, config)
     elif not can_write:
         raise ImportFailedError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
@@ -81,7 +155,13 @@ def import_database(  # noqa: C901
     # For existing DBs, reveal masked sensitive values from current encrypted_extra.
     # For new DBs, schema validation already ensured no fields are still masked.
     if masked_encrypted_extra := config.pop("masked_encrypted_extra", None):
-        if existing and existing.encrypted_extra:
+        # Never reveal stored encrypted_extra secrets into a config that
+        # repoints the connection at a different endpoint.
+        if (
+            existing
+            and existing.encrypted_extra
+            and not _connection_identity_changed(existing, config)
+        ):
             old_config = json.loads(existing.encrypted_extra)
             new_config = json.loads(masked_encrypted_extra)
             sensitive_fields = (

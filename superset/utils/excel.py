@@ -47,20 +47,34 @@ NEUTRAL_DOCUMENT_PROPERTIES: dict[str, Any] = {
 FORMULA_PREFIXES = {"=", "+", "-", "@"}
 
 
+def _quote_formula(value: Any) -> Any:
+    """Prefix a string with a quote when it would parse as a formula."""
+    return (
+        f"'{value}"
+        if isinstance(value, str) and len(value) and value[0] in FORMULA_PREFIXES
+        else value
+    )
+
+
 def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     """
     Make sure to quote any formulas for security reasons.
     """
     for col in df.select_dtypes(include="object").columns:
-        df[col] = df[col].apply(
-            lambda x: (
-                f"'{x}"
-                if isinstance(x, str) and len(x) and x[0] in FORMULA_PREFIXES
-                else x
-            )
-        )
+        df[col] = df[col].apply(_quote_formula)
 
-    return df
+    # Column headers and index labels are written to the sheet as well, and
+    # pivot exports promote data values into both (a hostile warehouse string
+    # can become a header or row label), so quote them like the CSV writer
+    # quotes its headers. ``rename`` applies the mapper to every level of a
+    # MultiIndex.
+    df = df.rename(columns=_quote_formula, index=_quote_formula)
+
+    # ``rename`` above only touches axis *labels*. The axis *names* (e.g. a
+    # pivoted group-by column promoted to ``df.index.name``, or per-level
+    # names on a MultiIndex) are a separate attribute that pandas still
+    # writes into the sheet as header cells, so quote those too.
+    return df.rename_axis(index=_quote_formula, columns=_quote_formula)
 
 
 def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:

@@ -32,6 +32,7 @@ import {
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
   TimeGranularity,
+  TooltipTruncationMode,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -2082,6 +2083,39 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   expect(xAxis.triggerEvent).toBe(true);
 });
 
+test('temporal x-axis enables trigger events when no dimensions are set', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
 test('temporal x coltype forced categorical yields a Category axis with date labels', () => {
   // Issue #28204: with a temporal x-axis (e.g. weekly grain) the default Time
   // scale places ticks at "nice" intervals that don't line up with the buckets.
@@ -2329,6 +2363,7 @@ test('tooltip time grain wiring: dashboard-level extraFormData time grain overri
   });
 
   const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.MONTH);
   const tooltipFormatter = (
     transformedProps.echartOptions as unknown as TooltipFormatterOptions
   ).tooltip.formatter;
@@ -2362,6 +2397,7 @@ test('tooltip time grain wiring: chart-level time grain drives the tooltip when 
   });
 
   const transformedProps = transformProps(chartProps);
+  expect(transformedProps.resolvedTimeGrain).toBe(TimeGranularity.YEAR);
   const tooltipFormatter = (
     transformedProps.echartOptions as unknown as TooltipFormatterOptions
   ).tooltip.formatter;
@@ -2436,4 +2472,156 @@ test('honors the snake_case flag the compare-chart migration stores in params', 
     [BASE_TIMESTAMP, 0],
     [BASE_TIMESTAMP + 300000000, 2],
   ]);
+});
+describe('EchartsTimeseries tooltip truncation', () => {
+  const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+
+  const buildTooltip = (
+    tooltipTruncation?: TooltipTruncationMode,
+    xValue: string | number = 599616000000,
+  ) => {
+    const chartProps = new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['foo'],
+        viz_type: 'my_viz',
+        ...(tooltipTruncation ? { tooltipTruncation } : {}),
+      } as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { [longSeriesName]: 1, __timestamp: 599616000000 },
+            { [longSeriesName]: 3, __timestamp: 599916000000 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const { formatter } = echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    };
+    return formatter([
+      {
+        seriesId: longSeriesName,
+        seriesName: longSeriesName,
+        value: [xValue, 1],
+        marker,
+      },
+    ]);
+  };
+
+  test('applies the CSS cap and keeps full text by default', () => {
+    const html = buildTooltip();
+    expect(html).toContain(longSeriesName);
+    // sanitizeHtml normalizes spacing inside style attributes, so compare with
+    // whitespace stripped rather than hard-coding one version's formatting.
+    expect(html.replace(/\s/g, '')).toContain('max-width:300px');
+  });
+
+  test('removes the cap and keeps full text when off', () => {
+    const html = buildTooltip('off');
+    expect(html).not.toContain('max-width');
+    expect(html).toContain(longSeriesName);
+  });
+
+  test('drops the shared prefix when truncating from the start', () => {
+    const html = buildTooltip('start');
+    expect(html).not.toContain('prod-us-east');
+    expect(html).toContain('latency-p99');
+    expect(html.replace(/\s/g, '')).toContain('white-space:nowrap');
+  });
+
+  test('keeps both ends when truncating the middle', () => {
+    const html = buildTooltip('middle');
+    expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
+    expect(html).not.toContain(longSeriesName);
+  });
+
+  test('preserves the echarts marker in every mode', () => {
+    (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
+      expect(buildTooltip(mode)).toContain('background-color:#1f77b4');
+    });
+  });
+
+  test('truncates a long non-temporal x-axis title', () => {
+    const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
+    const html = buildTooltip('start', longCategory);
+    expect(html).not.toContain(longCategory);
+    expect(html).toContain('cohort-2026');
+  });
+
+  test('leaves a long title alone in the default mode', () => {
+    const longCategory = 'prod-us-east-1-service-checkout-cohort-2026';
+    expect(buildTooltip(undefined, longCategory)).toContain(longCategory);
+  });
+});
+
+describe('tooltip for metrics whose labels end in forecast suffixes', () => {
+  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const seriesIds = ['ci__yhat', 'ci__yhat_lower', 'ci__yhat_upper'];
+  const values = [1.5, 0.5, 2.0];
+
+  // Metrics can be labelled `ci__yhat*` with no forecast enabled and no plain
+  // observation series. Every series then collapses onto the same
+  // forecast-stripped tooltip key, so no raw series id matches itself.
+  const buildTooltip = (tooltipSortByMetric = false) => {
+    const chartProps = createTestChartProps({
+      formData: {
+        x_axis: 'dt',
+        metrics: seriesIds,
+        groupby: [],
+        richTooltip: true,
+        tooltipSortByMetric,
+      } as Partial<EchartsTimeseriesFormData>,
+      queriesData: [
+        createTestQueryData([
+          {
+            dt: 599616000000,
+            ci__yhat: 1.5,
+            ci__yhat_lower: 0.5,
+            ci__yhat_upper: 2.5,
+          },
+        ]),
+      ],
+    });
+    const tooltipFormatter = (transformProps(chartProps).echartOptions as any)
+      .tooltip.formatter;
+    return tooltipFormatter(
+      seriesIds.map((id, i) => ({
+        seriesId: id,
+        seriesName: id,
+        value: [599616000000, values[i]],
+        data: [599616000000, values[i]],
+        marker,
+      })),
+    );
+  };
+
+  test('renders the collapsed series rather than falling back to "No data"', () => {
+    const html = buildTooltip();
+    expect(html).not.toContain('No data');
+    expect(html).toContain('>ci<');
+    expect(html).toContain('ŷ = 1.5 (0.5, 2.5)');
+  });
+
+  test('renders a single row rather than one per forecast suffix', () => {
+    const html = buildTooltip();
+    expect(html.match(/<tr/g)).toHaveLength(1);
+    expect(html).toContain('>ci<');
+  });
+
+  test('still renders the row when the tooltip is sorted by metric', () => {
+    const html = buildTooltip(true);
+    expect(html).not.toContain('No data');
+    expect(html).toContain('>ci<');
+  });
 });

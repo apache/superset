@@ -80,7 +80,7 @@ dependencies = [
     # marshmallow 4 compatibility: see superset/marshmallow_compatibility.py for a
     # Flask-AppBuilder workaround. Tracking issue:
     # https://github.com/apache/superset/issues/33162
-    "marshmallow>=3.0, <5",
+    "marshmallow>=4.3.1, <5",
     "marshmallow-union>=0.1.15.post1",
     "msgpack>=1.2.0, <1.3",
     "nh3>=0.3.5, <0.4",
@@ -101,7 +101,7 @@ dependencies = [
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "pygeohash",
-    "pyarrow>=24.0.0, <26", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
+    "pyarrow>=25.0.1, <26", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
     "pyyaml>=6.0.3, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=5.0.0, <9.0",
@@ -111,10 +111,10 @@ dependencies = [
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=4.1.1",
     "slack_sdk>=3.43.0, <4",
-    "sqlalchemy>=2.0.0, <2.1",
+    "sqlalchemy>=2.0.52, <2.1",
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
-    "sqlglot>=30.16.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
+    "sqlglot>=30.17.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
@@ -197,7 +197,7 @@ fastmcp = [
 # landed (discussion #40273).
 firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
-gevent = ["gevent>=26.7.0"]
+gevent = ["gevent>=26.8.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
 hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
 hive = [
@@ -232,7 +232,7 @@ playwright = ["playwright>=1.62.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.338.0"]
-prophet = ["prophet>=1.3.0, <2"]
+prophet = ["prophet>=1.4.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
@@ -255,7 +255,7 @@ tdengine = [
     "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
-teradata = ["teradatasql>=20.0.0.64"]
+teradata = ["teradatasql>=20.0.0.65"]
 thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>= 11.1.2, < 11.2"]
