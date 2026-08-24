@@ -69,10 +69,14 @@ def test_load_chart_data_into_cache_with_error(
 
 @mock.patch("superset.tasks.async_queries.security_manager")
 @mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
 def test_load_chart_data_into_cache_with_query_failed_error_does_not_reraise(
-    mock_query_context_schema_cls, mock_async_query_manager, mock_security_manager
-):
+    mock_query_context_schema_cls: mock.MagicMock,
+    mock_command_cls: mock.MagicMock,
+    mock_async_query_manager: mock.MagicMock,
+    mock_security_manager: mock.MagicMock,
+) -> None:
     """
     ChartDataQueryFailedError maps to a 400 in the synchronous chart/data
     endpoint (see ChartDataRestApi._get_data_response) - an expected,
@@ -87,11 +91,13 @@ def test_load_chart_data_into_cache_with_query_failed_error_does_not_reraise(
     job_metadata = {"user_id": 1}
     form_data: dict[str, Any] = {}
     err_message = "Columns missing in dataset: ['foo']"
-    err = ChartDataQueryFailedError(_(err_message))
 
     mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
     mock_async_query_manager.STATUS_ERROR = "error"
-    mock_query_context_schema_cls.return_value.load.side_effect = err
+    mock_query_context_schema_cls.return_value.load.return_value = mock.MagicMock()
+    mock_command_cls.return_value.run.side_effect = ChartDataQueryFailedError(
+        _(err_message)
+    )
 
     # Should not raise.
     load_chart_data_into_cache(job_metadata, form_data)
