@@ -92,9 +92,12 @@ import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
 import {
   getPrintFontSizeCSS,
+  getPrintLayoutCSS,
   PRINT_FONT_SIZE_MEDIUM,
+  PRINT_LAYOUT_1COL,
   PRINT_MODE_CSS,
   PrintFontSize,
+  PrintLayout,
 } from 'src/dashboard/styles/printMode';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
@@ -520,21 +523,31 @@ const DashboardBuilder = () => {
     rawFontSize === 'small' || rawFontSize === 'medium' || rawFontSize === 'large'
       ? rawFontSize
       : PRINT_FONT_SIZE_MEDIUM;
+  const rawLayout = getUrlParam(URL_PARAMS.printLayout);
+  const printLayout: PrintLayout =
+    rawLayout === '1col' || rawLayout === '2col' ? rawLayout : PRINT_LAYOUT_1COL;
 
   useEffect(() => {
     if (isPrintMode) {
       document.body.classList.add('print-mode');
+      if (printLayout === '2col') {
+        document.body.classList.add('print-layout-2col');
+      }
       const styleEl = document.createElement('style');
       styleEl.id = 'superset-print-mode-css';
-      styleEl.textContent = PRINT_MODE_CSS + getPrintFontSizeCSS(printFontSize);
+      styleEl.textContent =
+        PRINT_MODE_CSS +
+        getPrintFontSizeCSS(printFontSize) +
+        getPrintLayoutCSS(printLayout);
       document.head.appendChild(styleEl);
       return () => {
         document.body.classList.remove('print-mode');
+        document.body.classList.remove('print-layout-2col');
         document.head.removeChild(styleEl);
       };
     }
     return undefined;
-  }, [isPrintMode, printFontSize]);
+  }, [isPrintMode, printFontSize, printLayout]);
   // Report mode (standalone=3) hides the filter bar by default, since it's used
   // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK
   // consumers also use standalone=3 to hide the title/tabs/nav, but may still

@@ -46,6 +46,7 @@ from superset.utils.report_execution import (
 )
 from superset.utils.retries import retry_call
 from superset.utils.screenshot_utils import (
+    ANNOTATE_PRINT_COLUMNS_JS,
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
@@ -987,8 +988,7 @@ class WebDriverPlaywright(WebDriverProxy):
     def _escape_html(text: str) -> str:
         """HTML-escape a plain-text string for safe inline HTML embedding."""
         return (
-            text
-            .replace("&", "&amp;")
+            text.replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace('"', "&quot;")
@@ -1017,9 +1017,7 @@ class WebDriverPlaywright(WebDriverProxy):
         parts = raw.split("{date}")
         resolved_parts = []
         for i, part in enumerate(parts):
-            safe_part = WebDriverPlaywright._escape_html(
-                part.replace("{title}", title)
-            )
+            safe_part = WebDriverPlaywright._escape_html(part.replace("{title}", title))
             resolved_parts.append(safe_part)
             if i < len(parts) - 1:
                 resolved_parts.append('<span class="date"></span>')
@@ -1158,7 +1156,7 @@ class WebDriverPlaywright(WebDriverProxy):
             "</div>"
         )
 
-    def get_print_pdf(
+    def get_print_pdf(  # noqa: C901
         self,
         url: str,
         user: "User | None" = None,
@@ -1166,9 +1164,17 @@ class WebDriverPlaywright(WebDriverProxy):
         report_execution_context: ReportExecutionContext | None = None,
         header_title: str | None = None,
         font_size: str | None = None,
+        print_layout: str | None = None,
+        tab_ids: list[str] | None = None,
     ) -> bytes | None:
         """
         Render the dashboard in print-ready mode and call page.pdf().
+
+        When tab_ids is provided (list of Superset TAB-xxx component IDs),
+        the dashboard is rendered once per tab by appending #TAB-xxx to the
+        URL — each navigation activates that tab so its charts mount and render.
+        The resulting per-tab PDFs are merged into a single document via pypdf.
+        Falls back to single-URL rendering if pypdf is not available.
 
         Uses PRINT_ALL_CHART_HOLDERS_READY_JS (all holders, not just
         viewport-visible) to detect readiness, then calls Playwright's
@@ -1189,6 +1195,14 @@ class WebDriverPlaywright(WebDriverProxy):
         Big Number charts use an inline style for font-size which CSS !important
         cannot override; SET_PRINT_FONT_SIZE_JS patches those inline styles
         directly before page.pdf() is called.
+
+        print_layout ('2col' | None) enables two-column adaptive layout:
+        ANNOTATE_PRINT_COLUMNS_JS is called before page.pdf() to tag each
+        .dragdroppable-column with data-print-col-span="half"|"full" based on
+        its original pixel width relative to its row.  The CSS injected via
+        ?print_layout=2col in the URL then uses those attributes to lay out
+        small charts side-by-side.  Table charts are always forced full-width
+        by the JS annotation regardless of their original size.
 
         Returns None (never raises) so the caller can fall back to
         the existing screenshot path.
@@ -1212,157 +1226,170 @@ class WebDriverPlaywright(WebDriverProxy):
             viewport={"height": self._window[1], "width": pdf_viewport_width},
             device_scale_factor=pixel_density,
         )
-        context.set_default_timeout(
-            app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
-        )
+        context.set_default_timeout(app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"])
         if user:
             self.auth(user, context)
         page = context.new_page()
         pdf_bytes: bytes | None = None
-        try:
+
+        # Determine readiness timeout once (reused for all tabs)
+        load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
+        if report_execution_context:
+            effective_wait = report_execution_context.deadline.timeout_seconds(
+                "chart_readiness",
+                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+            )
+        else:
+            effective_wait = float(load_wait)
+
+        _a4_px = 794  # A4 width in CSS pixels at 96 dpi
+        _pdf_scale = min(1.0, _a4_px / pdf_viewport_width)
+
+        use_header_footer = bool(
+            header_title and app.config.get("BROWSER_PRINT_PDF_HEADER_FOOTER", True)
+        )
+        pdf_kwargs: dict[str, Any] = {
+            "format": "A4",
+            "print_background": True,
+            "scale": _pdf_scale,
+            "margin": {
+                "top": "18mm" if use_header_footer else "10mm",
+                "bottom": "15mm" if use_header_footer else "10mm",
+                "left": "10mm",
+                "right": "10mm",
+            },
+        }
+        if use_header_footer:
+            header_content: dict[str, str] | None = app.config.get(
+                "BROWSER_PRINT_PDF_HEADER_CONTENT"
+            )
+            footer_content: dict[str, str] | None = app.config.get(
+                "BROWSER_PRINT_PDF_FOOTER_CONTENT"
+            )
+            pdf_kwargs["display_header_footer"] = True
+            pdf_kwargs["header_template"] = self._build_pdf_header_template(
+                header_title,  # type: ignore[arg-type]
+                content=header_content,
+            )
+            pdf_kwargs["footer_template"] = self._build_pdf_footer_template(
+                content=footer_content,
+            )
+
+        def _render_page(render_url: str) -> bytes:
+            """Navigate, wait for charts, apply JS patches, return PDF bytes."""
             page.goto(
-                url,
+                render_url,
                 wait_until=app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                timeout=effective_wait * 1000,
             )
             page.wait_for_timeout(app.config["SCREENSHOT_SELENIUM_HEADSTART"] * 1000)
+            page.locator(".standalone").wait_for(timeout=effective_wait * 1000)
 
-            # Wait for standalone element to confirm dashboard has mounted
-            page.locator(".standalone").wait_for()
-
-            # CSSMotion renders inactive tab panels with inline style="display:none"
-            # when forceRender=true. React inline styles override CSS !important
-            # rules, so the only reliable fix is to remove the inline display:none
-            # via JS. Do this before the readiness wait so that inactive-tab chart
-            # holders can mount and reach a terminal state for the readiness check.
+            # Safety net: remove any residual display:none from CSSMotion
             unhidden = page.evaluate(UNHIDE_TAB_PANELS_JS)
-            logger.info(
-                "browser_print_pdf_unhide url=%s panels_unhidden=%d log_context=%s",
-                url,
-                unhidden,
-                log_context or "",
-            )
-
-            # Determine readiness timeout from budget context or config
-            load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
-            if report_execution_context:
-                effective_wait = report_execution_context.deadline.timeout_seconds(
-                    "chart_readiness",
-                    reserve_seconds=report_execution_context.readiness_reserve_seconds,
+            if unhidden:
+                logger.debug(
+                    "browser_print_pdf_unhide url=%s panels_unhidden=%d",
+                    render_url,
+                    unhidden,
                 )
-            else:
-                effective_wait = float(load_wait)
 
-            # Wait for ALL chart holders (not just viewport-visible)
             page.wait_for_function(
                 PRINT_ALL_CHART_HOLDERS_READY_JS,
                 timeout=effective_wait * 1000,
             )
 
-            # Re-strip any display:none that React reconciliation may have
-            # re-applied to tab panels between the initial unhide and chart
-            # readiness settling. This is a no-op if nothing changed.
-            page.evaluate(UNHIDE_TAB_PANELS_JS)
-
-            # Table viz renders all rows into the DOM but wraps them in a
-            # fixed-height scroll container (inline style="height:Xpx;
-            # overflow:auto").  page.pdf() clips to that inline height before
-            # writing to the paper.  Remove the height/overflow constraints
-            # now that the chart has finished mounting so every row flows
-            # into the print output.
             expanded = page.evaluate(EXPAND_TABLE_CONTAINERS_JS)
             if expanded:
                 logger.info(
                     "browser_print_pdf_expand_tables url=%s tables_expanded=%d "
                     "log_context=%s",
-                    url,
+                    render_url,
                     expanded,
                     log_context or "",
                 )
 
-            # Big Number charts render font-size as an inline style attribute.
-            # CSS !important cannot override inline styles, so we patch the
-            # inline style directly here — after chart readiness, before pdf().
-            # 'small' (or None) uses the React-computed default (32px); no JS
-            # needed.  Tier values (CSS px at 1600px viewport, ×0.496 to paper):
-            #   medium → 64px  (~12pt on paper)
-            #   large  → 96px  (~18pt on paper)
             _big_number_px: int | None = None
             if font_size == "medium":
                 _big_number_px = 64
             elif font_size == "large":
                 _big_number_px = 96
             if _big_number_px is not None:
-                bn_patched = page.evaluate(SET_PRINT_FONT_SIZE_JS, _big_number_px)
+                page.evaluate(SET_PRINT_FONT_SIZE_JS, _big_number_px)
+
+            if print_layout == "2col":
+                col_annotated = page.evaluate(ANNOTATE_PRINT_COLUMNS_JS)
                 logger.info(
-                    "browser_print_pdf_font_size url=%s font_size=%s "
-                    "big_number_px=%d elements_patched=%d log_context=%s",
-                    url,
-                    font_size,
-                    _big_number_px,
-                    bn_patched,
+                    "browser_print_pdf_2col url=%s columns_annotated=%d log_context=%s",
+                    render_url,
+                    col_annotated,
                     log_context or "",
                 )
 
-            # Native browser print — produces a real vector PDF.
-            #
-            # scale = A4 printable width / viewport width so the content
-            # drawn at `pdf_viewport_width` pixels maps exactly onto the
-            # A4 paper with no blank guttering and no overflow.
-            # A4 printable width at 96 dpi with 8 mm margins on each side:
-            #   210 mm total - 16 mm margins = 194 mm = ~735 px at 96 dpi
-            # We use the full paper width (794 px) for the scale ratio so
-            # margins are applied symmetrically by the PDF engine.
-            _a4_px = 794  # A4 width in CSS pixels at 96 dpi
-            _pdf_scale = min(1.0, _a4_px / pdf_viewport_width)
+            return page.pdf(**pdf_kwargs)
 
-            # Header / footer: use Playwright's display_header_footer API.
-            # The header_template and footer_template are rendered by Chromium
-            # inside the top/bottom margin space at full paper width and are
-            # NOT scaled by page.pdf(scale), so the px values in those
-            # templates always refer to paper pixels, not viewport pixels.
-            # Top margin needs room for the header band (~14mm of content +
-            # 4mm breathing space = 18mm).  Bottom margin needs ~11mm of
-            # content + 4mm = 15mm.
-            use_header_footer = bool(
-                header_title
-                and app.config.get("BROWSER_PRINT_PDF_HEADER_FOOTER", True)
-            )
-            pdf_kwargs: dict[str, Any] = {
-                "format": "A4",
-                "print_background": True,
-                "scale": _pdf_scale,
-                "margin": {
-                    "top": "18mm" if use_header_footer else "10mm",
-                    "bottom": "15mm" if use_header_footer else "10mm",
-                    "left": "10mm",
-                    "right": "10mm",
-                },
-            }
-            if use_header_footer:
-                # Read operator-configurable slot content from app config.
-                # Falls back to the built-in defaults when the key is absent.
-                header_content: dict[str, str] | None = app.config.get(
-                    "BROWSER_PRINT_PDF_HEADER_CONTENT"
-                )
-                footer_content: dict[str, str] | None = app.config.get(
-                    "BROWSER_PRINT_PDF_FOOTER_CONTENT"
-                )
-                pdf_kwargs["display_header_footer"] = True
-                pdf_kwargs["header_template"] = self._build_pdf_header_template(
-                    header_title,  # type: ignore[arg-type]
-                    content=header_content,
-                )
-                pdf_kwargs["footer_template"] = self._build_pdf_footer_template(
-                    content=footer_content,
-                )
+        try:
+            if tab_ids and len(tab_ids) > 1:
+                # Multi-tab dashboard: render each tab separately using a URL
+                # hash fragment (#TAB-ID) so the inactive tab's charts mount.
+                # antd v6 with tabPane animation disabled does not mount
+                # inactive content even with forceRender:true in the items
+                # array, so per-tab navigation is the only reliable approach.
+                # Merge the per-tab PDFs into a single document with pypdf.
+                try:
+                    import pypdf  # noqa: PLC0415
 
-            pdf_bytes = page.pdf(**pdf_kwargs)
-            logger.info(
-                "browser_print_pdf_success url=%s bytes=%d log_context=%s",
-                url,
-                len(pdf_bytes) if pdf_bytes else 0,
-                log_context or "",
-            )
+                    writer = pypdf.PdfWriter()
+                    for tab_id in tab_ids:
+                        tab_url = f"{url}#{tab_id}"
+                        logger.info(
+                            "browser_print_pdf_tab url=%s tab_id=%s log_context=%s",
+                            tab_url,
+                            tab_id,
+                            log_context or "",
+                        )
+                        tab_pdf_bytes = _render_page(tab_url)
+                        reader = pypdf.PdfReader(
+                            __import__("io").BytesIO(tab_pdf_bytes)
+                        )
+                        for pdf_page in reader.pages:
+                            writer.add_page(pdf_page)
+                    import io as _io
+
+                    buf = _io.BytesIO()
+                    writer.write(buf)
+                    pdf_bytes = buf.getvalue()
+                    logger.info(
+                        "browser_print_pdf_success url=%s tabs=%d bytes=%d "
+                        "log_context=%s",
+                        url,
+                        len(tab_ids),
+                        len(pdf_bytes),
+                        log_context or "",
+                    )
+                except ImportError:
+                    # pypdf not installed: fall back to single-URL render
+                    logger.warning(
+                        "browser_print_pdf_no_pypdf url=%s; rendering default "
+                        "tab only — install pypdf for multi-tab PDF merge",
+                        url,
+                    )
+                    pdf_bytes = _render_page(url)
+                    logger.info(
+                        "browser_print_pdf_success url=%s bytes=%d log_context=%s",
+                        url,
+                        len(pdf_bytes) if pdf_bytes else 0,
+                        log_context or "",
+                    )
+            else:
+                # Single URL (no tabs or tab IDs not provided)
+                pdf_bytes = _render_page(url)
+                logger.info(
+                    "browser_print_pdf_success url=%s bytes=%d log_context=%s",
+                    url,
+                    len(pdf_bytes) if pdf_bytes else 0,
+                    log_context or "",
+                )
         except (PlaywrightTimeout, PlaywrightError, Exception):  # noqa: BLE001
             logger.exception(
                 "browser_print_pdf_failed url=%s log_context=%s; "

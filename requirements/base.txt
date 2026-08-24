@@ -332,6 +332,8 @@ pyopenssl==26.3.0
     #   shillelagh
 pyparsing==3.3.2
     # via apache-superset (pyproject.toml)
+pypdf==6.16.2
+    # via apache-superset (pyproject.toml) — multi-tab PDF merge for browser-print PDF reports
 pysocks==1.7.1
     # via urllib3
 python-calamine==0.8.2

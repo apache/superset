@@ -49,6 +49,24 @@
  */
 export type PrintFontSize = 'small' | 'medium' | 'large';
 
+/**
+ * Valid values for the ?print_layout URL param.
+ *
+ * - 1col:  single-column (default) — every chart spans the full page width.
+ *          Best for tables and wide charts.
+ * - 2col:  two-column adaptive — charts that originally occupied ≤ 50% of
+ *          the dashboard row are placed side-by-side (two per row); charts
+ *          that occupied > 50% span the full width as normal.  Table charts
+ *          are always forced full-width regardless of their original size.
+ *          The threshold detection is done by ANNOTATE_PRINT_COLUMNS_JS
+ *          (screenshot_utils.py) before page.pdf() is called; this CSS only
+ *          acts on the resulting data-print-col-span attributes.
+ */
+export type PrintLayout = '1col' | '2col';
+
+export const PRINT_LAYOUT_1COL = '1col' as const;
+export const PRINT_LAYOUT_2COL = '2col' as const;
+
 export const PRINT_FONT_SIZE_SMALL = 'small' as const;
 export const PRINT_FONT_SIZE_MEDIUM = 'medium' as const;
 export const PRINT_FONT_SIZE_LARGE = 'large' as const;
@@ -164,6 +182,79 @@ body.print-mode {
   return '';
 }
 
+/**
+ * Returns additional CSS to inject alongside PRINT_MODE_CSS that enables the
+ * two-column adaptive layout (?print_layout=2col).
+ *
+ * Requires ANNOTATE_PRINT_COLUMNS_JS to have been evaluated first so that
+ * data-print-col-span="half"|"full" attributes are present on each
+ * .dragdroppable-column element.
+ *
+ * Table charts are always full-width (enforced by the JS annotation, not here).
+ */
+export function getPrintLayoutCSS(layout: PrintLayout): string {
+  if (layout !== '2col') {
+    return '';
+  }
+  return `
+body.print-mode.print-layout-2col {
+  /*
+   * Multi-column adaptive layout — restores the original dashboard side-by-side
+   * layout for rows that had 2 or 3 charts side-by-side.
+   *
+   * Confirmed DOM structure (live inspection):
+   *   .dragdroppable-row
+   *     .with-popover-menu
+   *       .grid-row                  ← flex container
+   *         .dragdroppable-column    ← one per chart; JS sets --print-col-weight
+   *           .resizable-container
+   *
+   * ANNOTATE_PRINT_COLUMNS_JS (screenshot_utils.py):
+   *   - Sets data-print-2col="true" on qualifying .grid-row elements (2–3 cols,
+   *     no table charts, no single chart >= 90% viewport width)
+   *   - Sets --print-col-weight on each .dragdroppable-column to its
+   *     proportional share of the total row authored width (normalised to 100),
+   *     so columns always fill the full row regardless of authored gap
+   *
+   * The base PRINT_MODE_CSS forces .grid-row to flex-direction:column.
+   * We override that back to row only for JS-annotated rows.
+   */
+
+  /* Restore annotated rows to horizontal flex */
+  .grid-row[data-print-2col="true"] {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Each column fills its proportional share of the row via flex-grow.
+   * flex-basis:0 + flex-grow=weight means the browser divides the available
+   * space exactly in the authored proportions, and the columns always sum
+   * to 100% with no gap — even when the authored widths didn't exactly fill
+   * the viewport. flex-shrink:0 prevents columns from being squeezed below
+   * their flex-grow share. */
+  .grid-row[data-print-2col="true"] > .dragdroppable-column {
+    flex-grow: var(--print-col-weight, 50) !important;
+    flex-shrink: 0 !important;
+    flex-basis: 0 !important;
+    width: 0 !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* The resizable-container must fill its column completely */
+  .grid-row[data-print-2col="true"] > .dragdroppable-column > .resizable-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+`;
+}
+
 export const PRINT_MODE_CSS = `
 body.print-mode {
   /* ── 1. Hide interactive chrome ─────────────────────────────────── */
@@ -229,30 +320,62 @@ body.print-mode {
   /* ── 4. Table charts: show all rows, hide pagination ────────────── */
   /*
    * The table viz renders all rows into the DOM but wraps them in a
-   * fixed-height scroll container set via inline styles.  EXPAND_TABLE_CONTAINERS_JS
-   * (evaluated by Playwright before page.pdf()) removes those inline heights.
-   * These CSS rules handle the remaining layout ancestors that have
-   * overflow:hidden applied via class rules (not inline styles):
-   *   .dashboard-chart has overflow:hidden from its stylesheet
-   *   .chart-container may also clip
-   * We use :has() scoped to table viz types so non-table charts are unaffected.
+   * fixed-height scroll container set via inline styles.
+   * EXPAND_TABLE_CONTAINERS_JS (Playwright) removes those inline heights, but
+   * the flex layout chain above the table (resizable-container →
+   * dragdroppable-column → grid-row) still allocates the authored pixel
+   * height to the table's column, causing the expanded table rows to overflow
+   * that allocated space and overlap subsequent dashboard rows in the PDF.
+   *
+   * Fix: release height at every ancestor level for table-containing cells.
+   * Use :has() so non-table chart heights are completely unaffected.
+   * The walk stops at .grid-row so it doesn't collapse the whole page.
    */
-  [data-test-viz-type="table"] ~ * .dashboard-chart,
-  .dashboard-chart:has([data-test-viz-type="table"]),
-  .dashboard-chart:has(.superset-chart-table) {
-    overflow: visible !important;
+
+  /* Release the chain: resizable-container → chart-holder → column */
+  .resizable-container:has(.superset-chart-table),
+  .resizable-container:has([data-test-viz-type="table"]) {
     height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
+  .dashboard-component-chart-holder:has(.superset-chart-table),
+  .dashboard-component-chart-holder:has([data-test-viz-type="table"]) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .dragdroppable-column:has(.superset-chart-table),
+  .dragdroppable-column:has([data-test-viz-type="table"]) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  /* chart-slice / dashboard-chart / chart-container */
+  .chart-slice:has(.superset-chart-table),
+  .chart-slice:has([data-test-viz-type="table"]),
+  .dashboard-chart:has(.superset-chart-table),
+  .dashboard-chart:has([data-test-viz-type="table"]),
   .chart-container:has(.superset-chart-table),
   .chart-container:has([data-test-viz-type="table"]) {
     overflow: visible !important;
     height: auto !important;
+    max-height: none !important;
     min-height: 0 !important;
   }
-  /* The inner scroll containers set via inline style are handled by JS;
-     these CSS rules cover any remaining table-viz wrapper elements */
+  /* Also release the grid-row that contains a table column so it grows
+     to fit the expanded table instead of clipping at the authored height */
+  .grid-row:has(.superset-chart-table),
+  .grid-row:has([data-test-viz-type="table"]) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  /* The inner scroll containers set via inline style are handled by JS */
   .table-viz,
-  .dataTable {
+  .dataTable,
+  .superset-chart-table {
     overflow: visible !important;
     max-height: none !important;
     height: auto !important;
@@ -260,8 +383,14 @@ body.print-mode {
   .dt-global-filter,
   .pagination-container { display: none !important; }
 
-  /* ── 5. Prevent page breaks splitting a single chart card ─────────*/
-  .dashboard-component-chart-holder {
+  /* ── 5. Page breaks ──────────────────────────────────────────────── */
+  /*
+   * Avoid splitting a single chart card across a page break.
+   * Tables are excluded from break-inside:avoid because they can be very
+   * tall and forcing them onto one page would cause an almost-blank page
+   * followed by a page consisting entirely of table rows.
+   */
+  .dashboard-component-chart-holder:not(:has(.superset-chart-table)):not(:has([data-test-viz-type="table"])) {
     page-break-inside: avoid;
     break-inside: avoid;
   }

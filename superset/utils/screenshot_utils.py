@@ -289,15 +289,12 @@ UNHIDE_TAB_PANELS_JS = """
 EXPAND_TABLE_CONTAINERS_JS = """
 () => {
     let count = 0;
-    // Target divs inside .superset-chart-table that have an explicit inline
-    // height AND overflow:auto/scroll — these are the table scroll containers.
-    // Also walk up to the .resizable-container and .dashboard-component-chart-holder
-    // ancestors and unset their inline heights so the expanded table can grow.
-    const roots = document.querySelectorAll(
-        '.superset-chart-table, [data-test-viz-type="table"], [data-test-viz-type="TableChartTransformed"]'
-    );
+    const sel = '.superset-chart-table,'
+        + ' [data-test-viz-type="table"],'
+        + ' [data-test-viz-type="TableChartTransformed"]';
+    const roots = document.querySelectorAll(sel);
     for (const root of roots) {
-        // 1. Expand the inner scroll containers
+        // 1. Expand the inner scroll containers (inline-height + overflow divs)
         for (const el of root.querySelectorAll('div[style]')) {
             const s = el.style;
             const hasHeight = s.height && s.height !== '' && s.height !== 'auto';
@@ -312,23 +309,191 @@ EXPAND_TABLE_CONTAINERS_JS = """
             }
         }
 
-        // 2. Walk up the DOM from the table root and unset inline heights on
-        //    ancestor containers (.resizable-container, .chart-slice,
-        //    .dashboard-component-chart-holder) so they don't clip the expanded
-        //    table.  Stop at .dashboard-grid so we don't affect the whole page.
+        // 2. Walk all the way up to .dragdroppable-row and release any inline
+        //    height/overflow on every ancestor so the flex layout chain
+        //    (resizable-container → chart-holder → dragdroppable-column → grid-row)
+        //    allocates auto height instead of the authored pixel height.
+        //    Stop at .grid-content/.dashboard-grid to avoid collapsing the page.
+        const STOP_CLASSES = new Set([
+            'dashboard-grid', 'grid-content',
+        ]);
         let el = root.parentElement;
-        while (el && !el.classList.contains('dashboard-grid')) {
-            if (el.style && el.style.height && el.style.height !== 'auto') {
-                el.style.height = 'auto';
-                el.style.maxHeight = 'none';
-                if (el.style.overflow === 'hidden') {
+        while (el) {
+            if (STOP_CLASSES.has(el.className.split(' ')[0]) ||
+                el.classList.contains('dashboard-grid') ||
+                el.classList.contains('grid-content')) {
+                break;
+            }
+            if (el.style) {
+                if (el.style.height && el.style.height !== 'auto') {
+                    el.style.height = 'auto';
+                    el.style.maxHeight = 'none';
+                }
+                if (el.style.overflow === 'hidden' || el.style.overflow === 'auto') {
                     el.style.overflow = 'visible';
+                }
+                if (el.style.overflowY === 'hidden' || el.style.overflowY === 'auto') {
+                    el.style.overflowY = 'visible';
                 }
             }
             el = el.parentElement;
         }
     }
     return count;
+}
+"""
+
+# In print mode, antd v6 with tabPane animation disabled (tabPane:false in
+# animated prop) does not mount inactive tab content even with forceRender:true
+# in the items array.  The only reliable fix is to navigate to each tab's
+# content using a URL hash fragment (Superset resolves #TAB-ID to that tab),
+# wait for its charts to render, capture a sub-PDF, and merge all sub-PDFs.
+#
+# This JS returns the IDs of all tab content nodes from .dashboard-component-tabs
+# elements, extracted from the React component's data attributes or from the
+# tab label data-node-key attributes.  Returns [] if no tabs are present.
+EXTRACT_TAB_HASH_IDS_JS = """
+() => {
+    // antd nav tabs: each nav item has a data-node-key attribute set by
+    // the rc-tabs DraggableTabNode wrapper.  In standalone mode the tab
+    // nav bar is NOT rendered, so we fall back to reading the tab IDs from
+    // the aria-controls attributes on any rendered tab buttons, or from
+    // Superset's own data attributes on the tabs wrapper.
+    //
+    // Primary: .ant-tabs-tab[data-node-key] (present when tab bar renders)
+    const navItems = document.querySelectorAll('.ant-tabs-tab[data-node-key]');
+    if (navItems.length > 0) {
+        return Array.from(navItems).map(n => n.getAttribute('data-node-key'));
+    }
+    // Fallback: .dashboard-component-tabs stores the superset component ID
+    // on the wrapper.  The children of the antd Tabs are the DashboardComponent
+    // items for each tab — look for their data-test or id attributes.
+    const tabsWrapper = document.querySelector(
+        '[data-test="dashboard-component-tabs"]');
+    if (!tabsWrapper) return [];
+    // The active tab's key is set as the activeKey on the antd Tabs element,
+    // exposed via aria-selected on the active nav button — but nav is hidden.
+    // Return empty to signal "no clickable tabs; use per-hash navigation".
+    return [];
+}
+"""
+
+# Returns the number of navigable tab buttons (when nav bar is visible).
+# In standalone/report mode this is always 0 because antd hides the nav bar.
+COUNT_TAB_BUTTONS_JS = """
+() => {
+    return document.querySelectorAll('.ant-tabs-tab').length;
+}
+"""
+
+# Reveal all tab panels at once after per-tab navigation has mounted every
+# tab's charts.  antd v6 hides non-active pane content via display:none on
+# the pane wrapper (.ant-tabs-tabpane) or inline style on .ant-tabs-content
+# children.
+SHOW_ALL_TAB_PANELS_JS = """
+() => {
+    let shown = 0;
+    const content = document.querySelector('.ant-tabs-content');
+    if (content) {
+        for (const child of content.children) {
+            if (child.style.display === 'none') {
+                child.style.removeProperty('display');
+                shown++;
+            }
+        }
+    }
+    for (const el of document.querySelectorAll(
+        '[role="tabpanel"], .ant-tabs-tabpane'
+    )) {
+        if (el.style.display === 'none') {
+            el.style.removeProperty('display');
+            shown++;
+        }
+    }
+    return shown;
+}
+"""
+
+# In 2-column print layout (?print_layout=2col), charts that were originally
+# side-by-side in the dashboard should be restored to that layout instead of
+# being stacked single-column.
+#
+# Confirmed DOM structure (live inspection):
+#   .grid-content
+#     .dragdroppable-row           ← one row per original dashboard row
+#       .with-popover-menu
+#         .grid-row                ← flex row containing sibling columns
+#           .dragdroppable-column  ← one per chart in the row
+#             .resizable-container ← inline style.width holds authored px width
+#
+# Each .grid-row may contain multiple .dragdroppable-column siblings.
+# Rows with 2 or 3 columns where no single column dominates the full row
+# (ratio < 0.90 of viewport) are candidates for the multi-column layout.
+# Table charts are always forced full-width (kept single-column).
+#
+# Width normalisation: the authored px widths are used as flex-grow weights
+# so they always fill the full row width regardless of whether the authored
+# widths sum to exactly 100% of the viewport.
+#
+# Width source: .resizable-container ':scope > .resizable-container' inline
+# style.width — re-resizable writes it at mount time, preserved even when
+# CSS forces width: 100% !important on the rendered element.
+# Denominator: viewport width (window.innerWidth = 1600px at print time).
+#   4/12-col: ~380px / 1600px = 23.7%
+#   6/12-col: ~776px / 1600px = 48.5%
+#   full:    ~1568px / 1600px = 98%  ← blocked by >= 0.90 gate
+ANNOTATE_PRINT_COLUMNS_JS = """
+() => {
+    let annotated = 0;
+    const viewportWidth = window.innerWidth || 1600;
+
+    for (const gridRow of document.querySelectorAll('.grid-row')) {
+        const cols = Array.from(
+            gridRow.querySelectorAll(':scope > .dragdroppable-column'));
+        // Support 2 or 3-column rows.  1-column rows are already full-width.
+        // 4+ column rows are rare and have very narrow charts — skip them.
+        if (cols.length < 2 || cols.length > 3) continue;
+
+        // Gather column data and apply eligibility checks:
+        //   - no table chart (tables stay full-width for readability)
+        //   - rcW measurable (markdown / dividers have no .resizable-container)
+        //   - no single column is >= 90% of viewport (genuinely full-width chart)
+        let eligible = true;
+        const colData = cols.map(col => {
+            const rc = col.querySelector(':scope > .resizable-container');
+            const rcW = rc ? parseFloat(rc.style.width) : 0;
+            const ratio = rcW / viewportWidth;
+            const hasTable = col.querySelector(
+                '.superset-chart-table, [data-test-viz-type="table"]'
+            ) !== null;
+            // A column with no measured width (markdown, divider) or a
+            // single chart that nearly fills the full viewport width on its
+            // own should keep the row in single-column mode.
+            if (hasTable || rcW <= 0 || ratio >= 0.90) eligible = false;
+            return { col, rcW, ratio };
+        });
+
+        if (!eligible) continue;
+
+        // Mark the .grid-row so the CSS knows to restore flex-direction: row.
+        gridRow.setAttribute('data-print-2col', 'true');
+
+        // Compute the total authored width across all columns so we can
+        // assign each column a flex-grow weight proportional to its original
+        // size.  This normalises the columns to fill 100% of the row even
+        // when the authored widths don't exactly sum to the viewport width
+        // (e.g. 776+380 = 1156px, not 1568px).
+        const totalW = colData.reduce((s, d) => s + d.rcW, 0);
+
+        for (const { col, rcW } of colData) {
+            // flex-grow weight: proportional share of the total row width.
+            const weight = (rcW / totalW * 100).toFixed(3);
+            col.setAttribute('data-print-col-weight', weight);
+            col.style.setProperty('--print-col-weight', weight);
+            annotated++;
+        }
+    }
+    return annotated;
 }
 """
 

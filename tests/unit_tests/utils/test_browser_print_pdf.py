@@ -23,9 +23,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-
 # ---------------------------------------------------------------------------
 # DashboardPrintScreenshot — URL construction
 # ---------------------------------------------------------------------------
@@ -162,9 +159,7 @@ class TestGetPdfRouting:
         return cmd
 
     @patch("superset.commands.report.execute.feature_flag_manager")
-    def test_skips_browser_print_when_flag_off(
-        self, mock_ffm: MagicMock
-    ) -> None:
+    def test_skips_browser_print_when_flag_off(self, mock_ffm: MagicMock) -> None:
         """When DASHBOARD_REPORTS_BROWSER_PRINT_PDF is False, skip the new path."""
         mock_ffm.is_feature_enabled.return_value = False
 
@@ -176,9 +171,7 @@ class TestGetPdfRouting:
 
         # Patch _get_screenshots + build_pdf_from_screenshots so the fallback succeeds
         with (
-            patch.object(
-                type(cmd), "_get_screenshots", return_value=[b"fake-png"]
-            ),
+            patch.object(type(cmd), "_get_screenshots", return_value=[b"fake-png"]),
             patch(
                 "superset.commands.report.execute.build_pdf_from_screenshots",
                 return_value=b"fallback-pdf",
@@ -190,9 +183,7 @@ class TestGetPdfRouting:
         assert result == b"fallback-pdf"
 
     @patch("superset.commands.report.execute.feature_flag_manager")
-    def test_skips_browser_print_for_chart_report(
-        self, mock_ffm: MagicMock
-    ) -> None:
+    def test_skips_browser_print_for_chart_report(self, mock_ffm: MagicMock) -> None:
         """Browser-print path must be skipped for chart reports (no dashboard)."""
         mock_ffm.is_feature_enabled.return_value = True
 
@@ -202,9 +193,7 @@ class TestGetPdfRouting:
         cmd._report_schedule = schedule  # type: ignore[attr-defined]
 
         with (
-            patch.object(
-                type(cmd), "_get_screenshots", return_value=[b"fake-png"]
-            ),
+            patch.object(type(cmd), "_get_screenshots", return_value=[b"fake-png"]),
             patch(
                 "superset.commands.report.execute.build_pdf_from_screenshots",
                 return_value=b"chart-fallback-pdf",
@@ -243,6 +232,7 @@ class TestGetBrowserPrintPdfMultiUrl:
 
         cmd = object.__new__(BaseReportState)
         cmd._report_execution_context = None  # type: ignore[attr-defined]
+        cmd._execution_id = "test-exec-id"  # type: ignore[attr-defined]
 
         schedule = MagicMock()
         schedule.custom_width = None

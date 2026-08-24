@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 # test_pdf_font_sizes.sh
 #
-# Generates three PDFs from dashboard 10 — one per font-size tier — copies
-# them to ~/Desktop, and opens them so you can visually compare side-by-side.
+# Generates PDFs from four dashboards:
+#   - dashboard 10 (Large Table PDF Test)  — 5 variants (small/medium/large/2col/custom)
+#   - dashboard 2  (World Bank's Data)     — 2 variants (small/2col)
+#   - dashboard 6  (Sales Dashboard)       — 2 variants (small/2col)
+#   - dashboard 8  (Misc Charts)           — 2 variants (small/2col)
+#
+# Copies everything to ~/Desktop and opens it for visual inspection.
 #
 # Run from the repo root:
-#   bash scripts/test_pdf_font_sizes.sh
+#   bash scripts/test_pdf_font_sizes.sh          # use existing bundle
+#   bash scripts/test_pdf_font_sizes.sh --build  # rebuild frontend first
 #
 # Requirements:
 #   - Docker Compose stack running (superset-superset-1 container up)
 #   - DASHBOARD_REPORTS_BROWSER_PRINT_PDF=True and
 #     PLAYWRIGHT_REPORTS_AND_THUMBNAILS=True in
 #     docker/pythonpath_dev/superset_config_docker.py
-#   - npm run build already run (or run with --build flag below)
-#
-# Usage:
-#   bash scripts/test_pdf_font_sizes.sh          # use existing bundle
-#   bash scripts/test_pdf_font_sizes.sh --build  # rebuild frontend first
 
 set -euo pipefail
 
@@ -48,44 +49,65 @@ with flask_app.app_context():
     from superset.models.dashboard import Dashboard
     from flask_appbuilder.security.sqla.models import User
 
-    dashboard = db.session.query(Dashboard).filter_by(id=10).one()
-    user = db.session.query(User).filter_by(username='admin').first()
+    import json as _json
 
-    # Use the internal Docker hostname — 'localhost' does not resolve
-    # to the Superset web container from inside the container itself.
-    base_url = "http://superset:8088/superset/dashboard/large-table-pdf-test/"
+    user = db.session.query(User).filter_by(username='admin').first()
     window_size: WindowSize = (1600, 1200)
 
-    for font_size in ("small", "medium", "large"):
+    def get_url(dash):
+        if dash.slug:
+            return f"http://superset:8088/superset/dashboard/{dash.slug}/"
+        return f"http://superset:8088/superset/dashboard/{dash.id}/"
+
+    def get_tab_ids(dash):
+        """Return ordered list of TAB-xxx IDs from the dashboard layout, or []."""
+        layout = dash.position_json
+        if isinstance(layout, str):
+            layout = _json.loads(layout)
+        tab_ids = []
+        for item in layout.values():
+            if not isinstance(item, dict): continue
+            if item.get('type') == 'TABS':
+                for child_id in item.get('children', []):
+                    child = layout.get(child_id, {})
+                    if isinstance(child, dict) and child.get('type') == 'TAB':
+                        tab_ids.append(child_id)
+                if tab_ids:
+                    break  # only process the first TABS component
+        return tab_ids
+
+    def gen_pdf(label, base_url, digest, font_size=None, print_layout=None, tab_ids=None):
         t0 = time.monotonic()
-        # 'small' is the no-override tier — no ?print_font_size param added
         shot = DashboardPrintScreenshot(
-            base_url,
-            dashboard.digest,
-            window_size=window_size,
-            font_size=None if font_size == "small" else font_size,
+            base_url, digest, window_size=window_size,
+            font_size=font_size, print_layout=print_layout,
         )
-        print(f"[{font_size}] URL: {shot.url}", flush=True)
+        print(f"[{label}] URL: {shot.url} tab_ids={tab_ids}", flush=True)
         pdf = shot.get_print_pdf(
-            user=user,
-            log_context=f"test-{font_size}",
-            header_title=dashboard.dashboard_title,
-            font_size=None if font_size == "small" else font_size,
+            user=user, log_context=f"test-{label}",
+            header_title=label, font_size=font_size,
+            print_layout=print_layout, tab_ids=tab_ids,
         )
         elapsed = time.monotonic() - t0
+        out = f"/tmp/test_pdf_{label}.pdf"
         if pdf:
-            out_path = f"/tmp/test_dash10_pdf_{font_size}.pdf"
-            with open(out_path, "wb") as f:
-                f.write(pdf)
-            print(f"[{font_size}] SUCCESS: {len(pdf):,} bytes in {elapsed:.1f}s -> {out_path}", flush=True)
+            with open(out, "wb") as f: f.write(pdf)
+            print(f"[{label}] SUCCESS: {len(pdf):,} bytes in {elapsed:.1f}s -> {out}", flush=True)
         else:
-            print(f"[{font_size}] FAILED in {elapsed:.1f}s", flush=True)
+            print(f"[{label}] FAILED in {elapsed:.1f}s", flush=True)
             sys.exit(1)
 
-    # ── Custom header/footer content test ────────────────────────────────────
-    # Demonstrates BROWSER_PRINT_PDF_HEADER_CONTENT / FOOTER_CONTENT override.
-    # In production superset_config.py an operator would set these at the module
-    # level; here we patch the Flask app config dict directly for the test.
+    # ── Dashboard 10: Large Table PDF Test ───────────────────────────────────
+    d10 = db.session.query(Dashboard).filter_by(id=10).one()
+    u10 = get_url(d10)
+    t10 = get_tab_ids(d10)
+    gen_pdf("dash10_small",  u10, d10.digest)
+    gen_pdf("dash10_medium", u10, d10.digest, font_size="medium")
+    gen_pdf("dash10_large",  u10, d10.digest, font_size="large")
+    gen_pdf("dash10_2col",   u10, d10.digest, print_layout="2col",
+            tab_ids=t10 or None)
+
+    # custom header/footer demo for dashboard 10
     from superset.utils.webdriver import WebDriverPlaywright
     flask_app.config["BROWSER_PRINT_PDF_HEADER_CONTENT"] = {
         "left":   "{title}",
@@ -95,68 +117,91 @@ with flask_app.app_context():
     flask_app.config["BROWSER_PRINT_PDF_FOOTER_CONTENT"] = {
         "left":   "CONFIDENTIAL · Do not distribute",
         "center": "analytics.acme.com",
-        # right is always Page N of M — cannot be overridden
     }
-    t0 = time.monotonic()
-    shot_custom = DashboardPrintScreenshot(
-        base_url,
-        dashboard.digest,
-        window_size=window_size,
-        font_size=None,
-    )
-    pdf_custom = shot_custom.get_print_pdf(
-        user=user,
-        log_context="test-custom-header",
-        header_title=dashboard.dashboard_title,
-        font_size=None,
-    )
-    elapsed = time.monotonic() - t0
-    if pdf_custom:
-        with open("/tmp/test_dash10_pdf_custom_header.pdf", "wb") as f:
-            f.write(pdf_custom)
-        print(f"[custom] SUCCESS: {len(pdf_custom):,} bytes in {elapsed:.1f}s -> /tmp/test_dash10_pdf_custom_header.pdf", flush=True)
-    else:
-        print(f"[custom] FAILED in {elapsed:.1f}s", flush=True)
-        sys.exit(1)
+    gen_pdf("dash10_custom", u10, d10.digest)
+    # Reset to defaults
+    flask_app.config.pop("BROWSER_PRINT_PDF_HEADER_CONTENT", None)
+    flask_app.config.pop("BROWSER_PRINT_PDF_FOOTER_CONTENT", None)
 
-print("All four PDFs generated.", flush=True)
+    # ── Dashboard 2: World Bank's Data ───────────────────────────────────────
+    d2 = db.session.query(Dashboard).filter_by(id=2).one()
+    u2 = get_url(d2)
+    t2 = get_tab_ids(d2)
+    gen_pdf("dash2_small", u2, d2.digest)
+    gen_pdf("dash2_2col",  u2, d2.digest, print_layout="2col",
+            tab_ids=t2 or None)
+
+    # ── Dashboard 6: Sales Dashboard ─────────────────────────────────────────
+    d6 = db.session.query(Dashboard).filter_by(id=6).one()
+    u6 = get_url(d6)
+    t6 = get_tab_ids(d6)
+    gen_pdf("dash6_small", u6, d6.digest, tab_ids=t6 or None)
+    gen_pdf("dash6_2col",  u6, d6.digest, print_layout="2col",
+            tab_ids=t6 or None)
+
+    # ── Dashboard 8: Misc Charts ─────────────────────────────────────────────
+    d8 = db.session.query(Dashboard).filter_by(id=8).one()
+    u8 = get_url(d8)
+    t8 = get_tab_ids(d8)
+    gen_pdf("dash8_small", u8, d8.digest)
+    gen_pdf("dash8_2col",  u8, d8.digest, print_layout="2col",
+            tab_ids=t8 or None)
+
+print("All 11 PDFs generated.", flush=True)
 PYEOF
 
 # ── copy script into container and run it ────────────────────────────────────
 echo ">>> Generating PDFs inside $CONTAINER ..."
 docker cp /tmp/_sip212_test.py "$CONTAINER:/tmp/_sip212_test.py"
-docker exec "$CONTAINER" python3 /tmp/_sip212_test.py 2>&1 \
-  | grep -E "^\[|^All|ERROR:superset"
+
+PYTHON_OUTPUT=$(docker exec "$CONTAINER" python3 /tmp/_sip212_test.py 2>&1) || {
+  echo ""
+  echo "!!! Python script failed. Full output:"
+  echo "$PYTHON_OUTPUT"
+  exit 1
+}
+
+echo "$PYTHON_OUTPUT" | grep -E "^\[|^All" || true
+echo "$PYTHON_OUTPUT" | grep "ERROR:superset" || true
 
 # ── copy PDFs to Desktop ──────────────────────────────────────────────────────
 echo ">>> Copying PDFs to $DESKTOP ..."
-for TIER in small medium large custom_header; do
-  docker cp "$CONTAINER:/tmp/test_dash10_pdf_${TIER}.pdf" \
-    "$DESKTOP/test_dash10_pdf_${TIER}.pdf"
-  echo "    Copied test_dash10_pdf_${TIER}.pdf"
+PDFS=(
+  dash10_small dash10_medium dash10_large dash10_2col dash10_custom
+  dash2_small dash2_2col
+  dash6_small dash6_2col
+  dash8_small dash8_2col
+)
+for NAME in "${PDFS[@]}"; do
+  docker cp "$CONTAINER:/tmp/test_pdf_${NAME}.pdf" \
+    "$DESKTOP/test_pdf_${NAME}.pdf"
+  echo "    Copied test_pdf_${NAME}.pdf"
 done
 
-# ── open all four ─────────────────────────────────────────────────────────────
+# ── open all PDFs ─────────────────────────────────────────────────────────────
 echo ">>> Opening PDFs..."
-open "$DESKTOP/test_dash10_pdf_small.pdf"
-open "$DESKTOP/test_dash10_pdf_medium.pdf"
-open "$DESKTOP/test_dash10_pdf_large.pdf"
-open "$DESKTOP/test_dash10_pdf_custom_header.pdf"
+for NAME in "${PDFS[@]}"; do
+  open "$DESKTOP/test_pdf_${NAME}.pdf"
+done
 
 echo ""
-echo "Done. Four PDFs open on your Desktop:"
-echo "  test_dash10_pdf_small.pdf         — default   (no font overrides, React defaults)"
-echo "  test_dash10_pdf_medium.pdf        — medium    (26px chart titles, 20px table)"
-echo "  test_dash10_pdf_large.pdf         — XL        (38px chart titles, 30px table)"
-echo "  test_dash10_pdf_custom_header.pdf — custom    (ACME Corp header/footer demo)"
+echo "Done. 11 PDFs open on your Desktop:"
 echo ""
-echo "To customize header/footer in production, set in superset_config.py:"
-echo "  BROWSER_PRINT_PDF_HEADER_CONTENT = {"
-echo '    "left":   "{title}",'
-echo '    "center": "Your Org Name",'
-echo '    "right":  "Printed: {date}",'
-echo "  }"
-echo "  BROWSER_PRINT_PDF_FOOTER_CONTENT = {"
-echo '    "left":   "Confidential",'
-echo '    "center": "your-domain.com",'
-echo "  }"
+echo "  Dashboard 10 — Large Table PDF Test"
+echo "    test_pdf_dash10_small.pdf    — single-column, no font overrides"
+echo "    test_pdf_dash10_medium.pdf   — single-column, medium font"
+echo "    test_pdf_dash10_large.pdf    — single-column, large font"
+echo "    test_pdf_dash10_2col.pdf     — 2-column adaptive layout"
+echo "    test_pdf_dash10_custom.pdf   — custom ACME Corp header/footer"
+echo ""
+echo "  Dashboard 2 — World Bank's Data"
+echo "    test_pdf_dash2_small.pdf     — single-column"
+echo "    test_pdf_dash2_2col.pdf      — 2-column adaptive layout"
+echo ""
+echo "  Dashboard 6 — Sales Dashboard"
+echo "    test_pdf_dash6_small.pdf     — single-column"
+echo "    test_pdf_dash6_2col.pdf      — 2-column adaptive layout"
+echo ""
+echo "  Dashboard 8 — Misc Charts"
+echo "    test_pdf_dash8_small.pdf     — single-column"
+echo "    test_pdf_dash8_2col.pdf      — 2-column adaptive layout"

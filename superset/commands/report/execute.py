@@ -881,9 +881,7 @@ class BaseReportState:
             try:
                 pdf_bytes = self._get_browser_print_pdf()
                 if pdf_bytes:
-                    logger.info(
-                        "browser_print_pdf_used %s", self._log_context
-                    )
+                    logger.info("browser_print_pdf_used %s", self._log_context)
                     return pdf_bytes
                 logger.warning(
                     "browser_print_pdf_none %s; falling back to screenshot path",
@@ -938,9 +936,8 @@ class BaseReportState:
             )
             return None
 
-        pdf_font_size: str | None = app.config.get(
-            "BROWSER_PRINT_PDF_FONT_SIZE", None
-        )
+        pdf_font_size: str | None = app.config.get("BROWSER_PRINT_PDF_FONT_SIZE", None)
+        pdf_layout: str | None = app.config.get("BROWSER_PRINT_PDF_LAYOUT", None)
         dashboard_title: str = self._report_schedule.dashboard.dashboard_title or ""
         screenshot = DashboardPrintScreenshot(
             urls[0],
@@ -948,6 +945,7 @@ class BaseReportState:
             window_size=window_size,
             thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             font_size=pdf_font_size,
+            print_layout=pdf_layout,
         )
         return screenshot.get_print_pdf(
             user=user,
@@ -955,6 +953,7 @@ class BaseReportState:
             report_execution_context=self._report_execution_context,
             header_title=dashboard_title or None,
             font_size=pdf_font_size,
+            print_layout=pdf_layout,
         )
 
     def _get_chart_data_request_payload(

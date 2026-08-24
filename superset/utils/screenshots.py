@@ -502,6 +502,10 @@ class DashboardPrintScreenshot(DashboardScreenshot):
     Optionally accepts a font_size ('small' | 'medium' | 'large') that is
     forwarded to the frontend via ?print_font_size=<value>.  When omitted or
     'small', no font-size param is appended ('small' is the no-override default).
+
+    Optionally accepts a print_layout ('2col') that is forwarded to the
+    frontend via ?print_layout=<value>.  When omitted or '1col', no param is
+    appended (single-column is the default).
     """
 
     def __init__(
@@ -511,6 +515,7 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
         font_size: str | None = None,
+        print_layout: str | None = None,
     ):
         # DashboardScreenshot.__init__ already adds standalone=3
         super().__init__(url, digest, window_size, thumb_size)
@@ -522,6 +527,10 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         # apply progressively larger CSS overrides.
         if font_size and font_size in ("medium", "large"):
             self.url = modify_url_query(self.url, print_font_size=font_size)
+        # Forward the layout tier to the frontend so the CSS is injected.
+        # '2col' triggers two-column adaptive layout; '1col'/None is default.
+        if print_layout == "2col":
+            self.url = modify_url_query(self.url, print_layout=print_layout)
 
     def get_print_pdf(
         self,
@@ -531,6 +540,8 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         report_execution_context: ReportExecutionContext | None = None,
         header_title: str | None = None,
         font_size: str | None = None,
+        print_layout: str | None = None,
+        tab_ids: list[str] | None = None,
     ) -> bytes | None:
         """
         Use Playwright's page.pdf() for native print output.
@@ -538,6 +549,12 @@ class DashboardPrintScreenshot(DashboardScreenshot):
         The font_size tier is embedded in self.url (CSS overrides) via __init__
         AND passed to the webdriver (JS overrides for inline-styled elements).
         header_title, when provided, stamps a header and footer on every page.
+        print_layout ('2col') enables two-column adaptive layout; the URL param
+        injects the CSS and the webdriver runs ANNOTATE_PRINT_COLUMNS_JS before
+        page.pdf() to set data-print-col-span attributes on grid columns.
+        tab_ids, when provided (list of Superset TAB-xxx component IDs), causes
+        the webdriver to render each tab separately using a URL hash fragment
+        and merge the resulting PDFs via pypdf.
         """
         if not feature_flag_manager.is_feature_enabled(
             "PLAYWRIGHT_REPORTS_AND_THUMBNAILS"
@@ -545,9 +562,7 @@ class DashboardPrintScreenshot(DashboardScreenshot):
             return None
         if not PLAYWRIGHT_AVAILABLE:
             return None
-        driver = WebDriverPlaywright(
-            self.driver_type, window_size or self.window_size
-        )
+        driver = WebDriverPlaywright(self.driver_type, window_size or self.window_size)
         return driver.get_print_pdf(
             self.url,
             user=user,
@@ -555,4 +570,6 @@ class DashboardPrintScreenshot(DashboardScreenshot):
             report_execution_context=report_execution_context,
             header_title=header_title,
             font_size=font_size,
+            print_layout=print_layout,
+            tab_ids=tab_ids,
         )
