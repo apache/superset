@@ -745,8 +745,10 @@ export function exploreJSON(
 
     // Re-issue the chart-data request. On the async path this runs after every
     // query task has succeeded, so `force` is dropped — the per-query DATA cache
-    // is warm and this returns synchronously (200) from cache.
-    const requestChartData = (fromCache = false) =>
+    // is warm and this returns synchronously (200) from cache. `forceSync` opts
+    // out of async entirely (used as the fallback below when the result could
+    // not be cached), so the server returns the payload inline rather than a 202.
+    const requestChartData = (fromCache = false, forceSync = false) =>
       getChartDataRequest({
         setDataMask,
         formData,
@@ -756,7 +758,7 @@ export function exploreJSON(
         requestParams,
         ownState,
         // exploreJSON handles 202 via handleChartDataResponse.
-        enableAsyncMode: true,
+        enableAsyncMode: !forceSync,
       });
 
     const chartDataRequest = requestChartData();
@@ -767,9 +769,20 @@ export function exploreJSON(
           response,
           json,
           () =>
-            requestChartData(true).then(({ response: r, json: j }) =>
-              handleChartDataResponse(r, j),
-            ) as Promise<QueryData[]>,
+            requestChartData(true).then(({ response: r, json: j }) => {
+              // Tasks succeeded, but if the result was never cached the
+              // re-request returns another 202 (NullCache is refused server-side,
+              // yet an oversized result or a per-query disabled timeout still
+              // skips the write). Fall back to a synchronous fetch, which returns
+              // the payload inline, instead of looping on an uncacheable request.
+              if (r.status === 202) {
+                return requestChartData(true, true).then(
+                  ({ response: sr, json: sj }) =>
+                    handleChartDataResponse(sr, sj),
+                ) as Promise<QueryData[]>;
+              }
+              return handleChartDataResponse(r, j);
+            }) as Promise<QueryData[]>,
           controller.signal,
         ),
       )

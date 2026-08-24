@@ -578,6 +578,44 @@ describe('chart actions', () => {
           'validation failed',
         );
       });
+
+      test('falls back to a synchronous fetch when the async re-request is still uncacheable', async () => {
+        // 1: initial async 202; 2: the post-completion refetch is STILL a 202
+        // (the result could not be cached — oversized value / disabled per-query
+        // timeout); 3: the forced-sync fetch returns the payload inline (200).
+        fetchMock.removeRoute(MOCK_URL);
+        let calls = 0;
+        fetchMock.post(
+          `glob:*${MOCK_URL}*`,
+          () => {
+            calls += 1;
+            return calls >= 3
+              ? { status: 200, body: { result: [{ data: [1, 2, 3] }] } }
+              : { status: 202, body: { result: [{ job_id: 'job-1' }] } };
+          },
+          { name: MOCK_URL },
+        );
+
+        const actionThunk = actions.postChartFormData(
+          { viz_type: 'my_viz' } as QueryFormData,
+          false,
+          undefined,
+          undefined,
+        );
+        await actionThunk(
+          dispatch as unknown as actions.ChartThunkDispatch,
+          mockGetState as unknown as () => actions.RootState,
+          undefined,
+        );
+
+        // Three requests total (async, still-202 refetch, sync fallback), and the
+        // chart resolves successfully rather than throwing on the repeat 202.
+        expect(calls).toBe(3);
+        const succeeded = dispatch.mock.calls.find(
+          ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
+        )?.[0];
+        expect(succeeded).toBeDefined();
+      });
     });
   });
 

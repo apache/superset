@@ -400,3 +400,32 @@ def test_transacation_nested(mocker: MockerFixture) -> None:
         nested()
     db.session.commit.assert_not_called()
     db.session.rollback.assert_called_once()
+
+
+def test_on_error_reraises_generic_message_by_default() -> None:
+    """Without ``preserve_message`` the reraised type keeps its own default message."""
+    from sqlalchemy.exc import OperationalError
+
+    from superset.commands.tasks.exceptions import TaskUpdateFailedError
+
+    source = OperationalError("UPDATE tasks ...", {}, Exception("database is locked"))
+    with pytest.raises(TaskUpdateFailedError) as excinfo:
+        decorators.on_error(source, reraise=TaskUpdateFailedError)
+    assert excinfo.value.message == "Task could not be updated."
+
+
+def test_on_error_preserves_underlying_cause_message() -> None:
+    """``preserve_message`` surfaces the DBAPI cause (e.g. "database is locked")."""
+    from sqlalchemy.exc import OperationalError
+
+    from superset.commands.tasks.exceptions import TaskUpdateFailedError
+
+    # SQLAlchemy wraps the DBAPI error and exposes it as ``.orig``; the wrapper's
+    # own str would append the SQL, so the DBAPI cause is the accurate message.
+    source = OperationalError("UPDATE tasks ...", {}, Exception("database is locked"))
+    with pytest.raises(TaskUpdateFailedError) as excinfo:
+        decorators.on_error(
+            source, reraise=TaskUpdateFailedError, preserve_message=True
+        )
+    assert "database is locked" in excinfo.value.message
+    assert excinfo.value.exception is source

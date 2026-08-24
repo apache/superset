@@ -98,6 +98,63 @@ class TestResolveFailedPrerequisite:
         assert _resolve_failed_prerequisite(task) is prerequisite
 
 
+class TestExecuteTaskFailedPrerequisite:
+    """execute_task's handling when a prerequisite did not succeed."""
+
+    @staticmethod
+    def _run_with_transition(*, transitioned: bool, refreshed_status: str):
+        """Drive execute_task through the failed-prerequisite branch.
+
+        Returns ``(result, publish_completion_mock)`` with the status transition
+        forced to ``transitioned`` and the post-transition re-read reporting
+        ``refreshed_status``.
+        """
+        native = uuid4()
+        pending = SimpleNamespace(uuid=native, status=TaskStatus.PENDING.value)
+        refreshed = SimpleNamespace(uuid=native, status=refreshed_status)
+        failed_prereq = _task(status=TaskStatus.FAILURE.value)
+
+        transition = MagicMock()
+        transition.return_value.run.return_value = transitioned
+
+        with (
+            patch(
+                "superset.tasks.scheduler.TaskDAO.find_one_or_none",
+                side_effect=[pending, refreshed],
+            ),
+            patch(
+                "superset.tasks.scheduler._resolve_failed_prerequisite",
+                return_value=failed_prereq,
+            ),
+            patch("superset.tasks.scheduler.TaskManager") as task_manager,
+            patch(
+                "superset.commands.tasks.internal_update."
+                "InternalStatusTransitionCommand",
+                transition,
+            ),
+        ):
+            from superset.tasks.scheduler import execute_task
+
+            result = execute_task.run(str(native), "some.task", (), {})
+            return result, task_manager.publish_completion
+
+    def test_failure_published_when_transition_commits(self):
+        result, publish_completion = self._run_with_transition(
+            transitioned=True, refreshed_status=TaskStatus.PENDING.value
+        )
+        assert result["status"] == TaskStatus.FAILURE.value
+        publish_completion.assert_called_once()
+
+    def test_no_failure_published_when_task_already_terminal(self):
+        # The task was aborted while waiting on prerequisites, so the FAILURE
+        # transition is a no-op — report the committed status, publish no FAILURE.
+        result, publish_completion = self._run_with_transition(
+            transitioned=False, refreshed_status=TaskStatus.ABORTED.value
+        )
+        assert result["status"] == TaskStatus.ABORTED.value
+        publish_completion.assert_not_called()
+
+
 class TestPersistDependencies:
     """Tests for SubmitTaskCommand._persist_dependencies."""
 

@@ -237,6 +237,26 @@ class CoordinationService:
             *(cls._resolve_key(key) for key in keys)
         )
 
+    @classmethod
+    def compare_and_delete(
+        cls, key: KeyLike, expected: str, backend: "CoordinationBackend | None" = None
+    ) -> int:
+        """Atomically delete ``key`` only if its value still equals ``expected``.
+
+        Single server-side operation, so it closes the TTL-expiry race a separate
+        get-then-delete leaves open (used for ownership-checked lock release).
+
+        :param key: a literal key string, or a ``() -> str`` generator (see
+            :meth:`_resolve_key`).
+        :param expected: the value the key must currently hold to be deleted.
+        :param backend: optional explicit backend (see :meth:`_require_backend`).
+        :returns: 1 if the key was deleted, 0 otherwise.
+        :raises CoordinationBackendUnavailableError: if no backend is available.
+        """
+        return cls._require_backend(backend).compare_and_delete(
+            cls._resolve_key(key), expected
+        )
+
     # -- Streams -------------------------------------------------------------
 
     @classmethod

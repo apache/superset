@@ -222,6 +222,7 @@ def on_error(
     ex: Exception,
     catches: tuple[type[Exception], ...] = (SQLAlchemyError,),
     reraise: type[Exception] | None = SQLAlchemyError,
+    preserve_message: bool = False,
 ) -> None:
     """
     Default error handler whenever any exception is caught during a SQLAlchemy nested
@@ -230,6 +231,10 @@ def on_error(
     :param ex: The source exception
     :param catches: The exception types the handler catches
     :param reraise: The exception type the handler raises after catching
+    :param preserve_message: When True, carry the underlying cause's message into the
+        reraised exception instead of its generic default, so the true reason (e.g.
+        "database is locked") reaches the caller. Only meaningful when ``reraise`` is
+        a ``SupersetException`` subclass (which accepts ``(message, exception)``).
     :raises Exception: If the exception is not swallowed
     """
 
@@ -238,6 +243,11 @@ def on_error(
             logger.exception(ex.exception)
 
         if reraise:
+            if preserve_message:
+                # Prefer the DBAPI cause (e.g. sqlite3's "database is locked") over
+                # SQLAlchemy's wrapper, which appends the offending SQL.
+                cause = getattr(ex, "orig", None) or ex
+                raise reraise(str(cause), ex) from ex
             raise reraise() from ex
     else:
         raise ex

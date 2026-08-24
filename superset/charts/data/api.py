@@ -25,6 +25,7 @@ from typing import Any, Callable, TYPE_CHECKING
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
+from flask_caching.backends import NullCache
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
@@ -52,7 +53,7 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
-from superset.extensions import event_logger
+from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.utils import json
@@ -362,6 +363,10 @@ class ChartDataRestApi(ChartRestApi):
         200 flow). It is only available when ``GLOBAL_ASYNC_QUERIES`` is enabled, the
         result is a full JSON payload, and caching is on (async delivery reads the
         result back from the DATA cache).
+
+        A ``NullCache`` DATA backend can never satisfy the read-back, so async is
+        refused for it and the request runs synchronously — otherwise every chart
+        would schedule tasks, succeed, and then loop on an uncacheable re-request.
         """
         return (
             bool(json_body.get("async_mode"))
@@ -369,6 +374,7 @@ class ChartDataRestApi(ChartRestApi):
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
             and cache_timeout != CACHE_DISABLED_TIMEOUT
+            and not isinstance(cache_manager.data_cache.cache, NullCache)
         )
 
     def _run_async(
