@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SqlaFormData } from "@superset-ui/core";
+import { SqlaFormData } from '@superset-ui/core';
 
 const mockShiftMetric = jest
   .fn()
-  .mockReturnValueOnce("left_sum")
-  .mockReturnValueOnce("right_sum");
-const mockShiftColumn = jest.fn(() => "category");
+  .mockReturnValueOnce('left_sum')
+  .mockReturnValueOnce('right_sum');
+const mockShiftColumn = jest.fn(() => 'category');
 
-jest.mock("@superset-ui/chart-controls", () => {
-  const actual = jest.requireActual("@superset-ui/chart-controls");
+jest.mock('@superset-ui/chart-controls', () => {
+  const actual = jest.requireActual('@superset-ui/chart-controls');
   return {
     ...actual,
     getStandardizedControls: jest.fn(() => ({
@@ -36,19 +36,19 @@ jest.mock("@superset-ui/chart-controls", () => {
 });
 
 // eslint-disable-next-line import/first
-import controlPanel from "../../src/Butterfly/controlPanel";
+import controlPanel from '../../src/Butterfly/controlPanel';
 
 const collectControlNames = () => {
   const names = new Set<string>();
-  controlPanel.controlPanelSections?.forEach((section) => {
-    section?.controlSetRows?.forEach((row) => {
-      row.forEach((control) => {
-        if (typeof control === "string") {
+  controlPanel.controlPanelSections?.forEach(section => {
+    section?.controlSetRows?.forEach(row => {
+      row.forEach(control => {
+        if (typeof control === 'string') {
           names.add(control);
         } else if (
           control &&
-          typeof control === "object" &&
-          "name" in control
+          typeof control === 'object' &&
+          'name' in control
         ) {
           names.add(String(control.name));
         }
@@ -58,26 +58,26 @@ const collectControlNames = () => {
   return names;
 };
 
-test("exposes left and right metric controls", () => {
+test('exposes left and right metric controls', () => {
   const controlNames = collectControlNames();
-  expect(controlNames.has("left_metric")).toBe(true);
-  expect(controlNames.has("right_metric")).toBe(true);
-  expect(controlNames.has("groupby")).toBe(true);
-  expect(controlNames.has("orderby")).toBe(true);
+  expect(controlNames.has('left_metric')).toBe(true);
+  expect(controlNames.has('right_metric')).toBe(true);
+  expect(controlNames.has('groupby')).toBe(true);
+  expect(controlNames.has('orderby')).toBe(true);
 });
 
-test("restricts categories to a single dimension", () => {
+test('restricts categories to a single dimension', () => {
   expect(controlPanel.controlOverrides?.groupby?.multi).toBe(false);
 });
 
-test("maps standardized controls to butterfly metrics", () => {
-  const dummyFormData = { someProp: "test" } as unknown as SqlaFormData;
+test('maps standardized controls to butterfly metrics', () => {
+  const dummyFormData = { someProp: 'test' } as unknown as SqlaFormData;
   const formData = controlPanel.formDataOverrides?.(dummyFormData);
 
-  expect(formData?.someProp).toBe("test");
-  expect(formData?.groupby).toEqual(["category"]);
-  expect(formData?.left_metric).toBe("left_sum");
-  expect(formData?.right_metric).toBe("right_sum");
+  expect(formData?.someProp).toBe('test');
+  expect(formData?.groupby).toEqual(['category']);
+  expect(formData?.left_metric).toBe('left_sum');
+  expect(formData?.right_metric).toBe('right_sum');
   expect(mockShiftMetric).toHaveBeenCalledTimes(2);
   expect(mockShiftColumn).toHaveBeenCalledTimes(1);
 });

@@ -25,6 +25,5 @@ import { defaultXAxis } from '../defaults';
 export const DEFAULT_FORM_DATA = {
   ...DEFAULT_LEGEND_FORM_DATA,
   ...DEFAULT_TITLE_FORM_DATA,
-  showValue: true,
   xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
 };

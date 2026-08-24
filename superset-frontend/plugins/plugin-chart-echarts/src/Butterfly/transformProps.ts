@@ -119,8 +119,8 @@ export default function transformProps(
 
   const groupbyColumn = ensureIsArray(groupby)[0];
   const categoryLabel = getColumnLabel(groupbyColumn);
-  const leftMetricLabel = getMetricLabel(leftMetric);
-  const rightMetricLabel = getMetricLabel(rightMetric);
+  const leftMetricLabel = leftMetric ? getMetricLabel(leftMetric) : '';
+  const rightMetricLabel = rightMetric ? getMetricLabel(rightMetric) : '';
   const leftSeriesName = leftLabel || leftMetricLabel;
   const rightSeriesName = rightLabel || rightMetricLabel;
 
