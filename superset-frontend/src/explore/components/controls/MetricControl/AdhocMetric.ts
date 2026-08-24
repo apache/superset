@@ -153,6 +153,19 @@ export default class AdhocMetric {
       ) {
         return `COUNT(DISTINCT ${column.slice(1, -1)})`;
       }
+      // MEDIAN(column) isn't a real function on every engine this PR
+      // verifies it for -- PostgreSQL/Redshift compile it to
+      // PERCENTILE_CONT(0.5) WITHIN GROUP instead. `transformCountDistinct`
+      // signals this call is prefilling the *editable, executable* Custom
+      // SQL tab (not just a display label), so use the portable,
+      // standards-based spelling there instead of the raw aggregate name.
+      if (
+        params.transformCountDistinct &&
+        aggregate === AGGREGATES.MEDIAN &&
+        /^\(.*\)$/.test(column)
+      ) {
+        return `PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${column.slice(1, -1)})`;
+      }
       return aggregate + column;
     }
     if (this.expressionType === EXPRESSION_TYPES.SQL) {

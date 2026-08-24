@@ -77,3 +77,20 @@ test('resolves certification conflicts between the metric and its extra blob', (
     certification_details: 'Owned by Analytics',
   });
 });
+
+test('does not throw on malformed extra, falling back like an absent extra', () => {
+  expect(() =>
+    hydrateMetricExtra({
+      ...metric,
+      warning_markdown: 'Handle with care',
+      extra: '{not valid json',
+    }),
+  ).not.toThrow();
+  expect(
+    hydrateMetricExtra({
+      ...metric,
+      warning_markdown: 'Handle with care',
+      extra: '{not valid json',
+    }).warning_markdown,
+  ).toBe('Handle with care');
+});

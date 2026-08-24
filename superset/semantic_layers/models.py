@@ -148,6 +148,26 @@ class SemanticLayer(AuditMixinNullable, Model):
         """Compute the permission string for this semantic layer."""
         return f"[{self.name}](id:{self.uuid.hex})"
 
+    def raise_for_access(self) -> None:
+        """Check that the user has access to this semantic layer."""
+        from superset import security_manager
+        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
+        if security_manager.can_access_all_datasources():
+            return
+
+        if self.perm and security_manager.can_access("datasource_access", self.perm):
+            return
+
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message=str(_("You don't have access to this semantic layer.")),
+                level=ErrorLevel.ERROR,
+            )
+        )
+
     @staticmethod
     def after_insert(
         mapper: Mapper,
@@ -324,7 +344,9 @@ class SemanticView(AuditMixinNullable, Model):
             MetricMetadata(
                 metric_name=metric.name,
                 expression=metric.definition,
+                verbose_name=metric.verbose_name,
                 description=metric.description,
+                d3format=metric.d3format,
             )
             for metric in self.implementation.get_metrics()
         ]
@@ -357,6 +379,7 @@ class SemanticView(AuditMixinNullable, Model):
                 is_dttm=pa.types.is_date(dimension.type)
                 or pa.types.is_time(dimension.type)
                 or pa.types.is_timestamp(dimension.type),
+                verbose_name=dimension.verbose_name,
                 description=dimension.description,
                 expression=None,
                 extra=json.dumps(
@@ -372,6 +395,19 @@ class SemanticView(AuditMixinNullable, Model):
 
     @property
     def data(self) -> ExplorableData:
+        dimensions = self._unique_dimensions
+        metrics = list(self.implementation.get_metrics())
+        verbose_map = {
+            **{metric.name: metric.verbose_name or metric.name for metric in metrics},
+            **{
+                dimension.name: dimension.verbose_name or dimension.name
+                for dimension in dimensions
+            },
+        }
+        column_formats = {
+            metric.name: metric.d3format for metric in metrics if metric.d3format
+        }
+
         return {
             # core
             "id": self.id,
@@ -399,16 +435,16 @@ class SemanticView(AuditMixinNullable, Model):
                     "python_date_format": None,
                     "type": str(dimension.type),
                     "type_generic": get_column_type(dimension.type),
-                    "verbose_name": None,
+                    "verbose_name": dimension.verbose_name,
                     "warning_markdown": None,
                 }
-                for dimension in self._unique_dimensions
+                for dimension in dimensions
             ],
             "metrics": [
                 {
                     "certification_details": None,
                     "certified_by": None,
-                    "d3format": None,
+                    "d3format": metric.d3format,
                     "description": metric.description,
                     "expression": metric.definition,
                     "id": None,
@@ -417,14 +453,14 @@ class SemanticView(AuditMixinNullable, Model):
                     "metric_name": metric.name,
                     "warning_markdown": None,
                     "warning_text": None,
-                    "verbose_name": None,
+                    "verbose_name": metric.verbose_name,
                 }
-                for metric in self.implementation.get_metrics()
+                for metric in metrics
             ],
             "database": {},
             "parent": {"name": self.semantic_layer.name},
             # UI features
-            "verbose_map": {},
+            "verbose_map": verbose_map,
             "order_by_choices": [],
             "filter_select": True,
             "filter_select_enabled": True,
@@ -436,11 +472,11 @@ class SemanticView(AuditMixinNullable, Model):
             "description": self.description,
             "table_name": self.name,
             "column_types": [
-                get_column_type(dimension.type) for dimension in self._unique_dimensions
+                get_column_type(dimension.type) for dimension in dimensions
             ],
-            "column_names": [dimension.name for dimension in self._unique_dimensions],
+            "column_names": [dimension.name for dimension in dimensions],
             # rare
-            "column_formats": {},
+            "column_formats": column_formats,
             "datasource_name": self.name,
             "perm": self.perm,
             "offset": self.offset,

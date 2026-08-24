@@ -393,7 +393,10 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         expected_response = {
-            "message": "There are associated alerts or reports: report_with_chart"
+            "message": (
+                "This chart is used by alerts or reports: report_with_chart. "
+                "Detach or delete them first."
+            )
         }
         assert response == expected_response
 
@@ -429,7 +432,10 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         expected_response = {
-            "message": "There are associated alerts or reports: report_with_chart"
+            "message": (
+                'Chart "chart_report" is used by alerts or reports: '
+                "report_with_chart. Detach or delete them first."
+            )
         }
         assert response == expected_response
 

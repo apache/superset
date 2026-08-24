@@ -40,9 +40,17 @@ import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiGet } from '../../helpers/api/requests';
 import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
 import { getDatasetByName } from '../../helpers/api/dataset';
+import { getAccessToken } from '../../helpers/api/embedded';
 import { TIMEOUT } from '../../utils/constants';
 
 const DATASET_NAME = 'birth_names';
+
+async function authorizeApi(page: Page): Promise<void> {
+  const accessToken = await getAccessToken(page);
+  await page.context().setExtraHTTPHeaders({
+    Authorization: `Bearer ${accessToken}`,
+  });
+}
 
 // Visible row text must never expose synthetic identifiers (layout node
 // ids like CHART-xyz / ROW-… or bare UUIDs) — the rendering layer maps
@@ -79,19 +87,35 @@ async function currentUserSubjectId(page: Page): Promise<number> {
  * this reads like its sibling specs, but fall back to whatever the instance
  * has rather than requiring a particular fixture to be loaded.
  */
-async function anyDatasetId(page: Page): Promise<number> {
+async function anyDataset(page: Page): Promise<{
+  id: number;
+  columnName: string;
+}> {
   const named = await getDatasetByName(page, DATASET_NAME);
-  if (named) {
-    return named.id;
+  let datasetId = named?.id;
+  if (!datasetId) {
+    const res = await apiGet(
+      page,
+      `api/v1/dataset/?q=${rison.encode({ columns: ['id'], page_size: 1 })}`,
+    );
+    expect(res.ok(), 'dataset list request').toBeTruthy();
+    const [first] = (await res.json()).result;
+    expect(first, 'the instance has at least one dataset').toBeTruthy();
+    datasetId = first.id;
   }
-  const res = await apiGet(
-    page,
-    `api/v1/dataset/?q=${rison.encode({ columns: ['id'], page_size: 1 })}`,
-  );
-  expect(res.ok(), 'dataset list request').toBeTruthy();
-  const [first] = (await res.json()).result;
-  expect(first, 'the instance has at least one dataset').toBeTruthy();
-  return first.id;
+  if (datasetId === undefined) {
+    throw new Error('Unable to resolve a dataset id');
+  }
+
+  const detailRes = await apiGet(page, `api/v1/dataset/${datasetId}`);
+  expect(detailRes.ok(), 'dataset detail request').toBeTruthy();
+  const { columns } = (await detailRes.json()).result;
+  const [firstColumn] = columns;
+  expect(firstColumn, 'the dataset has at least one column').toBeTruthy();
+  return {
+    id: datasetId,
+    columnName: firstColumn.column_name,
+  };
 }
 
 /** Open the Explore "Additional actions → View version history" panel. */
@@ -109,7 +133,8 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const datasetId = await anyDatasetId(page);
+    await authorizeApi(page);
+    const { id: datasetId, columnName } = await anyDataset(page);
 
     const baseName = `version_history_${Date.now()}`;
     const chartResp = await apiPostChart(page, {
@@ -123,7 +148,7 @@ testWithAssets(
         datasource: `${datasetId}__table`,
         viz_type: 'table',
         query_mode: 'raw',
-        all_columns: [],
+        all_columns: [columnName],
         adhoc_filters: [],
         row_limit: 10,
       }),
@@ -169,5 +194,81 @@ testWithAssets(
       OPAQUE_ID.test(panelText),
       `panel leaks a raw id/uuid:\n${panelText}`,
     ).toBeFalsy();
+  },
+);
+
+testWithAssets(
+  'minor edit of a non-canonical chart omits hydration noise',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
+    await authorizeApi(page);
+    const { id: datasetId, columnName } = await anyDataset(page);
+    const baseName = `version_history_normalization_${Date.now()}`;
+    const chartResp = await apiPostChart(page, {
+      slice_name: baseName,
+      viz_type: 'table',
+      datasource_id: datasetId,
+      datasource_type: 'table',
+      // Deliberately omit visualization defaults. Explore hydration supplies
+      // them, reproducing params imported before they were canonical.
+      params: JSON.stringify({
+        datasource: `${datasetId}__table`,
+        viz_type: 'table',
+        query_mode: 'raw',
+        all_columns: [columnName],
+        adhoc_filters: [],
+        extra_form_data: {},
+        dashboards: [],
+        row_limit: 10,
+      }),
+    });
+    expect(chartResp.ok(), 'chart creation').toBeTruthy();
+    const chartBody = await chartResp.json();
+    const chartId: number = chartBody.result?.id ?? chartBody.id;
+    expect(chartId, 'chart creation should return an id').toBeTruthy();
+    testAssets.trackChart(chartId);
+
+    const adminSubjectId = await currentUserSubjectId(page);
+    const editorResp = await apiPutChart(page, chartId, {
+      editors: [adminSubjectId],
+    });
+    expect(editorResp.ok(), 'claim chart editorship').toBeTruthy();
+
+    await page.goto(`explore/?slice_id=${chartId}`);
+    await page.getByRole('combobox', { name: 'Row limit' }).click();
+    await page.getByRole('option', { name: '100', exact: true }).click();
+    await page.locator('[data-test="query-save-button"]').click();
+    await page.locator('[data-test="save-overwrite-radio"]').click();
+
+    const saveResponsePromise = page.waitForResponse(
+      response =>
+        response.request().method() === 'PUT' &&
+        response.url().includes(`/api/v1/chart/${chartId}`),
+    );
+    await page.locator('[data-test="btn-modal-save"]').click();
+    const saveResponse = await saveResponsePromise;
+    expect(saveResponse.ok(), 'chart overwrite').toBeTruthy();
+
+    const requestPayload = saveResponse.request().postDataJSON();
+    const savedParams = JSON.parse(requestPayload.params);
+    expect(
+      savedParams.matrixify_enable,
+      'overwrite contains a default absent from the stored params',
+    ).toBe(false);
+
+    await openVersionHistory(page);
+    const panel = page.locator('[aria-label="Version history"]');
+    const newestGroup = panel
+      .locator('[data-test="version-history-save-group"]')
+      .first();
+    await expect(newestGroup, 'shows the overwrite save group').toBeVisible();
+    await newestGroup.getByRole('button').first().click();
+
+    const rows = newestGroup.locator(
+      '[data-test="version-history-action-row"]',
+    );
+    await expect(rows, 'shows only the intentional edit').toHaveCount(1);
+    await expect(rows.first()).toContainText(/row limit/i);
   },
 );

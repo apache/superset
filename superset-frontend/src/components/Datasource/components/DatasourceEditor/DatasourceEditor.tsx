@@ -208,13 +208,25 @@ interface DatasourceObject {
  * parsed blob is therefore only authoritative when `extra` is actually present;
  * otherwise the already-flattened value stands, instead of being reset to an
  * empty field.
+ *
+ * A malformed `extra` string is treated the same as an absent one (falls
+ * through to the already-flattened value) rather than throwing, mirroring
+ * the backend's own tolerance for bad `extra` JSON in
+ * `CertificationMixin.get_extra_dict()`.
  */
 export function hydrateMetricExtra(metric: Metric): Metric {
   const {
     certified_by: certifiedByMetric,
     certification_details: certificationDetails,
   } = metric;
-  const parsedExtra = metric.extra ? JSON.parse(metric.extra) || {} : undefined;
+  let parsedExtra;
+  if (metric.extra) {
+    try {
+      parsedExtra = JSON.parse(metric.extra) || {};
+    } catch {
+      parsedExtra = undefined;
+    }
+  }
   const {
     certification: {
       details = undefined,
@@ -1645,9 +1657,7 @@ function DatasourceEditor({
               {t(
                 'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as',
               )}{' '}
-              <Typography.Text code>
-                /superset/dashboard/{'{id}'}/
-              </Typography.Text>
+              <Typography.Text code>/dashboard/{'{id}'}/</Typography.Text>
             </>
           }
           control={<TextControl controlId="default_endpoint" />}
@@ -2013,7 +2023,6 @@ function DatasourceEditor({
                           col => col.column_name,
                         )}
                         height={300}
-                        allowHTML
                       />
                     </>
                   )}

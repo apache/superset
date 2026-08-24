@@ -33,6 +33,7 @@ from sqlalchemy import text
 
 from superset import db
 from superset.commands.base import BaseCommand
+from superset.utils.csv import escape_value
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,15 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         self, columns: list[str], csv_writer: Any, buffer: io.StringIO
     ) -> tuple[str, int]:
         """Write CSV header and return header data with byte count."""
-        csv_writer.writerow(columns)
+        # Mirror the non-streaming export path (df_to_escaped_csv): header
+        # cells can carry attacker-influenced labels, so neutralize
+        # spreadsheet formula prefixes here too.
+        csv_writer.writerow(
+            [
+                escape_value(column) if isinstance(column, str) else column
+                for column in columns
+            ]
+        )
         header_data = buffer.getvalue()
         total_bytes = len(header_data.encode("utf-8"))
         buffer.seek(0)
@@ -121,7 +130,8 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         self, row: tuple[Any, ...], decimal_separator: str | None
     ) -> list[Any]:
         """
-        Format row values, applying custom decimal separator if specified.
+        Format row values: escape string cells against CSV formula injection
+        and apply the custom decimal separator if specified.
 
         Args:
             row: Database row as a tuple
@@ -130,20 +140,30 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         Returns:
             List of formatted values
         """
-        if not decimal_separator or decimal_separator == ".":
-            return list(row)
+        active_decimal_separator = (
+            decimal_separator
+            if decimal_separator and decimal_separator != "."
+            else None
+        )
 
         formatted: list[Any] = []
         for value in row:
+            # Escape string cells so spreadsheet formula prefixes (= + - @ |,
+            # leading tab/CR) are neutralized, mirroring the non-streaming
+            # CSV path (superset.utils.csv.df_to_escaped_csv).
+            if isinstance(value, str):
+                formatted.append(escape_value(value))
             # Apply the custom decimal separator to any real numeric value
             # (float, decimal.Decimal, numpy numeric types, ...). Booleans are
             # technically a numeric type in Python but should never be rewritten
             # as numbers in CSV output.
-            if isinstance(value, bool):
+            elif isinstance(value, bool):
                 formatted.append(value)
-            elif isinstance(value, (float, Decimal, Real)):
+            elif active_decimal_separator is not None and isinstance(
+                value, (float, Decimal, Real)
+            ):
                 # Format numeric values with custom decimal separator
-                formatted.append(str(value).replace(".", decimal_separator))
+                formatted.append(str(value).replace(".", active_decimal_separator))
             else:
                 formatted.append(value)
         return formatted
@@ -227,7 +247,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         delimiter = csv_export_config.get("sep", ",")
         decimal_separator = csv_export_config.get("decimal", ".")
 
-        with db.session(future=True) as session:
+        with db.session() as session:
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
 

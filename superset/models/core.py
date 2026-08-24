@@ -729,8 +729,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if cached := _ENGINE_CACHE.get(cache_key):
                     return cached
         try:
-            if "future" not in engine_kwargs:
-                engine_kwargs["future"] = True
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
@@ -1607,7 +1605,9 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     """
 
     __tablename__ = "database_user_oauth2_tokens"
-    __table_args__ = (sqla.Index("idx_user_id_database_id", "user_id", "database_id"),)
+    __table_args__ = (
+        sqla.Index("idx_user_id_database_id", "user_id", "database_id", unique=True),
+    )
 
     id = Column(Integer, primary_key=True)
 
