@@ -1101,6 +1101,90 @@ def test_semantic_layer_get_perm_special_characters() -> None:
 
 
 # =============================================================================
+# SemanticLayer.raise_for_access tests
+# =============================================================================
+
+
+def test_semantic_layer_raise_for_access_all_datasources(app: Any) -> None:
+    """Test raise_for_access passes when user has all_datasource_access."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    with patch.object(
+        security_manager, "can_access_all_datasources", return_value=True
+    ):
+        layer.raise_for_access()
+
+
+def test_semantic_layer_raise_for_access_perm(app: Any) -> None:
+    """Test raise_for_access passes when user has datasource_access to the
+    layer's perm."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(
+            security_manager, "can_access", return_value=True
+        ) as mock_can_access,
+    ):
+        layer.raise_for_access()
+        mock_can_access.assert_called_once_with("datasource_access", layer.perm)
+
+
+def test_semantic_layer_raise_for_access_denied(app: Any) -> None:
+    """Test raise_for_access raises SupersetSecurityException when denied."""
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(security_manager, "can_access", return_value=False),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            layer.raise_for_access()
+
+
+def test_semantic_layer_raise_for_access_no_perm_denied(app: Any) -> None:
+    """Test raise_for_access raises SupersetSecurityException when the layer
+    has no perm set, without even attempting a datasource_access check."""
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = None
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(security_manager, "can_access") as mock_can_access,
+    ):
+        with pytest.raises(SupersetSecurityException):
+            layer.raise_for_access()
+        mock_can_access.assert_not_called()
+
+
+# =============================================================================
 # SemanticView.raise_for_access tests
 # =============================================================================
 
