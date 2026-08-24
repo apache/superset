@@ -88,9 +88,9 @@ test('PermissionsField shows a permission matched by its raw name even though th
     ),
   );
   expect(
-    await within(document.querySelector('.rc-virtual-list')!).findByText(
-      'stg silver',
-    ),
+    await within(
+      document.querySelector('.ant-select-dropdown-list')!,
+    ).findByText('stg silver'),
   ).toBeInTheDocument();
 });
 

@@ -17,7 +17,6 @@
 import logging
 from typing import Optional
 
-from superset import db
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.sql_lab.permalink.base import BaseSqlLabPermalinkCommand
 from superset.daos.key_value import KeyValueDAO
@@ -27,10 +26,8 @@ from superset.key_value.exceptions import (
     KeyValueParseKeyError,
 )
 from superset.key_value.utils import decode_permalink_id
-from superset.models import core as models
 from superset.sqllab.permalink.exceptions import SqlLabPermalinkGetFailedError
 from superset.sqllab.permalink.types import SqlLabPermalinkValue
-from superset.utils import core as utils, json
 
 logger = logging.getLogger(__name__)
 
@@ -41,18 +38,14 @@ class GetSqlLabPermalinkCommand(BaseSqlLabPermalinkCommand):
 
     def run(self) -> Optional[SqlLabPermalinkValue]:
         self.validate()
-        if self.key.startswith("kv:"):
-            id = int(self.key[3:])
-            try:
-                kv = db.session.query(models.KeyValue).filter_by(id=id).scalar()
-                if not kv:
-                    return None
-                return json.loads(kv.value)
-            except Exception as ex:
-                raise SqlLabPermalinkGetFailedError(
-                    message=utils.error_msg_from_exception(ex)
-                ) from ex
-
+        # Legacy `kv:<int>` keys (from the pre-permalink `keyvalue` table) are
+        # no longer resolved here: that table has sequential integer primary
+        # keys and no owner column, so any authenticated caller could
+        # enumerate other users' saved editor state (SQL text and
+        # connection/schema context) by incrementing the id. Such keys now
+        # fall through to `decode_permalink_id` below, which rejects them
+        # (they don't decode against the salted hashid scheme), leaving the
+        # modern salted-hashid store as the only way to resolve a permalink.
         try:
             key = decode_permalink_id(self.key, salt=self.salt)
             value = KeyValueDAO.get_value(self.resource, key, self.codec)

@@ -474,6 +474,90 @@ def test_get_filters_no_escaped_val_without_dialect() -> None:
         assert "escaped_val" not in result[0]
 
 
+def test_escape_value_nested_list_is_escaped() -> None:
+    """
+    Regression: string leaves nested more than one level deep used to pass
+    through ``_escape_value`` untouched, and Jinja's whole-container
+    rendering of the nested list re-emitted the single quote raw --
+    terminating the surrounding SQL string literal.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {
+                "col": "name",
+                "op": "LIKE",
+                "val": [["x' UNION SELECT username FROM users --"]],
+            },
+        ],
+    )
+    [entry] = cache.get_filters("name")
+    rendered = str(entry["escaped_val"])
+    # every single quote in the rendered output must be escaped (doubled)
+    assert "'" not in rendered.replace("''", "")
+    assert "x'' UNION SELECT username FROM users --" in rendered
+
+
+def test_escape_value_flat_list_renders_without_raw_quotes() -> None:
+    """
+    Regression: rendering a whole escaped list used to go through Python's
+    default ``str()``/``repr()``, which wraps elements in fresh quote
+    delimiters -- letting even a payload containing no single quotes break
+    out of the template's own quotes. The escaped list must render as
+    escaped elements only, with no delimiters added.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {"col": "name", "op": "LIKE", "val": ['x") OR 1=1 --', "O'Brien"]},
+        ],
+    )
+    [entry] = cache.get_filters("name")
+    # element-wise access still compares equal to the plain escaped values
+    assert entry["escaped_val"] == ['x") OR 1=1 --', "O''Brien"]
+    # whole-list rendering must not add quote delimiters around elements
+    rendered = str(entry["escaped_val"])
+    assert rendered == "x\") OR 1=1 --, O''Brien"
+    assert "'" not in rendered.replace("''", "")
+
+
+def test_escape_value_dict_renders_without_raw_quotes() -> None:
+    """
+    Regression: a dict value returned by ``get_guest_user_attribute`` is
+    recursively escaped at the leaf level, but rendering the whole dict in
+    a template used to go through Python's default ``repr()``, which
+    re-wraps string values in fresh quote delimiters -- reopening the
+    same whole-container escape hatch as for lists.
+    """
+    cache = ExtraCache(dialect=dialect())
+    escaped = cache._escape_value(  # pylint: disable=protected-access
+        {"id": "foo' OR 1=1 --", "names": ["O'Brien", 42]}
+    )
+    # equality and member access behave exactly like a plain dict
+    assert escaped == {"id": "foo'' OR 1=1 --", "names": ["O''Brien", 42]}
+    assert isinstance(escaped, dict)
+    # whole-container rendering must not add quote delimiters
+    rendered = str(escaped)
+    assert "'" not in rendered.replace("''", "")
+
+
+def test_escape_value_dict_escapes_keys_too() -> None:
+    """
+    Regression: a dict key, like a value, can originate from data the
+    caller does not fully control (for example a guest-token attribute
+    key). Rendering the whole dict must not let a quote in a key
+    re-introduce an unescaped delimiter.
+    """
+    cache = ExtraCache(dialect=dialect())
+    escaped = cache._escape_value(  # pylint: disable=protected-access
+        {"O'Brien' OR 1=1 --": "value"}
+    )
+    [key] = escaped.keys()
+    assert key == "O''Brien'' OR 1=1 --"
+    rendered = str(escaped)
+    assert "'" not in rendered.replace("''", "")
+
+
 def test_url_param_query() -> None:
     """
     Test the ``url_param`` macro.
@@ -1094,6 +1178,34 @@ def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
     env = SandboxedEnvironment(undefined=DebugUndefined)
     assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
     mock_get_form_data.assert_not_called()
+
+
+def test_metric_macro_guest_user_dataset_out_of_scope(mocker: MockerFixture) -> None:
+    """
+    Test that ``metric_macro`` denies a guest user a dataset that is not
+    reachable through any dashboard their guest token grants.
+    """
+    mocker.patch("superset.security_manager.is_guest_user", return_value=True)
+    guest_user = mocker.MagicMock()
+    guest_user.guest_token = {}
+    mocker.patch(
+        "superset.security_manager.get_current_guest_user_if_guest",
+        return_value=guest_user,
+    )
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        id=1,
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="count", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with pytest.raises(DatasetNotFoundError):
+        metric_macro(env, {}, "count", 1)
 
 
 def test_metric_macro_recursive(mocker: MockerFixture) -> None:
@@ -1731,6 +1843,13 @@ def test_metric_macro_embedded_user_skips_base_filter(mocker: MockerFixture) -> 
     """
     mock_is_guest_user = mocker.patch("superset.security_manager.is_guest_user")
     mock_is_guest_user.return_value = True
+
+    # Dashboard-level guest scope is asserted separately; here the dataset is
+    # in scope so the test can focus on the base-filter bypass.
+    mocker.patch(
+        "superset.jinja_context.guest_user_can_access_dataset",
+        return_value=True,
+    )
 
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = SqlaTable(
