@@ -769,14 +769,15 @@ export default function sqlLabReducer(
               }),
               // race condition:
               // because of async behavior, sql lab may still poll a couple of seconds
-              // when it started fetching or finished rendering results
+              // after it started fetching or finished rendering results. Guard only
+              // against re-applying a redundant Success onto a state that's already at
+              // or past Success (Fetching/Success) — Running is strictly before
+              // Success, so an incoming Success there is new information, not a stale
+              // poll, and must be allowed through (otherwise an async query can never
+              // leave Running once observed there).
               state:
                 currentState === QueryState.Success &&
-                [
-                  QueryState.Fetching,
-                  QueryState.Success,
-                  QueryState.Running,
-                ].includes(prevState)
+                [QueryState.Fetching, QueryState.Success].includes(prevState)
                   ? prevState
                   : currentState,
             };

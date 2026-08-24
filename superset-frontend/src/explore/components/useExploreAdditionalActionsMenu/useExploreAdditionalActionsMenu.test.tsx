@@ -25,8 +25,10 @@ import downloadAsPdf from 'src/utils/downloadAsPdf';
 import {
   useExploreAdditionalActionsMenu,
   getExportScreenshotMenuItems,
+  escapeCsvValue,
 } from './index';
 import * as exploreUtils from 'src/explore/exploreUtils';
+import { Slice } from 'src/types/Chart';
 
 jest.mock('src/explore/exploreUtils', () => ({
   __esModule: true,
@@ -74,13 +76,22 @@ jest.mock('@superset-ui/core', () => ({
   })),
 }));
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      user_subjects: [1],
+    },
+  })),
+}));
+
 const defaultProps = {
   latestQueryFormData: {
     datasource: '1__table',
     viz_type: 'pivot_table_v2',
   },
   canDownloadCSV: true,
-  slice: { slice_id: 1, slice_name: 'Test Chart' },
+  slice: { slice_id: 1, slice_name: 'Test Chart' } as unknown as Slice,
   ownState: {},
   dashboards: [],
   onOpenInEditor: jest.fn(),
@@ -111,6 +122,102 @@ const TestComponent = (props: TestComponentProps) => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockExportChart.mockResolvedValue(undefined);
+});
+
+test('hides Edit chart properties from a user who is not an owner/editor of the chart (regression #38884)', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [2],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
+});
+
+test('shows Edit chart properties for a chart editor with chart write permission', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [1],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true, initialState: { explore: { can_add: true } } },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.getByText('Edit chart properties')).toBeInTheDocument();
+});
+
+test('hides Edit chart properties from a chart editor lacking chart write permission', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={
+        {
+          slice_id: 1,
+          slice_name: 'Test Chart',
+          editors: [1],
+        } as unknown as Slice
+      }
+    />,
+    { useRedux: true, initialState: { explore: { can_add: false } } },
+  );
+
+  expect(await screen.findByText('Data Export Options')).toBeInTheDocument();
+  expect(screen.queryByText('Edit chart properties')).not.toBeInTheDocument();
+});
+
+test('escapeCsvValue neutralizes spreadsheet formula prefixes', () => {
+  // Mirrors superset/utils/csv.py escape_value so the client-built
+  // "Current View" CSV cannot ship live formulas (CSV injection).
+  expect(escapeCsvValue('=HYPERLINK("https://attacker.example")')).toBe(
+    `"'=HYPERLINK(""https://attacker.example"")"`,
+  );
+  expect(escapeCsvValue('@SUM(1+1)')).toBe(`'@SUM(1+1)`);
+  expect(escapeCsvValue('+cmd')).toBe(`'+cmd`);
+  expect(escapeCsvValue('%x')).toBe(`'%x`);
+  expect(escapeCsvValue('\t=1+1')).toBe(`'\t=1+1`);
+  expect(escapeCsvValue('  =1+1')).toBe(`'  =1+1`);
+  expect(escapeCsvValue('=cmd|calc')).toBe(`'=cmd\\|calc`);
+});
+
+test('escapeCsvValue escapes pre-existing backslashes before escaping pipes', () => {
+  // A literal backslash sitting next to a pipe must not be left as-is: if it
+  // were, the escaped output (`\|`) would be indistinguishable from an
+  // escaped pipe, so a downstream unescaper couldn't recover the original
+  // value. Escaping backslashes first keeps the two cases unambiguous.
+  expect(escapeCsvValue('=cmd\\|calc')).toBe(`'=cmd\\\\\\|calc`);
+});
+
+test('escapeCsvValue RFC-4180-quotes a value containing a bare carriage return', () => {
+  // A raw \r inside a cell can be read as a record separator by some CSV
+  // consumers, so it must trigger outer quoting the same way \n does, even
+  // when it also triggered the formula-prefix guard above.
+  expect(escapeCsvValue('\r=1+1')).toBe(`"'\r=1+1"`);
+});
+
+test('escapeCsvValue keeps ordinary values intact', () => {
+  expect(escapeCsvValue('regular text')).toBe('regular text');
+  expect(escapeCsvValue('-12.5')).toBe('-12.5');
+  expect(escapeCsvValue(42)).toBe('42');
+  expect(escapeCsvValue(null)).toBe('');
+  expect(escapeCsvValue(undefined)).toBe('');
+  expect(escapeCsvValue('a,b')).toBe(`"a,b"`);
+  expect(escapeCsvValue('say "hi"')).toBe(`"say ""hi"""`);
 });
 
 test('shows 413 error toast when exportCSV fails with 413', async () => {

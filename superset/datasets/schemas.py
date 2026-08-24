@@ -16,6 +16,7 @@
 # under the License.
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
@@ -284,6 +285,7 @@ class ImportV1ColumnSchema(Schema):
     description = fields.String(allow_none=True)
     python_date_format = fields.String(allow_none=True)
     datetime_format = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ImportMetricCurrencySchema(Schema):
@@ -326,6 +328,7 @@ class ImportV1MetricSchema(Schema):
     currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class ImportV1DatasetSchema(Schema):
@@ -347,6 +350,35 @@ class ImportV1DatasetSchema(Schema):
             data["template_params"] = None
 
         return data
+
+    @validates_schema
+    def validate_unique_child_uuids(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """
+        Reject a payload where two metrics (or two columns) share a UUID.
+
+        UUIDs are globally unique in the database, so such a payload cannot be
+        imported faithfully: the importer matches children within their parent
+        by name *or* UUID, so the second entry would match the first one and
+        overwrite it in place, silently collapsing two metrics/columns into one.
+        Only a hand-edited bundle can produce this — an export never does.
+        """
+        for key, singular in (("metrics", "metric"), ("columns", "column")):
+            seen: set[UUID] = set()
+            duplicates: set[UUID] = set()
+            for child in data.get(key) or []:
+                child_uuid = child.get("uuid")
+                if child_uuid is None:
+                    continue
+                if child_uuid in seen:
+                    duplicates.add(child_uuid)
+                seen.add(child_uuid)
+            if duplicates:
+                raise ValidationError(
+                    f"Duplicate UUIDs found in {key}: "
+                    f"{', '.join(sorted(str(dup) for dup in duplicates))}. "
+                    f"Each {singular} must have a unique `uuid`.",
+                    field_name=key,
+                )
 
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)

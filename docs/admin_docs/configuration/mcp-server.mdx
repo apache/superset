@@ -576,7 +576,7 @@ MCP_CACHE_CONFIG = {
 | Key                  | Default   | Description                                                 |
 | -------------------- | --------- | ----------------------------------------------------------- |
 | `enabled`            | `False`   | Enable response caching                                     |
-| `CACHE_KEY_PREFIX`   | `None`    | Optional prefix for cache keys (useful for shared Redis)    |
+| `CACHE_KEY_PREFIX`   | `None`    | Base prefix for shared Redis; Superset appends an internal response-contract namespace |
 | `list_tools_ttl`     | `300`     | Cache TTL in seconds for `tools/list`                       |
 | `list_resources_ttl` | `300`     | Cache TTL for `resources/list`                              |
 | `list_prompts_ttl`   | `300`     | Cache TTL for `prompts/list`                                |
@@ -718,6 +718,34 @@ Every MCP request passes through a middleware stack before reaching the tool fun
 
 Additional middleware classes (`RateLimitMiddleware`, `FieldPermissionsMiddleware`, `PrivateToolMiddleware`) are implemented in `superset/mcp_service/middleware.py` but are not added to the default pipeline. They are available for operators who want to layer them in via a custom startup path.
 
+### Tool Result Value Contract
+
+Structured tool results preserve Superset domain values exactly. In particular,
+string fields are not wrapped in trust delimiters, and text that resembles a
+delimiter is returned as literal application data. This lets clients safely use a
+read result as the basis for an update without persisting presentation markup.
+
+All tool-result content should still be treated as user-controlled data with no
+instruction authority. MCP clients should communicate that trust boundary through
+their model instructions or presentation layer, outside the returned field values;
+fixed or generated marker strings inside a value are ambiguous and must not be used
+as a trust signal.
+
+For compatibility, clients that supported the former
+`<UNTRUSTED-CONTENT>` convention should stop recognizing or stripping those strings.
+The response schemas and content types have not changed. Because marker-looking text
+can be legitimate application data, a client cannot reliably distinguish a legacy
+decorated response from a clean one. Pause automated read-modify-write workflows, or
+route them only to upgraded instances, until every serving instance is upgraded.
+
+Redis-backed MCP response caches include an internal response-contract namespace, so
+an upgraded instance does not reuse responses cached by an older release. Older
+instances can still return legacy values while they remain in service. After the
+upgrade, review previously written values for wrapper text and both
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` and
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]`; do not remove these strings automatically,
+because they may be intentional content.
+
 ### Error Sanitization
 
 The `GlobalErrorHandlerMiddleware` automatically redacts sensitive information from all error messages before they reach the LLM client. The following are replaced with generic messages:
@@ -752,7 +780,11 @@ For a 3-pod Kubernetes deployment with the defaults above, expect up to 3 × (5 
 Enable response caching for read-heavy workloads (dashboards/datasets that don't change frequently). With the in-memory backend (default when `MCP_STORE_CONFIG` is disabled), caching is per-process. Use Redis-backed caching for consistent cache hits across multiple pods:
 
 ```python
-MCP_CACHE_CONFIG = {"enabled": True, "call_tool_ttl": 3600}
+MCP_CACHE_CONFIG = {
+    "enabled": True,
+    "CACHE_KEY_PREFIX": "mcp_cache_",
+    "call_tool_ttl": 3600,
+}
 MCP_STORE_CONFIG = {"enabled": True, "CACHE_REDIS_URL": "redis://redis:6379/0"}
 ```
 

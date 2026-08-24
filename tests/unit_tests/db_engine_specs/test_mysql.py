@@ -390,3 +390,50 @@ def test_compile_timegrain_expression_preserves_date_truncation() -> None:
     assert expected in proxied, (
         f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
     )
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """MySQL/MariaDB quote identifiers with backticks."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    assert MySQLEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_extended_aggregation_func_stddev_var_sample() -> None:
+    """
+    Verified against a live mysql:8.0 instance, including under GROUP BY ...
+    WITH ROLLUP: these produce the correct database-wide sample statistic, and
+    match the same-input results from postgres/duckdb exactly.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    col = column("sales")
+
+    stddev_expr = spec.get_extended_aggregation_func("STDDEV_SAMP")
+    assert stddev_expr is not None
+    assert (
+        str(stddev_expr(col).compile(compile_kwargs={"literal_binds": True}))
+        == "stddev_samp(sales)"
+    )
+
+    var_expr = spec.get_extended_aggregation_func("VAR_SAMP")
+    assert var_expr is not None
+    assert (
+        str(var_expr(col).compile(compile_kwargs={"literal_binds": True}))
+        == "var_samp(sales)"
+    )
+
+
+def test_extended_aggregation_func_median_unsupported() -> None:
+    """
+    MySQL has neither a MEDIAN function nor PERCENTILE_CONT (confirmed against
+    a live mysql:8.0 instance: both error). Must not silently fall back to
+    a guessed expression.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
+
+    assert spec.get_extended_aggregation_func("MEDIAN") is None

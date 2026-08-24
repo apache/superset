@@ -19,7 +19,24 @@
 
 from unittest.mock import MagicMock, patch
 
-from superset.mcp_service.caching import _build_caching_settings
+from superset.mcp_service.caching import (
+    _build_caching_settings,
+    _version_cache_prefix,
+    MCP_RESPONSE_CACHE_NAMESPACE,
+)
+
+
+def test_version_cache_prefix_appends_response_contract_namespace() -> None:
+    assert _version_cache_prefix("mcp_cache_") == (
+        f"mcp_cache_{MCP_RESPONSE_CACHE_NAMESPACE}"
+    )
+
+
+def test_version_cache_prefix_preserves_callable_partitioning() -> None:
+    prefix = _version_cache_prefix(lambda: "tenant_7_")
+
+    assert callable(prefix)
+    assert prefix() == f"tenant_7_{MCP_RESPONSE_CACHE_NAMESPACE}"
 
 
 def test_build_caching_settings_empty_config():
@@ -174,7 +191,7 @@ def test_create_response_caching_middleware_creates_middleware():
         with patch("flask.has_app_context", return_value=True):
             with patch(
                 "superset.mcp_service.caching.get_mcp_store", return_value=mock_store
-            ):
+            ) as mock_get_store:
                 with patch(
                     "fastmcp.server.middleware.caching.ResponseCachingMiddleware",
                     return_value=mock_middleware,
@@ -186,6 +203,9 @@ def test_create_response_caching_middleware_creates_middleware():
                     result = create_response_caching_middleware()
 
                     assert result is mock_middleware
+                    mock_get_store.assert_called_once_with(
+                        prefix=f"mcp_cache_v1_{MCP_RESPONSE_CACHE_NAMESPACE}"
+                    )
                     # Verify middleware was created with store and settings
                     mock_middleware_class.assert_called_once()
                     call_kwargs = mock_middleware_class.call_args[1]

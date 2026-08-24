@@ -164,7 +164,7 @@ export async function selectOption(option: string, selectName?: string) {
   const item = await waitFor(() =>
     within(
       // eslint-disable-next-line testing-library/no-node-access
-      document.querySelector('.rc-virtual-list')!,
+      document.querySelector('.ant-select-dropdown-list')!,
     ).getByText(option),
   );
   await userEvent.click(item);
