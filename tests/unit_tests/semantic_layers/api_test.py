@@ -1206,6 +1206,27 @@ def test_mask_configuration_skips_falsy_secret_values(
     assert result == {"password": ""}
 
 
+def test_mask_configuration_no_write_only_properties(mocker: MockerFixture) -> None:
+    """Test _mask_configuration is a no-op when the schema has no writeOnly fields."""
+    layer = MagicMock()
+    layer.type = "snowflake"
+
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {
+        "properties": {"account": {"type": "string"}},
+    }
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    config = {"account": "test"}
+    result = _mask_configuration(layer, config)
+
+    assert result is config
+
+
 def test_mask_configuration_no_registered_class(mocker: MockerFixture) -> None:
     """Test _mask_configuration is a no-op when the type has no connector."""
     layer = MagicMock()
@@ -1220,7 +1241,7 @@ def test_mask_configuration_no_registered_class(mocker: MockerFixture) -> None:
 
 
 def test_mask_configuration_schema_error(mocker: MockerFixture) -> None:
-    """Test _mask_configuration degrades gracefully if the schema can't load."""
+    """Test _mask_configuration fails closed if the schema can't load."""
     layer = MagicMock()
     layer.type = "snowflake"
 
@@ -1232,10 +1253,10 @@ def test_mask_configuration_schema_error(mocker: MockerFixture) -> None:
         clear=True,
     )
 
-    config = {"password": "hunter2"}
+    config = {"account": "test", "password": "hunter2"}
     result = _mask_configuration(layer, config)
 
-    assert result is config
+    assert result == {"account": PASSWORD_MASK, "password": PASSWORD_MASK}
 
 
 @SEMANTIC_LAYERS_APP

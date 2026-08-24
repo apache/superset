@@ -98,7 +98,14 @@ def _mask_configuration(layer: SemanticLayer, config: dict[str, Any]) -> dict[st
     try:
         schema = cls.get_configuration_schema()
     except Exception:  # pylint: disable=broad-except
-        return config
+        # We can't tell which fields are secret, so fail closed: mask every
+        # truthy value rather than risk echoing a credential back in the clear.
+        logger.warning(
+            "Failed to load configuration schema for semantic layer type %s; "
+            "masking all configuration values.",
+            layer.type,
+        )
+        return {key: PASSWORD_MASK if value else value for key, value in config.items()}
 
     secret_keys = {
         key
