@@ -102,13 +102,20 @@ class TaskDAO(BaseDAO[Task]):
 
         Returns the ``{uuid: {status, progress}}`` map (``progress`` is the
         0.0–1.0 percent from the task's properties, or ``None`` when unknown) plus
-        the next cursor to poll with (the max ``changed_on`` in this batch), so the
-        client always advances using a server-observed watermark, never its clock.
+        the next cursor to poll with — the server clock captured *before* the read,
+        so the watermark always advances. (Using the batch's ``max(changed_on)``
+        would freeze the cursor on a task whose ``changed_on`` sits exactly at it —
+        the ``>=`` bound re-delivers that row every poll, so ``max`` never moves and
+        an idle/orphaned in-progress task is re-fetched forever.)
         """
         # Baseline: no cursor → start "from now", surfacing only later changes.
         if cursor is None:
             return {}, datetime.now()
 
+        # Watermark for the *next* poll, captured before the read so a change
+        # landing during the query is caught next time (>= is inclusive), never
+        # skipped. Same naive-local clock as ``changed_on`` (FAB AuditMixin).
+        next_cursor = datetime.now()
         query = cls._apply_base_filter(db.session.query(Task)).filter(
             # Task.changed_on's type is shadowed by CoreTask's bare annotation
             # (datetime | None), so reference the real column for the comparison.
@@ -121,14 +128,9 @@ class TaskDAO(BaseDAO[Task]):
         ).all()
 
         statuses: dict[str, dict[str, Any]] = {}
-        changed_times: list[datetime] = []
-        for uuid, status, changed_on, properties in rows:
+        for uuid, status, _changed_on, properties in rows:
             progress = json.loads(properties or "{}").get("progress_percent")
             statuses[str(uuid)] = {"status": status, "progress": progress}
-            if changed_on is not None:
-                changed_times.append(changed_on)
-        # Advance to the newest change seen, or hold the cursor if nothing changed.
-        next_cursor = max(changed_times, default=cursor)
         return statuses, next_cursor
 
     @classmethod

@@ -229,7 +229,9 @@ class Task(CoreTask, AuditMixinNullable, Model):
             status = status.value
         self.status = status
 
-        # Update timestamps and is_abortable based on status
+        # Update timestamps and is_abortable based on status. started_at/ended_at
+        # are stored in UTC (created_on/changed_on from FAB remain naive local, but
+        # nothing computes a delta across the two conventions).
         now = datetime.now(timezone.utc)
         if status == TaskStatus.IN_PROGRESS.value and not self.started_at:
             self.started_at = now
@@ -276,19 +278,17 @@ class Task(CoreTask, AuditMixinNullable, Model):
         - Pending tasks: None — a task that hasn't started has no duration to show
           (queue time is not execution time)
 
-        Note: started_at/ended_at are stored in UTC.
+        started_at/ended_at are stored in UTC; a naive value read back from the DB
+        is treated as UTC for the "still running" delta.
         """
         if self.is_finished:
             # Task has completed - use fixed timestamps, never increment
             if self.started_at and self.ended_at:
-                # Finished task - both timestamps use the same timezone (UTC)
-                # Just compute the difference directly
                 return (self.ended_at - self.started_at).total_seconds()
             # Never started (e.g., aborted while pending) - no duration
             return None
-        elif self.started_at:
-            # Running or aborting - started_at is UTC (set by set_status)
-            # Use UTC now for comparison
+        if self.started_at:
+            # Running or aborting - elapsed since it started (both in UTC)
             now = datetime.now(timezone.utc)
             started = (
                 self.started_at.replace(tzinfo=timezone.utc)
