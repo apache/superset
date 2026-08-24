@@ -189,6 +189,24 @@ def submit_chart_data_query_tasks(
         query_context.cache_values["queries"][totals_idx]["row_limit"] = None
         totals_key = _query_task_cache_key(query_context, totals_idx)
 
+    def _task_name(index: int) -> str | None:
+        """A human-friendly Task List label from the in-memory QueryContext.
+
+        Prefer the chart (slice) name, falling back to the dataset name — both are
+        already loaded on the QueryContext, so this adds no metastore round trip.
+        A multi-query chart (e.g. contribution + totals) disambiguates with a
+        ``(1)``/``(2)`` suffix. Returns ``None`` when neither is available,
+        leaving the task_key hash.
+        """
+        slice_ = getattr(query_context, "slice_", None)
+        name = getattr(slice_, "slice_name", None) if slice_ else None
+        if not name:
+            datasource = getattr(query_context, "datasource", None)
+            name = getattr(datasource, "name", None) if datasource else None
+        if not name:
+            return None
+        return f"{name} ({index + 1})" if len(queries) > 1 else name
+
     def _schedule(
         index: int,
         depends_on: "list[CoreTask | UUID | str] | None" = None,
@@ -200,6 +218,7 @@ def submit_chart_data_query_tasks(
             totals_key if index in needs_totals else None,
             options=TaskOptions(
                 task_key=_query_task_cache_key(query_context, index),
+                task_name=_task_name(index),
                 depends_on=depends_on,
             ),
         )
