@@ -75,6 +75,8 @@ def test_fan_out_schedules_one_task_per_query(mocker: MockerFixture) -> None:
     assert len(scheduled) == 3
     # The 202 body carries the query tasks' uuids, in query order.
     assert result["task_ids"] == [str(s["task"].uuid) for s in scheduled]
+    # ...plus a status-poll cursor captured before the tasks were scheduled.
+    assert isinstance(result["cursor"], str)
     # Independent queries carry no dependency and no totals key.
     for call in scheduled:
         assert call["kwargs"]["options"].depends_on is None

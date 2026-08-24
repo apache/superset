@@ -621,7 +621,10 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
             app.test_request_context("/api/v1/chart/data", method="POST"),
             patch(
                 "superset.charts.data.api.submit_chart_data_query_tasks",
-                return_value={"task_ids": ["task-1", "task-2"]},
+                return_value={
+                    "task_ids": ["task-1", "task-2"],
+                    "cursor": "2020-01-01T00:00:00",
+                },
             ) as submit,
             patch("superset.charts.data.api.get_user_id", return_value=1),
         ):
@@ -631,8 +634,12 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
 
     assert response.status_code == 202
     body = json.loads(response.get_data(as_text=True))
-    # The 202 body is just the async job (the query tasks to poll); no timing.
-    assert body == {"task_ids": ["task-1", "task-2"]}
+    # The 202 body is the async job the endpoint passes through: the query tasks
+    # to poll plus the pre-task poll cursor; no timing.
+    assert body == {
+        "task_ids": ["task-1", "task-2"],
+        "cursor": "2020-01-01T00:00:00",
+    }
     submit.assert_called_once_with(command.query_context, 1)
 
 

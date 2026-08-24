@@ -158,6 +158,25 @@ test('settles every request awaiting a deduplicated shared task', async () => {
   expect(b).toEqual([{ chart: 'b' }]);
 });
 
+test('polls from the pre-task cursor returned in the 202', async () => {
+  // The 202 carries a cursor captured before the tasks existed; the poll must
+  // use it (rewinding past the newer init baseline) so an early terminal can't
+  // be skipped.
+  queueStatuses({ 'task-1': { status: 'success' } });
+  asyncEvent.init(config);
+
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  await asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'], cursor: '2019-06-06T00:00:00' },
+    refetch,
+  );
+
+  const polled = fetchMock.callHistory
+    .calls(STATUS_CHANGES_ENDPOINT)
+    .some(call => decodeURIComponent(call.url).includes('2019-06-06T00:00:00'));
+  expect(polled).toBe(true);
+});
+
 describe('realtime WebSocket acceleration', () => {
   const realtime = (taskId: string, status: string) => ({
     channel: `realtime:user:1`,

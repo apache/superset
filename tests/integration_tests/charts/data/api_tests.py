@@ -773,8 +773,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         time.sleep(1)
         data = json.loads(rv.data.decode("utf-8"))
         # The async response is the GTF job: the per-QueryObject task uuids the
-        # client polls via /api/v1/task/status_changes.
-        assert list(data.keys()) == ["task_ids"]
+        # client polls via /api/v1/task/status_changes, plus a pre-task cursor.
+        assert set(data.keys()) == {"task_ids", "cursor"}
         assert isinstance(data["task_ids"], list)
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
@@ -902,7 +902,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         # since we skip the cache check entirely
         mock_execute.assert_not_called()
         data = json.loads(rv.data.decode("utf-8"))
-        assert list(data.keys()) == ["task_ids"]
+        assert set(data.keys()) == {"task_ids", "cursor"}
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
