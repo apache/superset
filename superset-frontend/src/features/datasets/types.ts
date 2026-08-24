@@ -55,6 +55,21 @@ type MetricObject = {
   warning_markdown?: string;
 };
 
+export type FilterObject = {
+  id?: number | string;
+  uuid?: string;
+  expression?: string;
+  description?: string;
+  filter_name: string;
+  verbose_name?: string;
+  warning_text?: string;
+  certified_by?: string;
+  certification_details?: string;
+  warning_markdown?: string;
+  extra?: string;
+  is_certified?: boolean;
+};
+
 export type DatasetObject = {
   id: number;
   table_name?: string;
@@ -74,6 +89,7 @@ export type DatasetObject = {
   editors: Subject[];
   columns: ColumnObject[];
   metrics: MetricObject[];
+  filters?: FilterObject[];
   extra?: string;
   is_managed_externally: boolean;
   normalize_columns: boolean;

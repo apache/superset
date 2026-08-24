@@ -23,7 +23,10 @@ import {
   ColumnOption,
   MetricOptionProps,
   ColumnOptionProps,
+  ColumnTypeLabel,
 } from '@superset-ui/chart-controls';
+import { SQLPopover } from '@superset-ui/chart-controls/components/SQLPopover';
+import { SavedFilter } from 'src/explore/components/DatasourcePanel/types';
 
 const OptionContainer = styled.div`
   width: 100%;
@@ -59,5 +62,25 @@ export const StyledMetricOption = (props: MetricOptionProps) => (
 export const StyledColumnOption = (props: ColumnOptionProps) => (
   <OptionContainer>
     <ColumnOption {...props} />
+  </OptionContainer>
+);
+
+export const StyledSavedFilterOption = ({
+  sqlFilter,
+  showType = false,
+}: {
+  sqlFilter: SavedFilter;
+  showType?: boolean;
+}) => (
+  <OptionContainer>
+    <span>
+      {showType && <ColumnTypeLabel type="expression" />}
+      <span className="option-label">
+        {sqlFilter.verbose_name || sqlFilter.filter_name}
+      </span>
+      {sqlFilter.expression ? (
+        <SQLPopover sqlExpression={sqlFilter.expression} />
+      ) : null}
+    </span>
   </OptionContainer>
 );

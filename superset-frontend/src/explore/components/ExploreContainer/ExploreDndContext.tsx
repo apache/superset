@@ -52,8 +52,9 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import {
   StyledColumnOption,
   StyledMetricOption,
+  StyledSavedFilterOption,
 } from 'src/explore/components/optionRenderers';
-import { DatasourcePanelDndItem } from '../DatasourcePanel/types';
+import { DatasourcePanelDndItem, SavedFilter } from '../DatasourcePanel/types';
 
 /**
  * Type for the active drag item data
@@ -368,6 +369,11 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
             {activeData.type === DndItemType.Column ? (
               <StyledColumnOption
                 column={activeData.value as ColumnOptionProps['column']}
+                showType
+              />
+            ) : activeData.type === DndItemType.Filter ? (
+              <StyledSavedFilterOption
+                sqlFilter={activeData.value as SavedFilter}
                 showType
               />
             ) : (

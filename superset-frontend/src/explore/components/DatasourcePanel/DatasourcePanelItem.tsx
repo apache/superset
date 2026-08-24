@@ -26,6 +26,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import { Typography } from '@superset-ui/core/components';
+import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue, FlattenedItem, Folder } from './types';
@@ -225,18 +226,22 @@ const DatasourcePanelItem = ({
       {item.type === 'item' && item.item && (
         <LabelWrapper
           key={
-            (item.item.type === 'column'
+            (item.item.type === FoldersEditorItemType.Column
               ? item.item.column_name
-              : item.item.metric_name) + String(width)
+              : item.item.type === 'filter'
+                ? item.item.filter_name
+                : item.item.metric_name) + String(width)
           }
           className="column"
         >
           <DatasourcePanelDragOption
             value={item.item as DndItemValue}
             type={
-              item.item.type === 'column'
+              item.item.type === FoldersEditorItemType.Column
                 ? DndItemType.Column
-                : DndItemType.Metric
+                : item.item.type === 'filter'
+                  ? DndItemType.Filter
+                  : DndItemType.Metric
             }
           />
         </LabelWrapper>

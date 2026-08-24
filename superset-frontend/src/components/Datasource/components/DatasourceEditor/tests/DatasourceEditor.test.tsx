@@ -670,6 +670,43 @@ test('metric search is case-insensitive', async () => {
   });
 });
 
+test('can search filters by filter name', async () => {
+  const testProps = createProps();
+  testProps.datasource.filters = [
+    {
+      id: 1,
+      uuid: 'filter-1',
+      filter_name: 'only_boys',
+      verbose_name: 'Only boys',
+      expression: "gender = 'boy'",
+    },
+    {
+      id: 2,
+      uuid: 'filter-2',
+      filter_name: 'only_girls',
+      verbose_name: 'Only girls',
+      expression: "gender = 'girl'",
+    },
+  ];
+  await asyncRender(testProps);
+
+  const filtersTab = screen.getByTestId('collection-tab-Filters');
+  await userEvent.click(filtersTab);
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search filters by key or label',
+  );
+  expect(searchInput).toBeInTheDocument();
+
+  expect(screen.getByText('only_boys')).toBeInTheDocument();
+  expect(screen.getByText('only_girls')).toBeInTheDocument();
+
+  await userEvent.type(searchInput, 'boys');
+
+  expect(screen.getByText('only_boys')).toBeInTheDocument();
+  expect(screen.queryByText('only_girls')).not.toBeInTheDocument();
+});
+
 test('can search columns by name', async () => {
   const testProps = createProps();
   await asyncRender(testProps);

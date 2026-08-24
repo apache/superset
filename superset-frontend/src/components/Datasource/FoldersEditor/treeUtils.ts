@@ -271,9 +271,7 @@ export function removeChildrenOf(
 export function serializeForAPI(items: TreeItem[]): DatasourceFolder[] {
   const serializeChildren = (
     children: TreeItem[] | undefined,
-  ): Array<
-    DatasourceFolder | { uuid: string; type: FoldersEditorItemType }
-  > => {
+  ): Array<DatasourceFolder | DatasourceFolderItem> => {
     if (!children || children.length === 0) return [];
 
     return children
@@ -302,11 +300,8 @@ export function serializeForAPI(items: TreeItem[]): DatasourceFolder[] {
         };
       })
       .filter(
-        (
-          child,
-        ): child is
-          | DatasourceFolder
-          | { uuid: string; type: FoldersEditorItemType } => child !== null,
+        (child): child is DatasourceFolder | DatasourceFolderItem =>
+          child !== null,
       );
   };
 

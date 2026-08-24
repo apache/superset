@@ -45,6 +45,7 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import {
   DatasourcePanelDndItem,
   DndItemValue,
+  isSavedFilter,
   isSavedMetric,
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
@@ -62,6 +63,7 @@ const DND_ACCEPTED_TYPES = [
   DndItemType.Metric,
   DndItemType.MetricOption,
   DndItemType.AdhocMetricOption,
+  DndItemType.Filter,
 ];
 
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
@@ -387,6 +389,13 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const defaultTimeFilter = useDefaultTimeFilter();
   const adhocFilter = useMemo(() => {
+    if (isSavedFilter(droppedItem)) {
+      return new AdhocFilter({
+        expressionType: ExpressionTypes.Sql,
+        clause: Clauses.Where,
+        sqlExpression: droppedItem?.expression,
+      });
+    }
     if (isSavedMetric(droppedItem)) {
       return new AdhocFilter({
         expressionType: ExpressionTypes.Sql,
@@ -421,6 +430,9 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
+      if (item.type === DndItemType.Filter) {
+        return true;
+      }
       if (
         extra.disallow_adhoc_metrics &&
         (item.type !== DndItemType.Column ||
@@ -453,7 +465,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
-        ghostButtonText={t('Drop columns/metrics here or click')}
+        ghostButtonText={t('Drop columns/metrics/filters here or click')}
         onClickGhostButton={handleClickGhostButton}
         sortableType={DndItemType.FilterOption}
         itemCount={values.length}

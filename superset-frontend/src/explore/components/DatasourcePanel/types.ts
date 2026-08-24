@@ -20,7 +20,18 @@ import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import { DndItemType } from '../DndItemType';
 
-export type DndItemValue = ColumnMeta | Metric;
+export type SavedFilter = {
+  uuid: string;
+  id?: number;
+  filter_name: string;
+  verbose_name?: string | null;
+  expression?: string | null;
+  description?: string | null;
+  is_certified?: boolean | number | null;
+  warning_text?: string | null;
+};
+
+export type DndItemValue = ColumnMeta | Metric | SavedFilter;
 
 export interface DatasourcePanelDndItem {
   value: DndItemValue;
@@ -35,6 +46,10 @@ export function isDatasourcePanelDndItem(
 
 export function isSavedMetric(item: any): item is Metric {
   return item?.metric_name;
+}
+
+export function isSavedFilter(item: any): item is SavedFilter {
+  return Boolean(item?.filter_name) && !item?.metric_name;
 }
 
 export type DatasourcePanelColumn = {
@@ -70,7 +85,11 @@ export type ColumnItem = DatasourcePanelColumn & {
   type: FoldersEditorItemType.Column;
 };
 
-export type FolderItem = MetricItem | ColumnItem;
+export type FilterItem = SavedFilter & {
+  type: 'filter';
+};
+
+export type FolderItem = MetricItem | ColumnItem | FilterItem;
 
 export interface Folder {
   id: string;

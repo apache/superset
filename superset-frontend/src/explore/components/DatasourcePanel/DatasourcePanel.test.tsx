@@ -32,6 +32,7 @@ import DatasourcePanel, {
 import {
   columns,
   metrics,
+  savedFilters,
 } from 'src/explore/components/DatasourcePanel/fixtures';
 import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
@@ -41,6 +42,7 @@ import {
   DndMetricSelect,
 } from '../controls/DndColumnSelectControl';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
+import * as transformFolders from 'src/explore/components/DatasourcePanel/transformDatasourceFolders';
 
 jest.mock(
   'react-virtualized-auto-sizer',
@@ -196,6 +198,40 @@ test('should render the columns', async () => {
   columns.forEach(col =>
     expect(screen.getByText(col.column_name)).toBeInTheDocument(),
   );
+});
+
+test('should render dataset filters when the datasource has them', async () => {
+  const datasourceWithFilters = { ...datasource, filters: savedFilters };
+  render(
+    <ExploreContainer>
+      <DatasourcePanel
+        {...props}
+        datasource={datasourceWithFilters}
+        controls={{
+          datasource: {
+            ...props.controls.datasource,
+            datasource: datasourceWithFilters,
+          },
+        }}
+      />
+      <DndMetricSelect {...metricProps} />
+    </ExploreContainer>,
+    { useRedux: true, useDnd: true },
+  );
+  expect(screen.getByText('Filters')).toBeInTheDocument();
+  expect(
+    screen.getByPlaceholderText('Search Metrics, Columns & Filters'),
+  ).toBeInTheDocument();
+  const filterRow = screen
+    .getByText('Only boys')
+    .closest('[data-test="DatasourcePanelDragOption"]');
+  expect(filterRow).toBeTruthy();
+  expect(
+    within(filterRow as HTMLElement).queryByLabelText('metric type icon'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(filterRow as HTMLElement).getByLabelText('function type icon'),
+  ).toBeInTheDocument();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -493,4 +529,31 @@ test('Default Metrics and Columns folders dont render when all metrics and colum
 
   expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
   expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(1);
+});
+
+test('does not rebuild folders when formData changes and filters are omitted', async () => {
+  const spy = jest.spyOn(transformFolders, 'transformDatasourceWithFolders');
+  const queryDatasource = { ...datasource };
+  const { rerender } = render(
+    <DatasourcePanel
+      {...props}
+      datasource={queryDatasource}
+      formData={{ viz_type: 'table', datasource: '1__table' }}
+    />,
+    { useRedux: true, useDnd: true },
+  );
+
+  expect(await screen.findByText('Metrics')).toBeInTheDocument();
+  const callsAfterMount = spy.mock.calls.length;
+
+  rerender(
+    <DatasourcePanel
+      {...props}
+      datasource={queryDatasource}
+      formData={{ viz_type: 'table', datasource: '1__table', row_limit: 10 }}
+    />,
+  );
+
+  expect(spy.mock.calls.length).toBe(callsAfterMount);
+  spy.mockRestore();
 });

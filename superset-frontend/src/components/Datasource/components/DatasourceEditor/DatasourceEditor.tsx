@@ -131,6 +131,21 @@ interface Metric {
   certification_details?: string;
   warning_markdown?: string;
   extra?: string;
+  is_certified?: boolean;
+}
+
+interface SqlFilter {
+  id?: number;
+  uuid?: string;
+  filter_name: string;
+  expression?: string;
+  verbose_name?: string;
+  description?: string;
+  certified_by?: string;
+  certification_details?: string;
+  warning_markdown?: string;
+  extra?: string;
+  is_certified?: boolean;
 }
 
 interface Column {
@@ -176,6 +191,7 @@ interface DatasourceObject {
   sql?: string;
   columns: Column[];
   metrics?: Metric[];
+  filters?: SqlFilter[];
   editors: SubjectPickerValue[];
   main_dttm_col?: string;
   currency_code_column?: string;
@@ -447,6 +463,7 @@ const DATA_TYPES = [
 const TABS_KEYS = {
   SOURCE: 'SOURCE',
   METRICS: 'METRICS',
+  FILTERS: 'FILTERS',
   COLUMNS: 'COLUMNS',
   CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
   USAGE: 'USAGE',
@@ -871,6 +888,25 @@ function DatasourceEditor({
         certified_by: certifiedBy || certifiedByMetric,
       };
     }),
+    filters: propsDatasource.filters?.map(sqlFilter => {
+      const {
+        certified_by: certifiedByFilter,
+        certification_details: certificationDetails,
+      } = sqlFilter;
+      const {
+        certification: {
+          details = undefined,
+          certified_by: certifiedBy = undefined,
+        } = {},
+        warning_markdown: warningMarkdown,
+      } = JSON.parse(sqlFilter.extra || '{}') || {};
+      return {
+        ...sqlFilter,
+        certification_details: certificationDetails || details,
+        warning_markdown: warningMarkdown || sqlFilter.warning_markdown || '',
+        certified_by: certifiedBy || certifiedByFilter,
+      };
+    }),
   }));
 
   const [errors, setErrors] = useState<string[]>([]);
@@ -904,6 +940,7 @@ function DatasourceEditor({
   const [usageCharts, setUsageCharts] = useState<ChartUsageData[]>([]);
   const [usageChartsCount, setUsageChartsCount] = useState(0);
   const [metricSearchTerm, setMetricSearchTerm] = useState('');
+  const [filterSearchTerm, setFilterSearchTerm] = useState('');
   const [columnSearchTerm, setColumnSearchTerm] = useState('');
   const [calculatedColumnSearchTerm, setCalculatedColumnSearchTerm] =
     useState('');
@@ -940,6 +977,19 @@ function DatasourceEditor({
       dups = findDuplicates(datasource.metrics ?? [], obj => obj.metric_name);
       validationErrors = validationErrors.concat(
         dups.map(name => t('Metric name [%s] is duplicated', name)),
+      );
+
+      dups = findDuplicates(datasource.filters ?? [], obj => obj.filter_name);
+      validationErrors = validationErrors.concat(
+        dups.map(name => t('Filter name [%s] is duplicated', name)),
+      );
+
+      validationErrors = validationErrors.concat(
+        (datasource.filters ?? [])
+          .filter(sqlFilter => !sqlFilter.expression)
+          .map(sqlFilter =>
+            t('Filter [%s] requires an expression', sqlFilter.filter_name),
+          ),
       );
 
       // Making sure calculatedColumns have an expression defined
@@ -1359,6 +1409,15 @@ function DatasourceEditor({
   const sortMetrics = useCallback(
     (metrics: Metric[]) =>
       [...metrics].sort(
+        ({ id: a }: { id?: number }, { id: b }: { id?: number }) =>
+          (b ?? 0) - (a ?? 0),
+      ),
+    [],
+  );
+
+  const sortFilters = useCallback(
+    (sqlFilters: SqlFilter[]) =>
+      [...sqlFilters].sort(
         ({ id: a }: { id?: number }, { id: b }: { id?: number }) =>
           (b ?? 0) - (a ?? 0),
       ),
@@ -2306,9 +2365,185 @@ function DatasourceEditor({
     );
   }, [datasource, sortMetrics, onDatasourcePropChange, metricSearchTerm]);
 
+  const renderFilterCollection = useCallback(() => {
+    const { filters } = datasource;
+    const sortedSqlFilters = filters?.length ? sortFilters(filters) : [];
+    return (
+      <div>
+        <Input.Search
+          placeholder={t('Search filters by key or label')}
+          value={filterSearchTerm}
+          onChange={e => setFilterSearchTerm(e.target.value)}
+          style={{ marginBottom: 16, width: 300 }}
+          allowClear
+        />
+        <CollectionTable
+          tableColumns={['filter_name', 'verbose_name', 'expression']}
+          sortColumns={['filter_name', 'verbose_name', 'expression']}
+          filterTerm={filterSearchTerm}
+          filterFields={['filter_name', 'verbose_name']}
+          columnLabels={{
+            filter_name: t('Filter Key'),
+            verbose_name: t('Label'),
+            expression: t('SQL expression'),
+          }}
+          columnLabelTooltips={{
+            filter_name: t(
+              'This field is used as a unique identifier to attach ' +
+                'the filter to charts.',
+            ),
+          }}
+          pagination={{
+            pageSize: 25,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+          }}
+          expandFieldset={
+            <FormContainer>
+              <Fieldset compact>
+                <Field
+                  fieldKey="expression"
+                  label={t('SQL expression')}
+                  control={
+                    <TextAreaControl
+                      language="sql"
+                      offerEditInModal={false}
+                      minLines={3}
+                      maxLines={25}
+                      debounceDelay={300}
+                    />
+                  }
+                />
+                <Field
+                  fieldKey="description"
+                  label={t('Description')}
+                  control={
+                    <TextControl
+                      controlId="description"
+                      placeholder={t('Description')}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Certified by')}
+                  fieldKey="certified_by"
+                  description={t(
+                    'Person or group that has certified this filter',
+                  )}
+                  control={
+                    <TextControl
+                      controlId="certified_by"
+                      placeholder={t('Certified by')}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Certification details')}
+                  fieldKey="certification_details"
+                  description={t('Details of the certification')}
+                  control={
+                    <TextControl
+                      controlId="certification_details"
+                      placeholder={t('Certification details')}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Warning')}
+                  fieldKey="warning_markdown"
+                  description={t('Optional warning about use of this filter')}
+                  control={
+                    <TextAreaControl
+                      controlId="warning_markdown"
+                      language="markdown"
+                      offerEditInModal={false}
+                      resize="vertical"
+                    />
+                  }
+                />
+              </Fieldset>
+            </FormContainer>
+          }
+          collection={sortedSqlFilters}
+          allowAddItem
+          onChange={(value: unknown) =>
+            onDatasourcePropChange('filters', value)
+          }
+          itemGenerator={() => ({
+            filter_name: t('<new filter>'),
+            verbose_name: '',
+            expression: '',
+          })}
+          itemCellProps={{
+            expression: () => ({
+              style: {
+                maxWidth: '240px',
+                overflow: 'hidden',
+              },
+            }),
+          }}
+          itemRenderers={{
+            filter_name: (v, onItemChange, _, record) => (
+              <FlexRowContainer>
+                {record.is_certified && (
+                  <CertifiedBadge
+                    certifiedBy={record.certified_by}
+                    details={record.certification_details}
+                  />
+                )}
+                {record.warning_markdown && (
+                  <WarningIconWithTooltip
+                    warningMarkdown={record.warning_markdown}
+                  />
+                )}
+                <EditableTitle
+                  canEdit
+                  title={v as string}
+                  onSaveTitle={onItemChange}
+                  maxWidth={300}
+                />
+              </FlexRowContainer>
+            ),
+            verbose_name: (v, onItemChange) => (
+              <TextControl value={v as string} onChange={onItemChange} />
+            ),
+            expression: (v: unknown) => (
+              <Tooltip title={t('Expand row to edit')}>
+                <Typography.Text
+                  code
+                  ellipsis
+                  css={css`
+                    cursor: default;
+                  `}
+                >
+                  {v as string}
+                </Typography.Text>
+              </Tooltip>
+            ),
+            description: (v, onItemChange, label) => (
+              <StackedField
+                label={label}
+                formElement={
+                  <TextControl value={v as string} onChange={onItemChange} />
+                }
+              />
+            ),
+          }}
+          allowDeletes
+          stickyHeader
+        />
+      </div>
+    );
+  }, [datasource, sortFilters, onDatasourcePropChange, filterSearchTerm]);
+
   const sortedMetrics = useMemo(
     () => (datasource.metrics?.length ? sortMetrics(datasource.metrics) : []),
     [datasource.metrics, sortMetrics],
+  );
+
+  const sortedFilters = useMemo(
+    () => (datasource.filters?.length ? sortFilters(datasource.filters) : []),
+    [datasource.filters, sortFilters],
   );
 
   // Retained to mirror the canonical (class-based) component on master: the
@@ -2372,6 +2607,13 @@ function DatasourceEditor({
           <CollectionTabTitle collection={sortedMetrics} title={t('Metrics')} />
         ),
         children: renderMetricCollection(),
+      },
+      {
+        key: TABS_KEYS.FILTERS,
+        label: (
+          <CollectionTabTitle collection={sortedFilters} title={t('Filters')} />
+        ),
+        children: renderFilterCollection(),
       },
       {
         key: TABS_KEYS.COLUMNS,
@@ -2531,6 +2773,8 @@ function DatasourceEditor({
       renderSourceFieldset,
       sortedMetrics,
       renderMetricCollection,
+      sortedFilters,
+      renderFilterCollection,
       databaseColumns,
       renderDefaultColumnSettings,
       syncMetadata,

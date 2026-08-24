@@ -32,10 +32,17 @@ import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import { DndItemType } from '../DndItemType';
-import { DatasourceFolder, DatasourcePanelColumn, DndItemValue } from './types';
+import {
+  DatasourceFolder,
+  DatasourcePanelColumn,
+  DndItemValue,
+  SavedFilter,
+} from './types';
 import { DropzoneContext } from '../ExploreContainer';
 import { DatasourceItems } from './DatasourceItems';
 import { transformDatasourceWithFolders } from './transformDatasourceFolders';
+
+const EMPTY_FILTERS: SavedFilter[] = [];
 
 interface DatasourceControl extends Omit<ControlConfig, 'hidden'> {
   datasource?: IDatasource;
@@ -43,6 +50,7 @@ interface DatasourceControl extends Omit<ControlConfig, 'hidden'> {
 export interface IDatasource {
   metrics: Metric[];
   columns: DatasourcePanelColumn[];
+  filters?: SavedFilter[];
   folders?: DatasourceFolder[];
   id: number;
   type: DatasourceType;
@@ -133,7 +141,12 @@ export default function DataSourcePanel({
   width,
 }: Props) {
   const [dropzones] = useContext(DropzoneContext);
-  const { columns: _columns, metrics, folders: _folders } = datasource;
+  const {
+    columns: _columns,
+    metrics,
+    filters: _filters = EMPTY_FILTERS,
+    folders: _folders,
+  } = datasource;
 
   const allowedColumns = useMemo(() => {
     const validators = Object.values(dropzones);
@@ -156,6 +169,15 @@ export default function DataSourcePanel({
       ),
     );
   }, [dropzones, metrics]);
+
+  const allowedFilters = useMemo(() => {
+    const validators = Object.values(dropzones);
+    return _filters.filter(sqlFilter =>
+      validators.some(validator =>
+        validator({ value: sqlFilter, type: DndItemType.Filter }),
+      ),
+    );
+  }, [dropzones, _filters]);
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -221,6 +243,42 @@ export default function DataSourcePanel({
     });
   }, [allowedMetrics, searchKeyword]);
 
+  const filteredFilters = useMemo(() => {
+    if (!searchKeyword) {
+      if (!allowedFilters.length) {
+        return allowedFilters;
+      }
+      return [...allowedFilters].sort((a, b) =>
+        (a?.filter_name ?? '').localeCompare(b?.filter_name ?? ''),
+      );
+    }
+    return matchSorter(allowedFilters, searchKeyword, {
+      keys: [
+        {
+          key: 'verbose_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: 'filter_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: item =>
+            [item?.description ?? '', item?.expression ?? ''].map(
+              x => x?.replace(/[_\n\s]+/g, ' ') || '',
+            ),
+          threshold: rankings.CONTAINS,
+          maxRanking: rankings.CONTAINS,
+        },
+      ],
+      keepDiacritics: true,
+      baseSort: (a, b) =>
+        Number(b?.item?.is_certified ?? 0) -
+          Number(a?.item?.is_certified ?? 0) ||
+        String(a?.rankedValue ?? '').localeCompare(b?.rankedValue ?? ''),
+    });
+  }, [allowedFilters, searchKeyword]);
+
   const sortedColumns = useMemo(
     () => sortColumns(filteredColumns),
     [filteredColumns],
@@ -234,8 +292,18 @@ export default function DataSourcePanel({
         _folders,
         allowedMetrics,
         allowedColumns,
+        filteredFilters,
+        allowedFilters.length,
       ),
-    [_folders, filteredMetrics, sortedColumns],
+    [
+      _folders,
+      filteredMetrics,
+      sortedColumns,
+      allowedMetrics,
+      allowedColumns,
+      filteredFilters,
+      allowedFilters,
+    ],
   );
 
   const showInfoboxCheck = () => {
@@ -267,7 +335,11 @@ export default function DataSourcePanel({
               setInputValue(evt.target.value);
             }}
             value={inputValue}
-            placeholder={t('Search Metrics & Columns')}
+            placeholder={
+              allowedFilters.length > 0
+                ? t('Search Metrics, Columns & Filters')
+                : t('Search Metrics & Columns')
+            }
           />
         </div>
         <div className="field-selections" data-test="fieldSelections">
@@ -319,7 +391,7 @@ export default function DataSourcePanel({
         </div>
       </>
     ),
-    [inputValue, datasourceIsSaveable, width, folders],
+    [inputValue, datasourceIsSaveable, width, folders, allowedFilters.length],
   );
 
   return (
