@@ -36,9 +36,30 @@ from superset.utils.sqlalchemy_events import (
 
 logger: logging.Logger = logging.getLogger(__name__)
 
+# Stable machine-readable reason codes persisted on purge audit records.
+# The values are frozen identifiers pinned by a golden-set test: they happen
+# to equal the related-table names of the declared blockers, but a physical
+# table rename MUST NOT change a code — persisted audit history and the
+# suppression predicate compare these literals.
+REASON_REPORT_SCHEDULE: str = "report_schedule"
+REASON_USER_ATTRIBUTE: str = "user_attribute"
+REASON_UNHANDLED_REFERENCE: str = "unhandled_reference"
+
+ALL_REASON_CODES: frozenset[str] = frozenset(
+    {
+        REASON_REPORT_SCHEDULE,
+        REASON_USER_ATTRIBUTE,
+        REASON_UNHANDLED_REFERENCE,
+    }
+)
+
 
 class PurgeBlockedError(Exception):
     """Raised when ordinary deletion policy forbids purging an entity."""
+
+    def __init__(self, message: str, reason_code: str) -> None:
+        super().__init__(message)
+        self.reason_code = reason_code
 
 
 class DependencyClassification(str, Enum):
@@ -107,6 +128,7 @@ class DependencyPolicy:
     classification: DependencyClassification
     phase: ExecutionPhase | None = None
     blocked_reason: str | None = None
+    blocked_reason_code: str | None = None
     optional_listener: bool = False
     listener_action: ListenerAction | None = None
     version_column: str | None = None
@@ -435,6 +457,11 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     classification,
                     phases[classification],
                     blocked_reason=blocked_reasons.get(key.related_table),
+                    blocked_reason_code=(
+                        key.related_table
+                        if key.related_table in blocked_reasons
+                        else None
+                    ),
                     version_column=version_columns.get(key.related_table),
                 )
                 for key, classification in zip(keys, classifications, strict=True)
@@ -539,7 +566,7 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     DependencyClassification.PRESERVE,
                 ),
                 (tag_cleanup, chart_membership_versions),
-                {"report_schedule": "associated alerts or reports exist"},
+                {REASON_REPORT_SCHEDULE: "associated alerts or reports exist"},
                 {"slices_version": "id"},
             ),
             validate=validate_deletion_allowed,
@@ -688,8 +715,8 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                 ),
                 (tag_cleanup, dashboard_membership_versions),
                 {
-                    "report_schedule": "associated alerts or reports exist",
-                    "user_attribute": (
+                    REASON_REPORT_SCHEDULE: "associated alerts or reports exist",
+                    REASON_USER_ATTRIBUTE: (
                         "a user has this dashboard set as their welcome page"
                     ),
                 },
@@ -893,9 +920,14 @@ def validate_deletion_allowed(
         if session.execute(
             sa.select(sa.literal(1)).select_from(table).where(*predicates).limit(1)
         ).first():
-            if dependency.blocked_reason is None:
+            if (
+                dependency.blocked_reason is None
+                or dependency.blocked_reason_code is None
+            ):
                 raise RuntimeError(f"Missing blocker reason for {key.describe()}")
-            raise PurgeBlockedError(dependency.blocked_reason)
+            raise PurgeBlockedError(
+                dependency.blocked_reason, dependency.blocked_reason_code
+            )
 
 
 def count_dashboard_slices(

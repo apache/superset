@@ -56,6 +56,7 @@ from superset.commands.deletion_retention.purge_policy import (
     get_purge_policy,
     PurgeBlockedError,
     PurgeEntityPolicy,
+    REASON_UNHANDLED_REFERENCE,
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -145,6 +146,9 @@ class CascadeResult:
     removed_dashboard_slices: int = 0
     version_rows_removed: int = 0
     blocked_reason: str | None = None
+    # Stable machine code for the block (REASON_* vocabulary); persisted on
+    # the audit record, while blocked_reason stays the human phrase.
+    blocked_reason_code: str | None = None
 
 
 class PurgeRaceLostError(Exception):
@@ -268,6 +272,7 @@ def cascade_hard_delete(
             entity_type=entity_type,
             entity_uuid=uuid,
             blocked_reason=str(ex),
+            blocked_reason_code=ex.reason_code,
         )
     except IntegrityError as ex:
         # Not a policy decision: a restrictive FK the cascade did not handle.
@@ -290,6 +295,7 @@ def cascade_hard_delete(
             entity_type=entity_type,
             entity_uuid=uuid,
             blocked_reason="blocked by database references",
+            blocked_reason_code=REASON_UNHANDLED_REFERENCE,
         )
 
     return CascadeResult(
