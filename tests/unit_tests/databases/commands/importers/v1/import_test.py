@@ -25,6 +25,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.commands.exceptions import ImportFailedError
+from superset.constants import PASSWORD_MASK
 from superset.utils import json
 
 
@@ -525,3 +526,242 @@ def test_import_datasources_cli_no_password_does_not_clobber_existing(
         "Importing a URI with no password segment must not overwrite an "
         f"existing encrypted password; got: {database.password!r}"
     )
+
+
+def test_import_database_host_change_requires_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that repoints an existing database at a different host must
+    not silently reuse the stored password (the database UUID is public in
+    every exported bundle, so this would exfiltrate the credential).
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    database = import_database(config)
+    assert database.password == "pass"  # noqa: S105
+
+    hostile = copy.deepcopy(database_config)
+    hostile["sqlalchemy_uri"] = (
+        "postgresql://user:XXXXXXXXXX@attacker.example.com:5432/prod"
+    )
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # the same-host case (a normal re-import of an exported bundle) still works
+    unchanged = copy.deepcopy(database_config)
+    unchanged["sqlalchemy_uri"] = "postgresql://user:XXXXXXXXXX@host1"
+    unchanged["password"] = "pass"  # noqa: S105
+    database = import_database(unchanged, overwrite=True)
+    assert database.password == "pass"  # noqa: S105
+
+
+def test_import_database_host_change_with_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A deliberate connection move is still possible when the import supplies
+    fresh credentials for the new endpoint.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    import_database(config)
+
+    moved = copy.deepcopy(database_config)
+    moved["sqlalchemy_uri"] = "postgresql://user:newpass@host2:5432/prod"
+    database = import_database(moved, overwrite=True)
+    assert database.password == "newpass"  # noqa: S105
+
+
+def test_import_database_unparseable_uri_treated_as_change(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An unparseable ``sqlalchemy_uri`` cannot be compared to the stored one,
+    so it must be treated as a connection change (raising, rather than
+    silently reusing the stored credential) instead of propagating the
+    underlying parser exception.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    import_database(config)
+
+    hostile = copy.deepcopy(database_config)
+    hostile["sqlalchemy_uri"] = "not a valid uri"
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+
+def test_import_database_ssh_tunnel_host_change_requires_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Repointing an existing database's SSH tunnel at a different server must
+    not silently reuse the stored tunnel credentials.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    ssh_tunnel = {
+        "server_address": "10.0.0.1",
+        "server_port": 22,
+        "username": "tunnel_user",
+        "password": "tunnel_pass",
+    }
+    config = copy.deepcopy(database_config)
+    config["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    database = import_database(config)
+    assert database.ssh_tunnel.server_address == "10.0.0.1"
+
+    hostile = copy.deepcopy(database_config)
+    hostile["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    hostile["ssh_tunnel"]["server_address"] = "attacker.example.com"
+    hostile["ssh_tunnel"]["password"] = PASSWORD_MASK
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # a deliberate move with a fresh tunnel credential still works
+    moved = copy.deepcopy(database_config)
+    moved["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    moved["ssh_tunnel"]["server_address"] = "10.0.0.2"
+    moved["ssh_tunnel"]["password"] = "new-tunnel-pass"  # noqa: S105
+    database = import_database(moved, overwrite=True)
+    assert database.ssh_tunnel.server_address == "10.0.0.2"
+    assert database.ssh_tunnel.password == "new-tunnel-pass"  # noqa: S105
+
+
+def test_import_database_ssh_tunnel_private_key_password_not_carried_over(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A repoint that supplies a fresh SSH tunnel private_key but omits
+    private_key_password must not silently keep the old, real passphrase
+    attached to the new key — the importer must ask for it too.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    ssh_tunnel = {
+        "server_address": "10.0.0.1",
+        "server_port": 22,
+        "username": "tunnel_user",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nOriginalKey\n-----END PRIVATE KEY-----\n",  # noqa: E501
+        "private_key_password": "original-passphrase",
+    }
+    config = copy.deepcopy(database_config)
+    config["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    import_database(config)
+
+    # fresh private_key supplied, but private_key_password is omitted
+    # entirely (not just masked) -- the old passphrase must not survive
+    # onto the new key at a different endpoint.
+    hostile = copy.deepcopy(database_config)
+    hostile["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    hostile["ssh_tunnel"]["server_address"] = "attacker.example.com"
+    hostile["ssh_tunnel"]["private_key"] = (
+        "-----BEGIN PRIVATE KEY-----\nAttackerKey\n-----END PRIVATE KEY-----\n"
+    )
+    del hostile["ssh_tunnel"]["private_key_password"]
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # same scenario, but explicitly masked instead of omitted
+    hostile_masked = copy.deepcopy(database_config)
+    hostile_masked["ssh_tunnel"] = copy.deepcopy(hostile["ssh_tunnel"])
+    hostile_masked["ssh_tunnel"]["private_key_password"] = PASSWORD_MASK
+    with pytest.raises(ImportFailedError):
+        import_database(hostile_masked, overwrite=True)
+
+    # supplying a fresh private_key_password alongside the fresh private_key
+    # is a deliberate move and must succeed
+    moved = copy.deepcopy(database_config)
+    moved["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    moved["ssh_tunnel"]["server_address"] = "10.0.0.2"
+    moved["ssh_tunnel"]["private_key"] = (
+        "-----BEGIN PRIVATE KEY-----\nNewKey\n-----END PRIVATE KEY-----\n"
+    )
+    moved["ssh_tunnel"]["private_key_password"] = "new-passphrase"  # noqa: S105
+    database = import_database(moved, overwrite=True)
+    assert database.ssh_tunnel.server_address == "10.0.0.2"
+    assert database.ssh_tunnel.private_key_password == "new-passphrase"  # noqa: S105
+
+
+def test_import_database_masked_encrypted_extra_not_revealed_on_host_change(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that repoints the connection at a different host, using a
+    fresh main password, must still not reveal the stored encrypted_extra
+    secrets onto the new endpoint: those are a separate credential from the
+    main connection password and stay masked until confirmed too.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    config["masked_encrypted_extra"] = json.dumps({"my_secret": "original-value"})
+    import_database(config)
+
+    moved = copy.deepcopy(database_config)
+    moved["sqlalchemy_uri"] = "postgresql://user:newpass@host2:5432/prod"
+    moved["password"] = "newpass"  # noqa: S105
+    moved["masked_encrypted_extra"] = json.dumps({"my_secret": PASSWORD_MASK})
+    database = import_database(moved, overwrite=True)
+
+    assert database.password == "newpass"  # noqa: S105
+    encrypted = json.loads(database.encrypted_extra)
+    assert encrypted["my_secret"] == PASSWORD_MASK
