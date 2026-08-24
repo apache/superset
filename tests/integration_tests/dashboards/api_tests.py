@@ -922,6 +922,55 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.delete(dashboard)
             db.session.commit()
 
+    def test_get_dashboards_list_omits_extra_editors_by_default(self):
+        """No EXTRA_EDITORS_RESOLVER configured: list rows omit extra_editors."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "no_extra_editors_list_dashboard",
+            "no-extra-editors-list-dashboard",
+            [admin.id],
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(
+                d
+                for d in data["result"]
+                if d["dashboard_title"] == dashboard.dashboard_title
+            )
+            assert "extra_editors" not in row
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @with_config({"EXTRA_EDITORS_RESOLVER": lambda resource: [123]})
+    def test_get_dashboards_list_includes_extra_editors_when_resolver_configured(
+        self,
+    ):
+        """List rows get extra_editors too, mirroring the single-object GET."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "extra_editors_list_dashboard",
+            "extra-editors-list-dashboard",
+            [admin.id],
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(
+                d
+                for d in data["result"]
+                if d["dashboard_title"] == dashboard.dashboard_title
+            )
+            assert row["extra_editors"] == [123]
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
     def test_get_charts_admin_sees_existing_charts(self):
         """Regression for #25890: GET /api/v1/chart/ as an Admin user should
         return existing charts, not an empty list."""
@@ -940,6 +989,41 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert chart.slice_name in names, (
                 f"Admin list missing the inserted chart. Got slice_names: {names}"
             )
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
+    def test_get_charts_list_omits_extra_editors_by_default(self):
+        """No EXTRA_EDITORS_RESOLVER configured: list rows omit extra_editors."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart(
+            "no_extra_editors_list_chart", [admin.id], 1, params="{}"
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(c for c in data["result"] if c["slice_name"] == chart.slice_name)
+            assert "extra_editors" not in row
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
+    @with_config({"EXTRA_EDITORS_RESOLVER": lambda resource: [123]})
+    def test_get_charts_list_includes_extra_editors_when_resolver_configured(self):
+        """List rows get extra_editors too, mirroring the single-object GET."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart(
+            "extra_editors_list_chart", [admin.id], 1, params="{}"
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(c for c in data["result"] if c["slice_name"] == chart.slice_name)
+            assert row["extra_editors"] == [123]
         finally:
             db.session.delete(chart)
             db.session.commit()
