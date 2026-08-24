@@ -1041,9 +1041,10 @@ PURGE_AUDIT_PRUNING_ENABLED: bool = True
 # Duplicate blocked records within a current blockage streak are removed
 # regardless of age (the streak's earliest record always survives); this
 # window governs failed records and blocked records from resolved streaks.
-# Zero or negative values are invalid: the run logs a warning and skips the
-# age-based category rather than widening removal.
-PURGE_AUDIT_RETENTION_DAYS: int = 90
+# It never applies to completed-destruction evidence — see the evidence key
+# below. Zero or negative values are invalid: the run logs a warning and
+# skips the age-based category rather than widening removal.
+PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS: int = 90
 # Evidence expiration opt-in. ``None`` (the default) means completed
 # destruction records (``confirmed``, ``target_absent``) — the only surviving
 # trace of destroyed objects — are never pruned. Setting a positive number of

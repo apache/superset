@@ -23,7 +23,8 @@ invariants) is covered by
 
 from __future__ import annotations
 
-from typing import Any
+from contextlib import contextmanager
+from typing import Any, Iterator
 from unittest.mock import patch
 
 import pytest
@@ -31,8 +32,8 @@ from flask import current_app
 
 from superset.commands.deletion_retention import prune_audit
 from superset.commands.deletion_retention.prune_audit import (
-    BATCH_SIZE,
-    MAX_BATCHES_PER_RUN,
+    EVIDENCE_RETENTION_KEY,
+    OPERATIONAL_RETENTION_KEY,
     OPERATIONAL_STATUSES,
     PROTECTED_STATUSES,
     PruneRunResult,
@@ -40,6 +41,7 @@ from superset.commands.deletion_retention.prune_audit import (
     resolve_operational_retention_days,
 )
 from superset.models.purge_audit_log import (
+    ALL_STATUSES,
     STATUS_BLOCKED,
     STATUS_CONFIRMED,
     STATUS_FAILED,
@@ -47,59 +49,101 @@ from superset.models.purge_audit_log import (
     STATUS_TARGET_ABSENT,
 )
 
+_METRIC_PREFIX = "deletion_retention.prune_purge_audit"
 
-def test_categories_partition_the_status_vocabulary() -> None:
-    """Every non-pending status is exactly one of operational or protected;
-    pending belongs to neither (reconciliation owns it)."""
+
+@contextmanager
+def without_config(key: str) -> Iterator[None]:
+    """Remove a config key for the duration of the block, then restore it.
+
+    ``patch.dict`` cannot express key *removal*, and the unit-test app
+    fixture is module-scoped, so a bare ``pop`` would leak to later tests.
+    """
+    with patch.dict(current_app.config):
+        current_app.config.pop(key, None)
+        yield
+
+
+def test_retention_categories_partition_every_status() -> None:
+    """Exhaustiveness contract: each status is operational, protected, or
+    provisional. A new status added to the model without a category would
+    silently never be pruned — this is what catches that."""
     assert OPERATIONAL_STATUSES == {STATUS_BLOCKED, STATUS_FAILED}
     assert PROTECTED_STATUSES == {STATUS_CONFIRMED, STATUS_TARGET_ABSENT}
     assert not OPERATIONAL_STATUSES & PROTECTED_STATUSES
-    assert STATUS_PENDING not in OPERATIONAL_STATUSES | PROTECTED_STATUSES
+    assert OPERATIONAL_STATUSES | PROTECTED_STATUSES | {STATUS_PENDING} == ALL_STATUSES
 
 
-def test_batch_constants_match_the_run_budget_contract() -> None:
-    """500-row batches, ten per run, shared across categories."""
-    assert BATCH_SIZE == 500
-    assert MAX_BATCHES_PER_RUN == 10
+def test_only_proof_of_destruction_breaks_a_blockage_streak() -> None:
+    """A ``failed`` attempt is an infrastructure outcome, not evidence the
+    blockage cleared, so it must not end a streak (which would demote the
+    blocked-since survivor); ``pending`` is provisional and likewise inert."""
+    assert prune_audit._STREAK_BREAKING_STATUSES == {
+        STATUS_CONFIRMED,
+        STATUS_TARGET_ABSENT,
+    }
+    assert STATUS_FAILED not in prune_audit._STREAK_BREAKING_STATUSES
+    assert STATUS_PENDING not in prune_audit._STREAK_BREAKING_STATUSES
 
 
 def test_operational_retention_defaults_to_ninety_days() -> None:
-    current_app.config.pop("PURGE_AUDIT_RETENTION_DAYS", None)
-    assert resolve_operational_retention_days() == 90
+    """The shipped config default is the contract; an absent key must not
+    silently fall back to some other number."""
+    assert current_app.config[OPERATIONAL_RETENTION_KEY] == 90
+    assert resolve_operational_retention_days().days == 90
 
 
 @pytest.mark.parametrize("value", [30, 1, 36500])
 def test_operational_retention_accepts_positive_days(value: int) -> None:
-    with patch.dict(current_app.config, {"PURGE_AUDIT_RETENTION_DAYS": value}):
-        assert resolve_operational_retention_days() == value
+    with patch.dict(current_app.config, {OPERATIONAL_RETENTION_KEY: value}):
+        assert resolve_operational_retention_days() == (value, None)
 
 
 @pytest.mark.parametrize("value", [0, -5, True, False, "ninety", None, 1.5])
 def test_operational_retention_fails_closed_on_invalid_values(value: Any) -> None:
-    """Invalid values disable the category (None) — they never widen removal."""
-    with patch.dict(current_app.config, {"PURGE_AUDIT_RETENTION_DAYS": value}):
-        assert resolve_operational_retention_days() is None
+    """Invalid values disable the category and name the offending key —
+    they never widen removal."""
+    with patch.dict(current_app.config, {OPERATIONAL_RETENTION_KEY: value}):
+        window = resolve_operational_retention_days()
+    assert window.days is None
+    assert window.enabled is False
+    assert window.invalid_key == OPERATIONAL_RETENTION_KEY
+
+
+def test_missing_operational_key_is_reported_as_invalid_not_assumed() -> None:
+    """A popped key is operator error, not a silent 90-day assumption."""
+    with without_config(OPERATIONAL_RETENTION_KEY):
+        window = resolve_operational_retention_days()
+    assert window.days is None
+    assert window.invalid_key == OPERATIONAL_RETENTION_KEY
 
 
 def test_evidence_retention_defaults_to_off_without_warning() -> None:
-    """``None`` is the documented never-expire default, not a config error."""
-    current_app.config.pop("PURGE_AUDIT_EVIDENCE_RETENTION_DAYS", None)
-    with patch.object(prune_audit, "logger") as mock_logger:
-        assert resolve_evidence_retention_days() is None
+    """Unset is the documented never-expire default (FR-006), not an error:
+    disabled, no warning, and no key reported as invalid."""
+    with without_config(EVIDENCE_RETENTION_KEY):
+        with patch.object(prune_audit, "logger") as mock_logger:
+            window = resolve_evidence_retention_days()
         mock_logger.warning.assert_not_called()
+    assert window == (None, None)
+    assert window.enabled is False
 
 
 def test_evidence_retention_accepts_the_explicit_opt_in() -> None:
-    with patch.dict(current_app.config, {"PURGE_AUDIT_EVIDENCE_RETENTION_DAYS": 3650}):
-        assert resolve_evidence_retention_days() == 3650
+    with patch.dict(current_app.config, {EVIDENCE_RETENTION_KEY: 3650}):
+        window = resolve_evidence_retention_days()
+    assert window.days == 3650
+    assert window.enabled is True
 
 
 @pytest.mark.parametrize("value", [0, -1, True, "forever"])
 def test_evidence_retention_fails_closed_on_invalid_values(value: Any) -> None:
-    with patch.dict(current_app.config, {"PURGE_AUDIT_EVIDENCE_RETENTION_DAYS": value}):
+    with patch.dict(current_app.config, {EVIDENCE_RETENTION_KEY: value}):
         with patch.object(prune_audit, "logger") as mock_logger:
-            assert resolve_evidence_retention_days() is None
-            mock_logger.warning.assert_called_once()
+            window = resolve_evidence_retention_days()
+        mock_logger.warning.assert_called_once()
+    assert window.days is None
+    assert window.invalid_key == EVIDENCE_RETENTION_KEY
 
 
 def test_prune_run_result_totals_and_dict_shape() -> None:
@@ -133,19 +177,21 @@ def test_disabled_task_reports_itself_and_removes_nothing() -> None:
     assert outcome == {"skipped_disabled": 1}
     mock_run.assert_not_called()
     mock_stats.instance.incr.assert_called_once_with(
-        "deletion_retention.prune_audit.skipped_disabled"
+        f"{_METRIC_PREFIX}.skipped_disabled"
     )
     assert mock_logger.info.called
 
 
-def test_failed_run_is_isolated_and_distinguishable() -> None:
-    """FR-008: a raising run reports failure (metric + exception log) and
-    returns an error marker — never mistakable for 'removed nothing'."""
+def test_failed_run_is_isolated_rolled_back_and_distinguishable() -> None:
+    """FR-008: a raising run reports failure (metric + exception log), rolls
+    the session back, and returns an error marker — never mistakable for
+    'removed nothing'."""
     from superset.tasks import deletion_retention as task_module
 
     with patch.dict(current_app.config, {"PURGE_AUDIT_PRUNING_ENABLED": True}):
         with (
             patch.object(task_module, "stats_logger_manager") as mock_stats,
+            patch.object(task_module, "db") as mock_db,
             patch.object(
                 task_module.prune_audit,
                 "run_prune",
@@ -154,17 +200,20 @@ def test_failed_run_is_isolated_and_distinguishable() -> None:
         ):
             outcome = task_module.prune_purge_audit()
     assert outcome == {"error": 1}
-    mock_stats.instance.incr.assert_called_once_with(
-        "deletion_retention.prune_audit.failed"
-    )
+    mock_db.session.rollback.assert_called_once()
+    mock_stats.instance.incr.assert_called_once_with(f"{_METRIC_PREFIX}.failed")
 
 
-def test_successful_run_mirrors_counts_into_metrics() -> None:
-    """SC-003: the per-category counts are answerable from metrics alone."""
+def test_successful_run_mirrors_counts_and_carryover_into_metrics() -> None:
+    """SC-003/SC-004: per-category counts *and* the convergence signal are
+    answerable from metrics alone."""
     from superset.tasks import deletion_retention as task_module
 
     fake = PruneRunResult(
-        blocked_duplicates=7, operational_expired=4, evidence_expired=0
+        blocked_duplicates=7,
+        operational_expired=4,
+        evidence_expired=0,
+        carried_over=True,
     )
     with patch.dict(current_app.config, {"PURGE_AUDIT_PRUNING_ENABLED": True}):
         with (
@@ -173,28 +222,24 @@ def test_successful_run_mirrors_counts_into_metrics() -> None:
         ):
             outcome = task_module.prune_purge_audit()
     assert outcome == fake.as_dict()
-    mock_stats.instance.incr.assert_called_once_with(
-        "deletion_retention.prune_audit.success"
-    )
+    mock_stats.instance.incr.assert_called_once_with(f"{_METRIC_PREFIX}.success")
     gauges = {
         call.args[0]: call.args[1] for call in mock_stats.instance.gauge.call_args_list
     }
     assert gauges == {
-        "deletion_retention.prune_audit.removed.blocked_duplicates": 7,
-        "deletion_retention.prune_audit.removed.operational_expired": 4,
-        "deletion_retention.prune_audit.removed.evidence_expired": 0,
+        f"{_METRIC_PREFIX}.removed.blocked_duplicates": 7,
+        f"{_METRIC_PREFIX}.removed.operational_expired": 4,
+        f"{_METRIC_PREFIX}.removed.evidence_expired": 0,
+        f"{_METRIC_PREFIX}.carried_over": 1,
     }
 
 
-def test_utc_clock_matches_the_audit_write_path() -> None:
-    """The cutoff clock must be the audit module's naive-UTC clock — a
-    local-time cutoff would shift the window by the server's UTC offset."""
+def test_pruning_shares_the_audit_writers_clock() -> None:
+    """Cutoffs and ``created_on`` must come from one clock — a local-time
+    cutoff would shift the window by the server's UTC offset."""
     from superset.commands.deletion_retention import audit
 
-    prune_now = prune_audit._utc_now()
-    audit_now = audit._utc_now()
-    assert prune_now.tzinfo is None
-    assert abs((audit_now - prune_now).total_seconds()) < 5
+    assert prune_audit.utc_now is audit.utc_now
 
 
 def test_delete_batch_short_circuits_on_empty_ids() -> None:

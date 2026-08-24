@@ -95,14 +95,15 @@ class _AuditRecoverySnapshot:
     reason: str | None
 
 
-def _utc_now() -> datetime:
-    """Naive UTC now for the audit columns.
+def utc_now() -> datetime:
+    """Naive UTC now for the purge-audit table's timestamps.
 
     Note this deliberately differs from the metadata schema's audit
     columns (``changed_on`` / ``deleted_at``), which are naive-local per
     the PR #33693 UTC revert — the purge audit table is self-contained
     (``created_on`` and the reconcile cutoff both use this clock), so it
-    can use the saner convention without a comparison hazard.
+    can use the saner convention without a comparison hazard. Public
+    because pruning must compute its cutoffs on this same clock.
     """
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -127,7 +128,7 @@ def write_ahead(
             entity_type=entity_type,
             entity_uuid=entity_uuid,
             removed_dashboard_slices=removed_dashboard_slices,
-            created_on=_utc_now(),
+            created_on=utc_now(),
         )
         session.add(record)
         session.commit()
@@ -160,7 +161,7 @@ def finalize(
     try:
         values: dict[str, Any] = {"status": status}
         if status == STATUS_CONFIRMED:
-            values["confirmed_on"] = _utc_now()
+            values["confirmed_on"] = utc_now()
         referrers = details.get("affected_referrers")
         if referrers:
             values["affected_referrers"] = ",".join(referrers)
@@ -460,7 +461,7 @@ def reconcile_pending(stale_before: datetime | None = None) -> dict[str, int]:
     inventing one would assert evidence this process never witnessed. The
     next scheduled attempt re-anchors the entity with its real code.
     """
-    cutoff = stale_before or _utc_now() - _PENDING_STALE_AFTER
+    cutoff = stale_before or utc_now() - _PENDING_STALE_AFTER
     reconciled = absent = failed = 0
     session = _dedicated_session()
     try:

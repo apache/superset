@@ -68,11 +68,14 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
   default `CeleryConfig.beat_schedule`) removes duplicate `blocked` records
   within an entity's current blockage streak (the earliest — "blocked since" —
   record always survives) and ages out operational records (`blocked` from
-  resolved streaks, `failed`) older than `PURGE_AUDIT_RETENTION_DAYS` (default
-  90). Completed-destruction evidence (`confirmed`, `target_absent`) is **never
-  touched** unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is
-  explicitly set, which is the operator's assertion that an approved compliance
-  policy permits expiring destruction evidence. Set
+  resolved streaks, `failed`) older than
+  `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). A streak is ended
+  only by proof the object is gone (`confirmed`/`target_absent`); a `failed`
+  attempt does not reset the "blocked since" record. Completed-destruction
+  evidence (`confirmed`, `target_absent`) is **never touched** unless the
+  separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set,
+  which is the operator's assertion that an approved compliance policy
+  permits expiring destruction evidence. Set
   `PURGE_AUDIT_PRUNING_ENABLED = False` to restore the previous
   unbounded-growth behavior. Deployments that replace the default
   `CELERY_CONFIG` must carry the new beat entry forward (the task shares
