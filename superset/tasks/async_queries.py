@@ -106,6 +106,10 @@ def load_chart_data_into_cache(
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.commands.chart.exceptions import (
+        ChartDataCacheLoadError,
+        ChartDataQueryFailedError,
+    )
 
     with override_user(_load_user_from_job_metadata(job_metadata), force=False):
         try:
@@ -123,6 +127,20 @@ def load_chart_data_into_cache(
         except SoftTimeLimitExceeded as ex:
             _handle_soft_time_limit(job_metadata, ex, "loading chart data")
             raise
+        except (ChartDataCacheLoadError, ChartDataQueryFailedError) as ex:
+            # These map to 422/400 in the synchronous chart/data endpoint (see
+            # ChartDataRestApi._get_data_response) - expected, client-facing
+            # validation failures (e.g. a chart still referencing columns a
+            # customer has since dropped from the dataset), not application
+            # bugs. The failure is already delivered to the client via
+            # update_job below; re-raising would only surface it a second
+            # time as an unhandled Celery task exception.
+            logger.info("Chart data query failed while loading into cache: %s", ex)
+            async_query_manager.update_job(
+                job_metadata,
+                async_query_manager.STATUS_ERROR,
+                errors=sanitize_error_dicts([{"message": str(ex.message)}]),
+            )
         except Exception as ex:
             # Extract SIP-40 style errors when available
             if isinstance(ex, SupersetErrorException):
