@@ -73,7 +73,8 @@ def register_sqla_event_listeners() -> None:
     register_delete_listener(declarations[1])  # chart
     register_delete_listener(declarations[2])  # dashboard
 
-    sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)
+    if not sqla.event.contains(SavedQuery, "after_delete", QueryUpdater.after_delete):
+        sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)
 
 
 def clear_sqla_event_listeners() -> None:
@@ -88,4 +89,5 @@ def clear_sqla_event_listeners() -> None:
     remove_delete_listener(declarations[1])  # chart
     remove_delete_listener(declarations[2])  # dashboard
 
-    sqla.event.remove(SavedQuery, "after_delete", QueryUpdater.after_delete)
+    if sqla.event.contains(SavedQuery, "after_delete", QueryUpdater.after_delete):
+        sqla.event.remove(SavedQuery, "after_delete", QueryUpdater.after_delete)
