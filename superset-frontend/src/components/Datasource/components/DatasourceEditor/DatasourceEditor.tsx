@@ -779,6 +779,35 @@ function EditorsSelector({
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
+// D3's '%' type is a valid spec that multiplies by 100, so it never trips
+// the "Invalid format" fallback even when applied to a raw count.
+const isPercentD3Format = (d3format?: string): boolean =>
+  !!d3format && d3format.trim().endsWith('%');
+
+const isCountExpression = (expression?: string): boolean =>
+  !!expression && /^\s*count\s*\(/i.test(expression);
+
+function renderMetricFormatWarning(item: Record<string, any>): ReactNode {
+  if (
+    !isCountExpression(item.expression) ||
+    !isPercentD3Format(item.d3format)
+  ) {
+    return null;
+  }
+  return (
+    <Alert
+      css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+      type="warning"
+      showIcon
+      message={t(
+        'This metric is a count, but its D3 format is a percentage. ' +
+          'Percent formats multiply the value by 100, which will make a ' +
+          'raw count render as a misleadingly large number.',
+      )}
+    />
+  );
+}
+
 // Redux connector types
 interface QueryPayload {
   client_id?: string;
@@ -2140,7 +2169,7 @@ function DatasourceEditor({
           }}
           expandFieldset={
             <FormContainer>
-              <Fieldset compact>
+              <Fieldset compact renderWarning={renderMetricFormatWarning}>
                 <Field
                   fieldKey="expression"
                   label={t('SQL expression')}
