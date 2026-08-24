@@ -348,7 +348,7 @@ test('surfaces the dedupe count in Details for a reused task', async () => {
   renderTaskList();
   await screen.findByText('Export Data Task');
 
-  // The reused task (dedupe_count: 2) renders the copy icon + count in Details;
-  // unique tasks show nothing. (antd CopyOutlined -> role "img" name "copy".)
-  expect(screen.getByRole('img', { name: 'copy' })).toBeInTheDocument();
+  // The reused task (dedupe_count: 2) renders the plus icon + count in Details;
+  // unique tasks show nothing. (antd PlusOutlined -> role "img" name "plus".)
+  expect(screen.getByRole('img', { name: 'plus' })).toBeInTheDocument();
 });

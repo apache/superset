@@ -503,7 +503,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                       gap: theme.sizeUnit,
                     }}
                   >
-                    <Icons.CopyOutlined iconSize="l" />
+                    <Icons.PlusOutlined iconSize="l" />
                     {dedupeCount}
                   </span>
                 </Tooltip>
