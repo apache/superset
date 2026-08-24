@@ -126,13 +126,17 @@ export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
     error.error = error.description = error.errors[0].message;
     error.link = error.errors[0]?.extra?.link;
   }
-  // Marshmallow field validation returns the error message in the format
-  // of { message: { field1: [msg1, msg2], field2: [msg], } }
+  // Marshmallow field validation returns { field1: [msg1, msg2], ... },
+  // but some validators attach a bare string instead of a list.
   if (!error.error && error.message) {
     if (typeof error.message === 'object') {
+      const firstFieldMessage = Object.values(
+        error.message as Record<string, string[] | string>,
+      )[0];
       error.error =
-        Object.values(error.message as Record<string, string[]>)[0]?.[0] ||
-        t('Invalid input');
+        (Array.isArray(firstFieldMessage)
+          ? firstFieldMessage[0]
+          : firstFieldMessage) || t('Invalid input');
     }
     if (typeof error.message === 'string') {
       if (checkForHtml(error.message)) {

@@ -244,6 +244,24 @@ test('parseErrorJson with message', () => {
   });
 });
 
+test('parseErrorJson with a field message that is a plain string', () => {
+  // A bare string value shouldn't get double-indexed into its own chars.
+  expect(
+    parseErrorJson({
+      message: {
+        'metrics.0.expression':
+          'Custom SQL fields cannot be parsed as a single SQL statement.',
+      },
+    }),
+  ).toEqual({
+    message: {
+      'metrics.0.expression':
+        'Custom SQL fields cannot be parsed as a single SQL statement.',
+    },
+    error: 'Custom SQL fields cannot be parsed as a single SQL statement.',
+  });
+});
+
 test('parseErrorJson with HTML message', () => {
   expect(
     parseErrorJson({
