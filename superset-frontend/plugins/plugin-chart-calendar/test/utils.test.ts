@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { getFormattedUTCTime, convertUTCTimestampToLocal } from '../src/utils';
+import {
+  getFormattedUTCTime,
+  convertUTCTimestampToLocal,
+  escapeHtml,
+} from '../src/utils';
 
 test('getFormattedUTCTime formats local timestamp for display as UTC date', () => {
   const utcTimestamp = 1420070400000; // 2015-01-01 00:00:00 UTC
@@ -86,4 +90,23 @@ test('convertUTCTimestampToLocal and getFormattedUTCTime work together to displa
   // getFormattedUTCTime receives LOCAL timestamp (from Cal-Heatmap) and formats it
   const formattedTime = getFormattedUTCTime(localTimestamp, '%Y-%m-%d');
   expect(formattedTime).toContain('2024-01-01');
+});
+
+test('escapeHtml neutralizes markup smuggled through a time format string', () => {
+  // Regression test: d3-time-format passes non-% characters through
+  // verbatim, so escaping must happen before the innerHTML sink.
+  const formatted = getFormattedUTCTime(
+    1704067200000,
+    '%Y <img src=x onerror=alert(1)>',
+  );
+  const escaped = escapeHtml(formatted);
+
+  expect(formatted).toContain('<img');
+  expect(escaped).not.toContain('<img');
+  expect(escaped).toContain('&lt;img');
+});
+
+test('escapeHtml stringifies non-string formatter output safely', () => {
+  expect(escapeHtml(1234)).toEqual('1234');
+  expect(escapeHtml('a & b < c')).toEqual('a &amp; b &lt; c');
 });
