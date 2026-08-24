@@ -212,6 +212,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     encrypted_extra_sensitive_fields = {
         "$.auth_params.privatekey_body": "Private Key Body",
         "$.auth_params.privatekey_pass": "Private Key Password",
+        "$.oauth2_client_info.secret": "OAuth2 Client Secret",
     }
 
     _time_grain_expressions = {
@@ -320,11 +321,18 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
             if user_token:
                 if username is not None:
-                    user = security_manager.find_user(username=username)
-                    if user and user.email:
-                        if is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
-                            url = url.set(username=user.email.split("@")[0])
-                        else:
+                    if is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
+                        # ``Database._get_sqla_engine()`` has already looked
+                        # up the login and substituted the email prefix into
+                        # ``username`` before calling this method when this
+                        # flag is on. Looking it up again here as if it were
+                        # still the login would fail whenever the two differ,
+                        # leaving the default/service-account username paired
+                        # with this user's OAuth token. Use it as given.
+                        url = url.set(username=username)
+                    else:
+                        user = security_manager.find_user(username=username)
+                        if user and user.email:
                             url = url.set(username=user.email)
 
                 url = url.update_query_dict({"token": user_token})

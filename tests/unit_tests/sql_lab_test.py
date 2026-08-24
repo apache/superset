@@ -524,7 +524,8 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         assert error["level"] == ErrorLevel.WARNING
         assert error["extra"]["tab_id"] == "fb11f528-6eba-4a8a-837e-6b0d39ee9187"
         assert (
-            error["extra"]["redirect_uri"] == "http://example.com/api/v1/database/oauth2/"
+            error["extra"]["redirect_uri"]
+            == "http://example.com/api/v1/database/oauth2/"
         )
 
         # Parse the OAuth2 authorization URL and verify components individually,

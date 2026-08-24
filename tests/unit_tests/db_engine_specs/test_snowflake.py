@@ -352,6 +352,30 @@ def test_mask_encrypted_extra() -> None:
     )
 
 
+def test_mask_encrypted_extra_oauth2_client_secret() -> None:
+    """
+    The database-level OAuth2 client secret must be masked in
+    ``masked_encrypted_extra``, matching the other engine specs supporting
+    the same ``oauth2_client_info`` path (gsheets, trino) -- otherwise a
+    database editor can read it back unmasked.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    config = json.dumps(
+        {
+            "auth_method": "oauth2",
+            "oauth2_client_info": {"id": "client-id", "secret": "my-secret"},
+        }
+    )
+
+    assert SnowflakeEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "oauth2",
+            "oauth2_client_info": {"id": "client-id", "secret": "XXXXXXXXXX"},
+        }
+    )
+
+
 def test_mask_encrypted_extra_no_fields() -> None:
     """
     Test that the private key is masked when the database is edited.
@@ -588,6 +612,55 @@ def test_impersonate_user(app: SupersetApp, mocker: MockerFixture) -> None:
             ),
             {"connect_args": {"authenticator": "oauth"}},
         )
+
+
+def test_impersonate_user_email_prefix_uses_username_directly(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """
+    With IMPERSONATE_WITH_EMAIL_PREFIX enabled, ``Database._get_sqla_engine()``
+    has already substituted the email prefix for the login username before
+    calling ``impersonate_user`` -- the value it passes in is no longer a
+    lookupable login. Re-looking it up as a username (the pre-fix behavior)
+    fails whenever the login differs from the prefix, silently leaving the
+    default/service-account username paired with the impersonated user's
+    OAuth token instead of failing loudly. The fixed code must use the given
+    value directly and must not call ``find_user`` at all in this branch.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database: Database = Database(sqlalchemy_uri="snowflake://abc")
+
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.SnowflakeEngineSpec.is_oauth2_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.is_feature_enabled",
+        return_value=True,
+    )
+    find_user = mocker.patch("superset.security_manager.find_user")
+
+    with app.test_request_context("/some/place/"):
+        # "jdoe" is the email prefix Database._get_sqla_engine() already
+        # derived; the login it derived it from ("jdoe123", say) is gone by
+        # this point and must not be re-derived here.
+        result = SnowflakeEngineSpec.impersonate_user(
+            database=database,
+            username="jdoe",
+            user_token="test_token",  # noqa: S106
+            url=make_url("snowflake://user:pass@account/database_name/default"),
+            engine_kwargs={},
+        )
+
+    assert result == (
+        make_url(
+            "snowflake://jdoe:pass@account/database_name/default?authenticator=oauth&token=test_token"
+        ),
+        {"connect_args": {"authenticator": "oauth"}},
+    )
+    find_user.assert_not_called()
 
 
 def test_impersonate_user_outside_request_context(mocker: MockerFixture) -> None:
