@@ -84,7 +84,6 @@ let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
 // is triggered) so no task created afterwards is missed, then advanced by each
 // poll. Always the server's own clock, never the browser's.
 let cursor: string | null;
-let baselineReady: Promise<void> | null;
 // Incremented on every init() so an in-flight poll can detect it is stale and
 // stop instead of scheduling a second loop or mutating fresh state.
 let pollingGeneration = 0;
@@ -217,8 +216,15 @@ export const waitForAsyncData = async <T = unknown[]>(
   signal?: AbortSignal,
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
-  if (baselineReady) await baselineReady;
 
+  // Register the waiter synchronously, in the same tick the 202 was received —
+  // NOT after an await. The 202 is returned when the tasks are *scheduled*, not
+  // finished, so at this point the shared poll cursor is <= now < any task's
+  // future terminal transition; the poll is therefore guaranteed to observe the
+  // completion. Awaiting anything here (e.g. the init baseline) would open a gap
+  // in which a fast task could finish and a concurrent chart's poll advance the
+  // cursor past its terminal update, and the socket event (no waiter yet) would
+  // be dropped — hanging the request.
   await new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
       taskIds.forEach(cancelTask);
@@ -281,7 +287,7 @@ export const init = (appConfig?: AppConfig) => {
   // Establish a baseline cursor before any chart query is triggered, so tasks
   // created afterwards are all caught by the changed-since poll, then start the
   // shared poll loop from that watermark.
-  baselineReady = fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
+  fetchStatusChanges({ task_type: CHART_QUERY_TASK_TYPE })
     .then(({ cursor: baseline }) => {
       if (generation === pollingGeneration) cursor = baseline;
     })

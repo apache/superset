@@ -139,7 +139,7 @@ def upgrade():
     # not collide.)
     add_columns(
         TASK_SUBSCRIBERS_TABLE,
-        Column("guest_key", sa.String(length=64), nullable=True),
+        Column("guest_key", sa.String(length=128), nullable=True),
     )
     with op.batch_alter_table(TASK_SUBSCRIBERS_TABLE) as batch_op:
         batch_op.alter_column("user_id", existing_type=sa.Integer(), nullable=True)
