@@ -41,6 +41,7 @@ BACKEND_DEFINED = "superset.coordination.base.CoordinationService.is_backend_def
 COORD_SET = "superset.coordination.base.CoordinationService.set_value"
 COORD_GET = "superset.coordination.base.CoordinationService.get_value"
 COORD_DELETE = "superset.coordination.base.CoordinationService.delete_value"
+COORD_CAD = "superset.coordination.base.CoordinationService.compare_and_delete"
 
 
 def _get_lock(key: UUID, session: Session) -> Any:
@@ -69,10 +70,10 @@ def _get_other_session() -> Session:
 
 
 def _fake_coordination_backend() -> dict[str, Any]:
-    """Patchable set/get/delete_value closures over a shared in-memory store.
+    """Patchable set/get/delete/compare-and-delete closures over one store.
 
-    Faithfully models SET NX + GET + DELETE so the ownership-checked release
-    (get-then-compare-then-delete) exercises end to end under mocking.
+    Faithfully models SET NX + GET + DELETE + atomic compare-and-delete so the
+    ownership-checked release exercises end to end under mocking.
     """
     store: dict[str, Any] = {}
 
@@ -95,7 +96,20 @@ def _fake_coordination_backend() -> dict[str, Any]:
     def _delete(*keys: str, backend: Any = None) -> int:
         return sum(1 for k in keys if store.pop(k, None) is not None)
 
-    return {"store": store, "set": _set, "get": _get, "delete": _delete}
+    def _compare_and_delete(key: str, expected: str, backend: Any = None) -> int:
+        # Atomic: delete only if the stored value still equals ``expected``.
+        if store.get(key) == expected:
+            store.pop(key, None)
+            return 1
+        return 0
+
+    return {
+        "store": store,
+        "set": _set,
+        "get": _get,
+        "delete": _delete,
+        "compare_and_delete": _compare_and_delete,
+    }
 
 
 def test_distributed_lock_kv_happy_path() -> None:
@@ -178,7 +192,8 @@ def test_distributed_lock_uses_redis_when_configured() -> None:
         patch(BACKEND_DEFINED, return_value=True),
         patch(COORD_SET, side_effect=fake["set"]) as mock_set,
         patch(COORD_GET, side_effect=fake["get"]),
-        patch(COORD_DELETE, side_effect=fake["delete"]) as mock_delete,
+        patch(COORD_DELETE, side_effect=fake["delete"]),
+        patch(COORD_CAD, side_effect=fake["compare_and_delete"]) as mock_cad,
     ):
         with DistributedLock("test_redis", key="value") as lock_key:
             assert lock_key is not None
@@ -188,9 +203,9 @@ def test_distributed_lock_uses_redis_when_configured() -> None:
             assert call_args.kwargs["if_absent"] is True
             assert "ttl" in call_args.kwargs
 
-        # Verify the (ownership-checked) DELETE was called on exit
-        mock_delete.assert_called_once()
-        # And the lock is actually gone.
+        # Verify the ownership-checked (atomic compare-and-delete) release ran on
+        # exit and the lock is actually gone.
+        mock_cad.assert_called_once()
         assert fake["store"] == {}
 
 
@@ -203,7 +218,8 @@ def test_distributed_lock_redis_release_only_deletes_own_lock() -> None:
         patch(BACKEND_DEFINED, return_value=True),
         patch(COORD_SET, side_effect=fake["set"]),
         patch(COORD_GET, side_effect=fake["get"]),
-        patch(COORD_DELETE, side_effect=fake["delete"]) as mock_delete,
+        patch(COORD_DELETE, side_effect=fake["delete"]),
+        patch(COORD_CAD, side_effect=fake["compare_and_delete"]),
     ):
         # Holder B owns the key.
         with DistributedLock("test_redis", key="value"):
@@ -216,8 +232,7 @@ def test_distributed_lock_redis_release_only_deletes_own_lock() -> None:
                 token="stale-token-a",  # noqa: S106
             ).run()
 
-            # A's release deleted nothing; B still holds the key.
-            mock_delete.assert_not_called()
+            # A's compare-and-delete matched nothing; B still holds the key.
             assert next(iter(fake["store"].values())) == b_token
 
 
@@ -253,6 +268,7 @@ def test_distributed_lock_custom_ttl() -> None:
         patch(COORD_SET, side_effect=fake["set"]) as mock_set,
         patch(COORD_GET, side_effect=fake["get"]),
         patch(COORD_DELETE, side_effect=fake["delete"]),
+        patch(COORD_CAD, side_effect=fake["compare_and_delete"]),
     ):
         with DistributedLock("test", ttl_seconds=60, key="value"):
             call_args = mock_set.call_args
@@ -269,6 +285,7 @@ def test_distributed_lock_default_ttl(app_context: None) -> None:
         patch(COORD_SET, side_effect=fake["set"]) as mock_set,
         patch(COORD_GET, side_effect=fake["get"]),
         patch(COORD_DELETE, side_effect=fake["delete"]),
+        patch(COORD_CAD, side_effect=fake["compare_and_delete"]),
     ):
         with DistributedLock("test", key="value"):
             call_args = mock_set.call_args

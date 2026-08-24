@@ -77,12 +77,20 @@ def _json_execution_result(
 
 def test_should_run_async_requires_async_mode_flag() -> None:
     """`async_mode` is opt-in: absent/false runs sync even with the flag on."""
+    from flask_caching.backends import NullCache
+
     api = ChartDataRestApi()
     qc = MagicMock()
     qc.result_format = ChartDataResultFormat.JSON
     qc.result_type = ChartDataResultType.FULL
 
-    with patch("superset.charts.data.api.is_feature_enabled", return_value=True):
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+    ):
+        # A real (non-null) DATA cache backend so async is viable.
+        cache_manager.data_cache.cache = MagicMock()
+
         # Opted in → async.
         assert api._should_run_async({"async_mode": True}, qc, 300) is True
         # Absent or false → synchronous (programmatic clients keep the 200 flow).
@@ -93,6 +101,10 @@ def test_should_run_async_requires_async_mode_flag() -> None:
             {"async_mode": True}, qc, CACHE_DISABLED_TIMEOUT
         )
         assert cache_disabled is False
+
+        # NullCache DATA backend → sync: async could never read the result back.
+        cache_manager.data_cache.cache = NullCache()
+        assert api._should_run_async({"async_mode": True}, qc, 300) is False
 
     # Feature flag off → always sync.
     with patch("superset.charts.data.api.is_feature_enabled", return_value=False):

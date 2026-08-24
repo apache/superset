@@ -395,7 +395,7 @@ def execute_task(  # noqa: C901
             failed_prerequisite.uuid,
             failed_prerequisite.status,
         )
-        InternalStatusTransitionCommand(
+        failed_transition = InternalStatusTransitionCommand(
             task_uuid=native_uuid,
             new_status=TaskStatus.FAILURE,
             expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
@@ -407,8 +407,18 @@ def execute_task(  # noqa: C901
                 )
             },
         ).run()
-        TaskManager.publish_completion(native_uuid, TaskStatus.FAILURE.value)
-        return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
+        if failed_transition:
+            TaskManager.publish_completion(native_uuid, TaskStatus.FAILURE.value)
+            return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
+        # The dependent was moved to a terminal state concurrently (e.g. aborted
+        # while waiting on prerequisites), so the FAILURE transition was a no-op.
+        # Report the status that actually committed rather than publishing a
+        # FAILURE completion that contradicts the DB.
+        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid, skip_base_filter=True)
+        return {
+            "status": refreshed.status if refreshed else "unknown",
+            "task_uuid": task_uuid,
+        }
 
     # Atomic transition: PENDING → IN_PROGRESS (set started_at for duration tracking)
     if not InternalStatusTransitionCommand(

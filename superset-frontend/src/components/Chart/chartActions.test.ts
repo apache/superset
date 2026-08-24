@@ -578,6 +578,52 @@ describe('chart actions', () => {
           'validation failed',
         );
       });
+
+      test('re-issues synchronously after async completion, preserving force', async () => {
+        // 1: initial async request → 202; 2: the post-completion re-issue is
+        // synchronous and returns the payload inline (200). No third call and no
+        // second background task.
+        fetchMock.removeRoute(MOCK_URL);
+        let calls = 0;
+        fetchMock.post(
+          `glob:*${MOCK_URL}*`,
+          () => {
+            calls += 1;
+            return calls === 1
+              ? { status: 202, body: { result: [{ job_id: 'job-1' }] } }
+              : { status: 200, body: { result: [{ data: [1, 2, 3] }] } };
+          },
+          { name: MOCK_URL },
+        );
+
+        const actionThunk = actions.postChartFormData(
+          { viz_type: 'my_viz' } as QueryFormData,
+          true, // force: the re-issue must preserve it
+          undefined,
+          undefined,
+        );
+        await actionThunk(
+          dispatch as unknown as actions.ChartThunkDispatch,
+          mockGetState as unknown as () => actions.RootState,
+          undefined,
+        );
+
+        // Exactly two requests: the async submit, then one synchronous re-issue —
+        // no repeat-202 loop and no duplicate background task.
+        expect(calls).toBe(2);
+        const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+        expect(history).toHaveLength(2);
+        // The re-issue carries no async_mode (synchronous → no new GTF task)...
+        expect(String(history[1].options.body)).not.toContain('async_mode');
+        // ...and preserves the caller's force (carried in the query string), so a
+        // forced refresh can't return a stale cached result.
+        expect(history[1].url).toContain('force=true');
+
+        const succeeded = dispatch.mock.calls.find(
+          ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
+        )?.[0];
+        expect(succeeded).toBeDefined();
+      });
     });
   });
 

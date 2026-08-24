@@ -22,6 +22,19 @@ import redis
 from flask_caching.backends.rediscache import RedisCache, RedisSentinelCache
 from redis.sentinel import Sentinel
 
+# Atomic compare-and-delete: delete the key only if its current value still
+# equals the caller's token. Runs server-side in one round trip, so it closes
+# the TTL-expiry race a separate GET-then-DEL leaves open (the key expiring and
+# being re-acquired by another holder between the two calls). Returns 1 if the
+# key was deleted, 0 otherwise.
+_COMPARE_AND_DELETE_LUA = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+    return redis.call('del', KEYS[1])
+else
+    return 0
+end
+"""
+
 
 class RedisCacheBackend(RedisCache):
     MAX_EVENT_COUNT = 100
@@ -116,6 +129,16 @@ class RedisCacheBackend(RedisCache):
         :returns: Number of keys deleted
         """
         return self._cache.delete(*names)
+
+    def compare_and_delete(self, name: str, expected: str) -> int:
+        """
+        Atomically delete ``name`` only if its value still equals ``expected``.
+
+        :param name: Key name
+        :param expected: The value the key must currently hold to be deleted
+        :returns: 1 if the key was deleted, 0 otherwise
+        """
+        return int(self._cache.eval(_COMPARE_AND_DELETE_LUA, 1, name, expected))
 
     def publish(self, channel: str, message: str) -> int:
         """
@@ -350,6 +373,16 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         :returns: Number of keys deleted
         """
         return self._cache.delete(*names)
+
+    def compare_and_delete(self, name: str, expected: str) -> int:
+        """
+        Atomically delete ``name`` only if its value still equals ``expected``.
+
+        :param name: Key name
+        :param expected: The value the key must currently hold to be deleted
+        :returns: 1 if the key was deleted, 0 otherwise
+        """
+        return int(self._cache.eval(_COMPARE_AND_DELETE_LUA, 1, name, expected))
 
     def publish(self, channel: str, message: str) -> int:
         """

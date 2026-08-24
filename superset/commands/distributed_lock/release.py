@@ -64,26 +64,21 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
             self._release_kv()
 
     def _release_redis(self) -> None:
-        """Release the lock only if we still own it (compare-and-delete)."""
+        """Release the lock only if we still own it (atomic compare-and-delete)."""
         try:
             if self.token is not None:
-                stored = CoordinationService.get_value(self.redis_lock_key)
-                if stored is None:
-                    # Already gone (expired or released) — nothing to do.
-                    return
-                stored_token = stored.decode() if isinstance(stored, bytes) else stored
-                if stored_token != self.token:
-                    # A different acquisition owns the key now (ours expired);
-                    # deleting it would drop the current holder's lock.
+                # One server-side compare-and-delete: removes the key only if it
+                # still holds our token, so an expired-then-reacquired lock owned
+                # by another holder is left untouched (no get-then-delete window).
+                if not CoordinationService.compare_and_delete(
+                    self.redis_lock_key, self.token
+                ):
                     logger.warning(
-                        "Not releasing Redis lock %s: owned by another acquisition",
+                        "Not releasing Redis lock %s: owned by another "
+                        "acquisition or already gone",
                         self.redis_lock_key,
                     )
-                    return
-            # NOTE: the get-then-delete above is not atomic; the residual window
-            # (ours expires and is re-acquired between the get and the delete) is
-            # bounded by the round-trip and vastly smaller than an unconditional
-            # delete's exposure. A Lua compare-and-delete would close it fully.
+                return
             CoordinationService.delete_value(self.redis_lock_key)
             logger.debug("Released Redis lock: %s", self.redis_lock_key)
         except redis.RedisError as ex:

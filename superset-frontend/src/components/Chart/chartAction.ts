@@ -743,20 +743,23 @@ export function exploreJSON(
       setTimeout(() => prevController.abort(), 0);
     }
 
-    // Re-issue the chart-data request. On the async path this runs after every
-    // query task has succeeded, so `force` is dropped — the per-query DATA cache
-    // is warm and this returns synchronously (200) from cache.
-    const requestChartData = (fromCache = false) =>
+    // Re-issue the chart-data request. `sync` opts out of async execution: the
+    // initial request runs async (per policy); the post-completion re-issue below
+    // runs synchronously so the server serves it inline (from the warm per-query
+    // cache, or by computing once if the result wasn't cached) instead of
+    // scheduling a second background task. `force` is always the caller's own, so
+    // a forced refresh never reads a stale cached entry.
+    const requestChartData = (sync = false) =>
       getChartDataRequest({
         setDataMask,
         formData,
         resultFormat: 'json',
         resultType: 'full',
-        force: fromCache ? false : force,
+        force,
         requestParams,
         ownState,
         // exploreJSON handles 202 via handleChartDataResponse.
-        enableAsyncMode: true,
+        enableAsyncMode: !sync,
       });
 
     const chartDataRequest = requestChartData();
@@ -766,6 +769,11 @@ export function exploreJSON(
         handleChartDataResponse(
           response,
           json,
+          // After every query task has succeeded, re-issue the request
+          // synchronously: it reads the warm per-query DATA cache (200), or — if
+          // the result wasn't cached (oversized value / per-query disabled
+          // timeout; NullCache is refused server-side) — computes it inline once.
+          // Never schedules another async task, and never returns a 202.
           () =>
             requestChartData(true).then(({ response: r, json: j }) =>
               handleChartDataResponse(r, j),
