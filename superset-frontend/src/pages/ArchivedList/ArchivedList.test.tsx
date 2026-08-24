@@ -25,8 +25,10 @@ import {
   fireEvent,
   userEvent,
   waitFor,
+  within,
   selectOption,
 } from 'spec/helpers/testing-library';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -151,6 +153,13 @@ beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
   mockAddDangerToast.mockClear();
+});
+
+afterEach(() => {
+  // The flag mock is shared module state; restore the environment default so a
+  // flag-flipping test that dies mid-body (e.g. by Jest timeout) cannot leak
+  // SEMANTIC_LAYERS into whichever test runs next.
+  (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
 });
 
 test('renders archived rows with Name and Type columns', async () => {
@@ -584,34 +593,33 @@ test('a viewer who can read none of the types gets an empty state, not three 403
 });
 
 test('labels the dataset type "Datasource" when semantic layers is enabled', async () => {
-  const { isFeatureEnabled } = jest.requireMock('@superset-ui/core');
   (isFeatureEnabled as jest.Mock).mockImplementation(
-    (flag: string) => flag === 'SEMANTIC_LAYERS',
+    (flag: FeatureFlag) => flag === FeatureFlag.SemanticLayers,
   );
   mockRoutes();
-  try {
-    renderArchivedList();
-    await screen.findByText('Deleted Chart One');
+  renderArchivedList();
+  await screen.findByText('Deleted Chart One');
 
-    userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
-    expect(
-      await screen.findByRole('option', { name: 'Datasource' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', { name: 'Dataset' }),
-    ).not.toBeInTheDocument();
+  userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+  expect(
+    await screen.findByRole('option', { name: 'Datasource' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: 'Dataset' }),
+  ).not.toBeInTheDocument();
 
-    // Selecting the renamed option still drives the dataset resource —
-    // the underlying type value is flag-independent.
-    await selectOption('Datasource', 'Type');
-    await screen.findByText('deleted_table_one');
-    expect(
-      fetchMock.callHistory.calls(datasetListEndpoint).length,
-    ).toBeGreaterThan(0);
-    expect(screen.getAllByText('Datasource').length).toBeGreaterThan(0);
-  } finally {
-    (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
-  }
+  // Selecting the renamed option still drives the dataset resource —
+  // the underlying type value is flag-independent.
+  await selectOption('Datasource', 'Type');
+  await screen.findByText('deleted_table_one');
+  expect(
+    fetchMock.callHistory.calls(datasetListEndpoint).length,
+  ).toBeGreaterThan(0);
+  // Pin the Type COLUMN cell, not just the Select's own rendered value.
+  const datasetRow = screen.getByText('deleted_table_one').closest('tr');
+  expect(
+    within(datasetRow as HTMLElement).getByText('Datasource'),
+  ).toBeInTheDocument();
 });
 
 test('labels the dataset type "Dataset" when semantic layers is disabled', async () => {
@@ -632,4 +640,8 @@ test('labels the dataset type "Dataset" when semantic layers is disabled', async
   expect(
     fetchMock.callHistory.calls(datasetListEndpoint).length,
   ).toBeGreaterThan(0);
+  const datasetRow = screen.getByText('deleted_table_one').closest('tr');
+  expect(
+    within(datasetRow as HTMLElement).getByText('Dataset'),
+  ).toBeInTheDocument();
 });
