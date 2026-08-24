@@ -30,10 +30,11 @@ locking via DistributedLock.
 from __future__ import annotations
 
 import logging
+import time
 from contextlib import contextmanager
 from typing import Iterator
 
-from superset.distributed_lock import DistributedLock
+from superset.exceptions import LockAlreadyHeldException
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,12 @@ logger = logging.getLogger(__name__)
 # Task operations use a shorter TTL than the global default since
 # they complete quickly (just DB operations, no external calls)
 TASK_LOCK_TTL_SECONDS = 10
+# Wait (block-and-retry) for a held lock rather than failing fast: concurrent
+# submits of the SAME task must serialize so all-but-one JOIN the task the winner
+# creates. Wait past the TTL so a lock orphaned by a crashed holder is waited out
+# (it auto-expires) instead of erroring.
+TASK_LOCK_WAIT_SECONDS = TASK_LOCK_TTL_SECONDS + 2
+TASK_LOCK_RETRY_INTERVAL_SECONDS = 0.05
 
 
 @contextmanager
@@ -61,7 +68,8 @@ def task_lock(dedup_key: str) -> Iterator[None]:
 
     :param dedup_key: Task deduplication key (from get_active_dedup_key)
     :yields: Nothing; used as context manager
-    :raises AcquireDistributedLockFailedException: If lock is already held
+    :raises AcquireDistributedLockFailedException: If the lock is still held after
+        waiting out the TTL (only when a holder is genuinely stuck)
 
     Example:
         dedup_key = get_active_dedup_key(TaskScope.SHARED, "report", "monthly")
@@ -69,13 +77,31 @@ def task_lock(dedup_key: str) -> Iterator[None]:
             # Create, subscribe, or cancel task here
             ...
     """
-    logger.debug("Acquiring task lock for key: %s", dedup_key)
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.distributed_lock.acquire import AcquireDistributedLock
+    from superset.commands.distributed_lock.release import ReleaseDistributedLock
 
-    with DistributedLock(
-        namespace="gtf:task",
-        key=dedup_key,
-        ttl_seconds=TASK_LOCK_TTL_SECONDS,
-    ):
+    params = {"key": dedup_key}
+    acquire = AcquireDistributedLock("gtf:task", params, TASK_LOCK_TTL_SECONDS)
+
+    # Block-and-wait rather than fail fast. Several charts can resolve to the same
+    # query_cache_key (hence the same SHARED task and dedup_key) and submit at
+    # once; the winner creates the task and the rest must WAIT here, then join it —
+    # failing fast would surface a spurious "Lock already taken" error. Bounded by
+    # the TTL so a crashed holder's lock is waited out (auto-expiry), never forever.
+    deadline = time.monotonic() + TASK_LOCK_WAIT_SECONDS
+    while True:
+        try:
+            acquire.run()
+            break
+        except LockAlreadyHeldException:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(TASK_LOCK_RETRY_INTERVAL_SECONDS)
+
+    logger.debug("Acquired task lock for key: %s", dedup_key)
+    try:
         yield
-
-    logger.debug("Released task lock for key: %s", dedup_key)
+    finally:
+        ReleaseDistributedLock("gtf:task", params, token=acquire.token).run()
+        logger.debug("Released task lock for key: %s", dedup_key)
