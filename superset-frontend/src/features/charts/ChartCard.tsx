@@ -96,7 +96,11 @@ export default function ChartCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const allowEdit = isUserEditorOrAdmin(user, chart.editors);
+  const allowEdit = isUserEditorOrAdmin(
+    user,
+    chart.editors,
+    chart.extra_editors,
+  );
   const menuItems: MenuItem[] = [];
 
   if (canEdit) {
